@@ -1,0 +1,6 @@
+node_modules/
+.claude/settings.local.json
+.DS_Store
+
+# Agent scratch / probe files in tests/
+tests/_*.js

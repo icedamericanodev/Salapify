@@ -1,0 +1,14 @@
+{
+  "name": "salapify",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Peso Smart — personal finance assistant that runs as a single static HTML page.",
+  "scripts": {
+    "lint": "htmlhint index.html 404.html",
+    "test": "node tests/smoke.test.js"
+  },
+  "devDependencies": {
+    "htmlhint": "^1.1.4",
+    "jsdom": "^24.1.0"
+  }
+}
