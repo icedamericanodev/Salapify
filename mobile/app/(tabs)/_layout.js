@@ -4,17 +4,18 @@
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../theme';
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false, // each screen draws its own header
-        tabBarActiveTintColor: '#1D9E75', // primary green for the selected tab
-        tabBarInactiveTintColor: '#8A9690', // muted for the others
+        tabBarActiveTintColor: colors.primary, // selected tab
+        tabBarInactiveTintColor: colors.muted, // the others
         tabBarStyle: {
-          backgroundColor: '#16211C', // card surface color for the bar
-          borderTopColor: '#244034', // subtle top border
+          backgroundColor: colors.card, // bar background
+          borderTopColor: colors.border, // subtle top border
         },
       }}
     >

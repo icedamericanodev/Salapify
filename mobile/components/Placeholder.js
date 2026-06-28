@@ -1,9 +1,9 @@
 // A simple reusable screen for tabs we have not built yet.
-// It shows a title and a short note, using our dark theme colors.
-// Reusing this keeps each tab file tiny until we build the real screen.
+// It shows a title and a short note, using our shared theme tokens.
 
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, fontSize, fontWeight } from '../theme';
 
 export default function Placeholder({ title, note }) {
   return (
@@ -21,30 +21,30 @@ export default function Placeholder({ title, note }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#0E1512', // app background
+    backgroundColor: colors.background,
   },
   body: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   kicker: {
-    color: '#7FB89E',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.softGreen,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.medium,
     letterSpacing: 2,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '800',
+    color: colors.text,
+    fontSize: fontSize.big,
+    fontWeight: fontWeight.bold,
   },
   note: {
-    color: '#8A9690',
-    fontSize: 14,
-    marginTop: 10,
+    color: colors.muted,
+    fontSize: fontSize.body,
+    marginTop: spacing.sm,
     textAlign: 'center',
   },
 });

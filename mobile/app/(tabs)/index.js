@@ -1,9 +1,10 @@
 // Overview screen (the Home tab). For now it shows the brand card.
 // In a later step we will replace this with the real net worth and
-// cash flow summary, ported from v1.
+// cash flow summary, ported from v1. It now uses our theme tokens.
 
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, radius, fontSize, fontWeight } from '../../theme';
 
 export default function Overview() {
   return (
@@ -25,27 +26,37 @@ export default function Overview() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0E1512' },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#16211C',
-    borderColor: '#244034',
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 28,
+    borderRadius: radius.lg,
+    padding: spacing.xl + spacing.xs, // a touch more breathing room
     alignItems: 'center',
   },
   kicker: {
-    color: '#7FB89E',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.softGreen,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.medium,
     letterSpacing: 2,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
-  title: { color: '#1D9E75', fontSize: 34, fontWeight: '800' },
-  version: { color: '#8A9690', fontSize: 13, marginTop: 4 },
-  tagline: { color: '#D7E0DB', fontSize: 15, marginTop: 16, textAlign: 'center' },
-  hint: { color: '#5A6B63', fontSize: 13, marginTop: 20, textAlign: 'center' },
+  title: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold },
+  version: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs },
+  tagline: {
+    color: colors.textSecondary,
+    fontSize: fontSize.body,
+    marginTop: spacing.lg,
+    textAlign: 'center',
+  },
+  hint: {
+    color: colors.faint,
+    fontSize: fontSize.small,
+    marginTop: spacing.xl,
+    textAlign: 'center',
+  },
 });
