@@ -4,8 +4,10 @@
     "slug": "salapify-v2",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "salapify",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router"],
     "ios": {
       "supportsTablet": true
     },
