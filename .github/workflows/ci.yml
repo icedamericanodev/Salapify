@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
@@ -24,25 +22,11 @@ jobs:
       - run: npm run lint
       - run: npm test
 
-  deploy:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - name: Stage site
-        run: |
-          mkdir _site
-          cp index.html 404.html robots.txt manifest.json sw.js icon-192.png icon-512.png _site/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: '_site'
-      - id: deployment
-        uses: actions/deploy-pages@v4
+# Deployment to GitHub Pages is handled by the repository's built-in
+# "Deploy from a branch" Pages source, which publishes the root of `main`
+# automatically on every push. No deploy job is needed here.
+#
+# To switch to gym-buddy's Actions-based deploy (which only publishes after
+# lint + test pass), set Settings -> Pages -> Source to "GitHub Actions" and
+# restore the deploy job that stages index.html, 404.html, robots.txt,
+# manifest.json, sw.js and the icons into _site/ via actions/deploy-pages.
