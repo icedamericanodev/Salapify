@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#1D9E75"/>
+  <title>Page not found — Peso Smart</title>
+  <link rel="manifest" href="/Salapify/manifest.json"/>
+  <link rel="apple-touch-icon" href="/Salapify/icon-192.png"/>
+  <!-- Single-page app: redirect unknown deep links back to the app root -->
+  <script>
+    (function () {
+      var base = "/Salapify/";
+      if (location.pathname !== base && location.pathname !== base + "404.html") {
+        location.replace(base);
+      }
+    })();
+  </script>
+  <style>
+    :root { color-scheme: light dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #FFF6F1;
+      color: #3A2E2A;
+      padding: 24px;
+      text-align: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0E1116; color: #E9ECF2; }
+      .muted { color: #95A0B2 !important; }
+    }
+    .card { max-width: 420px; }
+    .code {
+      font-size: 64px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      background: linear-gradient(140deg, #FF8A5B 0%, #FFB152 48%, #8B4FA3 125%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1 { font-size: 20px; margin: 8px 0 6px; }
+    .muted { color: #A2918A; font-size: 14px; line-height: 1.5; }
+    a.btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 11px 22px;
+      border-radius: 10px;
+      background: #1D9E75;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="code">404</div>
+    <h1>Page not found</h1>
+    <p class="muted">The page you’re looking for doesn’t exist. You’ll be redirected to Peso Smart automatically.</p>
+    <a class="btn" href="/Salapify/">Go to Peso Smart</a>
+  </main>
+</body>
+</html>

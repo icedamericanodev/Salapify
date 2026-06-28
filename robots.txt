@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://icedamericanodev.github.io/Salapify/sitemap.xml
