@@ -22,6 +22,18 @@ export const sampleDebts = [
   { id: 'd3', name: 'Phone (BNPL)', type: 'bnpl', remaining: 6000, monthlyRate: 0, minPayment: 1000 },
 ];
 
+// Budget settings: the monthly spending limit and the quick add buttons used
+// for fast logging.
+export const sampleBudget = {
+  monthlyLimit: 20000,
+  quickAdds: [
+    { label: 'Food', amount: 150 },
+    { label: 'Transport', amount: 50 },
+    { label: 'Coffee', amount: 120 },
+    { label: 'Load', amount: 100 },
+  ],
+};
+
 // Transactions: money in (income) and money out (expense) for this month.
 export const sampleTransactions = [
   { id: 't1', type: 'income', label: 'Salary', amount: 15000, account: 'bpi' },
