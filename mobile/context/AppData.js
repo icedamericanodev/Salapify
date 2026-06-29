@@ -30,6 +30,7 @@ const seedData = {
   payments: [],
   transactions: sampleTransactions,
   goals: [],
+  wins: [],
   settings: {
     currency: '₱',
     monthlyLimit: sampleBudget.monthlyLimit,

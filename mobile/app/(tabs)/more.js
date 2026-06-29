@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
@@ -57,6 +58,7 @@ export default function More() {
   const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, replaceAll } = useAppData();
+  const router = useRouter();
 
   // The data tool modal: { mode, text } or null.
   const [tool, setTool] = useState(null);
@@ -90,6 +92,19 @@ export default function More() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Settings</Text>
+
+        {/* Links to the other sections. */}
+        <Text style={styles.sectionTitle}>MY MONEY</Text>
+        <View style={styles.card}>
+          <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Goals</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/mindset')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Money mindset</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
+        </View>
 
         {/* Appearance. */}
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
