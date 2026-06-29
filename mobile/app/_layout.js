@@ -14,6 +14,7 @@ import { ThemeProvider, useTheme } from '../context/Theme';
 // phone. It changes nothing on the real device.
 function PhoneFrame({ children }) {
   const { width, height } = useWindowDimensions();
+  const { colors } = useTheme();
 
   if (Platform.OS !== 'web') {
     return children;
@@ -27,7 +28,14 @@ function PhoneFrame({ children }) {
   const frameWidth = Math.min(frameHeight * 0.47, width - 16);
   return (
     <View style={webStyles.backdrop}>
-      <View style={[webStyles.phone, { width: frameWidth, height: frameHeight }]}>
+      {/* paddingBottom reserves a small strip (bar color) so the tab labels
+          never reach the rounded bottom edge and get clipped, in the browser. */}
+      <View
+        style={[
+          webStyles.phone,
+          { width: frameWidth, height: frameHeight, backgroundColor: colors.card, paddingBottom: 18 },
+        ]}
+      >
         {children}
       </View>
     </View>
