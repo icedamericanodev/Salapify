@@ -3,7 +3,11 @@ REM Salapify v2 USB launcher. Use this when your phone is plugged in by cable,
 REM USB debugging is ON, and the phone is in File transfer mode.
 REM This connects the app over the cable, so it does not depend on Wi-Fi.
 
-REM Tell this window where adb lives, so Expo can find it.
+REM Tell this window where adb and the Android tools live, so Expo can find
+REM them. ANDROID_HOME is a folder whose "platform-tools" subfolder holds adb.
+REM Yours is C:\Users\carla\platform-tools\adb.exe, so ANDROID_HOME is the
+REM parent, C:\Users\carla.
+set ANDROID_HOME=C:\Users\carla
 set PATH=C:\Users\carla\platform-tools;%PATH%
 
 echo === Freeing the app port if an earlier run got stuck ===
