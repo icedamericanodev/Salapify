@@ -29,6 +29,7 @@ export default function Budget() {
   const { data, addItem, removeItem } = useAppData();
 
   const [form, setForm] = useState(null); // custom entry modal
+  const [err, setErr] = useState('');
 
   const limit = data.settings.monthlyLimit || 0;
   const quickAdds = data.settings.quickAdds || [];
@@ -47,10 +48,14 @@ export default function Budget() {
   }
   function openCustom() {
     setForm({ type: 'expense', label: '', amount: '' });
+    setErr('');
   }
   function saveCustom() {
-    const amount = Number(form.amount) || 0;
-    if (amount <= 0) return;
+    const amount = Number(form.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setErr('Enter an amount greater than 0.');
+      return;
+    }
     addItem('transactions', {
       type: form.type,
       label: form.label.trim() || (form.type === 'income' ? 'Income' : 'Expense'),
@@ -159,6 +164,7 @@ export default function Budget() {
               keyboardType="numeric"
             />
 
+            {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>
               <Pressable onPress={() => setForm(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -220,6 +226,7 @@ function makeStyles(colors) {
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xl },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
+    err: { color: colors.warning, fontSize: fontSize.small, marginBottom: spacing.sm },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },

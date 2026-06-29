@@ -46,6 +46,8 @@ export default function Debts() {
   const [form, setForm] = useState(null); // add/edit modal
   const [payAmount, setPayAmount] = useState('');
   const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const debts = data.debts;
   const sum = (list, fn) => list.reduce((t, d) => t + fn(d), 0);
@@ -65,6 +67,8 @@ export default function Debts() {
     setForm({ id: null, name: '', type: 'credit card', remaining: '', monthlyRate: '', minPayment: '' });
     setPayAmount('');
     setMsg('');
+    setErr('');
+    setConfirmDel(false);
   }
   function openEdit(d) {
     setForm({
@@ -77,23 +81,42 @@ export default function Debts() {
     });
     setPayAmount(String(d.minPayment));
     setMsg('');
+    setErr('');
+    setConfirmDel(false);
   }
   function close() {
     setForm(null);
   }
   function save() {
-    const payload = {
-      name: form.name.trim() || 'Debt',
-      type: form.type,
-      remaining: Number(form.remaining) || 0,
-      monthlyRate: Number(form.monthlyRate) || 0,
-      minPayment: Number(form.minPayment) || 0,
-    };
+    if (!form.name.trim()) {
+      setErr('Please enter a name.');
+      return;
+    }
+    const rem = Number(form.remaining);
+    const rate = Number(form.monthlyRate);
+    const min = Number(form.minPayment);
+    if (form.remaining === '' || !Number.isFinite(rem) || rem < 0) {
+      setErr('Enter a valid remaining balance.');
+      return;
+    }
+    if (!Number.isFinite(rate) || rate < 0) {
+      setErr('Enter a valid interest %.');
+      return;
+    }
+    if (!Number.isFinite(min) || min < 0) {
+      setErr('Enter a valid minimum payment.');
+      return;
+    }
+    const payload = { name: form.name.trim(), type: form.type, remaining: rem, monthlyRate: rate, minPayment: min };
     if (form.id) updateItem('debts', form.id, payload);
     else addItem('debts', payload);
     close();
   }
   function del() {
+    if (!confirmDel) {
+      setConfirmDel(true);
+      return;
+    }
     if (form.id) removeItem('debts', form.id);
     close();
   }
@@ -258,10 +281,11 @@ export default function Debts() {
                 </View>
               ) : null}
 
+              {err ? <Text style={styles.err}>{err}</Text> : null}
               <View style={styles.sheetButtons}>
                 {form?.id ? (
                   <Pressable onPress={del} style={[styles.sheetBtn, styles.deleteBtn]}>
-                    <Text style={styles.deleteText}>Delete</Text>
+                    <Text style={styles.deleteText}>{confirmDel ? 'Tap to confirm' : 'Delete'}</Text>
                   </Pressable>
                 ) : (
                   <View />
@@ -379,6 +403,7 @@ function makeStyles(colors) {
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     deleteBtn: { backgroundColor: 'transparent' },
     deleteText: { color: colors.warning, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    err: { color: colors.warning, fontSize: fontSize.small, marginBottom: spacing.sm },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },

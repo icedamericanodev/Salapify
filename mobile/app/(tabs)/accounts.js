@@ -42,6 +42,8 @@ export default function Accounts() {
 
   // The form modal. null when closed; otherwise holds the fields being edited.
   const [form, setForm] = useState(null);
+  const [err, setErr] = useState('');
+  const [confirmDel, setConfirmDel] = useState(false);
 
   function openAdd(type) {
     setForm({
@@ -53,6 +55,8 @@ export default function Accounts() {
       icon: '',
       amount: '',
     });
+    setErr('');
+    setConfirmDel(false);
   }
   function openEdit(type, item) {
     setForm({
@@ -64,12 +68,22 @@ export default function Accounts() {
       icon: item.icon || '',
       amount: String(type === 'account' ? item.balance : item.value),
     });
+    setErr('');
+    setConfirmDel(false);
   }
   function close() {
     setForm(null);
   }
   function save() {
-    const amount = Number(form.amount) || 0;
+    if (!form.name.trim()) {
+      setErr('Please enter a name.');
+      return;
+    }
+    const amount = Number(form.amount);
+    if (form.amount === '' || !Number.isFinite(amount) || amount < 0) {
+      setErr('Enter a valid amount (0 or more).');
+      return;
+    }
     if (form.type === 'account') {
       const payload = {
         name: form.name.trim() || 'Account',
@@ -88,6 +102,10 @@ export default function Accounts() {
     close();
   }
   function del() {
+    if (!confirmDel) {
+      setConfirmDel(true);
+      return;
+    }
     if (form.id) removeItem(form.type === 'account' ? 'accounts' : 'assets', form.id);
     close();
   }
@@ -281,10 +299,11 @@ export default function Accounts() {
                 keyboardType="numeric"
               />
 
+              {err ? <Text style={styles.err}>{err}</Text> : null}
               <View style={styles.sheetButtons}>
                 {form?.id ? (
                   <Pressable onPress={del} style={[styles.sheetBtn, styles.deleteBtn]}>
-                    <Text style={styles.deleteText}>Delete</Text>
+                    <Text style={styles.deleteText}>{confirmDel ? 'Tap to confirm' : 'Delete'}</Text>
                   </Pressable>
                 ) : (
                   <View />
@@ -444,6 +463,7 @@ function makeStyles(colors) {
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     deleteBtn: { backgroundColor: 'transparent' },
     deleteText: { color: colors.warning, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    err: { color: colors.warning, fontSize: fontSize.small, marginBottom: spacing.sm },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
