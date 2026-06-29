@@ -19,7 +19,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.card, // bar background
           borderTopColor: colors.border, // subtle top border
+          paddingTop: 4,
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
       {/* index.js is the default screen, shown first. It is our Overview. */}

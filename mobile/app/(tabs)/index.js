@@ -61,9 +61,15 @@ export default function Overview() {
           </View>
         </View>
 
-        {/* Net worth headline. */}
-        <View style={styles.card}>
-          <Text style={styles.kicker}>NET WORTH</Text>
+        {/* Net worth headline. Tap to open Accounts. */}
+        <Pressable
+          onPress={() => router.push('/accounts')}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHead}>
+            <Text style={styles.kicker}>NET WORTH</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+          </View>
           <Text style={styles.netWorth}>{formatMoney(netWorth)}</Text>
           <View style={styles.splitRow}>
             <View>
@@ -79,11 +85,17 @@ export default function Overview() {
               </Text>
             </View>
           </View>
-        </View>
+        </Pressable>
 
-        {/* This month's cash flow. */}
-        <View style={styles.card}>
-          <Text style={styles.kicker}>THIS MONTH</Text>
+        {/* This month's cash flow. Tap to open Budget. */}
+        <Pressable
+          onPress={() => router.push('/budget')}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHead}>
+            <Text style={styles.kicker}>THIS MONTH</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+          </View>
           <Text
             style={[
               styles.cashFlow,
@@ -107,7 +119,7 @@ export default function Overview() {
               </Text>
             </View>
           </View>
-        </View>
+        </Pressable>
 
         {/* Days to payday. */}
         <View style={styles.card}>
@@ -171,6 +183,8 @@ function makeStyles(colors) {
       padding: spacing.xl,
       marginBottom: spacing.lg,
     },
+    cardPressed: { opacity: 0.7 },
+    cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     kicker: {
       color: colors.softGreen,
       fontSize: fontSize.caption,
