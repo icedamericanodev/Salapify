@@ -33,9 +33,9 @@ export const lightColors = {
   warningStrong: '#B8431F',
 };
 
-// For now the app always uses the dark palette. In a later step we will let
-// the user switch this to light or follow the phone's system setting.
-export const colors = darkColors;
+// The active palette is no longer fixed here. Screens get their colors from
+// the Theme context (see context/Theme.js) using the useTheme() hook, so the
+// whole app can switch between light and dark at runtime.
 
 // Spacing scale. Use these instead of typing random numbers, so padding and
 // gaps stay consistent everywhere.

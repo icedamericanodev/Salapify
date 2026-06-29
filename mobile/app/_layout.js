@@ -1,25 +1,35 @@
 // This is the root layout. Expo Router loads it first and it wraps every
-// screen in the app. We keep it minimal: a SafeAreaProvider (so screens can
-// avoid notches and the status bar) and a Stack that holds our tab group.
+// screen. We wrap everything in two providers: ThemeProvider (light/dark
+// colors) and AppDataProvider (the saved data). Then a Stack holds the tabs.
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppDataProvider } from '../context/AppData';
+import { ThemeProvider, useTheme } from '../context/Theme';
+
+// Small helper so the status bar icons flip to match the theme:
+// light icons on a dark background, dark icons on a light background.
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
 
 export default function RootLayout() {
   return (
-    // AppDataProvider must wrap everything so every screen can read the data.
-    <AppDataProvider>
-      <SafeAreaProvider>
-        {/* headerShown: false hides the default top bar; our screens draw their own. */}
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+    // ThemeProvider is outermost so every screen (and the status bar) can read
+    // the active colors. AppDataProvider holds the saved app data.
+    <ThemeProvider>
+      <AppDataProvider>
+        <SafeAreaProvider>
+          {/* headerShown: false hides the default top bar; screens draw their own. */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+          </Stack>
 
-        {/* Light status bar icons so they are visible on our dark background. */}
-        <StatusBar style="light" />
-      </SafeAreaProvider>
-    </AppDataProvider>
+          <ThemedStatusBar />
+        </SafeAreaProvider>
+      </AppDataProvider>
+    </ThemeProvider>
   );
 }
