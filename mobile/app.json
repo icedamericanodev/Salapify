@@ -14,9 +14,12 @@
       "backgroundColor": "#0E1512"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.icedamericanodev.salapify"
     },
     "android": {
+      "package": "com.icedamericanodev.salapify",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#1D9E75"
