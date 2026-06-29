@@ -22,6 +22,15 @@ export const sampleDebts = [
   { id: 'd3', name: 'Phone (BNPL)', type: 'bnpl', remaining: 6000, monthlyRate: 0, minPayment: 1000 },
 ];
 
+// Net worth over the last few months, for the Insights trend chart.
+export const sampleNetWorthHistory = [
+  { month: 'Feb', value: 12000 },
+  { month: 'Mar', value: 15000 },
+  { month: 'Apr', value: 18000 },
+  { month: 'May', value: 21000 },
+  { month: 'Jun', value: 23950 },
+];
+
 // Budget settings: the monthly spending limit and the quick add buttons used
 // for fast logging.
 export const sampleBudget = {
