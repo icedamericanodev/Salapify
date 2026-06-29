@@ -22,11 +22,11 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.card, // bar background
           borderTopColor: colors.border, // subtle top border
-          height: 62 + insets.bottom, // room for icon + label + safe area
-          paddingTop: 8,
-          paddingBottom: insets.bottom + 10,
+          height: 78 + insets.bottom, // room for icon + label + safe area
+          paddingTop: 10,
+          paddingBottom: insets.bottom + 18, // lifts labels off the bottom edge
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
       }}
     >
       {/* index.js is the default screen, shown first. It is our Overview. */}
