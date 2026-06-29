@@ -12,3 +12,25 @@ export function formatMoney(amount, symbol = '₱') {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ','); // insert commas
   return sign + symbol + digits;
 }
+
+// daysUntilPayday counts the days to the next payday. We assume the common
+// Filipino schedule: the 15th and the last day of each month. Later this
+// becomes a setting the user can change.
+export function daysUntilPayday(today = new Date()) {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const lastDay = new Date(y, m + 1, 0).getDate(); // last day of this month
+  const startToday = new Date(y, m, today.getDate()); // ignore the time part
+
+  // The next few possible paydays, in order.
+  const candidates = [
+    new Date(y, m, 15),
+    new Date(y, m, lastDay),
+    new Date(y, m + 1, 15),
+  ];
+  for (const c of candidates) {
+    const diff = Math.round((c - startToday) / 86400000); // ms in a day
+    if (diff >= 0) return diff;
+  }
+  return 0;
+}
