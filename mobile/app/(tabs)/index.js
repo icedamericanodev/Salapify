@@ -36,6 +36,10 @@ export default function Overview() {
   // Days to the next payday.
   const payday = daysUntilPayday();
 
+  // Time-based greeting for the header.
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   // The quick links shown at the bottom. Each opens a tab when tapped.
   const links = [
     { label: 'Accounts', icon: 'wallet-outline', href: '/accounts' },
@@ -47,7 +51,15 @@ export default function Overview() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Overview</Text>
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>🪙</Text>
+          </View>
+          <View>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.subgreeting}>Here is your money today</Text>
+          </View>
+        </View>
 
         {/* Net worth headline. */}
         <View style={styles.card}>
@@ -131,12 +143,25 @@ function makeStyles(colors) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-    pageTitle: {
-      color: colors.text,
-      fontSize: fontSize.title,
-      fontWeight: fontWeight.bold,
-      marginBottom: spacing.md,
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
     },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.pill,
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { fontSize: 22 },
+    greeting: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
+    subgreeting: { color: colors.muted, fontSize: fontSize.small, marginTop: 2 },
 
     card: {
       backgroundColor: colors.card,

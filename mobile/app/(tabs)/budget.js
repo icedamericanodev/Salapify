@@ -19,6 +19,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
+import EmptyState from '../../components/EmptyState';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -102,7 +103,7 @@ export default function Budget() {
         <Text style={styles.sectionTitle}>RECENT</Text>
         <View style={styles.card}>
           {recent.length === 0 ? (
-            <Text style={styles.empty}>Nothing logged yet.</Text>
+            <EmptyState icon="🧾" title="Nothing logged yet" subtitle="Tap a quick add or + Custom to start." />
           ) : (
             recent.slice(0, 12).map((e) => (
               <View key={e.id} style={styles.row}>

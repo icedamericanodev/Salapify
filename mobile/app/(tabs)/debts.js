@@ -18,6 +18,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
+import EmptyState from '../../components/EmptyState';
 
 const SHORT_TERM_TYPES = ['credit card', 'bnpl', 'short term', 'insurance'];
 const termOf = (type) => (SHORT_TERM_TYPES.includes(type) ? 'short' : 'long');
@@ -172,7 +173,9 @@ export default function Debts() {
         <Group title="SHORT TERM" list={shortTerm} styles={styles} colors={colors} onPick={openEdit} />
         <Group title="LONG TERM" list={longTerm} styles={styles} colors={colors} onPick={openEdit} />
 
-        {debts.length === 0 ? <Text style={styles.empty}>No debts yet. Tap Add debt.</Text> : null}
+        {debts.length === 0 ? (
+          <EmptyState icon="🎉" title="No debts" subtitle="Add a debt to track payoff, or enjoy being debt free." />
+        ) : null}
       </ScrollView>
 
       {/* Add / edit / pay modal. */}
