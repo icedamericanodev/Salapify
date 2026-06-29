@@ -8,15 +8,18 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": ["expo-router"],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E1512"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#1D9E75"
       }
     },
     "web": {
