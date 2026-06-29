@@ -1,16 +1,25 @@
 // format.js holds small helpers for showing values nicely.
 
-// formatMoney turns a number like 48500 into a string like "P48,500".
-// We use "P" style by passing a symbol. It rounds to whole units for a clean
-// look and adds commas every three digits. Negative values get a minus sign.
-export function formatMoney(amount, symbol = '₱') {
-  // ₱ is the peso sign. We will make this come from settings later.
+// The currency symbol used by formatMoney when no symbol is passed. It is kept
+// here as a single value and updated from settings (see AppData), so changing
+// the currency relabels amounts across the whole app without touching every
+// call site.
+let currentSymbol = '₱';
+export function setCurrencySymbol(symbol) {
+  if (symbol) currentSymbol = symbol;
+}
+
+// formatMoney turns a number like 48500 into a string like "₱48,500".
+// It rounds to whole units, adds commas every three digits, and uses the
+// current currency symbol unless one is passed in.
+export function formatMoney(amount, symbol) {
+  const sym = symbol || currentSymbol;
   const n = Math.round(Number(amount) || 0);
   const sign = n < 0 ? '-' : '';
   const digits = Math.abs(n)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ','); // insert commas
-  return sign + symbol + digits;
+  return sign + sym + digits;
 }
 
 // daysUntilPayday counts the days to the next payday. We assume the common

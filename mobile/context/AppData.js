@@ -7,6 +7,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
+import { setCurrencySymbol } from '../lib/format';
 import {
   sampleAccounts,
   sampleAssets,
@@ -33,6 +34,7 @@ const seedData = {
   wins: [],
   settings: {
     currency: '₱',
+    currencyCode: 'PHP',
     monthlyLimit: sampleBudget.monthlyLimit,
     quickAdds: sampleBudget.quickAdds,
   },
@@ -96,6 +98,10 @@ export function AppDataProvider({ children }) {
   function replaceAll(newData) {
     setData({ ...seedData, ...newData });
   }
+
+  // Keep the money formatter in sync with the chosen currency, so amounts
+  // across the app use the right symbol.
+  setCurrencySymbol(data.settings && data.settings.currency);
 
   const value = {
     data,

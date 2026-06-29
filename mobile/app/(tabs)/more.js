@@ -1,7 +1,7 @@
-// Settings screen (reached from the More tab). Appearance (Light/Dark/System)
-// and the Data tools (back up, restore, export CSV, import v1) work now. The
-// Data tools are text based so they work on web and phone with no native file
-// libraries; on web there is also a Download button.
+// Settings screen (reached from the More tab). Working now: Appearance,
+// the Data tools (backup/restore/CSV/v1 import), and Preferences (currency,
+// monthly budget, and quick add buttons). Categories and Logging are still
+// marked "Soon". Everything is web-preview compatible (no native libraries).
 
 import { useMemo, useState } from 'react';
 import {
@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
+import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 
 const APPEARANCE = [
@@ -35,14 +36,30 @@ const DATA_ACTIONS = [
   { mode: 'importv1', label: 'Import v1 backup' },
 ];
 
-const PREFERENCES = [
-  { label: 'Currency', value: 'PHP ₱' },
-  { label: 'Categories and income' },
-  { label: 'Quick add buttons' },
-  { label: 'Logging preference' },
+// A short list of common currencies. "relabel" only changes the symbol shown.
+const CURRENCIES = [
+  { code: 'PHP', symbol: '₱' },
+  { code: 'USD', symbol: '$' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'GBP', symbol: '£' },
+  { code: 'JPY', symbol: '¥' },
+  { code: 'CNY', symbol: '¥' },
+  { code: 'KRW', symbol: '₩' },
+  { code: 'INR', symbol: '₹' },
+  { code: 'IDR', symbol: 'Rp' },
+  { code: 'MYR', symbol: 'RM' },
+  { code: 'SGD', symbol: 'S$' },
+  { code: 'THB', symbol: '฿' },
+  { code: 'VND', symbol: '₫' },
+  { code: 'HKD', symbol: 'HK$' },
+  { code: 'AUD', symbol: 'A$' },
+  { code: 'CAD', symbol: 'C$' },
+  { code: 'AED', symbol: 'AED' },
+  { code: 'SAR', symbol: 'SAR' },
+  { code: 'CHF', symbol: 'CHF' },
+  { code: 'NZD', symbol: 'NZ$' },
 ];
 
-// Web-only file download. On the phone this does nothing (you copy the text).
 function downloadFile(filename, text) {
   if (Platform.OS !== 'web') return;
   const blob = new Blob([text], { type: 'text/plain' });
@@ -57,18 +74,23 @@ function downloadFile(filename, text) {
 export default function More() {
   const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, replaceAll } = useAppData();
+  const { data, replaceAll, updateSettings } = useAppData();
   const router = useRouter();
 
-  // The data tool modal: { mode, text } or null.
-  const [tool, setTool] = useState(null);
+  const [tool, setTool] = useState(null); // data tools modal
   const [msg, setMsg] = useState('');
+  const [pref, setPref] = useState(null); // preferences modal: {mode, text}
+  const [qaLabel, setQaLabel] = useState('');
+  const [qaAmount, setQaAmount] = useState('');
 
+  const settings = data.settings;
+
+  // ---- Data tools ----
   function openTool(m) {
     setMsg('');
     if (m === 'backup') setTool({ mode: m, text: buildBackup(data) });
     else if (m === 'csv') setTool({ mode: m, text: toCSV(data) });
-    else setTool({ mode: m, text: '' }); // restore / importv1: paste in
+    else setTool({ mode: m, text: '' });
   }
   function runImport() {
     try {
@@ -79,21 +101,42 @@ export default function More() {
       setMsg(e.message || 'Could not read that text.');
     }
   }
-
   const isReadOnly = tool && (tool.mode === 'backup' || tool.mode === 'csv');
-  const titleByMode = {
-    backup: 'Back up',
-    restore: 'Restore from a file',
-    csv: 'Export to CSV',
-    importv1: 'Import v1 backup',
-  };
+  const titleByMode = { backup: 'Back up', restore: 'Restore from a file', csv: 'Export to CSV', importv1: 'Import v1 backup' };
+
+  // ---- Preferences ----
+  function openPref(m) {
+    if (m === 'limit') setPref({ mode: m, text: String(settings.monthlyLimit || 0) });
+    else setPref({ mode: m });
+    setQaLabel('');
+    setQaAmount('');
+  }
+  function pickCurrency(c) {
+    updateSettings({ currency: c.symbol, currencyCode: c.code });
+    setPref(null);
+  }
+  function saveLimit() {
+    const n = Number(pref.text);
+    if (!Number.isFinite(n) || n < 0) return;
+    updateSettings({ monthlyLimit: n });
+    setPref(null);
+  }
+  function addQuickAdd() {
+    const amount = Number(qaAmount);
+    if (!qaLabel.trim() || !Number.isFinite(amount) || amount <= 0) return;
+    updateSettings({ quickAdds: [...(settings.quickAdds || []), { label: qaLabel.trim(), amount }] });
+    setQaLabel('');
+    setQaAmount('');
+  }
+  function removeQuickAdd(i) {
+    updateSettings({ quickAdds: (settings.quickAdds || []).filter((_, idx) => idx !== i) });
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Settings</Text>
 
-        {/* Links to the other sections. */}
         <Text style={styles.sectionTitle}>MY MONEY</Text>
         <View style={styles.card}>
           <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -106,52 +149,53 @@ export default function More() {
           </Pressable>
         </View>
 
-        {/* Appearance. */}
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
         <View style={styles.card}>
           {APPEARANCE.map((opt, i) => {
             const selected = mode === opt.key;
             return (
-              <Pressable
-                key={opt.key}
-                onPress={() => setMode(opt.key)}
-                style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}
-              >
+              <Pressable key={opt.key} onPress={() => setMode(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
                 <Text style={styles.rowLabel}>{opt.label}</Text>
                 {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
               </Pressable>
             );
           })}
         </View>
-        <Text style={styles.hint}>System follows your phone's light or dark setting.</Text>
 
-        {/* Data tools (working). */}
+        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <View style={styles.card}>
+          <Pressable onPress={() => openPref('currency')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Currency</Text>
+            <Text style={styles.rowValue}>{(settings.currencyCode || '') + ' ' + settings.currency}</Text>
+          </Pressable>
+          <Pressable onPress={() => openPref('limit')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Monthly budget</Text>
+            <Text style={styles.rowValue}>{formatMoney(settings.monthlyLimit)}</Text>
+          </Pressable>
+          <Pressable onPress={() => openPref('quickadds')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Quick add buttons</Text>
+            <Text style={styles.rowValue}>{(settings.quickAdds || []).length}</Text>
+          </Pressable>
+          <View style={[styles.row, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>Categories and income</Text>
+            <Text style={styles.soon}>Soon</Text>
+          </View>
+          <View style={[styles.row, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>Logging preference</Text>
+            <Text style={styles.soon}>Soon</Text>
+          </View>
+        </View>
+
         <Text style={styles.sectionTitle}>DATA</Text>
         <View style={styles.card}>
           {DATA_ACTIONS.map((a, i) => (
-            <Pressable
-              key={a.mode}
-              onPress={() => openTool(a.mode)}
-              style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}
-            >
+            <Pressable key={a.mode} onPress={() => openTool(a.mode)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
               <Text style={styles.rowLabel}>{a.label}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.faint} />
             </Pressable>
           ))}
         </View>
 
-        {/* Preferences (not wired yet). */}
-        <Text style={styles.sectionTitle}>PREFERENCES</Text>
-        <View style={styles.card}>
-          {PREFERENCES.map((row, i) => (
-            <View key={row.label} style={[styles.row, i > 0 && styles.rowDivider]}>
-              <Text style={styles.rowLabel}>{row.label}</Text>
-              {row.value ? <Text style={styles.rowValue}>{row.value}</Text> : <Text style={styles.soon}>Soon</Text>}
-            </View>
-          ))}
-        </View>
-
-        {/* About. */}
         <Text style={styles.sectionTitle}>ABOUT</Text>
         <View style={styles.card}>
           <View style={styles.row}>
@@ -176,10 +220,9 @@ export default function More() {
                   ? 'Copy this text, or use Download to save a file.'
                   : 'Copy this text and keep it safe. That is your backup.'
                 : tool?.mode === 'importv1'
-                ? 'Paste your Peso Smart (v1) backup text here, then Import. This replaces current data.'
+                ? 'Paste your Peso Smart (v1) backup here, then Import. This replaces current data.'
                 : 'Paste a Salapify backup here, then Restore. This replaces current data.'}
             </Text>
-
             <TextInput
               style={styles.textArea}
               value={tool?.text}
@@ -189,18 +232,13 @@ export default function More() {
               placeholder={isReadOnly ? '' : 'Paste here'}
               placeholderTextColor={colors.faint}
             />
-
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
-
             <View style={styles.sheetButtons}>
               <Pressable onPress={() => setTool(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
                 <Text style={styles.cancelText}>Close</Text>
               </Pressable>
               {isReadOnly && Platform.OS === 'web' ? (
-                <Pressable
-                  onPress={() => downloadFile(tool.mode === 'csv' ? 'salapify.csv' : 'salapify-backup.json', tool.text)}
-                  style={[styles.sheetBtn, styles.saveBtn]}
-                >
+                <Pressable onPress={() => downloadFile(tool.mode === 'csv' ? 'salapify.csv' : 'salapify-backup.json', tool.text)} style={[styles.sheetBtn, styles.saveBtn]}>
                   <Text style={styles.saveText}>Download</Text>
                 </Pressable>
               ) : null}
@@ -210,6 +248,90 @@ export default function More() {
                 </Pressable>
               ) : null}
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Preferences modal. */}
+      <Modal visible={!!pref} transparent animationType="slide" onRequestClose={() => setPref(null)}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            {pref?.mode === 'currency' ? (
+              <>
+                <Text style={styles.sheetTitle}>Currency</Text>
+                <ScrollView style={{ maxHeight: 360 }}>
+                  {CURRENCIES.map((c, i) => {
+                    const on = settings.currency === c.symbol && settings.currencyCode === c.code;
+                    return (
+                      <Pressable key={c.code} onPress={() => pickCurrency(c)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
+                        <Text style={styles.rowLabel}>{c.code} {c.symbol}</Text>
+                        {on ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <View style={styles.sheetButtons}>
+                  <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Close</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+
+            {pref?.mode === 'limit' ? (
+              <>
+                <Text style={styles.sheetTitle}>Monthly budget</Text>
+                <Text style={styles.fieldLabel}>Spending limit per month</Text>
+                <TextInput
+                  style={styles.input}
+                  value={pref.text}
+                  onChangeText={(t) => setPref((p) => ({ ...p, text: t }))}
+                  placeholder="0"
+                  placeholderTextColor={colors.faint}
+                  keyboardType="numeric"
+                />
+                <View style={styles.sheetButtons}>
+                  <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={saveLimit} style={[styles.sheetBtn, styles.saveBtn]}>
+                    <Text style={styles.saveText}>Save</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+
+            {pref?.mode === 'quickadds' ? (
+              <>
+                <Text style={styles.sheetTitle}>Quick add buttons</Text>
+                <ScrollView style={{ maxHeight: 240 }}>
+                  {(settings.quickAdds || []).map((q, i) => (
+                    <View key={i} style={[styles.row, i > 0 && styles.rowDivider]}>
+                      <Text style={styles.rowLabel}>{q.label}</Text>
+                      <View style={styles.qaRight}>
+                        <Text style={styles.rowValue}>{formatMoney(q.amount)}</Text>
+                        <Pressable onPress={() => removeQuickAdd(i)} hitSlop={8}>
+                          <Ionicons name="close" size={16} color={colors.faint} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+                <Text style={styles.fieldLabel}>Add a button</Text>
+                <View style={styles.qaAddRow}>
+                  <TextInput style={[styles.input, { flex: 1 }]} value={qaLabel} onChangeText={setQaLabel} placeholder="Label" placeholderTextColor={colors.faint} />
+                  <TextInput style={[styles.input, { width: 90 }]} value={qaAmount} onChangeText={setQaAmount} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
+                  <Pressable onPress={addQuickAdd} style={[styles.sheetBtn, styles.saveBtn]}>
+                    <Text style={styles.saveText}>Add</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.sheetButtons}>
+                  <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Done</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -229,22 +351,17 @@ function makeStyles(colors) {
     pressed: { opacity: 0.6 },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
-    soon: {
-      color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium,
-      borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill,
-      paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden',
-    },
-    hint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.sm, paddingHorizontal: spacing.xs },
+    soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
+    qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    qaAddRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },
 
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     sheetHint: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs, marginBottom: spacing.md },
-    textArea: {
-      backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md,
-      padding: spacing.md, color: colors.text, fontSize: fontSize.small, minHeight: 140, maxHeight: 280,
-      textAlignVertical: 'top',
-    },
+    fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    textArea: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, color: colors.text, fontSize: fontSize.small, minHeight: 140, maxHeight: 280, textAlignVertical: 'top' },
     msg: { color: colors.primary, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.lg },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
