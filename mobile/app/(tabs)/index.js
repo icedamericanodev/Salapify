@@ -9,30 +9,26 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
+import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday } from '../../lib/format';
-import {
-  sampleAccounts,
-  sampleAssets,
-  sampleDebts,
-  sampleTransactions,
-} from '../../lib/sampleData';
 
 export default function Overview() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter(); // lets the quick links open other tabs
+  const { data } = useAppData(); // live data from the store
 
   // Helper to add up a number field across a list.
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
 
   // Net worth: everything you own minus everything you owe.
-  const totalAssets = sum(sampleAccounts, 'balance') + sum(sampleAssets, 'value');
-  const totalDebt = sum(sampleDebts, 'remaining');
+  const totalAssets = sum(data.accounts, 'balance') + sum(data.assets, 'value');
+  const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
 
   // This month's cash flow.
-  const income = sampleTransactions.filter((t) => t.type === 'income');
-  const expense = sampleTransactions.filter((t) => t.type === 'expense');
+  const income = data.transactions.filter((t) => t.type === 'income');
+  const expense = data.transactions.filter((t) => t.type === 'expense');
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;

@@ -7,39 +7,35 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
+import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
-import {
-  sampleAccounts,
-  sampleAssets,
-  sampleDebts,
-  sampleTransactions,
-  sampleNetWorthHistory,
-} from '../../lib/sampleData';
+import { sampleNetWorthHistory } from '../../lib/sampleData';
 
 export default function Insights() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { data } = useAppData(); // live data from the store
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
   // Income vs spending.
-  const moneyIn = sum(sampleTransactions.filter((t) => t.type === 'income'), (t) => t.amount);
-  const moneyOut = sum(sampleTransactions.filter((t) => t.type === 'expense'), (t) => t.amount);
+  const moneyIn = sum(data.transactions.filter((t) => t.type === 'income'), (t) => t.amount);
+  const moneyOut = sum(data.transactions.filter((t) => t.type === 'expense'), (t) => t.amount);
 
   // Spending by category (using the expense label as the category).
-  const byCategory = sampleTransactions
+  const byCategory = data.transactions
     .filter((t) => t.type === 'expense')
     .map((t) => ({ label: t.label, amount: t.amount }))
     .sort((a, b) => b.amount - a.amount);
 
   // Net worth by category.
-  const cash = sum(sampleAccounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
+  const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
   const bank = sum(
-    sampleAccounts.filter((a) => ['savings', 'checking', 'ewallet'].includes(a.kind)),
+    data.accounts.filter((a) => ['savings', 'checking', 'ewallet'].includes(a.kind)),
     (a) => a.balance
   );
-  const investments = sum(sampleAssets, (a) => a.value);
-  const debt = sum(sampleDebts, (d) => d.remaining);
+  const investments = sum(data.assets, (a) => a.value);
+  const debt = sum(data.debts, (d) => d.remaining);
   const worthRows = [
     { label: 'Cash', amount: cash, color: colors.primary },
     { label: 'Bank', amount: bank, color: colors.primary },
