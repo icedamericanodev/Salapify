@@ -27,6 +27,7 @@ const seedData = {
   accounts: sampleAccounts,
   assets: sampleAssets,
   debts: sampleDebts,
+  payments: [],
   transactions: sampleTransactions,
   goals: [],
   settings: {
