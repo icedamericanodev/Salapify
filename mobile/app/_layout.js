@@ -5,17 +5,21 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppDataProvider } from '../context/AppData';
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      {/* headerShown: false hides the default top bar; our screens draw their own. */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+    // AppDataProvider must wrap everything so every screen can read the data.
+    <AppDataProvider>
+      <SafeAreaProvider>
+        {/* headerShown: false hides the default top bar; our screens draw their own. */}
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+        </Stack>
 
-      {/* Light status bar icons so they are visible on our dark background. */}
-      <StatusBar style="light" />
-    </SafeAreaProvider>
+        {/* Light status bar icons so they are visible on our dark background. */}
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </AppDataProvider>
   );
 }
