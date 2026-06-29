@@ -19,6 +19,7 @@ export const sampleAssets = [
 export const sampleDebts = [
   { id: 'd1', name: 'Credit Card', type: 'credit card', remaining: 18500, monthlyRate: 3.5, minPayment: 1500 },
   { id: 'd2', name: 'Personal Loan', type: 'personal loan', remaining: 42000, monthlyRate: 1.2, minPayment: 3500 },
+  { id: 'd3', name: 'Phone (BNPL)', type: 'bnpl', remaining: 6000, monthlyRate: 0, minPayment: 1000 },
 ];
 
 // Transactions: money in (income) and money out (expense) for this month.
