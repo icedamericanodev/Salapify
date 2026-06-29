@@ -15,11 +15,12 @@ echo === Step 2 of 3: installing libraries (safe to run every time) ===
 call npm install
 
 echo.
-echo === Step 3 of 3: starting the app ===
+echo === Step 3 of 3: starting the app (tunnel mode) ===
+echo Tunnel mode connects your phone even on tricky Wi-Fi.
 echo When the QR code appears, scan it with Expo Go.
 echo Press Ctrl + C here to stop the app later.
 echo.
-call npx expo start
+call npx expo start --tunnel
 
 REM Keep the window open if something stops early, so you can read any message.
 pause
