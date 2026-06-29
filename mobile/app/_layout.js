@@ -13,16 +13,23 @@ import { ThemeProvider, useTheme } from '../context/Theme';
 // the app inside a centered phone-shaped frame so the preview looks like a
 // phone. It changes nothing on the real device.
 function PhoneFrame({ children }) {
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   if (Platform.OS !== 'web') {
     return children;
   }
 
-  const frameHeight = Math.min(height - 32, 880); // leave a little margin
+  // Build a tall, modern phone shape that scales with the browser window.
+  // Modern phones (including the S23 Ultra) are about 0.47 wide as they are
+  // tall, so we size the height to the window, then derive the width from it.
+  // The app inside lays out flexibly, so it fits any size, like a real phone.
+  const frameHeight = Math.min(height - 24, 920);
+  const frameWidth = Math.min(frameHeight * 0.47, width - 16);
   return (
     <View style={webStyles.backdrop}>
-      <View style={[webStyles.phone, { height: frameHeight }]}>{children}</View>
+      <View style={[webStyles.phone, { width: frameWidth, height: frameHeight }]}>
+        {children}
+      </View>
     </View>
   );
 }
@@ -62,7 +69,7 @@ const webStyles = {
     justifyContent: 'center',
   },
   phone: {
-    width: 390, // typical phone width
+    // width and height are set at runtime so the frame scales with the window
     maxWidth: '100%',
     overflow: 'hidden',
     borderRadius: 28,
