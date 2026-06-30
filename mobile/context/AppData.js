@@ -32,6 +32,9 @@ const seedData = {
   transactions: sampleTransactions,
   goals: [],
   wins: [],
+  receivables: [
+    { id: 'r1', person: 'Juan', amount: 500, dueDate: '2026-07-15', phone: '', note: 'Lunch', paid: false },
+  ],
   settings: {
     currency: '₱',
     currencyCode: 'PHP',

@@ -147,6 +147,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Money mindset</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/receivables')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>People who owe me</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
