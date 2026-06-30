@@ -2,6 +2,7 @@
   "expo": {
     "name": "Salapify",
     "slug": "salapify-v2",
+    "owner": "icedamericanodev",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "salapify",
@@ -28,6 +29,11 @@
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8bc5a127-b145-41c3-a4f4-790afd91c9f2"
+      }
     }
   }
 }
