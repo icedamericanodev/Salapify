@@ -8,6 +8,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
 import { setCurrencySymbol } from '../lib/format';
+import { rescheduleAll } from '../lib/notifications';
 import {
   sampleAccounts,
   sampleAssets,
@@ -40,6 +41,7 @@ const seedData = {
     currencyCode: 'PHP',
     monthlyLimit: sampleBudget.monthlyLimit,
     quickAdds: sampleBudget.quickAdds,
+    notifications: { payday: false, collect: false, daily: false },
   },
 };
 
@@ -55,7 +57,13 @@ export function AppDataProvider({ children }) {
     (async () => {
       const saved = await loadData();
       if (saved && Array.isArray(saved.accounts)) {
-        setData({ ...seedData, ...saved });
+        // Merge settings one level deep so new settings we add over time
+        // (like notifications) get their defaults on older saved data.
+        setData({
+          ...seedData,
+          ...saved,
+          settings: { ...seedData.settings, ...(saved.settings || {}) },
+        });
       }
       setLoaded(true);
     })();
@@ -65,6 +73,12 @@ export function AppDataProvider({ children }) {
   useEffect(() => {
     if (loaded) saveData(data);
   }, [data, loaded]);
+
+  // Keep scheduled reminders in sync with the data. Runs when the
+  // notification switches or the receivables list change. Does nothing on web.
+  useEffect(() => {
+    if (loaded) rescheduleAll(data);
+  }, [loaded, data.receivables, data.settings.notifications]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 

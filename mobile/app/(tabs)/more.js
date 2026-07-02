@@ -5,11 +5,13 @@
 
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -22,6 +24,13 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
+import { ensureNotifPermission } from '../../lib/notifications';
+
+const NOTIF_OPTIONS = [
+  { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
+  { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
+  { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
+];
 
 const APPEARANCE = [
   { key: 'light', label: 'Light' },
@@ -132,6 +141,22 @@ export default function More() {
     updateSettings({ quickAdds: (settings.quickAdds || []).filter((_, idx) => idx !== i) });
   }
 
+  // ---- Notifications ----
+  const notifs = settings.notifications || {};
+  async function toggleNotif(key, on) {
+    if (on) {
+      const ok = await ensureNotifPermission();
+      if (!ok) {
+        Alert.alert(
+          'Notifications are off',
+          'Salapify is not allowed to send notifications. Allow it in your phone settings, then try again.'
+        );
+        return;
+      }
+    }
+    updateSettings({ notifications: { ...notifs, [key]: on } });
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -168,6 +193,30 @@ export default function More() {
               </Pressable>
             );
           })}
+        </View>
+
+        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
+        <View style={styles.card}>
+          {Platform.OS === 'web' ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>Reminders work on the phone app</Text>
+            </View>
+          ) : (
+            NOTIF_OPTIONS.map((opt, i) => (
+              <View key={opt.key} style={[styles.row, i > 0 && styles.rowDivider]}>
+                <View style={{ flex: 1, paddingRight: spacing.md }}>
+                  <Text style={styles.rowLabel}>{opt.label}</Text>
+                  <Text style={styles.rowHint}>{opt.hint}</Text>
+                </View>
+                <Switch
+                  value={!!notifs[opt.key]}
+                  onValueChange={(on) => toggleNotif(opt.key, on)}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            ))
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>PREFERENCES</Text>
@@ -359,6 +408,7 @@ function makeStyles(colors) {
     pressed: { opacity: 0.6 },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
+    rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
     soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     qaAddRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },
