@@ -23,10 +23,17 @@ export default function Insights() {
   const moneyIn = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
   const moneyOut = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
 
-  // Spending by category (using the expense label as the category), this month only.
-  const byCategory = thisMonth
-    .filter((t) => t.type === 'expense')
-    .map((t) => ({ label: t.label, amount: t.amount }))
+  // Spending by category (using the expense label as the category), this
+  // month only. Same labels add up into one bar, so three Food entries show
+  // as a single Food total instead of three rows.
+  const catTotals = {};
+  for (const t of thisMonth) {
+    if (t.type !== 'expense') continue;
+    const label = (t.label || 'Other').trim() || 'Other';
+    catTotals[label] = (catTotals[label] || 0) + t.amount;
+  }
+  const byCategory = Object.keys(catTotals)
+    .map((label) => ({ label, amount: catTotals[label] }))
     .sort((a, b) => b.amount - a.amount);
 
   // Net worth by category.
