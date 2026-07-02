@@ -25,6 +25,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { ensureNotifPermission } from '../../lib/notifications';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const NOTIF_OPTIONS = [
   { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
@@ -157,6 +158,27 @@ export default function More() {
     updateSettings({ notifications: { ...notifs, [key]: on } });
   }
 
+  // ---- App lock (biometrics) ----
+  async function toggleLock(on) {
+    if (on) {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = hasHardware && (await LocalAuthentication.isEnrolledAsync());
+      if (!enrolled) {
+        Alert.alert(
+          'No fingerprint or face found',
+          'Set up fingerprint or face unlock in your phone settings first, then try again.'
+        );
+        return;
+      }
+      // Confirm it works right now, so nobody locks themselves out.
+      const res = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm to turn on App lock',
+      });
+      if (!res.success) return;
+    }
+    updateSettings({ appLock: on });
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -216,6 +238,28 @@ export default function More() {
                 />
               </View>
             ))
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>SECURITY</Text>
+        <View style={styles.card}>
+          {Platform.OS === 'web' ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>App lock works on the phone app</Text>
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text style={styles.rowLabel}>App lock</Text>
+                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens</Text>
+              </View>
+              <Switch
+                value={!!settings.appLock}
+                onValueChange={toggleLock}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
           )}
         </View>
 

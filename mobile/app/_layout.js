@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppDataProvider } from '../context/AppData';
 import { ThemeProvider, useTheme } from '../context/Theme';
+import LockGate from '../components/LockGate';
 
 // On a phone, this just shows the app full screen. In a web browser, it draws
 // the app inside a centered phone-shaped frame so the preview looks like a
@@ -54,10 +55,13 @@ export default function RootLayout() {
       <AppDataProvider>
         <SafeAreaProvider>
           <PhoneFrame>
-            {/* headerShown: false hides the default top bar; screens draw their own. */}
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-            </Stack>
+            {/* LockGate shows the fingerprint screen first when App lock is on. */}
+            <LockGate>
+              {/* headerShown: false hides the default top bar; screens draw their own. */}
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+            </LockGate>
           </PhoneFrame>
 
           <ThemedStatusBar />

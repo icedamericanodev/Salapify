@@ -42,6 +42,7 @@ const seedData = {
     monthlyLimit: sampleBudget.monthlyLimit,
     quickAdds: sampleBudget.quickAdds,
     notifications: { payday: false, collect: false, daily: false },
+    appLock: false,
   },
 };
 
