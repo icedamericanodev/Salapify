@@ -45,6 +45,7 @@ export default function Debts() {
   const [strategy, setStrategy] = useState('snowball');
   const [form, setForm] = useState(null); // add/edit modal
   const [payAmount, setPayAmount] = useState('');
+  const [payFrom, setPayFrom] = useState(null); // account the payment comes from
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
@@ -80,6 +81,7 @@ export default function Debts() {
       minPayment: String(d.minPayment),
     });
     setPayAmount(String(d.minPayment));
+    setPayFrom(data.accounts[0] ? data.accounts[0].id : null);
     setMsg('');
     setErr('');
     setConfirmDel(false);
@@ -126,9 +128,15 @@ export default function Debts() {
     const cur = Number(form.remaining) || 0;
     const newRem = Math.max(0, cur - amt);
     updateItem('debts', form.id, { remaining: newRem });
-    addItem('payments', { debtId: form.id, amount: amt, date: today() });
+    // Take the money out of the chosen account too, so net worth stays
+    // honest: the debt goes down and the cash goes down by the same amount.
+    const acct = data.accounts.find((a) => a.id === payFrom);
+    if (acct) updateItem('accounts', acct.id, { balance: acct.balance - amt });
+    addItem('payments', { debtId: form.id, amount: amt, date: today(), account: acct ? acct.id : '' });
     setForm((f) => ({ ...f, remaining: String(newRem) }));
-    setMsg(`Logged ${formatMoney(amt)}. New balance ${formatMoney(newRem)}.`);
+    setMsg(
+      `Logged ${formatMoney(amt)}${acct ? ` from ${acct.name}` : ''}. New balance ${formatMoney(newRem)}.`
+    );
   }
   function markPaid() {
     if (!form.id) return;
@@ -272,6 +280,20 @@ export default function Debts() {
                     />
                     <Pressable onPress={logPayment} style={[styles.sheetBtn, styles.saveBtn]}>
                       <Text style={styles.saveText}>Log</Text>
+                    </Pressable>
+                  </View>
+                  <Text style={styles.fieldLabel}>Paid from</Text>
+                  <View style={styles.chips}>
+                    {data.accounts.map((a) => {
+                      const on = payFrom === a.id;
+                      return (
+                        <Pressable key={a.id} onPress={() => setPayFrom(a.id)} style={[styles.chip, on && styles.chipOn]}>
+                          <Text style={[styles.chipText, on && styles.chipTextOn]}>{a.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                    <Pressable onPress={() => setPayFrom(null)} style={[styles.chip, payFrom === null && styles.chipOn]}>
+                      <Text style={[styles.chipText, payFrom === null && styles.chipTextOn]}>Outside the app</Text>
                     </Pressable>
                   </View>
                   <Pressable onPress={markPaid} style={styles.markPaid}>
