@@ -3,7 +3,7 @@
 // entry, saves a real transaction that persists. Recent shows live data and
 // each row can be removed.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -15,11 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format';
 import EmptyState from '../../components/EmptyState';
+import WeekChain from '../../components/WeekChain';
 
 const today = todayISO;
 
@@ -30,6 +32,8 @@ export default function Budget() {
 
   const [form, setForm] = useState(null); // custom entry modal
   const [err, setErr] = useState('');
+  const [toast, setToast] = useState(null); // {text, id} after logging
+  const toastTimer = useRef(null);
 
   const limit = data.settings.monthlyLimit || 0;
   const quickAdds = data.settings.quickAdds || [];
@@ -45,8 +49,28 @@ export default function Budget() {
   // Newest first.
   const recent = [...data.transactions].reverse();
 
+  // A little celebration after every log: a light buzz and a toast with
+  // Undo, so double taps and slips are one tap to fix. The habit being
+  // rewarded is logging itself, never the amount.
+  function celebrate(label, amount, id) {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch (e) {
+      // Haptics are not available on web. That is fine.
+    }
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ text: `Logged ${label} ${formatMoney(amount)}.`, id });
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  }
+  function undoLog() {
+    if (toast) removeItem('transactions', toast.id);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(null);
+  }
+
   function quickAdd(item) {
-    addItem('transactions', { type: 'expense', label: item.label, amount: item.amount, date: today() });
+    const id = addItem('transactions', { type: 'expense', label: item.label, amount: item.amount, date: today() });
+    celebrate(item.label, item.amount, id);
   }
   function openCustom() {
     setForm({ type: 'expense', label: '', amount: '' });
@@ -58,13 +82,10 @@ export default function Budget() {
       setErr('Enter an amount greater than 0.');
       return;
     }
-    addItem('transactions', {
-      type: form.type,
-      label: form.label.trim() || (form.type === 'income' ? 'Income' : 'Expense'),
-      amount,
-      date: today(),
-    });
+    const label = form.label.trim() || (form.type === 'income' ? 'Income' : 'Expense');
+    const id = addItem('transactions', { type: form.type, label, amount, date: today() });
     setForm(null);
+    celebrate(label, amount, id);
   }
 
   return (
@@ -86,6 +107,8 @@ export default function Budget() {
             {over ? `${formatMoney(-remaining)} over your limit` : `${formatMoney(remaining)} left to spend`}
           </Text>
         </View>
+
+        <WeekChain transactions={data.transactions} />
 
         <Text style={styles.sectionTitle}>QUICK ADD</Text>
         <View style={styles.quickRow}>
@@ -128,6 +151,18 @@ export default function Budget() {
           )}
         </View>
       </ScrollView>
+
+      {/* Logged toast with Undo. */}
+      {toast ? (
+        <View style={styles.toast}>
+          <Text style={styles.toastText} numberOfLines={1}>
+            {toast.text}
+          </Text>
+          <Pressable onPress={undoLog} hitSlop={12} style={styles.toastBtn}>
+            <Text style={styles.toastUndo}>Undo</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Custom entry modal. */}
       <Modal visible={!!form} transparent animationType="slide" onRequestClose={() => setForm(null)}>
@@ -215,6 +250,26 @@ function makeStyles(colors) {
     rowAmount: { fontSize: fontSize.body, fontWeight: fontWeight.bold },
     trash: { padding: 2 },
     empty: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
+
+    toast: {
+      position: 'absolute',
+      left: spacing.lg,
+      right: spacing.lg,
+      bottom: spacing.lg,
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderColor: colors.primary,
+      borderWidth: 1,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    toastText: { color: colors.text, fontSize: fontSize.body, flex: 1, paddingRight: spacing.md },
+    toastBtn: { minHeight: 44, justifyContent: 'center' },
+    toastUndo: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
 
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl },

@@ -11,6 +11,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, isThisMonth, monthLabel } from '../../lib/format';
+import WeekChain from '../../components/WeekChain';
 
 export default function Overview() {
   const { colors } = useTheme();
@@ -122,6 +123,9 @@ export default function Overview() {
             </View>
           </View>
         </Pressable>
+
+        {/* Logging chain: filled dots for days you logged in the last week. */}
+        <WeekChain transactions={data.transactions} />
 
         {/* Days to payday. */}
         <View style={styles.card}>
