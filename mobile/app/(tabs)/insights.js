@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, isThisMonth, monthLabel } from '../../lib/format';
 import { sampleNetWorthHistory } from '../../lib/sampleData';
 
 export default function Insights() {
@@ -18,12 +18,13 @@ export default function Insights() {
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
-  // Income vs spending.
-  const moneyIn = sum(data.transactions.filter((t) => t.type === 'income'), (t) => t.amount);
-  const moneyOut = sum(data.transactions.filter((t) => t.type === 'expense'), (t) => t.amount);
+  // Income vs spending, this month only.
+  const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
+  const moneyIn = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
+  const moneyOut = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
 
-  // Spending by category (using the expense label as the category).
-  const byCategory = data.transactions
+  // Spending by category (using the expense label as the category), this month only.
+  const byCategory = thisMonth
     .filter((t) => t.type === 'expense')
     .map((t) => ({ label: t.label, amount: t.amount }))
     .sort((a, b) => b.amount - a.amount);
@@ -72,7 +73,7 @@ export default function Insights() {
         <Text style={styles.pageTitle}>Insights</Text>
 
         <View style={styles.card}>
-          <Text style={styles.kicker}>INCOME VS SPENDING</Text>
+          <Text style={styles.kicker}>INCOME VS SPENDING ({monthLabel().toUpperCase()})</Text>
           <View style={styles.cardBody}>
             <HBar label="In" amount={moneyIn} max={inOutMax} color={colors.primary} />
             <HBar label="Out" amount={moneyOut} max={inOutMax} color={colors.warning} />
@@ -115,7 +116,7 @@ export default function Insights() {
           <Text style={styles.trendNow}>Now: {formatMoney(sampleNetWorthHistory[sampleNetWorthHistory.length - 1].value)}</Text>
         </View>
 
-        <Text style={styles.footnote}>Sample data for now. Real charts wire up in Phase 2.</Text>
+        <Text style={styles.footnote}>Charts show {monthLabel()}. The net worth trend is sample data for now.</Text>
       </ScrollView>
     </SafeAreaView>
   );

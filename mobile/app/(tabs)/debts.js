@@ -17,13 +17,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, todayISO } from '../../lib/format';
 import EmptyState from '../../components/EmptyState';
 
 const SHORT_TERM_TYPES = ['credit card', 'bnpl', 'short term', 'insurance'];
 const termOf = (type) => (SHORT_TERM_TYPES.includes(type) ? 'short' : 'long');
 const monthlyInterest = (d) => Math.round((d.remaining * d.monthlyRate) / 100);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayISO;
 
 const DEBT_TYPES = [
   'credit card',

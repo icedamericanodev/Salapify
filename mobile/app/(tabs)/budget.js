@@ -18,10 +18,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format';
 import EmptyState from '../../components/EmptyState';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayISO;
 
 export default function Budget() {
   const { colors } = useTheme();
@@ -34,7 +34,9 @@ export default function Budget() {
   const limit = data.settings.monthlyLimit || 0;
   const quickAdds = data.settings.quickAdds || [];
 
-  const expenses = data.transactions.filter((t) => t.type === 'expense');
+  // Only this month's expenses count toward the limit, so the budget bar
+  // resets automatically when a new month starts.
+  const expenses = data.transactions.filter((t) => t.type === 'expense' && isThisMonth(t.date));
   const spent = expenses.reduce((total, e) => total + e.amount, 0);
   const remaining = limit - spent;
   const pct = limit ? Math.min(Math.round((spent / limit) * 100), 100) : 0;
@@ -71,7 +73,7 @@ export default function Budget() {
         <Text style={styles.pageTitle}>Budget</Text>
 
         <View style={styles.card}>
-          <Text style={styles.kicker}>THIS MONTH</Text>
+          <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
           <Text style={styles.spent}>
             {formatMoney(spent)} <Text style={styles.ofLimit}>of {formatMoney(limit)}</Text>
           </Text>

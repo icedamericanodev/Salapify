@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
-import { setCurrencySymbol } from '../lib/format';
+import { setCurrencySymbol, todayISO } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
 import {
   sampleAccounts,
@@ -59,9 +59,15 @@ export function AppDataProvider({ children }) {
       if (saved && Array.isArray(saved.accounts)) {
         // Merge settings one level deep so new settings we add over time
         // (like notifications) get their defaults on older saved data.
+        // Also stamp today's date on any old transactions or payments saved
+        // before dates existed, so the month filters never lose them.
+        const stamp = (list) =>
+          (list || []).map((it) => (it.date ? it : { ...it, date: todayISO() }));
         setData({
           ...seedData,
           ...saved,
+          transactions: stamp(saved.transactions),
+          payments: stamp(saved.payments),
           settings: { ...seedData.settings, ...(saved.settings || {}) },
         });
       }

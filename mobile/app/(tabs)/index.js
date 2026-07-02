@@ -1,6 +1,6 @@
 // Overview screen (Home). Shows the headline numbers: net worth, this month's
 // cash flow (money in minus money out), and days to payday, plus quick links
-// to the main sections. Uses sample data for now; real data arrives in Phase 2.
+// to the main sections. Cash flow only counts transactions dated this month.
 
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, daysUntilPayday } from '../../lib/format';
+import { formatMoney, daysUntilPayday, isThisMonth, monthLabel } from '../../lib/format';
 
 export default function Overview() {
   const { colors } = useTheme();
@@ -26,9 +26,11 @@ export default function Overview() {
   const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
 
-  // This month's cash flow.
-  const income = data.transactions.filter((t) => t.type === 'income');
-  const expense = data.transactions.filter((t) => t.type === 'expense');
+  // This month's cash flow. Only transactions dated in the current month
+  // count, so every new month starts fresh.
+  const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
+  const income = thisMonth.filter((t) => t.type === 'income');
+  const expense = thisMonth.filter((t) => t.type === 'expense');
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
@@ -93,7 +95,7 @@ export default function Overview() {
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         >
           <View style={styles.cardHead}>
-            <Text style={styles.kicker}>THIS MONTH</Text>
+            <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </View>
           <Text
@@ -145,7 +147,7 @@ export default function Overview() {
           ))}
         </View>
 
-        <Text style={styles.footnote}>Sample data for now. Real data comes in Phase 2.</Text>
+        <Text style={styles.footnote}>Showing {monthLabel()}. Every new month starts fresh.</Text>
       </ScrollView>
     </SafeAreaView>
   );
