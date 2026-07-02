@@ -1,12 +1,13 @@
 // Local notifications: reminders that fire on the phone itself, no server
 // needed. Three kinds, each with its own switch in Settings:
 //  - payday: morning of the 15th and the last day of each month
-//  - collect: on the due date of each unpaid receivable
-//  - daily: a gentle 8pm nudge to log today's spending
+//  - collect: day before, day of, and after the due date of unpaid utang
+//  - daily: an evening nudge to log spending, skipped if you already logged
 // Everything is a no-op on web, where notifications are not available.
 
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { formatMoney, todayISO } from './format';
 
 const isNative = Platform.OS !== 'web';
 
@@ -42,8 +43,26 @@ function lastDayOfMonth(year, monthIndex) {
   return new Date(year, monthIndex + 1, 0).getDate();
 }
 
+// Turns "2026-07-15" into a Date at the given hour, or null if unreadable.
+function atHour(dateStr, hour) {
+  const parts = String(dateStr).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2], hour, 0, 0);
+}
+
+// The daily nudge rotates through a small pool so it never goes stale.
+// Same idea every night, different words. The habit is logging, not
+// being perfect, so none of these judge.
+const DAILY_LINES = [
+  'Take 30 seconds to log what you spent today.',
+  'Quick check in. What did money do today?',
+  'Log today before you forget. Future you says thanks.',
+  'Even a zero spend day counts. Log it and keep the chain.',
+  'One tap per expense. That is the whole habit.',
+];
+
 // Wipe every scheduled reminder and set them up again from current data.
-// Called whenever the toggles or the receivables list change, so the
+// Called whenever the toggles, transactions, or receivables change, so the
 // schedule always matches what is in the app.
 export async function rescheduleAll(data) {
   if (!isNative) return;
@@ -57,60 +76,78 @@ export async function rescheduleAll(data) {
   if (!perm.granted) return;
 
   const channel = Platform.OS === 'android' ? { channelId: 'reminders' } : {};
+  const now = new Date();
+
+  const schedule = (title, body, when) =>
+    Notifications.scheduleNotificationAsync({
+      content: { title, body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, ...channel },
+    });
 
   if (notifs.daily) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Quick money check',
-        body: 'Take 30 seconds to log what you spent today.',
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 20, minute: 0, ...channel },
-    });
+    // One-shot nudges for the next 14 evenings instead of a blind repeat,
+    // so tonight's nudge is skipped when you already logged today. The
+    // window refills every time the app opens or data changes.
+    const loggedToday = (data.transactions || []).some((t) => t.date === todayISO());
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 20, 0, 0);
+      if (d <= now) continue;
+      if (i === 0 && loggedToday) continue;
+      await schedule('Quick money check', DAILY_LINES[d.getDate() % DAILY_LINES.length], d);
+    }
   }
 
   if (notifs.payday) {
-    // The 15th repeats monthly. The last day of the month is a different
-    // date every month, so we schedule the next three month ends one by one.
+    // The 15th repeats monthly on its own. Month ends land on a different
+    // date each month, so the next six get scheduled one by one.
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Payday!',
-        body: 'Log your income and pay yourself first.',
+        title: 'Sweldo day!',
+        body: 'Log your income and move your savings before you spend anything.',
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day: 15, hour: 9, minute: 0, ...channel },
     });
-    const now = new Date();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       const y = now.getFullYear();
       const m = now.getMonth() + i;
       const end = new Date(y, m, lastDayOfMonth(y, m), 9, 0, 0);
       if (end > now) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Payday!',
-            body: 'End of the month. Log your income and pay yourself first.',
-          },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: end, ...channel },
-        });
+        await schedule(
+          'Sweldo day!',
+          'End of the month. Log your income and move your savings first.',
+          end
+        );
       }
     }
   }
 
   if (notifs.collect) {
-    const now = new Date();
     for (const r of data.receivables || []) {
       if (r.paid || !r.dueDate) continue;
-      // Due dates are stored as text like 2026-07-15.
-      const parts = String(r.dueDate).split('-').map(Number);
-      if (parts.length !== 3 || parts.some(isNaN)) continue;
-      const when = new Date(parts[0], parts[1] - 1, parts[2], 9, 0, 0);
-      if (when <= now) continue;
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Time to collect',
-          body: `${r.person} owes you money and it is due today. Send them a reminder from the app.`,
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, ...channel },
-      });
+      const due = atHour(r.dueDate, 9);
+      if (!due) continue;
+      const amount = formatMoney(r.amount);
+
+      const dayBefore = new Date(due.getFullYear(), due.getMonth(), due.getDate() - 1, 9, 0, 0);
+      if (dayBefore > now) {
+        await schedule('Utang due tomorrow', `${r.person}'s ${amount} is due tomorrow.`, dayBefore);
+      }
+      if (due > now) {
+        await schedule(
+          'Time to collect',
+          `${r.person} owes you ${amount} and it is due today. Send a reminder from the app.`,
+          due
+        );
+      } else {
+        // Already overdue: one follow up tomorrow morning. It renews each
+        // time the app opens, and stops the moment you mark it paid.
+        const followUp = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0);
+        await schedule(
+          'Still waiting',
+          `${r.person}'s ${amount} was due ${r.dueDate}. A friendly follow up usually works.`,
+          followUp
+        );
+      }
     }
   }
 }

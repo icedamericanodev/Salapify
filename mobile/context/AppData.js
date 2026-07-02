@@ -81,10 +81,11 @@ export function AppDataProvider({ children }) {
   }, [data, loaded]);
 
   // Keep scheduled reminders in sync with the data. Runs when the
-  // notification switches or the receivables list change. Does nothing on web.
+  // notification switches, receivables, or transactions change, so the
+  // daily nudge knows you already logged today. Does nothing on web.
   useEffect(() => {
     if (loaded) rescheduleAll(data);
-  }, [loaded, data.receivables, data.settings.notifications]);
+  }, [loaded, data.receivables, data.transactions, data.settings.notifications]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 
