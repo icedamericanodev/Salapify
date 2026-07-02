@@ -39,6 +39,11 @@ export default function Overview() {
   // Days to the next payday.
   const payday = daysUntilPayday();
 
+  // Unpaid utang, surfaced on home so collecting is one tap away.
+  const unpaid = (data.receivables || []).filter((r) => !r.paid);
+  const owedToMe = sum(unpaid, 'amount');
+  const owedCount = unpaid.length;
+
   // Time-based greeting for the header.
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -126,6 +131,23 @@ export default function Overview() {
 
         {/* Logging chain: filled dots for days you logged in the last week. */}
         <WeekChain transactions={data.transactions} />
+
+        {/* People who owe me, one tap from home. */}
+        <Pressable
+          onPress={() => router.push('/receivables')}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHead}>
+            <Text style={styles.kicker}>PEOPLE WHO OWE ME</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+          </View>
+          <Text style={styles.payday}>{formatMoney(owedToMe)}</Text>
+          <Text style={styles.smallLabel}>
+            {owedCount === 0
+              ? 'No one owes you right now.'
+              : `${owedCount} ${owedCount === 1 ? 'person' : 'people'}. Tap to view or send a reminder.`}
+          </Text>
+        </Pressable>
 
         {/* Days to payday. */}
         <View style={styles.card}>

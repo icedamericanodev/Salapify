@@ -20,8 +20,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-import { formatMoney } from '../lib/format';
+import { formatMoney, todayISO } from '../lib/format';
 import EmptyState from '../components/EmptyState';
+
+// Quick due date choices, so nobody has to type a date by hand. Next sweldo
+// is the 15th or the end of the month, whichever comes first.
+function quickDates() {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  let payday;
+  if (now.getDate() < 15) payday = new Date(now.getFullYear(), now.getMonth(), 15);
+  else if (now.getDate() < lastDay) payday = new Date(now.getFullYear(), now.getMonth(), lastDay);
+  else payday = new Date(now.getFullYear(), now.getMonth() + 1, 15);
+  const in1w = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+  const in2w = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
+  return [
+    { label: 'Next sweldo', value: todayISO(payday) },
+    { label: 'In 1 week', value: todayISO(in1w) },
+    { label: 'In 2 weeks', value: todayISO(in2w) },
+    { label: 'No due date', value: '' },
+  ];
+}
 
 export default function Receivables() {
   const { colors } = useTheme();
@@ -62,6 +81,11 @@ export default function Receivables() {
     const amount = Number(form.amount);
     if (form.amount === '' || !Number.isFinite(amount) || amount < 0) {
       setErr('Enter a valid amount.');
+      return;
+    }
+    const dd = form.dueDate.trim();
+    if (dd && !/^\d{4}-\d{2}-\d{2}$/.test(dd)) {
+      setErr('Tap a quick date above, or type it like 2026-07-15.');
       return;
     }
     const payload = {
@@ -158,7 +182,17 @@ export default function Receivables() {
               <Text style={styles.fieldLabel}>Amount owed</Text>
               <TextInput style={styles.input} value={form?.amount} onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
               <Text style={styles.fieldLabel}>Due date (optional)</Text>
-              <TextInput style={styles.input} value={form?.dueDate} onChangeText={(t) => setForm((f) => ({ ...f, dueDate: t }))} placeholder="e.g. 2026-07-15" placeholderTextColor={colors.faint} />
+              <View style={styles.chips}>
+                {quickDates().map((q) => {
+                  const on = form?.dueDate === q.value;
+                  return (
+                    <Pressable key={q.label} onPress={() => setForm((f) => ({ ...f, dueDate: q.value }))} style={[styles.chip, on && styles.chipOn]}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{q.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <TextInput style={styles.input} value={form?.dueDate} onChangeText={(t) => setForm((f) => ({ ...f, dueDate: t }))} placeholder="or type it, like 2026-07-15" placeholderTextColor={colors.faint} />
               <Text style={styles.fieldLabel}>Note (optional)</Text>
               <TextInput style={styles.input} value={form?.note} onChangeText={(t) => setForm((f) => ({ ...f, note: t }))} placeholder="e.g. Lunch" placeholderTextColor={colors.faint} />
 
@@ -229,6 +263,11 @@ function makeStyles(colors) {
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
+    chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+    chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
+    chipTextOn: { color: '#FFFFFF' },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     paidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.lg },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
