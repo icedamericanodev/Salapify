@@ -4,9 +4,15 @@
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/Theme';
 
 export default function TabsLayout() {
+  // Read the active colors so the tab bar recolors when the theme changes.
+  const { colors } = useTheme();
+  // Bottom inset so labels are not cut off by the phone's gesture bar.
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -16,7 +22,11 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.card, // bar background
           borderTopColor: colors.border, // subtle top border
+          height: 78 + insets.bottom, // room for icon + label + safe area
+          paddingTop: 10,
+          paddingBottom: insets.bottom + 18, // lifts labels off the bottom edge
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
       }}
     >
       {/* index.js is the default screen, shown first. It is our Overview. */}

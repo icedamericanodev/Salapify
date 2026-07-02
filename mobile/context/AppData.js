@@ -1,54 +1,139 @@
-// AppData is the single shared place that holds all of the app's data.
-// Any screen can read it or update it, and it saves to the phone on its own
-// whenever it changes. Later this will hold accounts, debts, transactions,
-// goals, and settings. For now it has one test counter so we can prove that
-// saving and loading actually works.
+// AppData is the single shared place that holds all of the app's data:
+// accounts, assets, debts, transactions, goals, and settings. Any screen can
+// read it or change it through the helper functions here, and it saves to the
+// device on its own whenever it changes. Storage is AsyncStorage for now; the
+// screens never touch storage directly, so we can swap in SQLite later without
+// changing any screen.
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
+import { setCurrencySymbol } from '../lib/format';
+import { rescheduleAll } from '../lib/notifications';
+import {
+  sampleAccounts,
+  sampleAssets,
+  sampleDebts,
+  sampleTransactions,
+  sampleBudget,
+} from '../lib/sampleData';
 
-// The starting shape of our data, used the very first time the app runs
-// (before anything has been saved).
-const defaultData = {
-  testCounter: 0,
-  // accounts: [], debts: [], transactions: [], goals: [], settings: {} ... later
+// Makes a short unique id for new items, like "accounts_lq3k_1".
+let idCounter = 0;
+export function genId(prefix = 'id') {
+  return `${prefix}_${Date.now().toString(36)}_${(idCounter++).toString(36)}`;
+}
+
+// The starting data, used the very first time the app runs (nothing saved yet).
+// We seed it from the sample data so the app is not empty on first open.
+const seedData = {
+  accounts: sampleAccounts,
+  assets: sampleAssets,
+  debts: sampleDebts,
+  payments: [],
+  transactions: sampleTransactions,
+  goals: [],
+  wins: [],
+  receivables: [
+    { id: 'r1', person: 'Juan', amount: 500, dueDate: '2026-07-15', phone: '', note: 'Lunch', paid: false },
+  ],
+  settings: {
+    currency: '₱',
+    currencyCode: 'PHP',
+    monthlyLimit: sampleBudget.monthlyLimit,
+    quickAdds: sampleBudget.quickAdds,
+    notifications: { payday: false, collect: false, daily: false },
+  },
 };
 
-// createContext makes the shared box. We fill it in the Provider below.
 const AppDataContext = createContext(null);
 
-// AppDataProvider wraps the whole app. It loads saved data on startup and
-// saves again whenever the data changes.
 export function AppDataProvider({ children }) {
-  const [data, setData] = useState(defaultData);
-  // loaded tells us the first read from the phone has finished.
+  const [data, setData] = useState(seedData);
   const [loaded, setLoaded] = useState(false);
 
-  // Run once on startup: read whatever was saved before.
+  // On startup, load saved data. We only use it if it looks like real data
+  // (has an accounts list), otherwise we keep the seed.
   useEffect(() => {
     (async () => {
       const saved = await loadData();
-      // Merge saved values over the defaults, so new fields we add later
-      // still get their default value.
-      if (saved) setData({ ...defaultData, ...saved });
+      if (saved && Array.isArray(saved.accounts)) {
+        // Merge settings one level deep so new settings we add over time
+        // (like notifications) get their defaults on older saved data.
+        setData({
+          ...seedData,
+          ...saved,
+          settings: { ...seedData.settings, ...(saved.settings || {}) },
+        });
+      }
       setLoaded(true);
     })();
   }, []);
 
-  // Whenever data changes (but only after the first load), save it.
+  // Save whenever data changes, but only after the first load.
   useEffect(() => {
     if (loaded) saveData(data);
   }, [data, loaded]);
 
-  return (
-    <AppDataContext.Provider value={{ data, setData, loaded }}>
-      {children}
-    </AppDataContext.Provider>
-  );
+  // Keep scheduled reminders in sync with the data. Runs when the
+  // notification switches or the receivables list change. Does nothing on web.
+  useEffect(() => {
+    if (loaded) rescheduleAll(data);
+  }, [loaded, data.receivables, data.settings.notifications]);
+
+  // ---- Helpers the screens use, so they never edit the data by hand ----
+
+  // Add an item to a list (accounts, debts, transactions, assets, goals).
+  // Returns the new item's id.
+  function addItem(collection, item) {
+    const withId = { ...item, id: item.id || genId(collection) };
+    setData((prev) => ({ ...prev, [collection]: [...prev[collection], withId] }));
+    return withId.id;
+  }
+
+  // Change some fields of one item in a list, found by id.
+  function updateItem(collection, id, patch) {
+    setData((prev) => ({
+      ...prev,
+      [collection]: prev[collection].map((it) => (it.id === id ? { ...it, ...patch } : it)),
+    }));
+  }
+
+  // Remove one item from a list by id.
+  function removeItem(collection, id) {
+    setData((prev) => ({
+      ...prev,
+      [collection]: prev[collection].filter((it) => it.id !== id),
+    }));
+  }
+
+  // Change settings (currency, monthly limit, quick adds, etc.).
+  function updateSettings(patch) {
+    setData((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }));
+  }
+
+  // Replace everything at once (used later by Restore and the v1 import).
+  function replaceAll(newData) {
+    setData({ ...seedData, ...newData });
+  }
+
+  // Keep the money formatter in sync with the chosen currency, so amounts
+  // across the app use the right symbol.
+  setCurrencySymbol(data.settings && data.settings.currency);
+
+  const value = {
+    data,
+    loaded,
+    addItem,
+    updateItem,
+    removeItem,
+    updateSettings,
+    replaceAll,
+  };
+
+  return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
 
-// useAppData is a shortcut so any screen can do:
-//   const { data, setData } = useAppData();
+// Shortcut hook: const { data, addItem, updateItem, removeItem } = useAppData();
 export function useAppData() {
   const ctx = useContext(AppDataContext);
   if (!ctx) {

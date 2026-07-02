@@ -2,25 +2,41 @@
   "expo": {
     "name": "Salapify",
     "slug": "salapify-v2",
+    "owner": "icedamericanodev",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "salapify",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      ["expo-notifications", { "color": "#1D9E75" }]
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E1512"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.icedamericanodev.salapify"
     },
     "android": {
+      "package": "com.icedamericanodev.salapify",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#1D9E75"
       }
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8bc5a127-b145-41c3-a4f4-790afd91c9f2"
+      }
     }
   }
 }
