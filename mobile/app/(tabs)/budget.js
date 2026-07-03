@@ -6,12 +6,10 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +21,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format';
 import EmptyState from '../../components/EmptyState';
 import WeekChain from '../../components/WeekChain';
+import LogSheet from '../../components/LogSheet';
 
 const today = todayISO;
 
@@ -34,10 +33,9 @@ const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, u
 export default function Budget() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, removeItem } = useAppData();
+  const { data, addTransaction, removeTransaction } = useAppData();
 
-  const [form, setForm] = useState(null); // custom entry modal
-  const [err, setErr] = useState('');
+  const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [toast, setToast] = useState(null); // {text, id} after logging
   const toastTimer = useRef(null);
 
@@ -80,29 +78,24 @@ export default function Budget() {
     }, 4000);
   }
   function undoLog() {
-    if (toast) removeItem('transactions', toast.id);
+    if (toast) removeTransaction(toast.id);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(null);
   }
 
   function quickAdd(item) {
-    const id = addItem('transactions', { type: 'expense', label: item.label, amount: item.amount, date: today() });
+    // One tap logs use the remembered account (set in the entry sheet), so
+    // fast logging still keeps balances honest.
+    const def = data.settings.defaultAccountId;
+    const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
+    const entry = { type: 'expense', label: item.label, amount: item.amount, date: today() };
+    const id = addTransaction(accountId ? { ...entry, accountId } : entry);
     celebrate(item.label, item.amount, id);
   }
+  // + Custom opens the same LogSheet as the global floating button, so the
+  // entry form (with backdating) exists in exactly one place.
   function openCustom() {
-    setForm({ type: 'expense', label: '', amount: '' });
-    setErr('');
-  }
-  function saveCustom() {
-    const amount = Number(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setErr('Enter an amount greater than 0.');
-      return;
-    }
-    const label = form.label.trim() || (form.type === 'income' ? 'Income' : 'Expense');
-    const id = addItem('transactions', { type: form.type, label, amount, date: today() });
-    setForm(null);
-    celebrate(label, amount, id);
+    setCustomOpen(true);
   }
 
   return (
@@ -159,7 +152,7 @@ export default function Budget() {
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
                     {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
                   </Text>
-                  <Pressable onPress={() => removeItem('transactions', e.id)} hitSlop={8} style={styles.trash}>
+                  <Pressable onPress={() => removeTransaction(e.id)} hitSlop={8} style={styles.trash}>
                     <Ionicons name="close" size={16} color={colors.faint} />
                   </Pressable>
                 </View>
@@ -191,55 +184,8 @@ export default function Budget() {
         </Animated.View>
       ) : null}
 
-      {/* Custom entry modal. */}
-      <Modal visible={!!form} transparent animationType="slide" onRequestClose={() => setForm(null)}>
-        <View style={styles.overlay}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Add entry</Text>
-
-            <View style={styles.typeRow}>
-              {['expense', 'income'].map((t) => {
-                const on = form?.type === t;
-                return (
-                  <Pressable key={t} onPress={() => setForm((f) => ({ ...f, type: t }))} style={[styles.typeBtn, on && styles.typeOn]}>
-                    <Text style={[styles.typeText, on && styles.typeTextOn]}>
-                      {t === 'expense' ? 'Expense' : 'Income'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Text style={styles.fieldLabel}>{form?.type === 'income' ? 'Source' : 'Category'}</Text>
-            <TextInput
-              style={styles.input}
-              value={form?.label}
-              onChangeText={(t) => setForm((f) => ({ ...f, label: t }))}
-              placeholder={form?.type === 'income' ? 'e.g. Salary' : 'e.g. Groceries'}
-              placeholderTextColor={colors.faint}
-            />
-            <Text style={styles.fieldLabel}>Amount</Text>
-            <TextInput
-              style={styles.input}
-              value={form?.amount}
-              onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))}
-              placeholder="0"
-              placeholderTextColor={colors.faint}
-              keyboardType="numeric"
-            />
-
-            {err ? <Text style={styles.err}>{err}</Text> : null}
-            <View style={styles.sheetButtons}>
-              <Pressable onPress={() => setForm(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={saveCustom} style={[styles.sheetBtn, styles.saveBtn]}>
-                <Text style={styles.saveText}>Add</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* The shared entry sheet, same one the floating add button opens. */}
+      <LogSheet visible={customOpen} onClose={() => setCustomOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -297,23 +243,5 @@ function makeStyles(colors) {
     toastText: { color: colors.text, fontSize: fontSize.body, flex: 1, paddingRight: spacing.md },
     toastBtn: { minHeight: 44, justifyContent: 'center' },
     toastUndo: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
-
-    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-    sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl },
-    sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
-    typeRow: { flexDirection: 'row', gap: spacing.sm },
-    typeBtn: { flex: 1, paddingVertical: spacing.sm + 2, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-    typeOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-    typeText: { color: colors.muted, fontSize: fontSize.body, fontWeight: fontWeight.medium },
-    typeTextOn: { color: colors.onPrimary },
-    fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
-    input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
-    sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xl },
-    sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
-    err: { color: colors.warning, fontSize: fontSize.small, marginBottom: spacing.sm },
-    cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-    cancelText: { color: colors.text, fontSize: fontSize.body },
-    saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

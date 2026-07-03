@@ -1,19 +1,29 @@
 // This file defines the bottom tab bar. Each <Tabs.Screen> points to a file
 // in this same folder. The "name" must match the file name (without .js).
 // For example name="accounts" shows accounts.js.
+//
+// It also mounts the global floating add button. Logging is the heartbeat
+// of the whole app, so adding an entry is one tap from every tab, not a
+// walk to Budget first.
 
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/Theme';
+import LogSheet from '../../components/LogSheet';
 
 export default function TabsLayout() {
   // Read the active colors so the tab bar recolors when the theme changes.
   const { colors } = useTheme();
   // Bottom inset so labels are not cut off by the phone's gesture bar.
   const insets = useSafeAreaInsets();
+  const [logOpen, setLogOpen] = useState(false);
+  const barHeight = 78 + insets.bottom;
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false, // each screen draws its own header
@@ -85,5 +95,46 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+
+      {/* The floating add button, always one tap away above the tab bar. */}
+      <Pressable
+        onPress={() => setLogOpen(true)}
+        style={({ pressed }) => [
+          styles.fab,
+          {
+            bottom: barHeight + 16,
+            backgroundColor: colors.primary,
+            shadowColor: colors.primary,
+            opacity: pressed ? 0.85 : 1,
+          },
+        ]}
+        hitSlop={8}
+        accessibilityLabel="Add entry"
+      >
+        <Ionicons name="add" size={30} color={colors.onPrimary} />
+      </Pressable>
+
+      <LogSheet
+        visible={logOpen}
+        onClose={() => setLogOpen(false)}
+        toastBottom={barHeight + 84}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+});

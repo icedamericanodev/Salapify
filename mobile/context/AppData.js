@@ -53,6 +53,7 @@ const seedData = {
     notifications: { payday: false, bills: false, collect: false, daily: false },
     appLock: false,
     onboarded: false,
+    pro: false,
   },
 };
 
@@ -134,6 +135,42 @@ export function AppDataProvider({ children }) {
     }));
   }
 
+  // Add a transaction, and when it is linked to an account, move the
+  // account's balance with it (income raises it, an expense lowers it).
+  // This is the seam that keeps GCash in the app matching GCash in real
+  // life. Transactions without an accountId behave exactly as before.
+  function addTransaction(tx) {
+    const withId = { ...tx, id: tx.id || genId('transactions') };
+    setData((prev) => {
+      const linked = withId.accountId && prev.accounts.some((a) => a.id === withId.accountId);
+      const delta = (withId.type === 'income' ? 1 : -1) * (Number(withId.amount) || 0);
+      const accounts = linked
+        ? prev.accounts.map((a) =>
+            a.id === withId.accountId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
+          )
+        : prev.accounts;
+      return { ...prev, accounts, transactions: [...prev.transactions, withId] };
+    });
+    return withId.id;
+  }
+
+  // Remove a transaction and undo its effect on the linked account, so a
+  // delete or an Undo never leaves a balance permanently shifted.
+  function removeTransaction(id) {
+    setData((prev) => {
+      const tx = prev.transactions.find((t) => t.id === id);
+      if (!tx) return prev;
+      const linked = tx.accountId && prev.accounts.some((a) => a.id === tx.accountId);
+      const delta = (tx.type === 'income' ? 1 : -1) * (Number(tx.amount) || 0);
+      const accounts = linked
+        ? prev.accounts.map((a) =>
+            a.id === tx.accountId ? { ...a, balance: (Number(a.balance) || 0) - delta } : a
+          )
+        : prev.accounts;
+      return { ...prev, accounts, transactions: prev.transactions.filter((t) => t.id !== id) };
+    });
+  }
+
   // Change settings (currency, monthly limit, quick adds, etc.). Accepts a
   // plain patch, or a function of the current settings for updates that
   // build on the latest value (like flipping one notification switch while
@@ -180,6 +217,8 @@ export function AppDataProvider({ children }) {
     addItem,
     updateItem,
     removeItem,
+    addTransaction,
+    removeTransaction,
     updateSettings,
     replaceAll,
   };

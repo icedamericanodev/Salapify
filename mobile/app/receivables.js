@@ -48,7 +48,7 @@ export default function Receivables() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
-  const { data, addItem, updateItem, removeItem } = useAppData();
+  const { data, addItem, updateItem, removeItem, addTransaction } = useAppData();
 
   const [form, setForm] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -122,6 +122,19 @@ export default function Receivables() {
     setForm(null);
   }
 
+  // Mark paid records the money coming back as real income, into the
+  // remembered account when one is set, so cash flow and balances agree
+  // with what happened instead of the utang just silently vanishing.
+  function markPaid(r) {
+    updateItem('receivables', r.id, { paid: true });
+    const amount = Number(r.amount) || 0;
+    if (amount <= 0) return;
+    const def = data.settings.defaultAccountId;
+    const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
+    const entry = { type: 'income', label: `${r.person} paid you back`, amount, date: todayISO() };
+    addTransaction(accountId ? { ...entry, accountId } : entry);
+  }
+
   // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a
   // friendly reminder already written, in English or Tagalog. You pick the
   // language, then the app, then tap send.
@@ -187,7 +200,7 @@ export default function Receivables() {
                     <Text style={styles.remindText}>Remind</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => updateItem('receivables', r.id, { paid: true })}
+                    onPress={() => markPaid(r)}
                     style={({ pressed }) => [styles.paidBtn, pressed && styles.pressed]}
                   >
                     <Text style={styles.paidBtnText}>Mark paid</Text>

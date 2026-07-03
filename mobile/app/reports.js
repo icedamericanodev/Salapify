@@ -13,12 +13,21 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, isThisMonth, monthLabel } from '../lib/format';
+import { debtFreeProjection } from '../lib/analytics';
+
+const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const fmtMonth = (d) => `${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
 
 export default function Reports() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { data } = useAppData();
+  const pro = !!(data.settings && data.settings.pro);
+  const hasDebts = (data.debts || []).some((d) => d && d.remaining > 0);
+  const avalanche = pro && hasDebts ? debtFreeProjection(data.debts, 'avalanche') : null;
+  const snowball = pro && hasDebts ? debtFreeProjection(data.debts, 'snowball') : null;
+  const interestSaved = avalanche && snowball ? snowball.totalInterest - avalanche.totalInterest : 0;
 
   const sum = (list, fn) => (list || []).reduce((t, x) => t + fn(x), 0);
 
@@ -99,6 +108,39 @@ export default function Reports() {
           <Line label="Net cash flow" value={netCash} strong color={netCash >= 0 ? colors.primary : colors.warning} />
         </View>
 
+        {/* Debt free plan: the Pro projection. */}
+        <Text style={styles.sectionTitle}>DEBT FREE PLAN <Text style={styles.proBadge}>PRO</Text></Text>
+        <View style={styles.card}>
+          {!pro ? (
+            <Text style={styles.lineLabel}>
+              Unlock Pro on the Insights tab to see your debt free date and how much
+              interest the right strategy saves you.
+            </Text>
+          ) : !hasDebts ? (
+            <Text style={styles.lineLabel}>No debts to project. You are already free. 🎉</Text>
+          ) : avalanche === null && snowball === null ? (
+            <Text style={[styles.lineLabel, { color: colors.warning }]}>
+              At the current minimum payments, interest grows faster than you pay.
+              Raise the payments on your highest interest debt, even a little, and
+              this projection will find your freedom date.
+            </Text>
+          ) : (
+            <>
+              {avalanche ? (
+                <Line label={`Avalanche: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
+              ) : null}
+              {snowball ? (
+                <Line label={`Snowball: debt free ${fmtMonth(snowball.date)}`} value={snowball.totalInterest} color={colors.warning} />
+              ) : null}
+              <Text style={styles.projNote}>
+                Amounts are total interest paid along the way, assuming your minimum
+                payments continue.{interestSaved > 0 ? ` Avalanche saves you ${formatMoney(interestSaved)} in interest.` : ''} Every
+                extra peso toward the focus debt moves the date closer.
+              </Text>
+            </>
+          )}
+        </View>
+
         <Text style={styles.footnote}>
           Financial position is as of today. Income and cash flow cover {monthLabel()} only.
         </Text>
@@ -125,5 +167,7 @@ function makeStyles(colors) {
     strongValue: { fontWeight: fontWeight.bold, fontSize: fontSize.subtitle },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.sm },
     footnote: { color: colors.faint, fontSize: fontSize.small, textAlign: 'center', marginTop: spacing.sm },
+    proBadge: { color: colors.celebrate, fontWeight: fontWeight.heavy },
+    projNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
   });
 }
