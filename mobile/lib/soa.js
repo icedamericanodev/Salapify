@@ -53,9 +53,11 @@ export function upcomingDues(debts, windowDays = 30, from = new Date()) {
 }
 
 // Forecast for one credit card: when the next statement cuts, when payment
-// is due, the forecasted statement balance, and the minimum due. The
-// forecast balance is the current balance minus payments still pending,
-// which is the honest best guess without knowing future swipes.
+// is due, the forecasted statement balance, and the minimum due. Logging a
+// payment already reduces the card's remaining balance right away, so the
+// forecast IS the remaining balance. Pending is returned separately as
+// information only (money sent but not yet posted by the bank); subtracting
+// it here would count every pending payment twice.
 export function cardForecast(debt, payments = [], from = new Date()) {
   if (!debt) return null;
   const statement = debt.statementDay ? nextOccurrence(debt.statementDay, from) : null;
@@ -63,7 +65,7 @@ export function cardForecast(debt, payments = [], from = new Date()) {
   const pending = (payments || [])
     .filter((p) => p && p.debtId === debt.id && p.status === 'pending')
     .reduce((t, p) => t + (Number(p.amount) || 0), 0);
-  const balance = Math.max(0, (Number(debt.remaining) || 0) - pending);
+  const balance = Math.max(0, Number(debt.remaining) || 0);
   return {
     statement,
     due,
