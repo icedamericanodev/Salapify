@@ -41,16 +41,18 @@ function isRealDate(s) {
 export default function LogSheet({ visible, onClose, toastBottom = spacing.lg }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, removeItem } = useAppData();
+  const { data, addTransaction, removeTransaction, updateSettings } = useAppData();
 
   const [type, setType] = useState('expense');
   const [label, setLabel] = useState('');
   const [amount, setAmount] = useState('');
   const [when, setWhen] = useState('today'); // 'today' | 'yesterday' | 'other'
   const [otherDate, setOtherDate] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [err, setErr] = useState('');
 
-  // Fresh form every time the sheet opens.
+  // Fresh form every time the sheet opens. The account chip starts on the
+  // last one used (settings.defaultAccountId), so regulars never re-pick.
   useEffect(() => {
     if (visible) {
       setType('expense');
@@ -58,6 +60,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setAmount('');
       setWhen('today');
       setOtherDate('');
+      const def = data.settings.defaultAccountId;
+      setAccountId(def && data.accounts.some((a) => a.id === def) ? def : '');
       setErr('');
     }
   }, [visible]);
@@ -89,9 +93,20 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   }
 
   function undoLog() {
-    if (toast) removeItem('transactions', toast.id);
+    if (toast) removeTransaction(toast.id);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(null);
+  }
+
+  // Save an entry through the store, remember the account choice for next
+  // time, close, and celebrate.
+  function logEntry(entry) {
+    const id = addTransaction(accountId ? { ...entry, accountId } : entry);
+    if ((data.settings.defaultAccountId || '') !== accountId) {
+      updateSettings({ defaultAccountId: accountId });
+    }
+    onClose();
+    celebrate(entry.label, entry.amount, id);
   }
 
   // The date the entry lands on, or null when the typed date is unusable.
@@ -115,9 +130,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setErr(date === 'future' ? 'That date is in the future.' : 'Type the date as YYYY-MM-DD, like 2026-06-28.');
       return;
     }
-    const id = addItem('transactions', { type: 'expense', label: item.label, amount: item.amount, date });
-    onClose();
-    celebrate(item.label, item.amount, id);
+    logEntry({ type: 'expense', label: item.label, amount: item.amount, date });
   }
 
   function save() {
@@ -136,9 +149,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       return;
     }
     const entryLabel = label.trim() || (type === 'income' ? 'Income' : 'Expense');
-    const id = addItem('transactions', { type, label: entryLabel, amount: amt, date });
-    onClose();
-    celebrate(entryLabel, amt, id);
+    logEntry({ type, label: entryLabel, amount: amt, date });
   }
 
   const quickAdds = data.settings.quickAdds || [];
@@ -226,6 +237,32 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               placeholderTextColor={colors.faint}
               keyboardType="numeric"
             />
+
+            {data.accounts.length > 0 ? (
+              <>
+                <Text style={styles.fieldLabel}>
+                  {type === 'income' ? 'Into which account?' : 'From which account?'}
+                </Text>
+                <View style={styles.chips}>
+                  <Pressable
+                    onPress={() => setAccountId('')}
+                    style={[styles.chip, accountId === '' && styles.chipOn]}
+                  >
+                    <Text style={[styles.chipText, accountId === '' && styles.chipTextOn]}>Not linked</Text>
+                  </Pressable>
+                  {data.accounts.map((a) => {
+                    const on = accountId === a.id;
+                    return (
+                      <Pressable key={a.id} onPress={() => setAccountId(a.id)} style={[styles.chip, on && styles.chipOn]}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                          {a.icon ? `${a.icon} ` : ''}{a.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
 
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>

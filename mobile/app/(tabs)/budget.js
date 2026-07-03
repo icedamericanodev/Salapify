@@ -33,7 +33,7 @@ const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, u
 export default function Budget() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, removeItem } = useAppData();
+  const { data, addTransaction, removeTransaction } = useAppData();
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [toast, setToast] = useState(null); // {text, id} after logging
@@ -78,13 +78,18 @@ export default function Budget() {
     }, 4000);
   }
   function undoLog() {
-    if (toast) removeItem('transactions', toast.id);
+    if (toast) removeTransaction(toast.id);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(null);
   }
 
   function quickAdd(item) {
-    const id = addItem('transactions', { type: 'expense', label: item.label, amount: item.amount, date: today() });
+    // One tap logs use the remembered account (set in the entry sheet), so
+    // fast logging still keeps balances honest.
+    const def = data.settings.defaultAccountId;
+    const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
+    const entry = { type: 'expense', label: item.label, amount: item.amount, date: today() };
+    const id = addTransaction(accountId ? { ...entry, accountId } : entry);
     celebrate(item.label, item.amount, id);
   }
   // + Custom opens the same LogSheet as the global floating button, so the
@@ -147,7 +152,7 @@ export default function Budget() {
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
                     {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
                   </Text>
-                  <Pressable onPress={() => removeItem('transactions', e.id)} hitSlop={8} style={styles.trash}>
+                  <Pressable onPress={() => removeTransaction(e.id)} hitSlop={8} style={styles.trash}>
                     <Ionicons name="close" size={16} color={colors.faint} />
                   </Pressable>
                 </View>
