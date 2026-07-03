@@ -27,6 +27,7 @@ import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { ensureNotifPermission } from '../../lib/notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
+import * as Updates from 'expo-updates';
 import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
@@ -210,6 +211,32 @@ export default function More() {
     updateSettings({ notifications: { ...notifs, [key]: on } });
   }
 
+  // ---- Over the air updates ----
+  const [updMsg, setUpdMsg] = useState('');
+  async function checkUpdates() {
+    if (Platform.OS === 'web') return;
+    setUpdMsg('Checking...');
+    try {
+      const res = await Updates.checkForUpdateAsync();
+      if (res.isAvailable) {
+        setUpdMsg('Downloading...');
+        await Updates.fetchUpdateAsync();
+        Alert.alert('Update ready', 'Restart the app now to apply it?', [
+          {
+            text: 'Later',
+            style: 'cancel',
+            onPress: () => setUpdMsg('Ready. Applies on next open.'),
+          },
+          { text: 'Restart now', onPress: () => Updates.reloadAsync() },
+        ]);
+      } else {
+        setUpdMsg('Up to date.');
+      }
+    } catch (e) {
+      setUpdMsg(`Failed: ${e.message || 'unknown error'}`);
+    }
+  }
+
   // ---- App lock (biometrics) ----
   async function toggleLock(on) {
     if (on) {
@@ -359,8 +386,24 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA 2: save to device</Text>
+            <Text style={styles.rowValue}>OTA 3: updates tools</Text>
           </View>
+          {Platform.OS !== 'web' ? (
+            <>
+              <Pressable onPress={checkUpdates} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+                <Text style={styles.rowLabel}>Check for updates</Text>
+                <Text style={styles.rowValue}>{updMsg || 'Tap to check'}</Text>
+              </Pressable>
+              <View style={[styles.row, styles.rowDivider]}>
+                <Text style={styles.rowLabel}>Update channel</Text>
+                <Text style={styles.rowValue}>{Updates.channel || 'none'}</Text>
+              </View>
+              <View style={[styles.row, styles.rowDivider]}>
+                <Text style={styles.rowLabel}>Runtime</Text>
+                <Text style={styles.rowValue}>{String(Updates.runtimeVersion || 'none')}</Text>
+              </View>
+            </>
+          ) : null}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
             <Text style={styles.rowValue}>v2</Text>
