@@ -141,6 +141,7 @@ export function cardForecast(debt, payments = [], from = new Date()) {
     .reduce((t, p) => t + (Number(p.amount) || 0), 0);
   const balance = Math.max(0, Number(debt.remaining) || 0);
   const limit = Number(debt.creditLimit) || 0;
+  const rate = Math.max(0, Number(debt.monthlyRate) || 0);
   return {
     statement,
     due: bankDue ? bankDue.date : null,
@@ -152,6 +153,10 @@ export function cardForecast(debt, payments = [], from = new Date()) {
     minDue: Math.min(Number(debt.minPayment) || 0, balance) || balance,
     creditLimit: limit,
     utilization: limit > 0 ? balance / limit : null,
+    // What carrying this balance one more month costs in interest, the
+    // real price of paying late or paying only the minimum.
+    monthlyRate: rate,
+    lateInterest: Math.round((balance * rate) / 100),
   };
 }
 
@@ -167,27 +172,43 @@ export function buildSOA(debt, payments = [], from = new Date()) {
   const lines = [];
   lines.push('SALAPIFY SOA FORECAST');
   lines.push(`${debt.name}`);
+
   lines.push('');
+  lines.push('THIS CYCLE');
   if (f.statement) lines.push(`Next statement cut: ${longDate(f.statement)}`);
   lines.push(`Forecast statement balance: ${formatMoney(f.forecastBalance)}`);
-  lines.push(`Minimum amount due: ${formatMoney(f.minDue)}`);
-  if (f.due) {
-    if (f.dueMoved) {
-      lines.push(
-        `Payment due: ${longDate(f.due)} (moved from ${longDate(f.dueRaw)}, which is ${f.dueMovedReason}; banks accept payment on the next banking day)`
-      );
-    } else {
-      lines.push(`Payment due: ${longDate(f.due)}`);
-    }
-  }
-  if (f.pending > 0) {
-    lines.push(`Payments sent but not yet posted: ${formatMoney(f.pending)}`);
-  }
   if (f.creditLimit > 0) {
     lines.push(
       `Credit used: ${Math.min(Math.round((f.utilization || 0) * 100), 999)}% of ${formatMoney(f.creditLimit)}`
     );
   }
+  if (f.pending > 0) {
+    lines.push(`Payments sent but not yet posted: ${formatMoney(f.pending)}`);
+  }
+
+  lines.push('');
+  lines.push('WHAT TO PAY');
+  lines.push(`Pay in full: ${formatMoney(f.forecastBalance)} and no interest is charged`);
+  lines.push(`Or at least the minimum: ${formatMoney(f.minDue)} to avoid late fees`);
+  if (f.due) {
+    if (f.dueMoved) {
+      lines.push(
+        `Due date: ${longDate(f.due)} (moved from ${longDate(f.dueRaw)}, which is ${f.dueMovedReason}; banks accept payment on the next banking day)`
+      );
+    } else {
+      lines.push(`Due date: ${longDate(f.due)}`);
+    }
+  }
+
+  if (f.lateInterest > 0) {
+    lines.push('');
+    lines.push('IF YOU PAY LATE OR ONLY THE MINIMUM');
+    lines.push(
+      `About ${formatMoney(f.lateInterest)} interest gets added next month (${f.monthlyRate}% monthly on the unpaid balance)`
+    );
+    lines.push('Missing the due date also adds your bank’s late fee, usually 850 to 1,500 pesos');
+  }
+
   lines.push('');
   lines.push('Forecast from your logged data in Salapify. Your bank’s official SOA may differ if there are swipes or fees not logged here.');
   return lines.join('\n');
