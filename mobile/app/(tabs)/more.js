@@ -334,6 +334,12 @@ export default function More() {
             <Text style={styles.rowLabel}>Version</Text>
             <Text style={styles.rowValue}>0.1.0</Text>
           </View>
+          {/* This stamp changes with every over the air update, so you can
+              always tell at a glance whether the latest code has arrived. */}
+          <View style={[styles.row, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>Update stamp</Text>
+            <Text style={styles.rowValue}>OTA test 1 🎉</Text>
+          </View>
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
             <Text style={styles.rowValue}>v2</Text>
