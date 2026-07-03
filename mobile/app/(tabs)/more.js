@@ -451,10 +451,6 @@ export default function More() {
             <Ionicons name="open-outline" size={18} color={colors.faint} />
           </Pressable>
           <View style={[styles.row, styles.rowDivider]}>
-            <Text style={styles.rowLabel}>Theme debug</Text>
-            <Text style={styles.rowValue}>{String(palette)} {colors.primary}</Text>
-          </View>
-          <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
             <Text style={styles.rowValue}>v2</Text>
           </View>
