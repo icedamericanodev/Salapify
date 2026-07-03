@@ -272,6 +272,30 @@ export function AppDataProvider({ children }) {
     return withId.id;
   }
 
+  // Edit a transaction honestly: the old entry's effect on its linked
+  // account is reversed, then the new version's effect is applied, so
+  // changing an amount, a type, or the account can never drift a balance.
+  function updateTransaction(id, patch) {
+    setData((prev) => {
+      const tx = prev.transactions.find((t) => t.id === id);
+      if (!tx) return prev;
+      const next = { ...tx, ...patch };
+      const shift = (accs, t, sign) => {
+        if (!t.accountId || !accs.some((a) => a.id === t.accountId)) return accs;
+        const delta = sign * (t.type === 'income' ? 1 : -1) * (Number(t.amount) || 0);
+        return accs.map((a) =>
+          a.id === t.accountId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
+        );
+      };
+      const accounts = shift(shift(prev.accounts, tx, -1), next, 1);
+      return {
+        ...prev,
+        accounts,
+        transactions: prev.transactions.map((t) => (t.id === id ? next : t)),
+      };
+    });
+  }
+
   // Remove a transaction and undo its effect on the linked account, so a
   // delete or an Undo never leaves a balance permanently shifted.
   function removeTransaction(id) {
@@ -354,6 +378,7 @@ export function AppDataProvider({ children }) {
     updateItem,
     removeItem,
     addTransaction,
+    updateTransaction,
     removeTransaction,
     updateSettings,
     replaceAll,

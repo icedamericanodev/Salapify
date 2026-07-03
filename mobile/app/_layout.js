@@ -10,6 +10,7 @@ import { AppDataProvider, useAppData } from '../context/AppData';
 import { ThemeProvider, useTheme } from '../context/Theme';
 import LockGate from '../components/LockGate';
 import Onboarding from '../components/Onboarding';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Shows the one time welcome flow until it has been completed, then the
 // real app. While the saved data loads it shows a plain background, so
@@ -82,6 +83,7 @@ function ThemedStatusBar() {
 
 export default function RootLayout() {
   return (
+    <ErrorBoundary>
     <ThemeProvider>
       <AppDataProvider>
         <SafeAreaProvider>
@@ -101,6 +103,7 @@ export default function RootLayout() {
         </SafeAreaProvider>
       </AppDataProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

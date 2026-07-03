@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
@@ -37,6 +38,7 @@ export default function Budget() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, addTransaction, removeTransaction } = useAppData();
+  const router = useRouter();
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [receiptView, setReceiptView] = useState(''); // full screen receipt photo
@@ -145,7 +147,12 @@ export default function Budget() {
           </Pressable>
         </View>
 
-        <Text style={styles.sectionTitle}>RECENT</Text>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>RECENT</Text>
+          <Pressable onPress={() => router.push('/history')} hitSlop={8}>
+            <Text style={styles.seeAll}>See all</Text>
+          </Pressable>
+        </View>
         <View style={styles.card}>
           {recent.length === 0 ? (
             <EmptyState icon="🧾" title="Nothing logged yet" subtitle="Tap a quick add or + Custom to start." />
@@ -242,6 +249,8 @@ function makeStyles(colors) {
     remaining: { fontSize: fontSize.small, marginTop: spacing.sm },
 
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
+    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingRight: spacing.xs },
+    seeAll: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg },
     quick: {
       flexGrow: 1, flexBasis: '47%', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1,
