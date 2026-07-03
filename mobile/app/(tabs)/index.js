@@ -22,10 +22,11 @@ export default function Overview() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter(); // lets the quick links open other tabs
-  const { data, addItem, updateSettings, loaded } = useAppData(); // live data from the store
+  const { data, addTransaction, updateSettings, loaded } = useAppData(); // live data from the store
 
   const [salaryModal, setSalaryModal] = useState(false);
   const [salaryAmount, setSalaryAmount] = useState('');
+  const [salaryAccount, setSalaryAccount] = useState('');
   const [showPeak, setShowPeak] = useState(false);
   const peakAnim = useRef(new Animated.Value(0)).current;
 
@@ -114,10 +115,21 @@ export default function Overview() {
       return { paydayPlan: { key: paydayKey, steps: { ...cur, [step]: true } } };
     });
   }
+  // Open the sweldo sheet with the account chip preset to the last one a
+  // salary landed in, so payday logging stays two taps.
+  function openSalary() {
+    const def = data.settings.salaryAccountId;
+    setSalaryAccount(def && data.accounts.some((a) => a.id === def) ? def : '');
+    setSalaryModal(true);
+  }
   function saveSalary() {
-    const amount = Number(salaryAmount);
+    const amount = Number(String(salaryAmount).replace(/[, ]/g, ''));
     if (!Number.isFinite(amount) || amount <= 0) return;
-    addItem('transactions', { type: 'income', label: 'Salary', amount, date: todayISO() });
+    const entry = { type: 'income', label: 'Salary', amount, date: todayISO() };
+    addTransaction(salaryAccount ? { ...entry, accountId: salaryAccount } : entry);
+    if ((data.settings.salaryAccountId || '') !== salaryAccount) {
+      updateSettings({ salaryAccountId: salaryAccount });
+    }
     setSalaryModal(false);
     setSalaryAmount('');
     markStep('logged');
@@ -156,7 +168,7 @@ export default function Overview() {
               Payday! Three taps and this cycle is planned before the money moves.
             </Text>
             {[
-              { k: 'logged', label: 'Log your sweldo', action: () => setSalaryModal(true) },
+              { k: 'logged', label: 'Log your sweldo', action: openSalary },
               { k: 'saved', label: 'Move savings first', action: () => { markStep('saved'); router.push('/goals'); } },
               { k: 'budget', label: 'Check your spending budget', action: () => { markStep('budget'); router.push('/budget'); } },
             ].map((s) => (
@@ -348,6 +360,26 @@ export default function Overview() {
               keyboardType="numeric"
               autoFocus
             />
+            {data.accounts.length > 0 ? (
+              <>
+                <Text style={styles.fieldLabel}>Into which account?</Text>
+                <View style={styles.chips}>
+                  <Pressable onPress={() => setSalaryAccount('')} style={[styles.chip, salaryAccount === '' && styles.chipOn]}>
+                    <Text style={[styles.chipText, salaryAccount === '' && styles.chipTextOn]}>Not linked</Text>
+                  </Pressable>
+                  {data.accounts.map((a) => {
+                    const on = salaryAccount === a.id;
+                    return (
+                      <Pressable key={a.id} onPress={() => setSalaryAccount(a.id)} style={[styles.chip, on && styles.chipOn]}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                          {a.icon ? `${a.icon} ` : ''}{a.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
             <View style={styles.sheetButtons}>
               <Pressable onPress={() => setSalaryModal(false)} style={[styles.sheetBtn, styles.cancelBtn]}>
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -502,6 +534,11 @@ function makeStyles(colors) {
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+    chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.card },
+    chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { color: colors.text, fontSize: fontSize.small },
+    chipTextOn: { color: colors.onPrimary, fontWeight: fontWeight.medium },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xl },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },

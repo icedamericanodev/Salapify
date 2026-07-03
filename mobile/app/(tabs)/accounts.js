@@ -45,6 +45,40 @@ export default function Accounts() {
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
 
+  // The transfer modal. Moves money between two accounts in one step, so
+  // "moved 5,000 from BPI to GCash" never needs two manual balance edits.
+  const [transfer, setTransfer] = useState(null);
+  const [transferErr, setTransferErr] = useState('');
+
+  function openTransfer() {
+    const first = data.accounts[0];
+    const second = data.accounts[1];
+    setTransfer({ fromId: first ? first.id : '', toId: second ? second.id : '', amount: '' });
+    setTransferErr('');
+  }
+  function saveTransfer() {
+    const amount = Number(String(transfer.amount).replace(/[, ]/g, ''));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTransferErr('Enter an amount greater than 0.');
+      return;
+    }
+    if (!transfer.fromId || !transfer.toId || transfer.fromId === transfer.toId) {
+      setTransferErr('Pick two different accounts.');
+      return;
+    }
+    const from = data.accounts.find((a) => a.id === transfer.fromId);
+    const to = data.accounts.find((a) => a.id === transfer.toId);
+    if (!from || !to) {
+      setTransferErr('Pick two different accounts.');
+      return;
+    }
+    // A transfer is not income or spending, so it never touches the budget
+    // or cash flow. It only moves the balances.
+    updateItem('accounts', from.id, { balance: (Number(from.balance) || 0) - amount });
+    updateItem('accounts', to.id, { balance: (Number(to.balance) || 0) + amount });
+    setTransfer(null);
+  }
+
   function openAdd(type) {
     setForm({
       type, // 'account' or 'asset'
@@ -194,6 +228,14 @@ export default function Accounts() {
           >
             <Text style={styles.addBtnText}>+ Asset</Text>
           </Pressable>
+          {data.accounts.length >= 2 ? (
+            <Pressable
+              onPress={openTransfer}
+              style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
+            >
+              <Text style={styles.addBtnText}>⇄ Transfer</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Section title="CASH" subtotal={formatMoney(sum(cash, 'balance'))} styles={styles}>
@@ -350,6 +392,69 @@ export default function Accounts() {
                 </View>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Transfer between accounts. */}
+      <Modal visible={!!transfer} transparent animationType="slide" onRequestClose={() => setTransfer(null)}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Transfer</Text>
+
+            <Text style={styles.fieldLabel}>From</Text>
+            <View style={styles.chips}>
+              {data.accounts.map((a) => {
+                const on = transfer?.fromId === a.id;
+                return (
+                  <Pressable key={a.id} onPress={() => setTransfer((t) => ({ ...t, fromId: a.id }))} style={[styles.chip, on && styles.chipOn]}>
+                    <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                      {a.icon ? `${a.icon} ` : ''}{a.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>To</Text>
+            <View style={styles.chips}>
+              {data.accounts.map((a) => {
+                const on = transfer?.toId === a.id;
+                return (
+                  <Pressable key={a.id} onPress={() => setTransfer((t) => ({ ...t, toId: a.id }))} style={[styles.chip, on && styles.chipOn]}>
+                    <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                      {a.icon ? `${a.icon} ` : ''}{a.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Amount</Text>
+            <TextInput
+              style={styles.input}
+              value={transfer?.amount}
+              onChangeText={(t) => setTransfer((f) => ({ ...f, amount: t }))}
+              placeholder="0"
+              placeholderTextColor={colors.faint}
+              keyboardType="numeric"
+            />
+            <Text style={styles.note}>
+              Transfers only move balances. They never count as income or spending.
+            </Text>
+
+            {transferErr ? <Text style={styles.err}>{transferErr}</Text> : null}
+            <View style={styles.sheetButtons}>
+              <View />
+              <View style={styles.sheetRight}>
+                <Pressable onPress={() => setTransfer(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={saveTransfer} style={[styles.sheetBtn, styles.saveBtn]}>
+                  <Text style={styles.saveText}>Move it</Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
