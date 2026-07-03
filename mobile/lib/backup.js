@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 // Forward only migrations, keyed by the version each one PRODUCES. Every
 // migration is a pure function of the blob: no clock tricks that make it
@@ -34,7 +34,37 @@ export const SCHEMA_VERSION = 2;
 // key list; an unknown collection restored by an older build would be
 // silently dropped instead of refused.
 const MIGRATIONS = {
-  // 3: (d) => ({ ...d, people: [...] }),  // example shape for the future
+  // v3: the per person utang ledger. Distinct receivable names become a
+  // people collection, receivables point at their person by id and gain a
+  // partial payments list. The legacy person string stays on every
+  // receivable so old readers and old code paths keep working.
+  3: (d) => {
+    const receivables = Array.isArray(d.receivables) ? d.receivables : [];
+    const people = Array.isArray(d.people) ? [...d.people] : [];
+    const keyOf = (name) => String(name || '').trim().toLowerCase();
+    const byKey = new Map(people.map((p) => [keyOf(p.name), p]));
+    let n = 0;
+    const migrated = receivables.map((r) => {
+      if (!r || typeof r !== 'object') return r;
+      const key = keyOf(r.person);
+      if (!key) return { payments: [], ...r };
+      let person = byKey.get(key);
+      if (!person) {
+        person = {
+          id: `person_m3_${n++}`,
+          name: String(r.person).trim(),
+          phone: typeof r.phone === 'string' ? r.phone : '',
+          note: '',
+        };
+        people.push(person);
+        byKey.set(key, person);
+      } else if (!person.phone && typeof r.phone === 'string' && r.phone) {
+        person.phone = r.phone;
+      }
+      return { payments: [], ...r, personId: r.personId || person.id };
+    });
+    return { ...d, people, receivables: migrated };
+  },
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -132,11 +162,23 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       accountId: str(r.accountId),
       lastPosted: str(r.lastPosted),
     })),
+    people: cleanList(src.people).map((p) => ({
+      ...p,
+      name: str(p.name, 'Someone'),
+      phone: str(p.phone),
+      note: str(p.note),
+    })),
     receivables: cleanList(src.receivables).map((r) => ({
       ...r,
       person: typeof r.person === 'string' && r.person ? r.person : 'Someone',
+      personId: str(r.personId),
       amount: num(r.amount),
       paid: !!r.paid,
+      payments: cleanList(r.payments).map((p) => ({
+        ...p,
+        amount: Math.max(0, num(p.amount)),
+        date: typeof p.date === 'string' && p.date ? p.date : '',
+      })),
     })),
     settings: {
       ...settings,

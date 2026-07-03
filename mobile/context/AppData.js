@@ -39,6 +39,7 @@ const seedData = {
   wins: [],
   notes: [],
   recurring: [],
+  people: [],
   receivables: [
     // The sample utang is due two weeks from first run, so a new user is
     // never greeted by an already overdue fake debt.
@@ -326,7 +327,7 @@ export function AppDataProvider({ children }) {
     // appears on top of freshly restored data.
     const hasData = [
       'accounts', 'assets', 'debts', 'payments', 'transactions',
-      'goals', 'wins', 'receivables', 'notes', 'recurring',
+      'goals', 'wins', 'receivables', 'notes', 'recurring', 'people',
     ].some((k) => (clean[k] || []).length > 0);
     setData({
       ...clean,

@@ -81,9 +81,13 @@ export default function Overview() {
     })();
   }, [loaded, netWorth]);
 
-  // Unpaid utang, surfaced on home so collecting is one tap away.
+  // Unpaid utang, surfaced on home so collecting is one tap away. Partial
+  // payments reduce what is still owed.
   const unpaid = (data.receivables || []).filter((r) => !r.paid);
-  const owedToMe = sum(unpaid, 'amount');
+  const owedToMe = unpaid.reduce((t, r) => {
+    const paidSoFar = (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    return t + Math.max(0, (Number(r.amount) || 0) - paidSoFar);
+  }, 0);
   const owedCount = unpaid.length;
 
   // Payments coming due in the next 30 days (cards and loans with a due
