@@ -18,6 +18,8 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
+import { BANK_BRANDS, findBrand } from '../../lib/banks';
+import BankBadge from '../../components/BankBadge';
 
 // The kinds you can pick in the form.
 const ACCOUNT_KINDS = [
@@ -57,7 +59,9 @@ export default function Accounts() {
     setTransferErr('');
   }
   function saveTransfer() {
-    const amount = Number(String(transfer.amount).replace(/[, ]/g, ''));
+    // Round to centavos so repeated transfers never leave float residue
+    // like 0.30000000000000004 in a balance.
+    const amount = Math.round(Number(String(transfer.amount).replace(/[, ]/g, '')) * 100) / 100;
     if (!Number.isFinite(amount) || amount <= 0) {
       setTransferErr('Enter an amount greater than 0.');
       return;
@@ -72,10 +76,17 @@ export default function Accounts() {
       setTransferErr('Pick two different accounts.');
       return;
     }
+    const fromBal = Number(from.balance) || 0;
+    // No overdrafts: a transfer can only move money that is really there,
+    // and the edit form refuses negative balances anyway.
+    if (amount > fromBal) {
+      setTransferErr(`${from.name} only has ${formatMoney(fromBal)}.`);
+      return;
+    }
     // A transfer is not income or spending, so it never touches the budget
     // or cash flow. It only moves the balances.
-    updateItem('accounts', from.id, { balance: (Number(from.balance) || 0) - amount });
-    updateItem('accounts', to.id, { balance: (Number(to.balance) || 0) + amount });
+    updateItem('accounts', from.id, { balance: Math.round((fromBal - amount) * 100) / 100 });
+    updateItem('accounts', to.id, { balance: Math.round(((Number(to.balance) || 0) + amount) * 100) / 100 });
     setTransfer(null);
   }
 
@@ -94,13 +105,15 @@ export default function Accounts() {
     setConfirmDel(false);
   }
   function openEdit(type, item) {
+    // Everything becomes a string here: a restored backup can carry odd
+    // types, and a non string in these fields would crash Save later.
     setForm({
       type,
       id: item.id,
-      name: item.name,
+      name: String(item.name ?? ''),
       kind: item.kind,
-      brand: item.brand || '',
-      icon: item.icon || '',
+      brand: typeof item.brand === 'string' ? item.brand : '',
+      icon: typeof item.icon === 'string' ? item.icon : '',
       amount: String(type === 'account' ? item.balance : item.value),
       target: item.target ? String(item.target) : '',
     });
@@ -164,12 +177,14 @@ export default function Accounts() {
   const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
 
-  const Row = ({ icon, name, sub, amount, amountColor, onPress, progress }) => (
+  const Row = ({ icon, brand, name, sub, amount, amountColor, onPress, progress }) => (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <View style={styles.rowIconWrap}>
+        <BankBadge brand={brand} fallback={icon || '💵'} size={34} />
+      </View>
       <View style={styles.rowMiddle}>
         <Text style={styles.rowName}>{name}</Text>
         {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
@@ -184,10 +199,10 @@ export default function Accounts() {
   );
 
   // Progress toward a savings target, or undefined when no target is set.
-  const targetProgress = (a) => (a.target > 0 ? (a.balance || 0) / a.target : undefined);
+  const targetProgress = (a) => (a.target > 0 ? Math.max(0, (a.balance || 0) / a.target) : undefined);
   const targetSub = (a) =>
     a.target > 0
-      ? `${a.brand ? a.brand + ' . ' : ''}${Math.min(Math.round(((a.balance || 0) / a.target) * 100), 999)}% of ${formatMoney(a.target)}`
+      ? `${a.brand ? a.brand + ' . ' : ''}${Math.min(Math.max(0, Math.round(((a.balance || 0) / a.target) * 100)), 999)}% of ${formatMoney(a.target)}`
       : a.brand;
 
   return (
@@ -243,6 +258,7 @@ export default function Accounts() {
             <Row
               key={a.id}
               icon={a.icon}
+              brand={a.brand}
               name={a.name}
               amount={formatMoney(a.balance)}
               onPress={() => openEdit('account', a)}
@@ -256,6 +272,7 @@ export default function Accounts() {
             <Row
               key={a.id}
               icon={a.icon}
+              brand={a.brand}
               name={a.name}
               sub={targetSub(a)}
               amount={formatMoney(a.balance)}
@@ -333,12 +350,55 @@ export default function Accounts() {
 
               {form?.type === 'account' ? (
                 <>
-                  <Text style={styles.fieldLabel}>Bank or brand (optional)</Text>
+                  <Text style={styles.fieldLabel}>Your bank or e-wallet (optional)</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRow}>
+                    <Pressable
+                      onPress={() => setForm((f) => ({ ...f, brand: '' }))}
+                      style={styles.brandItem}
+                    >
+                      <View style={[styles.brandNone, !findBrand(form?.brand) && styles.brandPicked]}>
+                        <Text style={styles.brandNoneText}>None</Text>
+                      </View>
+                      <Text style={styles.brandLabel}>Plain</Text>
+                    </Pressable>
+                    {BANK_BRANDS.map((b) => {
+                      const on = findBrand(form?.brand)?.key === b.key;
+                      return (
+                        <Pressable
+                          key={b.key}
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              brand: b.name,
+                              // The brand sets a sensible type: wallets are
+                              // e-wallets, banks lift cash or wallet types to
+                              // savings, and a hand picked checking survives.
+                              kind:
+                                b.kind === 'ewallet'
+                                  ? 'ewallet'
+                                  : f.kind === 'cash' || f.kind === 'ewallet'
+                                    ? 'savings'
+                                    : f.kind,
+                            }))
+                          }
+                          style={styles.brandItem}
+                        >
+                          <View style={[styles.brandBadgeWrap, on && styles.brandPicked]}>
+                            <BankBadge brand={b.key} size={44} />
+                          </View>
+                          <Text style={[styles.brandLabel, on && styles.brandLabelOn]} numberOfLines={1}>
+                            {b.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                  <Text style={styles.fieldLabel}>Or type another bank (optional)</Text>
                   <TextInput
                     style={styles.input}
                     value={form?.brand}
                     onChangeText={(t) => setForm((f) => ({ ...f, brand: t }))}
-                    placeholder="e.g. BPI"
+                    placeholder="e.g. HSBC"
                     placeholderTextColor={colors.faint}
                   />
                   <Text style={styles.fieldLabel}>Emoji icon (optional)</Text>
@@ -400,6 +460,7 @@ export default function Accounts() {
       <Modal visible={!!transfer} transparent animationType="slide" onRequestClose={() => setTransfer(null)}>
         <View style={styles.overlay}>
           <View style={styles.sheet}>
+            <ScrollView>
             <Text style={styles.sheetTitle}>Transfer</Text>
 
             <Text style={styles.fieldLabel}>From</Text>
@@ -455,6 +516,7 @@ export default function Accounts() {
                 </Pressable>
               </View>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -542,7 +604,28 @@ function makeStyles(colors) {
     },
     pressed: { opacity: 0.6 },
     rowIcon: { fontSize: 22, marginRight: spacing.md },
+    rowIconWrap: { marginRight: spacing.md },
     rowMiddle: { flex: 1 },
+
+    // The bank and e-wallet picker in the form.
+    brandRow: { gap: spacing.md, paddingVertical: spacing.xs },
+    brandItem: { alignItems: 'center', width: 64 },
+    brandBadgeWrap: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent', padding: 2 },
+    brandNone: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: 2,
+    },
+    brandNoneText: { color: colors.muted, fontSize: fontSize.caption },
+    brandPicked: { borderColor: colors.primary, borderWidth: 2, borderRadius: 14, margin: 0 },
+    brandLabel: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.xs },
+    brandLabelOn: { color: colors.text, fontWeight: fontWeight.medium },
     rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     targetTrack: { height: 5, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginTop: spacing.xs, maxWidth: 180 },
     targetFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
