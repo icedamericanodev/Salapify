@@ -52,6 +52,7 @@ const seedData = {
     quickAdds: sampleBudget.quickAdds,
     notifications: { payday: false, bills: false, collect: false, daily: false },
     appLock: false,
+    onboarded: false,
   },
 };
 

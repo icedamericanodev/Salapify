@@ -6,9 +6,21 @@ import { Platform, View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppDataProvider } from '../context/AppData';
+import { AppDataProvider, useAppData } from '../context/AppData';
 import { ThemeProvider, useTheme } from '../context/Theme';
 import LockGate from '../components/LockGate';
+import Onboarding from '../components/Onboarding';
+
+// Shows the one time welcome flow until it has been completed, then the
+// real app. Waits for the saved data before deciding, so the welcome never
+// flashes for existing users.
+function OnboardingGate({ children }) {
+  const { data, loaded } = useAppData();
+  if (loaded && !(data.settings && data.settings.onboarded)) {
+    return <Onboarding />;
+  }
+  return children;
+}
 
 // On a phone, this just shows the app full screen. In a web browser, it draws
 // the app inside a centered phone-shaped frame so the preview looks like a
@@ -57,10 +69,12 @@ export default function RootLayout() {
           <PhoneFrame>
             {/* LockGate shows the fingerprint screen first when App lock is on. */}
             <LockGate>
-              {/* headerShown: false hides the default top bar; screens draw their own. */}
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-              </Stack>
+              <OnboardingGate>
+                {/* headerShown: false hides the default top bar; screens draw their own. */}
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                </Stack>
+              </OnboardingGate>
             </LockGate>
           </PhoneFrame>
 
