@@ -14,6 +14,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { upcomingDues } from '../../lib/soa';
 import WeekChain from '../../components/WeekChain';
+import WeekRecap from '../../components/WeekRecap';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -260,6 +261,9 @@ export default function Overview() {
 
         {/* Logging chain: filled dots for days you logged in the last week. */}
         <WeekChain transactions={data.transactions} />
+
+        {/* The share worthy week recap, when the week deserves it. */}
+        <WeekRecap transactions={data.transactions} />
 
         {/* People who owe me, one tap from home. */}
         <Pressable

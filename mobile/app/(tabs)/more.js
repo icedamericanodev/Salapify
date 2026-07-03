@@ -402,7 +402,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA 7: the glow up ✨</Text>
+            <Text style={styles.rowValue}>OTA 8: week recap</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
