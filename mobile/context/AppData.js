@@ -53,6 +53,7 @@ const seedData = {
     notifications: { payday: false, bills: false, collect: false, daily: false },
     appLock: false,
     onboarded: false,
+    pro: false,
   },
 };
 

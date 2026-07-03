@@ -3,18 +3,29 @@
 // category, net worth by category, and a net worth trend. Sample data for now.
 
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, isThisMonth, monthLabel } from '../../lib/format';
 import { sampleNetWorthHistory } from '../../lib/sampleData';
+import {
+  monthlySeries,
+  categoryMovers,
+  weekdayPattern,
+  savingsRate,
+  forecastMonthEnd,
+  healthScore,
+} from '../../lib/analytics';
+
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function Insights() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data } = useAppData(); // live data from the store
+  const { data, updateSettings } = useAppData(); // live data from the store
+  const pro = !!(data.settings && data.settings.pro);
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
@@ -125,9 +136,126 @@ export default function Insights() {
           <Text style={styles.trendNow}>Now: {formatMoney(sampleNetWorthHistory[sampleNetWorthHistory.length - 1].value)}</Text>
         </View>
 
+        {/* ---- Pro analytics: the deep analysis tier ---- */}
+        <Text style={styles.sectionTitleRow}>
+          PRO ANALYTICS <Text style={styles.proBadge}>PRO</Text>
+        </Text>
+        {!pro ? (
+          <View style={styles.card}>
+            <Text style={styles.lockTitle}>See the patterns behind your money</Text>
+            <Text style={styles.lockLine}>Financial health score out of 100</Text>
+            <Text style={styles.lockLine}>Six month income and spending trend</Text>
+            <Text style={styles.lockLine}>Month end forecast and savings rate</Text>
+            <Text style={styles.lockLine}>Category movers vs last month</Text>
+            <Text style={styles.lockLine}>Your weekday spending pattern</Text>
+            <Text style={styles.lockLine}>Debt free date with interest saved (in Reports)</Text>
+            <Pressable
+              onPress={() => updateSettings({ pro: true })}
+              style={({ pressed }) => [styles.unlockBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.unlockText}>Unlock free during early access</Text>
+            </Pressable>
+            <Text style={styles.lockHint}>Pro will be a one time purchase at launch. Early users keep it free.</Text>
+          </View>
+        ) : (
+          <>
+            <ProInsights data={data} styles={styles} colors={colors} />
+          </>
+        )}
+
         <Text style={styles.footnote}>Charts show {monthLabel()}. The net worth trend is sample data for now.</Text>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// The Pro cards: computed fresh from the store on every render.
+function ProInsights({ data, styles, colors }) {
+  const score = healthScore(data);
+  const series = monthlySeries(data.transactions, 6);
+  const seriesMax = Math.max(...series.map((m) => Math.max(m.income, m.expenses)), 1);
+  const movers = categoryMovers(data.transactions);
+  const rate = savingsRate(data.transactions);
+  const fc = forecastMonthEnd(data.transactions);
+  const limit = (data.settings && data.settings.monthlyLimit) || 0;
+  const wk = weekdayPattern(data.transactions);
+  const wkMax = Math.max(...wk.map((w) => w.avg), 1);
+  const topDay = wk.reduce((best, w) => (w.avg > best.avg ? w : best), wk[0]);
+  const DAY_NAMES = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+
+  return (
+    <>
+      <View style={styles.card}>
+        <Text style={styles.kicker}>FINANCIAL HEALTH SCORE</Text>
+        <View style={styles.scoreRow}>
+          <Text style={styles.scoreBig}>{score.total}</Text>
+          <Text style={styles.scoreOf}>/ 100</Text>
+        </View>
+        <View style={styles.partRow}><Text style={styles.partLabel}>Savings rate</Text><Text style={styles.partVal}>{score.parts.savings}/35</Text></View>
+        <View style={styles.partRow}><Text style={styles.partLabel}>Budget discipline</Text><Text style={styles.partVal}>{score.parts.budget}/25</Text></View>
+        <View style={styles.partRow}><Text style={styles.partLabel}>Debt load</Text><Text style={styles.partVal}>{score.parts.debt}/25</Text></View>
+        <View style={styles.partRow}><Text style={styles.partLabel}>Logging habit</Text><Text style={styles.partVal}>{score.parts.logging}/15</Text></View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.kicker}>SIX MONTH TREND</Text>
+        <View style={styles.trend}>
+          {series.map((m) => (
+            <View key={m.key} style={styles.trendCol}>
+              <View style={styles.duoBars}>
+                <View style={[styles.duoBar, { height: Math.max((m.income / seriesMax) * 100, 2), backgroundColor: colors.primary }]} />
+                <View style={[styles.duoBar, { height: Math.max((m.expenses / seriesMax) * 100, 2), backgroundColor: colors.border }]} />
+              </View>
+              <Text style={styles.trendLabel}>{m.label}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.proNote}>Bright bars are income, dim bars are spending. Net this month: {formatMoney(series[series.length - 1].net)}.</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.kicker}>THIS MONTH, AT THIS PACE</Text>
+        <Text style={styles.forecastBig}>{formatMoney(fc.projected)}</Text>
+        <Text style={styles.proNote}>
+          Projected month end spending{limit > 0 ? ` against your ${formatMoney(limit)} budget` : ''}.
+          {limit > 0 && fc.projected > limit ? ' Ease off a little.' : ''}
+          {rate !== null ? ` Savings rate so far: ${Math.round(rate * 100)}% of income kept.` : ''}
+        </Text>
+      </View>
+
+      {movers.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.kicker}>MOVERS VS LAST MONTH</Text>
+          <View style={styles.cardBody}>
+            {movers.map((mv) => (
+              <View key={mv.label} style={styles.moverRow}>
+                <Text style={styles.moverLabel}>{mv.label}</Text>
+                <Text style={[styles.moverVal, { color: mv.change > 0 ? colors.warning : colors.primary }]}>
+                  {mv.change > 0 ? '+' : '-'}{formatMoney(Math.abs(mv.change))}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.card}>
+        <Text style={styles.kicker}>YOUR WEEK IN SPENDING</Text>
+        <View style={styles.trend}>
+          {wk.map((w, i) => (
+            <View key={i} style={styles.trendCol}>
+              <View style={[styles.wkBar, { height: Math.max((w.avg / wkMax) * 90, 3), backgroundColor: w.day === topDay.day && w.avg > 0 ? colors.primary : colors.border }]} />
+              <Text style={styles.trendLabel}>{WEEKDAY_LETTERS[i]}</Text>
+            </View>
+          ))}
+        </View>
+        {topDay.avg > 0 ? (
+          <Text style={styles.proNote}>You spend the most on {DAY_NAMES[topDay.day]} ({formatMoney(Math.round(topDay.avg))} on average).</Text>
+        ) : (
+          <Text style={styles.proNote}>Log a few weeks of spending and your pattern appears here.</Text>
+        )}
+      </View>
+    </>
   );
 }
 
@@ -192,6 +320,28 @@ function makeStyles(colors) {
     },
     trendLabel: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.xs },
     trendNow: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
+
+    sectionTitleRow: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
+    proBadge: { color: colors.celebrate, fontWeight: fontWeight.heavy },
+    lockTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
+    lockLine: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
+    unlockBtn: { backgroundColor: colors.primary, borderRadius: radius.md, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
+    unlockText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    lockHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.sm },
+    scoreRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginTop: spacing.xs, marginBottom: spacing.sm },
+    scoreBig: { color: colors.primary, fontSize: fontSize.display, fontWeight: fontWeight.heavy, fontVariant: ['tabular-nums'] },
+    scoreOf: { color: colors.muted, fontSize: fontSize.subtitle, marginBottom: 8 },
+    partRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
+    partLabel: { color: colors.textSecondary, fontSize: fontSize.small },
+    partVal: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    duoBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 100 },
+    duoBar: { width: 10, borderRadius: 3 },
+    proNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
+    forecastBig: { color: colors.text, fontSize: fontSize.big, fontWeight: fontWeight.heavy, fontVariant: ['tabular-nums'], marginTop: spacing.xs },
+    moverRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs },
+    moverLabel: { color: colors.text, fontSize: fontSize.body },
+    moverVal: { fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    wkBar: { width: 16, borderRadius: 4 },
 
     footnote: {
       color: colors.faint,
