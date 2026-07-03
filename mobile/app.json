@@ -3,7 +3,7 @@
     "name": "Salapify",
     "slug": "salapify-v2",
     "owner": "icedamericanodev",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "scheme": "salapify",
     "icon": "./assets/icon.png",
@@ -20,6 +20,13 @@
         "expo-notifications",
         {
           "color": "#F4813F"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Salapify uses the camera so you can photograph receipts for your entries.",
+          "photosPermission": "Salapify opens your photos so you can attach receipts to your entries."
         }
       ],
       [
@@ -61,7 +68,7 @@
     },
     "android": {
       "package": "com.icedamericanodev.salapify",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#FFA45C"

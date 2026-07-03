@@ -6,6 +6,8 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,6 +38,7 @@ export default function Budget() {
   const { data, addTransaction, removeTransaction } = useAppData();
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
+  const [receiptView, setReceiptView] = useState(''); // full screen receipt photo
   const [toast, setToast] = useState(null); // {text, id} after logging
   const toastTimer = useRef(null);
 
@@ -149,6 +152,11 @@ export default function Budget() {
               <View key={e.id} style={styles.row}>
                 <Text style={styles.rowName}>{e.label}</Text>
                 <View style={styles.rowRight}>
+                  {e.receiptUri ? (
+                    <Pressable onPress={() => setReceiptView(e.receiptUri)} hitSlop={8}>
+                      <Text style={styles.receiptIcon}>🧾</Text>
+                    </Pressable>
+                  ) : null}
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
                     {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
                   </Text>
@@ -186,6 +194,16 @@ export default function Budget() {
 
       {/* The shared entry sheet, same one the floating add button opens. */}
       <LogSheet visible={customOpen} onClose={() => setCustomOpen(false)} />
+
+      {/* Full screen receipt viewer. */}
+      <Modal visible={!!receiptView} transparent animationType="fade" onRequestClose={() => setReceiptView('')}>
+        <Pressable style={styles.receiptOverlay} onPress={() => setReceiptView('')}>
+          {receiptView ? (
+            <Image source={{ uri: receiptView }} style={styles.receiptImage} resizeMode="contain" />
+          ) : null}
+          <Text style={styles.receiptClose}>Tap anywhere to close</Text>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -222,6 +240,10 @@ function makeStyles(colors) {
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     rowAmount: { fontSize: fontSize.body, fontWeight: fontWeight.bold },
     trash: { padding: 2 },
+    receiptIcon: { fontSize: 15 },
+    receiptOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+    receiptImage: { width: '100%', height: '85%' },
+    receiptClose: { color: '#FFFFFF', fontSize: fontSize.small, opacity: 0.7, marginTop: spacing.md },
     empty: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
 
     toast: {

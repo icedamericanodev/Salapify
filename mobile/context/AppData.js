@@ -7,6 +7,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
+import { deleteReceipt } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
 import { sanitizeData } from '../lib/backup';
@@ -211,6 +212,9 @@ export function AppDataProvider({ children }) {
     setData((prev) => {
       const tx = prev.transactions.find((t) => t.id === id);
       if (!tx) return prev;
+      // The attached receipt photo goes with it, so deleted entries never
+      // leave orphan files piling up in storage.
+      if (tx.receiptUri) deleteReceipt(tx.receiptUri);
       const linked = tx.accountId && prev.accounts.some((a) => a.id === tx.accountId);
       const delta = (tx.type === 'income' ? 1 : -1) * (Number(tx.amount) || 0);
       const accounts = linked
