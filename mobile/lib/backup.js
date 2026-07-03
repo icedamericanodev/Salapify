@@ -3,11 +3,77 @@
 // libraries. The screens show the text to copy, and on web also offer a
 // download button.
 
+import { todayISO } from './format';
+
 const num = (x) => {
   const n = Number(x);
   return Number.isFinite(n) ? n : 0;
 };
 const asArray = (x) => (Array.isArray(x) ? x : []);
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+const cleanList = (x) => asArray(x).filter(isObj);
+
+// Undated history gets stamped onto the first day of last month, never
+// today: unknown old entries must not inflate this month's totals.
+function legacyDate() {
+  const now = new Date();
+  return todayISO(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+}
+
+// sanitizeData coerces any imported, restored, or loaded blob into a shape
+// the app can never crash on: every collection a real array of objects,
+// every money field a finite number, every transaction and payment dated.
+// A restored backup also gets appLock forced off (keepAppLock false), so a
+// backup made on a phone with a fingerprint can never lock someone out of
+// a phone without one.
+export function sanitizeData(raw, { keepAppLock = false } = {}) {
+  const src = isObj(raw) ? raw : {};
+  const stampDate = legacyDate();
+  const dated = (list) =>
+    cleanList(list).map((it) => ({
+      ...it,
+      date: typeof it.date === 'string' && it.date ? it.date : stampDate,
+    }));
+  const settings = isObj(src.settings) ? src.settings : {};
+  return {
+    accounts: cleanList(src.accounts).map((a) => ({ ...a, balance: num(a.balance), target: num(a.target) })),
+    assets: cleanList(src.assets).map((a) => ({ ...a, value: num(a.value) })),
+    debts: cleanList(src.debts).map((d) => ({
+      ...d,
+      remaining: num(d.remaining),
+      monthlyRate: num(d.monthlyRate),
+      minPayment: num(d.minPayment),
+      dueDay: num(d.dueDay),
+      statementDay: num(d.statementDay),
+    })),
+    payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
+    transactions: dated(src.transactions).map((t) => ({
+      ...t,
+      amount: num(t.amount),
+      type: t.type === 'income' ? 'income' : 'expense',
+      label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
+    })),
+    goals: cleanList(src.goals).map((g) => ({
+      ...g,
+      target: num(g.target),
+      saved: num(g.saved),
+    })),
+    wins: cleanList(src.wins),
+    notes: cleanList(src.notes),
+    receivables: cleanList(src.receivables).map((r) => ({
+      ...r,
+      person: typeof r.person === 'string' && r.person ? r.person : 'Someone',
+      amount: num(r.amount),
+      paid: !!r.paid,
+    })),
+    settings: {
+      ...settings,
+      monthlyLimit: num(settings.monthlyLimit),
+      quickAdds: cleanList(settings.quickAdds),
+      appLock: keepAppLock ? !!settings.appLock : false,
+    },
+  };
+}
 
 // Default quick-add buttons, used when an import does not bring usable ones.
 const DEFAULT_QUICK_ADDS = [
@@ -34,7 +100,7 @@ export function parseBackup(text) {
   if (!data || !Array.isArray(data.accounts)) {
     throw new Error('That does not look like a Salapify backup.');
   }
-  return data;
+  return sanitizeData(data);
 }
 
 // Make a simple CSV with transactions and debts.
@@ -127,7 +193,7 @@ export function parseV1(text) {
     saved: num(g.saved ?? g.savedAmount),
   }));
 
-  return {
+  return sanitizeData({
     accounts,
     assets,
     debts,
@@ -139,5 +205,5 @@ export function parseV1(text) {
       monthlyLimit: num(b.monthlyBudget) || 20000,
       quickAdds: DEFAULT_QUICK_ADDS,
     },
-  };
+  });
 }

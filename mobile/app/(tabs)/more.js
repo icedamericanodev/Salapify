@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -25,9 +26,14 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { ensureNotifPermission } from '../../lib/notifications';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
+import * as Updates from 'expo-updates';
+import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
   { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
+  { key: 'bills', label: 'Bill due reminders', hint: 'Cards and loans, 3 days before and on the day' },
   { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
   { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
 ];
@@ -36,6 +42,12 @@ const APPEARANCE = [
   { key: 'light', label: 'Light' },
   { key: 'dark', label: 'Dark' },
   { key: 'system', label: 'System' },
+];
+
+// The two color themes. Forest is the Salapify brand; Mint is the original.
+const PALETTE_OPTIONS = [
+  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green. The Salapify look.' },
+  { key: 'mint', label: 'Mint', hint: 'The original glowing green.' },
 ];
 
 const DATA_ACTIONS = [
@@ -81,7 +93,7 @@ function downloadFile(filename, text) {
 }
 
 export default function More() {
-  const { colors, mode, setMode } = useTheme();
+  const { colors, mode, setMode, palette, setPalette } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, replaceAll, updateSettings } = useAppData();
   const router = useRouter();
@@ -95,8 +107,61 @@ export default function More() {
   const settings = data.settings;
 
   // ---- Data tools ----
-  function openTool(m) {
+  // On the phone these are real files: backup and CSV ask whether to save
+  // into a folder on the device (like Downloads) or open the share sheet,
+  // restore and import open the file picker. The web preview keeps the
+  // older text box flow.
+  function offerSave(filename, text, mime) {
+    Alert.alert('Where should it go?', filename, [
+      {
+        text: 'Save to my device',
+        onPress: async () => {
+          try {
+            const ok = await saveToDevice(filename, text, mime);
+            if (ok) Alert.alert('Saved', `${filename} is in the folder you picked.`);
+          } catch (e) {
+            Alert.alert('Could not save there', e.message || 'Try Share or send instead.');
+          }
+        },
+      },
+      {
+        text: 'Share or send',
+        onPress: async () => {
+          const ok = await saveTextFile(filename, text, mime).catch(() => false);
+          if (!ok) Alert.alert('Sharing is not available', 'Try Save to my device instead.');
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+  async function openTool(m) {
     setMsg('');
+    if (Platform.OS !== 'web') {
+      try {
+        if (m === 'backup') {
+          offerSave(`salapify-backup-${todayISO()}.json`, buildBackup(data), 'application/json');
+          return;
+        }
+        if (m === 'csv') {
+          offerSave(`salapify-${todayISO()}.csv`, toCSV(data), 'text/csv');
+          return;
+        }
+        const text = await pickTextFile();
+        if (text == null) return;
+        const parsed = m === 'importv1' ? parseV1(text) : parseBackup(text);
+        Alert.alert(
+          'Replace your data?',
+          'Everything currently in the app will be replaced by this file.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Replace', style: 'destructive', onPress: () => replaceAll(parsed) },
+          ]
+        );
+      } catch (e) {
+        Alert.alert('Could not read that file', e.message || 'Pick a Salapify backup file and try again.');
+      }
+      return;
+    }
     if (m === 'backup') setTool({ mode: m, text: buildBackup(data) });
     else if (m === 'csv') setTool({ mode: m, text: toCSV(data) });
     else setTool({ mode: m, text: '' });
@@ -132,8 +197,14 @@ export default function More() {
   }
   function addQuickAdd() {
     const amount = Number(qaAmount);
-    if (!qaLabel.trim() || !Number.isFinite(amount) || amount <= 0) return;
-    updateSettings({ quickAdds: [...(settings.quickAdds || []), { label: qaLabel.trim(), amount }] });
+    const label = qaLabel.trim();
+    if (!label || !Number.isFinite(amount) || amount <= 0) return;
+    // No duplicate labels: the Budget screen uses the label as its key.
+    const exists = (settings.quickAdds || []).some(
+      (q) => q.label.toLowerCase() === label.toLowerCase()
+    );
+    if (exists) return;
+    updateSettings({ quickAdds: [...(settings.quickAdds || []), { label, amount }] });
     setQaLabel('');
     setQaAmount('');
   }
@@ -154,7 +225,56 @@ export default function More() {
         return;
       }
     }
-    updateSettings({ notifications: { ...notifs, [key]: on } });
+    // Functional update: two switches flipped while a permission dialog is
+    // open must not overwrite each other with stale values.
+    updateSettings((s) => ({ notifications: { ...(s.notifications || {}), [key]: on } }));
+  }
+
+  // ---- Over the air updates ----
+  const [updMsg, setUpdMsg] = useState('');
+  async function checkUpdates() {
+    if (Platform.OS === 'web') return;
+    setUpdMsg('Checking...');
+    try {
+      const res = await Updates.checkForUpdateAsync();
+      if (res.isAvailable) {
+        setUpdMsg('Downloading...');
+        await Updates.fetchUpdateAsync();
+        Alert.alert('Update ready', 'Restart the app now to apply it?', [
+          {
+            text: 'Later',
+            style: 'cancel',
+            onPress: () => setUpdMsg('Ready. Applies on next open.'),
+          },
+          { text: 'Restart now', onPress: () => Updates.reloadAsync() },
+        ]);
+      } else {
+        setUpdMsg('Up to date.');
+      }
+    } catch (e) {
+      setUpdMsg(`Failed: ${e.message || 'unknown error'}`);
+    }
+  }
+
+  // ---- App lock (biometrics) ----
+  async function toggleLock(on) {
+    if (on) {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = hasHardware && (await LocalAuthentication.isEnrolledAsync());
+      if (!enrolled) {
+        Alert.alert(
+          'No fingerprint or face found',
+          'Set up fingerprint or face unlock in your phone settings first, then try again.'
+        );
+        return;
+      }
+      // Confirm it works right now, so nobody locks themselves out.
+      const res = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm to turn on App lock',
+      });
+      if (!res.success) return;
+    }
+    updateSettings({ appLock: on });
   }
 
   return (
@@ -180,6 +300,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Reports</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/notes')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Notes with calculator</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
@@ -189,6 +313,22 @@ export default function More() {
             return (
               <Pressable key={opt.key} onPress={() => setMode(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
                 <Text style={styles.rowLabel}>{opt.label}</Text>
+                {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.sectionTitle}>COLOR THEME</Text>
+        <View style={styles.card}>
+          {PALETTE_OPTIONS.map((opt, i) => {
+            const selected = palette === opt.key;
+            return (
+              <Pressable key={opt.key} onPress={() => setPalette(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
+                <View style={{ flex: 1, paddingRight: spacing.md }}>
+                  <Text style={styles.rowLabel}>{opt.label}</Text>
+                  <Text style={styles.rowHint}>{opt.hint}</Text>
+                </View>
                 {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
               </Pressable>
             );
@@ -212,10 +352,32 @@ export default function More() {
                   value={!!notifs[opt.key]}
                   onValueChange={(on) => toggleNotif(opt.key, on)}
                   trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor="#FFFFFF"
+                  thumbColor={colors.onPrimary}
                 />
               </View>
             ))
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>SECURITY</Text>
+        <View style={styles.card}>
+          {Platform.OS === 'web' ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>App lock works on the phone app</Text>
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text style={styles.rowLabel}>App lock</Text>
+                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens</Text>
+              </View>
+              <Switch
+                value={!!settings.appLock}
+                onValueChange={toggleLock}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.onPrimary}
+              />
+            </View>
           )}
         </View>
 
@@ -257,8 +419,37 @@ export default function More() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>0.1.0</Text>
+            <Text style={styles.rowValue}>1.1.0</Text>
           </View>
+          {/* This stamp changes with every over the air update, so you can
+              always tell at a glance whether the latest code has arrived. */}
+          <View style={[styles.row, styles.rowDivider]}>
+            <Text style={styles.rowLabel}>Update stamp</Text>
+            <Text style={styles.rowValue}>v1.1: onboarding in</Text>
+          </View>
+          {Platform.OS !== 'web' ? (
+            <>
+              <Pressable onPress={checkUpdates} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+                <Text style={styles.rowLabel}>Check for updates</Text>
+                <Text style={styles.rowValue}>{updMsg || 'Tap to check'}</Text>
+              </Pressable>
+              <View style={[styles.row, styles.rowDivider]}>
+                <Text style={styles.rowLabel}>Update channel</Text>
+                <Text style={styles.rowValue}>{Updates.channel || 'none'}</Text>
+              </View>
+              <View style={[styles.row, styles.rowDivider]}>
+                <Text style={styles.rowLabel}>Runtime</Text>
+                <Text style={styles.rowValue}>{String(Updates.runtimeVersion || 'none')}</Text>
+              </View>
+            </>
+          ) : null}
+          <Pressable
+            onPress={() => Linking.openURL('https://icedamericanodev.github.io/Salapify/privacy.html').catch(() => {})}
+            style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+          >
+            <Text style={styles.rowLabel}>Privacy policy</Text>
+            <Ionicons name="open-outline" size={18} color={colors.faint} />
+          </Pressable>
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
             <Text style={styles.rowValue}>v2</Text>
@@ -400,7 +591,7 @@ function makeStyles(colors) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-    pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.bold, marginBottom: spacing.lg },
+    pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.lg },
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.lg },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md + 2 },
@@ -413,7 +604,7 @@ function makeStyles(colors) {
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     qaAddRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },
 
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     sheetHint: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs, marginBottom: spacing.md },
@@ -426,6 +617,6 @@ function makeStyles(colors) {
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

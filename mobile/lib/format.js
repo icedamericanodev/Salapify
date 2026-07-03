@@ -22,6 +22,35 @@ export function formatMoney(amount, symbol) {
   return sign + sym + digits;
 }
 
+// todayISO gives the local date as text like "2026-07-02". Built from local
+// date parts on purpose: toISOString uses UTC, which is a day behind the
+// Philippines until 8am, and money should never land on the wrong day.
+export function todayISO(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// isThisMonth checks whether a "YYYY-MM-DD" date string falls in the current
+// month. Items with no date count as this month, so nothing ever silently
+// disappears from the totals.
+export function isThisMonth(dateStr, ref = new Date()) {
+  if (!dateStr) return true;
+  return String(dateStr).slice(0, 7) === todayISO(ref).slice(0, 7);
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+// monthLabel gives "July 2026", shown next to every this-month number so the
+// user always knows which period they are looking at.
+export function monthLabel(ref = new Date()) {
+  return `${MONTH_NAMES[ref.getMonth()]} ${ref.getFullYear()}`;
+}
+
 // daysUntilPayday counts the days to the next payday. We assume the common
 // Filipino schedule: the 15th and the last day of each month. Later this
 // becomes a setting the user can change.

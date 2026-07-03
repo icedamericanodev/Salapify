@@ -134,7 +134,7 @@ function makeStyles(colors) {
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
 
     tipCard: { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
-    kicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 2, marginBottom: spacing.sm },
+    kicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2, marginBottom: spacing.sm },
     tip: { color: colors.text, fontSize: fontSize.body, lineHeight: 22 },
 
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
@@ -153,6 +153,6 @@ function makeStyles(colors) {
 
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

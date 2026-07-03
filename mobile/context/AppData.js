@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
+import { sanitizeData } from '../lib/backup';
 import {
   sampleAccounts,
   sampleAssets,
@@ -33,15 +34,25 @@ const seedData = {
   transactions: sampleTransactions,
   goals: [],
   wins: [],
+  notes: [],
   receivables: [
-    { id: 'r1', person: 'Juan', amount: 500, dueDate: '2026-07-15', phone: '', note: 'Lunch', paid: false },
+    // The sample utang is due two weeks from first run, so a new user is
+    // never greeted by an already overdue fake debt.
+    (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      const due = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return { id: 'r1', person: 'Juan', amount: 500, dueDate: due, phone: '', note: 'Lunch', paid: false };
+    })(),
   ],
   settings: {
     currency: '₱',
     currencyCode: 'PHP',
     monthlyLimit: sampleBudget.monthlyLimit,
     quickAdds: sampleBudget.quickAdds,
-    notifications: { payday: false, collect: false, daily: false },
+    notifications: { payday: false, bills: false, collect: false, daily: false },
+    appLock: false,
+    onboarded: false,
   },
 };
 
@@ -50,22 +61,37 @@ const AppDataContext = createContext(null);
 export function AppDataProvider({ children }) {
   const [data, setData] = useState(seedData);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  // On startup, load saved data. We only use it if it looks like real data
-  // (has an accounts list), otherwise we keep the seed.
+  // On startup, load saved data. Three cases matter:
+  //  - "ok": clean it up (sanitizeData guarantees arrays, numbers, and
+  //    dates, so a bad blob can never crash or brick the app) and use it.
+  //  - "empty": first run, keep the seed and allow saving.
+  //  - "error": something IS saved but could not be read. Keep the seed on
+  //    screen but never enable saving, so one bad read cannot overwrite
+  //    the user's real data with samples.
   useEffect(() => {
     (async () => {
-      const saved = await loadData();
-      if (saved && Array.isArray(saved.accounts)) {
-        // Merge settings one level deep so new settings we add over time
-        // (like notifications) get their defaults on older saved data.
+      const res = await loadData();
+      if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
+        const clean = sanitizeData(res.data, { keepAppLock: true });
+        // Anyone with saved data from before the welcome flow existed has
+        // clearly used the app already: never throw them into onboarding,
+        // where Start empty sits one confirm away from their real data.
+        // Only an explicit false (a fresh user who quit mid welcome) keeps
+        // the flow.
+        const onboarded = clean.settings.onboarded === false ? false : true;
         setData({
-          ...seedData,
-          ...saved,
-          settings: { ...seedData.settings, ...(saved.settings || {}) },
+          ...clean,
+          settings: { ...seedData.settings, ...clean.settings, onboarded },
         });
+        setLoaded(true);
+      } else if (res.status === 'empty') {
+        setLoaded(true);
+      } else {
+        setLoadFailed(true);
+        console.warn('Saved data could not be read. Saving is off this session to protect it.');
       }
-      setLoaded(true);
     })();
   }, []);
 
@@ -75,10 +101,12 @@ export function AppDataProvider({ children }) {
   }, [data, loaded]);
 
   // Keep scheduled reminders in sync with the data. Runs when the
-  // notification switches or the receivables list change. Does nothing on web.
+  // notification switches, receivables, transactions, or debts change, so
+  // the daily nudge knows you already logged today and bill reminders
+  // follow due day edits. Does nothing on web.
   useEffect(() => {
     if (loaded) rescheduleAll(data);
-  }, [loaded, data.receivables, data.settings.notifications]);
+  }, [loaded, data.receivables, data.transactions, data.debts, data.settings.notifications]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 
@@ -106,14 +134,39 @@ export function AppDataProvider({ children }) {
     }));
   }
 
-  // Change settings (currency, monthly limit, quick adds, etc.).
+  // Change settings (currency, monthly limit, quick adds, etc.). Accepts a
+  // plain patch, or a function of the current settings for updates that
+  // build on the latest value (like flipping one notification switch while
+  // another toggle is still waiting on a permission dialog).
   function updateSettings(patch) {
-    setData((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }));
+    setData((prev) => {
+      const p = typeof patch === 'function' ? patch(prev.settings) : patch;
+      return { ...prev, settings: { ...prev.settings, ...p } };
+    });
   }
 
-  // Replace everything at once (used later by Restore and the v1 import).
+  // Replace everything at once (used by Restore and the v1 import). The
+  // data is sanitized, missing collections become EMPTY lists rather than
+  // sample data (a restore must never invent money), and the app lock is
+  // always off after a restore so nobody gets locked out.
   function replaceAll(newData) {
-    setData({ ...seedData, ...newData });
+    const clean = sanitizeData(newData);
+    // A restore that carries any real records means this person is not a
+    // first time user: mark them onboarded so the welcome flow never
+    // appears on top of freshly restored data.
+    const hasData = [
+      'accounts', 'assets', 'debts', 'payments', 'transactions',
+      'goals', 'wins', 'receivables', 'notes',
+    ].some((k) => (clean[k] || []).length > 0);
+    setData({
+      ...clean,
+      settings: {
+        ...seedData.settings,
+        ...clean.settings,
+        appLock: false,
+        onboarded: clean.settings.onboarded === true || hasData,
+      },
+    });
   }
 
   // Keep the money formatter in sync with the chosen currency, so amounts
@@ -123,6 +176,7 @@ export function AppDataProvider({ children }) {
   const value = {
     data,
     loaded,
+    loadFailed,
     addItem,
     updateItem,
     removeItem,

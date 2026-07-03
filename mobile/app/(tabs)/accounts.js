@@ -54,6 +54,7 @@ export default function Accounts() {
       brand: '',
       icon: '',
       amount: '',
+      target: '',
     });
     setErr('');
     setConfirmDel(false);
@@ -67,6 +68,7 @@ export default function Accounts() {
       brand: item.brand || '',
       icon: item.icon || '',
       amount: String(type === 'account' ? item.balance : item.value),
+      target: item.target ? String(item.target) : '',
     });
     setErr('');
     setConfirmDel(false);
@@ -85,12 +87,20 @@ export default function Accounts() {
       return;
     }
     if (form.type === 'account') {
+      // A savings target is optional. When set, the account row shows a
+      // progress bar toward it.
+      const target = Number(form.target);
+      if (form.target.trim() !== '' && (!Number.isFinite(target) || target < 0)) {
+        setErr('Enter a valid target amount, or leave it empty.');
+        return;
+      }
       const payload = {
         name: form.name.trim() || 'Account',
         kind: form.kind,
         brand: form.brand.trim(),
         icon: form.icon.trim() || '💵',
         balance: amount,
+        target: form.target.trim() === '' ? 0 : target,
       };
       if (form.id) updateItem('accounts', form.id, payload);
       else addItem('accounts', payload);
@@ -120,7 +130,7 @@ export default function Accounts() {
   const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
 
-  const Row = ({ icon, name, sub, amount, amountColor, onPress }) => (
+  const Row = ({ icon, name, sub, amount, amountColor, onPress, progress }) => (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}
@@ -129,10 +139,22 @@ export default function Accounts() {
       <View style={styles.rowMiddle}>
         <Text style={styles.rowName}>{name}</Text>
         {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
+        {typeof progress === 'number' ? (
+          <View style={styles.targetTrack}>
+            <View style={[styles.targetFill, { width: `${Math.min(Math.round(progress * 100), 100)}%` }]} />
+          </View>
+        ) : null}
       </View>
       <Text style={[styles.rowAmount, amountColor ? { color: amountColor } : null]}>{amount}</Text>
     </Pressable>
   );
+
+  // Progress toward a savings target, or undefined when no target is set.
+  const targetProgress = (a) => (a.target > 0 ? (a.balance || 0) / a.target : undefined);
+  const targetSub = (a) =>
+    a.target > 0
+      ? `${a.brand ? a.brand + ' . ' : ''}${Math.min(Math.round(((a.balance || 0) / a.target) * 100), 999)}% of ${formatMoney(a.target)}`
+      : a.brand;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -193,9 +215,10 @@ export default function Accounts() {
               key={a.id}
               icon={a.icon}
               name={a.name}
-              sub={a.brand}
+              sub={targetSub(a)}
               amount={formatMoney(a.balance)}
               onPress={() => openEdit('account', a)}
+              progress={targetProgress(a)}
             />
           ))}
           {bank.length === 0 ? <Empty styles={styles} text="Nothing here yet." /> : null}
@@ -284,6 +307,15 @@ export default function Accounts() {
                     placeholder="💵"
                     placeholderTextColor={colors.faint}
                   />
+                  <Text style={styles.fieldLabel}>Savings target (optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form?.target}
+                    onChangeText={(t) => setForm((f) => ({ ...f, target: t }))}
+                    placeholder="e.g. 100000 for an emergency fund"
+                    placeholderTextColor={colors.faint}
+                    keyboardType="numeric"
+                  />
                 </>
               ) : null}
 
@@ -350,7 +382,7 @@ function makeStyles(colors) {
     pageTitle: {
       color: colors.text,
       fontSize: fontSize.title,
-      fontWeight: fontWeight.bold,
+      fontWeight: fontWeight.heavy,
       marginBottom: spacing.md,
     },
     summaryCard: {
@@ -361,8 +393,8 @@ function makeStyles(colors) {
       padding: spacing.xl,
       marginBottom: spacing.lg,
     },
-    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 2 },
-    netWorth: { color: colors.text, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs, marginBottom: spacing.lg },
+    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
+    netWorth: { color: colors.text, fontSize: fontSize.huge, fontWeight: fontWeight.heavy, marginTop: spacing.xs, marginBottom: spacing.lg },
     splitRow: { flexDirection: 'row', justifyContent: 'space-between' },
     smallLabel: { color: colors.muted, fontSize: fontSize.caption },
     smallValue: { fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginTop: spacing.xs },
@@ -407,13 +439,15 @@ function makeStyles(colors) {
     rowIcon: { fontSize: 22, marginRight: spacing.md },
     rowMiddle: { flex: 1 },
     rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    targetTrack: { height: 5, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginTop: spacing.xs, maxWidth: 180 },
+    targetFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
     rowSub: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2 },
     rowAmount: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     note: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
     empty: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
 
     // Modal form.
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: {
       backgroundColor: colors.background,
       borderTopLeftRadius: radius.lg,
@@ -451,7 +485,7 @@ function makeStyles(colors) {
     },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
-    chipTextOn: { color: '#FFFFFF' },
+    chipTextOn: { color: colors.onPrimary },
 
     sheetButtons: {
       flexDirection: 'row',
@@ -467,6 +501,6 @@ function makeStyles(colors) {
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

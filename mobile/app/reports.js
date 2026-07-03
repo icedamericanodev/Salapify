@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-import { formatMoney } from '../lib/format';
+import { formatMoney, isThisMonth, monthLabel } from '../lib/format';
 
 export default function Reports() {
   const { colors } = useTheme();
@@ -31,13 +31,14 @@ export default function Reports() {
   const liabilities = sum(data.debts, (d) => d.remaining);
   const netWorth = totalAssets - liabilities;
 
-  // ---- Income Statement ----
-  const income = sum(data.transactions.filter((t) => t.type === 'income'), (t) => t.amount);
-  const expenses = sum(data.transactions.filter((t) => t.type === 'expense'), (t) => t.amount);
+  // ---- Income Statement (this month only) ----
+  const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
+  const income = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
+  const expenses = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
   const netIncome = income - expenses;
 
-  // ---- Cash Flow ----
-  const debtPaid = sum(data.payments, (p) => p.amount);
+  // ---- Cash Flow (this month only) ----
+  const debtPaid = sum((data.payments || []).filter((p) => isThisMonth(p.date)), (p) => p.amount);
   const cashIn = income;
   const cashOut = expenses + debtPaid;
   const netCash = cashIn - cashOut;
@@ -80,7 +81,7 @@ export default function Reports() {
         </View>
 
         {/* Income Statement */}
-        <Text style={styles.sectionTitle}>INCOME STATEMENT</Text>
+        <Text style={styles.sectionTitle}>INCOME STATEMENT ({monthLabel().toUpperCase()})</Text>
         <View style={styles.card}>
           <Line label="Income" value={income} color={colors.primary} />
           <Line label="Expenses" value={expenses} color={colors.warning} />
@@ -89,7 +90,7 @@ export default function Reports() {
         </View>
 
         {/* Cash Flow */}
-        <Text style={styles.sectionTitle}>CASH FLOW</Text>
+        <Text style={styles.sectionTitle}>CASH FLOW ({monthLabel().toUpperCase()})</Text>
         <View style={styles.card}>
           <Line label="Cash in (income)" value={cashIn} color={colors.primary} />
           <Line label="Cash out (spending)" value={expenses} color={colors.warning} />
@@ -99,7 +100,7 @@ export default function Reports() {
         </View>
 
         <Text style={styles.footnote}>
-          Figures are based on everything you have recorded so far.
+          Financial position is as of today. Income and cash flow cover {monthLabel()} only.
         </Text>
       </ScrollView>
     </SafeAreaView>

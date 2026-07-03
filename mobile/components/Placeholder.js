@@ -42,7 +42,7 @@ function makeStyles(colors) {
       color: colors.softGreen,
       fontSize: fontSize.caption,
       fontWeight: fontWeight.medium,
-      letterSpacing: 2,
+      letterSpacing: 1.2,
       marginBottom: spacing.sm,
     },
     title: {

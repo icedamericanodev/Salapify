@@ -44,10 +44,17 @@ export const sampleBudget = {
 };
 
 // Transactions: money in (income) and money out (expense) for this month.
+// Dates are stamped inside the current month (never in the future) so the
+// month filters on the screens have something real to show on first run.
+const _now = new Date();
+const _day = (n) => {
+  const d = Math.min(n, _now.getDate());
+  return `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+};
 export const sampleTransactions = [
-  { id: 't1', type: 'income', label: 'Salary', amount: 15000, account: 'bpi' },
-  { id: 't2', type: 'income', label: 'Freelance', amount: 4000, account: 'gcash' },
-  { id: 't3', type: 'expense', label: 'Groceries', amount: 2300, account: 'cash' },
-  { id: 't4', type: 'expense', label: 'Transport', amount: 850, account: 'gcash' },
-  { id: 't5', type: 'expense', label: 'Bills', amount: 3200, account: 'bpi' },
+  { id: 't1', type: 'income', label: 'Salary', amount: 15000, account: 'bpi', date: _day(1) },
+  { id: 't2', type: 'income', label: 'Freelance', amount: 4000, account: 'gcash', date: _day(3) },
+  { id: 't3', type: 'expense', label: 'Groceries', amount: 2300, account: 'cash', date: _day(5) },
+  { id: 't4', type: 'expense', label: 'Transport', amount: 850, account: 'gcash', date: _day(8) },
+  { id: 't5', type: 'expense', label: 'Bills', amount: 3200, account: 'bpi', date: _day(10) },
 ];
