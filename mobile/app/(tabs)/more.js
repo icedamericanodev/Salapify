@@ -26,6 +26,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
+import { SIZE_NUDGE, SIZE_WARN } from '../../lib/storage';
 import { ensureNotifPermission } from '../../lib/notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
@@ -96,7 +97,7 @@ function downloadFile(filename, text) {
 export default function More() {
   const { colors, mode, setMode, palette, setPalette } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, replaceAll, updateSettings } = useAppData();
+  const { data, replaceAll, updateSettings, storageSize } = useAppData();
   const router = useRouter();
 
   const [tool, setTool] = useState(null); // data tools modal
@@ -112,8 +113,8 @@ export default function More() {
   // into a folder on the device (like Downloads) or open the share sheet,
   // restore and import open the file picker. The web preview keeps the
   // older text box flow.
-  function offerSave(filename, text, mime) {
-    Alert.alert('Where should it go?', filename, [
+  function offerSave(filename, text, mime, note) {
+    Alert.alert('Where should it go?', note ? `${filename}\n\n${note}` : filename, [
       {
         text: 'Save to my device',
         onPress: async () => {
@@ -140,7 +141,12 @@ export default function More() {
     if (Platform.OS !== 'web') {
       try {
         if (m === 'backup') {
-          offerSave(`salapify-backup-${todayISO()}.json`, buildBackup(data), 'application/json');
+          offerSave(
+            `salapify-backup-${todayISO()}.json`,
+            buildBackup(data),
+            'application/json',
+            'Receipt photos stay on this phone. The backup covers your money data, not the photos.'
+          );
           return;
         }
         if (m === 'csv') {
@@ -464,19 +470,30 @@ export default function More() {
             <Text style={[styles.rowLabel, { color: colors.warning }]}>Start fresh (erase everything)</Text>
             <Ionicons name="trash-outline" size={18} color={colors.warning} />
           </Pressable>
+          {storageSize > SIZE_WARN ? (
+            <Text style={[styles.sizeNote, { color: colors.warning }]}>
+              Your data is {Math.round(storageSize / 1024)} KB, close to the phone storage limit.
+              Back up to a file now.
+            </Text>
+          ) : storageSize > SIZE_NUDGE ? (
+            <Text style={styles.sizeNote}>
+              Your history is growing ({Math.round(storageSize / 1024)} KB). Back up to a file
+              regularly.
+            </Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>1.1.0</Text>
+            <Text style={styles.rowValue}>1.2.0</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.8.1: recurring QA fixes</Text>
+            <Text style={styles.rowValue}>v2.0: launch hardening</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -651,6 +668,7 @@ function makeStyles(colors) {
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
     rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
+    sizeNote: { color: colors.muted, fontSize: fontSize.small, paddingVertical: spacing.md },
     soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     qaAddRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },

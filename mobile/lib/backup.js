@@ -20,14 +20,55 @@ function legacyDate() {
   return todayISO(new Date(now.getFullYear(), now.getMonth() - 1, 1));
 }
 
+// The data shape version this build understands. Bump it together with a
+// new entry in MIGRATIONS whenever the stored shape changes.
+export const SCHEMA_VERSION = 2;
+
+// Forward only migrations, keyed by the version each one PRODUCES. Every
+// migration is a pure function of the blob: no clock tricks that make it
+// unrepeatable, nothing async, no device state. They run before coercion,
+// and they must never drop fields they do not understand.
+//
+// GUARDRAIL: adding a new TOP LEVEL collection always requires bumping
+// SCHEMA_VERSION with a migration, because sanitizeData rebuilds a fixed
+// key list; an unknown collection restored by an older build would be
+// silently dropped instead of refused.
+const MIGRATIONS = {
+  // 3: (d) => ({ ...d, people: [...] }),  // example shape for the future
+};
+
+// Bring an older blob forward one version at a time. A blob NEWER than
+// this build (someone restored a backup from a fresher app onto an old
+// binary) is refused loudly rather than mangled quietly.
+function migrate(raw) {
+  let d = raw;
+  // Hostile or garbage version values (Infinity, NaN, negatives, strings)
+  // must clamp to 2, never feed the loop: -Infinity plus one is still
+  // -Infinity and would hang the app forever.
+  let v = Math.trunc(Number(d.schemaVersion));
+  if (!Number.isFinite(v) || v < 1) v = 2;
+  if (v > SCHEMA_VERSION) {
+    throw new Error(
+      'This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed.'
+    );
+  }
+  while (v < SCHEMA_VERSION) {
+    v += 1;
+    if (MIGRATIONS[v]) d = MIGRATIONS[v](d);
+    d = { ...d, schemaVersion: v };
+  }
+  return d;
+}
+
 // sanitizeData coerces any imported, restored, or loaded blob into a shape
 // the app can never crash on: every collection a real array of objects,
 // every money field a finite number, every transaction and payment dated.
-// A restored backup also gets appLock forced off (keepAppLock false), so a
-// backup made on a phone with a fingerprint can never lock someone out of
-// a phone without one.
+// It migrates old shapes forward first, then coerces. A restored backup
+// also gets appLock forced off (keepAppLock false), so a backup made on a
+// phone with a fingerprint can never lock someone out of a phone without
+// one.
 export function sanitizeData(raw, { keepAppLock = false } = {}) {
-  const src = isObj(raw) ? raw : {};
+  const src = migrate(isObj(raw) ? raw : {});
   const stampDate = legacyDate();
   const dated = (list) =>
     cleanList(list).map((it) => ({
@@ -37,6 +78,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
   const settings = isObj(src.settings) ? src.settings : {};
   const str = (x, fallback = '') => (typeof x === 'string' ? x : fallback);
   return {
+    schemaVersion: SCHEMA_VERSION,
     accounts: cleanList(src.accounts).map((a) => ({
       ...a,
       name: str(a.name, 'Account'),
@@ -57,12 +99,19 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       creditLimit: num(d.creditLimit),
     })),
     payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
-    transactions: dated(src.transactions).map((t) => ({
-      ...t,
-      amount: num(t.amount),
-      type: t.type === 'income' ? 'income' : 'expense',
-      label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
-    })),
+    transactions: dated(src.transactions).map((t) => {
+      const out = {
+        ...t,
+        amount: num(t.amount),
+        type: t.type === 'income' ? 'income' : 'expense',
+        label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
+      };
+      // receiptUri must be a string or absent: a non string here would
+      // reach Image source.uri and crash native Android.
+      if (typeof t.receiptUri === 'string' && t.receiptUri) out.receiptUri = t.receiptUri;
+      else delete out.receiptUri;
+      return out;
+    }),
     goals: cleanList(src.goals).map((g) => ({
       ...g,
       target: num(g.target),

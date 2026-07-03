@@ -10,8 +10,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -23,6 +25,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
+import { pickReceipt, deleteReceipt } from '../lib/receipts';
 
 const TOAST_EMOJI = ['✅', '⚡', '🔥', '💚', '✨'];
 const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, updated ka na.'];
@@ -49,6 +52,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   const [when, setWhen] = useState('today'); // 'today' | 'yesterday' | 'other'
   const [otherDate, setOtherDate] = useState('');
   const [accountId, setAccountId] = useState('');
+  const [receiptUri, setReceiptUri] = useState('');
   const [err, setErr] = useState('');
 
   // Fresh form every time the sheet opens. The account chip starts on the
@@ -62,9 +66,39 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setOtherDate('');
       const def = data.settings.defaultAccountId;
       setAccountId(def && data.accounts.some((a) => a.id === def) ? def : '');
+      setReceiptUri('');
       setErr('');
     }
   }, [visible]);
+
+  // Tracks whether the sheet is open, so a photo pick that finishes after
+  // the sheet closed gets cleaned up instead of leaking a file.
+  const openRef = useRef(false);
+  useEffect(() => {
+    openRef.current = !!visible;
+  }, [visible]);
+
+  // Closing without saving must not leave an orphan photo behind, and a
+  // camera shot has exactly one copy, so discarding it asks first.
+  function cancel() {
+    if (!receiptUri) {
+      onClose();
+      return;
+    }
+    const discard = () => {
+      deleteReceipt(receiptUri);
+      setReceiptUri('');
+      onClose();
+    };
+    if (Platform.OS === 'web') {
+      discard();
+      return;
+    }
+    Alert.alert('Discard this entry?', 'The attached receipt photo will be deleted.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: discard },
+    ]);
+  }
 
   // The toast lives outside the modal so it stays on screen after closing.
   const [toast, setToast] = useState(null);
@@ -101,7 +135,12 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   // Save an entry through the store, remember the account choice for next
   // time, close, and celebrate.
   function logEntry(entry) {
-    const id = addTransaction(accountId ? { ...entry, accountId } : entry);
+    const withExtras = {
+      ...entry,
+      ...(accountId ? { accountId } : {}),
+      ...(receiptUri ? { receiptUri } : {}),
+    };
+    const id = addTransaction(withExtras);
     if ((data.settings.defaultAccountId || '') !== accountId) {
       updateSettings({ defaultAccountId: accountId });
     }
@@ -156,9 +195,9 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
   return (
     <>
-      <Modal visible={!!visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Modal visible={!!visible} transparent animationType="slide" onRequestClose={cancel}>
         <View style={styles.overlay}>
-          <Pressable style={styles.backdrop} onPress={onClose} />
+          <Pressable style={styles.backdrop} onPress={cancel} />
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Add entry</Text>
 
@@ -264,9 +303,45 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               </>
             ) : null}
 
+            {Platform.OS !== 'web' ? (
+              <Pressable
+                onPress={async () => {
+                  if (receiptUri) {
+                    // The camera shot has one copy; removing it asks first.
+                    Alert.alert('Remove the receipt photo?', 'The photo will be deleted.', [
+                      { text: 'Keep it', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => {
+                          deleteReceipt(receiptUri);
+                          setReceiptUri('');
+                        },
+                      },
+                    ]);
+                    return;
+                  }
+                  const uri = await pickReceipt().catch(() => null);
+                  if (!uri) return;
+                  // The sheet may have been closed while the picker was
+                  // open; a late arrival gets deleted, not leaked.
+                  if (!openRef.current) {
+                    deleteReceipt(uri);
+                    return;
+                  }
+                  setReceiptUri(uri);
+                }}
+                style={[styles.receiptBtn, receiptUri ? styles.receiptOn : null]}
+              >
+                <Text style={[styles.receiptText, receiptUri ? styles.receiptTextOn : null]}>
+                  {receiptUri ? '🧾 Receipt attached. Tap to remove' : '🧾 Attach a receipt (optional)'}
+                </Text>
+              </Pressable>
+            ) : null}
+
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>
-              <Pressable onPress={onClose} style={[styles.sheetBtn, styles.cancelBtn]}>
+              <Pressable onPress={cancel} style={[styles.sheetBtn, styles.cancelBtn]}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable onPress={save} style={[styles.sheetBtn, styles.saveBtn]}>
@@ -355,6 +430,18 @@ function makeStyles(colors) {
       fontSize: fontSize.body,
       marginTop: spacing.xs,
     },
+    receiptBtn: {
+      marginTop: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+      backgroundColor: colors.card,
+    },
+    receiptOn: { borderColor: colors.primary, backgroundColor: colors.positiveSurface },
+    receiptText: { color: colors.muted, fontSize: fontSize.small },
+    receiptTextOn: { color: colors.text, fontWeight: fontWeight.medium },
     err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xl },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
