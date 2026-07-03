@@ -8,7 +8,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { formatMoney, todayISO } from './format';
-import { nextOccurrence } from './soa';
+import { bankDueDate } from './soa';
 
 const isNative = Platform.OS !== 'web';
 
@@ -131,13 +131,15 @@ export async function rescheduleAll(data) {
   }
 
   if (notifs.bills) {
-    // Credit cards and loans with a due day: a heads up 3 evenings before,
-    // and a reminder the morning it is due. Paying at least the minimum on
-    // time is the single cheapest habit in personal finance.
+    // Credit cards and loans with a due schedule: a heads up 3 evenings
+    // before, and a reminder the morning it is due. The due date is the
+    // bank adjusted one, weekends and holidays push it forward. Paying at
+    // least the minimum on time is the single cheapest habit in finance.
     for (const d of data.debts || []) {
-      if (!d || !d.dueDay || !(d.remaining > 0)) continue;
-      const due = nextOccurrence(d.dueDay, now);
-      if (!due) continue;
+      if (!d || !(d.remaining > 0)) continue;
+      const bankDue = bankDueDate(d, now);
+      if (!bankDue) continue;
+      const due = bankDue.date;
       const minAmt = Math.min(Number(d.minPayment) || 0, Number(d.remaining) || 0) || Number(d.remaining) || 0;
       const minTxt = formatMoney(minAmt);
       const before = new Date(due.getFullYear(), due.getMonth(), due.getDate() - 3, 18, 0, 0);

@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -18,7 +19,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO } from '../../lib/format';
-import { cardForecast } from '../../lib/soa';
+import { cardForecast, buildSOA } from '../../lib/soa';
 import EmptyState from '../../components/EmptyState';
 
 const SHORT_TERM_TYPES = ['credit card', 'bnpl', 'short term', 'insurance'];
@@ -78,7 +79,7 @@ export default function Debts() {
   const fmtDate = (d) => (d ? `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}` : '');
 
   function openAdd() {
-    setForm({ id: null, name: '', type: 'credit card', remaining: '', monthlyRate: '', minPayment: '', dueDay: '', statementDay: '' });
+    setForm({ id: null, name: '', type: 'credit card', remaining: '', monthlyRate: '', minPayment: '', dueDay: '', statementDay: '', graceDays: '', creditLimit: '' });
     setPayAmount('');
     setMsg('');
     setErr('');
@@ -94,6 +95,8 @@ export default function Debts() {
       minPayment: String(d.minPayment),
       dueDay: d.dueDay ? String(d.dueDay) : '',
       statementDay: d.statementDay ? String(d.statementDay) : '',
+      graceDays: d.graceDays ? String(d.graceDays) : '',
+      creditLimit: d.creditLimit ? String(d.creditLimit) : '',
     });
     setPayAmount(String(d.minPayment));
     setPayFrom(data.accounts[0] ? data.accounts[0].id : null);
@@ -139,6 +142,19 @@ export default function Debts() {
     if (!dueRes.ok) return;
     const stmtRes = dayField(form.statementDay, 'Statement day');
     if (!stmtRes.ok) return;
+    // Days after statement until due: optional, but 1 to 60 when present.
+    const graceText = String(form.graceDays || '').trim();
+    const grace = graceText === '' ? 0 : Number(graceText);
+    if (graceText !== '' && (!Number.isInteger(grace) || grace < 1 || grace > 60)) {
+      setErr('Days before due should be from 1 to 60.');
+      return;
+    }
+    const limitText = String(form.creditLimit || '').trim().replace(/[, ]/g, '');
+    const limit = limitText === '' ? 0 : Number(limitText);
+    if (limitText !== '' && (!Number.isFinite(limit) || limit < 0)) {
+      setErr('Enter a valid credit limit, or leave it empty.');
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       type: form.type,
@@ -147,6 +163,8 @@ export default function Debts() {
       minPayment: min,
       dueDay: dueRes.value,
       statementDay: stmtRes.value,
+      graceDays: grace,
+      creditLimit: limit,
     };
     if (form.id) updateItem('debts', form.id, payload);
     else addItem('debts', payload);
@@ -334,6 +352,24 @@ export default function Debts() {
                     placeholderTextColor={colors.faint}
                     keyboardType="numeric"
                   />
+                  <Text style={styles.fieldLabel}>Days after statement until due (optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form?.graceDays}
+                    onChangeText={(t) => setForm((f) => ({ ...f, graceDays: t }))}
+                    placeholder="e.g. 20, check your SOA, used when no fixed due day"
+                    placeholderTextColor={colors.faint}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.fieldLabel}>Credit limit (optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form?.creditLimit}
+                    onChangeText={(t) => setForm((f) => ({ ...f, creditLimit: t }))}
+                    placeholder="e.g. 50000"
+                    placeholderTextColor={colors.faint}
+                    keyboardType="numeric"
+                  />
                 </>
               ) : null}
 
@@ -378,21 +414,39 @@ export default function Debts() {
               {/* Statement of account forecast for credit cards. */}
               {forecast ? (
                 <View style={styles.payBox}>
-                  <Text style={styles.fieldLabel}>Statement forecast</Text>
+                  <Text style={styles.fieldLabel}>SOA forecast</Text>
                   {forecast.statement ? (
                     <Text style={styles.soaLine}>Next statement cuts {fmtDate(forecast.statement)}</Text>
                   ) : null}
                   {forecast.due ? (
-                    <Text style={styles.soaLine}>Payment due {fmtDate(forecast.due)}</Text>
+                    <Text style={styles.soaLine}>
+                      Payment due {fmtDate(forecast.due)}
+                      {forecast.dueMoved
+                        ? `, moved from ${fmtDate(forecast.dueRaw)} because that is ${forecast.dueMovedReason}`
+                        : ''}
+                    </Text>
                   ) : null}
                   <Text style={styles.soaLine}>
                     Forecast balance {formatMoney(forecast.forecastBalance)}
                     {forecast.pending > 0 ? ` (${formatMoney(forecast.pending)} still pending)` : ''}
                   </Text>
+                  {forecast.utilization !== null ? (
+                    <Text style={styles.soaLine}>
+                      Credit used {Math.min(Math.round(forecast.utilization * 100), 999)}% of{' '}
+                      {formatMoney(forecast.creditLimit)}
+                      {forecast.utilization > 0.3 ? '. Below 30% is the healthy zone.' : ''}
+                    </Text>
+                  ) : null}
                   <Text style={styles.soaHint}>
                     Pay the full {formatMoney(forecast.forecastBalance)} to avoid interest, or at least{' '}
                     {formatMoney(forecast.minDue)} to avoid late fees.
                   </Text>
+                  <Pressable
+                    onPress={() => Share.share({ message: buildSOA(editDebt, data.payments) }).catch(() => {})}
+                    style={({ pressed }) => [styles.soaShareBtn, pressed && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.soaShareText}>Share this SOA forecast</Text>
+                  </Pressable>
                 </View>
               ) : null}
 
@@ -532,6 +586,15 @@ function makeStyles(colors) {
     msg: { color: colors.primary, fontSize: fontSize.small, marginTop: spacing.sm },
     soaLine: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
     soaHint: { color: colors.softGreen, fontSize: fontSize.small, marginTop: spacing.sm },
+    soaShareBtn: {
+      marginTop: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+    },
+    soaShareText: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
     pendingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
 
     sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },

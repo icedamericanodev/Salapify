@@ -53,6 +53,8 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       minPayment: num(d.minPayment),
       dueDay: num(d.dueDay),
       statementDay: num(d.statementDay),
+      graceDays: num(d.graceDays),
+      creditLimit: num(d.creditLimit),
     })),
     payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
     transactions: dated(src.transactions).map((t) => ({
