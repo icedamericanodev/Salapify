@@ -386,7 +386,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA 3: updates tools</Text>
+            <Text style={styles.rowValue}>OTA 4: pipeline proven 🚀</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
