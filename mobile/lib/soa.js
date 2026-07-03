@@ -45,41 +45,64 @@ export function prevOccurrence(dayOfMonth, from = new Date()) {
 
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
-// The next due date for a debt, before any weekend or holiday adjustment.
-// Two ways a card can define it, matching how banks print it:
+// Every raw (unadjusted) due date a debt could still owe, oldest first.
+// Two ways a card can define its schedule, matching how banks print it:
 //  - dueDay: a fixed day of the month
 //  - statementDay + graceDays: due N days after each statement cut
-// With graceDays, the due for the LAST statement may still be ahead of us,
-// so that one wins over the next cycle's due.
-export function dueDateFor(debt, from = new Date()) {
-  if (!debt) return null;
-  if (debt.dueDay) return nextOccurrence(debt.dueDay, from);
-  const grace = Number(debt.graceDays) || 0;
-  if (debt.statementDay && grace > 0) {
-    const todayMid = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-    const prevStmt = prevOccurrence(debt.statementDay, from);
-    if (prevStmt) {
-      const due = addDays(prevStmt, grace);
-      if (due >= todayMid) return due;
+// The PREVIOUS cycle matters too: a raw due that already passed can have
+// a bank adjusted due that is still today or later (a due on Good Friday
+// is really payable Monday), so past cycles must stay in the running.
+function rawDueCandidates(debt, from) {
+  const out = [];
+  if (debt.dueDay) {
+    const prev = prevOccurrence(debt.dueDay, from);
+    const next = nextOccurrence(debt.dueDay, from);
+    if (prev) out.push(prev);
+    if (next) out.push(next);
+  } else {
+    const grace = Number(debt.graceDays) || 0;
+    if (debt.statementDay && grace > 0) {
+      const prevStmt = prevOccurrence(debt.statementDay, from);
+      if (prevStmt) {
+        // The cycle before the previous one can also still be within its
+        // grace window when the grace is long.
+        const prevPrevStmt = prevOccurrence(debt.statementDay, addDays(prevStmt, -1));
+        if (prevPrevStmt) out.push(addDays(prevPrevStmt, grace));
+        out.push(addDays(prevStmt, grace));
+      }
+      const nextStmt = nextOccurrence(debt.statementDay, from);
+      if (nextStmt) out.push(addDays(nextStmt, grace));
     }
-    const nextStmt = nextOccurrence(debt.statementDay, from);
-    return nextStmt ? addDays(nextStmt, grace) : null;
+  }
+  return out.sort((a, b) => a - b);
+}
+
+// The next raw due date (no weekend or holiday adjustment). Kept for
+// callers that want the printed date; most things should use bankDueDate.
+export function dueDateFor(debt, from = new Date()) {
+  const bd = bankDueDate(debt, from);
+  return bd ? bd.raw : null;
+}
+
+// The next due date the way the BANK sees it: weekends and Philippine
+// holidays push payment to the next banking day, and a cycle only stops
+// counting once its ADJUSTED date has passed. Returns
+// { date, raw, moved, reason } or null when the debt has no due schedule.
+export function bankDueDate(debt, from = new Date()) {
+  if (!debt) return null;
+  const todayMid = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for (const raw of rawDueCandidates(debt, from)) {
+    const adj = bankingAdjust(raw);
+    if (adj.date >= todayMid) {
+      return { date: adj.date, raw, moved: adj.moved, reason: adj.reason };
+    }
   }
   return null;
 }
 
-// The next due date the way the BANK sees it: weekends and Philippine
-// holidays push it to the next banking day. Returns
-// { date, raw, moved, reason } or null when the debt has no due schedule.
-export function bankDueDate(debt, from = new Date()) {
-  const raw = dueDateFor(debt, from);
-  if (!raw) return null;
-  const adj = bankingAdjust(raw);
-  return { date: adj.date, raw, moved: adj.moved, reason: adj.reason };
-}
-
 // All payments coming due in the next `windowDays` days, across every debt
-// that has a dueDay and money still owed. Sorted soonest first. Each entry:
+// with a due schedule (fixed day or statement plus grace) and money still
+// owed, using bank adjusted dates. Sorted soonest first. Each entry:
 // { debt, due (Date), dueISO, inDays, amount } where amount is the minimum
 // payment (what must be paid to avoid penalties).
 export function upcomingDues(debts, windowDays = 30, from = new Date()) {
@@ -162,7 +185,7 @@ export function buildSOA(debt, payments = [], from = new Date()) {
   }
   if (f.creditLimit > 0) {
     lines.push(
-      `Credit used: ${Math.round((f.utilization || 0) * 100)}% of ${formatMoney(f.creditLimit)}`
+      `Credit used: ${Math.min(Math.round((f.utilization || 0) * 100), 999)}% of ${formatMoney(f.creditLimit)}`
     );
   }
   lines.push('');

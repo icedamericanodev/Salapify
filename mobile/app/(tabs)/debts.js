@@ -140,20 +140,35 @@ export default function Debts() {
     };
     const dueRes = dayField(form.dueDay, 'Payment due day');
     if (!dueRes.ok) return;
-    const stmtRes = dayField(form.statementDay, 'Statement day');
+    // The card only fields are validated and saved ONLY for credit cards.
+    // Switching a card to another type clears them, otherwise a hidden
+    // field could block Save with an error the user cannot see, or leave
+    // statement schedules silently attached to a loan.
+    const isCard = form.type === 'credit card';
+    const stmtRes = isCard ? dayField(form.statementDay, 'Statement day') : { ok: true, value: 0 };
     if (!stmtRes.ok) return;
-    // Days after statement until due: optional, but 1 to 60 when present.
-    const graceText = String(form.graceDays || '').trim();
-    const grace = graceText === '' ? 0 : Number(graceText);
-    if (graceText !== '' && (!Number.isInteger(grace) || grace < 1 || grace > 60)) {
-      setErr('Days before due should be from 1 to 60.');
-      return;
-    }
-    const limitText = String(form.creditLimit || '').trim().replace(/[, ]/g, '');
-    const limit = limitText === '' ? 0 : Number(limitText);
-    if (limitText !== '' && (!Number.isFinite(limit) || limit < 0)) {
-      setErr('Enter a valid credit limit, or leave it empty.');
-      return;
+    let grace = 0;
+    let limit = 0;
+    if (isCard) {
+      const graceText = String(form.graceDays || '').trim();
+      grace = graceText === '' ? 0 : Number(graceText);
+      if (graceText !== '' && (!Number.isInteger(grace) || grace < 1 || grace > 60)) {
+        setErr('Days before due should be from 1 to 60.');
+        return;
+      }
+      const limitText = String(form.creditLimit || '').trim().replace(/[, ]/g, '');
+      limit = limitText === '' ? 0 : Number(limitText);
+      if (limitText !== '' && (!Number.isFinite(limit) || limit < 0)) {
+        setErr('Enter a valid credit limit, or leave it empty.');
+        return;
+      }
+      // A statement day alone gives no due date, so reminders would stay
+      // silent while the user believes they are covered. Ask for the one
+      // missing piece instead of failing quietly.
+      if (stmtRes.value && !dueRes.value && grace === 0) {
+        setErr('Add the days after statement until due (check your SOA, usually about 20), or a fixed due day, so reminders know when payment is due.');
+        return;
+      }
     }
     const payload = {
       name: form.name.trim(),
@@ -162,7 +177,7 @@ export default function Debts() {
       monthlyRate: rate,
       minPayment: min,
       dueDay: dueRes.value,
-      statementDay: stmtRes.value,
+      statementDay: isCard ? stmtRes.value : 0,
       graceDays: grace,
       creditLimit: limit,
     };
