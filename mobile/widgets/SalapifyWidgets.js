@@ -6,12 +6,12 @@
 import React from 'react';
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
-const BG = '#0B1210';
-const BORDER = '#23372E';
-const MINT = '#2FD48F';
-const TEXT = '#F2FBF6';
-const MUTED = '#8FA39A';
-const WARN = '#F2A05F';
+const BG = '#101E15';
+const BORDER = '#33503D';
+const MINT = '#FFA45C';
+const TEXT = '#FBF7EF';
+const MUTED = '#9DAF9D';
+const WARN = '#E8785A';
 
 function money(n) {
   const v = Math.round(Number(n) || 0);

@@ -16,7 +16,12 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "color": "#1D9E75" }],
+      [
+        "expo-notifications",
+        {
+          "color": "#F4813F"
+        }
+      ],
       [
         "react-native-android-widget",
         {
@@ -48,7 +53,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0E1512"
+      "backgroundColor": "#101E15"
     },
     "ios": {
       "supportsTablet": true,
@@ -59,7 +64,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
-        "backgroundColor": "#1D9E75"
+        "backgroundColor": "#FFA45C"
       }
     },
     "web": {

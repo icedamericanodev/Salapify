@@ -43,6 +43,12 @@ const APPEARANCE = [
   { key: 'system', label: 'System' },
 ];
 
+// The two color themes. Forest is the Salapify brand; Mint is the original.
+const PALETTE_OPTIONS = [
+  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green. The Salapify look.' },
+  { key: 'mint', label: 'Mint', hint: 'The original glowing green.' },
+];
+
 const DATA_ACTIONS = [
   { mode: 'backup', label: 'Back up to a file' },
   { mode: 'restore', label: 'Restore from a file' },
@@ -86,7 +92,7 @@ function downloadFile(filename, text) {
 }
 
 export default function More() {
-  const { colors, mode, setMode } = useTheme();
+  const { colors, mode, setMode, palette, setPalette } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, replaceAll, updateSettings } = useAppData();
   const router = useRouter();
@@ -312,6 +318,22 @@ export default function More() {
           })}
         </View>
 
+        <Text style={styles.sectionTitle}>COLOR THEME</Text>
+        <View style={styles.card}>
+          {PALETTE_OPTIONS.map((opt, i) => {
+            const selected = palette === opt.key;
+            return (
+              <Pressable key={opt.key} onPress={() => setPalette(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
+                <View style={{ flex: 1, paddingRight: spacing.md }}>
+                  <Text style={styles.rowLabel}>{opt.label}</Text>
+                  <Text style={styles.rowHint}>{opt.hint}</Text>
+                </View>
+                {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
         <View style={styles.card}>
           {Platform.OS === 'web' ? (
@@ -402,7 +424,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.1: widgets ready</Text>
+            <Text style={styles.rowValue}>v1.1: forest era 🌲</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
