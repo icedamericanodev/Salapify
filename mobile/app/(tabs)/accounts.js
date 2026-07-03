@@ -40,7 +40,7 @@ const ASSET_KINDS = [
 export default function Accounts() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, updateItem, removeItem } = useAppData();
+  const { data, addItem, updateItem, removeItem, updateSettings } = useAppData();
 
   // The form modal. null when closed; otherwise holds the fields being edited.
   const [form, setForm] = useState(null);
@@ -163,7 +163,17 @@ export default function Accounts() {
       setConfirmDel(true);
       return;
     }
-    if (form.id) removeItem(form.type === 'account' ? 'accounts' : 'assets', form.id);
+    if (form.id) {
+      removeItem(form.type === 'account' ? 'accounts' : 'assets', form.id);
+      // Settings that point at the deleted account must not keep pointing
+      // at a ghost: quick adds and sweldo would silently stop linking.
+      if (form.type === 'account') {
+        updateSettings((s) => ({
+          defaultAccountId: s.defaultAccountId === form.id ? '' : s.defaultAccountId,
+          salaryAccountId: s.salaryAccountId === form.id ? '' : s.salaryAccountId,
+        }));
+      }
+    }
     close();
   }
 

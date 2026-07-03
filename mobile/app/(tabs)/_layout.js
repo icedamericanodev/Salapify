@@ -7,11 +7,12 @@
 // walk to Budget first.
 
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/Theme';
+import { useAppData } from '../../context/AppData';
 import LogSheet from '../../components/LogSheet';
 
 export default function TabsLayout() {
@@ -21,9 +22,23 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const [logOpen, setLogOpen] = useState(false);
   const barHeight = 78 + insets.bottom;
+  const { saveFailed } = useAppData();
+  const router = useRouter();
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Shown only when saving has failed repeatedly: the one situation
+          where staying quiet could cost the user their recent entries. */}
+      {saveFailed ? (
+        <Pressable
+          onPress={() => router.push('/more')}
+          style={[styles.saveBanner, { paddingTop: insets.top + 8, backgroundColor: colors.warningStrong }]}
+        >
+          <Text style={styles.saveBannerText}>
+            Your changes are not saving to this phone. Tap here and back up to a file now.
+          </Text>
+        </Pressable>
+      ) : null}
     <Tabs
       screenOptions={{
         headerShown: false, // each screen draws its own header
@@ -124,6 +139,11 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  saveBanner: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  saveBannerText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
   fab: {
     position: 'absolute',
     right: 20,

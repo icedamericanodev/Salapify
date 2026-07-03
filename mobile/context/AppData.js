@@ -5,8 +5,9 @@
 // screens never touch storage directly, so we can swap in SQLite later without
 // changing any screen.
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { loadData, saveData } from '../lib/storage';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import { loadData, saveData, snapshotData } from '../lib/storage';
 import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
@@ -28,6 +29,7 @@ export function genId(prefix = 'id') {
 // The starting data, used the very first time the app runs (nothing saved yet).
 // We seed it from the sample data so the app is not empty on first open.
 const seedData = {
+  schemaVersion: 2,
   accounts: sampleAccounts,
   assets: sampleAssets,
   debts: sampleDebts,
@@ -77,18 +79,25 @@ export function AppDataProvider({ children }) {
     (async () => {
       const res = await loadData();
       if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
-        const clean = sanitizeData(res.data, { keepAppLock: true });
-        // Anyone with saved data from before the welcome flow existed has
-        // clearly used the app already: never throw them into onboarding,
-        // where Start empty sits one confirm away from their real data.
-        // Only an explicit false (a fresh user who quit mid welcome) keeps
-        // the flow.
-        const onboarded = clean.settings.onboarded === false ? false : true;
-        setData({
-          ...clean,
-          settings: { ...seedData.settings, ...clean.settings, onboarded },
-        });
-        setLoaded(true);
+        try {
+          const clean = sanitizeData(res.data, { keepAppLock: true });
+          // Anyone with saved data from before the welcome flow existed has
+          // clearly used the app already: never throw them into onboarding,
+          // where Start empty sits one confirm away from their real data.
+          // Only an explicit false (a fresh user who quit mid welcome) keeps
+          // the flow.
+          const onboarded = clean.settings.onboarded === false ? false : true;
+          setData({
+            ...clean,
+            settings: { ...seedData.settings, ...clean.settings, onboarded },
+          });
+          setLoaded(true);
+        } catch (e) {
+          // A refused migration (data from a newer app version) lands here:
+          // saving stays off so the newer data is never overwritten.
+          setLoadFailed(true);
+          console.warn('Saved data could not be used. Saving is off this session to protect it.', e);
+        }
       } else if (res.status === 'empty') {
         setLoaded(true);
       } else {
@@ -98,10 +107,59 @@ export function AppDataProvider({ children }) {
     })();
   }, []);
 
-  // Save whenever data changes, but only after the first load.
+  // ---- Saving: debounced, failure aware, flushed on background ----
+  // Rapid taps produce many state changes; writing the whole blob each
+  // time is wasted work. A short trailing debounce batches them, and the
+  // AppState listener below flushes immediately when the app leaves the
+  // screen, so a swipe kill right after logging never loses the entry.
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [storageSize, setStorageSize] = useState(0);
+  const saveTimer = useRef(null);
+  const pendingData = useRef(null);
+  const failCount = useRef(0);
+
+  async function persist(d) {
+    const res = await saveData(d);
+    setStorageSize(res.size);
+    if (res.ok) {
+      failCount.current = 0;
+      setSaveFailed(false);
+    } else {
+      failCount.current += 1;
+      // One transient failure is noise; three in a row means the phone is
+      // genuinely not persisting and the user must be told.
+      if (failCount.current >= 3) setSaveFailed(true);
+    }
+  }
+
   useEffect(() => {
-    if (loaded) saveData(data);
+    if (!loaded) return;
+    pendingData.current = data;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      if (pendingData.current) persist(pendingData.current);
+    }, 500);
   }, [data, loaded]);
+
+  // Flush the pending save the moment the app goes to the background, and
+  // nudge the recurring engine when it comes back (people keep apps in the
+  // switcher for weeks; bills must post on resume, not only cold start).
+  const [resumeTick, setResumeTick] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        if (saveTimer.current) {
+          clearTimeout(saveTimer.current);
+          saveTimer.current = null;
+          if (pendingData.current) persist(pendingData.current);
+        }
+      } else {
+        setResumeTick((t) => t + 1);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Keep scheduled reminders in sync with the data. Runs when the
   // notification switches, receivables, transactions, or debts change, so
@@ -159,7 +217,7 @@ export function AppDataProvider({ children }) {
       });
       return { ...prev, transactions, accounts, recurring };
     });
-  }, [loaded, data.recurring]);
+  }, [loaded, data.recurring, resumeTick]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 
@@ -242,6 +300,10 @@ export function AppDataProvider({ children }) {
   // sample data (a restore must never invent money), and the app lock is
   // always off after a restore so nobody gets locked out.
   function replaceAll(newData) {
+    // Safety net first: the current blob is copied to a snapshot key
+    // before it gets replaced. Best effort and fire and forget; the
+    // 500ms save debounce guarantees the snapshot reads the OLD blob.
+    snapshotData().catch(() => {});
     const clean = sanitizeData(newData);
     // A restore must never invent money: every restored recurring item is
     // stamped as already posted for the current month, so the app shows
@@ -278,6 +340,8 @@ export function AppDataProvider({ children }) {
     data,
     loaded,
     loadFailed,
+    saveFailed,
+    storageSize,
     addItem,
     updateItem,
     removeItem,

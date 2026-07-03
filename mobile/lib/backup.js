@@ -20,14 +20,46 @@ function legacyDate() {
   return todayISO(new Date(now.getFullYear(), now.getMonth() - 1, 1));
 }
 
+// The data shape version this build understands. Bump it together with a
+// new entry in MIGRATIONS whenever the stored shape changes.
+export const SCHEMA_VERSION = 2;
+
+// Forward only migrations, keyed by the version each one PRODUCES. Every
+// migration is a pure function of the blob: no clock tricks that make it
+// unrepeatable, nothing async, no device state. They run before coercion,
+// and they must never drop fields they do not understand.
+const MIGRATIONS = {
+  // 3: (d) => ({ ...d, people: [...] }),  // example shape for the future
+};
+
+// Bring an older blob forward one version at a time. A blob NEWER than
+// this build (someone restored a backup from a fresher app onto an old
+// binary) is refused loudly rather than mangled quietly.
+function migrate(raw) {
+  let d = raw;
+  let v = Number(d.schemaVersion) || 2;
+  if (v > SCHEMA_VERSION) {
+    throw new Error(
+      'This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed.'
+    );
+  }
+  while (v < SCHEMA_VERSION) {
+    v += 1;
+    if (MIGRATIONS[v]) d = MIGRATIONS[v](d);
+    d = { ...d, schemaVersion: v };
+  }
+  return d;
+}
+
 // sanitizeData coerces any imported, restored, or loaded blob into a shape
 // the app can never crash on: every collection a real array of objects,
 // every money field a finite number, every transaction and payment dated.
-// A restored backup also gets appLock forced off (keepAppLock false), so a
-// backup made on a phone with a fingerprint can never lock someone out of
-// a phone without one.
+// It migrates old shapes forward first, then coerces. A restored backup
+// also gets appLock forced off (keepAppLock false), so a backup made on a
+// phone with a fingerprint can never lock someone out of a phone without
+// one.
 export function sanitizeData(raw, { keepAppLock = false } = {}) {
-  const src = isObj(raw) ? raw : {};
+  const src = migrate(isObj(raw) ? raw : {});
   const stampDate = legacyDate();
   const dated = (list) =>
     cleanList(list).map((it) => ({
@@ -37,6 +69,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
   const settings = isObj(src.settings) ? src.settings : {};
   const str = (x, fallback = '') => (typeof x === 'string' ? x : fallback);
   return {
+    schemaVersion: SCHEMA_VERSION,
     accounts: cleanList(src.accounts).map((a) => ({
       ...a,
       name: str(a.name, 'Account'),

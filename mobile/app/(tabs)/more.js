@@ -26,6 +26,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
+import { SIZE_NUDGE, SIZE_WARN } from '../../lib/storage';
 import { ensureNotifPermission } from '../../lib/notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
@@ -96,7 +97,7 @@ function downloadFile(filename, text) {
 export default function More() {
   const { colors, mode, setMode, palette, setPalette } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, replaceAll, updateSettings } = useAppData();
+  const { data, replaceAll, updateSettings, storageSize } = useAppData();
   const router = useRouter();
 
   const [tool, setTool] = useState(null); // data tools modal
@@ -469,6 +470,17 @@ export default function More() {
             <Text style={[styles.rowLabel, { color: colors.warning }]}>Start fresh (erase everything)</Text>
             <Ionicons name="trash-outline" size={18} color={colors.warning} />
           </Pressable>
+          {storageSize > SIZE_WARN ? (
+            <Text style={[styles.sizeNote, { color: colors.warning }]}>
+              Your data is {Math.round(storageSize / 1024)} KB, close to the phone storage limit.
+              Back up to a file now.
+            </Text>
+          ) : storageSize > SIZE_NUDGE ? (
+            <Text style={styles.sizeNote}>
+              Your history is growing ({Math.round(storageSize / 1024)} KB). Back up to a file
+              regularly.
+            </Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>
@@ -481,7 +493,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.9: receipts (new APK)</Text>
+            <Text style={styles.rowValue}>v2.0: launch hardening</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -656,6 +668,7 @@ function makeStyles(colors) {
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
     rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
+    sizeNote: { color: colors.muted, fontSize: fontSize.small, paddingVertical: spacing.md },
     soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     qaAddRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },
