@@ -28,8 +28,15 @@ jobs:
           cp index.html 404.html manifest.json sw.js robots.txt privacy.html _site/ 2>/dev/null || true
           cp icon-192.png icon-512.png _site/ 2>/dev/null || true
           ls -la _site
+      # The artifact name includes the attempt number. Re-running a failed
+      # deploy keeps the first attempt's artifact around, and deploy-pages
+      # refuses when it finds two artifacts with the same name; unique
+      # names per attempt make re-runs safe.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+          name: github-pages-${{ github.run_attempt }}
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}

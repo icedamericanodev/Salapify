@@ -16,7 +16,9 @@ explanations for the founder, who is a beginner. Small tested steps.
 1. Develop on the branch claude/salapify-v2 and open PRs to main.
 2. Compile check every changed file with the Expo Babel preset before
    committing (run node with babel.transformFileSync from mobile/).
-3. Commit per milestone with a clear message explaining the why.
+3. Commit per milestone with a clear message explaining the why. Push in
+   batches (once per finished feature batch, not per commit): every push
+   to mobile/ costs a publish job in a slow shared queue.
 4. JS only changes ship over the air: every push to the branch triggers
    the EAS workflow that publishes to the preview update channel. Bump the
    Update stamp row in mobile/app/(tabs)/more.js on every push so the
