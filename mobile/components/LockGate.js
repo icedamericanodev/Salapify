@@ -1,10 +1,11 @@
 // LockGate covers the whole app with a lock screen when App lock is on in
 // Settings. Unlocking uses the phone's own biometrics (fingerprint or face)
-// through expo-local-authentication. The app locks again whenever it goes to
-// the background. On web the gate does nothing, since browsers have no
-// biometrics and the web preview is for development only.
+// through expo-local-authentication. Quick hops to another app do not lock
+// it; it locks again only after being away for over a minute. On web the
+// gate does nothing, since browsers have no biometrics and the web preview
+// is for development only.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,11 +43,22 @@ export default function LockGate({ children }) {
     if (lockOn && !unlocked) unlock();
   }, [lockOn]);
 
-  // Lock again when the app is sent to the background.
+  // Lock again only after the app has been in the background for over a
+  // minute. Switching to another app for a few seconds (checking a message,
+  // copying a number from GCash) should not demand a fingerprint again.
+  const awaySince = useRef(null);
   useEffect(() => {
     if (!lockOn) return undefined;
+    const GRACE_MS = 60 * 1000;
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'background') setUnlocked(false);
+      if (state === 'background' || state === 'inactive') {
+        if (awaySince.current === null) awaySince.current = Date.now();
+      } else if (state === 'active') {
+        if (awaySince.current !== null && Date.now() - awaySince.current > GRACE_MS) {
+          setUnlocked(false);
+        }
+        awaySince.current = null;
+      }
     });
     return () => sub.remove();
   }, [lockOn]);
