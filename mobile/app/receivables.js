@@ -4,7 +4,9 @@
 
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -109,12 +111,27 @@ export default function Receivables() {
     setForm(null);
   }
 
-  // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a polite
-  // reminder already written. You choose the app and tap send.
+  // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a
+  // friendly reminder already written, in English or Tagalog. You pick the
+  // language, then the app, then tap send.
   function remind(r) {
-    const due = r.dueDate ? `, due ${r.dueDate}` : '';
-    const message = `Hi ${r.person}, friendly reminder about ${formatMoney(r.amount)} you owe me${due}. Thank you! (sent via Salapify)`;
-    Share.share({ message }).catch(() => {});
+    const amount = formatMoney(r.amount);
+    const english = `Hi ${r.person}! Friendly reminder about the ${amount} I lent you${
+      r.dueDate ? ` (due ${r.dueDate})` : ''
+    }. No rush, just don't forget me ha. Thank you!`;
+    const tagalog = `Hi ${r.person}! Paalala lang sa ${amount} na hiniram mo${
+      r.dueDate ? ` (due sa ${r.dueDate})` : ''
+    }. Walang pressure, wag mo lang kalimutan ha. Salamat!`;
+    const send = (message) => Share.share({ message }).catch(() => {});
+    if (Platform.OS === 'web') {
+      send(english);
+      return;
+    }
+    Alert.alert('Send a reminder', `Choose the language for ${r.person}.`, [
+      { text: 'English', onPress: () => send(english) },
+      { text: 'Tagalog', onPress: () => send(tagalog) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   return (
