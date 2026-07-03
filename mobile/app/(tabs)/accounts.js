@@ -18,6 +18,8 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney } from '../../lib/format';
+import { BANK_BRANDS, findBrand } from '../../lib/banks';
+import BankBadge from '../../components/BankBadge';
 
 // The kinds you can pick in the form.
 const ACCOUNT_KINDS = [
@@ -164,12 +166,14 @@ export default function Accounts() {
   const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
 
-  const Row = ({ icon, name, sub, amount, amountColor, onPress, progress }) => (
+  const Row = ({ icon, brand, name, sub, amount, amountColor, onPress, progress }) => (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <View style={styles.rowIconWrap}>
+        <BankBadge brand={brand} fallback={icon || '💵'} size={34} />
+      </View>
       <View style={styles.rowMiddle}>
         <Text style={styles.rowName}>{name}</Text>
         {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
@@ -243,6 +247,7 @@ export default function Accounts() {
             <Row
               key={a.id}
               icon={a.icon}
+              brand={a.brand}
               name={a.name}
               amount={formatMoney(a.balance)}
               onPress={() => openEdit('account', a)}
@@ -256,6 +261,7 @@ export default function Accounts() {
             <Row
               key={a.id}
               icon={a.icon}
+              brand={a.brand}
               name={a.name}
               sub={targetSub(a)}
               amount={formatMoney(a.balance)}
@@ -333,12 +339,48 @@ export default function Accounts() {
 
               {form?.type === 'account' ? (
                 <>
-                  <Text style={styles.fieldLabel}>Bank or brand (optional)</Text>
+                  <Text style={styles.fieldLabel}>Your bank or e-wallet (optional)</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRow}>
+                    <Pressable
+                      onPress={() => setForm((f) => ({ ...f, brand: '' }))}
+                      style={styles.brandItem}
+                    >
+                      <View style={[styles.brandNone, !findBrand(form?.brand) && styles.brandPicked]}>
+                        <Text style={styles.brandNoneText}>None</Text>
+                      </View>
+                      <Text style={styles.brandLabel}>Plain</Text>
+                    </Pressable>
+                    {BANK_BRANDS.map((b) => {
+                      const on = findBrand(form?.brand)?.key === b.key;
+                      return (
+                        <Pressable
+                          key={b.key}
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              brand: b.name,
+                              // A wallet brand flips the type chip for you.
+                              kind: b.kind === 'ewallet' ? 'ewallet' : f.kind,
+                            }))
+                          }
+                          style={styles.brandItem}
+                        >
+                          <View style={[styles.brandBadgeWrap, on && styles.brandPicked]}>
+                            <BankBadge brand={b.key} size={44} />
+                          </View>
+                          <Text style={[styles.brandLabel, on && styles.brandLabelOn]} numberOfLines={1}>
+                            {b.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                  <Text style={styles.fieldLabel}>Or type another bank (optional)</Text>
                   <TextInput
                     style={styles.input}
                     value={form?.brand}
                     onChangeText={(t) => setForm((f) => ({ ...f, brand: t }))}
-                    placeholder="e.g. BPI"
+                    placeholder="e.g. HSBC"
                     placeholderTextColor={colors.faint}
                   />
                   <Text style={styles.fieldLabel}>Emoji icon (optional)</Text>
@@ -542,7 +584,28 @@ function makeStyles(colors) {
     },
     pressed: { opacity: 0.6 },
     rowIcon: { fontSize: 22, marginRight: spacing.md },
+    rowIconWrap: { marginRight: spacing.md },
     rowMiddle: { flex: 1 },
+
+    // The bank and e-wallet picker in the form.
+    brandRow: { gap: spacing.md, paddingVertical: spacing.xs },
+    brandItem: { alignItems: 'center', width: 64 },
+    brandBadgeWrap: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent', padding: 2 },
+    brandNone: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: 2,
+    },
+    brandNoneText: { color: colors.muted, fontSize: fontSize.caption },
+    brandPicked: { borderColor: colors.primary, borderWidth: 2, borderRadius: 14, margin: 0 },
+    brandLabel: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.xs },
+    brandLabelOn: { color: colors.text, fontWeight: fontWeight.medium },
     rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     targetTrack: { height: 5, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginTop: spacing.xs, maxWidth: 180 },
     targetFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
