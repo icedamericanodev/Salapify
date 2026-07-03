@@ -8,6 +8,12 @@
     "scheme": "salapify",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "url": "https://u.expo.dev/8bc5a127-b145-41c3-a4f4-790afd91c9f2"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-router",
       ["expo-notifications", { "color": "#1D9E75" }]
