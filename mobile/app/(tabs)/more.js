@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
@@ -166,6 +167,43 @@ export default function More() {
     else if (m === 'csv') setTool({ mode: m, text: toCSV(data) });
     else setTool({ mode: m, text: '' });
   }
+  // Erase everything and start over, with two explicit confirmations. The
+  // wipe keeps the app usable (default quick adds, fresh welcome flow) and
+  // clears the remembered net worth peak so no ghost of the old data stays.
+  function resetAll() {
+    const wipe = () => {
+      replaceAll({
+        settings: {
+          quickAdds: [
+            { label: 'Food', amount: 150 },
+            { label: 'Transport', amount: 50 },
+            { label: 'Coffee', amount: 120 },
+            { label: 'Load', amount: 100 },
+          ],
+        },
+      });
+      AsyncStorage.removeItem('salapify_peak_networth').catch(() => {});
+    };
+    const first = 'This erases every account, debt, transaction, goal, utang, note, and recurring item on this phone. A backup file is the only way back.';
+    const second = 'Last check. This cannot be undone.';
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Start fresh? ${first}`) && window.confirm(second)) wipe();
+      return;
+    }
+    Alert.alert('Start fresh?', first, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Continue',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Really erase everything?', second, [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Erase everything', style: 'destructive', onPress: wipe },
+          ]),
+      },
+    ]);
+  }
+
   function runImport() {
     try {
       const parsed = tool.mode === 'importv1' ? parseV1(tool.text) : parseBackup(tool.text);
@@ -304,6 +342,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Notes with calculator</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/recurring')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Recurring bills and income</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
@@ -413,6 +455,10 @@ export default function More() {
               <Ionicons name="chevron-forward" size={18} color={colors.faint} />
             </Pressable>
           ))}
+          <Pressable onPress={resetAll} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={[styles.rowLabel, { color: colors.warning }]}>Start fresh (erase everything)</Text>
+            <Ionicons name="trash-outline" size={18} color={colors.warning} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>
@@ -425,7 +471,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.7.1: SOA QA fixes</Text>
+            <Text style={styles.rowValue}>v1.8: recurring and upgrades</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

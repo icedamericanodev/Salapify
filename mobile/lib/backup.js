@@ -70,6 +70,15 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
     })),
     wins: cleanList(src.wins),
     notes: cleanList(src.notes),
+    recurring: cleanList(src.recurring).map((r) => ({
+      ...r,
+      type: r.type === 'income' ? 'income' : 'expense',
+      label: str(r.label, 'Recurring'),
+      amount: num(r.amount),
+      dayOfMonth: Math.min(Math.max(Math.round(num(r.dayOfMonth)) || 1, 1), 31),
+      accountId: str(r.accountId),
+      lastPosted: str(r.lastPosted),
+    })),
     receivables: cleanList(src.receivables).map((r) => ({
       ...r,
       person: typeof r.person === 'string' && r.person ? r.person : 'Someone',

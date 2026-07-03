@@ -35,6 +35,7 @@ const seedData = {
   goals: [],
   wins: [],
   notes: [],
+  recurring: [],
   receivables: [
     // The sample utang is due two weeks from first run, so a new user is
     // never greeted by an already overdue fake debt.
@@ -108,6 +109,52 @@ export function AppDataProvider({ children }) {
   useEffect(() => {
     if (loaded) rescheduleAll(data);
   }, [loaded, data.receivables, data.transactions, data.debts, data.settings.notifications]);
+
+  // Post recurring bills and income that have come due. Runs on load and
+  // whenever the recurring list changes: each item posts one transaction
+  // per month, on or after its day, stamped with the scheduled date. The
+  // lastPosted month marker makes double posting impossible, and items
+  // added after their day this month wait for next month.
+  useEffect(() => {
+    if (!loaded) return;
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const anyDue = (data.recurring || []).some((r) => {
+      const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
+      return r.lastPosted !== monthKey && now.getDate() >= day;
+    });
+    if (!anyDue) return;
+    setData((prev) => {
+      let transactions = prev.transactions;
+      let accounts = prev.accounts;
+      const recurring = (prev.recurring || []).map((r) => {
+        const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
+        if (r.lastPosted === monthKey || now.getDate() < day) return r;
+        const date = `${monthKey}-${String(day).padStart(2, '0')}`;
+        const amount = Number(r.amount) || 0;
+        const tx = {
+          id: genId('transactions'),
+          type: r.type === 'income' ? 'income' : 'expense',
+          label: r.label || 'Recurring',
+          amount,
+          date,
+          recurringId: r.id,
+        };
+        const acct = r.accountId ? accounts.find((a) => a.id === r.accountId) : null;
+        if (acct) {
+          tx.accountId = acct.id;
+          const delta = (tx.type === 'income' ? 1 : -1) * amount;
+          accounts = accounts.map((a) =>
+            a.id === acct.id ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
+          );
+        }
+        transactions = [...transactions, tx];
+        return { ...r, lastPosted: monthKey };
+      });
+      return { ...prev, transactions, accounts, recurring };
+    });
+  }, [loaded, data.recurring]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 
@@ -193,7 +240,7 @@ export function AppDataProvider({ children }) {
     // appears on top of freshly restored data.
     const hasData = [
       'accounts', 'assets', 'debts', 'payments', 'transactions',
-      'goals', 'wins', 'receivables', 'notes',
+      'goals', 'wins', 'receivables', 'notes', 'recurring',
     ].some((k) => (clean[k] || []).length > 0);
     setData({
       ...clean,

@@ -13,6 +13,7 @@ import { sampleNetWorthHistory } from '../../lib/sampleData';
 import {
   monthlySeries,
   categoryMovers,
+  categoryVsAverage,
   weekdayPattern,
   savingsRate,
   forecastMonthEnd,
@@ -175,6 +176,8 @@ function ProInsights({ data, styles, colors }) {
   const series = monthlySeries(data.transactions, 6);
   const seriesMax = Math.max(...series.map((m) => Math.max(m.income, m.expenses)), 1);
   const movers = categoryMovers(data.transactions);
+  const vsAvg = categoryVsAverage(data.transactions);
+  const vsAvgMax = Math.max(...vsAvg.map((v) => Math.max(v.now, v.avg)), 1);
   const rate = savingsRate(data.transactions);
   const fc = forecastMonthEnd(data.transactions);
   const limit = (data.settings && data.settings.monthlyLimit) || 0;
@@ -222,6 +225,37 @@ function ProInsights({ data, styles, colors }) {
           {rate !== null ? ` Savings rate so far: ${Math.round(rate * 100)}% of income kept.` : ''}
         </Text>
       </View>
+
+      {vsAvg.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.kicker}>THIS MONTH VS YOUR 6 MONTH NORMAL</Text>
+          <View style={styles.cardBody}>
+            {vsAvg.map((v) => {
+              const over = v.avg > 0 && v.now > v.avg * 1.2;
+              const under = v.avg > 0 && v.now < v.avg * 0.8;
+              return (
+                <View key={v.label}>
+                  <View style={styles.vsHead}>
+                    <Text style={styles.moverLabel}>{v.label}</Text>
+                    <Text style={[styles.vsVerdict, { color: over ? colors.warning : under ? colors.primary : colors.muted }]}>
+                      {v.avg === 0 ? 'new' : over ? 'above normal' : under ? 'below normal' : 'on track'}
+                    </Text>
+                  </View>
+                  <View style={styles.vsTrack}>
+                    <View style={[styles.vsBarNow, { width: `${Math.max((v.now / vsAvgMax) * 100, 1)}%`, backgroundColor: over ? colors.warning : colors.primary }]} />
+                  </View>
+                  <View style={styles.vsTrack}>
+                    <View style={[styles.vsBarAvg, { width: `${Math.max((v.avg / vsAvgMax) * 100, 1)}%` }]} />
+                  </View>
+                  <Text style={styles.vsNums}>
+                    {formatMoney(v.now)} now, usually {formatMoney(Math.round(v.avg))}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       {movers.length > 0 ? (
         <View style={styles.card}>
@@ -340,6 +374,12 @@ function makeStyles(colors) {
     forecastBig: { color: colors.text, fontSize: fontSize.big, fontWeight: fontWeight.heavy, fontVariant: ['tabular-nums'], marginTop: spacing.xs },
     moverRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs },
     moverLabel: { color: colors.text, fontSize: fontSize.body },
+    vsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+    vsVerdict: { fontSize: fontSize.caption, fontWeight: fontWeight.medium },
+    vsTrack: { height: 8, borderRadius: radius.pill, backgroundColor: 'transparent', marginBottom: 3 },
+    vsBarNow: { height: 8, borderRadius: radius.pill },
+    vsBarAvg: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border },
+    vsNums: { color: colors.muted, fontSize: fontSize.caption },
     moverVal: { fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
     wkBar: { width: 16, borderRadius: 4 },
 

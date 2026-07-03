@@ -456,6 +456,12 @@ export default function Debts() {
                     Pay the full {formatMoney(forecast.forecastBalance)} to avoid interest, or at least{' '}
                     {formatMoney(forecast.minDue)} to avoid late fees.
                   </Text>
+                  {forecast.lateInterest > 0 ? (
+                    <Text style={styles.soaWarn}>
+                      Paying late or minimum only adds about {formatMoney(forecast.lateInterest)} interest
+                      next month, plus the bank late fee if you miss the date.
+                    </Text>
+                  ) : null}
                   <Pressable
                     onPress={() => Share.share({ message: buildSOA(editDebt, data.payments) }).catch(() => {})}
                     style={({ pressed }) => [styles.soaShareBtn, pressed && { opacity: 0.6 }]}
@@ -601,6 +607,7 @@ function makeStyles(colors) {
     msg: { color: colors.primary, fontSize: fontSize.small, marginTop: spacing.sm },
     soaLine: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
     soaHint: { color: colors.softGreen, fontSize: fontSize.small, marginTop: spacing.sm },
+    soaWarn: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.xs },
     soaShareBtn: {
       marginTop: spacing.md,
       borderWidth: 1,

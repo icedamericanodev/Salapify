@@ -63,6 +63,28 @@ export function categoryMovers(transactions, ref = new Date(), limit = 5) {
   return moves.sort((x, y) => Math.abs(y.change) - Math.abs(x.change)).slice(0, limit);
 }
 
+// This month's spending per category against the average of the last
+// `months` full months, biggest current spender first. The question this
+// answers is the one people actually decide with: am I overspending on
+// this compared to my normal? Each entry: { label, now, avg }.
+export function categoryVsAverage(transactions, ref = new Date(), months = 6, limit = 5) {
+  const sums = Object.create(null);
+  for (let i = 1; i <= months; i++) {
+    const t = categoryTotals(transactions, i, ref);
+    for (const k of Object.keys(t)) sums[k] = (sums[k] || 0) + t[k];
+  }
+  const now = categoryTotals(transactions, 0, ref);
+  const labels = new Set([...Object.keys(sums), ...Object.keys(now)]);
+  const out = [];
+  for (const label of labels) {
+    const avg = (sums[label] || 0) / months;
+    const cur = now[label] || 0;
+    if (avg === 0 && cur === 0) continue;
+    out.push({ label, now: cur, avg });
+  }
+  return out.sort((x, y) => y.now - x.now).slice(0, limit);
+}
+
 // Average spending per weekday over the last 8 weeks (56 days). Index 0 is
 // Sunday, matching JavaScript's getDay.
 export function weekdayPattern(transactions, ref = new Date()) {
