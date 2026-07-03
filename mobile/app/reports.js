@@ -35,7 +35,12 @@ export default function Reports() {
   const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
   const bank = sum(data.accounts.filter((a) => ['savings', 'checking', 'ewallet'].includes(a.kind)), (a) => a.balance);
   const investments = sum(data.assets, (a) => a.value);
-  const receivables = sum((data.receivables || []).filter((r) => !r.paid), (r) => r.amount);
+  // Only what is STILL owed counts: a partial payment already became cash
+  // in an account, counting the full amount here would double count it.
+  const receivables = sum((data.receivables || []).filter((r) => !r.paid), (r) => {
+    const paidSoFar = (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    return Math.max(0, (Number(r.amount) || 0) - paidSoFar);
+  });
   const totalAssets = cash + bank + investments + receivables;
   const liabilities = sum(data.debts, (d) => d.remaining);
   const netWorth = totalAssets - liabilities;

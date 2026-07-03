@@ -81,11 +81,14 @@ export function AppDataProvider({ children }) {
       const res = await loadData();
       if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
         try {
-          // When a real schema migration is about to rewrite this blob,
-          // snapshot the pre migration shape first. The one deep net must
-          // exist BEFORE the first post migration save lands.
-          const incoming = Math.trunc(Number(res.data.schemaVersion));
-          if (Number.isFinite(incoming) && incoming >= 1 && incoming < SCHEMA_VERSION) {
+          // When a schema migration is about to rewrite this blob,
+          // snapshot the pre migration shape first. The clamp mirrors
+          // migrate() exactly: blobs with NO version (everything saved
+          // before the framework existed) count as version 2 and DO get
+          // migrated, so they must get the snapshot too.
+          let incoming = Math.trunc(Number(res.data.schemaVersion));
+          if (!Number.isFinite(incoming) || incoming < 1) incoming = 2;
+          if (incoming < SCHEMA_VERSION) {
             await snapshotData();
           }
           const clean = sanitizeData(res.data, { keepAppLock: true });

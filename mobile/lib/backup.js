@@ -40,12 +40,23 @@ const MIGRATIONS = {
   // receivable so old readers and old code paths keep working.
   3: (d) => {
     const receivables = Array.isArray(d.receivables) ? d.receivables : [];
-    const people = Array.isArray(d.people) ? [...d.people] : [];
+    let people = Array.isArray(d.people) ? [...d.people] : [];
     const keyOf = (name) => String(name || '').trim().toLowerCase();
-    const byKey = new Map(people.map((p) => [keyOf(p.name), p]));
+    const byKey = new Map(people.map((p) => [keyOf(p && p.name), p]));
+    // New ids must never collide with people from an earlier run: this
+    // migration can legally run again on a blob whose version marker was
+    // lost, so the counter seeds past every existing person_m3_ id.
     let n = 0;
+    for (const p of people) {
+      const m = /^person_m3_(\d+)$/.exec(p && p.id);
+      if (m) n = Math.max(n, Number(m[1]) + 1);
+    }
     const migrated = receivables.map((r) => {
       if (!r || typeof r !== 'object') return r;
+      // Already linked to a person: nothing to invent, keep it exactly,
+      // just guarantee the payments list exists. This makes a re run on
+      // already migrated data a true no op.
+      if (typeof r.personId === 'string' && r.personId) return { payments: [], ...r };
       const key = keyOf(r.person);
       if (!key) return { payments: [], ...r };
       let person = byKey.get(key);
@@ -59,9 +70,13 @@ const MIGRATIONS = {
         people.push(person);
         byKey.set(key, person);
       } else if (!person.phone && typeof r.phone === 'string' && r.phone) {
-        person.phone = r.phone;
+        // Pure update: never mutate an object from the caller's blob.
+        const updated = { ...person, phone: r.phone };
+        people = people.map((p) => (p === person ? updated : p));
+        byKey.set(key, updated);
+        person = updated;
       }
-      return { payments: [], ...r, personId: r.personId || person.id };
+      return { payments: [], ...r, personId: person.id };
     });
     return { ...d, people, receivables: migrated };
   },
@@ -180,7 +195,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       payments: cleanList(r.payments).map((p) => ({
         ...p,
         amount: Math.max(0, num(p.amount)),
-        date: typeof p.date === 'string' && p.date ? p.date : '',
+        date: typeof p.date === 'string' && p.date ? p.date : stampDate,
       })),
     })),
     settings: {

@@ -197,6 +197,9 @@ export default function Receivables() {
     const remaining = remainingOf(r);
     if (!Number.isFinite(amount) || amount <= 0) return;
     const applied = Math.min(amount, remaining);
+    // Nothing left to pay means nothing to record: no phantom zero
+    // payment rows on an already covered utang.
+    if (applied <= 0) return;
     const payment = { id: genId('rpay'), amount: applied, date: todayISO() };
     updateItem('receivables', r.id, {
       payments: [...(r.payments || []), payment],
