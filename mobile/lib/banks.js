@@ -31,7 +31,9 @@ export function findBrand(brand) {
   if (!brand || typeof brand !== 'string') return null;
   const needle = brand.trim().toLowerCase();
   if (!needle) return null;
-  return (
-    BANK_BRANDS.find((b) => b.key === needle || b.name.toLowerCase() === needle) || null
-  );
+  const exact = BANK_BRANDS.find((b) => b.key === needle || b.name.toLowerCase() === needle);
+  if (exact) return exact;
+  // "BPI Savings" or "GCash Main" should still wear the right badge, so a
+  // brand name appearing inside the text counts too.
+  return BANK_BRANDS.find((b) => needle.includes(b.name.toLowerCase()) || needle.includes(b.key)) || null;
 }

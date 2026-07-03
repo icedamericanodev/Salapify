@@ -425,7 +425,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.6: PH banks and wallets</Text>
+            <Text style={styles.rowValue}>v1.6.1: bank badge QA fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

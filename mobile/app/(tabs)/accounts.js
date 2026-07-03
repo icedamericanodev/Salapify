@@ -59,7 +59,9 @@ export default function Accounts() {
     setTransferErr('');
   }
   function saveTransfer() {
-    const amount = Number(String(transfer.amount).replace(/[, ]/g, ''));
+    // Round to centavos so repeated transfers never leave float residue
+    // like 0.30000000000000004 in a balance.
+    const amount = Math.round(Number(String(transfer.amount).replace(/[, ]/g, '')) * 100) / 100;
     if (!Number.isFinite(amount) || amount <= 0) {
       setTransferErr('Enter an amount greater than 0.');
       return;
@@ -74,10 +76,17 @@ export default function Accounts() {
       setTransferErr('Pick two different accounts.');
       return;
     }
+    const fromBal = Number(from.balance) || 0;
+    // No overdrafts: a transfer can only move money that is really there,
+    // and the edit form refuses negative balances anyway.
+    if (amount > fromBal) {
+      setTransferErr(`${from.name} only has ${formatMoney(fromBal)}.`);
+      return;
+    }
     // A transfer is not income or spending, so it never touches the budget
     // or cash flow. It only moves the balances.
-    updateItem('accounts', from.id, { balance: (Number(from.balance) || 0) - amount });
-    updateItem('accounts', to.id, { balance: (Number(to.balance) || 0) + amount });
+    updateItem('accounts', from.id, { balance: Math.round((fromBal - amount) * 100) / 100 });
+    updateItem('accounts', to.id, { balance: Math.round(((Number(to.balance) || 0) + amount) * 100) / 100 });
     setTransfer(null);
   }
 
@@ -96,13 +105,15 @@ export default function Accounts() {
     setConfirmDel(false);
   }
   function openEdit(type, item) {
+    // Everything becomes a string here: a restored backup can carry odd
+    // types, and a non string in these fields would crash Save later.
     setForm({
       type,
       id: item.id,
-      name: item.name,
+      name: String(item.name ?? ''),
       kind: item.kind,
-      brand: item.brand || '',
-      icon: item.icon || '',
+      brand: typeof item.brand === 'string' ? item.brand : '',
+      icon: typeof item.icon === 'string' ? item.icon : '',
       amount: String(type === 'account' ? item.balance : item.value),
       target: item.target ? String(item.target) : '',
     });
@@ -188,10 +199,10 @@ export default function Accounts() {
   );
 
   // Progress toward a savings target, or undefined when no target is set.
-  const targetProgress = (a) => (a.target > 0 ? (a.balance || 0) / a.target : undefined);
+  const targetProgress = (a) => (a.target > 0 ? Math.max(0, (a.balance || 0) / a.target) : undefined);
   const targetSub = (a) =>
     a.target > 0
-      ? `${a.brand ? a.brand + ' . ' : ''}${Math.min(Math.round(((a.balance || 0) / a.target) * 100), 999)}% of ${formatMoney(a.target)}`
+      ? `${a.brand ? a.brand + ' . ' : ''}${Math.min(Math.max(0, Math.round(((a.balance || 0) / a.target) * 100)), 999)}% of ${formatMoney(a.target)}`
       : a.brand;
 
   return (
@@ -359,8 +370,15 @@ export default function Accounts() {
                             setForm((f) => ({
                               ...f,
                               brand: b.name,
-                              // A wallet brand flips the type chip for you.
-                              kind: b.kind === 'ewallet' ? 'ewallet' : f.kind,
+                              // The brand sets a sensible type: wallets are
+                              // e-wallets, banks lift cash or wallet types to
+                              // savings, and a hand picked checking survives.
+                              kind:
+                                b.kind === 'ewallet'
+                                  ? 'ewallet'
+                                  : f.kind === 'cash' || f.kind === 'ewallet'
+                                    ? 'savings'
+                                    : f.kind,
                             }))
                           }
                           style={styles.brandItem}
@@ -442,6 +460,7 @@ export default function Accounts() {
       <Modal visible={!!transfer} transparent animationType="slide" onRequestClose={() => setTransfer(null)}>
         <View style={styles.overlay}>
           <View style={styles.sheet}>
+            <ScrollView>
             <Text style={styles.sheetTitle}>Transfer</Text>
 
             <Text style={styles.fieldLabel}>From</Text>
@@ -497,6 +516,7 @@ export default function Accounts() {
                 </Pressable>
               </View>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>

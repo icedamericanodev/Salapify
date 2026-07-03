@@ -35,8 +35,16 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       date: typeof it.date === 'string' && it.date ? it.date : stampDate,
     }));
   const settings = isObj(src.settings) ? src.settings : {};
+  const str = (x, fallback = '') => (typeof x === 'string' ? x : fallback);
   return {
-    accounts: cleanList(src.accounts).map((a) => ({ ...a, balance: num(a.balance), target: num(a.target) })),
+    accounts: cleanList(src.accounts).map((a) => ({
+      ...a,
+      name: str(a.name, 'Account'),
+      brand: str(a.brand),
+      icon: str(a.icon),
+      balance: num(a.balance),
+      target: num(a.target),
+    })),
     assets: cleanList(src.assets).map((a) => ({ ...a, value: num(a.value) })),
     debts: cleanList(src.debts).map((d) => ({
       ...d,
