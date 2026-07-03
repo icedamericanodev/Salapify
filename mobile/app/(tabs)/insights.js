@@ -231,8 +231,10 @@ function ProInsights({ data, styles, colors }) {
           <Text style={styles.kicker}>THIS MONTH VS YOUR 6 MONTH NORMAL</Text>
           <View style={styles.cardBody}>
             {vsAvg.map((v) => {
-              const over = v.avg > 0 && v.now > v.avg * 1.2;
-              const under = v.avg > 0 && v.now < v.avg * 0.8;
+              // Verdicts compare against the pace adjusted expectation, so
+              // early in the month nothing gets a free "below normal".
+              const over = v.expected > 0 && v.now > v.expected * 1.2;
+              const under = v.expected > 0 && v.now < v.expected * 0.8;
               return (
                 <View key={v.label}>
                   <View style={styles.vsHead}>

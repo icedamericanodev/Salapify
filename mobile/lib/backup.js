@@ -70,11 +70,15 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
     })),
     wins: cleanList(src.wins),
     notes: cleanList(src.notes),
-    recurring: cleanList(src.recurring).map((r) => ({
+    recurring: cleanList(src.recurring).map((r, i) => ({
       ...r,
+      // Amounts can never be negative (a negative expense would ADD money
+      // every month), and every item needs an id or it could never be
+      // edited or deleted again.
+      id: typeof r.id === 'string' && r.id ? r.id : `recurring_restored_${i}`,
       type: r.type === 'income' ? 'income' : 'expense',
       label: str(r.label, 'Recurring'),
-      amount: num(r.amount),
+      amount: Math.max(0, num(r.amount)),
       dayOfMonth: Math.min(Math.max(Math.round(num(r.dayOfMonth)) || 1, 1), 31),
       accountId: str(r.accountId),
       lastPosted: str(r.lastPosted),

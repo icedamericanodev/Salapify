@@ -207,6 +207,11 @@ export default function More() {
   function runImport() {
     try {
       const parsed = tool.mode === 'importv1' ? parseV1(tool.text) : parseBackup(tool.text);
+      // The native path confirms via Alert; the web path must too, one
+      // stray tap should never replace everything without asking.
+      if (Platform.OS === 'web' && !window.confirm('Replace everything currently in the app with this file? This cannot be undone.')) {
+        return;
+      }
       replaceAll(parsed);
       setMsg('Imported. Your data has been replaced.');
     } catch (e) {
@@ -471,7 +476,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v1.8: recurring and upgrades</Text>
+            <Text style={styles.rowValue}>v1.8.1: recurring QA fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

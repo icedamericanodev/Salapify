@@ -69,18 +69,29 @@ export function categoryMovers(transactions, ref = new Date(), limit = 5) {
 // this compared to my normal? Each entry: { label, now, avg }.
 export function categoryVsAverage(transactions, ref = new Date(), months = 6, limit = 5) {
   const sums = Object.create(null);
+  // Average over the months that actually have spending, so one month of
+  // history is not diluted six ways into a fake "above normal" verdict.
+  let active = 0;
   for (let i = 1; i <= months; i++) {
     const t = categoryTotals(transactions, i, ref);
-    for (const k of Object.keys(t)) sums[k] = (sums[k] || 0) + t[k];
+    const keys = Object.keys(t);
+    if (keys.length > 0) active += 1;
+    for (const k of keys) sums[k] = (sums[k] || 0) + t[k];
   }
+  const denom = Math.max(active, 1);
+  // Pace matters: on the 2nd of the month everything looks "below normal"
+  // against a FULL month average. expected is the average scaled to how
+  // far into the month we are; verdicts should compare against it.
+  const daysInMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+  const frac = Math.min(ref.getDate() / daysInMonth, 1);
   const now = categoryTotals(transactions, 0, ref);
   const labels = new Set([...Object.keys(sums), ...Object.keys(now)]);
   const out = [];
   for (const label of labels) {
-    const avg = (sums[label] || 0) / months;
+    const avg = (sums[label] || 0) / denom;
     const cur = now[label] || 0;
     if (avg === 0 && cur === 0) continue;
-    out.push({ label, now: cur, avg });
+    out.push({ label, now: cur, avg, expected: avg * frac });
   }
   return out.sort((x, y) => y.now - x.now).slice(0, limit);
 }

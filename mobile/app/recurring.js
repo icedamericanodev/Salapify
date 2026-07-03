@@ -78,6 +78,14 @@ export default function Recurring() {
     }
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // Compare against the same clamped day the posting engine uses, so a
+    // day 31 item added on April 30 behaves exactly like the engine will.
+    const effectiveDay = Math.min(day, daysInMonth);
+    // A day on or before today does NOT post retroactively, on add OR on
+    // edit; the user has usually paid that one already. Editing the day
+    // must never turn into a surprise back dated expense.
+    const skipThisMonth = effectiveDay <= now.getDate();
     const payload = {
       type: form.type,
       label: form.label.trim(),
@@ -86,13 +94,16 @@ export default function Recurring() {
       accountId: form.accountId || '',
     };
     if (form.id) {
-      updateItem('recurring', form.id, payload);
+      const existing = list.find((r) => r.id === form.id);
+      const kept = existing && typeof existing.lastPosted === 'string' ? existing.lastPosted : '';
+      updateItem('recurring', form.id, {
+        ...payload,
+        lastPosted: skipThisMonth && kept < monthKey ? monthKey : kept,
+      });
     } else {
-      // A brand new item whose day already passed this month does NOT
-      // post retroactively; the user has usually paid that one already.
       addItem('recurring', {
         ...payload,
-        lastPosted: day <= now.getDate() ? monthKey : '',
+        lastPosted: skipThisMonth ? monthKey : '',
       });
     }
     setForm(null);

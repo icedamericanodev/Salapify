@@ -120,9 +120,13 @@ export function AppDataProvider({ children }) {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // Ordered comparison on the YYYY-MM key: anything posted this month OR
+    // LATER counts as done, so a phone whose clock jumped ahead and back
+    // can never post the same month twice.
+    const posted = (r) => typeof r.lastPosted === 'string' && r.lastPosted >= monthKey;
     const anyDue = (data.recurring || []).some((r) => {
       const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
-      return r.lastPosted !== monthKey && now.getDate() >= day;
+      return !posted(r) && now.getDate() >= day;
     });
     if (!anyDue) return;
     setData((prev) => {
@@ -130,7 +134,7 @@ export function AppDataProvider({ children }) {
       let accounts = prev.accounts;
       const recurring = (prev.recurring || []).map((r) => {
         const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
-        if (r.lastPosted === monthKey || now.getDate() < day) return r;
+        if (posted(r) || now.getDate() < day) return r;
         const date = `${monthKey}-${String(day).padStart(2, '0')}`;
         const amount = Number(r.amount) || 0;
         const tx = {
@@ -235,6 +239,12 @@ export function AppDataProvider({ children }) {
   // always off after a restore so nobody gets locked out.
   function replaceAll(newData) {
     const clean = sanitizeData(newData);
+    // A restore must never invent money: every restored recurring item is
+    // stamped as already posted for the current month, so the app shows
+    // exactly what the backup contains and resumes posting next month.
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    clean.recurring = (clean.recurring || []).map((r) => ({ ...r, lastPosted: monthKey }));
     // A restore that carries any real records means this person is not a
     // first time user: mark them onboarded so the welcome flow never
     // appears on top of freshly restored data.
