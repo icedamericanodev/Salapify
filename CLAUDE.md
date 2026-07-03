@@ -25,23 +25,24 @@ explanations for the founder, who is a beginner. Small tested steps.
    need a full APK rebuild on EAS and a version bump to isolate runtimes.
    Flag these loudly, they are not over the air.
 
-## Merge rules (separation of duties)
+## Merge rules (set by the founder on 2026-07-03)
 
-Claude may review and merge its own PRs when ALL of these hold:
-- The change is routine: UI, copy, new screens, refactors, additive
-  features that do not touch the items on the significant list below.
+Claude reviews and merges every PR itself, for all builds, when ALL of
+these hold:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
-  and found no must fix issues.
+  and every must fix finding was fixed and re-checked.
 - The Expo publish status check on the PR head commit is green.
 - The merge uses "Create a merge commit". Never squash, squash rewrites
   history and causes merge conflicts on the next PR every single time.
 
-The founder reviews and merges when the change is significant, meaning any
-of: the stored data shape or migration logic, money math (balances, debt
-payoff, forecasts, analytics), backup and restore, security or app lock,
-notifications scheduling, monetization or pricing, deleting or replacing
-user data, or anything requiring an APK rebuild. When in doubt, treat it
-as significant and notify the founder instead of merging.
+For significant changes, Claude still merges, but must clearly tell the
+founder what shipped and why it is significant, right after merging.
+Significant means any of: the stored data shape or migration logic, money
+math (balances, debt payoff, forecasts, analytics), backup and restore,
+security or app lock, notifications scheduling, monetization or pricing,
+deleting or replacing user data, or anything requiring an APK rebuild.
+Anything that could permanently lose user data still goes to the founder
+BEFORE merging, that one is never delegated.
 
 After any merge, confirm the branch still merges cleanly into main; if the
 founder squash merged by accident, merge origin/main back into the branch
