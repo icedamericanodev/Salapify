@@ -11,7 +11,7 @@ import { loadData, saveData, snapshotData } from '../lib/storage';
 import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
-import { sanitizeData } from '../lib/backup';
+import { sanitizeData, SCHEMA_VERSION } from '../lib/backup';
 import {
   sampleAccounts,
   sampleAssets,
@@ -80,6 +80,13 @@ export function AppDataProvider({ children }) {
       const res = await loadData();
       if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
         try {
+          // When a real schema migration is about to rewrite this blob,
+          // snapshot the pre migration shape first. The one deep net must
+          // exist BEFORE the first post migration save lands.
+          const incoming = Math.trunc(Number(res.data.schemaVersion));
+          if (Number.isFinite(incoming) && incoming >= 1 && incoming < SCHEMA_VERSION) {
+            await snapshotData();
+          }
           const clean = sanitizeData(res.data, { keepAppLock: true });
           // Anyone with saved data from before the welcome flow existed has
           // clearly used the app already: never throw them into onboarding,

@@ -28,6 +28,11 @@ export const SCHEMA_VERSION = 2;
 // migration is a pure function of the blob: no clock tricks that make it
 // unrepeatable, nothing async, no device state. They run before coercion,
 // and they must never drop fields they do not understand.
+//
+// GUARDRAIL: adding a new TOP LEVEL collection always requires bumping
+// SCHEMA_VERSION with a migration, because sanitizeData rebuilds a fixed
+// key list; an unknown collection restored by an older build would be
+// silently dropped instead of refused.
 const MIGRATIONS = {
   // 3: (d) => ({ ...d, people: [...] }),  // example shape for the future
 };
@@ -37,7 +42,11 @@ const MIGRATIONS = {
 // binary) is refused loudly rather than mangled quietly.
 function migrate(raw) {
   let d = raw;
-  let v = Number(d.schemaVersion) || 2;
+  // Hostile or garbage version values (Infinity, NaN, negatives, strings)
+  // must clamp to 2, never feed the loop: -Infinity plus one is still
+  // -Infinity and would hang the app forever.
+  let v = Math.trunc(Number(d.schemaVersion));
+  if (!Number.isFinite(v) || v < 1) v = 2;
   if (v > SCHEMA_VERSION) {
     throw new Error(
       'This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed.'
