@@ -61,6 +61,7 @@ const AppDataContext = createContext(null);
 export function AppDataProvider({ children }) {
   const [data, setData] = useState(seedData);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // On startup, load saved data. Three cases matter:
   //  - "ok": clean it up (sanitizeData guarantees arrays, numbers, and
@@ -74,14 +75,21 @@ export function AppDataProvider({ children }) {
       const res = await loadData();
       if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
         const clean = sanitizeData(res.data, { keepAppLock: true });
+        // Anyone with saved data from before the welcome flow existed has
+        // clearly used the app already: never throw them into onboarding,
+        // where Start empty sits one confirm away from their real data.
+        // Only an explicit false (a fresh user who quit mid welcome) keeps
+        // the flow.
+        const onboarded = clean.settings.onboarded === false ? false : true;
         setData({
           ...clean,
-          settings: { ...seedData.settings, ...clean.settings },
+          settings: { ...seedData.settings, ...clean.settings, onboarded },
         });
         setLoaded(true);
       } else if (res.status === 'empty') {
         setLoaded(true);
       } else {
+        setLoadFailed(true);
         console.warn('Saved data could not be read. Saving is off this session to protect it.');
       }
     })();
@@ -143,9 +151,21 @@ export function AppDataProvider({ children }) {
   // always off after a restore so nobody gets locked out.
   function replaceAll(newData) {
     const clean = sanitizeData(newData);
+    // A restore that carries any real records means this person is not a
+    // first time user: mark them onboarded so the welcome flow never
+    // appears on top of freshly restored data.
+    const hasData = [
+      'accounts', 'assets', 'debts', 'payments', 'transactions',
+      'goals', 'wins', 'receivables', 'notes',
+    ].some((k) => (clean[k] || []).length > 0);
     setData({
       ...clean,
-      settings: { ...seedData.settings, ...clean.settings, appLock: false },
+      settings: {
+        ...seedData.settings,
+        ...clean.settings,
+        appLock: false,
+        onboarded: clean.settings.onboarded === true || hasData,
+      },
     });
   }
 
@@ -156,6 +176,7 @@ export function AppDataProvider({ children }) {
   const value = {
     data,
     loaded,
+    loadFailed,
     addItem,
     updateItem,
     removeItem,

@@ -11,7 +11,7 @@ import { BudgetWidget, NetWorthWidget } from './SalapifyWidgets';
 const STORAGE_KEY = 'salapify_data_v2';
 
 async function readNumbers() {
-  const out = { spent: 0, limit: 0, netWorth: 0 };
+  const out = { spent: 0, limit: 0, netWorth: 0, symbol: '₱' };
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return out;
@@ -24,6 +24,9 @@ async function readNumbers() {
       .filter((t) => t && t.type === 'expense' && String(t.date || '').slice(0, 7) === prefix)
       .reduce((t, e) => t + (Number(e.amount) || 0), 0);
     out.limit = Number(data.settings && data.settings.monthlyLimit) || 0;
+    if (data.settings && typeof data.settings.currency === 'string' && data.settings.currency) {
+      out.symbol = data.settings.currency;
+    }
     const sum = (arr, key) =>
       (Array.isArray(arr) ? arr : []).reduce((t, x) => t + (Number(x && x[key]) || 0), 0);
     out.netWorth =
@@ -39,11 +42,11 @@ export async function widgetTaskHandler(props) {
   const n = await readNumbers();
   switch (widgetInfo.widgetName) {
     case 'NetWorthWidget':
-      renderWidget(<NetWorthWidget netWorth={n.netWorth} />);
+      renderWidget(<NetWorthWidget netWorth={n.netWorth} symbol={n.symbol} />);
       break;
     case 'BudgetWidget':
     default:
-      renderWidget(<BudgetWidget spent={n.spent} limit={n.limit} />);
+      renderWidget(<BudgetWidget spent={n.spent} limit={n.limit} symbol={n.symbol} />);
       break;
   }
 }

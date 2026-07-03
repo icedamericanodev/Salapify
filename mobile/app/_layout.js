@@ -2,7 +2,7 @@
 // screen. We wrap everything in two providers: ThemeProvider (light/dark
 // colors) and AppDataProvider (the saved data). Then a Stack holds the tabs.
 
-import { Platform, View, useWindowDimensions } from 'react-native';
+import { Platform, Text, View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,11 +12,30 @@ import LockGate from '../components/LockGate';
 import Onboarding from '../components/Onboarding';
 
 // Shows the one time welcome flow until it has been completed, then the
-// real app. Waits for the saved data before deciding, so the welcome never
-// flashes for existing users.
+// real app. While the saved data loads it shows a plain background, so
+// neither sample data nor the welcome ever flashes at the wrong moment.
+// If saved data exists but cannot be read, it says so instead of leaving
+// a silent blank screen; nothing is deleted and saving stays off.
 function OnboardingGate({ children }) {
-  const { data, loaded } = useAppData();
-  if (loaded && !(data.settings && data.settings.onboarded)) {
+  const { data, loaded, loadFailed } = useAppData();
+  const { colors } = useTheme();
+  if (loadFailed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' }}>
+          Could not read your saved data
+        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginTop: 12, lineHeight: 22 }}>
+          Nothing was deleted. Close the app fully and open it again. If this
+          keeps happening, restore from your latest backup file.
+        </Text>
+      </View>
+    );
+  }
+  if (!loaded) {
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
+  if (!(data.settings && data.settings.onboarded)) {
     return <Onboarding />;
   }
   return children;

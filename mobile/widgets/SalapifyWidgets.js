@@ -13,14 +13,14 @@ const TEXT = '#FBF7EF';
 const MUTED = '#9DAF9D';
 const WARN = '#E8785A';
 
-function money(n) {
+function money(n, symbol = '₱') {
   const v = Math.round(Number(n) || 0);
   const sign = v < 0 ? '-' : '';
-  return sign + '₱' + Math.abs(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return sign + symbol + Math.abs(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 // Budget widget: how much of this month's limit is left to spend.
-export function BudgetWidget({ spent = 0, limit = 0 }) {
+export function BudgetWidget({ spent = 0, limit = 0, symbol = '₱' }) {
   const left = limit - spent;
   const over = spent > limit && limit > 0;
   return (
@@ -43,11 +43,11 @@ export function BudgetWidget({ spent = 0, limit = 0 }) {
         style={{ fontSize: 10, color: MINT, letterSpacing: 0.1 }}
       />
       <TextWidget
-        text={over ? money(-left) + ' over' : money(left) + ' left'}
+        text={over ? money(-left, symbol) + ' over' : limit > 0 ? money(left, symbol) + ' left' : money(spent, symbol) + ' spent'}
         style={{ fontSize: 24, fontWeight: 'bold', color: over ? WARN : TEXT, marginTop: 4 }}
       />
       <TextWidget
-        text={limit > 0 ? 'of ' + money(limit) + ' this month' : 'Set a monthly budget in the app'}
+        text={limit > 0 ? 'of ' + money(limit, symbol) + ' this month' : 'Set a monthly budget in the app'}
         style={{ fontSize: 11, color: MUTED, marginTop: 2 }}
       />
     </FlexWidget>
@@ -55,7 +55,7 @@ export function BudgetWidget({ spent = 0, limit = 0 }) {
 }
 
 // Net worth widget: the headline number, always one tap from home.
-export function NetWorthWidget({ netWorth = 0 }) {
+export function NetWorthWidget({ netWorth = 0, symbol = '₱' }) {
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -73,7 +73,7 @@ export function NetWorthWidget({ netWorth = 0 }) {
     >
       <TextWidget text="NET WORTH" style={{ fontSize: 10, color: MINT, letterSpacing: 0.1 }} />
       <TextWidget
-        text={money(netWorth)}
+        text={money(netWorth, symbol)}
         style={{ fontSize: 24, fontWeight: 'bold', color: netWorth >= 0 ? TEXT : WARN, marginTop: 4 }}
       />
       <TextWidget text="Tap to open Salapify" style={{ fontSize: 11, color: MUTED, marginTop: 2 }} />

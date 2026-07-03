@@ -19,7 +19,7 @@ import { useAppData } from '../context/AppData';
 export default function LockGate({ children }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, loaded, updateSettings } = useAppData();
+  const { data, loaded, loadFailed, updateSettings } = useAppData();
 
   const isNative = Platform.OS !== 'web';
   const lockOn = isNative && loaded && !!(data.settings && data.settings.appLock);
@@ -82,7 +82,9 @@ export default function LockGate({ children }) {
 
   // Until the saved settings are read we do not yet know whether the app
   // should be locked, so show a blank screen instead of flashing data.
-  if (!loaded) {
+  // If the read failed outright, let the app render so the storage error
+  // message can be shown instead of a silent blank screen forever.
+  if (!loaded && !loadFailed) {
     return <View style={styles.blank} />;
   }
 

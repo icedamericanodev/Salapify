@@ -4,7 +4,7 @@
 // The Start empty choice deletes data, so it always confirms first.
 
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
@@ -23,12 +23,18 @@ export default function Onboarding() {
   const { data, updateSettings, replaceAll } = useAppData();
 
   const [step, setStep] = useState(0);
-  const [currency, setCurrency] = useState({ code: 'PHP', symbol: '₱' });
+  // Start from whatever is already saved, so a restored USD user who taps
+  // through never gets silently reset to pesos.
+  const [currency, setCurrency] = useState({
+    code: data.settings.currencyCode || 'PHP',
+    symbol: data.settings.currency || '₱',
+  });
   const [limit, setLimit] = useState(String(data.settings.monthlyLimit || 20000));
 
   function finish(startEmpty) {
-    const n = Number(limit);
-    const monthlyLimit = Number.isFinite(n) && n > 0 ? n : 20000;
+    // Accept human typing: commas and spaces stripped, capped at 100 million.
+    const n = Number(String(limit).replace(/[,\s]/g, ''));
+    const monthlyLimit = Number.isFinite(n) && n > 0 ? Math.min(n, 100000000) : 20000;
     const patch = {
       currency: currency.symbol,
       currencyCode: currency.code,
@@ -36,18 +42,18 @@ export default function Onboarding() {
       onboarded: true,
     };
     if (startEmpty) {
-      Alert.alert(
-        'Start with an empty app?',
-        'This clears everything currently in the app, including any sample data. This cannot be undone.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Start empty',
-            style: 'destructive',
-            onPress: () => replaceAll({ settings: { ...data.settings, ...patch } }),
-          },
-        ]
-      );
+      const wipe = () => replaceAll({ settings: { ...data.settings, ...patch } });
+      const message =
+        'This clears everything currently in the app, including any sample data. This cannot be undone.';
+      if (Platform.OS === 'web') {
+        // Alert with buttons is a no-op in browsers, so confirm the web way.
+        if (typeof window !== 'undefined' && window.confirm(message)) wipe();
+        return;
+      }
+      Alert.alert('Start with an empty app?', message, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Start empty', style: 'destructive', onPress: wipe },
+      ]);
       return;
     }
     updateSettings(patch);
