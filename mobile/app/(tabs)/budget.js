@@ -24,6 +24,7 @@ import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format
 import EmptyState from '../../components/EmptyState';
 import WeekChain from '../../components/WeekChain';
 import LogSheet from '../../components/LogSheet';
+import { resolveReceipt } from '../../lib/receipts';
 
 const today = todayISO;
 
@@ -39,6 +40,7 @@ export default function Budget() {
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [receiptView, setReceiptView] = useState(''); // full screen receipt photo
+  const [receiptDead, setReceiptDead] = useState(false); // photo missing on this phone
   const [toast, setToast] = useState(null); // {text, id} after logging
   const toastTimer = useRef(null);
 
@@ -153,7 +155,13 @@ export default function Budget() {
                 <Text style={styles.rowName}>{e.label}</Text>
                 <View style={styles.rowRight}>
                   {e.receiptUri ? (
-                    <Pressable onPress={() => setReceiptView(e.receiptUri)} hitSlop={8}>
+                    <Pressable
+                      onPress={() => {
+                        setReceiptDead(false);
+                        setReceiptView(resolveReceipt(e.receiptUri));
+                      }}
+                      hitSlop={8}
+                    >
                       <Text style={styles.receiptIcon}>🧾</Text>
                     </Pressable>
                   ) : null}
@@ -198,8 +206,19 @@ export default function Budget() {
       {/* Full screen receipt viewer. */}
       <Modal visible={!!receiptView} transparent animationType="fade" onRequestClose={() => setReceiptView('')}>
         <Pressable style={styles.receiptOverlay} onPress={() => setReceiptView('')}>
-          {receiptView ? (
-            <Image source={{ uri: receiptView }} style={styles.receiptImage} resizeMode="contain" />
+          {receiptView && !receiptDead ? (
+            <Image
+              source={{ uri: receiptView }}
+              style={styles.receiptImage}
+              resizeMode="contain"
+              onError={() => setReceiptDead(true)}
+            />
+          ) : null}
+          {receiptDead ? (
+            <Text style={styles.receiptDead}>
+              This photo is not on this phone. Receipt photos stay on the phone that took them and
+              are not included in backup files.
+            </Text>
           ) : null}
           <Text style={styles.receiptClose}>Tap anywhere to close</Text>
         </Pressable>
@@ -244,6 +263,7 @@ function makeStyles(colors) {
     receiptOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
     receiptImage: { width: '100%', height: '85%' },
     receiptClose: { color: '#FFFFFF', fontSize: fontSize.small, opacity: 0.7, marginTop: spacing.md },
+    receiptDead: { color: '#FFFFFF', fontSize: fontSize.body, textAlign: 'center', paddingHorizontal: spacing.xl },
     empty: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
 
     toast: {

@@ -57,12 +57,19 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       creditLimit: num(d.creditLimit),
     })),
     payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
-    transactions: dated(src.transactions).map((t) => ({
-      ...t,
-      amount: num(t.amount),
-      type: t.type === 'income' ? 'income' : 'expense',
-      label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
-    })),
+    transactions: dated(src.transactions).map((t) => {
+      const out = {
+        ...t,
+        amount: num(t.amount),
+        type: t.type === 'income' ? 'income' : 'expense',
+        label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
+      };
+      // receiptUri must be a string or absent: a non string here would
+      // reach Image source.uri and crash native Android.
+      if (typeof t.receiptUri === 'string' && t.receiptUri) out.receiptUri = t.receiptUri;
+      else delete out.receiptUri;
+      return out;
+    }),
     goals: cleanList(src.goals).map((g) => ({
       ...g,
       target: num(g.target),

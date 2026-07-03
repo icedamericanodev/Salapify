@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { loadData, saveData } from '../lib/storage';
-import { deleteReceipt } from '../lib/receipts';
+import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
 import { sanitizeData } from '../lib/backup';
@@ -249,6 +249,9 @@ export function AppDataProvider({ children }) {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     clean.recurring = (clean.recurring || []).map((r) => ({ ...r, lastPosted: monthKey }));
+    // Erasing or replacing the money data also clears the receipt photos
+    // it owned; photos still referenced by the incoming data are kept.
+    cleanupReceipts((clean.transactions || []).map((t) => t.receiptUri).filter(Boolean));
     // A restore that carries any real records means this person is not a
     // first time user: mark them onboarded so the welcome flow never
     // appears on top of freshly restored data.

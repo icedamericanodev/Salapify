@@ -112,8 +112,8 @@ export default function More() {
   // into a folder on the device (like Downloads) or open the share sheet,
   // restore and import open the file picker. The web preview keeps the
   // older text box flow.
-  function offerSave(filename, text, mime) {
-    Alert.alert('Where should it go?', filename, [
+  function offerSave(filename, text, mime, note) {
+    Alert.alert('Where should it go?', note ? `${filename}\n\n${note}` : filename, [
       {
         text: 'Save to my device',
         onPress: async () => {
@@ -140,7 +140,12 @@ export default function More() {
     if (Platform.OS !== 'web') {
       try {
         if (m === 'backup') {
-          offerSave(`salapify-backup-${todayISO()}.json`, buildBackup(data), 'application/json');
+          offerSave(
+            `salapify-backup-${todayISO()}.json`,
+            buildBackup(data),
+            'application/json',
+            'Receipt photos stay on this phone. The backup covers your money data, not the photos.'
+          );
           return;
         }
         if (m === 'csv') {

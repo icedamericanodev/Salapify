@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Modal,
   Platform,
@@ -70,11 +71,33 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
     }
   }, [visible]);
 
-  // Closing without saving must not leave an orphan photo behind.
+  // Tracks whether the sheet is open, so a photo pick that finishes after
+  // the sheet closed gets cleaned up instead of leaking a file.
+  const openRef = useRef(false);
+  useEffect(() => {
+    openRef.current = !!visible;
+  }, [visible]);
+
+  // Closing without saving must not leave an orphan photo behind, and a
+  // camera shot has exactly one copy, so discarding it asks first.
   function cancel() {
-    if (receiptUri) deleteReceipt(receiptUri);
-    setReceiptUri('');
-    onClose();
+    if (!receiptUri) {
+      onClose();
+      return;
+    }
+    const discard = () => {
+      deleteReceipt(receiptUri);
+      setReceiptUri('');
+      onClose();
+    };
+    if (Platform.OS === 'web') {
+      discard();
+      return;
+    }
+    Alert.alert('Discard this entry?', 'The attached receipt photo will be deleted.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: discard },
+    ]);
   }
 
   // The toast lives outside the modal so it stays on screen after closing.
@@ -284,12 +307,29 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               <Pressable
                 onPress={async () => {
                   if (receiptUri) {
-                    deleteReceipt(receiptUri);
-                    setReceiptUri('');
+                    // The camera shot has one copy; removing it asks first.
+                    Alert.alert('Remove the receipt photo?', 'The photo will be deleted.', [
+                      { text: 'Keep it', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => {
+                          deleteReceipt(receiptUri);
+                          setReceiptUri('');
+                        },
+                      },
+                    ]);
                     return;
                   }
                   const uri = await pickReceipt().catch(() => null);
-                  if (uri) setReceiptUri(uri);
+                  if (!uri) return;
+                  // The sheet may have been closed while the picker was
+                  // open; a late arrival gets deleted, not leaked.
+                  if (!openRef.current) {
+                    deleteReceipt(uri);
+                    return;
+                  }
+                  setReceiptUri(uri);
                 }}
                 style={[styles.receiptBtn, receiptUri ? styles.receiptOn : null]}
               >
