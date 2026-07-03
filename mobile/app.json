@@ -3,7 +3,7 @@
     "name": "Salapify",
     "slug": "salapify-v2",
     "owner": "icedamericanodev",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "salapify",
     "icon": "./assets/icon.png",
@@ -16,7 +16,34 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "color": "#1D9E75" }]
+      ["expo-notifications", { "color": "#1D9E75" }],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "BudgetWidget",
+              "label": "Salapify Budget",
+              "description": "How much you have left to spend this month",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "NetWorthWidget",
+              "label": "Salapify Net Worth",
+              "description": "Your net worth at a glance",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
