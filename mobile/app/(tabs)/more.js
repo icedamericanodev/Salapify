@@ -26,7 +26,7 @@ import { formatMoney } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { ensureNotifPermission } from '../../lib/notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { saveTextFile, pickTextFile } from '../../lib/files';
+import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
 import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
@@ -98,19 +98,40 @@ export default function More() {
   const settings = data.settings;
 
   // ---- Data tools ----
-  // On the phone these are real files: backup and CSV open the share sheet
-  // to save or send the file, restore and import open the file picker. The
-  // web preview keeps the older text box flow.
+  // On the phone these are real files: backup and CSV ask whether to save
+  // into a folder on the device (like Downloads) or open the share sheet,
+  // restore and import open the file picker. The web preview keeps the
+  // older text box flow.
+  function offerSave(filename, text, mime) {
+    Alert.alert('Where should it go?', filename, [
+      {
+        text: 'Save to my device',
+        onPress: async () => {
+          try {
+            const ok = await saveToDevice(filename, text, mime);
+            if (ok) Alert.alert('Saved', `${filename} is in the folder you picked.`);
+          } catch (e) {
+            Alert.alert('Could not save there', e.message || 'Try Share or send instead.');
+          }
+        },
+      },
+      {
+        text: 'Share or send',
+        onPress: () => saveTextFile(filename, text, mime).catch(() => {}),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
   async function openTool(m) {
     setMsg('');
     if (Platform.OS !== 'web') {
       try {
         if (m === 'backup') {
-          await saveTextFile(`salapify-backup-${todayISO()}.json`, buildBackup(data));
+          offerSave(`salapify-backup-${todayISO()}.json`, buildBackup(data), 'application/json');
           return;
         }
         if (m === 'csv') {
-          await saveTextFile(`salapify-${todayISO()}.csv`, toCSV(data), 'text/csv');
+          offerSave(`salapify-${todayISO()}.csv`, toCSV(data), 'text/csv');
           return;
         }
         const text = await pickTextFile();
@@ -338,7 +359,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA test 1 🎉</Text>
+            <Text style={styles.rowValue}>OTA 2: save to device</Text>
           </View>
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
