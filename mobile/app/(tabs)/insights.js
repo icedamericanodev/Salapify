@@ -138,7 +138,7 @@ function makeStyles(colors) {
     pageTitle: {
       color: colors.text,
       fontSize: fontSize.title,
-      fontWeight: fontWeight.bold,
+      fontWeight: fontWeight.heavy,
       marginBottom: spacing.md,
     },
 
@@ -154,7 +154,7 @@ function makeStyles(colors) {
       color: colors.softGreen,
       fontSize: fontSize.caption,
       fontWeight: fontWeight.medium,
-      letterSpacing: 2,
+      letterSpacing: 1.2,
     },
     cardBody: { marginTop: spacing.md, gap: spacing.md },
 

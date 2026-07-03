@@ -2,8 +2,9 @@
 // cash flow (money in minus money out), and days to payday, plus quick links
 // to the main sections. Cash flow only counts transactions dated this month.
 
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,10 +21,12 @@ export default function Overview() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter(); // lets the quick links open other tabs
-  const { data, addItem, updateSettings } = useAppData(); // live data from the store
+  const { data, addItem, updateSettings, loaded } = useAppData(); // live data from the store
 
   const [salaryModal, setSalaryModal] = useState(false);
   const [salaryAmount, setSalaryAmount] = useState('');
+  const [showPeak, setShowPeak] = useState(false);
+  const peakAnim = useRef(new Animated.Value(0)).current;
 
   // Helper to add up a number field across a list.
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
@@ -42,8 +45,39 @@ export default function Overview() {
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
 
-  // Days to the next payday.
+  // Days to the next payday, with extra energy in the final stretch.
   const payday = daysUntilPayday();
+  const paydaySoon = payday <= 3;
+  const paydayCopy =
+    payday === 0
+      ? 'Payday today. Log that income first. 💸'
+      : payday === 1
+      ? 'Bukas na. 🤑'
+      : paydaySoon
+      ? 'Malapit na. Konting tiis. 💪'
+      : 'Based on the 15th and end of month.';
+
+  // Net worth peak: gold appears only when earned. The stored peak only
+  // ever climbs, and the pill fires when net worth crosses into a new
+  // 10,000 step above it.
+  useEffect(() => {
+    if (!loaded) return;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('salapify_peak_networth');
+        const prevPeak = raw ? Number(raw) : 0;
+        if (netWorth > prevPeak) {
+          await AsyncStorage.setItem('salapify_peak_networth', String(netWorth));
+          if (prevPeak > 0 && Math.floor(netWorth / 10000) > Math.floor(prevPeak / 10000)) {
+            setShowPeak(true);
+            Animated.timing(peakAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+          }
+        }
+      } catch (e) {
+        // Peak tracking is a nice-to-have; never let it break the screen.
+      }
+    })();
+  }, [loaded, netWorth]);
 
   // Unpaid utang, surfaced on home so collecting is one tap away.
   const unpaid = (data.receivables || []).filter((r) => !r.paid);
@@ -156,7 +190,24 @@ export default function Overview() {
             <Text style={styles.kicker}>NET WORTH</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </View>
-          <Text style={styles.netWorth}>{formatMoney(netWorth)}</Text>
+          <Text style={styles.netWorth} numberOfLines={1} adjustsFontSizeToFit>
+            {formatMoney(netWorth)}
+          </Text>
+          {showPeak ? (
+            <Animated.View
+              style={[
+                styles.peakPill,
+                {
+                  opacity: peakAnim,
+                  transform: [
+                    { scale: peakAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.06, 1] }) },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.peakText}>New peak 📈 Angat ka ngayon.</Text>
+            </Animated.View>
+          ) : null}
           <View style={styles.splitRow}>
             <View>
               <Text style={styles.smallLabel}>Total assets</Text>
@@ -200,7 +251,7 @@ export default function Overview() {
             </View>
             <View>
               <Text style={styles.smallLabel}>Money out</Text>
-              <Text style={[styles.smallValue, { color: colors.warning }]}>
+              <Text style={[styles.smallValue, { color: colors.textSecondary }]}>
                 {formatMoney(moneyOut)}
               </Text>
             </View>
@@ -251,13 +302,13 @@ export default function Overview() {
           </>
         ) : null}
 
-        {/* Days to payday. */}
-        <View style={styles.card}>
+        {/* Days to payday, glowing when it is close. */}
+        <View style={[styles.card, paydaySoon && styles.paydaySoonCard]}>
           <Text style={styles.kicker}>DAYS TO PAYDAY</Text>
-          <Text style={styles.payday}>
-            {payday} {payday === 1 ? 'day' : 'days'}
+          <Text style={[styles.payday, paydaySoon && styles.paydaySoonNumber]}>
+            {payday === 0 ? 'Today' : `${payday} ${payday === 1 ? 'day' : 'days'}`}
           </Text>
-          <Text style={styles.smallLabel}>Based on the 15th and end of month.</Text>
+          <Text style={styles.smallLabel}>{paydayCopy}</Text>
         </View>
 
         {/* Quick links to the other tabs. */}
@@ -346,18 +397,22 @@ function makeStyles(colors) {
       color: colors.softGreen,
       fontSize: fontSize.caption,
       fontWeight: fontWeight.medium,
-      letterSpacing: 2,
+      letterSpacing: 1.2,
     },
     netWorth: {
       color: colors.text,
-      fontSize: fontSize.huge,
-      fontWeight: fontWeight.bold,
+      fontSize: fontSize.display,
+      fontWeight: fontWeight.heavy,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.5,
       marginTop: spacing.xs,
       marginBottom: spacing.lg,
     },
     cashFlow: {
       fontSize: fontSize.huge,
-      fontWeight: fontWeight.bold,
+      fontWeight: fontWeight.heavy,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.5,
       marginTop: spacing.xs,
       marginBottom: spacing.lg,
     },
@@ -368,6 +423,20 @@ function makeStyles(colors) {
       marginTop: spacing.xs,
       marginBottom: spacing.xs,
     },
+    paydaySoonCard: { backgroundColor: colors.positiveSurface, borderColor: colors.positiveBorder },
+    paydaySoonNumber: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.heavy },
+    peakPill: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.positiveSurface,
+      borderColor: colors.positiveBorder,
+      borderWidth: 1,
+      borderRadius: radius.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      marginTop: -spacing.sm,
+      marginBottom: spacing.md,
+    },
+    peakText: { color: colors.celebrate, fontSize: fontSize.small, fontWeight: fontWeight.medium },
 
     splitRow: { flexDirection: 'row', justifyContent: 'space-between' },
     smallLabel: { color: colors.muted, fontSize: fontSize.caption },
@@ -411,7 +480,7 @@ function makeStyles(colors) {
       padding: spacing.xl,
       marginBottom: spacing.lg,
     },
-    planKicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 2 },
+    planKicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
     planSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs, marginBottom: spacing.sm },
     planRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 },
     planLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
@@ -424,7 +493,7 @@ function makeStyles(colors) {
     dueAmount: { color: colors.warning, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     dueHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.sm },
 
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
@@ -434,6 +503,6 @@ function makeStyles(colors) {
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

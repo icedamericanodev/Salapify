@@ -137,6 +137,6 @@ function makeStyles(colors) {
       justifyContent: 'center',
     },
     pressed: { opacity: 0.7 },
-    btnText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    btnText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

@@ -382,7 +382,7 @@ function makeStyles(colors) {
     pageTitle: {
       color: colors.text,
       fontSize: fontSize.title,
-      fontWeight: fontWeight.bold,
+      fontWeight: fontWeight.heavy,
       marginBottom: spacing.md,
     },
     summaryCard: {
@@ -393,8 +393,8 @@ function makeStyles(colors) {
       padding: spacing.xl,
       marginBottom: spacing.lg,
     },
-    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 2 },
-    netWorth: { color: colors.text, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs, marginBottom: spacing.lg },
+    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
+    netWorth: { color: colors.text, fontSize: fontSize.huge, fontWeight: fontWeight.heavy, marginTop: spacing.xs, marginBottom: spacing.lg },
     splitRow: { flexDirection: 'row', justifyContent: 'space-between' },
     smallLabel: { color: colors.muted, fontSize: fontSize.caption },
     smallValue: { fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginTop: spacing.xs },
@@ -447,7 +447,7 @@ function makeStyles(colors) {
     empty: { color: colors.faint, fontSize: fontSize.small, paddingVertical: spacing.md },
 
     // Modal form.
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: {
       backgroundColor: colors.background,
       borderTopLeftRadius: radius.lg,
@@ -485,7 +485,7 @@ function makeStyles(colors) {
     },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
-    chipTextOn: { color: '#FFFFFF' },
+    chipTextOn: { color: colors.onPrimary },
 
     sheetButtons: {
       flexDirection: 'row',
@@ -501,6 +501,6 @@ function makeStyles(colors) {
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

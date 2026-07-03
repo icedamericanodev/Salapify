@@ -475,12 +475,12 @@ function makeStyles(colors) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-    pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.bold, marginBottom: spacing.md },
+    pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.md },
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     cardPad: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
-    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 2 },
-    totalDebt: { color: colors.warning, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs, marginBottom: spacing.lg },
+    kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
+    totalDebt: { color: colors.warning, fontSize: fontSize.huge, fontWeight: fontWeight.heavy, marginTop: spacing.xs, marginBottom: spacing.lg },
     splitRow: { flexDirection: 'row', justifyContent: 'space-between' },
     smallLabel: { color: colors.muted, fontSize: fontSize.caption },
     smallValue: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginTop: spacing.xs },
@@ -493,11 +493,11 @@ function makeStyles(colors) {
     toggle: { flex: 1, paddingVertical: spacing.sm + 2, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
     toggleOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     toggleText: { color: colors.muted, fontSize: fontSize.body, fontWeight: fontWeight.medium },
-    toggleTextOn: { color: '#FFFFFF' },
+    toggleTextOn: { color: colors.onPrimary },
     strategyNote: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.md },
 
     focusCard: { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
-    focusKicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 2 },
+    focusKicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
     focusName: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.bold, marginTop: spacing.xs },
     focusSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
 
@@ -513,7 +513,7 @@ function makeStyles(colors) {
     rowAmount: { color: colors.warning, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     empty: { color: colors.faint, fontSize: fontSize.small, textAlign: 'center', marginTop: spacing.sm },
 
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
@@ -522,7 +522,7 @@ function makeStyles(colors) {
     chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
-    chipTextOn: { color: '#FFFFFF' },
+    chipTextOn: { color: colors.onPrimary },
 
     payBox: { marginTop: spacing.lg, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm },
     payRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
@@ -543,6 +543,6 @@ function makeStyles(colors) {
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
-    saveText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }

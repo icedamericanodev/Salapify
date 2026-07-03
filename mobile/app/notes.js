@@ -394,13 +394,13 @@ function makeStyles(colors) {
     sub: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2 },
     cardTotal: { color: colors.primary, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
 
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     noteInput: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body, minHeight: 220, marginTop: spacing.md, textAlignVertical: 'top' },
 
     calcPanel: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: spacing.lg, marginTop: spacing.md },
-    calcKicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 2, marginBottom: spacing.sm },
+    calcKicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2, marginBottom: spacing.sm },
     calcRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.xs },
     calcLabel: { color: colors.muted, fontSize: fontSize.small, flex: 1 },
     calcValue: { color: colors.textSecondary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
@@ -413,6 +413,6 @@ function makeStyles(colors) {
     deleteBtn: { backgroundColor: 'transparent' },
     deleteText: { color: colors.warning, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     closeBtn: { backgroundColor: colors.primary },
-    closeText: { color: '#FFFFFF', fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    closeText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
   });
 }
