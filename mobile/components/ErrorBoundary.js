@@ -1,9 +1,13 @@
-// ErrorBoundary: the last line of defense. If any screen throws during
-// render, this catches it and shows a calm recovery screen instead of a
-// dead white screen. It NEVER touches storage, so the user's data is
-// exactly as it was; a restart or Try again re-renders from the saved
-// state. Colors are hardcoded forest dark on purpose: this must render
-// even if the theme system itself is what crashed.
+// ErrorBoundary: catches errors thrown during RENDER (and lifecycles and
+// constructors) anywhere below it, showing a calm recovery screen instead
+// of a dead white screen. Honest scope note: React boundaries do NOT
+// catch errors inside press handlers, async code, or timers; those paths
+// must handle their own failures. It NEVER touches storage, so the data
+// on disk is exactly as it was; Try again remounts the tree, which
+// reloads from the saved state (the store flushes its pending save on
+// unmount so nothing in the debounce window is lost). Colors are
+// hardcoded forest dark on purpose: this must render even if the theme
+// system itself is what crashed.
 
 import { Component } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

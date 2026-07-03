@@ -146,9 +146,28 @@ export function AppDataProvider({ children }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
-      if (pendingData.current) persist(pendingData.current);
+      const d = pendingData.current;
+      pendingData.current = null;
+      if (d) persist(d);
     }, 500);
   }, [data, loaded]);
+
+  // If the provider ever unmounts (the crash shield's Try again remounts
+  // the whole tree), flush the pending save right now, before the remount
+  // reloads from disk. Without this, an entry logged just before a crash
+  // could be silently lost to the debounce window. Raw saveData here, no
+  // state updates during unmount.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      const d = pendingData.current;
+      pendingData.current = null;
+      if (d) saveData(d);
+    };
+  }, []);
 
   // Flush the pending save the moment the app goes to the background, and
   // nudge the recurring engine when it comes back (people keep apps in the
@@ -160,7 +179,9 @@ export function AppDataProvider({ children }) {
         if (saveTimer.current) {
           clearTimeout(saveTimer.current);
           saveTimer.current = null;
-          if (pendingData.current) persist(pendingData.current);
+          const d = pendingData.current;
+          pendingData.current = null;
+          if (d) persist(d);
         }
       } else {
         setResumeTick((t) => t + 1);

@@ -101,10 +101,13 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
   const src = migrate(isObj(raw) ? raw : {});
   const stampDate = legacyDate();
   const dated = (list) =>
-    cleanList(list).map((it) => ({
-      ...it,
-      date: typeof it.date === 'string' && it.date ? it.date : stampDate,
-    }));
+    cleanList(list).map((it) => {
+      // ISO datetimes like 2025-07-15T09:00:00Z from imports become plain
+      // dates, so month filters and sorting see one consistent format.
+      let date = typeof it.date === 'string' && it.date ? it.date : stampDate;
+      if (/^\d{4}-\d{2}-\d{2}T/.test(date)) date = date.slice(0, 10);
+      return { ...it, date };
+    });
   const settings = isObj(src.settings) ? src.settings : {};
   const str = (x, fallback = '') => (typeof x === 'string' ? x : fallback);
   return {
