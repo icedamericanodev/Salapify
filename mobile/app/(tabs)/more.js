@@ -32,6 +32,7 @@ import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
   { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
+  { key: 'bills', label: 'Bill due reminders', hint: 'Cards and loans, 3 days before and on the day' },
   { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
   { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
 ];
@@ -292,6 +293,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Reports</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/notes')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Notes with calculator</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
@@ -397,7 +402,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA 5: QA fixes</Text>
+            <Text style={styles.rowValue}>OTA 6: big feature drop</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

@@ -36,13 +36,15 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
     }));
   const settings = isObj(src.settings) ? src.settings : {};
   return {
-    accounts: cleanList(src.accounts).map((a) => ({ ...a, balance: num(a.balance) })),
+    accounts: cleanList(src.accounts).map((a) => ({ ...a, balance: num(a.balance), target: num(a.target) })),
     assets: cleanList(src.assets).map((a) => ({ ...a, value: num(a.value) })),
     debts: cleanList(src.debts).map((d) => ({
       ...d,
       remaining: num(d.remaining),
       monthlyRate: num(d.monthlyRate),
       minPayment: num(d.minPayment),
+      dueDay: num(d.dueDay),
+      statementDay: num(d.statementDay),
     })),
     payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
     transactions: dated(src.transactions).map((t) => ({
@@ -57,6 +59,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       saved: num(g.saved),
     })),
     wins: cleanList(src.wins),
+    notes: cleanList(src.notes),
     receivables: cleanList(src.receivables).map((r) => ({
       ...r,
       person: typeof r.person === 'string' && r.person ? r.person : 'Someone',

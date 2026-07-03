@@ -34,6 +34,7 @@ const seedData = {
   transactions: sampleTransactions,
   goals: [],
   wins: [],
+  notes: [],
   receivables: [
     // The sample utang is due two weeks from first run, so a new user is
     // never greeted by an already overdue fake debt.
@@ -49,7 +50,7 @@ const seedData = {
     currencyCode: 'PHP',
     monthlyLimit: sampleBudget.monthlyLimit,
     quickAdds: sampleBudget.quickAdds,
-    notifications: { payday: false, collect: false, daily: false },
+    notifications: { payday: false, bills: false, collect: false, daily: false },
     appLock: false,
   },
 };
@@ -91,11 +92,12 @@ export function AppDataProvider({ children }) {
   }, [data, loaded]);
 
   // Keep scheduled reminders in sync with the data. Runs when the
-  // notification switches, receivables, or transactions change, so the
-  // daily nudge knows you already logged today. Does nothing on web.
+  // notification switches, receivables, transactions, or debts change, so
+  // the daily nudge knows you already logged today and bill reminders
+  // follow due day edits. Does nothing on web.
   useEffect(() => {
     if (loaded) rescheduleAll(data);
-  }, [loaded, data.receivables, data.transactions, data.settings.notifications]);
+  }, [loaded, data.receivables, data.transactions, data.debts, data.settings.notifications]);
 
   // ---- Helpers the screens use, so they never edit the data by hand ----
 
