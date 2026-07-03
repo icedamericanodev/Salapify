@@ -118,7 +118,10 @@ export default function More() {
       },
       {
         text: 'Share or send',
-        onPress: () => saveTextFile(filename, text, mime).catch(() => {}),
+        onPress: async () => {
+          const ok = await saveTextFile(filename, text, mime).catch(() => false);
+          if (!ok) Alert.alert('Sharing is not available', 'Try Save to my device instead.');
+        },
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -186,8 +189,14 @@ export default function More() {
   }
   function addQuickAdd() {
     const amount = Number(qaAmount);
-    if (!qaLabel.trim() || !Number.isFinite(amount) || amount <= 0) return;
-    updateSettings({ quickAdds: [...(settings.quickAdds || []), { label: qaLabel.trim(), amount }] });
+    const label = qaLabel.trim();
+    if (!label || !Number.isFinite(amount) || amount <= 0) return;
+    // No duplicate labels: the Budget screen uses the label as its key.
+    const exists = (settings.quickAdds || []).some(
+      (q) => q.label.toLowerCase() === label.toLowerCase()
+    );
+    if (exists) return;
+    updateSettings({ quickAdds: [...(settings.quickAdds || []), { label, amount }] });
     setQaLabel('');
     setQaAmount('');
   }
@@ -208,7 +217,9 @@ export default function More() {
         return;
       }
     }
-    updateSettings({ notifications: { ...notifs, [key]: on } });
+    // Functional update: two switches flipped while a permission dialog is
+    // open must not overwrite each other with stale values.
+    updateSettings((s) => ({ notifications: { ...(s.notifications || {}), [key]: on } }));
   }
 
   // ---- Over the air updates ----
@@ -386,7 +397,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>OTA 4: pipeline proven 🚀</Text>
+            <Text style={styles.rowValue}>OTA 5: QA fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

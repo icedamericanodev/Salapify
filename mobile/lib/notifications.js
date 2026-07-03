@@ -63,26 +63,33 @@ const DAILY_LINES = [
 
 // Wipe every scheduled reminder and set them up again from current data.
 // Called whenever the toggles, transactions, or receivables change, so the
-// schedule always matches what is in the app.
+// schedule always matches what is in the app. Rapid data changes can start
+// overlapping runs; the token below makes every run but the newest give up,
+// so reminders can never be scheduled twice.
+let runToken = 0;
 export async function rescheduleAll(data) {
   if (!isNative) return;
+  const myRun = ++runToken;
+  const stale = () => myRun !== runToken;
   const notifs = (data.settings && data.settings.notifications) || {};
   const anyOn = notifs.payday || notifs.collect || notifs.daily;
 
   await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!anyOn) return;
+  if (stale() || !anyOn) return;
 
   const perm = await Notifications.getPermissionsAsync();
-  if (!perm.granted) return;
+  if (stale() || !perm.granted) return;
 
   const channel = Platform.OS === 'android' ? { channelId: 'reminders' } : {};
   const now = new Date();
 
-  const schedule = (title, body, when) =>
-    Notifications.scheduleNotificationAsync({
+  const schedule = (title, body, when) => {
+    if (stale()) return Promise.resolve();
+    return Notifications.scheduleNotificationAsync({
       content: { title, body },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, ...channel },
     });
+  };
 
   if (notifs.daily) {
     // One-shot nudges for the next 14 evenings instead of a blind repeat,
@@ -100,6 +107,7 @@ export async function rescheduleAll(data) {
   if (notifs.payday) {
     // The 15th repeats monthly on its own. Month ends land on a different
     // date each month, so the next six get scheduled one by one.
+    if (stale()) return;
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Sweldo day!',

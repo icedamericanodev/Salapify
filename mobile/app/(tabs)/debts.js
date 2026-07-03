@@ -125,7 +125,10 @@ export default function Debts() {
   function logPayment() {
     const amt = Number(payAmount) || 0;
     if (!form.id || amt <= 0) return;
-    const cur = Number(form.remaining) || 0;
+    // Read the balance from the store, never from the edit field: a cleared
+    // or half-typed Remaining box must not zero out a real debt.
+    const debt = data.debts.find((d) => d.id === form.id);
+    const cur = debt ? Number(debt.remaining) || 0 : Number(form.remaining) || 0;
     const newRem = Math.max(0, cur - amt);
     updateItem('debts', form.id, { remaining: newRem });
     // Take the money out of the chosen account too, so net worth stays

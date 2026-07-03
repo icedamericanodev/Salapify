@@ -8,14 +8,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // The single key under which we save the whole app's data.
 const STORAGE_KEY = 'salapify_data_v2';
 
-// Read the saved data. Returns the saved object, or null if nothing is saved.
+// Read the saved data. The status matters: "empty" means nothing was ever
+// saved (safe to start fresh), "error" means something IS saved but could
+// not be read right now. The caller must never overwrite storage after an
+// error, or a single bad read would destroy the user's data.
 export async function loadData() {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return { status: 'empty', data: null };
+    return { status: 'ok', data: JSON.parse(raw) };
   } catch (e) {
     console.warn('loadData failed', e);
-    return null;
+    return { status: 'error', data: null };
   }
 }
 

@@ -26,7 +26,9 @@ export default function Insights() {
   // Spending by category (using the expense label as the category), this
   // month only. Same labels add up into one bar, so three Food entries show
   // as a single Food total instead of three rows.
-  const catTotals = {};
+  // Object.create(null): a plain {} would let labels like __proto__ or
+  // constructor collide with built in properties and vanish from the chart.
+  const catTotals = Object.create(null);
   for (const t of thisMonth) {
     if (t.type !== 'expense') continue;
     const label = (t.label || 'Other').trim() || 'Other';

@@ -85,10 +85,21 @@ export default function Receivables() {
       setErr('Enter a valid amount.');
       return;
     }
+    // The date must be real, not just shaped right: 2026-02-30 rolls over
+    // to March in JavaScript and reminders would fire on the wrong day.
     const dd = form.dueDate.trim();
-    if (dd && !/^\d{4}-\d{2}-\d{2}$/.test(dd)) {
-      setErr('Tap a quick date above, or type it like 2026-07-15.');
-      return;
+    if (dd) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dd);
+      const real =
+        m &&
+        (() => {
+          const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+          return dt.getMonth() === Number(m[2]) - 1 && dt.getDate() === Number(m[3]);
+        })();
+      if (!real) {
+        setErr('That date does not exist. Tap a quick date above, or type it like 2026-07-15.');
+        return;
+      }
     }
     const payload = {
       person: form.person.trim(),

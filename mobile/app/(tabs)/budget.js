@@ -114,7 +114,7 @@ export default function Budget() {
         <View style={styles.quickRow}>
           {quickAdds.map((item) => (
             <Pressable
-              key={item.label}
+              key={`${item.label}_${item.amount}`}
               onPress={() => quickAdd(item)}
               style={({ pressed }) => [styles.quick, pressed && styles.pressed]}
             >
