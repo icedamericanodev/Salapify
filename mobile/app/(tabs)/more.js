@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -442,6 +443,13 @@ export default function More() {
               </View>
             </>
           ) : null}
+          <Pressable
+            onPress={() => Linking.openURL('https://icedamericanodev.github.io/Salapify/privacy.html').catch(() => {})}
+            style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+          >
+            <Text style={styles.rowLabel}>Privacy policy</Text>
+            <Ionicons name="open-outline" size={18} color={colors.faint} />
+          </Pressable>
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Salapify</Text>
             <Text style={styles.rowValue}>v2</Text>
