@@ -1,16 +1,20 @@
 name: Build preview APK
 
-# Kicked off by pushing a tag like build-1. Produces an internal Android APK
-# on EAS that installs directly on a phone (not through the Play Store), on
-# the preview channel so it receives over the air updates afterward. The
-# GitHub runner only submits the job; the actual build runs on EAS. Auth is
-# the EXPO_TOKEN repository secret. EAS reuses the app's existing signing
-# keystore, so a new build installs over the old app without losing data.
+# Kicked off by committing a change to .github/build-request.txt on the dev
+# branch. Produces an internal Android APK on EAS that installs directly on a
+# phone (not through the Play Store), on the preview channel so it receives
+# over the air updates afterward. The GitHub runner only submits the job; the
+# actual build runs on EAS. Auth is the EXPO_TOKEN repository secret. EAS
+# reuses the app's existing signing keystore, so a new build installs over the
+# old app without losing data.
 
 on:
   push:
-    tags:
-      - 'build-*'
+    branches:
+      - claude/salapify-v2
+    paths:
+      - '.github/build-request.txt'
+  workflow_dispatch:
 
 permissions:
   contents: read
