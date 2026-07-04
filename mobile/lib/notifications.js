@@ -146,21 +146,30 @@ export async function rescheduleAll(data) {
       const bankDue = bankDueDate(d, now);
       if (!bankDue) continue;
       const due = bankDue.date;
-      const minAmt = Math.min(Number(d.minPayment) || 0, Number(d.remaining) || 0) || Number(d.remaining) || 0;
+      // No minimum saved means we do NOT know it. Claiming the full balance
+      // is "the minimum to avoid late fees" would overstate what is owed on
+      // a lock screen, so the copy points at the SOA instead.
+      const hasMin = (Number(d.minPayment) || 0) > 0;
+      const minAmt = Math.min(Number(d.minPayment) || 0, Number(d.remaining) || 0);
       const minTxt = formatMoney(minAmt);
       const before = new Date(due.getFullYear(), due.getMonth(), due.getDate() - 3, 18, 0, 0);
       const morning = new Date(due.getFullYear(), due.getMonth(), due.getDate(), 9, 0, 0);
       if (before > now) {
         await schedule(
           `${d.name} is due in 3 days`,
-          `Pay in full to avoid interest, or at least ${minTxt} to avoid late fees.`,
+          `${hasMin
+            ? `Pay in full to avoid interest, or at least ${minTxt} to avoid late fees.`
+            : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'
+          } GCash and over the counter payments can take 1 to 3 days to post, so pay early.`,
           before
         );
       }
       if (morning > now) {
         await schedule(
           `${d.name} is due today`,
-          `Pay at least ${minTxt} today to avoid penalties.`,
+          hasMin
+            ? `Pay at least ${minTxt} today to avoid penalties.`
+            : 'Pay at least the minimum on your SOA today to avoid penalties.',
           morning
         );
       }

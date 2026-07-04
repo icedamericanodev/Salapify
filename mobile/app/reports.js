@@ -129,12 +129,6 @@ export default function Reports() {
             </Text>
           ) : !hasDebts ? (
             <Text style={styles.lineLabel}>No debts to project. You are already free. 🎉</Text>
-          ) : avalanche === null && snowball === null ? (
-            <Text style={[styles.lineLabel, { color: colors.warning }]}>
-              At the current minimum payments, interest grows faster than you pay.
-              Raise the payments on your highest interest debt, even a little, and
-              this projection will find your freedom date.
-            </Text>
           ) : (
             <>
               <Text style={styles.extraLabel}>Extra you can pay per month, beyond the minimums</Text>
@@ -146,7 +140,14 @@ export default function Reports() {
                 placeholderTextColor={colors.faint}
                 keyboardType="numeric"
               />
-              {extra > 0 ? (
+              {avalanche === null && snowball === null ? (
+                <Text style={[styles.lineLabel, { color: colors.warning }]}>
+                  At the current payments{extra > 0 ? ' plus that extra' : ''}, interest grows
+                  faster than you pay, so there is no freedom date yet. Type
+                  {extra > 0 ? ' a bigger' : ' an'} extra amount above, even a small one aimed
+                  at your highest interest debt changes this fast.
+                </Text>
+              ) : extra > 0 ? (
                 <>
                   {avalanche ? (
                     <Line label={`Avalanche: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
@@ -159,6 +160,8 @@ export default function Reports() {
                     {interestSaved > 0
                       ? ` With ${formatMoney(extra)} extra monthly, avalanche saves you ${formatMoney(interestSaved)} in interest versus snowball.`
                       : ` With ${formatMoney(extra)} extra monthly, both strategies cost about the same here.`}
+                    {' '}These are estimates: they assume rates and minimum payments stay the
+                    same, and that when one debt is finished its payment rolls into the next.
                   </Text>
                 </>
               ) : (
@@ -167,9 +170,10 @@ export default function Reports() {
                     <Line label={`Minimums only: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
                   ) : null}
                   <Text style={styles.projNote}>
-                    That amount is the total interest paid along the way at minimum
-                    payments. Type an extra amount above and the plan shows which
-                    strategy, avalanche or snowball, saves you more.
+                    That amount is the total interest paid along the way, keeping your total
+                    monthly payment the same until every debt is gone. It is an estimate, rates
+                    and minimums are assumed to stay the same. Type an extra amount above and
+                    the plan shows which strategy, avalanche or snowball, saves you more.
                   </Text>
                 </>
               )}

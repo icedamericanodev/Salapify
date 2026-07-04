@@ -368,7 +368,7 @@ export default function Debts() {
                 style={styles.input}
                 value={form?.monthlyRate}
                 onChangeText={(t) => setForm((f) => ({ ...f, monthlyRate: t }))}
-                placeholder="0"
+                placeholder="check your SOA, PH cards charge up to 3% monthly"
                 placeholderTextColor={colors.faint}
                 keyboardType="numeric"
               />
@@ -491,13 +491,19 @@ export default function Debts() {
                     </Text>
                   ) : null}
                   <Text style={styles.soaHint}>
-                    Pay the full {formatMoney(forecast.forecastBalance)} to avoid interest, or at least{' '}
-                    {formatMoney(forecast.minDue)} to avoid late fees.
+                    Pay the full {formatMoney(forecast.forecastBalance)} so new purchases stay
+                    interest free, or at least {formatMoney(forecast.minDue)} to avoid late fees.
                   </Text>
                   {forecast.lateInterest > 0 ? (
                     <Text style={styles.soaWarn}>
                       Paying late or minimum only adds about {formatMoney(forecast.lateInterest)} interest
                       next month, plus the bank late fee if you miss the date.
+                    </Text>
+                  ) : forecast.forecastBalance > 0 ? (
+                    <Text style={styles.soaWarn}>
+                      No interest rate is saved for this card, so this forecast shows zero
+                      interest. Check your SOA for the real rate (PH cards charge up to 3%
+                      monthly) and add it above.
                     </Text>
                   ) : null}
                   <Pressable

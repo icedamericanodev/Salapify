@@ -119,8 +119,9 @@ export function weekdayPattern(transactions, ref = new Date()) {
 }
 
 // This month's savings rate: what fraction of income was not spent.
-// Null when there is no income to judge by.
-export function savingsRate(transactions, ref = new Date()) {
+// Debt payments count as money out too, a month that sent 10,000 to a
+// credit card did not save that 10,000. Null when there is no income.
+export function savingsRate(transactions, payments = [], ref = new Date()) {
   const key = monthKey(ref);
   let income = 0;
   let expenses = 0;
@@ -129,8 +130,12 @@ export function savingsRate(transactions, ref = new Date()) {
     if (t.type === 'income') income += num(t.amount);
     else if (t.type === 'expense') expenses += num(t.amount);
   }
+  let debtPaid = 0;
+  for (const p of payments || []) {
+    if (p && String(p.date || '').slice(0, 7) === key) debtPaid += num(p.amount);
+  }
   if (income <= 0) return null;
-  return (income - expenses) / income;
+  return (income - expenses - debtPaid) / income;
 }
 
 // If spending keeps its current daily pace, where does the month land?
@@ -161,6 +166,12 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
     }));
   if (list.length === 0) return { months: 0, totalInterest: 0, date: ref };
 
+  // The whole point of avalanche and snowball: the monthly debt budget
+  // stays the SAME after a debt is finished. Its freed minimum rolls into
+  // the next focus debt instead of quietly leaving the plan, which is what
+  // makes the payoff accelerate near the end.
+  const totalMin = list.reduce((t, d) => t + d.minPayment, 0);
+
   let months = 0;
   let totalInterest = 0;
   while (list.some((d) => d.remaining > 0.5) && months < 600) {
@@ -172,19 +183,26 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
         totalInterest += interest;
       }
     }
+    // Every living debt gets its own minimum first, then whatever the
+    // minimums did not use (freed minimums from finished debts plus the
+    // extra) goes to the strategy's focus debt.
+    let budget = totalMin + extra;
     for (const d of list) {
-      if (d.remaining > 0) d.remaining = Math.max(0, d.remaining - d.minPayment);
+      if (d.remaining > 0) {
+        const pay = Math.min(d.minPayment, d.remaining, budget);
+        d.remaining -= pay;
+        budget -= pay;
+      }
     }
-    let extraLeft = extra;
     const order = [...list].sort((a, b) =>
       strategy === 'snowball' ? a.remaining - b.remaining : b.monthlyRate - a.monthlyRate
     );
     for (const d of order) {
-      if (extraLeft <= 0) break;
+      if (budget <= 0) break;
       if (d.remaining > 0) {
-        const pay = Math.min(extraLeft, d.remaining);
+        const pay = Math.min(budget, d.remaining);
         d.remaining -= pay;
-        extraLeft -= pay;
+        budget -= pay;
       }
     }
   }
@@ -198,7 +216,7 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
 // logging consistency over the last 14 days (15). Returns the total and
 // the parts so the screen can explain itself.
 export function healthScore(data, ref = new Date()) {
-  const rate = savingsRate(data.transactions, ref);
+  const rate = savingsRate(data.transactions, data.payments, ref);
   const ratePts = rate === null ? 0 : Math.round(Math.max(0, Math.min(rate / 0.3, 1)) * 35);
 
   const { spent } = forecastMonthEnd(data.transactions, ref);

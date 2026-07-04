@@ -188,7 +188,9 @@ export function buildSOA(debt, payments = [], from = new Date()) {
 
   lines.push('');
   lines.push('WHAT TO PAY');
-  lines.push(`Pay in full: ${formatMoney(f.forecastBalance)} and no interest is charged`);
+  lines.push(
+    `Pay in full: ${formatMoney(f.forecastBalance)} and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)`
+  );
   lines.push(`Or at least the minimum: ${formatMoney(f.minDue)} to avoid late fees`);
   if (f.due) {
     if (f.dueMoved) {
@@ -206,10 +208,19 @@ export function buildSOA(debt, payments = [], from = new Date()) {
     lines.push(
       `About ${formatMoney(f.lateInterest)} interest gets added next month (${f.monthlyRate}% monthly on the unpaid balance)`
     );
-    lines.push('Missing the due date also adds your bank’s late fee, usually 850 to 1,500 pesos');
+    lines.push('Missing the due date also adds your bank’s late fee, check your card terms for the exact amount');
+  } else if (f.forecastBalance > 0) {
+    // A card with a balance but a 0% rate almost always means the rate was
+    // never typed in, not a free loan. Say so instead of showing a rosy
+    // forecast with no interest line at all.
+    lines.push('');
+    lines.push('INTEREST RATE NOT SET');
+    lines.push(
+      'This card has no monthly interest rate saved, so the forecast shows zero interest. Check your SOA for the real rate (PH cards are capped at 3% monthly) and add it in Salapify.'
+    );
   }
 
   lines.push('');
-  lines.push('Forecast from your logged data in Salapify. Your bank’s official SOA may differ if there are swipes or fees not logged here.');
+  lines.push('This is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.');
   return lines.join('\n');
 }

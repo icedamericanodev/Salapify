@@ -178,7 +178,7 @@ function ProInsights({ data, styles, colors }) {
   const movers = categoryMovers(data.transactions);
   const vsAvg = categoryVsAverage(data.transactions);
   const vsAvgMax = Math.max(...vsAvg.map((v) => Math.max(v.now, v.avg)), 1);
-  const rate = savingsRate(data.transactions);
+  const rate = savingsRate(data.transactions, data.payments);
   const fc = forecastMonthEnd(data.transactions);
   const limit = (data.settings && data.settings.monthlyLimit) || 0;
   const wk = weekdayPattern(data.transactions);
