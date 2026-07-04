@@ -118,7 +118,7 @@ export async function rescheduleAll(data) {
       if (at > now) {
         await schedule(
           'Sweldo day!',
-          'Log your income and move your savings before you spend anything.',
+          'Open Salapify and the sweldo plan walks you through it: log it, move savings first, then set the budget.',
           at
         );
       }

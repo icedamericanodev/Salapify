@@ -58,3 +58,7 @@ export const sampleTransactions = [
   { id: 't4', type: 'expense', label: 'Transport', amount: 850, account: 'gcash', date: _day(8) },
   { id: 't5', type: 'expense', label: 'Bills', amount: 3200, account: 'bpi', date: _day(10) },
 ];
+
+// The habit features (logging chain, week recap) must never celebrate rows
+// the user did not log. These are the ids of the demo rows above.
+export const SAMPLE_TX_IDS = new Set(sampleTransactions.map((t) => t.id));

@@ -10,6 +10,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { todayISO } from '../lib/format';
+import { SAMPLE_TX_IDS } from '../lib/sampleData';
 
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -17,8 +18,12 @@ export default function WeekChain({ transactions }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  // Build the last 7 days, oldest first, ending today.
-  const logged = new Set((transactions || []).map((t) => t.date));
+  // Build the last 7 days, oldest first, ending today. Demo rows do not
+  // count: a chain the user never earned teaches that the dots mean
+  // nothing.
+  const logged = new Set(
+    (transactions || []).filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).map((t) => t.date)
+  );
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -43,7 +48,9 @@ export default function WeekChain({ transactions }) {
       scales[6].setValue(0.4);
       Animated.spring(scales[6], { toValue: 1, friction: 3, useNativeDriver: true }).start();
     }
-    if (fullWeek && prevCount.current < 7) {
+    // The stagger pop fires at 3 (the habit research moment where a chain
+    // starts feeling real) and again at the full 7.
+    if ((fullWeek && prevCount.current < 7) || (count === 3 && prevCount.current < 3)) {
       Animated.stagger(
         45,
         scales.map((v) => {
@@ -56,11 +63,22 @@ export default function WeekChain({ transactions }) {
     prevCount.current = count;
   }, [todayDone, fullWeek, count]);
 
+  // Yesterday empty while earlier days have logs is the comeback moment:
+  // the one message that decides whether a missed day ends the habit.
+  const missedYesterday = !days[5].done && days.slice(0, 5).some((d) => d.done);
   const message =
     count === 0
       ? 'Log anything today to start your chain.'
       : fullWeek
       ? '7 for 7. Ikaw na. 🔥'
+      : missedYesterday && !todayDone
+      ? 'Missed yesterday? Walang reset dito. Log today, or tap Yesterday in the add sheet to fill the gap.'
+      : count === 1
+      ? 'Day one logged. Every chain starts with one dot. 💚'
+      : count === 2
+      ? 'Two days in. One more and this becomes a real habit.'
+      : count === 3
+      ? 'Three days logged. This is a real chain na. 🔗'
       : `Logged ${count} of the last 7 days. Keep the chain going.`;
 
   return (

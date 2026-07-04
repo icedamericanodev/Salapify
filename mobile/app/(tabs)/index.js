@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
@@ -110,7 +111,17 @@ export default function Overview() {
   const planSteps = savedPlan.key === paydayKey ? savedPlan.steps || {} : {};
   const planDone = planSteps.logged && planSteps.saved && planSteps.budget;
 
+  // Completing a step earns a light buzz and a little spring on the card,
+  // the same reward language logging uses.
+  const planPop = useRef(new Animated.Value(1)).current;
   function markStep(step) {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch (e) {
+      // Haptics are not available on web. That is fine.
+    }
+    planPop.setValue(0.97);
+    Animated.spring(planPop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
     updateSettings((s) => {
       const cur = s.paydayPlan && s.paydayPlan.key === paydayKey ? s.paydayPlan.steps || {} : {};
       return { paydayPlan: { key: paydayKey, steps: { ...cur, [step]: true } } };
@@ -167,7 +178,7 @@ export default function Overview() {
 
         {/* Sweldo plan: appears for 48 hours after each payday. */}
         {paydayKey && !planDone ? (
-          <View style={styles.planCard}>
+          <Animated.View style={[styles.planCard, { transform: [{ scale: planPop }] }]}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>
               Payday! Three taps and this cycle is planned before the money moves.
@@ -190,7 +201,7 @@ export default function Overview() {
                 <Text style={[styles.planLabel, planSteps[s.k] && styles.planLabelDone]}>{s.label}</Text>
               </Pressable>
             ))}
-          </View>
+          </Animated.View>
         ) : null}
         {paydayKey && planDone ? (
           <View style={styles.planCard}>

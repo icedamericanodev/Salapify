@@ -1,6 +1,6 @@
 // WeekRecap is the share worthy card: a small brag about how many of the
 // last 7 days you logged your money. It appears on the Overview when the
-// week deserves it (5 or more logged days) or on Sundays as a weekly
+// week deserves it (3 or more logged days) or on Sundays as a weekly
 // closing note, and one tap shares a plain text brag to any app. The
 // number celebrated is awareness (days logged), never amounts, so it is
 // always safe to share.
@@ -10,13 +10,17 @@ import { Animated, Pressable, Share, StyleSheet, Text, View } from 'react-native
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { todayISO } from '../lib/format';
+import { SAMPLE_TX_IDS } from '../lib/sampleData';
 
 export default function WeekRecap({ transactions }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   // Count how many of the last 7 days (ending today) have at least one log.
-  const logged = new Set((transactions || []).map((t) => t.date));
+  // Demo rows do not count; a brag the user never earned is a lie.
+  const logged = new Set(
+    (transactions || []).filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).map((t) => t.date)
+  );
   let daysLogged = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date();
@@ -25,7 +29,7 @@ export default function WeekRecap({ transactions }) {
   }
 
   const isSunday = new Date().getDay() === 0;
-  const visible = daysLogged >= 5 || (isSunday && daysLogged > 0);
+  const visible = daysLogged >= 3 || (isSunday && daysLogged > 0);
 
   // Gentle entrance: fade in and drift up.
   const anim = useRef(new Animated.Value(0)).current;
