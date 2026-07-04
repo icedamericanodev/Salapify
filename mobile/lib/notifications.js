@@ -7,7 +7,7 @@
 
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { formatMoney, todayISO } from './format';
+import { formatMoney, todayISO, upcomingPaydays } from './format';
 import { bankDueDate } from './soa';
 
 const isNative = Platform.OS !== 'web';
@@ -39,16 +39,17 @@ export async function ensureNotifPermission() {
   return asked.granted;
 }
 
-// Returns the last day of the month for a given date, like 31 for July.
-function lastDayOfMonth(year, monthIndex) {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
 // Turns "2026-07-15" into a Date at the given hour, or null if unreadable.
 function atHour(dateStr, hour) {
   const parts = String(dateStr).split('-').map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) return null;
-  return new Date(parts[0], parts[1] - 1, parts[2], hour, 0, 0);
+  const d = new Date(parts[0], parts[1] - 1, parts[2], hour, 0, 0);
+  // A made up date like 2026-02-31 quietly rolls over to March 3, which
+  // would fire a reminder on a day the user never picked. Reject it.
+  if (d.getFullYear() !== parts[0] || d.getMonth() !== parts[1] - 1 || d.getDate() !== parts[2]) {
+    return null;
+  }
+  return d;
 }
 
 // The daily nudge rotates through a small pool so it never goes stale.
@@ -106,25 +107,19 @@ export async function rescheduleAll(data) {
   }
 
   if (notifs.payday) {
-    // The 15th repeats monthly on its own. Month ends land on a different
-    // date each month, so the next six get scheduled one by one.
+    // The next several paydays on the user's own schedule, scheduled one
+    // by one at 9am. One-shots instead of repeats because semimonthly and
+    // end of month paydays land on a different date every month; the list
+    // refills every time the app opens or data changes.
     if (stale()) return;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Sweldo day!',
-        body: 'Log your income and move your savings before you spend anything.',
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day: 15, hour: 9, minute: 0, ...channel },
-    });
-    for (let i = 0; i < 6; i++) {
-      const y = now.getFullYear();
-      const m = now.getMonth() + i;
-      const end = new Date(y, m, lastDayOfMonth(y, m), 9, 0, 0);
-      if (end > now) {
+    const paydays = upcomingPaydays(now, data.settings && data.settings.paydaySchedule, 6);
+    for (const p of paydays) {
+      const at = new Date(p.getFullYear(), p.getMonth(), p.getDate(), 9, 0, 0);
+      if (at > now) {
         await schedule(
           'Sweldo day!',
-          'End of the month. Log your income and move your savings first.',
-          end
+          'Open Salapify and the sweldo plan walks you through it: log it, move savings first, then set the budget.',
+          at
         );
       }
     }
@@ -140,21 +135,30 @@ export async function rescheduleAll(data) {
       const bankDue = bankDueDate(d, now);
       if (!bankDue) continue;
       const due = bankDue.date;
-      const minAmt = Math.min(Number(d.minPayment) || 0, Number(d.remaining) || 0) || Number(d.remaining) || 0;
+      // No minimum saved means we do NOT know it. Claiming the full balance
+      // is "the minimum to avoid late fees" would overstate what is owed on
+      // a lock screen, so the copy points at the SOA instead.
+      const hasMin = (Number(d.minPayment) || 0) > 0;
+      const minAmt = Math.min(Number(d.minPayment) || 0, Number(d.remaining) || 0);
       const minTxt = formatMoney(minAmt);
       const before = new Date(due.getFullYear(), due.getMonth(), due.getDate() - 3, 18, 0, 0);
       const morning = new Date(due.getFullYear(), due.getMonth(), due.getDate(), 9, 0, 0);
       if (before > now) {
         await schedule(
           `${d.name} is due in 3 days`,
-          `Pay in full to avoid interest, or at least ${minTxt} to avoid late fees.`,
+          `${hasMin
+            ? `Pay in full to avoid interest, or at least ${minTxt} to avoid late fees.`
+            : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'
+          } GCash and over the counter payments can take 1 to 3 days to post, so pay early.`,
           before
         );
       }
       if (morning > now) {
         await schedule(
           `${d.name} is due today`,
-          `Pay at least ${minTxt} today to avoid penalties.`,
+          hasMin
+            ? `Pay at least ${minTxt} today to avoid penalties.`
+            : 'Pay at least the minimum on your SOA today to avoid penalties.',
           morning
         );
       }

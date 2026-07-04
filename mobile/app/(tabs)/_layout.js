@@ -6,7 +6,7 @@
 // of the whole app, so adding an entry is one tap from every tab, not a
 // walk to Budget first.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,8 +22,19 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const [logOpen, setLogOpen] = useState(false);
   const barHeight = 78 + insets.bottom;
-  const { saveFailed } = useAppData();
+  const { data, updateSettings, saveFailed } = useAppData();
   const router = useRouter();
+
+  // Right after onboarding, open the add sheet once. The first session
+  // should end with one real log, that is the habit's first rep. The flag
+  // flips off immediately so this can never nag twice.
+  const firstPrompt = !!(data.settings && data.settings.firstLogPrompt && data.settings.onboarded);
+  useEffect(() => {
+    if (firstPrompt) {
+      updateSettings({ firstLogPrompt: false });
+      setLogOpen(true);
+    }
+  }, [firstPrompt]);
 
   return (
     <View style={{ flex: 1 }}>

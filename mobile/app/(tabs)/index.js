@@ -8,10 +8,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, daysUntilPayday, isThisMonth, monthLabel, todayISO } from '../../lib/format';
+import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { upcomingDues } from '../../lib/soa';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
@@ -27,6 +28,7 @@ export default function Overview() {
   const [salaryModal, setSalaryModal] = useState(false);
   const [salaryAmount, setSalaryAmount] = useState('');
   const [salaryAccount, setSalaryAccount] = useState('');
+  const [salaryErr, setSalaryErr] = useState('');
   const [showPeak, setShowPeak] = useState(false);
   const peakAnim = useRef(new Animated.Value(0)).current;
 
@@ -47,8 +49,10 @@ export default function Overview() {
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
 
-  // Days to the next payday, with extra energy in the final stretch.
-  const payday = daysUntilPayday();
+  // Days to the next payday on the user's own schedule, with extra energy
+  // in the final stretch.
+  const paySchedule = data.settings.paydaySchedule;
+  const payday = daysUntilPayday(new Date(), paySchedule);
   const paydaySoon = payday <= 3;
   const paydayCopy =
     payday === 0
@@ -57,7 +61,7 @@ export default function Overview() {
       ? 'Bukas na. 🤑'
       : paydaySoon
       ? 'Malapit na. Konting tiis. 💪'
-      : 'Based on the 15th and end of month.';
+      : `Based on ${scheduleLabel(paySchedule)}. Change it in More.`;
 
   // Net worth peak: gold appears only when earned. The stored peak only
   // ever climbs, and the pill fires when net worth crosses into a new
@@ -95,25 +99,29 @@ export default function Overview() {
   const dues = upcomingDues(data.debts, 30);
 
   // The sweldo plan: a guided three step card that appears for 48 hours
-  // after each payday (the 15th and the last day of the month). The steps
-  // done are remembered per payday, so the card never nags twice.
+  // after each payday on the user's own schedule. The key is the payday's
+  // date, so steps are remembered per payday and the card never nags twice.
   const now = new Date();
-  const dayNum = now.getDate();
-  const lastDayNum = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  let paydayKey = '';
-  if (dayNum === 15 || dayNum === 16) {
-    paydayKey = `${now.getFullYear()}-${now.getMonth()}-15`;
-  } else if (dayNum === 1) {
-    const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    paydayKey = `${p.getFullYear()}-${p.getMonth()}-end`;
-  } else if (dayNum === lastDayNum) {
-    paydayKey = `${now.getFullYear()}-${now.getMonth()}-end`;
-  }
+  const lastPay = prevPayday(now, paySchedule);
+  const sincePay = Math.round(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()) - lastPay) / 86400000
+  );
+  const paydayKey = sincePay <= 1 ? todayISO(lastPay) : '';
   const savedPlan = data.settings.paydayPlan || {};
   const planSteps = savedPlan.key === paydayKey ? savedPlan.steps || {} : {};
   const planDone = planSteps.logged && planSteps.saved && planSteps.budget;
 
+  // Completing a step earns a light buzz and a little spring on the card,
+  // the same reward language logging uses.
+  const planPop = useRef(new Animated.Value(1)).current;
   function markStep(step) {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch (e) {
+      // Haptics are not available on web. That is fine.
+    }
+    planPop.setValue(0.97);
+    Animated.spring(planPop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
     updateSettings((s) => {
       const cur = s.paydayPlan && s.paydayPlan.key === paydayKey ? s.paydayPlan.steps || {} : {};
       return { paydayPlan: { key: paydayKey, steps: { ...cur, [step]: true } } };
@@ -124,11 +132,15 @@ export default function Overview() {
   function openSalary() {
     const def = data.settings.salaryAccountId;
     setSalaryAccount(def && data.accounts.some((a) => a.id === def) ? def : '');
+    setSalaryErr('');
     setSalaryModal(true);
   }
   function saveSalary() {
     const amount = Number(String(salaryAmount).replace(/[, ]/g, ''));
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setSalaryErr('Enter an amount greater than 0.');
+      return;
+    }
     const entry = { type: 'income', label: 'Salary', amount, date: todayISO() };
     addTransaction(salaryAccount ? { ...entry, accountId: salaryAccount } : entry);
     if ((data.settings.salaryAccountId || '') !== salaryAccount) {
@@ -166,7 +178,7 @@ export default function Overview() {
 
         {/* Sweldo plan: appears for 48 hours after each payday. */}
         {paydayKey && !planDone ? (
-          <View style={styles.planCard}>
+          <Animated.View style={[styles.planCard, { transform: [{ scale: planPop }] }]}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>
               Payday! Three taps and this cycle is planned before the money moves.
@@ -189,7 +201,7 @@ export default function Overview() {
                 <Text style={[styles.planLabel, planSteps[s.k] && styles.planLabelDone]}>{s.label}</Text>
               </Pressable>
             ))}
-          </View>
+          </Animated.View>
         ) : null}
         {paydayKey && planDone ? (
           <View style={styles.planCard}>
@@ -364,6 +376,7 @@ export default function Overview() {
               keyboardType="numeric"
               autoFocus
             />
+            {salaryErr ? <Text style={styles.err}>{salaryErr}</Text> : null}
             {data.accounts.length > 0 ? (
               <>
                 <Text style={styles.fieldLabel}>Into which account?</Text>
@@ -538,6 +551,7 @@ function makeStyles(colors) {
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.sm },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.card },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },

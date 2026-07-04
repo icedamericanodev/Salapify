@@ -3,7 +3,7 @@
 // can add and edit debts, log a payment (which lowers the balance and is
 // recorded), and mark a debt paid off. Everything saves on the device.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -42,7 +42,7 @@ const DEBT_TYPES = [
 export default function Debts() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, updateItem, removeItem } = useAppData();
+  const { data, addItem, updateItem, removeItem, addTransaction } = useAppData();
 
   const [strategy, setStrategy] = useState('snowball');
   const [form, setForm] = useState(null); // add/edit modal
@@ -51,6 +51,7 @@ export default function Debts() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
+  const [confirmPaidOff, setConfirmPaidOff] = useState(false);
 
   const debts = data.debts;
   const sum = (list, fn) => list.reduce((t, d) => t + fn(d), 0);
@@ -84,6 +85,7 @@ export default function Debts() {
     setMsg('');
     setErr('');
     setConfirmDel(false);
+    setConfirmPaidOff(false);
   }
   function openEdit(d) {
     setForm({
@@ -99,22 +101,29 @@ export default function Debts() {
       creditLimit: d.creditLimit ? String(d.creditLimit) : '',
     });
     setPayAmount(String(d.minPayment));
-    setPayFrom(data.accounts[0] ? data.accounts[0].id : null);
+    // Default to Outside the app: money must only leave an account the
+    // user explicitly picked, never whichever account happens to be first.
+    setPayFrom(null);
     setMsg('');
     setErr('');
     setConfirmDel(false);
+    setConfirmPaidOff(false);
   }
   function close() {
     setForm(null);
+    setConfirmPaidOff(false);
   }
   function save() {
     if (!form.name.trim()) {
       setErr('Please enter a name.');
       return;
     }
-    const rem = Number(form.remaining);
-    const rate = Number(form.monthlyRate);
-    const min = Number(form.minPayment);
+    // Money fields accept commas, "50,000" is fifty thousand here like in
+    // every other money input in the app.
+    const numIn = (t) => Number(String(t).replace(/[, ]/g, ''));
+    const rem = numIn(form.remaining);
+    const rate = numIn(form.monthlyRate);
+    const min = numIn(form.minPayment);
     if (form.remaining === '' || !Number.isFinite(rem) || rem < 0) {
       setErr('Enter a valid remaining balance.');
       return;
@@ -193,9 +202,23 @@ export default function Debts() {
     if (form.id) removeItem('debts', form.id);
     close();
   }
-  function logPayment() {
-    const amt = Number(payAmount) || 0;
+  // One shared payment path. Logging an amount and Mark paid off both go
+  // through here, so every peso that leaves a debt also leaves the chosen
+  // account, lands in the payments list, and writes a record row into the
+  // transaction stream that History shows. The record row carries no
+  // accountId on purpose: the balance move happens right here, and a record
+  // deleted later from History must never shift a balance again.
+  const payBusy = useRef(false);
+  function applyPayment(amt) {
     if (!form.id || amt <= 0) return;
+    // A double tap before React re-renders would read the same balances
+    // twice and write the payment ledger twice while the money only moved
+    // once. Ignore re-entrant taps for a beat.
+    if (payBusy.current) return;
+    payBusy.current = true;
+    setTimeout(() => {
+      payBusy.current = false;
+    }, 400);
     // Read the balance from the store, never from the edit field: a cleared
     // or half-typed Remaining box must not zero out a real debt.
     const debt = data.debts.find((d) => d.id === form.id);
@@ -216,16 +239,41 @@ export default function Debts() {
       account: acct ? acct.id : '',
       status: isCard ? 'pending' : 'posted',
     });
+    const name = (debt && debt.name) || form.name || 'Debt';
+    addTransaction({
+      type: 'debt',
+      label: `Debt payment: ${name}`,
+      amount: amt,
+      date: today(),
+      debtId: form.id,
+    });
     setForm((f) => ({ ...f, remaining: String(newRem) }));
     setMsg(
       `Logged ${formatMoney(amt)}${acct ? ` from ${acct.name}` : ''}. New balance ${formatMoney(newRem)}.`
     );
+    return newRem;
   }
+  function logPayment() {
+    setConfirmPaidOff(false);
+    applyPayment(Number(String(payAmount).replace(/[, ]/g, '')) || 0);
+  }
+  // Mark paid off is a real payment of everything still owed, from the
+  // chosen account (or Outside the app), never a silent zeroing that makes
+  // money vanish from nowhere. Two taps to confirm, same as Delete.
   function markPaid() {
     if (!form.id) return;
-    updateItem('debts', form.id, { remaining: 0 });
-    setForm((f) => ({ ...f, remaining: '0' }));
-    setMsg('Marked as paid off.');
+    const debt = data.debts.find((d) => d.id === form.id);
+    const remaining = debt ? Number(debt.remaining) || 0 : 0;
+    if (remaining <= 0) {
+      setMsg('Already at zero.');
+      return;
+    }
+    if (!confirmPaidOff) {
+      setConfirmPaidOff(true);
+      return;
+    }
+    setConfirmPaidOff(false);
+    applyPayment(remaining);
   }
 
   return (
@@ -334,7 +382,7 @@ export default function Debts() {
                 style={styles.input}
                 value={form?.monthlyRate}
                 onChangeText={(t) => setForm((f) => ({ ...f, monthlyRate: t }))}
-                placeholder="0"
+                placeholder="check your SOA, PH cards charge up to 3% monthly"
                 placeholderTextColor={colors.faint}
                 keyboardType="numeric"
               />
@@ -420,7 +468,11 @@ export default function Debts() {
                     </Pressable>
                   </View>
                   <Pressable onPress={markPaid} style={styles.markPaid}>
-                    <Text style={styles.markPaidText}>Mark paid off</Text>
+                    <Text style={styles.markPaidText}>
+                      {confirmPaidOff
+                        ? `Tap again to log ${formatMoney(Number(editDebt ? editDebt.remaining : 0) || 0)} as paid`
+                        : 'Mark paid off'}
+                    </Text>
                   </Pressable>
                   {msg ? <Text style={styles.msg}>{msg}</Text> : null}
                 </View>
@@ -453,13 +505,19 @@ export default function Debts() {
                     </Text>
                   ) : null}
                   <Text style={styles.soaHint}>
-                    Pay the full {formatMoney(forecast.forecastBalance)} to avoid interest, or at least{' '}
-                    {formatMoney(forecast.minDue)} to avoid late fees.
+                    Pay the full {formatMoney(forecast.forecastBalance)} so new purchases stay
+                    interest free, or at least {formatMoney(forecast.minDue)} to avoid late fees.
                   </Text>
                   {forecast.lateInterest > 0 ? (
                     <Text style={styles.soaWarn}>
                       Paying late or minimum only adds about {formatMoney(forecast.lateInterest)} interest
                       next month, plus the bank late fee if you miss the date.
+                    </Text>
+                  ) : forecast.forecastBalance > 0 ? (
+                    <Text style={styles.soaWarn}>
+                      No interest rate is saved for this card, so this forecast shows zero
+                      interest. Check your SOA for the real rate (PH cards charge up to 3%
+                      monthly) and add it above.
                     </Text>
                   ) : null}
                   <Pressable

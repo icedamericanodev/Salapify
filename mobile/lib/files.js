@@ -51,5 +51,13 @@ export async function pickTextFile() {
     type: ['application/json', 'text/plain', 'application/octet-stream', '*/*'],
   });
   if (res.canceled || !res.assets || !res.assets[0]) return null;
-  return FileSystem.readAsStringAsync(res.assets[0].uri);
+  const uri = res.assets[0].uri;
+  try {
+    return await FileSystem.readAsStringAsync(uri);
+  } finally {
+    // The picker copied the chosen backup into our cache directory. Once it
+    // is read into memory that copy is a lingering plaintext financial file,
+    // so delete it, same discipline as saveTextFile above.
+    FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+  }
 }

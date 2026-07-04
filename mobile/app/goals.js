@@ -40,11 +40,15 @@ export default function Goals() {
     setAddFunds('');
     setConfirmDel(false);
   }
+  // Money fields accept commas, "12,000" means twelve thousand. Every other
+  // money input in the app strips them; without this a pasted "12,000"
+  // silently became 0 and wiped the goal.
+  const toNum = (t) => Number(String(t).replace(/[, ]/g, ''));
   function save() {
     const payload = {
       name: form.name.trim() || 'Goal',
-      target: Math.max(0, Number(form.target) || 0),
-      saved: Math.max(0, Number(form.saved) || 0),
+      target: Math.max(0, toNum(form.target) || 0),
+      saved: Math.max(0, toNum(form.saved) || 0),
       targetDate: form.targetDate.trim(),
     };
     if (form.id) updateItem('goals', form.id, payload);
@@ -52,9 +56,12 @@ export default function Goals() {
     setForm(null);
   }
   function applyFunds() {
-    const amt = Number(addFunds) || 0;
+    const amt = toNum(addFunds) || 0;
     if (!form.id || amt === 0) return;
-    const newSaved = Math.max(0, (Number(form.saved) || 0) + amt);
+    // Add on top of the STORED amount, not the editable Saved field. If the
+    // user cleared that field first, adding 100 must not turn 5,000 into 100.
+    const goal = data.goals.find((g) => g.id === form.id);
+    const newSaved = Math.max(0, (Number(goal && goal.saved) || 0) + amt);
     updateItem('goals', form.id, { saved: newSaved });
     setForm((f) => ({ ...f, saved: String(newSaved) }));
     setAddFunds('');
@@ -66,6 +73,32 @@ export default function Goals() {
     }
     if (form.id) removeItem('goals', form.id);
     setForm(null);
+  }
+
+  // Templates for the empty state: the three goals Filipinos actually
+  // start with. Tapping one opens the add sheet prefilled, still editable.
+  const TEMPLATES = [
+    { icon: '🛟', name: 'Emergency fund', target: 10000 },
+    { icon: '🎄', name: 'Pasko fund', target: 5000 },
+    { icon: '✈️', name: 'Travel fund', target: 15000 },
+  ];
+  function openTemplate(t) {
+    setForm({ id: null, name: t.name, target: String(t.target), saved: '', targetDate: '' });
+    setAddFunds('');
+    setConfirmDel(false);
+  }
+
+  // "Save X a month and you make it": only when the goal has a real future
+  // target month and money still to save. Honest zero pressure math.
+  function perMonthLine(g) {
+    const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(String(g.targetDate || '').trim());
+    if (!m) return '';
+    const remaining = (Number(g.target) || 0) - (Number(g.saved) || 0);
+    if (remaining <= 0) return '';
+    const now = new Date();
+    const months = (Number(m[1]) - now.getFullYear()) * 12 + (Number(m[2]) - 1 - now.getMonth());
+    if (months <= 0) return '';
+    return `Save ${formatMoney(Math.ceil(remaining / months))} a month and you make it.`;
   }
 
   return (
@@ -82,10 +115,28 @@ export default function Goals() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {data.goals.length === 0 ? (
-          <EmptyState icon="🎯" title="No goals yet" subtitle="Tap + Add to set your first savings goal." />
+          <>
+            <EmptyState icon="🎯" title="No goals yet" subtitle="Start with a classic, or tap + Add for your own." />
+            {TEMPLATES.map((t) => (
+              <Pressable
+                key={t.name}
+                onPress={() => openTemplate(t)}
+                style={({ pressed }) => [styles.card, styles.templateCard, pressed && styles.pressed]}
+              >
+                <Text style={styles.templateIcon}>{t.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.goalName}>{t.name}</Text>
+                  <Text style={styles.goalSub}>Suggested start: {formatMoney(t.target)}. Change anything.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+              </Pressable>
+            ))}
+          </>
         ) : (
           data.goals.map((g) => {
-            const pct = g.target ? Math.min(Math.round((g.saved / g.target) * 100), 100) : 0;
+            const pct = g.target
+              ? Math.min(Math.round((g.saved / g.target) * 100), 100)
+              : g.saved > 0 ? 100 : 0;
             return (
               <Pressable
                 key={g.id}
@@ -103,6 +154,7 @@ export default function Goals() {
                   {formatMoney(g.saved)} of {formatMoney(g.target)}
                   {g.targetDate ? ` . by ${g.targetDate}` : ''}
                 </Text>
+                {perMonthLine(g) ? <Text style={styles.perMonth}>{perMonthLine(g)}</Text> : null}
               </Pressable>
             );
           })
@@ -127,6 +179,9 @@ export default function Goals() {
               {form?.id ? (
                 <View style={styles.payBox}>
                   <Text style={styles.fieldLabel}>Add to savings</Text>
+                  <Text style={styles.honestNote}>
+                    This only updates the goal number. It does not move money out of any account.
+                  </Text>
                   <View style={styles.payRow}>
                     <TextInput style={[styles.input, styles.payInput]} value={addFunds} onChangeText={setAddFunds} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
                     <Pressable onPress={applyFunds} style={[styles.sheetBtn, styles.saveBtn]}>
@@ -178,6 +233,9 @@ function makeStyles(colors) {
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
     fill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
     goalSub: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm },
+    perMonth: { color: colors.softGreen, fontSize: fontSize.small, marginTop: spacing.xs, fontWeight: fontWeight.medium },
+    templateCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    templateIcon: { fontSize: 28 },
 
     overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
@@ -185,6 +243,7 @@ function makeStyles(colors) {
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     payBox: { marginTop: spacing.lg, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm },
+    honestNote: { color: colors.faint, fontSize: fontSize.small, marginBottom: spacing.sm },
     payRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
     payInput: { flex: 1 },
     sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },

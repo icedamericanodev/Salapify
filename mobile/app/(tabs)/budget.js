@@ -5,9 +5,11 @@
 
 import { useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +28,7 @@ import EmptyState from '../../components/EmptyState';
 import WeekChain from '../../components/WeekChain';
 import LogSheet from '../../components/LogSheet';
 import { resolveReceipt } from '../../lib/receipts';
+import { SAMPLE_TX_IDS } from '../../lib/sampleData';
 
 const today = todayISO;
 
@@ -37,13 +40,13 @@ const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, u
 export default function Budget() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addTransaction, removeTransaction } = useAppData();
+  const { data, addTransaction, removeTransaction, updateSettings } = useAppData();
   const router = useRouter();
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [receiptView, setReceiptView] = useState(''); // full screen receipt photo
   const [receiptDead, setReceiptDead] = useState(false); // photo missing on this phone
-  const [toast, setToast] = useState(null); // {text, id} after logging
+  const [toast, setToast] = useState(null); // {text, undo} after a log or delete
   const toastTimer = useRef(null);
 
   const limit = data.settings.monthlyLimit || 0;
@@ -57,25 +60,54 @@ export default function Budget() {
   const pct = limit ? Math.min(Math.round((spent / limit) * 100), 100) : 0;
   const over = spent > limit;
 
-  // Newest first.
-  const recent = [...data.transactions].reverse();
+  // The day one recap: appears once, after the third real log ever. The
+  // moment the habit needs applause is right at the start, not at day 30.
+  // Records (transfers, debt payments) are not logs.
+  const realLogs = data.transactions.filter(
+    (t) => t && !SAMPLE_TX_IDS.has(t.id) && (t.type === 'income' || t.type === 'expense')
+  ).length;
+  const showDayOne = !data.settings.dayOneRecap && realLogs >= 3;
+
+  // Where it went: this month's top spending groups. Entries tagged with a
+  // category group under its name, untagged ones fall back to their label.
+  // When a Pro cap is set on a category, the bar measures against the cap
+  // and turns warning when it blows past.
+  const pro = !!(data.settings && data.settings.pro);
+  const catById = new Map((data.categories || []).map((c) => [c.id, c]));
+  const spentByCat = Object.create(null);
+  for (const t of expenses) {
+    const cat = t.categoryId ? catById.get(t.categoryId) : null;
+    const name = (cat && cat.name) || (t.label || 'Other').trim() || 'Other';
+    const key = name.toLowerCase();
+    if (!spentByCat[key]) {
+      spentByCat[key] = { label: name, amount: 0, cap: cat && pro ? Number(cat.monthlyCap) || 0 : 0 };
+    }
+    spentByCat[key].amount += t.amount;
+  }
+  const whereItWent = Object.values(spentByCat)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 4);
+  const whereMax = Math.max(...whereItWent.map((w) => w.amount), 1);
+
+  // Newest first BY DATE, so a backdated entry or a recurring bill posted
+  // mid month lands where it belongs, matching History's ordering.
+  // Insertion order breaks ties, newest log first.
+  const recent = data.transactions
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => {
+      const byDate = String(b.t.date || '').localeCompare(String(a.t.date || ''));
+      return byDate !== 0 ? byDate : b.i - a.i;
+    })
+    .map((x) => x.t);
 
   // A little celebration after every log: a light buzz and a toast that
   // springs up from the bottom with Undo, so double taps and slips are one
   // tap to fix. The habit being rewarded is logging itself, never the amount.
   const toastAnim = useRef(new Animated.Value(0)).current;
   const toastCount = useRef(0);
-  function celebrate(label, amount, id) {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    } catch (e) {
-      // Haptics are not available on web. That is fine.
-    }
+  function showToast(text, undo) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    const n = toastCount.current++;
-    const emoji = TOAST_EMOJI[n % TOAST_EMOJI.length];
-    const praise = TOAST_PRAISE[n % TOAST_PRAISE.length];
-    setToast({ text: `${emoji} ${label} ${formatMoney(amount)}. ${praise}`, id });
+    setToast({ text, undo });
     toastAnim.setValue(0);
     Animated.spring(toastAnim, { toValue: 1, friction: 6, useNativeDriver: true }).start();
     toastTimer.current = setTimeout(() => {
@@ -84,10 +116,41 @@ export default function Budget() {
       );
     }, 4000);
   }
-  function undoLog() {
-    if (toast) removeTransaction(toast.id);
+  function celebrate(label, amount, id) {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch (e) {
+      // Haptics are not available on web. That is fine.
+    }
+    const n = toastCount.current++;
+    const emoji = TOAST_EMOJI[n % TOAST_EMOJI.length];
+    const praise = TOAST_PRAISE[n % TOAST_PRAISE.length];
+    showToast(`${emoji} ${label} ${formatMoney(amount)}. ${praise}`, () => removeTransaction(id));
+  }
+  function undoToast() {
+    if (toast && toast.undo) toast.undo();
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(null);
+  }
+  // Deleting from Recent: entries with a receipt get a confirm first because
+  // the photo file is deleted with them and cannot be brought back. Everything
+  // else deletes instantly with Undo, matching how logging works on this screen.
+  function deleteEntry(e) {
+    if (e.receiptUri && Platform.OS !== 'web') {
+      Alert.alert(
+        'Delete this entry?',
+        'Its receipt photo will be deleted too and cannot be recovered.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: () => removeTransaction(e.id) },
+        ]
+      );
+      return;
+    }
+    const entry = { ...e };
+    delete entry.id;
+    removeTransaction(e.id);
+    showToast(`Deleted ${e.label} ${formatMoney(e.amount)}.`, () => addTransaction(entry));
   }
 
   function quickAdd(item) {
@@ -119,6 +182,19 @@ export default function Budget() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Budget</Text>
 
+        {showDayOne ? (
+          <View style={[styles.card, styles.dayOneCard]}>
+            <Text style={styles.dayOneKicker}>NICE START 🎉</Text>
+            <Text style={styles.dayOneText}>
+              Three logs in. You already know more about your money today than
+              most people know all month. Keep going, the chain below fills up.
+            </Text>
+            <Pressable onPress={() => updateSettings({ dayOneRecap: true })} hitSlop={8} style={styles.dayOneBtn}>
+              <Text style={styles.dayOneBtnText}>Got it</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
           <Text style={styles.spent}>
@@ -133,6 +209,38 @@ export default function Budget() {
             {over ? `${formatMoney(-remaining)} over your limit` : `${formatMoney(remaining)} left to spend`}
           </Text>
         </View>
+
+        {whereItWent.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>WHERE IT WENT</Text>
+            {whereItWent.map((w) => {
+              const overCap = w.cap > 0 && w.amount > w.cap;
+              const frac = w.cap > 0 ? Math.min(w.amount / w.cap, 1) : w.amount / whereMax;
+              return (
+                <View key={w.label} style={styles.wentRow}>
+                  <View style={styles.wentHead}>
+                    <Text style={styles.wentLabel} numberOfLines={1}>{w.label}</Text>
+                    <Text style={[styles.wentAmt, overCap && { color: colors.warning }]}>
+                      {formatMoney(w.amount)}
+                      {w.cap > 0 ? ` of ${formatMoney(w.cap)} cap` : ''}
+                    </Text>
+                  </View>
+                  <View style={styles.wentTrack}>
+                    <View
+                      style={[
+                        styles.wentFill,
+                        {
+                          width: `${Math.max(Math.round(frac * 100), 2)}%`,
+                          backgroundColor: overCap ? colors.warning : colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <WeekChain transactions={data.transactions} />
 
@@ -181,10 +289,10 @@ export default function Budget() {
                       <Text style={styles.receiptIcon}>🧾</Text>
                     </Pressable>
                   ) : null}
-                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
-                    {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
+                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'expense' ? colors.text : colors.muted }]}>
+                    {e.type === 'income' ? '+' : e.type === 'transfer' ? '⇄' : '-'} {formatMoney(e.amount)}
                   </Text>
-                  <Pressable onPress={() => removeTransaction(e.id)} hitSlop={8} style={styles.trash}>
+                  <Pressable onPress={() => deleteEntry(e)} hitSlop={8} style={styles.trash}>
                     <Ionicons name="close" size={16} color={colors.faint} />
                   </Pressable>
                 </View>
@@ -210,7 +318,7 @@ export default function Budget() {
           <Text style={styles.toastText} numberOfLines={1}>
             {toast.text}
           </Text>
-          <Pressable onPress={undoLog} hitSlop={12} style={styles.toastBtn}>
+          <Pressable onPress={undoToast} hitSlop={12} style={styles.toastBtn}>
             <Text style={styles.toastUndo}>Undo</Text>
           </Pressable>
         </Animated.View>
@@ -251,6 +359,17 @@ function makeStyles(colors) {
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
+    wentRow: { marginTop: spacing.md },
+    wentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs, gap: spacing.sm },
+    wentLabel: { color: colors.textSecondary, fontSize: fontSize.small, flexShrink: 1 },
+    wentAmt: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    wentTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
+    wentFill: { height: '100%', borderRadius: radius.pill },
+    dayOneCard: { backgroundColor: colors.positiveSurface, borderColor: colors.positiveBorder },
+    dayOneKicker: { color: colors.celebrate, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
+    dayOneText: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.sm },
+    dayOneBtn: { alignSelf: 'flex-start', marginTop: spacing.md, minHeight: 40, justifyContent: 'center' },
+    dayOneBtnText: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     spent: { color: colors.text, fontSize: fontSize.big, fontWeight: fontWeight.heavy, marginTop: spacing.xs, marginBottom: spacing.md },
     ofLimit: { color: colors.muted, fontSize: fontSize.body, fontWeight: fontWeight.regular },
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },

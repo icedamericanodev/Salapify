@@ -1,7 +1,8 @@
-// Onboarding: the first run welcome. Three quick steps: what Salapify is,
-// set your currency and monthly budget, then choose how to start. Shows
-// only until settings.onboarded is true, so everyone sees it exactly once.
-// The Start empty choice deletes data, so it always confirms first.
+// Onboarding: the first run welcome. Quick steps: what Salapify is, set
+// your currency and monthly budget, choose the nightly nudge (phone only),
+// then choose how to start. Shows only until settings.onboarded is true,
+// so everyone sees it exactly once. The Start empty choice deletes data,
+// so it always confirms first.
 
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -9,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
+import { ensureNotifPermission } from '../lib/notifications';
 
 const CURRENCY_CHIPS = [
   { code: 'PHP', symbol: '₱' },
@@ -39,13 +41,20 @@ export default function Onboarding() {
 
   function finish(startEmpty) {
     // Accept human typing: commas and spaces stripped, capped at 100 million.
-    const n = Number(String(limit).replace(/[,\s]/g, ''));
-    const monthlyLimit = Number.isFinite(n) && n > 0 ? Math.min(n, 100000000) : 20000;
+    // A typed 0 is a real answer (no budget yet, set one later in Budget),
+    // so it stays 0 instead of silently becoming the 20,000 default. Only a
+    // cleared field or non numeric typing falls back to the default.
+    const raw = String(limit).replace(/[,\s]/g, '');
+    const n = Number(raw);
+    const monthlyLimit = raw !== '' && Number.isFinite(n) && n >= 0 ? Math.min(n, 100000000) : 20000;
     const patch = {
       currency: currency.symbol,
       currencyCode: currency.code,
       monthlyLimit,
       onboarded: true,
+      // The tabs open the add sheet once right after onboarding, so the
+      // very first session produces a real log. The flag flips off after.
+      firstLogPrompt: true,
     };
     if (startEmpty) {
       const wipe = () => replaceAll({ settings: { ...data.settings, ...patch } });
@@ -63,6 +72,23 @@ export default function Onboarding() {
       return;
     }
     updateSettings(patch);
+  }
+
+  // The nightly nudge choice. Yes asks the phone for permission and turns
+  // on the daily and payday reminders only when it is granted; either way
+  // the flow moves on, this step never traps anyone.
+  async function enableNudge() {
+    try {
+      const ok = await ensureNotifPermission();
+      if (ok) {
+        updateSettings((s) => ({
+          notifications: { ...(s.notifications || {}), daily: true, payday: true },
+        }));
+      }
+    } catch (e) {
+      // Permission plumbing must never block onboarding.
+    }
+    setStep(3);
   }
 
   return (
@@ -92,7 +118,7 @@ export default function Onboarding() {
 
         {step === 1 ? (
           <View>
-            <Text style={styles.stepKicker}>STEP 1 OF 2</Text>
+            <Text style={styles.stepKicker}>STEP 1 OF {Platform.OS === 'web' ? 2 : 3}</Text>
             <Text style={styles.heading}>The basics</Text>
 
             <Text style={styles.fieldLabel}>Your currency</Text>
@@ -123,7 +149,10 @@ export default function Onboarding() {
               A starting line, not a cage. Change it anytime in Settings.
             </Text>
 
-            <Pressable onPress={() => setStep(2)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+            <Pressable
+              onPress={() => setStep(Platform.OS === 'web' ? 3 : 2)}
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+            >
               <Text style={styles.primaryText}>Next</Text>
             </Pressable>
           </View>
@@ -131,7 +160,27 @@ export default function Onboarding() {
 
         {step === 2 ? (
           <View>
-            <Text style={styles.stepKicker}>STEP 2 OF 2</Text>
+            <Text style={styles.stepKicker}>STEP 2 OF 3</Text>
+            <Text style={styles.heading}>A 30 second nudge at night?</Text>
+            <Text style={styles.body}>
+              People who log daily actually change how they spend. One quiet
+              reminder at 8pm, plus a heads up on payday. No sounds, no spam,
+              and you can switch it off any time in More.
+            </Text>
+            {/* Equal weight on purpose: saying no must feel as fine as
+                saying yes, or the yes means nothing. */}
+            <Pressable onPress={enableNudge} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+              <Text style={styles.primaryText}>Yes, remind me at night</Text>
+            </Pressable>
+            <Pressable onPress={() => setStep(3)} style={({ pressed }) => [styles.primaryBtn, styles.equalBtn, pressed && styles.pressed]}>
+              <Text style={styles.primaryText}>No thanks</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {step === 3 ? (
+          <View>
+            <Text style={styles.stepKicker}>STEP {Platform.OS === 'web' ? '2 OF 2' : '3 OF 3'}</Text>
             {hasAnything ? (
               <>
                 <Text style={styles.heading}>How do you want to start?</Text>
@@ -240,6 +289,9 @@ function makeStyles(colors) {
       paddingHorizontal: spacing.xl,
     },
     primaryText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    // Same size and color as the primary button on purpose: the nudge
+    // step's No thanks carries equal visual weight, no guilt styling.
+    equalBtn: { marginTop: spacing.md },
     secondaryBtn: {
       borderColor: colors.border,
       borderWidth: 1,

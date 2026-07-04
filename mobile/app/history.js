@@ -61,8 +61,8 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
             {accountName ? ` · ${accountName}` : ''}
           </Text>
         </View>
-        <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : colors.text }]}>
-          {t.type === 'income' ? '+' : '-'} {formatMoney(t.amount)}
+        <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : t.type === 'expense' ? colors.text : colors.muted }]}>
+          {t.type === 'income' ? '+' : t.type === 'transfer' ? '⇄' : '-'} {formatMoney(t.amount)}
         </Text>
       </Pressable>
       {t.receiptUri && Platform.OS !== 'web' ? (
@@ -80,6 +80,10 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
 // The edit sheet owns its form state, so typing re-renders only this
 // small component, never the list behind it.
 function EditSheet({ tx, accounts, colors, styles, onClose, onSave }) {
+  // Transfer and debt payment rows are records of something that already
+  // moved balances when it happened. Editing one would let the story and
+  // the balances disagree, so records open read only.
+  const isRecord = tx.type === 'transfer' || tx.type === 'debt';
   const [form, setForm] = useState(() => ({
     type: tx.type === 'income' ? 'income' : 'expense',
     label: String(tx.label || ''),
@@ -115,6 +119,31 @@ function EditSheet({ tx, accounts, colors, styles, onClose, onSave }) {
       date: form.date.trim(),
       accountId: form.accountId || undefined,
     });
+  }
+
+  if (isRecord) {
+    return (
+      <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{tx.label}</Text>
+            <Text style={styles.recordNote}>
+              {formatMoney(tx.amount)} on {tx.date}.{'\n\n'}
+              This row is a record of {tx.type === 'transfer' ? 'a transfer between accounts' : 'a debt payment'},
+              written the moment it happened. The balances already moved then, so the record
+              cannot be edited. Deleting it with the x only removes this history row, it does
+              not undo the {tx.type === 'transfer' ? 'transfer' : 'payment'}.
+            </Text>
+            <View style={styles.sheetButtons}>
+              <View />
+              <Pressable onPress={onClose} style={[styles.sheetBtn, styles.cancelBtn]}>
+                <Text style={styles.cancelText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   }
 
   return (
@@ -210,11 +239,14 @@ export default function History() {
   }, [data.transactions, month, query]);
 
   const totals = useMemo(() => {
+    // Only real income and expenses. Transfer and debt payment records are
+    // visible as rows but never enter money math: a 5,000 transfer between
+    // your own accounts is not 5,000 spent.
     let tin = 0;
     let tout = 0;
     for (const t of shown) {
       if (t.type === 'income') tin += Number(t.amount) || 0;
-      else tout += Number(t.amount) || 0;
+      else if (t.type === 'expense') tout += Number(t.amount) || 0;
     }
     return { tin, tout };
   }, [shown]);
@@ -234,11 +266,17 @@ export default function History() {
   const onDelete = useCallback(
     (t) => {
       const doIt = () => removeTransaction(t.id);
+      // Record rows move nothing when deleted, so their confirm must not
+      // promise a refund the way the normal entry confirm does.
+      const isRecord = t.type === 'transfer' || t.type === 'debt';
+      const detail = isRecord
+        ? 'This only removes the history row. It does not undo the money move.'
+        : 'A linked account gets its money back.';
       if (Platform.OS === 'web') {
-        if (window.confirm(`Delete ${t.label} ${formatMoney(t.amount)}?`)) doIt();
+        if (window.confirm(`Delete ${t.label} ${formatMoney(t.amount)}? ${detail}`)) doIt();
         return;
       }
-      Alert.alert('Delete this entry?', `${t.label}, ${formatMoney(t.amount)}. A linked account gets its money back.`, [
+      Alert.alert('Delete this entry?', `${t.label}, ${formatMoney(t.amount)}. ${detail}`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: doIt },
       ]);
@@ -410,6 +448,7 @@ function makeStyles(colors) {
     overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
+    recordNote: { color: colors.textSecondary, fontSize: fontSize.body, lineHeight: 20 },
     typeRow: { flexDirection: 'row', gap: spacing.sm },
     typeBtn: { flex: 1, paddingVertical: spacing.sm + 2, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
     typeOn: { backgroundColor: colors.primary, borderColor: colors.primary },

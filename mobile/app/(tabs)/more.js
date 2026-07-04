@@ -11,6 +11,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -24,7 +25,7 @@ import { useRouter } from 'expo-router';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, normalizeSchedule, scheduleLabel } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { SIZE_NUDGE, SIZE_WARN } from '../../lib/storage';
 import { ensureNotifPermission } from '../../lib/notifications';
@@ -34,7 +35,7 @@ import * as Updates from 'expo-updates';
 import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
-  { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
+  { key: 'payday', label: 'Payday reminders', hint: 'Follows your payday schedule in Preferences' },
   { key: 'bills', label: 'Bill due reminders', hint: 'Cards and loans, 3 days before and on the day' },
   { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
   { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
@@ -242,6 +243,18 @@ export default function More() {
   // ---- Preferences ----
   function openPref(m) {
     if (m === 'limit') setPref({ mode: m, text: String(settings.monthlyLimit || 0) });
+    else if (m === 'payday') {
+      const sch = normalizeSchedule(settings.paydaySchedule);
+      setPref({
+        mode: m,
+        payMode: sch.mode,
+        d1: String(sch.mode === 'semimonthly' ? sch.days[0] : 15),
+        d2: String(sch.mode === 'semimonthly' ? sch.days[1] : 31),
+        day: String(sch.mode === 'monthly' ? sch.day : 30),
+        weekday: sch.mode === 'weekly' ? sch.weekday : 5,
+        err: '',
+      });
+    }
     else setPref({ mode: m });
     setQaLabel('');
     setQaAmount('');
@@ -254,6 +267,33 @@ export default function More() {
     const n = Number(pref.text);
     if (!Number.isFinite(n) || n < 0) return;
     updateSettings({ monthlyLimit: n });
+    setPref(null);
+  }
+  function savePayday() {
+    const dayOk = (t) => {
+      const n = Math.trunc(Number(String(t).trim()));
+      return Number.isFinite(n) && n >= 1 && n <= 31 ? n : null;
+    };
+    let schedule;
+    if (pref.payMode === 'monthly') {
+      const d = dayOk(pref.day);
+      if (d === null) {
+        setPref((p) => ({ ...p, err: 'Pick a day from 1 to 31. 31 means the last day of the month.' }));
+        return;
+      }
+      schedule = { mode: 'monthly', day: d };
+    } else if (pref.payMode === 'weekly') {
+      schedule = { mode: 'weekly', weekday: pref.weekday };
+    } else {
+      const a = dayOk(pref.d1);
+      const b = dayOk(pref.d2);
+      if (a === null || b === null) {
+        setPref((p) => ({ ...p, err: 'Both days should be from 1 to 31. 31 means the last day of the month.' }));
+        return;
+      }
+      schedule = { mode: 'semimonthly', days: [a, b] };
+    }
+    updateSettings({ paydaySchedule: normalizeSchedule(schedule) });
     setPref(null);
   }
   function addQuickAdd() {
@@ -453,7 +493,7 @@ export default function More() {
             <View style={styles.row}>
               <View style={{ flex: 1, paddingRight: spacing.md }}>
                 <Text style={styles.rowLabel}>App lock</Text>
-                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens</Text>
+                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens. Home screen widgets still show your totals, remove them if that matters to you</Text>
               </View>
               <Switch
                 value={!!settings.appLock}
@@ -474,6 +514,10 @@ export default function More() {
           <Pressable onPress={() => openPref('limit')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Monthly budget</Text>
             <Text style={styles.rowValue}>{formatMoney(settings.monthlyLimit)}</Text>
+          </Pressable>
+          <Pressable onPress={() => openPref('payday')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Payday schedule</Text>
+            <Text style={styles.rowValue}>{scheduleLabel(settings.paydaySchedule)}</Text>
           </Pressable>
           <Pressable onPress={() => openPref('quickadds')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Quick add buttons</Text>
@@ -526,17 +570,50 @@ export default function More() {
           ) : null}
         </View>
 
+        <Text style={styles.sectionTitle}>FEEDBACK</Text>
+        <View style={styles.card}>
+          <Pressable
+            onPress={() =>
+              Linking.openURL(
+                'mailto:dimaguila.carlam@gmail.com?subject=Salapify%20feedback'
+              ).catch(() => {})
+            }
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          >
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={styles.rowLabel}>Send feedback</Text>
+              <Text style={styles.rowHint}>Found a bug or want a feature? Email goes straight to the maker</Text>
+            </View>
+            <Ionicons name="mail-outline" size={18} color={colors.faint} />
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              Share.share({
+                message:
+                  'I track my budget, utang, and bills with Salapify. Offline, no ads, core features free. https://icedamericanodev.github.io/Salapify/',
+              }).catch(() => {})
+            }
+            style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+          >
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={styles.rowLabel}>Share Salapify</Text>
+              <Text style={styles.rowHint}>Send it to a friend who keeps asking where the sweldo went</Text>
+            </View>
+            <Ionicons name="share-social-outline" size={18} color={colors.faint} />
+          </Pressable>
+        </View>
+
         <Text style={styles.sectionTitle}>ABOUT</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>1.2.0</Text>
+            <Text style={styles.rowValue}>1.2.1</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.6: day 6 hardening</Text>
+            <Text style={styles.rowValue}>v2.9: gate fixes, ready for Monday</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -660,6 +737,88 @@ export default function More() {
               </>
             ) : null}
 
+            {pref?.mode === 'payday' ? (
+              <>
+                <Text style={styles.sheetTitle}>Payday schedule</Text>
+                <Text style={styles.fieldLabel}>How often does your sweldo arrive?</Text>
+                <View style={styles.chips}>
+                  {[
+                    { k: 'semimonthly', label: 'Twice a month' },
+                    { k: 'monthly', label: 'Once a month' },
+                    { k: 'weekly', label: 'Weekly' },
+                  ].map((opt) => {
+                    const on = pref.payMode === opt.k;
+                    return (
+                      <Pressable key={opt.k} onPress={() => setPref((p) => ({ ...p, payMode: opt.k, err: '' }))} style={[styles.chip, on && styles.chipOn]}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {pref.payMode === 'semimonthly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>First payday (day of the month)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.d1}
+                      onChangeText={(t) => setPref((p) => ({ ...p, d1: t, err: '' }))}
+                      placeholder="15"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.fieldLabel}>Second payday</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.d2}
+                      onChangeText={(t) => setPref((p) => ({ ...p, d2: t, err: '' }))}
+                      placeholder="31"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.sizeNote}>Type 31 for the last day of the month, it adjusts to short months by itself.</Text>
+                  </>
+                ) : null}
+                {pref.payMode === 'monthly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Payday (day of the month)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.day}
+                      onChangeText={(t) => setPref((p) => ({ ...p, day: t, err: '' }))}
+                      placeholder="30"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.sizeNote}>Type 31 for the last day of the month, it adjusts to short months by itself.</Text>
+                  </>
+                ) : null}
+                {pref.payMode === 'weekly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Which day?</Text>
+                    <View style={styles.chips}>
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((name, i) => {
+                        const on = pref.weekday === i;
+                        return (
+                          <Pressable key={name} onPress={() => setPref((p) => ({ ...p, weekday: i, err: '' }))} style={[styles.chip, on && styles.chipOn]}>
+                            <Text style={[styles.chipText, on && styles.chipTextOn]}>{name}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : null}
+                {pref.err ? <Text style={styles.prefErr}>{pref.err}</Text> : null}
+                <View style={styles.sheetButtons}>
+                  <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={savePayday} style={[styles.sheetBtn, styles.saveBtn]}>
+                    <Text style={styles.saveText}>Save</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+
             {pref?.mode === 'quickadds' ? (
               <>
                 <Text style={styles.sheetTitle}>Quick add buttons</Text>
@@ -725,6 +884,12 @@ function makeStyles(colors) {
     textArea: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, color: colors.text, fontSize: fontSize.small, minHeight: 140, maxHeight: 280, textAlignVertical: 'top' },
     msg: { color: colors.primary, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.lg },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+    chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { color: colors.textSecondary, fontSize: fontSize.small },
+    chipTextOn: { color: colors.onPrimary, fontWeight: fontWeight.bold },
+    prefErr: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.sm },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },
