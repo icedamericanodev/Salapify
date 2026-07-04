@@ -176,10 +176,15 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         type: t.type === 'income' ? 'income' : 'expense',
         label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
       };
-      // receiptUri must be a string or absent: a non string here would
-      // reach Image source.uri and crash native Android.
-      if (typeof t.receiptUri === 'string' && t.receiptUri) out.receiptUri = t.receiptUri;
-      else delete out.receiptUri;
+      // receiptUri must be a relative path INSIDE the receipts folder or
+      // absent. Anything else (a crafted https url in a backup file, an
+      // absolute path outside the app) is dropped: the Image viewer must
+      // never be tricked into fetching a remote address.
+      if (typeof t.receiptUri === 'string' && /^receipts\/[A-Za-z0-9_.-]+$/.test(t.receiptUri)) {
+        out.receiptUri = t.receiptUri;
+      } else {
+        delete out.receiptUri;
+      }
       // Same discipline for categoryId: a string or absent, never junk.
       if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
       else delete out.categoryId;

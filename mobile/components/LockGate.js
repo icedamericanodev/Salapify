@@ -90,9 +90,14 @@ export default function LockGate({ children }) {
 
   return (
     <View style={styles.wrap}>
-      {children}
+      {/* While locked, the content behind the overlay is hidden from
+          screen readers too; a lock that TalkBack can read through is
+          not a lock. */}
+      <View style={{ flex: 1 }} importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>
+        {children}
+      </View>
       {locked ? (
-        <View style={[StyleSheet.absoluteFill, styles.screen]}>
+        <View style={[StyleSheet.absoluteFill, styles.screen]} accessibilityViewIsModal>
           <View style={styles.badge}>
             <Ionicons name="finger-print" size={44} color={colors.primary} />
           </View>
@@ -106,6 +111,7 @@ export default function LockGate({ children }) {
     </View>
   );
 }
+
 
 function makeStyles(colors) {
   return StyleSheet.create({

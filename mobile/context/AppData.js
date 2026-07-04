@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { loadData, saveData, snapshotData } from '../lib/storage';
+import { loadData, saveData, snapshotData, clearSnapshot } from '../lib/storage';
 import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
@@ -356,11 +356,14 @@ export function AppDataProvider({ children }) {
   // data is sanitized, missing collections become EMPTY lists rather than
   // sample data (a restore must never invent money), and the app lock is
   // always off after a restore so nobody gets locked out.
-  function replaceAll(newData) {
+  function replaceAll(newData, { snapshot = true } = {}) {
     // Safety net first: the current blob is copied to a snapshot key
     // before it gets replaced. Best effort and fire and forget; the
     // 500ms save debounce guarantees the snapshot reads the OLD blob.
-    snapshotData().catch(() => {});
+    // Erase everything passes snapshot: false and clears the key instead,
+    // because an erase that secretly keeps a copy would be a lie.
+    if (snapshot) snapshotData().catch(() => {});
+    else clearSnapshot().catch(() => {});
     const clean = sanitizeData(newData);
     // A restore must never invent money: every restored recurring item is
     // stamped as already posted for the current month, so the app shows

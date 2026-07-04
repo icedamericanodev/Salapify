@@ -185,16 +185,21 @@ export default function More() {
   // clears the remembered net worth peak so no ghost of the old data stays.
   function resetAll() {
     const wipe = () => {
-      replaceAll({
-        settings: {
-          quickAdds: [
-            { label: 'Food', amount: 150 },
-            { label: 'Transport', amount: 50 },
-            { label: 'Coffee', amount: 120 },
-            { label: 'Load', amount: 100 },
-          ],
+      // snapshot: false, so the erase clears the hidden safety copy too.
+      // Cannot be undone must be literally true.
+      replaceAll(
+        {
+          settings: {
+            quickAdds: [
+              { label: 'Food', amount: 150 },
+              { label: 'Transport', amount: 50 },
+              { label: 'Coffee', amount: 120 },
+              { label: 'Load', amount: 100 },
+            ],
+          },
         },
-      });
+        { snapshot: false }
+      );
       AsyncStorage.removeItem('salapify_peak_networth').catch(() => {});
     };
     const first = 'This erases every account, debt, transaction, goal, utang, note, and recurring item on this phone. A backup file is the only way back.';

@@ -14,11 +14,17 @@ import * as DocumentPicker from 'expo-document-picker';
 export async function saveTextFile(filename, text, mimeType = 'application/json') {
   const uri = FileSystem.cacheDirectory + filename;
   await FileSystem.writeAsStringAsync(uri, text);
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType, dialogTitle: filename });
-    return true;
+  try {
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType, dialogTitle: filename });
+      return true;
+    }
+    return false;
+  } finally {
+    // The cache copy of a full financial backup must not linger after the
+    // share sheet closes; the user's chosen destination has the file now.
+    FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
   }
-  return false;
 }
 
 // Saves the file straight into a folder on the device (like Downloads).
