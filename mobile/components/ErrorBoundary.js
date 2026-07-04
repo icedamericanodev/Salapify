@@ -50,22 +50,25 @@ export default class ErrorBoundary extends Component {
 }
 
 const styles = StyleSheet.create({
+  // Hardcoded Barako dark tokens on purpose: this is the crash shield, it
+  // must render even if the theme context is what failed. Keep in sync with
+  // the barako dark palette in theme.js.
   screen: {
     flex: 1,
-    backgroundColor: '#101E15',
+    backgroundColor: '#1A130E',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
   },
   emoji: { fontSize: 44, marginBottom: 12 },
-  title: { color: '#FBF7EF', fontSize: 22, fontWeight: '800', marginBottom: 10 },
-  body: { color: '#D9D6C5', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  title: { color: '#FBF3E9', fontSize: 22, fontWeight: '800', marginBottom: 10 },
+  body: { color: '#E0CEBB', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   btn: {
-    backgroundColor: '#FFA45C',
+    backgroundColor: '#FF8A3D',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 28,
   },
-  btnText: { color: '#3A1E07', fontSize: 15, fontWeight: '700' },
-  hint: { color: '#9DAF9D', fontSize: 13, textAlign: 'center', marginTop: 20, lineHeight: 19 },
+  btnText: { color: '#2A1305', fontSize: 15, fontWeight: '700' },
+  hint: { color: '#A99182', fontSize: 13, textAlign: 'center', marginTop: 20, lineHeight: 19 },
 });

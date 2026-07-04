@@ -52,6 +52,44 @@ export default function Insights() {
   }
   const byCategory = Object.values(catTotals).sort((a, b) => b.amount - a.amount);
 
+  // Where your money went, as one 100 percent proportion bar (the pie, done
+  // with plain views so it ships now; a true donut arrives with the chart
+  // rebuild). Top six categories get their own segment shaded from the brand
+  // color, so the bar always matches whatever theme is chosen; the rest fold
+  // into one muted "more" segment. Legend carries the labels and amounts.
+  const totalSpent = byCategory.reduce((t, c) => t + c.amount, 0);
+  const TOP_N = 6;
+  const topCats = byCategory.slice(0, TOP_N);
+  const restCats = byCategory.slice(TOP_N);
+  const restSum = restCats.reduce((t, c) => t + c.amount, 0);
+  const SEG_ALPHA = ['FF', 'D9', 'B8', '99', '7A', '5E'];
+  const segments = topCats.map((c, i) => ({
+    label: c.label,
+    amount: c.amount,
+    pct: totalSpent > 0 ? c.amount / totalSpent : 0,
+    color: `${colors.primary}${SEG_ALPHA[i] || '5E'}`,
+  }));
+  if (restSum > 0) {
+    segments.push({
+      label: `${restCats.length} more`,
+      amount: restSum,
+      pct: restSum / totalSpent,
+      color: colors.faint,
+    });
+  }
+  // The one honest sentence that turns the chart into a decision.
+  let catInsight = '';
+  if (byCategory.length > 0 && totalSpent > 0) {
+    const top = byCategory[0];
+    const topPct = Math.round((top.amount / totalSpent) * 100);
+    const nextTwo = byCategory.slice(1, 3).reduce((t, c) => t + c.amount, 0);
+    const beatsNextTwo = byCategory.length >= 3 && top.amount > nextTwo;
+    catInsight =
+      `${top.label} is ${topPct}% of the ${formatMoney(totalSpent)} you spent this month` +
+      (beatsNextTwo ? `, more than ${byCategory[1].label} and ${byCategory[2].label} combined.` : '.') +
+      (topPct >= 40 ? ' If you want to trim, that is the lever.' : '');
+  }
+
   // Net worth by category.
   const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
   const bank = sum(
@@ -83,7 +121,6 @@ export default function Insights() {
     </View>
   );
 
-  const catMax = Math.max(...byCategory.map((c) => c.amount), 1);
   const worthMax = Math.max(...worthRows.map((w) => w.amount), 1);
   const inOutMax = Math.max(moneyIn, moneyOut, 1);
 
@@ -133,16 +170,35 @@ export default function Insights() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.kicker}>SPENDING BY CATEGORY</Text>
-          <View style={styles.cardBody}>
-            {byCategory.length > 0 ? (
-              byCategory.map((c) => (
-                <HBar key={c.label} label={c.label} amount={c.amount} max={catMax} color={colors.primary} />
-              ))
-            ) : (
-              <Text style={styles.proNote}>Nothing spent this month yet. Log an expense and the bars appear.</Text>
-            )}
-          </View>
+          <Text style={styles.kicker}>WHERE YOUR MONEY WENT ({monthLabel().toUpperCase()})</Text>
+          {byCategory.length > 0 && totalSpent > 0 ? (
+            <>
+              <View style={styles.propBar}>
+                {segments.map((s, i) => (
+                  <View
+                    key={s.label + i}
+                    style={{ width: `${Math.max(s.pct * 100, 1)}%`, backgroundColor: s.color }}
+                  />
+                ))}
+              </View>
+              <View style={styles.legend}>
+                {segments.map((s, i) => (
+                  <View key={s.label + i} style={styles.legendRow}>
+                    <View style={styles.legendLeft}>
+                      <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                      <Text style={styles.legendLabel} numberOfLines={1}>{s.label}</Text>
+                    </View>
+                    <Text style={styles.legendVal}>
+                      {formatMoney(s.amount)} · {Math.round(s.pct * 100)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {catInsight ? <Text style={styles.insightLine}>{catInsight}</Text> : null}
+            </>
+          ) : (
+            <Text style={styles.proNote}>Nothing spent this month yet. Log an expense and the breakdown appears.</Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -363,6 +419,22 @@ function makeStyles(colors) {
       letterSpacing: 1.2,
     },
     cardBody: { marginTop: spacing.md, gap: spacing.md },
+
+    propBar: {
+      flexDirection: 'row',
+      height: 16,
+      borderRadius: radius.pill,
+      overflow: 'hidden',
+      marginTop: spacing.md,
+      backgroundColor: colors.border,
+    },
+    legend: { marginTop: spacing.md, gap: spacing.sm },
+    legendRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+    legendLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
+    legendDot: { width: 11, height: 11, borderRadius: 3, flex: 0 },
+    legendLabel: { color: colors.textSecondary, fontSize: fontSize.small, flexShrink: 1 },
+    legendVal: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    insightLine: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 20, marginTop: spacing.lg },
 
     hbarRow: { flexDirection: 'row', alignItems: 'center' },
     hbarLabel: { color: colors.textSecondary, fontSize: fontSize.small, width: 92 },

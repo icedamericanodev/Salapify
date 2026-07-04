@@ -2,16 +2,69 @@
 // corner radius, and font sizes. Every screen imports from here, so the look
 // stays consistent and we can restyle the whole app by editing this one file.
 //
-// Two color themes, each with dark and light variants:
-//  - forest: the Salapify brand. Deep forest green base, warm cream text,
-//    and light orange doing the dopamine work. Cozy and warm.
-//  - mint: the original look. Near black green base with a glowing mint.
-//    Clean and techy.
-// Rules both themes share: warning is reserved for debt and over limit
-// states (never ordinary spending), celebrate appears only during earned
-// moments, and every text pairing passes WCAG AA.
+// Color themes, each with dark and light variants. barako is the brand
+// default; the rest are options users can switch to in More, so the app can
+// match anyone's taste:
+//  - barako: the Salapify brand. Dark-roast espresso base (oat-milk latte in
+//    light), roasted orange doing the dopamine work. Warm café energy.
+//  - ultraviolet: midnight violet with an electric-lime win glow.
+//  - tidal: deep navy with a vivid aqua pop, the most bank-trustworthy.
+//  - voltage: ink black with an electric-blue current and magenta sparks.
+//  - ember: warm charcoal with a sunrise coral.
+//  - orchidgold: berry plum with gold trophies, the boldest look.
+//  - forest: warm orange on deep green.
+//  - mint: a glowing green.
+// Rules every theme shares: warning is reserved for debt and over limit
+// states (never ordinary spending) and is a clearly different hue from the
+// positive primary, celebrate appears only during earned moments, and every
+// text pairing passes WCAG AA.
 
 export const palettes = {
+  // barako: the Salapify brand. Dark-roast espresso base, oat-milk latte in
+  // light, roasted orange doing the dopamine work, warm caramel and amber
+  // for kickers and wins. Warning is deliberately pushed to crimson (about
+  // a 32 degree hue gap from the orange primary) so debt and over limit
+  // never blur with positive money, which is warm orange. Every pairing
+  // passes WCAG AA; the tightest is burnt orange as money text on the light
+  // cream at 4.72, which is why the light primary is this deep.
+  barako: {
+    dark: {
+      background: '#1A130E',
+      card: '#251A13',
+      border: '#3A2A20',
+      primary: '#FF8A3D', // roasted orange: buttons, positive numbers, streaks
+      softGreen: '#E9BC8E', // warm caramel kicker (legacy name, not green)
+      text: '#FBF3E9', // steamed-milk cream
+      textSecondary: '#E0CEBB',
+      muted: '#A99182',
+      faint: '#77624F',
+      warning: '#FF5D73', // rose-crimson, distinct from the happy orange
+      warningStrong: '#F5384F',
+      onPrimary: '#2A1305', // espresso brown on orange fills
+      celebrate: '#FFC24D', // amber gold
+      positiveSurface: '#2E2114',
+      positiveBorder: '#55402C',
+      overlay: 'rgba(10,7,5,0.64)',
+    },
+    light: {
+      background: '#F7F1E7', // oat-milk latte cream
+      card: '#FFFDF7',
+      border: '#E7DCC9',
+      primary: '#AE5019', // deep roasted orange, passes AA as money text on cream
+      softGreen: '#8A5A2E', // warm brown kicker
+      text: '#241812',
+      textSecondary: '#4A382E',
+      muted: '#6E5A4C',
+      faint: '#9A8574',
+      warning: '#B01E38', // brick-crimson
+      warningStrong: '#8C1329',
+      onPrimary: '#FFFFFF',
+      celebrate: '#8A5A00',
+      positiveSurface: '#F3E7D5',
+      positiveBorder: '#E2CBAF',
+      overlay: 'rgba(28,16,8,0.42)',
+    },
+  },
   forest: {
     dark: {
       background: '#101E15',
@@ -88,14 +141,214 @@ export const palettes = {
       overlay: 'rgba(10,20,15,0.45)',
     },
   },
+  // ultraviolet: midnight violet with an electric-lime win glow. The lime
+  // only fires on earned moments. All pairings pass WCAG AA.
+  ultraviolet: {
+    dark: {
+      background: '#14102A',
+      card: '#1E1840',
+      border: '#372C63',
+      primary: '#A98BFF',
+      softGreen: '#C9B7FF',
+      text: '#F4F1FF',
+      textSecondary: '#CFC6EE',
+      muted: '#9A90C4',
+      faint: '#6C6394',
+      warning: '#FF8A4C',
+      warningStrong: '#FF6A3D',
+      onPrimary: '#1A0F33',
+      celebrate: '#C6FF4A',
+      positiveSurface: '#24204C',
+      positiveBorder: '#443B7A',
+      overlay: 'rgba(10,7,24,0.64)',
+    },
+    light: {
+      background: '#F5F2FF',
+      card: '#FFFFFF',
+      border: '#E4DEF7',
+      primary: '#6A34D6',
+      softGreen: '#6E4FB0',
+      text: '#1C1633',
+      textSecondary: '#443C63',
+      muted: '#655C82',
+      faint: '#8B82A6',
+      warning: '#C23A1B',
+      warningStrong: '#9C2C12',
+      onPrimary: '#FFFFFF',
+      celebrate: '#526E00',
+      positiveSurface: '#EEEAFB',
+      positiveBorder: '#D6CCF4',
+      overlay: 'rgba(26,16,48,0.42)',
+    },
+  },
+  // tidal: deep navy with a vivid aqua pop. The most bank-trustworthy look,
+  // and its warm-amber warning is the cleanest split from the cool primary.
+  tidal: {
+    dark: {
+      background: '#0A121F',
+      card: '#131F30',
+      border: '#24374F',
+      primary: '#2DD4E8',
+      softGreen: '#7FC5D6',
+      text: '#EFF6FB',
+      textSecondary: '#C6D6E2',
+      muted: '#8598A8',
+      faint: '#5A6C7C',
+      warning: '#FF9F45',
+      warningStrong: '#FF7A38',
+      onPrimary: '#052730',
+      celebrate: '#FFD24A',
+      positiveSurface: '#122A33',
+      positiveBorder: '#1E4C57',
+      overlay: 'rgba(4,9,16,0.64)',
+    },
+    light: {
+      background: '#F1F6FA',
+      card: '#FFFFFF',
+      border: '#D8E4EC',
+      primary: '#0A6E82',
+      softGreen: '#2C6076',
+      text: '#0F1C28',
+      textSecondary: '#32475A',
+      muted: '#5A6E7E',
+      faint: '#7E93A2',
+      warning: '#B4551A',
+      warningStrong: '#924213',
+      onPrimary: '#FFFFFF',
+      celebrate: '#8A6400',
+      positiveSurface: '#E1F0F2',
+      positiveBorder: '#BCDDE0',
+      overlay: 'rgba(8,20,28,0.42)',
+    },
+  },
+  // voltage: near-black ink with an electric-blue current and magenta win
+  // sparks. The sleekest, most premium dark-first feel.
+  voltage: {
+    dark: {
+      background: '#0A0B10',
+      card: '#14161F',
+      border: '#272B39',
+      primary: '#4C8DFF',
+      softGreen: '#94B5F2',
+      text: '#F1F4FB',
+      textSecondary: '#C7CFDE',
+      muted: '#858FA3',
+      faint: '#596174',
+      warning: '#FFA13D',
+      warningStrong: '#FF7E33',
+      onPrimary: '#04122B',
+      celebrate: '#FF5CA8',
+      positiveSurface: '#111C30',
+      positiveBorder: '#1E3355',
+      overlay: 'rgba(3,4,8,0.66)',
+    },
+    light: {
+      background: '#F3F5FA',
+      card: '#FFFFFF',
+      border: '#DCE1EC',
+      primary: '#1F5AD6',
+      softGreen: '#3A5AA8',
+      text: '#111521',
+      textSecondary: '#333B4E',
+      muted: '#586074',
+      faint: '#7C859A',
+      warning: '#B4551A',
+      warningStrong: '#924213',
+      onPrimary: '#FFFFFF',
+      celebrate: '#B01C6E',
+      positiveSurface: '#E3ECF9',
+      positiveBorder: '#C2D3F0',
+      overlay: 'rgba(8,12,22,0.42)',
+    },
+  },
+  // ember: warm charcoal with a sunrise-coral pulse. The coziest option, a
+  // cooler rose warning keeps debt clear of the happy coral.
+  ember: {
+    dark: {
+      background: '#1B1613',
+      card: '#271F1B',
+      border: '#403129',
+      primary: '#FF7A54',
+      softGreen: '#F0B48A',
+      text: '#FBF3EC',
+      textSecondary: '#E0D2C6',
+      muted: '#AC9A8C',
+      faint: '#7B6C60',
+      warning: '#FF556E',
+      warningStrong: '#F53A57',
+      onPrimary: '#2A0E04',
+      celebrate: '#FFB020',
+      positiveSurface: '#2E2016',
+      positiveBorder: '#55402C',
+      overlay: 'rgba(12,8,6,0.64)',
+    },
+    light: {
+      background: '#FBF4EE',
+      card: '#FFFFFF',
+      border: '#EBDDD1',
+      primary: '#C1401C',
+      softGreen: '#9A5A2C',
+      text: '#241812',
+      textSecondary: '#4A382E',
+      muted: '#6E5A4C',
+      faint: '#9A8574',
+      warning: '#B41F3C',
+      warningStrong: '#911730',
+      onPrimary: '#FFFFFF',
+      celebrate: '#8A5A00',
+      positiveSurface: '#F3E7D8',
+      positiveBorder: '#E2CBAF',
+      overlay: 'rgba(28,16,8,0.42)',
+    },
+  },
+  // orchidgold: berry-plum base with gold trophies. The boldest, most
+  // fashion-forward option; gold celebrate makes wins feel like medals.
+  orchidgold: {
+    dark: {
+      background: '#180E22',
+      card: '#241634',
+      border: '#3D2755',
+      primary: '#F268B0',
+      softGreen: '#E0A8D6',
+      text: '#F8EFF6',
+      textSecondary: '#DCCAD8',
+      muted: '#A891AA',
+      faint: '#75627C',
+      warning: '#FF7A45',
+      warningStrong: '#F55A2C',
+      onPrimary: '#2B0A1E',
+      celebrate: '#F7C64B',
+      positiveSurface: '#28193A',
+      positiveBorder: '#4A2F63',
+      overlay: 'rgba(10,5,16,0.64)',
+    },
+    light: {
+      background: '#FAF2F8',
+      card: '#FFFFFF',
+      border: '#EBD9E8',
+      primary: '#B01C6E',
+      softGreen: '#8A3A78',
+      text: '#241020',
+      textSecondary: '#483042',
+      muted: '#6E566A',
+      faint: '#9A809A',
+      warning: '#BC3A16',
+      warningStrong: '#992C0F',
+      onPrimary: '#FFFFFF',
+      celebrate: '#8A6000',
+      positiveSurface: '#F3E4F0',
+      positiveBorder: '#E1C6DC',
+      overlay: 'rgba(26,10,22,0.42)',
+    },
+  },
 };
 
 // The brand default.
-export const DEFAULT_PALETTE = 'forest';
+export const DEFAULT_PALETTE = 'barako';
 
 // Kept for anything still importing the old names; they point at the brand.
-export const darkColors = palettes.forest.dark;
-export const lightColors = palettes.forest.light;
+export const darkColors = palettes.barako.dark;
+export const lightColors = palettes.barako.light;
 
 // Spacing scale. Use these instead of typing random numbers, so padding and
 // gaps stay consistent everywhere.

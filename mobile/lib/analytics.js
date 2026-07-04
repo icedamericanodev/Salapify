@@ -4,9 +4,82 @@
 // with total interest, and a financial health score. Everything computes
 // on the phone from local data, nothing leaves the device.
 
-import { todayISO } from './format';
+import { todayISO, nextPayday } from './format';
+import { upcomingDues, nextOccurrence, daysUntil } from './soa';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+
+// Accounts you can actually spend from day to day. Savings are deliberately
+// excluded: the whole point of safe to spend is to protect them.
+const LIQUID_KINDS = ['cash', 'ewallet', 'checking'];
+
+// The bills that land before the next sweldo, oldest first, with the total.
+// Two sources: card and loan dues, and recurring bills that have not already
+// posted this cycle (a posted one already left the balance). This is the
+// detail behind safeToSpend's committed number. Returns:
+//   { payday, daysLeft, bills: [{ name, kind, date, amount }], total }
+export function upcomingCommitments(data, ref = new Date()) {
+  const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const schedule = data.settings && data.settings.paydaySchedule;
+
+  // The horizon is the next sweldo. If today IS payday, the money just
+  // arrived, so look ahead to the one after.
+  let payday = nextPayday(today, schedule);
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (sameDay(payday, today)) {
+    payday = nextPayday(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), schedule);
+  }
+  const daysLeft = Math.max(1, daysUntil(payday, today));
+
+  const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const bills = [];
+  for (const d of upcomingDues(data.debts, daysLeft, today)) {
+    if (num(d.amount) > 0) {
+      bills.push({ name: (d.debt && d.debt.name) || 'Debt', kind: 'minimum', date: d.due, amount: num(d.amount) });
+    }
+  }
+  for (const r of data.recurring || []) {
+    if (!r || r.type !== 'expense') continue;
+    const posted = typeof r.lastPosted === 'string' && r.lastPosted >= monthKey;
+    if (posted) continue;
+    const amt = Math.max(0, num(r.amount));
+    const due = nextOccurrence(r.dayOfMonth, today);
+    if (due && due <= payday && amt > 0) {
+      bills.push({ name: r.label || 'Recurring', kind: 'bill', date: due, amount: amt });
+    }
+  }
+  bills.sort((a, b) => a.date - b.date);
+  const total = bills.reduce((t, b) => t + b.amount, 0);
+  return { payday, daysLeft, bills, total };
+}
+
+// Safe to spend until sweldo: how much is genuinely free to spend each day
+// between now and the next payday, after setting aside the bills that land
+// before then. Answers the one question people open a money app to ask,
+// "how much can I spend today and still make it to payday?". Everything is
+// computed from data already on the phone. Returns:
+//   { liquid, committed, available, perDay, daysLeft, payday, billCount }
+export function safeToSpend(data, ref = new Date()) {
+  const c = upcomingCommitments(data, ref);
+  // Spendable right now: cash, e-wallets, checking. Never savings.
+  const liquid = (data.accounts || []).reduce(
+    (t, a) => (a && LIQUID_KINDS.includes(a.kind) ? t + num(a.balance) : t),
+    0
+  );
+  const committed = c.total;
+  const available = liquid - committed;
+  const perDay = available > 0 ? available / c.daysLeft : 0;
+  return {
+    liquid,
+    committed,
+    available,
+    perDay,
+    daysLeft: c.daysLeft,
+    payday: c.payday,
+    billCount: c.bills.length,
+  };
+}
 
 // Month key like "2026-07" for a Date.
 function monthKey(d) {

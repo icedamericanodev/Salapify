@@ -13,7 +13,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
-import { upcomingDues } from '../../lib/soa';
+import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
 
@@ -48,6 +48,22 @@ export default function Overview() {
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
+
+  // Safe to spend until sweldo: the daily question, answered from spendable
+  // balances minus the bills that land before the next payday. Only shown
+  // when there is at least one spendable (non savings) account to reason
+  // about. The cycle bar shows how far through this pay period we are.
+  const sts = useMemo(() => safeToSpend(data), [data]);
+  const hasLiquid = (data.accounts || []).some((a) =>
+    ['cash', 'ewallet', 'checking'].includes(a.kind)
+  );
+  const cycleStart = prevPayday(new Date(), data.settings.paydaySchedule);
+  const cycleLen = Math.max(
+    1,
+    Math.round((sts.payday - new Date(cycleStart.getFullYear(), cycleStart.getMonth(), cycleStart.getDate())) / 86400000)
+  );
+  const cycleFrac = Math.max(0, Math.min(1, (cycleLen - sts.daysLeft) / cycleLen));
+  const stsDate = `${MONTHS_SHORT[sts.payday.getMonth()]} ${sts.payday.getDate()}`;
 
   // Days to the next payday on the user's own schedule, with extra energy
   // in the final stretch.
@@ -94,9 +110,17 @@ export default function Overview() {
   }, 0);
   const owedCount = unpaid.length;
 
-  // Payments coming due in the next 30 days (cards and loans with a due
-  // day set), so future cash flow is visible before it hits.
-  const dues = upcomingDues(data.debts, 30);
+  // The bills that land before the next sweldo, with a running balance so
+  // the katapusan question, "will my money survive until payday?", is
+  // answered bill by bill. This is the detail behind the safe to spend
+  // number above.
+  const commitments = useMemo(() => upcomingCommitments(data), [data]);
+  let runBal = sts.liquid;
+  const billRows = commitments.bills.map((b) => {
+    runBal -= b.amount;
+    return { ...b, after: runBal };
+  });
+  const endBalance = sts.liquid - commitments.total;
 
   // The sweldo plan: a guided three step card that appears for 48 hours
   // after each payday on the user's own schedule. The key is the payday's
@@ -210,6 +234,45 @@ export default function Overview() {
           </View>
         ) : null}
 
+        {/* Safe to spend until sweldo: the daily-open number. */}
+        {hasLiquid ? (
+          <View style={[styles.card, sts.available <= 0 && styles.safeTightCard]}>
+            <Text style={styles.kicker}>SAFE TO SPEND</Text>
+            {sts.available > 0 ? (
+              <>
+                <Text style={styles.safeBig}>
+                  {formatMoney(Math.floor(sts.perDay))}
+                  <Text style={styles.safeUnit}> /day</Text>
+                </Text>
+                <Text style={styles.safeSub}>
+                  for the {sts.daysLeft} {sts.daysLeft === 1 ? 'day' : 'days'} until sweldo on {stsDate}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.safeBig, { color: colors.warning }]}>Tight until sweldo</Text>
+                <Text style={styles.safeSub}>bills before payday use up your spendable cash</Text>
+              </>
+            )}
+            <View style={styles.cycleTrack}>
+              <View style={[styles.cycleFill, { width: `${Math.round(cycleFrac * 100)}%` }]} />
+            </View>
+            <Text style={styles.safeDetail}>
+              {sts.available > 0
+                ? `You have ${formatMoney(sts.available)} free to spend${
+                    sts.committed > 0
+                      ? `, after setting aside ${formatMoney(sts.committed)} for ${sts.billCount} ${
+                          sts.billCount === 1 ? 'bill' : 'bills'
+                        } due before then`
+                      : ''
+                  }. Spendable cash means everything except savings.`
+                : `${formatMoney(sts.committed)} in bills is due before sweldo on ${stsDate}, more than your ${formatMoney(
+                    sts.liquid
+                  )} spendable cash. Ease off until payday, or move some from savings.`}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Net worth headline. Tap to open Accounts. */}
         <Pressable
           onPress={() => router.push('/accounts')}
@@ -310,25 +373,35 @@ export default function Overview() {
           </Text>
         </Pressable>
 
-        {/* Payments coming due soon: cards and loans with a due day set. */}
-        {dues.length > 0 ? (
+        {/* Bills before the next sweldo, with a running balance. */}
+        {billRows.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>UPCOMING PAYMENTS</Text>
+            <Text style={styles.sectionTitle}>BILLS BEFORE SWELDO</Text>
             <View style={styles.card}>
-              {dues.map((u, i) => (
-                <View key={u.debt.id} style={[styles.dueRow, i > 0 && styles.dueDivider]}>
+              {billRows.map((b, i) => (
+                <View key={i} style={[styles.dueRow, i > 0 && styles.dueDivider]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.dueName}>{u.debt.name}</Text>
+                    <Text style={styles.dueName}>{b.name}</Text>
                     <Text style={styles.dueWhen}>
-                      {u.inDays === 0 ? 'Due today' : u.inDays === 1 ? 'Due tomorrow' : `In ${u.inDays} days`}
-                      {' '}({MONTHS_SHORT[u.due.getMonth()]} {u.due.getDate()})
+                      {b.kind} · {MONTHS_SHORT[b.date.getMonth()]} {b.date.getDate()}
                     </Text>
                   </View>
-                  <Text style={styles.dueAmount}>{formatMoney(u.amount)}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.dueAmount}>- {formatMoney(b.amount)}</Text>
+                    <Text style={[styles.dueWhen, { color: b.after < 0 ? colors.warning : colors.faint }]}>
+                      {formatMoney(b.after)} left
+                    </Text>
+                  </View>
                 </View>
               ))}
-              <Text style={styles.dueHint}>
-                Minimum amounts shown. Pay cards in full when you can to avoid interest.
+              <Text style={[styles.dueHint, endBalance < 0 && { color: colors.warning }]}>
+                {endBalance >= 0
+                  ? `After these ${billRows.length} ${billRows.length === 1 ? 'bill' : 'bills'} you will have ${formatMoney(
+                      endBalance
+                    )} spendable before sweldo on ${stsDate}. Card minimums shown; pay in full when you can to skip interest.`
+                  : `These bills total ${formatMoney(commitments.total)}, ${formatMoney(
+                      -endBalance
+                    )} more than your ${formatMoney(sts.liquid)} spendable cash. Move some from savings before they hit, or pay what you can.`}
               </Text>
             </View>
           </>
@@ -461,6 +534,26 @@ function makeStyles(colors) {
       marginTop: spacing.xs,
       marginBottom: spacing.lg,
     },
+    safeTightCard: { borderColor: colors.warning },
+    safeBig: {
+      color: colors.primary,
+      fontSize: fontSize.huge,
+      fontWeight: fontWeight.heavy,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.5,
+      marginTop: spacing.xs,
+    },
+    safeUnit: { color: colors.muted, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0 },
+    safeSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: 2 },
+    cycleTrack: {
+      height: 6,
+      borderRadius: radius.pill,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
+      marginTop: spacing.md,
+    },
+    cycleFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
+    safeDetail: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm, lineHeight: 19 },
     cashFlow: {
       fontSize: fontSize.huge,
       fontWeight: fontWeight.heavy,

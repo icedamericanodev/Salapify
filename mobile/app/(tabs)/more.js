@@ -22,7 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { spacing, radius, fontSize, fontWeight } from '../../theme';
+import { spacing, radius, fontSize, fontWeight, palettes } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, normalizeSchedule, scheduleLabel } from '../../lib/format';
@@ -47,10 +47,17 @@ const APPEARANCE = [
   { key: 'system', label: 'System' },
 ];
 
-// The two color themes. Forest is the Salapify brand; Mint is the original.
+// The color themes. Barako is the Salapify brand; Forest and Mint are
+// alternates kept for anyone who prefers green.
 const PALETTE_OPTIONS = [
-  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green. The Salapify look.' },
-  { key: 'mint', label: 'Mint', hint: 'The original glowing green.' },
+  { key: 'barako', label: 'Barako', hint: 'Roasted orange on dark-roast coffee. The Salapify look.' },
+  { key: 'ultraviolet', label: 'Ultraviolet', hint: 'Midnight violet with an electric-lime glow.' },
+  { key: 'tidal', label: 'Tidal', hint: 'Deep navy with a vivid aqua pop.' },
+  { key: 'voltage', label: 'Voltage', hint: 'Ink black with an electric-blue current.' },
+  { key: 'ember', label: 'Ember', hint: 'Warm charcoal with a sunrise coral.' },
+  { key: 'orchidgold', label: 'Orchid Gold', hint: 'Berry plum with gold trophies.' },
+  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green.' },
+  { key: 'mint', label: 'Mint', hint: 'A glowing green.' },
 ];
 
 const DATA_ACTIONS = [
@@ -432,8 +439,18 @@ export default function More() {
         <View style={styles.card}>
           {PALETTE_OPTIONS.map((opt, i) => {
             const selected = palette === opt.key;
+            // A little three dot preview from the theme's dark variant, so
+            // you can browse by look: base, brand accent, and win color.
+            const pv = palettes[opt.key] && palettes[opt.key].dark;
             return (
               <Pressable key={opt.key} onPress={() => setPalette(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
+                {pv ? (
+                  <View style={styles.swatchRow}>
+                    <View style={[styles.swatchDot, { backgroundColor: pv.background, borderColor: pv.border }]} />
+                    <View style={[styles.swatchDot, styles.swatchOverlap, { backgroundColor: pv.primary, borderColor: pv.background }]} />
+                    <View style={[styles.swatchDot, styles.swatchOverlap, { backgroundColor: pv.celebrate, borderColor: pv.background }]} />
+                  </View>
+                ) : null}
                 <View style={{ flex: 1, paddingRight: spacing.md }}>
                   <Text style={styles.rowLabel}>{opt.label}</Text>
                   <Text style={styles.rowHint}>{opt.hint}</Text>
@@ -613,7 +630,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.9: gate fixes, ready for Monday</Text>
+            <Text style={styles.rowValue}>v3.2: Barako brand and 8 themes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -870,6 +887,9 @@ function makeStyles(colors) {
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
     rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
+    swatchRow: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
+    swatchDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 1 },
+    swatchOverlap: { marginLeft: -8 },
     sizeNote: { color: colors.muted, fontSize: fontSize.small, paddingVertical: spacing.md },
     soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
