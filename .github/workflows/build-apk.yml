@@ -1,0 +1,38 @@
+name: Build preview APK
+
+# Kicked off by pushing a tag like build-1. Produces an internal Android APK
+# on EAS that installs directly on a phone (not through the Play Store), on
+# the preview channel so it receives over the air updates afterward. The
+# GitHub runner only submits the job; the actual build runs on EAS. Auth is
+# the EXPO_TOKEN repository secret. EAS reuses the app's existing signing
+# keystore, so a new build installs over the old app without losing data.
+
+on:
+  push:
+    tags:
+      - 'build-*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - name: Build Android preview APK
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile preview --non-interactive
