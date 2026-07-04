@@ -452,14 +452,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Quick add buttons</Text>
             <Text style={styles.rowValue}>{(settings.quickAdds || []).length}</Text>
           </Pressable>
-          <View style={[styles.row, styles.rowDivider]}>
-            <Text style={styles.rowLabel}>Categories and income</Text>
-            <Text style={styles.soon}>Soon</Text>
-          </View>
-          <View style={[styles.row, styles.rowDivider]}>
-            <Text style={styles.rowLabel}>Logging preference</Text>
-            <Text style={styles.soon}>Soon</Text>
-          </View>
+          <Pressable onPress={() => router.push('/categories')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Categories and caps</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>DATA</Text>
@@ -497,7 +493,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.3: day 3 polish</Text>
+            <Text style={styles.rowValue}>v2.4: categories and caps</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
