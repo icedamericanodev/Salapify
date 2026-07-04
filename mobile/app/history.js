@@ -340,7 +340,11 @@ export default function History() {
           styles={styles}
           onClose={() => setEditTx(null)}
           onSave={(patch) => {
-            updateTransaction(editTx.id, patch);
+            // Keep the category tag honest after an edit: the tag follows
+            // the new label (matching category name), otherwise it clears,
+            // so caps and charts can never disagree about a relabeled peso.
+            const cat = (data.categories || []).find((c) => c.name === patch.label);
+            updateTransaction(editTx.id, { ...patch, categoryId: cat ? cat.id : undefined });
             setEditTx(null);
           }}
         />

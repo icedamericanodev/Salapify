@@ -536,7 +536,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.5: search and reminders</Text>
+            <Text style={styles.rowValue}>v2.6: day 6 hardening</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

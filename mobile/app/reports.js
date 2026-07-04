@@ -4,8 +4,8 @@
 //  - Cash Flow (money in, money out incl. debt payments, net change)
 // Reached from the More tab. Read-only summaries.
 
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,8 +25,14 @@ export default function Reports() {
   const { data } = useAppData();
   const pro = !!(data.settings && data.settings.pro);
   const hasDebts = (data.debts || []).some((d) => d && d.remaining > 0);
-  const avalanche = pro && hasDebts ? debtFreeProjection(data.debts, 'avalanche') : null;
-  const snowball = pro && hasDebts ? debtFreeProjection(data.debts, 'snowball') : null;
+  // The strategies only differ when there is EXTRA money beyond minimums
+  // (that is what avalanche and snowball allocate differently). With no
+  // extra, showing two identical lines as a comparison would be fake, so
+  // the user types their extra amount and the plan responds honestly.
+  const [extraText, setExtraText] = useState('');
+  const extra = Math.max(0, Number(String(extraText).replace(/[, ]/g, '')) || 0);
+  const avalanche = pro && hasDebts ? debtFreeProjection(data.debts, 'avalanche', extra) : null;
+  const snowball = pro && hasDebts ? debtFreeProjection(data.debts, 'snowball', extra) : null;
   const interestSaved = avalanche && snowball ? snowball.totalInterest - avalanche.totalInterest : 0;
 
   const sum = (list, fn) => (list || []).reduce((t, x) => t + fn(x), 0);
@@ -131,17 +137,42 @@ export default function Reports() {
             </Text>
           ) : (
             <>
-              {avalanche ? (
-                <Line label={`Avalanche: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
-              ) : null}
-              {snowball ? (
-                <Line label={`Snowball: debt free ${fmtMonth(snowball.date)}`} value={snowball.totalInterest} color={colors.warning} />
-              ) : null}
-              <Text style={styles.projNote}>
-                Amounts are total interest paid along the way, assuming your minimum
-                payments continue.{interestSaved > 0 ? ` Avalanche saves you ${formatMoney(interestSaved)} in interest.` : ''} Every
-                extra peso toward the focus debt moves the date closer.
-              </Text>
+              <Text style={styles.extraLabel}>Extra you can pay per month, beyond the minimums</Text>
+              <TextInput
+                style={styles.extraInput}
+                value={extraText}
+                onChangeText={setExtraText}
+                placeholder="e.g. 2000"
+                placeholderTextColor={colors.faint}
+                keyboardType="numeric"
+              />
+              {extra > 0 ? (
+                <>
+                  {avalanche ? (
+                    <Line label={`Avalanche: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
+                  ) : null}
+                  {snowball ? (
+                    <Line label={`Snowball: debt free ${fmtMonth(snowball.date)}`} value={snowball.totalInterest} color={colors.warning} />
+                  ) : null}
+                  <Text style={styles.projNote}>
+                    Amounts are total interest paid along the way.
+                    {interestSaved > 0
+                      ? ` With ${formatMoney(extra)} extra monthly, avalanche saves you ${formatMoney(interestSaved)} in interest versus snowball.`
+                      : ` With ${formatMoney(extra)} extra monthly, both strategies cost about the same here.`}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  {avalanche ? (
+                    <Line label={`Minimums only: debt free ${fmtMonth(avalanche.date)}`} value={avalanche.totalInterest} color={colors.primary} />
+                  ) : null}
+                  <Text style={styles.projNote}>
+                    That amount is the total interest paid along the way at minimum
+                    payments. Type an extra amount above and the plan shows which
+                    strategy, avalanche or snowball, saves you more.
+                  </Text>
+                </>
+              )}
             </>
           )}
         </View>
@@ -174,5 +205,7 @@ function makeStyles(colors) {
     footnote: { color: colors.faint, fontSize: fontSize.small, textAlign: 'center', marginTop: spacing.sm },
     proBadge: { color: colors.celebrate, fontWeight: fontWeight.heavy },
     projNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
+    extraLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs },
+    extraInput: { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, color: colors.text, fontSize: fontSize.body, marginBottom: spacing.md },
   });
 }

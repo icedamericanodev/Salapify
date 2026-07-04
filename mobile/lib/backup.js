@@ -160,6 +160,10 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
     assets: cleanList(src.assets).map((a) => ({ ...a, value: num(a.value) })),
     debts: cleanList(src.debts).map((d) => ({
       ...d,
+      // Text fields become strings too: screens call .trim() on these in
+      // press handlers, where a number from a bad blob is a hard crash.
+      name: str(d.name, 'Debt'),
+      type: str(d.type, 'other'),
       remaining: num(d.remaining),
       monthlyRate: num(d.monthlyRate),
       minPayment: num(d.minPayment),
@@ -168,11 +172,13 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       graceDays: num(d.graceDays),
       creditLimit: num(d.creditLimit),
     })),
-    payments: dated(src.payments).map((p) => ({ ...p, amount: num(p.amount) })),
+    payments: dated(src.payments).map((p) => ({ ...p, amount: Math.max(0, num(p.amount)) })),
     transactions: dated(src.transactions).map((t) => {
       const out = {
         ...t,
-        amount: num(t.amount),
+        // Negative amounts are direction smuggling (an expense that ADDS
+        // money); the type field owns direction, amounts stay positive.
+        amount: Math.max(0, num(t.amount)),
         type: t.type === 'income' ? 'income' : 'expense',
         label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
       };
@@ -192,6 +198,8 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
     }),
     goals: cleanList(src.goals).map((g) => ({
       ...g,
+      name: str(g.name, 'Goal'),
+      targetDate: str(g.targetDate),
       target: num(g.target),
       saved: num(g.saved),
     })),
@@ -237,6 +245,9 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       ...r,
       person: typeof r.person === 'string' && r.person ? r.person : 'Someone',
       personId: str(r.personId),
+      dueDate: str(r.dueDate),
+      phone: str(r.phone),
+      note: str(r.note),
       amount: num(r.amount),
       paid: !!r.paid,
       payments: cleanList(r.payments).map((p) => ({
@@ -245,12 +256,22 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         date: typeof p.date === 'string' && p.date ? p.date : stampDate,
       })),
     })),
-    settings: {
-      ...settings,
-      monthlyLimit: num(settings.monthlyLimit),
-      quickAdds: cleanList(settings.quickAdds),
-      appLock: keepAppLock ? !!settings.appLock : false,
-    },
+    settings: (() => {
+      const s = {
+        ...settings,
+        monthlyLimit: num(settings.monthlyLimit),
+        quickAdds: cleanList(settings.quickAdds),
+        appLock: keepAppLock ? settings.appLock === true : false,
+        // Strict boolean: a truthy string like "no" must not unlock Pro.
+        pro: settings.pro === true,
+        notifications: isObj(settings.notifications) ? settings.notifications : {},
+      };
+      // Junk currency poisons every formatted amount app wide; a missing
+      // key lets the seed defaults fill in instead.
+      if (typeof s.currency !== 'string' || !s.currency) delete s.currency;
+      if (typeof s.currencyCode !== 'string') delete s.currencyCode;
+      return s;
+    })(),
   };
 }
 
