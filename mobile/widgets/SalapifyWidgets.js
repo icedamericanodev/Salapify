@@ -1,17 +1,17 @@
 // The two Android home screen widgets, drawn with the widget library's own
 // primitives (FlexWidget and TextWidget render to real Android widget
-// views, not React Native views). Colors are hard coded to the dark brand
-// palette because widgets cannot read the app's theme context.
+// views, not React Native views). Colors are hard coded to the Barako dark
+// brand palette because widgets cannot read the app's theme context.
 
 import React from 'react';
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
-const BG = '#101E15';
-const BORDER = '#33503D';
-const MINT = '#FFA45C';
-const TEXT = '#FBF7EF';
-const MUTED = '#9DAF9D';
-const WARN = '#E8785A';
+const BG = '#1A130E'; // dark-roast espresso base
+const BORDER = '#3A2A20';
+const MINT = '#FF8A3D'; // roasted orange (the brand accent, name kept)
+const TEXT = '#FBF3E9'; // steamed-milk cream
+const MUTED = '#A99182';
+const WARN = '#FF5D73'; // rose-crimson
 
 function money(n, symbol = '₱') {
   const v = Math.round(Number(n) || 0);

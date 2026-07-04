@@ -1,1 +1,2 @@
 build request 1: preview APK for runtime 1.2.1 (Barako + themes + analytics)
+build request 2: preview APK for runtime 1.3.0 (Skia Pan + reanimated + home widgets)
