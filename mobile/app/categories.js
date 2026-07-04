@@ -36,14 +36,17 @@ export default function Categories() {
   const pro = !!data.settings.pro;
 
   // This month's spending per category: tagged entries count by id, and
-  // untagged entries count by matching label, so history still shows up.
+  // entries whose tag no longer exists (deleted category) or that were
+  // never tagged fall back to label matching, so history keeps counting.
+  const validIds = new Set(list.map((c) => c.id));
   const spentFor = (c) =>
     (data.transactions || [])
       .filter(
         (t) =>
           t.type === 'expense' &&
           isThisMonth(t.date) &&
-          (t.categoryId === c.id || (!t.categoryId && t.label === c.name))
+          (t.categoryId === c.id ||
+            ((!t.categoryId || !validIds.has(t.categoryId)) && t.label === c.name))
       )
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 

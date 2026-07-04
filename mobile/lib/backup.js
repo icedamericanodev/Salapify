@@ -97,7 +97,9 @@ const MIGRATIONS = {
   // already carry categories keep theirs. Existing transactions stay
   // uncategorized on purpose, guessing would be inventing history.
   4: (d) => {
-    if (Array.isArray(d.categories) && d.categories.length > 0) return { ...d };
+    // cleanList, not raw length: a blob carrying [null] must not block
+    // the seed and then coerce down to zero categories.
+    if (cleanList(d.categories).length > 0) return { ...d };
     return { ...d, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })) };
   },
 };
@@ -203,13 +205,23 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       accountId: str(r.accountId),
       lastPosted: str(r.lastPosted),
     })),
-    categories: cleanList(src.categories).map((c, i) => ({
-      ...c,
-      id: typeof c.id === 'string' && c.id ? c.id : `cat_restored_${i}`,
-      name: str(c.name, 'Category'),
-      icon: str(c.icon, '🏷️'),
-      monthlyCap: Math.max(0, num(c.monthlyCap)),
-    })),
+    categories: (() => {
+      // Ids must be unique: a hand edited backup with two cat_food rows
+      // would double count the same money in both and break editing.
+      const seen = new Set();
+      return cleanList(src.categories).map((c, i) => {
+        let id = typeof c.id === 'string' && c.id ? c.id : `cat_restored_${i}`;
+        while (seen.has(id)) id = `${id}_dup`;
+        seen.add(id);
+        return {
+          ...c,
+          id,
+          name: str(c.name, 'Category'),
+          icon: str(c.icon, '🏷️'),
+          monthlyCap: Math.max(0, num(c.monthlyCap)),
+        };
+      });
+    })(),
     people: cleanList(src.people).map((p) => ({
       ...p,
       name: str(p.name, 'Someone'),
