@@ -11,6 +11,11 @@ Never use em dashes or en dashes anywhere: code comments, commit messages,
 PR text, UI copy, ads. Use commas or periods instead. Plain English
 explanations for the founder, who is a beginner. Small tested steps.
 
+Marketing ads are ALWAYS in English (the audience is global). Filipino
+words appear only as product identity flavor (utang, sweldo). Never
+promise "free forever" in marketing; the truthful lines are core features
+free forever, free during early access, and early users keep Pro free.
+
 ## Development workflow
 
 1. Develop on the branch claude/salapify-v2 and open PRs to main.
