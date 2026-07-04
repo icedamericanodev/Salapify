@@ -24,10 +24,14 @@ free forever, free during early access, and early users keep Pro free.
 3. Commit per milestone with a clear message explaining the why. Push in
    batches (once per finished feature batch, not per commit): every push
    to mobile/ costs a publish job in a slow shared queue.
-4. JS only changes ship over the air: every push to the branch triggers
-   the EAS workflow that publishes to the preview update channel. Bump the
-   Update stamp row in mobile/app/(tabs)/more.js on every push so the
-   founder can verify on the phone which bundle arrived.
+4. JS only changes ship over the air: every push to the branch that
+   touches mobile/ triggers the "Publish OTA update" GitHub Action
+   (.github/workflows/eas-update.yml), which runs eas update on the
+   preview channel using the EXPO_TOKEN repo secret. This runs on
+   GitHub's free runners and does NOT use the EAS CI/CD minute allowance
+   (the old .eas workflow did, and ran it out). Bump the Update stamp row
+   in mobile/app/(tabs)/more.js on every push so the founder can verify on
+   the phone which bundle arrived.
 5. Native changes (new native modules, app.json plugin or version changes)
    need a full APK rebuild on EAS and a version bump to isolate runtimes.
    Flag these loudly, they are not over the air.
@@ -38,7 +42,11 @@ Claude reviews and merges every PR itself, for all builds, when ALL of
 these hold:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked.
-- The Expo publish status check on the PR head commit is green.
+- The over the air publish check on the PR head commit is green (the
+  "Publish OTA update" GitHub Action). If that mechanism is ever blocked
+  by billing or infrastructure rather than by the code, that condition is
+  waived and the founder is told; a QA pass plus compile and harness green
+  is enough to merge in that case.
 - The merge uses "Create a merge commit". Never squash, squash rewrites
   history and causes merge conflicts on the next PR every single time.
 

@@ -1,0 +1,56 @@
+name: Publish OTA update
+
+# Publishes the mobile app's JavaScript as an over the air update on the
+# "preview" channel whenever mobile code lands on the dev branch. The
+# installed preview APK checks this channel on launch and runs the new code
+# next open. No rebuild, no dev server.
+#
+# This runs on GitHub's own free runners and authenticates to Expo with the
+# EXPO_TOKEN repository secret, so it does NOT consume the EAS CI/CD minute
+# allowance (that is what the old .eas workflow used up). Publishing an
+# update through EAS Update itself is free. Only native changes (new native
+# modules, or app.json plugin, permission, or version changes) still need a
+# real APK rebuild; those are never over the air.
+
+on:
+  push:
+    branches:
+      - claude/salapify-v2
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+
+# Never let two publishes race; let an in flight one finish rather than
+# cancelling, so a half published update never reaches a phone.
+concurrency:
+  group: eas-update-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - name: Publish preview update
+        working-directory: mobile
+        # The commit message is passed as an env value (not interpolated into
+        # the shell command) so a crafted commit message can never inject a
+        # command. Falls back to a default for manual runs.
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
+        run: eas update --branch preview --message "${UPDATE_MESSAGE:-manual update}" --non-interactive
