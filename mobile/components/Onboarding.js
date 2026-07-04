@@ -31,6 +31,12 @@ export default function Onboarding() {
   });
   const [limit, setLimit] = useState(String(data.settings.monthlyLimit || 20000));
 
+  // After Erase everything the app is already empty, so the sample data
+  // pitch on step 2 would be a lie. This flips step 2 to one honest button.
+  const hasAnything = ['accounts', 'transactions', 'debts', 'receivables'].some(
+    (k) => (data[k] || []).length > 0
+  );
+
   function finish(startEmpty) {
     // Accept human typing: commas and spaces stripped, capped at 100 million.
     const n = Number(String(limit).replace(/[,\s]/g, ''));
@@ -126,18 +132,34 @@ export default function Onboarding() {
         {step === 2 ? (
           <View>
             <Text style={styles.stepKicker}>STEP 2 OF 2</Text>
-            <Text style={styles.heading}>How do you want to start?</Text>
-            <Text style={styles.body}>
-              The app comes with a little sample data so you can poke around
-              and see how everything works. Or begin with a clean slate.
-            </Text>
+            {hasAnything ? (
+              <>
+                <Text style={styles.heading}>How do you want to start?</Text>
+                <Text style={styles.body}>
+                  The app comes with a little sample data so you can poke around
+                  and see how everything works. Or begin with a clean slate.
+                </Text>
 
-            <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
-              <Text style={styles.primaryText}>Explore with what is in the app</Text>
-            </Pressable>
-            <Pressable onPress={() => finish(true)} style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}>
-              <Text style={styles.secondaryText}>Start empty</Text>
-            </Pressable>
+                <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+                  <Text style={styles.primaryText}>Explore with what is in the app</Text>
+                </Pressable>
+                <Pressable onPress={() => finish(true)} style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}>
+                  <Text style={styles.secondaryText}>Start empty</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.heading}>You are all set.</Text>
+                <Text style={styles.body}>
+                  The app is empty and ready. Add your accounts, log your first
+                  entry, and your streak starts today.
+                </Text>
+
+                <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+                  <Text style={styles.primaryText}>Start tracking</Text>
+                </Pressable>
+              </>
+            )}
 
             <Text style={styles.hint}>
               Tip: after this, the Budget tab is where daily life happens. Log
