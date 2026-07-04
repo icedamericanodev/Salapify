@@ -2,16 +2,63 @@
 // corner radius, and font sizes. Every screen imports from here, so the look
 // stays consistent and we can restyle the whole app by editing this one file.
 //
-// Two color themes, each with dark and light variants:
-//  - forest: the Salapify brand. Deep forest green base, warm cream text,
-//    and light orange doing the dopamine work. Cozy and warm.
-//  - mint: the original look. Near black green base with a glowing mint.
-//    Clean and techy.
-// Rules both themes share: warning is reserved for debt and over limit
-// states (never ordinary spending), celebrate appears only during earned
-// moments, and every text pairing passes WCAG AA.
+// Color themes, each with dark and light variants:
+//  - barako: the Salapify brand. Dark-roast espresso base (oat-milk latte in
+//    light), roasted orange doing the dopamine work, caramel and amber for
+//    kickers and wins. Warm café energy, never green.
+//  - forest: an alternate theme. Deep forest green base with light orange.
+//  - mint: an alternate theme. Near black green base with a glowing mint.
+// Rules every theme shares: warning is reserved for debt and over limit
+// states (never ordinary spending) and is a clearly different hue from the
+// positive primary, celebrate appears only during earned moments, and every
+// text pairing passes WCAG AA.
 
 export const palettes = {
+  // barako: the Salapify brand. Dark-roast espresso base, oat-milk latte in
+  // light, roasted orange doing the dopamine work, warm caramel and amber
+  // for kickers and wins. Warning is deliberately pushed to crimson (about
+  // a 32 degree hue gap from the orange primary) so debt and over limit
+  // never blur with positive money, which is warm orange. Every pairing
+  // passes WCAG AA; the tightest is burnt orange as money text on the light
+  // cream at 4.72, which is why the light primary is this deep.
+  barako: {
+    dark: {
+      background: '#1A130E',
+      card: '#251A13',
+      border: '#3A2A20',
+      primary: '#FF8A3D', // roasted orange: buttons, positive numbers, streaks
+      softGreen: '#E9BC8E', // warm caramel kicker (legacy name, not green)
+      text: '#FBF3E9', // steamed-milk cream
+      textSecondary: '#E0CEBB',
+      muted: '#A99182',
+      faint: '#77624F',
+      warning: '#FF5D73', // rose-crimson, distinct from the happy orange
+      warningStrong: '#F5384F',
+      onPrimary: '#2A1305', // espresso brown on orange fills
+      celebrate: '#FFC24D', // amber gold
+      positiveSurface: '#2E2114',
+      positiveBorder: '#55402C',
+      overlay: 'rgba(10,7,5,0.64)',
+    },
+    light: {
+      background: '#F7F1E7', // oat-milk latte cream
+      card: '#FFFDF7',
+      border: '#E7DCC9',
+      primary: '#AE5019', // deep roasted orange, passes AA as money text on cream
+      softGreen: '#8A5A2E', // warm brown kicker
+      text: '#241812',
+      textSecondary: '#4A382E',
+      muted: '#6E5A4C',
+      faint: '#9A8574',
+      warning: '#B01E38', // brick-crimson
+      warningStrong: '#8C1329',
+      onPrimary: '#FFFFFF',
+      celebrate: '#8A5A00',
+      positiveSurface: '#F3E7D5',
+      positiveBorder: '#E2CBAF',
+      overlay: 'rgba(28,16,8,0.42)',
+    },
+  },
   forest: {
     dark: {
       background: '#101E15',
@@ -91,11 +138,11 @@ export const palettes = {
 };
 
 // The brand default.
-export const DEFAULT_PALETTE = 'forest';
+export const DEFAULT_PALETTE = 'barako';
 
 // Kept for anything still importing the old names; they point at the brand.
-export const darkColors = palettes.forest.dark;
-export const lightColors = palettes.forest.light;
+export const darkColors = palettes.barako.dark;
+export const lightColors = palettes.barako.light;
 
 // Spacing scale. Use these instead of typing random numbers, so padding and
 // gaps stay consistent everywhere.

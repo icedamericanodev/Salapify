@@ -47,10 +47,12 @@ const APPEARANCE = [
   { key: 'system', label: 'System' },
 ];
 
-// The two color themes. Forest is the Salapify brand; Mint is the original.
+// The color themes. Barako is the Salapify brand; Forest and Mint are
+// alternates kept for anyone who prefers green.
 const PALETTE_OPTIONS = [
-  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green. The Salapify look.' },
-  { key: 'mint', label: 'Mint', hint: 'The original glowing green.' },
+  { key: 'barako', label: 'Barako', hint: 'Roasted orange on dark-roast coffee. The Salapify look.' },
+  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green.' },
+  { key: 'mint', label: 'Mint', hint: 'A glowing green.' },
 ];
 
 const DATA_ACTIONS = [
@@ -613,7 +615,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.0: safe to spend and money breakdown</Text>
+            <Text style={styles.rowValue}>v3.1: Barako brand, bills before sweldo</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
