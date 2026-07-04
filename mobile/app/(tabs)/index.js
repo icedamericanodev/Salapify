@@ -14,6 +14,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { upcomingDues } from '../../lib/soa';
+import { safeToSpend } from '../../lib/analytics';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
 
@@ -48,6 +49,22 @@ export default function Overview() {
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
+
+  // Safe to spend until sweldo: the daily question, answered from spendable
+  // balances minus the bills that land before the next payday. Only shown
+  // when there is at least one spendable (non savings) account to reason
+  // about. The cycle bar shows how far through this pay period we are.
+  const sts = useMemo(() => safeToSpend(data), [data]);
+  const hasLiquid = (data.accounts || []).some((a) =>
+    ['cash', 'ewallet', 'checking'].includes(a.kind)
+  );
+  const cycleStart = prevPayday(new Date(), data.settings.paydaySchedule);
+  const cycleLen = Math.max(
+    1,
+    Math.round((sts.payday - new Date(cycleStart.getFullYear(), cycleStart.getMonth(), cycleStart.getDate())) / 86400000)
+  );
+  const cycleFrac = Math.max(0, Math.min(1, (cycleLen - sts.daysLeft) / cycleLen));
+  const stsDate = `${MONTHS_SHORT[sts.payday.getMonth()]} ${sts.payday.getDate()}`;
 
   // Days to the next payday on the user's own schedule, with extra energy
   // in the final stretch.
@@ -207,6 +224,45 @@ export default function Overview() {
           <View style={styles.planCard}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>All three done. This cycle is planned. Nice one. ✅</Text>
+          </View>
+        ) : null}
+
+        {/* Safe to spend until sweldo: the daily-open number. */}
+        {hasLiquid ? (
+          <View style={[styles.card, sts.available <= 0 && styles.safeTightCard]}>
+            <Text style={styles.kicker}>SAFE TO SPEND</Text>
+            {sts.available > 0 ? (
+              <>
+                <Text style={styles.safeBig}>
+                  {formatMoney(Math.floor(sts.perDay))}
+                  <Text style={styles.safeUnit}> /day</Text>
+                </Text>
+                <Text style={styles.safeSub}>
+                  for the {sts.daysLeft} {sts.daysLeft === 1 ? 'day' : 'days'} until sweldo on {stsDate}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.safeBig, { color: colors.warning }]}>Tight until sweldo</Text>
+                <Text style={styles.safeSub}>bills before payday use up your spendable cash</Text>
+              </>
+            )}
+            <View style={styles.cycleTrack}>
+              <View style={[styles.cycleFill, { width: `${Math.round(cycleFrac * 100)}%` }]} />
+            </View>
+            <Text style={styles.safeDetail}>
+              {sts.available > 0
+                ? `You have ${formatMoney(sts.available)} free to spend${
+                    sts.committed > 0
+                      ? `, after setting aside ${formatMoney(sts.committed)} for ${sts.billCount} ${
+                          sts.billCount === 1 ? 'bill' : 'bills'
+                        } due before then`
+                      : ''
+                  }. Spendable cash means everything except savings.`
+                : `${formatMoney(sts.committed)} in bills is due before sweldo on ${stsDate}, more than your ${formatMoney(
+                    sts.liquid
+                  )} spendable cash. Ease off until payday, or move some from savings.`}
+            </Text>
           </View>
         ) : null}
 
@@ -461,6 +517,26 @@ function makeStyles(colors) {
       marginTop: spacing.xs,
       marginBottom: spacing.lg,
     },
+    safeTightCard: { borderColor: colors.warning },
+    safeBig: {
+      color: colors.primary,
+      fontSize: fontSize.huge,
+      fontWeight: fontWeight.heavy,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.5,
+      marginTop: spacing.xs,
+    },
+    safeUnit: { color: colors.muted, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0 },
+    safeSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: 2 },
+    cycleTrack: {
+      height: 6,
+      borderRadius: radius.pill,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
+      marginTop: spacing.md,
+    },
+    cycleFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
+    safeDetail: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm, lineHeight: 19 },
     cashFlow: {
       fontSize: fontSize.huge,
       fontWeight: fontWeight.heavy,
