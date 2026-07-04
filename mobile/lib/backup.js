@@ -182,11 +182,12 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         type: t.type === 'income' ? 'income' : 'expense',
         label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
       };
-      // receiptUri must be a relative path INSIDE the receipts folder or
-      // absent. Anything else (a crafted https url in a backup file, an
-      // absolute path outside the app) is dropped: the Image viewer must
-      // never be tricked into fetching a remote address.
-      if (typeof t.receiptUri === 'string' && /^receipts\/[A-Za-z0-9_.-]+$/.test(t.receiptUri)) {
+      // receiptUri must match the exact shape the app itself writes,
+      // receipts/receipt_<id>.<ext>, or be absent. Anything else (a crafted
+      // https url in a backup file, an absolute path, a dot path like
+      // receipts/.. that would let deleteReceipt escape the folder) is
+      // dropped: the viewer and the file deleter must never leave receipts/.
+      if (typeof t.receiptUri === 'string' && /^receipts\/receipt_[a-z0-9]+\.[A-Za-z0-9]+$/.test(t.receiptUri)) {
         out.receiptUri = t.receiptUri;
       } else {
         delete out.receiptUri;

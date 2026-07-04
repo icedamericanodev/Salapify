@@ -12,9 +12,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -202,9 +204,13 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   return (
     <>
       <Modal visible={!!visible} transparent animationType="slide" onRequestClose={cancel}>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          style={styles.overlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Pressable style={styles.backdrop} onPress={cancel} />
           <View style={styles.sheet}>
+            <ScrollView keyboardShouldPersistTaps="handled">
             <Text style={styles.sheetTitle}>Add entry</Text>
 
             <View style={styles.typeRow}>
@@ -382,8 +388,9 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                 <Text style={styles.saveText}>Add</Text>
               </Pressable>
             </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {toast ? (
@@ -422,6 +429,7 @@ function makeStyles(colors) {
       borderColor: colors.border,
       borderWidth: 1,
       padding: spacing.xl,
+      maxHeight: '90%',
     },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
 

@@ -5,9 +5,11 @@
 
 import { useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -43,7 +45,7 @@ export default function Budget() {
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
   const [receiptView, setReceiptView] = useState(''); // full screen receipt photo
   const [receiptDead, setReceiptDead] = useState(false); // photo missing on this phone
-  const [toast, setToast] = useState(null); // {text, id} after logging
+  const [toast, setToast] = useState(null); // {text, undo} after a log or delete
   const toastTimer = useRef(null);
 
   const limit = data.settings.monthlyLimit || 0;
@@ -57,25 +59,25 @@ export default function Budget() {
   const pct = limit ? Math.min(Math.round((spent / limit) * 100), 100) : 0;
   const over = spent > limit;
 
-  // Newest first.
-  const recent = [...data.transactions].reverse();
+  // Newest first BY DATE, so a backdated entry or a recurring bill posted
+  // mid month lands where it belongs, matching History's ordering.
+  // Insertion order breaks ties, newest log first.
+  const recent = data.transactions
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => {
+      const byDate = String(b.t.date || '').localeCompare(String(a.t.date || ''));
+      return byDate !== 0 ? byDate : b.i - a.i;
+    })
+    .map((x) => x.t);
 
   // A little celebration after every log: a light buzz and a toast that
   // springs up from the bottom with Undo, so double taps and slips are one
   // tap to fix. The habit being rewarded is logging itself, never the amount.
   const toastAnim = useRef(new Animated.Value(0)).current;
   const toastCount = useRef(0);
-  function celebrate(label, amount, id) {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    } catch (e) {
-      // Haptics are not available on web. That is fine.
-    }
+  function showToast(text, undo) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    const n = toastCount.current++;
-    const emoji = TOAST_EMOJI[n % TOAST_EMOJI.length];
-    const praise = TOAST_PRAISE[n % TOAST_PRAISE.length];
-    setToast({ text: `${emoji} ${label} ${formatMoney(amount)}. ${praise}`, id });
+    setToast({ text, undo });
     toastAnim.setValue(0);
     Animated.spring(toastAnim, { toValue: 1, friction: 6, useNativeDriver: true }).start();
     toastTimer.current = setTimeout(() => {
@@ -84,10 +86,41 @@ export default function Budget() {
       );
     }, 4000);
   }
-  function undoLog() {
-    if (toast) removeTransaction(toast.id);
+  function celebrate(label, amount, id) {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch (e) {
+      // Haptics are not available on web. That is fine.
+    }
+    const n = toastCount.current++;
+    const emoji = TOAST_EMOJI[n % TOAST_EMOJI.length];
+    const praise = TOAST_PRAISE[n % TOAST_PRAISE.length];
+    showToast(`${emoji} ${label} ${formatMoney(amount)}. ${praise}`, () => removeTransaction(id));
+  }
+  function undoToast() {
+    if (toast && toast.undo) toast.undo();
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(null);
+  }
+  // Deleting from Recent: entries with a receipt get a confirm first because
+  // the photo file is deleted with them and cannot be brought back. Everything
+  // else deletes instantly with Undo, matching how logging works on this screen.
+  function deleteEntry(e) {
+    if (e.receiptUri && Platform.OS !== 'web') {
+      Alert.alert(
+        'Delete this entry?',
+        'Its receipt photo will be deleted too and cannot be recovered.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: () => removeTransaction(e.id) },
+        ]
+      );
+      return;
+    }
+    const entry = { ...e };
+    delete entry.id;
+    removeTransaction(e.id);
+    showToast(`Deleted ${e.label} ${formatMoney(e.amount)}.`, () => addTransaction(entry));
   }
 
   function quickAdd(item) {
@@ -184,7 +217,7 @@ export default function Budget() {
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
                     {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
                   </Text>
-                  <Pressable onPress={() => removeTransaction(e.id)} hitSlop={8} style={styles.trash}>
+                  <Pressable onPress={() => deleteEntry(e)} hitSlop={8} style={styles.trash}>
                     <Ionicons name="close" size={16} color={colors.faint} />
                   </Pressable>
                 </View>
@@ -210,7 +243,7 @@ export default function Budget() {
           <Text style={styles.toastText} numberOfLines={1}>
             {toast.text}
           </Text>
-          <Pressable onPress={undoLog} hitSlop={12} style={styles.toastBtn}>
+          <Pressable onPress={undoToast} hitSlop={12} style={styles.toastBtn}>
             <Text style={styles.toastUndo}>Undo</Text>
           </Pressable>
         </Animated.View>

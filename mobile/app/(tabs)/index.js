@@ -27,6 +27,7 @@ export default function Overview() {
   const [salaryModal, setSalaryModal] = useState(false);
   const [salaryAmount, setSalaryAmount] = useState('');
   const [salaryAccount, setSalaryAccount] = useState('');
+  const [salaryErr, setSalaryErr] = useState('');
   const [showPeak, setShowPeak] = useState(false);
   const peakAnim = useRef(new Animated.Value(0)).current;
 
@@ -124,11 +125,15 @@ export default function Overview() {
   function openSalary() {
     const def = data.settings.salaryAccountId;
     setSalaryAccount(def && data.accounts.some((a) => a.id === def) ? def : '');
+    setSalaryErr('');
     setSalaryModal(true);
   }
   function saveSalary() {
     const amount = Number(String(salaryAmount).replace(/[, ]/g, ''));
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setSalaryErr('Enter an amount greater than 0.');
+      return;
+    }
     const entry = { type: 'income', label: 'Salary', amount, date: todayISO() };
     addTransaction(salaryAccount ? { ...entry, accountId: salaryAccount } : entry);
     if ((data.settings.salaryAccountId || '') !== salaryAccount) {
@@ -364,6 +369,7 @@ export default function Overview() {
               keyboardType="numeric"
               autoFocus
             />
+            {salaryErr ? <Text style={styles.err}>{salaryErr}</Text> : null}
             {data.accounts.length > 0 ? (
               <>
                 <Text style={styles.fieldLabel}>Into which account?</Text>
@@ -538,6 +544,7 @@ function makeStyles(colors) {
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.sm },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.card },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
