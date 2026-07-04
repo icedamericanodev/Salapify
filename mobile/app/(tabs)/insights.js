@@ -202,7 +202,11 @@ export default function Insights() {
   }
 
   // Goal pace: every goal with the honest amount per month to finish on time.
-  const goalRows = (data.goals || []).map((g) => ({ goal: g, pace: goalPace(g) }));
+  // Guard against a malformed backup carrying a null or id-less goal, which
+  // would otherwise crash the whole screen on the goal.id key below.
+  const goalRows = (data.goals || [])
+    .filter((g) => g && typeof g === 'object' && g.id)
+    .map((g) => ({ goal: g, pace: goalPace(g) }));
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -369,8 +373,12 @@ export default function Insights() {
                       ? 'Funded. 🎉'
                       : pace.status === 'behind'
                       ? `Behind: ${formatMoney(pace.remaining)} still to go, the target date has passed.`
+                      : pace.status === 'due-soon'
+                      ? `Due this month: ${formatMoney(pace.remaining)} still to go.`
                       : pace.status === 'active'
                       ? `Save ${formatMoney(pace.perMonth)} a month (${formatMoney(pace.perWeek)} a week) to hit it by ${pace.targetDate}.`
+                      : pace.status === 'no-target'
+                      ? 'Set a target amount to track this goal.'
                       : `${formatMoney(pace.remaining)} to go. Add a target date to get a monthly pace.`}
                   </Text>
                 </View>
