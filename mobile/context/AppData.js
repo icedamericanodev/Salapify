@@ -376,7 +376,11 @@ export function AppDataProvider({ children }) {
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     clean.recurring = (clean.recurring || []).map((r) => {
       const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
-      return day <= now.getDate() ? { ...r, lastPosted: monthKey } : r;
+      // Never stamp BACKWARDS: a backup made on a clock that ran ahead can
+      // carry lastPosted in our future, and downgrading it would let the
+      // posting engine post that month a second time when it arrives.
+      const keep = typeof r.lastPosted === 'string' && r.lastPosted > monthKey;
+      return day <= now.getDate() ? (keep ? r : { ...r, lastPosted: monthKey }) : r;
     });
     // Erasing or replacing the money data also clears the receipt photos
     // it owned; photos still referenced by the incoming data are kept.
