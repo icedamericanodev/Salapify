@@ -20,9 +20,14 @@ export default function WeekChain({ transactions }) {
 
   // Build the last 7 days, oldest first, ending today. Demo rows do not
   // count: a chain the user never earned teaches that the dots mean
-  // nothing.
+  // nothing. Transfer and debt payment records do not count either, the
+  // habit being rewarded is logging income and spending.
   const logged = new Set(
-    (transactions || []).filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).map((t) => t.date)
+    (transactions || [])
+      .filter(
+        (t) => t && !SAMPLE_TX_IDS.has(t.id) && (t.type === 'income' || t.type === 'expense')
+      )
+      .map((t) => t.date)
   );
   const days = [];
   for (let i = 6; i >= 0; i--) {

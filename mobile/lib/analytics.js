@@ -234,7 +234,13 @@ export function healthScore(data, ref = new Date()) {
     debtPts = assets > 0 ? Math.round(Math.max(0, 1 - debt / assets) * 25) : 0;
   }
 
-  const logged = new Set((data.transactions || []).map((t) => t && t.date));
+  // Only real logs count toward the logging habit points; transfer and
+  // debt payment record rows are bookkeeping, not the logging habit.
+  const logged = new Set(
+    (data.transactions || [])
+      .filter((t) => t && (t.type === 'income' || t.type === 'expense'))
+      .map((t) => t.date)
+  );
   let daysLogged = 0;
   for (let i = 0; i < 14; i++) {
     const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() - i);

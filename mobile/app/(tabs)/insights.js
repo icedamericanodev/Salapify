@@ -92,7 +92,9 @@ export default function Insights() {
   // month's snapshot, so the trend grows one honest bar per month. Until
   // there are two real months, the card stays hidden, no made up bars.
   const netWorthNow = Math.round(cash + bank + investments - debt);
-  const nwHistory = (data.settings.nwHistory || []).filter(
+  // Array.isArray, not ||: a corrupt backup can carry nwHistory as a string
+  // or object, and .filter on that would crash this screen on every mount.
+  const nwHistory = (Array.isArray(data.settings.nwHistory) ? data.settings.nwHistory : []).filter(
     (h) => h && typeof h.month === 'string' && Number.isFinite(Number(h.value))
   );
   useEffect(() => {

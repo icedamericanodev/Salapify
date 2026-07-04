@@ -62,7 +62,10 @@ export default function Budget() {
 
   // The day one recap: appears once, after the third real log ever. The
   // moment the habit needs applause is right at the start, not at day 30.
-  const realLogs = data.transactions.filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).length;
+  // Records (transfers, debt payments) are not logs.
+  const realLogs = data.transactions.filter(
+    (t) => t && !SAMPLE_TX_IDS.has(t.id) && (t.type === 'income' || t.type === 'expense')
+  ).length;
   const showDayOne = !data.settings.dayOneRecap && realLogs >= 3;
 
   // Where it went: this month's top spending groups. Entries tagged with a
@@ -286,7 +289,7 @@ export default function Budget() {
                       <Text style={styles.receiptIcon}>🧾</Text>
                     </Pressable>
                   ) : null}
-                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'transfer' ? colors.muted : colors.text }]}>
+                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'expense' ? colors.text : colors.muted }]}>
                     {e.type === 'income' ? '+' : e.type === 'transfer' ? '⇄' : '-'} {formatMoney(e.amount)}
                   </Text>
                   <Pressable onPress={() => deleteEntry(e)} hitSlop={8} style={styles.trash}>

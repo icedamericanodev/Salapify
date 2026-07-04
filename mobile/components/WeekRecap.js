@@ -17,9 +17,14 @@ export default function WeekRecap({ transactions }) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   // Count how many of the last 7 days (ending today) have at least one log.
-  // Demo rows do not count; a brag the user never earned is a lie.
+  // Demo rows do not count (a brag the user never earned is a lie), and
+  // neither do transfer or debt payment records, only real logs.
   const logged = new Set(
-    (transactions || []).filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).map((t) => t.date)
+    (transactions || [])
+      .filter(
+        (t) => t && !SAMPLE_TX_IDS.has(t.id) && (t.type === 'income' || t.type === 'expense')
+      )
+      .map((t) => t.date)
   );
   let daysLogged = 0;
   for (let i = 0; i < 7; i++) {

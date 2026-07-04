@@ -2,7 +2,7 @@
 // is due. One-tap "Remind" opens your messaging apps with a polite message
 // ready to send. Mark paid, edit, delete. All saved on the device.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -178,19 +178,31 @@ export default function Receivables() {
     addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
+  // Stacked confirm dialogs or a double tap must not post a payment twice
+  // while both reads saw the same pre-payment state. One beat of quiet.
+  const settleBusy = useRef(false);
+  function settleOnce(fn) {
+    if (settleBusy.current) return;
+    settleBusy.current = true;
+    setTimeout(() => {
+      settleBusy.current = false;
+    }, 400);
+    fn();
+  }
+
   // Mark paid settles whatever is STILL owed after partial payments. One
   // tap writes a payment and an income entry, so it confirms first; a
   // slip of the finger must not invent money received.
   function markPaid(r) {
     const remaining = remainingOf(r);
-    const doIt = () => {
+    const doIt = () => settleOnce(() => {
       const payment = { id: genId('rpay'), amount: remaining, date: todayISO() };
       updateItem('receivables', r.id, {
         paid: true,
         payments: remaining > 0 ? [...(r.payments || []), payment] : r.payments || [],
       });
       postIncome(r, remaining);
-    };
+    });
     const message =
       remaining > 0
         ? `Log ${formatMoney(remaining)} from ${nameOf(r)} as received and close this utang?`
@@ -217,14 +229,16 @@ export default function Receivables() {
     // Nothing left to pay means nothing to record: no phantom zero
     // payment rows on an already covered utang.
     if (applied <= 0) return;
-    const payment = { id: genId('rpay'), amount: applied, date: todayISO() };
-    updateItem('receivables', r.id, {
-      payments: [...(r.payments || []), payment],
-      paid: applied >= remaining,
+    settleOnce(() => {
+      const payment = { id: genId('rpay'), amount: applied, date: todayISO() };
+      updateItem('receivables', r.id, {
+        payments: [...(r.payments || []), payment],
+        paid: applied >= remaining,
+      });
+      postIncome(r, applied);
+      setPayFor(null);
+      setPayAmt('');
     });
-    postIncome(r, applied);
-    setPayFor(null);
-    setPayAmt('');
   }
 
   // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a

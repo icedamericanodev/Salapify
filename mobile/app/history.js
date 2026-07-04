@@ -61,7 +61,7 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
             {accountName ? ` · ${accountName}` : ''}
           </Text>
         </View>
-        <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : t.type === 'transfer' ? colors.muted : colors.text }]}>
+        <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : t.type === 'expense' ? colors.text : colors.muted }]}>
           {t.type === 'income' ? '+' : t.type === 'transfer' ? '⇄' : '-'} {formatMoney(t.amount)}
         </Text>
       </Pressable>
@@ -239,11 +239,14 @@ export default function History() {
   }, [data.transactions, month, query]);
 
   const totals = useMemo(() => {
+    // Only real income and expenses. Transfer and debt payment records are
+    // visible as rows but never enter money math: a 5,000 transfer between
+    // your own accounts is not 5,000 spent.
     let tin = 0;
     let tout = 0;
     for (const t of shown) {
       if (t.type === 'income') tin += Number(t.amount) || 0;
-      else tout += Number(t.amount) || 0;
+      else if (t.type === 'expense') tout += Number(t.amount) || 0;
     }
     return { tin, tout };
   }, [shown]);
@@ -263,11 +266,17 @@ export default function History() {
   const onDelete = useCallback(
     (t) => {
       const doIt = () => removeTransaction(t.id);
+      // Record rows move nothing when deleted, so their confirm must not
+      // promise a refund the way the normal entry confirm does.
+      const isRecord = t.type === 'transfer' || t.type === 'debt';
+      const detail = isRecord
+        ? 'This only removes the history row. It does not undo the money move.'
+        : 'A linked account gets its money back.';
       if (Platform.OS === 'web') {
-        if (window.confirm(`Delete ${t.label} ${formatMoney(t.amount)}?`)) doIt();
+        if (window.confirm(`Delete ${t.label} ${formatMoney(t.amount)}? ${detail}`)) doIt();
         return;
       }
-      Alert.alert('Delete this entry?', `${t.label}, ${formatMoney(t.amount)}. A linked account gets its money back.`, [
+      Alert.alert('Delete this entry?', `${t.label}, ${formatMoney(t.amount)}. ${detail}`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: doIt },
       ]);

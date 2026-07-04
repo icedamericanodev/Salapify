@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, todayISO } from '../../lib/format';
 import { BANK_BRANDS, findBrand } from '../../lib/banks';
 import BankBadge from '../../components/BankBadge';
 

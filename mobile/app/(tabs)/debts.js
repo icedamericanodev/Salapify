@@ -3,7 +3,7 @@
 // can add and edit debts, log a payment (which lowers the balance and is
 // recorded), and mark a debt paid off. Everything saves on the device.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -101,7 +101,9 @@ export default function Debts() {
       creditLimit: d.creditLimit ? String(d.creditLimit) : '',
     });
     setPayAmount(String(d.minPayment));
-    setPayFrom(data.accounts[0] ? data.accounts[0].id : null);
+    // Default to Outside the app: money must only leave an account the
+    // user explicitly picked, never whichever account happens to be first.
+    setPayFrom(null);
     setMsg('');
     setErr('');
     setConfirmDel(false);
@@ -116,9 +118,12 @@ export default function Debts() {
       setErr('Please enter a name.');
       return;
     }
-    const rem = Number(form.remaining);
-    const rate = Number(form.monthlyRate);
-    const min = Number(form.minPayment);
+    // Money fields accept commas, "50,000" is fifty thousand here like in
+    // every other money input in the app.
+    const numIn = (t) => Number(String(t).replace(/[, ]/g, ''));
+    const rem = numIn(form.remaining);
+    const rate = numIn(form.monthlyRate);
+    const min = numIn(form.minPayment);
     if (form.remaining === '' || !Number.isFinite(rem) || rem < 0) {
       setErr('Enter a valid remaining balance.');
       return;
@@ -203,8 +208,17 @@ export default function Debts() {
   // transaction stream that History shows. The record row carries no
   // accountId on purpose: the balance move happens right here, and a record
   // deleted later from History must never shift a balance again.
+  const payBusy = useRef(false);
   function applyPayment(amt) {
     if (!form.id || amt <= 0) return;
+    // A double tap before React re-renders would read the same balances
+    // twice and write the payment ledger twice while the money only moved
+    // once. Ignore re-entrant taps for a beat.
+    if (payBusy.current) return;
+    payBusy.current = true;
+    setTimeout(() => {
+      payBusy.current = false;
+    }, 400);
     // Read the balance from the store, never from the edit field: a cleared
     // or half-typed Remaining box must not zero out a real debt.
     const debt = data.debts.find((d) => d.id === form.id);
@@ -241,7 +255,7 @@ export default function Debts() {
   }
   function logPayment() {
     setConfirmPaidOff(false);
-    applyPayment(Number(payAmount) || 0);
+    applyPayment(Number(String(payAmount).replace(/[, ]/g, '')) || 0);
   }
   // Mark paid off is a real payment of everything still owed, from the
   // chosen account (or Outside the app), never a silent zeroing that makes
