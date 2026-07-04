@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, daysUntilPayday, isThisMonth, monthLabel, todayISO } from '../../lib/format';
+import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { upcomingDues } from '../../lib/soa';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
@@ -48,8 +48,10 @@ export default function Overview() {
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
 
-  // Days to the next payday, with extra energy in the final stretch.
-  const payday = daysUntilPayday();
+  // Days to the next payday on the user's own schedule, with extra energy
+  // in the final stretch.
+  const paySchedule = data.settings.paydaySchedule;
+  const payday = daysUntilPayday(new Date(), paySchedule);
   const paydaySoon = payday <= 3;
   const paydayCopy =
     payday === 0
@@ -58,7 +60,7 @@ export default function Overview() {
       ? 'Bukas na. 🤑'
       : paydaySoon
       ? 'Malapit na. Konting tiis. 💪'
-      : 'Based on the 15th and end of month.';
+      : `Based on ${scheduleLabel(paySchedule)}. Change it in More.`;
 
   // Net worth peak: gold appears only when earned. The stored peak only
   // ever climbs, and the pill fires when net worth crosses into a new
@@ -96,20 +98,14 @@ export default function Overview() {
   const dues = upcomingDues(data.debts, 30);
 
   // The sweldo plan: a guided three step card that appears for 48 hours
-  // after each payday (the 15th and the last day of the month). The steps
-  // done are remembered per payday, so the card never nags twice.
+  // after each payday on the user's own schedule. The key is the payday's
+  // date, so steps are remembered per payday and the card never nags twice.
   const now = new Date();
-  const dayNum = now.getDate();
-  const lastDayNum = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  let paydayKey = '';
-  if (dayNum === 15 || dayNum === 16) {
-    paydayKey = `${now.getFullYear()}-${now.getMonth()}-15`;
-  } else if (dayNum === 1) {
-    const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    paydayKey = `${p.getFullYear()}-${p.getMonth()}-end`;
-  } else if (dayNum === lastDayNum) {
-    paydayKey = `${now.getFullYear()}-${now.getMonth()}-end`;
-  }
+  const lastPay = prevPayday(now, paySchedule);
+  const sincePay = Math.round(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()) - lastPay) / 86400000
+  );
+  const paydayKey = sincePay <= 1 ? todayISO(lastPay) : '';
   const savedPlan = data.settings.paydayPlan || {};
   const planSteps = savedPlan.key === paydayKey ? savedPlan.steps || {} : {};
   const planDone = planSteps.logged && planSteps.saved && planSteps.budget;

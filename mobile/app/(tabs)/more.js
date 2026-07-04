@@ -24,7 +24,7 @@ import { useRouter } from 'expo-router';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney } from '../../lib/format';
+import { formatMoney, normalizeSchedule, scheduleLabel } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { SIZE_NUDGE, SIZE_WARN } from '../../lib/storage';
 import { ensureNotifPermission } from '../../lib/notifications';
@@ -242,6 +242,18 @@ export default function More() {
   // ---- Preferences ----
   function openPref(m) {
     if (m === 'limit') setPref({ mode: m, text: String(settings.monthlyLimit || 0) });
+    else if (m === 'payday') {
+      const sch = normalizeSchedule(settings.paydaySchedule);
+      setPref({
+        mode: m,
+        payMode: sch.mode,
+        d1: String(sch.mode === 'semimonthly' ? sch.days[0] : 15),
+        d2: String(sch.mode === 'semimonthly' ? sch.days[1] : 31),
+        day: String(sch.mode === 'monthly' ? sch.day : 30),
+        weekday: sch.mode === 'weekly' ? sch.weekday : 5,
+        err: '',
+      });
+    }
     else setPref({ mode: m });
     setQaLabel('');
     setQaAmount('');
@@ -254,6 +266,33 @@ export default function More() {
     const n = Number(pref.text);
     if (!Number.isFinite(n) || n < 0) return;
     updateSettings({ monthlyLimit: n });
+    setPref(null);
+  }
+  function savePayday() {
+    const dayOk = (t) => {
+      const n = Math.trunc(Number(String(t).trim()));
+      return Number.isFinite(n) && n >= 1 && n <= 31 ? n : null;
+    };
+    let schedule;
+    if (pref.payMode === 'monthly') {
+      const d = dayOk(pref.day);
+      if (d === null) {
+        setPref((p) => ({ ...p, err: 'Pick a day from 1 to 31. 31 means the last day of the month.' }));
+        return;
+      }
+      schedule = { mode: 'monthly', day: d };
+    } else if (pref.payMode === 'weekly') {
+      schedule = { mode: 'weekly', weekday: pref.weekday };
+    } else {
+      const a = dayOk(pref.d1);
+      const b = dayOk(pref.d2);
+      if (a === null || b === null) {
+        setPref((p) => ({ ...p, err: 'Both days should be from 1 to 31. 31 means the last day of the month.' }));
+        return;
+      }
+      schedule = { mode: 'semimonthly', days: [a, b] };
+    }
+    updateSettings({ paydaySchedule: normalizeSchedule(schedule) });
     setPref(null);
   }
   function addQuickAdd() {
@@ -475,6 +514,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Monthly budget</Text>
             <Text style={styles.rowValue}>{formatMoney(settings.monthlyLimit)}</Text>
           </Pressable>
+          <Pressable onPress={() => openPref('payday')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Payday schedule</Text>
+            <Text style={styles.rowValue}>{scheduleLabel(settings.paydaySchedule)}</Text>
+          </Pressable>
           <Pressable onPress={() => openPref('quickadds')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Quick add buttons</Text>
             <Text style={styles.rowValue}>{(settings.quickAdds || []).length}</Text>
@@ -660,6 +703,88 @@ export default function More() {
               </>
             ) : null}
 
+            {pref?.mode === 'payday' ? (
+              <>
+                <Text style={styles.sheetTitle}>Payday schedule</Text>
+                <Text style={styles.fieldLabel}>How often does your sweldo arrive?</Text>
+                <View style={styles.chips}>
+                  {[
+                    { k: 'semimonthly', label: 'Twice a month' },
+                    { k: 'monthly', label: 'Once a month' },
+                    { k: 'weekly', label: 'Weekly' },
+                  ].map((opt) => {
+                    const on = pref.payMode === opt.k;
+                    return (
+                      <Pressable key={opt.k} onPress={() => setPref((p) => ({ ...p, payMode: opt.k, err: '' }))} style={[styles.chip, on && styles.chipOn]}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {pref.payMode === 'semimonthly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>First payday (day of the month)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.d1}
+                      onChangeText={(t) => setPref((p) => ({ ...p, d1: t, err: '' }))}
+                      placeholder="15"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.fieldLabel}>Second payday</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.d2}
+                      onChangeText={(t) => setPref((p) => ({ ...p, d2: t, err: '' }))}
+                      placeholder="31"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.sizeNote}>Type 31 for the last day of the month, it adjusts to short months by itself.</Text>
+                  </>
+                ) : null}
+                {pref.payMode === 'monthly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Payday (day of the month)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pref.day}
+                      onChangeText={(t) => setPref((p) => ({ ...p, day: t, err: '' }))}
+                      placeholder="30"
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.sizeNote}>Type 31 for the last day of the month, it adjusts to short months by itself.</Text>
+                  </>
+                ) : null}
+                {pref.payMode === 'weekly' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Which day?</Text>
+                    <View style={styles.chips}>
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((name, i) => {
+                        const on = pref.weekday === i;
+                        return (
+                          <Pressable key={name} onPress={() => setPref((p) => ({ ...p, weekday: i, err: '' }))} style={[styles.chip, on && styles.chipOn]}>
+                            <Text style={[styles.chipText, on && styles.chipTextOn]}>{name}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : null}
+                {pref.err ? <Text style={styles.prefErr}>{pref.err}</Text> : null}
+                <View style={styles.sheetButtons}>
+                  <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={savePayday} style={[styles.sheetBtn, styles.saveBtn]}>
+                    <Text style={styles.saveText}>Save</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+
             {pref?.mode === 'quickadds' ? (
               <>
                 <Text style={styles.sheetTitle}>Quick add buttons</Text>
@@ -725,6 +850,12 @@ function makeStyles(colors) {
     textArea: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, color: colors.text, fontSize: fontSize.small, minHeight: 140, maxHeight: 280, textAlignVertical: 'top' },
     msg: { color: colors.primary, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.lg },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+    chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { color: colors.textSecondary, fontSize: fontSize.small },
+    chipTextOn: { color: colors.onPrimary, fontWeight: fontWeight.bold },
+    prefErr: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.sm },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
     cancelBtn: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
     cancelText: { color: colors.text, fontSize: fontSize.body },

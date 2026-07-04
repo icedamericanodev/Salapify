@@ -7,7 +7,7 @@
 
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { formatMoney, todayISO } from './format';
+import { formatMoney, todayISO, upcomingPaydays } from './format';
 import { bankDueDate } from './soa';
 
 const isNative = Platform.OS !== 'web';
@@ -37,11 +37,6 @@ export async function ensureNotifPermission() {
   if (current.granted) return true;
   const asked = await Notifications.requestPermissionsAsync();
   return asked.granted;
-}
-
-// Returns the last day of the month for a given date, like 31 for July.
-function lastDayOfMonth(year, monthIndex) {
-  return new Date(year, monthIndex + 1, 0).getDate();
 }
 
 // Turns "2026-07-15" into a Date at the given hour, or null if unreadable.
@@ -112,25 +107,19 @@ export async function rescheduleAll(data) {
   }
 
   if (notifs.payday) {
-    // The 15th repeats monthly on its own. Month ends land on a different
-    // date each month, so the next six get scheduled one by one.
+    // The next several paydays on the user's own schedule, scheduled one
+    // by one at 9am. One-shots instead of repeats because semimonthly and
+    // end of month paydays land on a different date every month; the list
+    // refills every time the app opens or data changes.
     if (stale()) return;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Sweldo day!',
-        body: 'Log your income and move your savings before you spend anything.',
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day: 15, hour: 9, minute: 0, ...channel },
-    });
-    for (let i = 0; i < 6; i++) {
-      const y = now.getFullYear();
-      const m = now.getMonth() + i;
-      const end = new Date(y, m, lastDayOfMonth(y, m), 9, 0, 0);
-      if (end > now) {
+    const paydays = upcomingPaydays(now, data.settings && data.settings.paydaySchedule, 6);
+    for (const p of paydays) {
+      const at = new Date(p.getFullYear(), p.getMonth(), p.getDate(), 9, 0, 0);
+      if (at > now) {
         await schedule(
           'Sweldo day!',
-          'End of the month. Log your income and move your savings first.',
-          end
+          'Log your income and move your savings before you spend anything.',
+          at
         );
       }
     }

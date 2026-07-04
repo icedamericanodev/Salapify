@@ -200,7 +200,7 @@ export function AppDataProvider({ children }) {
   // follow due day edits. Does nothing on web.
   useEffect(() => {
     if (loaded) rescheduleAll(data);
-  }, [loaded, data.receivables, data.transactions, data.debts, data.settings.notifications]);
+  }, [loaded, data.receivables, data.transactions, data.debts, data.settings.notifications, data.settings.paydaySchedule]);
 
   // Post recurring bills and income that have come due. Runs on load and
   // whenever the recurring list changes: each item posts one transaction
