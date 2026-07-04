@@ -40,11 +40,15 @@ export default function Goals() {
     setAddFunds('');
     setConfirmDel(false);
   }
+  // Money fields accept commas, "12,000" means twelve thousand. Every other
+  // money input in the app strips them; without this a pasted "12,000"
+  // silently became 0 and wiped the goal.
+  const toNum = (t) => Number(String(t).replace(/[, ]/g, ''));
   function save() {
     const payload = {
       name: form.name.trim() || 'Goal',
-      target: Math.max(0, Number(form.target) || 0),
-      saved: Math.max(0, Number(form.saved) || 0),
+      target: Math.max(0, toNum(form.target) || 0),
+      saved: Math.max(0, toNum(form.saved) || 0),
       targetDate: form.targetDate.trim(),
     };
     if (form.id) updateItem('goals', form.id, payload);
@@ -52,9 +56,12 @@ export default function Goals() {
     setForm(null);
   }
   function applyFunds() {
-    const amt = Number(addFunds) || 0;
+    const amt = toNum(addFunds) || 0;
     if (!form.id || amt === 0) return;
-    const newSaved = Math.max(0, (Number(form.saved) || 0) + amt);
+    // Add on top of the STORED amount, not the editable Saved field. If the
+    // user cleared that field first, adding 100 must not turn 5,000 into 100.
+    const goal = data.goals.find((g) => g.id === form.id);
+    const newSaved = Math.max(0, (Number(goal && goal.saved) || 0) + amt);
     updateItem('goals', form.id, { saved: newSaved });
     setForm((f) => ({ ...f, saved: String(newSaved) }));
     setAddFunds('');
@@ -85,7 +92,9 @@ export default function Goals() {
           <EmptyState icon="🎯" title="No goals yet" subtitle="Tap + Add to set your first savings goal." />
         ) : (
           data.goals.map((g) => {
-            const pct = g.target ? Math.min(Math.round((g.saved / g.target) * 100), 100) : 0;
+            const pct = g.target
+              ? Math.min(Math.round((g.saved / g.target) * 100), 100)
+              : g.saved > 0 ? 100 : 0;
             return (
               <Pressable
                 key={g.id}

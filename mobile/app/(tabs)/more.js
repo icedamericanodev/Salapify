@@ -453,7 +453,7 @@ export default function More() {
             <View style={styles.row}>
               <View style={{ flex: 1, paddingRight: spacing.md }}>
                 <Text style={styles.rowLabel}>App lock</Text>
-                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens</Text>
+                <Text style={styles.rowHint}>Fingerprint or face unlock every time the app opens. Home screen widgets still show your totals, remove them if that matters to you</Text>
               </View>
               <Switch
                 value={!!settings.appLock}

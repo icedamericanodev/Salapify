@@ -39,8 +39,12 @@ export default function Onboarding() {
 
   function finish(startEmpty) {
     // Accept human typing: commas and spaces stripped, capped at 100 million.
-    const n = Number(String(limit).replace(/[,\s]/g, ''));
-    const monthlyLimit = Number.isFinite(n) && n > 0 ? Math.min(n, 100000000) : 20000;
+    // A typed 0 is a real answer (no budget yet, set one later in Budget),
+    // so it stays 0 instead of silently becoming the 20,000 default. Only a
+    // cleared field or non numeric typing falls back to the default.
+    const raw = String(limit).replace(/[,\s]/g, '');
+    const n = Number(raw);
+    const monthlyLimit = raw !== '' && Number.isFinite(n) && n >= 0 ? Math.min(n, 100000000) : 20000;
     const patch = {
       currency: currency.symbol,
       currencyCode: currency.code,

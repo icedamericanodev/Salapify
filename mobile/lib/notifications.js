@@ -48,7 +48,13 @@ function lastDayOfMonth(year, monthIndex) {
 function atHour(dateStr, hour) {
   const parts = String(dateStr).split('-').map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) return null;
-  return new Date(parts[0], parts[1] - 1, parts[2], hour, 0, 0);
+  const d = new Date(parts[0], parts[1] - 1, parts[2], hour, 0, 0);
+  // A made up date like 2026-02-31 quietly rolls over to March 3, which
+  // would fire a reminder on a day the user never picked. Reject it.
+  if (d.getFullYear() !== parts[0] || d.getMonth() !== parts[1] - 1 || d.getDate() !== parts[2]) {
+    return null;
+  }
+  return d;
 }
 
 // The daily nudge rotates through a small pool so it never goes stale.

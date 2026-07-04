@@ -365,12 +365,19 @@ export function AppDataProvider({ children }) {
     if (snapshot) snapshotData().catch(() => {});
     else clearSnapshot().catch(() => {});
     const clean = sanitizeData(newData);
-    // A restore must never invent money: every restored recurring item is
-    // stamped as already posted for the current month, so the app shows
-    // exactly what the backup contains and resumes posting next month.
+    // A restore must never invent money: a recurring item whose day this
+    // month has ALREADY passed gets stamped as posted, because the real
+    // posting may have happened after the backup was made and re-posting
+    // it here would double the bill. An item whose day has NOT arrived yet
+    // keeps its own lastPosted, otherwise restoring on July 3 would
+    // silently skip the rent that is due July 15.
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    clean.recurring = (clean.recurring || []).map((r) => ({ ...r, lastPosted: monthKey }));
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    clean.recurring = (clean.recurring || []).map((r) => {
+      const day = Math.min(Number(r.dayOfMonth) || 1, daysInMonth);
+      return day <= now.getDate() ? { ...r, lastPosted: monthKey } : r;
+    });
     // Erasing or replacing the money data also clears the receipt photos
     // it owned; photos still referenced by the incoming data are kept.
     cleanupReceipts((clean.transactions || []).map((t) => t.receiptUri).filter(Boolean));

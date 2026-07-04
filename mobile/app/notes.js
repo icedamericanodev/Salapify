@@ -162,9 +162,20 @@ export function evaluateMath(text) {
   }
 }
 
-// Pulls math out of a line that mixes words and numbers, like
-// "grab to work 120 + 65". We take the longest contiguous math looking chunk.
-const MATH_PIECE_RE = /[-+]?[\d,.]+(?:\s*[-+*/()]\s*[\d,.%]+)*/g;
+// Dates and phone numbers, like 2026-07-04 or 0917-555-1234, look like
+// subtraction to the tokenizer. Two or more unspaced hyphens between digit
+// groups is never money math in a note, so those clusters get replaced by a
+// plain word marker before any evaluation. Real subtraction survives: it is
+// either a single minus (500-200) or written with spaces (500 - 200 - 50).
+const IDENTIFIER_RE = /\d[\d,.]*(?:-[\d,.]+){2,}/g;
+
+// On a line that mixes words and numbers, the amount people write sits at
+// the END of the line: "lunch 120", "jeep 24 + 24", "7-11 run 250". Only
+// trailing math counts; grabbing chunks from the middle is how store names
+// like 7-11 used to turn into 7 minus 11. The chunk must start right after
+// a space (or the line start) so glued fragments never half match.
+const TRAILING_MATH_RE = /(?:^|\s)([-+]?[\d.(][\d,.()%+*/\s-]*)$/;
+const TRAILING_NUMBER_RE = /(?:^|\s)([-+]?\d[\d,.]*%?)\s*$/;
 
 // Look at one line of the note and decide what it is worth.
 // Returns { value, bare }:
@@ -172,7 +183,7 @@ const MATH_PIECE_RE = /[-+]?[\d,.]+(?:\s*[-+*/()]\s*[\d,.%]+)*/g;
 //   bare is true when the line is just one plain number ("500"). A bare
 //   number still counts toward the total, it just does not need its own row.
 export function analyzeLine(rawLine) {
-  const line = rawLine.replace(CURRENCY_RE, '').trim();
+  const line = rawLine.replace(CURRENCY_RE, '').trim().replace(IDENTIFIER_RE, '#');
   // No digits at all means no math, skip early.
   if (!line || !/\d/.test(line)) return { value: null, bare: false };
 
@@ -183,17 +194,19 @@ export function analyzeLine(rawLine) {
     return { value: whole, bare };
   }
 
-  // Second attempt: the line mixes words and math. Grab the longest chunk
-  // that looks like an expression, but only trust it if it truly computes
-  // something, meaning it has an operator sitting after a digit. That is why
-  // "10% of typo" shows nothing: the extracted "10" has no operator.
-  const pieces = line.match(MATH_PIECE_RE) || [];
-  let best = '';
-  for (const p of pieces) {
-    if (p.length > best.length) best = p;
+  // Second attempt: words plus math, like "jeep 24 + 24". The math has to
+  // run from a word boundary to the end of the line.
+  const tail = line.match(TRAILING_MATH_RE);
+  if (tail) {
+    const value = evaluateMath(tail[1]);
+    if (value !== null) return { value, bare: false };
   }
-  if (best && /\d\s*[-+*/]/.test(best)) {
-    const value = evaluateMath(best);
+
+  // Last resort: a plain amount ending the line, like "lunch 120" or
+  // "7-11 run 250". The label is words, the value is the trailing number.
+  const bareTail = line.match(TRAILING_NUMBER_RE);
+  if (bareTail) {
+    const value = evaluateMath(bareTail[1]);
     if (value !== null) return { value, bare: false };
   }
   return { value: null, bare: false };
@@ -261,6 +274,15 @@ export default function Notes() {
     if (editingId) removeItem('notes', editingId);
     setEditingId(null);
   }
+  // Closing a note that never got any text discards it quietly, so tapping
+  // + Add and backing out does not pile up "Untitled note" cards.
+  function closeEditor() {
+    if (editingId) {
+      const note = (data.notes || []).find((n) => n.id === editingId);
+      if (note && !String(note.text || '').trim()) removeItem('notes', editingId);
+    }
+    setEditingId(null);
+  }
 
   // Card helpers: the first line is the title, the next non empty line is
   // the preview underneath it.
@@ -326,7 +348,7 @@ export default function Notes() {
         visible={!!editing}
         transparent
         animationType="slide"
-        onRequestClose={() => setEditingId(null)}
+        onRequestClose={closeEditor}
       >
         <View style={styles.overlay}>
           <View style={styles.sheet}>
@@ -367,7 +389,7 @@ export default function Notes() {
                 <Pressable onPress={del} style={[styles.sheetBtn, styles.deleteBtn]}>
                   <Text style={styles.deleteText}>{confirmDel ? 'Tap to confirm' : 'Delete'}</Text>
                 </Pressable>
-                <Pressable onPress={() => setEditingId(null)} style={[styles.sheetBtn, styles.closeBtn]}>
+                <Pressable onPress={closeEditor} style={[styles.sheetBtn, styles.closeBtn]}>
                   <Text style={styles.closeText}>Close</Text>
                 </Pressable>
               </View>
