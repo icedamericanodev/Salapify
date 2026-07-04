@@ -11,6 +11,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { ensureNotifPermission } from '../lib/notifications';
+import Mascot from './Mascot';
 
 const CURRENCY_CHIPS = [
   { code: 'PHP', symbol: '₱' },
@@ -96,9 +97,7 @@ export default function Onboarding() {
       <ScrollView contentContainerStyle={styles.content}>
         {step === 0 ? (
           <View style={styles.center}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoEmoji}>📈</Text>
-            </View>
+            <Mascot size={132} style={{ marginBottom: spacing.lg }} />
             <Text style={styles.title}>Salapify</Text>
             <Text style={styles.tagline}>On your money's side.</Text>
             <View style={styles.pillRow}>
