@@ -113,14 +113,17 @@ export default function More() {
   // into a folder on the device (like Downloads) or open the share sheet,
   // restore and import open the file picker. The web preview keeps the
   // older text box flow.
-  function offerSave(filename, text, mime, note) {
+  function offerSave(filename, text, mime, note, onDone) {
     Alert.alert('Where should it go?', note ? `${filename}\n\n${note}` : filename, [
       {
         text: 'Save to my device',
         onPress: async () => {
           try {
             const ok = await saveToDevice(filename, text, mime);
-            if (ok) Alert.alert('Saved', `${filename} is in the folder you picked.`);
+            if (ok) {
+              Alert.alert('Saved', `${filename} is in the folder you picked.`);
+              if (onDone) onDone();
+            }
           } catch (e) {
             Alert.alert('Could not save there', e.message || 'Try Share or send instead.');
           }
@@ -131,6 +134,7 @@ export default function More() {
         onPress: async () => {
           const ok = await saveTextFile(filename, text, mime).catch(() => false);
           if (!ok) Alert.alert('Sharing is not available', 'Try Save to my device instead.');
+          else if (onDone) onDone();
         },
       },
       { text: 'Cancel', style: 'cancel' },
@@ -145,7 +149,10 @@ export default function More() {
             `salapify-backup-${todayISO()}.json`,
             buildBackup(data),
             'application/json',
-            'Receipt photos stay on this phone. The backup covers your money data, not the photos.'
+            'Receipt photos stay on this phone. The backup covers your money data, not the photos.',
+            // Remember when the last backup happened, so the reminder in
+            // the DATA section can tell the truth.
+            () => updateSettings({ lastBackupAt: todayISO() })
           );
           return;
         }
@@ -414,6 +421,21 @@ export default function More() {
               </View>
             ))
           )}
+          {Platform.OS === 'android' ? (
+            <Pressable
+              onPress={() => Linking.openURL('https://dontkillmyapp.com').catch(() => {})}
+              style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+            >
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text style={styles.rowLabel}>Reminders not arriving?</Text>
+                <Text style={styles.rowHint}>
+                  Some phones (Xiaomi, OPPO, vivo, realme) kill reminders to save battery. Tap for
+                  the fix for your phone brand.
+                </Text>
+              </View>
+              <Ionicons name="open-outline" size={18} color={colors.faint} />
+            </Pressable>
+          ) : null}
         </View>
 
         <Text style={styles.sectionTitle}>SECURITY</Text>
@@ -470,6 +492,22 @@ export default function More() {
             <Text style={[styles.rowLabel, { color: colors.warning }]}>Start fresh (erase everything)</Text>
             <Ionicons name="trash-outline" size={18} color={colors.warning} />
           </Pressable>
+          {(() => {
+            // An offline first finance app has exactly one disaster plan:
+            // the backup file. Say when the last one happened, plainly.
+            const last = settings.lastBackupAt;
+            const days = last
+              ? Math.max(0, Math.floor((new Date() - new Date(`${last}T00:00:00`)) / 86400000))
+              : null;
+            const stale = days === null || days > 30;
+            return (
+              <Text style={[styles.sizeNote, stale && { color: colors.warning }]}>
+                {days === null
+                  ? 'No backup file yet. Right now this phone holds the only copy of your data.'
+                  : `Last backup: ${days === 0 ? 'today' : `${days} day${days === 1 ? '' : 's'} ago`}.${days > 30 ? ' Time for a fresh one.' : ''}`}
+              </Text>
+            );
+          })()}
           {storageSize > SIZE_WARN ? (
             <Text style={[styles.sizeNote, { color: colors.warning }]}>
               Your data is {Math.round(storageSize / 1024)} KB, close to the phone storage limit.
@@ -493,7 +531,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.4: categories and caps</Text>
+            <Text style={styles.rowValue}>v2.5: search and reminders</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
