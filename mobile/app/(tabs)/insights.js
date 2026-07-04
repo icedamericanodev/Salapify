@@ -1,15 +1,15 @@
 // Insights screen. Simple, readable charts built from plain views (no chart
 // library yet, so nothing extra to install): income vs spending, spending by
-// category, net worth by category, and a net worth trend. Sample data for now.
+// category, net worth by category, and a net worth trend built from real
+// monthly snapshots taken whenever this screen is opened.
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, isThisMonth, monthLabel } from '../../lib/format';
-import { sampleNetWorthHistory } from '../../lib/sampleData';
+import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import {
   monthlySeries,
   categoryMovers,
@@ -35,20 +35,22 @@ export default function Insights() {
   const moneyIn = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
   const moneyOut = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
 
-  // Spending by category (using the expense label as the category), this
-  // month only. Same labels add up into one bar, so three Food entries show
-  // as a single Food total instead of three rows.
+  // Spending by category, this month only. Entries tagged with a category
+  // group under its name; untagged ones fall back to their label so nothing
+  // disappears. Keys fold case so "food" and "Food" make one bar.
   // Object.create(null): a plain {} would let labels like __proto__ or
   // constructor collide with built in properties and vanish from the chart.
+  const catNames = new Map((data.categories || []).map((c) => [c.id, c.name]));
   const catTotals = Object.create(null);
   for (const t of thisMonth) {
     if (t.type !== 'expense') continue;
-    const label = (t.label || 'Other').trim() || 'Other';
-    catTotals[label] = (catTotals[label] || 0) + t.amount;
+    const name =
+      (t.categoryId && catNames.get(t.categoryId)) || (t.label || 'Other').trim() || 'Other';
+    const key = name.toLowerCase();
+    if (!catTotals[key]) catTotals[key] = { label: name, amount: 0 };
+    catTotals[key].amount += t.amount;
   }
-  const byCategory = Object.keys(catTotals)
-    .map((label) => ({ label, amount: catTotals[label] }))
-    .sort((a, b) => b.amount - a.amount);
+  const byCategory = Object.values(catTotals).sort((a, b) => b.amount - a.amount);
 
   // Net worth by category.
   const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
@@ -85,8 +87,35 @@ export default function Insights() {
   const worthMax = Math.max(...worthRows.map((w) => w.amount), 1);
   const inOutMax = Math.max(moneyIn, moneyOut, 1);
 
-  // Net worth trend as small vertical bars.
-  const trendMax = Math.max(...sampleNetWorthHistory.map((p) => p.value), 1);
+  // Real net worth history: same formula as the Overview headline
+  // (accounts plus assets minus debts). Opening this screen stamps this
+  // month's snapshot, so the trend grows one honest bar per month. Until
+  // there are two real months, the card stays hidden, no made up bars.
+  const netWorthNow = Math.round(cash + bank + investments - debt);
+  const nwHistory = (data.settings.nwHistory || []).filter(
+    (h) => h && typeof h.month === 'string' && Number.isFinite(Number(h.value))
+  );
+  useEffect(() => {
+    const key = todayISO().slice(0, 7);
+    const cur = nwHistory.find((h) => h.month === key);
+    if (!cur || Math.round(Number(cur.value)) !== netWorthNow) {
+      const next = [
+        ...nwHistory.filter((h) => h.month !== key),
+        { month: key, value: netWorthNow },
+      ]
+        .sort((a, b) => a.month.localeCompare(b.month))
+        .slice(-12);
+      updateSettings({ nwHistory: next });
+    }
+  }, [netWorthNow]);
+  const trendPoints = nwHistory.slice(-6).map((h) => ({
+    month: h.month,
+    value: Math.max(0, Number(h.value)),
+    label: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][
+      Math.max(0, Math.min(11, Number(h.month.slice(5, 7)) - 1))
+    ],
+  }));
+  const trendMax = Math.max(...trendPoints.map((p) => p.value), 1);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -104,9 +133,13 @@ export default function Insights() {
         <View style={styles.card}>
           <Text style={styles.kicker}>SPENDING BY CATEGORY</Text>
           <View style={styles.cardBody}>
-            {byCategory.map((c) => (
-              <HBar key={c.label} label={c.label} amount={c.amount} max={catMax} color={colors.primary} />
-            ))}
+            {byCategory.length > 0 ? (
+              byCategory.map((c) => (
+                <HBar key={c.label} label={c.label} amount={c.amount} max={catMax} color={colors.primary} />
+              ))
+            ) : (
+              <Text style={styles.proNote}>Nothing spent this month yet. Log an expense and the bars appear.</Text>
+            )}
           </View>
         </View>
 
@@ -119,23 +152,25 @@ export default function Insights() {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.kicker}>NET WORTH TREND</Text>
-          <View style={styles.trend}>
-            {sampleNetWorthHistory.map((p) => (
-              <View key={p.month} style={styles.trendCol}>
-                <View
-                  style={[
-                    styles.trendBar,
-                    { height: Math.max((p.value / trendMax) * 120, 4) },
-                  ]}
-                />
-                <Text style={styles.trendLabel}>{p.month}</Text>
-              </View>
-            ))}
+        {trendPoints.length >= 2 ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>NET WORTH TREND</Text>
+            <View style={styles.trend}>
+              {trendPoints.map((p) => (
+                <View key={p.month} style={styles.trendCol}>
+                  <View
+                    style={[
+                      styles.trendBar,
+                      { height: Math.max((p.value / trendMax) * 120, 4) },
+                    ]}
+                  />
+                  <Text style={styles.trendLabel}>{p.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.trendNow}>Now: {formatMoney(netWorthNow)}</Text>
           </View>
-          <Text style={styles.trendNow}>Now: {formatMoney(sampleNetWorthHistory[sampleNetWorthHistory.length - 1].value)}</Text>
-        </View>
+        ) : null}
 
         {/* ---- Pro analytics: the deep analysis tier ---- */}
         <Text style={styles.sectionTitleRow}>
@@ -164,7 +199,12 @@ export default function Insights() {
           </>
         )}
 
-        <Text style={styles.footnote}>Charts show {monthLabel()}. The net worth trend is sample data for now.</Text>
+        <Text style={styles.footnote}>
+          Charts show {monthLabel()}.
+          {trendPoints.length >= 2
+            ? ' The net worth trend snapshots each month you open Insights.'
+            : ' Come back next month and your real net worth trend starts here.'}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -11,6 +11,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -34,7 +35,7 @@ import * as Updates from 'expo-updates';
 import { todayISO } from '../../lib/format';
 
 const NOTIF_OPTIONS = [
-  { key: 'payday', label: 'Payday reminders', hint: 'The 15th and end of the month' },
+  { key: 'payday', label: 'Payday reminders', hint: 'Follows your payday schedule in Preferences' },
   { key: 'bills', label: 'Bill due reminders', hint: 'Cards and loans, 3 days before and on the day' },
   { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
   { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
@@ -567,6 +568,39 @@ export default function More() {
               regularly.
             </Text>
           ) : null}
+        </View>
+
+        <Text style={styles.sectionTitle}>FEEDBACK</Text>
+        <View style={styles.card}>
+          <Pressable
+            onPress={() =>
+              Linking.openURL(
+                'mailto:dimaguila.carlam@gmail.com?subject=Salapify%20feedback'
+              ).catch(() => {})
+            }
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          >
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={styles.rowLabel}>Send feedback</Text>
+              <Text style={styles.rowHint}>Found a bug or want a feature? Email goes straight to the maker</Text>
+            </View>
+            <Ionicons name="mail-outline" size={18} color={colors.faint} />
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              Share.share({
+                message:
+                  'I track my budget, utang, and bills with Salapify. Offline, no ads, core features free. https://icedamericanodev.github.io/Salapify/',
+              }).catch(() => {})
+            }
+            style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+          >
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={styles.rowLabel}>Share Salapify</Text>
+              <Text style={styles.rowHint}>Send it to a friend who keeps asking where the sweldo went</Text>
+            </View>
+            <Ionicons name="share-social-outline" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>

@@ -28,6 +28,7 @@ import EmptyState from '../../components/EmptyState';
 import WeekChain from '../../components/WeekChain';
 import LogSheet from '../../components/LogSheet';
 import { resolveReceipt } from '../../lib/receipts';
+import { SAMPLE_TX_IDS } from '../../lib/sampleData';
 
 const today = todayISO;
 
@@ -39,7 +40,7 @@ const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, u
 export default function Budget() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addTransaction, removeTransaction } = useAppData();
+  const { data, addTransaction, removeTransaction, updateSettings } = useAppData();
   const router = useRouter();
 
   const [customOpen, setCustomOpen] = useState(false); // the shared LogSheet
@@ -58,6 +59,32 @@ export default function Budget() {
   const remaining = limit - spent;
   const pct = limit ? Math.min(Math.round((spent / limit) * 100), 100) : 0;
   const over = spent > limit;
+
+  // The day one recap: appears once, after the third real log ever. The
+  // moment the habit needs applause is right at the start, not at day 30.
+  const realLogs = data.transactions.filter((t) => t && !SAMPLE_TX_IDS.has(t.id)).length;
+  const showDayOne = !data.settings.dayOneRecap && realLogs >= 3;
+
+  // Where it went: this month's top spending groups. Entries tagged with a
+  // category group under its name, untagged ones fall back to their label.
+  // When a Pro cap is set on a category, the bar measures against the cap
+  // and turns warning when it blows past.
+  const pro = !!(data.settings && data.settings.pro);
+  const catById = new Map((data.categories || []).map((c) => [c.id, c]));
+  const spentByCat = Object.create(null);
+  for (const t of expenses) {
+    const cat = t.categoryId ? catById.get(t.categoryId) : null;
+    const name = (cat && cat.name) || (t.label || 'Other').trim() || 'Other';
+    const key = name.toLowerCase();
+    if (!spentByCat[key]) {
+      spentByCat[key] = { label: name, amount: 0, cap: cat && pro ? Number(cat.monthlyCap) || 0 : 0 };
+    }
+    spentByCat[key].amount += t.amount;
+  }
+  const whereItWent = Object.values(spentByCat)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 4);
+  const whereMax = Math.max(...whereItWent.map((w) => w.amount), 1);
 
   // Newest first BY DATE, so a backdated entry or a recurring bill posted
   // mid month lands where it belongs, matching History's ordering.
@@ -152,6 +179,19 @@ export default function Budget() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Budget</Text>
 
+        {showDayOne ? (
+          <View style={[styles.card, styles.dayOneCard]}>
+            <Text style={styles.dayOneKicker}>NICE START 🎉</Text>
+            <Text style={styles.dayOneText}>
+              Three logs in. You already know more about your money today than
+              most people know all month. Keep going, the chain below fills up.
+            </Text>
+            <Pressable onPress={() => updateSettings({ dayOneRecap: true })} hitSlop={8} style={styles.dayOneBtn}>
+              <Text style={styles.dayOneBtnText}>Got it</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
           <Text style={styles.spent}>
@@ -166,6 +206,38 @@ export default function Budget() {
             {over ? `${formatMoney(-remaining)} over your limit` : `${formatMoney(remaining)} left to spend`}
           </Text>
         </View>
+
+        {whereItWent.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>WHERE IT WENT</Text>
+            {whereItWent.map((w) => {
+              const overCap = w.cap > 0 && w.amount > w.cap;
+              const frac = w.cap > 0 ? Math.min(w.amount / w.cap, 1) : w.amount / whereMax;
+              return (
+                <View key={w.label} style={styles.wentRow}>
+                  <View style={styles.wentHead}>
+                    <Text style={styles.wentLabel} numberOfLines={1}>{w.label}</Text>
+                    <Text style={[styles.wentAmt, overCap && { color: colors.warning }]}>
+                      {formatMoney(w.amount)}
+                      {w.cap > 0 ? ` of ${formatMoney(w.cap)} cap` : ''}
+                    </Text>
+                  </View>
+                  <View style={styles.wentTrack}>
+                    <View
+                      style={[
+                        styles.wentFill,
+                        {
+                          width: `${Math.max(Math.round(frac * 100), 2)}%`,
+                          backgroundColor: overCap ? colors.warning : colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <WeekChain transactions={data.transactions} />
 
@@ -284,6 +356,17 @@ function makeStyles(colors) {
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
+    wentRow: { marginTop: spacing.md },
+    wentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs, gap: spacing.sm },
+    wentLabel: { color: colors.textSecondary, fontSize: fontSize.small, flexShrink: 1 },
+    wentAmt: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    wentTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
+    wentFill: { height: '100%', borderRadius: radius.pill },
+    dayOneCard: { backgroundColor: colors.positiveSurface, borderColor: colors.positiveBorder },
+    dayOneKicker: { color: colors.celebrate, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
+    dayOneText: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.sm },
+    dayOneBtn: { alignSelf: 'flex-start', marginTop: spacing.md, minHeight: 40, justifyContent: 'center' },
+    dayOneBtnText: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     spent: { color: colors.text, fontSize: fontSize.big, fontWeight: fontWeight.heavy, marginTop: spacing.xs, marginBottom: spacing.md },
     ofLimit: { color: colors.muted, fontSize: fontSize.body, fontWeight: fontWeight.regular },
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },

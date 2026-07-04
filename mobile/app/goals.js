@@ -75,6 +75,32 @@ export default function Goals() {
     setForm(null);
   }
 
+  // Templates for the empty state: the three goals Filipinos actually
+  // start with. Tapping one opens the add sheet prefilled, still editable.
+  const TEMPLATES = [
+    { icon: '🛟', name: 'Emergency fund', target: 10000 },
+    { icon: '🎄', name: 'Pasko fund', target: 5000 },
+    { icon: '✈️', name: 'Travel fund', target: 15000 },
+  ];
+  function openTemplate(t) {
+    setForm({ id: null, name: t.name, target: String(t.target), saved: '', targetDate: '' });
+    setAddFunds('');
+    setConfirmDel(false);
+  }
+
+  // "Save X a month and you make it": only when the goal has a real future
+  // target month and money still to save. Honest zero pressure math.
+  function perMonthLine(g) {
+    const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(String(g.targetDate || '').trim());
+    if (!m) return '';
+    const remaining = (Number(g.target) || 0) - (Number(g.saved) || 0);
+    if (remaining <= 0) return '';
+    const now = new Date();
+    const months = (Number(m[1]) - now.getFullYear()) * 12 + (Number(m[2]) - 1 - now.getMonth());
+    if (months <= 0) return '';
+    return `Save ${formatMoney(Math.ceil(remaining / months))} a month and you make it.`;
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.headerBar}>
@@ -89,7 +115,23 @@ export default function Goals() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {data.goals.length === 0 ? (
-          <EmptyState icon="🎯" title="No goals yet" subtitle="Tap + Add to set your first savings goal." />
+          <>
+            <EmptyState icon="🎯" title="No goals yet" subtitle="Start with a classic, or tap + Add for your own." />
+            {TEMPLATES.map((t) => (
+              <Pressable
+                key={t.name}
+                onPress={() => openTemplate(t)}
+                style={({ pressed }) => [styles.card, styles.templateCard, pressed && styles.pressed]}
+              >
+                <Text style={styles.templateIcon}>{t.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.goalName}>{t.name}</Text>
+                  <Text style={styles.goalSub}>Suggested start: {formatMoney(t.target)}. Change anything.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+              </Pressable>
+            ))}
+          </>
         ) : (
           data.goals.map((g) => {
             const pct = g.target
@@ -112,6 +154,7 @@ export default function Goals() {
                   {formatMoney(g.saved)} of {formatMoney(g.target)}
                   {g.targetDate ? ` . by ${g.targetDate}` : ''}
                 </Text>
+                {perMonthLine(g) ? <Text style={styles.perMonth}>{perMonthLine(g)}</Text> : null}
               </Pressable>
             );
           })
@@ -190,6 +233,9 @@ function makeStyles(colors) {
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
     fill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
     goalSub: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm },
+    perMonth: { color: colors.softGreen, fontSize: fontSize.small, marginTop: spacing.xs, fontWeight: fontWeight.medium },
+    templateCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    templateIcon: { fontSize: 28 },
 
     overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
