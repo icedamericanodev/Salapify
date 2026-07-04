@@ -636,7 +636,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.6: Pan gets a proper cute face</Text>
+            <Text style={styles.rowValue}>v3.7: Pan moves in layers, with weight</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
