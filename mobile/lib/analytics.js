@@ -13,13 +13,12 @@ const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 // excluded: the whole point of safe to spend is to protect them.
 const LIQUID_KINDS = ['cash', 'ewallet', 'checking'];
 
-// Safe to spend until sweldo: how much is genuinely free to spend each day
-// between now and the next payday, after setting aside the bills that land
-// before then. Answers the one question people open a money app to ask,
-// "how much can I spend today and still make it to payday?". Everything is
-// computed from data already on the phone. Returns:
-//   { liquid, committed, available, perDay, daysLeft, payday, billCount }
-export function safeToSpend(data, ref = new Date()) {
+// The bills that land before the next sweldo, oldest first, with the total.
+// Two sources: card and loan dues, and recurring bills that have not already
+// posted this cycle (a posted one already left the balance). This is the
+// detail behind safeToSpend's committed number. Returns:
+//   { payday, daysLeft, bills: [{ name, kind, date, amount }], total }
+export function upcomingCommitments(data, ref = new Date()) {
   const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
   const schedule = data.settings && data.settings.paydaySchedule;
 
@@ -33,37 +32,53 @@ export function safeToSpend(data, ref = new Date()) {
   }
   const daysLeft = Math.max(1, daysUntil(payday, today));
 
-  // Spendable right now: cash, e-wallets, checking. Never savings.
-  const liquid = (data.accounts || []).reduce(
-    (t, a) => (a && LIQUID_KINDS.includes(a.kind) ? t + num(a.balance) : t),
-    0
-  );
-
-  // Bills that hit before the next sweldo, so their money is not free to
-  // spend. Two sources: card and loan dues, and recurring bills that have
-  // not already posted this cycle (a posted one already left the balance).
   const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  let committed = 0;
-  let billCount = 0;
+  const bills = [];
   for (const d of upcomingDues(data.debts, daysLeft, today)) {
-    committed += num(d.amount);
-    billCount += 1;
+    if (num(d.amount) > 0) {
+      bills.push({ name: (d.debt && d.debt.name) || 'Debt', kind: 'minimum', date: d.due, amount: num(d.amount) });
+    }
   }
   for (const r of data.recurring || []) {
     if (!r || r.type !== 'expense') continue;
     const posted = typeof r.lastPosted === 'string' && r.lastPosted >= monthKey;
     if (posted) continue;
-    const due = nextOccurrence(r.dayOfMonth, today);
     const amt = Math.max(0, num(r.amount));
+    const due = nextOccurrence(r.dayOfMonth, today);
     if (due && due <= payday && amt > 0) {
-      committed += amt;
-      billCount += 1;
+      bills.push({ name: r.label || 'Recurring', kind: 'bill', date: due, amount: amt });
     }
   }
+  bills.sort((a, b) => a.date - b.date);
+  const total = bills.reduce((t, b) => t + b.amount, 0);
+  return { payday, daysLeft, bills, total };
+}
 
+// Safe to spend until sweldo: how much is genuinely free to spend each day
+// between now and the next payday, after setting aside the bills that land
+// before then. Answers the one question people open a money app to ask,
+// "how much can I spend today and still make it to payday?". Everything is
+// computed from data already on the phone. Returns:
+//   { liquid, committed, available, perDay, daysLeft, payday, billCount }
+export function safeToSpend(data, ref = new Date()) {
+  const c = upcomingCommitments(data, ref);
+  // Spendable right now: cash, e-wallets, checking. Never savings.
+  const liquid = (data.accounts || []).reduce(
+    (t, a) => (a && LIQUID_KINDS.includes(a.kind) ? t + num(a.balance) : t),
+    0
+  );
+  const committed = c.total;
   const available = liquid - committed;
-  const perDay = available > 0 ? available / daysLeft : 0;
-  return { liquid, committed, available, perDay, daysLeft, payday, billCount };
+  const perDay = available > 0 ? available / c.daysLeft : 0;
+  return {
+    liquid,
+    committed,
+    available,
+    perDay,
+    daysLeft: c.daysLeft,
+    payday: c.payday,
+    billCount: c.bills.length,
+  };
 }
 
 // Month key like "2026-07" for a Date.

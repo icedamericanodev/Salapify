@@ -13,8 +13,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
-import { upcomingDues } from '../../lib/soa';
-import { safeToSpend } from '../../lib/analytics';
+import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
 
@@ -111,9 +110,17 @@ export default function Overview() {
   }, 0);
   const owedCount = unpaid.length;
 
-  // Payments coming due in the next 30 days (cards and loans with a due
-  // day set), so future cash flow is visible before it hits.
-  const dues = upcomingDues(data.debts, 30);
+  // The bills that land before the next sweldo, with a running balance so
+  // the katapusan question, "will my money survive until payday?", is
+  // answered bill by bill. This is the detail behind the safe to spend
+  // number above.
+  const commitments = useMemo(() => upcomingCommitments(data), [data]);
+  let runBal = sts.liquid;
+  const billRows = commitments.bills.map((b) => {
+    runBal -= b.amount;
+    return { ...b, after: runBal };
+  });
+  const endBalance = sts.liquid - commitments.total;
 
   // The sweldo plan: a guided three step card that appears for 48 hours
   // after each payday on the user's own schedule. The key is the payday's
@@ -366,25 +373,35 @@ export default function Overview() {
           </Text>
         </Pressable>
 
-        {/* Payments coming due soon: cards and loans with a due day set. */}
-        {dues.length > 0 ? (
+        {/* Bills before the next sweldo, with a running balance. */}
+        {billRows.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>UPCOMING PAYMENTS</Text>
+            <Text style={styles.sectionTitle}>BILLS BEFORE SWELDO</Text>
             <View style={styles.card}>
-              {dues.map((u, i) => (
-                <View key={u.debt.id} style={[styles.dueRow, i > 0 && styles.dueDivider]}>
+              {billRows.map((b, i) => (
+                <View key={i} style={[styles.dueRow, i > 0 && styles.dueDivider]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.dueName}>{u.debt.name}</Text>
+                    <Text style={styles.dueName}>{b.name}</Text>
                     <Text style={styles.dueWhen}>
-                      {u.inDays === 0 ? 'Due today' : u.inDays === 1 ? 'Due tomorrow' : `In ${u.inDays} days`}
-                      {' '}({MONTHS_SHORT[u.due.getMonth()]} {u.due.getDate()})
+                      {b.kind} · {MONTHS_SHORT[b.date.getMonth()]} {b.date.getDate()}
                     </Text>
                   </View>
-                  <Text style={styles.dueAmount}>{formatMoney(u.amount)}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.dueAmount}>- {formatMoney(b.amount)}</Text>
+                    <Text style={[styles.dueWhen, { color: b.after < 0 ? colors.warning : colors.faint }]}>
+                      {formatMoney(b.after)} left
+                    </Text>
+                  </View>
                 </View>
               ))}
-              <Text style={styles.dueHint}>
-                Minimum amounts shown. Pay cards in full when you can to avoid interest.
+              <Text style={[styles.dueHint, endBalance < 0 && { color: colors.warning }]}>
+                {endBalance >= 0
+                  ? `After these ${billRows.length} ${billRows.length === 1 ? 'bill' : 'bills'} you will have ${formatMoney(
+                      endBalance
+                    )} spendable before sweldo on ${stsDate}. Card minimums shown; pay in full when you can to skip interest.`
+                  : `These bills total ${formatMoney(commitments.total)}, ${formatMoney(
+                      -endBalance
+                    )} more than your ${formatMoney(sts.liquid)} spendable cash. Move some from savings before they hit, or pay what you can.`}
               </Text>
             </View>
           </>
