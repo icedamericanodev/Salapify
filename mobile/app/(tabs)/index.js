@@ -14,6 +14,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
+import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
 
@@ -48,6 +49,25 @@ export default function Overview() {
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
   const cashFlow = moneyIn - moneyOut;
+
+  // Pan's mood on the dashboard: worried when you are over your monthly
+  // budget, a happy pop the moment a new entry is logged, idle otherwise.
+  const budgetLimit = data.settings.monthlyLimit || 0;
+  const overBudget = budgetLimit > 0 && moneyOut > budgetLimit;
+  const [panHappy, setPanHappy] = useState(false);
+  const prevTxCount = useRef(null);
+  useEffect(() => {
+    const n = data.transactions.length;
+    const prev = prevTxCount.current;
+    prevTxCount.current = n;
+    if (prev !== null && n > prev) {
+      setPanHappy(true);
+      const t = setTimeout(() => setPanHappy(false), 1100);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [data.transactions.length]);
+  const panState = panHappy ? 'happy' : overBudget ? 'worried' : 'idle';
 
   // Safe to spend until sweldo: the daily question, answered from spendable
   // balances minus the bills that land before the next payday. Only shown
@@ -191,13 +211,11 @@ export default function Overview() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>🪙</Text>
-          </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.subgreeting}>Here is your money today</Text>
           </View>
+          <Mascot size={62} state={panState} />
         </View>
 
         {/* Sweldo plan: appears for 48 hours after each payday. */}

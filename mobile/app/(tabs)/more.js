@@ -622,8 +622,8 @@ export default function More() {
         </View>
 
         <View style={styles.mascotWrap}>
-          <Mascot size={96} />
-          <Text style={styles.mascotName}>Your kape powered money buddy. ☕</Text>
+          <Mascot size={104} />
+          <Text style={styles.mascotName}>Pan, your kape powered money buddy. ☕</Text>
         </View>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>
@@ -636,7 +636,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.3: meet Kutsi the mascot</Text>
+            <Text style={styles.rowValue}>v3.4: meet Pan the coffee mug</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
