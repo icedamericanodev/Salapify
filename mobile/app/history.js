@@ -184,6 +184,7 @@ export default function History() {
   const { data, updateTransaction, removeTransaction } = useAppData();
 
   const [month, setMonth] = useState('all');
+  const [query, setQuery] = useState('');
   const [editTx, setEditTx] = useState(null);
   const [receiptView, setReceiptView] = useState('');
   const [receiptDead, setReceiptDead] = useState(false);
@@ -198,11 +199,15 @@ export default function History() {
   }, [data.transactions]);
 
   const shown = useMemo(() => {
-    const list = (data.transactions || []).filter(
-      (t) => t && (month === 'all' || String(t.date || '').slice(0, 7) === month)
-    );
+    const q = query.trim().toLowerCase();
+    const list = (data.transactions || []).filter((t) => {
+      if (!t) return false;
+      if (month !== 'all' && String(t.date || '').slice(0, 7) !== month) return false;
+      if (q && !String(t.label || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
     return [...list].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  }, [data.transactions, month]);
+  }, [data.transactions, month, query]);
 
   const totals = useMemo(() => {
     let tin = 0;
@@ -268,6 +273,23 @@ export default function History() {
         </Pressable>
         <Text style={styles.headerTitle}>History</Text>
         <View style={{ width: 24 }} />
+      </View>
+
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color={colors.faint} />
+        <TextInput
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search entries, like jollibee or load"
+          placeholderTextColor={colors.faint}
+          autoCapitalize="none"
+        />
+        {query ? (
+          <Pressable onPress={() => setQuery('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={18} color={colors.faint} />
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthBar} contentContainerStyle={styles.monthRow}>
@@ -349,6 +371,19 @@ function makeStyles(colors) {
     back: { marginLeft: -4 },
     headerTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
 
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radius.md,
+    },
+    searchInput: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     monthBar: { flexGrow: 0 },
     monthRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
     chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
