@@ -42,7 +42,7 @@ const DEBT_TYPES = [
 export default function Debts() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, updateItem, removeItem } = useAppData();
+  const { data, addItem, updateItem, removeItem, addTransaction } = useAppData();
 
   const [strategy, setStrategy] = useState('snowball');
   const [form, setForm] = useState(null); // add/edit modal
@@ -51,6 +51,7 @@ export default function Debts() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
+  const [confirmPaidOff, setConfirmPaidOff] = useState(false);
 
   const debts = data.debts;
   const sum = (list, fn) => list.reduce((t, d) => t + fn(d), 0);
@@ -84,6 +85,7 @@ export default function Debts() {
     setMsg('');
     setErr('');
     setConfirmDel(false);
+    setConfirmPaidOff(false);
   }
   function openEdit(d) {
     setForm({
@@ -103,9 +105,11 @@ export default function Debts() {
     setMsg('');
     setErr('');
     setConfirmDel(false);
+    setConfirmPaidOff(false);
   }
   function close() {
     setForm(null);
+    setConfirmPaidOff(false);
   }
   function save() {
     if (!form.name.trim()) {
@@ -193,8 +197,13 @@ export default function Debts() {
     if (form.id) removeItem('debts', form.id);
     close();
   }
-  function logPayment() {
-    const amt = Number(payAmount) || 0;
+  // One shared payment path. Logging an amount and Mark paid off both go
+  // through here, so every peso that leaves a debt also leaves the chosen
+  // account, lands in the payments list, and writes a record row into the
+  // transaction stream that History shows. The record row carries no
+  // accountId on purpose: the balance move happens right here, and a record
+  // deleted later from History must never shift a balance again.
+  function applyPayment(amt) {
     if (!form.id || amt <= 0) return;
     // Read the balance from the store, never from the edit field: a cleared
     // or half-typed Remaining box must not zero out a real debt.
@@ -216,16 +225,41 @@ export default function Debts() {
       account: acct ? acct.id : '',
       status: isCard ? 'pending' : 'posted',
     });
+    const name = (debt && debt.name) || form.name || 'Debt';
+    addTransaction({
+      type: 'debt',
+      label: `Debt payment: ${name}`,
+      amount: amt,
+      date: today(),
+      debtId: form.id,
+    });
     setForm((f) => ({ ...f, remaining: String(newRem) }));
     setMsg(
       `Logged ${formatMoney(amt)}${acct ? ` from ${acct.name}` : ''}. New balance ${formatMoney(newRem)}.`
     );
+    return newRem;
   }
+  function logPayment() {
+    setConfirmPaidOff(false);
+    applyPayment(Number(payAmount) || 0);
+  }
+  // Mark paid off is a real payment of everything still owed, from the
+  // chosen account (or Outside the app), never a silent zeroing that makes
+  // money vanish from nowhere. Two taps to confirm, same as Delete.
   function markPaid() {
     if (!form.id) return;
-    updateItem('debts', form.id, { remaining: 0 });
-    setForm((f) => ({ ...f, remaining: '0' }));
-    setMsg('Marked as paid off.');
+    const debt = data.debts.find((d) => d.id === form.id);
+    const remaining = debt ? Number(debt.remaining) || 0 : 0;
+    if (remaining <= 0) {
+      setMsg('Already at zero.');
+      return;
+    }
+    if (!confirmPaidOff) {
+      setConfirmPaidOff(true);
+      return;
+    }
+    setConfirmPaidOff(false);
+    applyPayment(remaining);
   }
 
   return (
@@ -420,7 +454,11 @@ export default function Debts() {
                     </Pressable>
                   </View>
                   <Pressable onPress={markPaid} style={styles.markPaid}>
-                    <Text style={styles.markPaidText}>Mark paid off</Text>
+                    <Text style={styles.markPaidText}>
+                      {confirmPaidOff
+                        ? `Tap again to log ${formatMoney(Number(editDebt ? editDebt.remaining : 0) || 0)} as paid`
+                        : 'Mark paid off'}
+                    </Text>
                   </Pressable>
                   {msg ? <Text style={styles.msg}>{msg}</Text> : null}
                 </View>

@@ -136,6 +136,9 @@ export default function Goals() {
               {form?.id ? (
                 <View style={styles.payBox}>
                   <Text style={styles.fieldLabel}>Add to savings</Text>
+                  <Text style={styles.honestNote}>
+                    This only updates the goal number. It does not move money out of any account.
+                  </Text>
                   <View style={styles.payRow}>
                     <TextInput style={[styles.input, styles.payInput]} value={addFunds} onChangeText={setAddFunds} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
                     <Pressable onPress={applyFunds} style={[styles.sheetBtn, styles.saveBtn]}>
@@ -194,6 +197,7 @@ function makeStyles(colors) {
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     payBox: { marginTop: spacing.lg, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm },
+    honestNote: { color: colors.faint, fontSize: fontSize.small, marginBottom: spacing.sm },
     payRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
     payInput: { flex: 1 },
     sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },

@@ -214,8 +214,8 @@ export default function Budget() {
                       <Text style={styles.receiptIcon}>🧾</Text>
                     </Pressable>
                   ) : null}
-                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : colors.text }]}>
-                    {e.type === 'income' ? '+' : '-'} {formatMoney(e.amount)}
+                  <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'transfer' ? colors.muted : colors.text }]}>
+                    {e.type === 'income' ? '+' : e.type === 'transfer' ? '⇄' : '-'} {formatMoney(e.amount)}
                   </Text>
                   <Pressable onPress={() => deleteEntry(e)} hitSlop={8} style={styles.trash}>
                     <Ionicons name="close" size={16} color={colors.faint} />

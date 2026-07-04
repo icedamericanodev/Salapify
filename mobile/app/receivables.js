@@ -178,15 +178,32 @@ export default function Receivables() {
     addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
-  // Mark paid settles whatever is STILL owed after partial payments.
+  // Mark paid settles whatever is STILL owed after partial payments. One
+  // tap writes a payment and an income entry, so it confirms first; a
+  // slip of the finger must not invent money received.
   function markPaid(r) {
     const remaining = remainingOf(r);
-    const payment = { id: genId('rpay'), amount: remaining, date: todayISO() };
-    updateItem('receivables', r.id, {
-      paid: true,
-      payments: remaining > 0 ? [...(r.payments || []), payment] : r.payments || [],
-    });
-    postIncome(r, remaining);
+    const doIt = () => {
+      const payment = { id: genId('rpay'), amount: remaining, date: todayISO() };
+      updateItem('receivables', r.id, {
+        paid: true,
+        payments: remaining > 0 ? [...(r.payments || []), payment] : r.payments || [],
+      });
+      postIncome(r, remaining);
+    };
+    const message =
+      remaining > 0
+        ? `Log ${formatMoney(remaining)} from ${nameOf(r)} as received and close this utang?`
+        : 'Close this utang? Everything is already paid.';
+    if (Platform.OS === 'web') {
+      // Alert buttons are a no-op in browsers, so confirm the web way.
+      if (typeof window !== 'undefined' && window.confirm(message)) doIt();
+      return;
+    }
+    Alert.alert('Mark as paid?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Mark paid', onPress: doIt },
+    ]);
   }
 
   // A partial payment: "Juan gave me 200 of the 500." Records the payment

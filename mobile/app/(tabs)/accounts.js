@@ -40,7 +40,7 @@ const ASSET_KINDS = [
 export default function Accounts() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { data, addItem, updateItem, removeItem, updateSettings } = useAppData();
+  const { data, addItem, updateItem, removeItem, updateSettings, addTransaction } = useAppData();
 
   // The form modal. null when closed; otherwise holds the fields being edited.
   const [form, setForm] = useState(null);
@@ -87,6 +87,19 @@ export default function Accounts() {
     // or cash flow. It only moves the balances.
     updateItem('accounts', from.id, { balance: Math.round((fromBal - amount) * 100) / 100 });
     updateItem('accounts', to.id, { balance: Math.round(((Number(to.balance) || 0) + amount) * 100) / 100 });
+    // Leave a record row in the stream so History explains why both
+    // balances changed. type "transfer" is skipped by every income and
+    // expense calculation, and it carries no accountId on purpose: the
+    // balances moved right here, and deleting the record from History
+    // later must never move them again.
+    addTransaction({
+      type: 'transfer',
+      label: `Transfer: ${from.name} to ${to.name}`,
+      amount,
+      date: todayISO(),
+      transferFromId: from.id,
+      transferToId: to.id,
+    });
     setTransfer(null);
   }
 

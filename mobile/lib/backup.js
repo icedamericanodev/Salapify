@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -102,6 +102,12 @@ const MIGRATIONS = {
     if (cleanList(d.categories).length > 0) return { ...d };
     return { ...d, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })) };
   },
+  // v5: transactions may now carry type "transfer" or "debt", the record
+  // rows the transfer and debt payment flows write so History tells the
+  // whole story. Old data has no such rows, so nothing to transform; the
+  // bump exists as a fence, because a v4 build restoring a v5 backup would
+  // coerce those records into expenses and double count real spending.
+  5: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -179,7 +185,10 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         // Negative amounts are direction smuggling (an expense that ADDS
         // money); the type field owns direction, amounts stay positive.
         amount: Math.max(0, num(t.amount)),
-        type: t.type === 'income' ? 'income' : 'expense',
+        // Four honest directions. income and expense are the money math;
+        // transfer and debt are record rows that every expense and income
+        // filter automatically skips. Anything else becomes an expense.
+        type: ['income', 'transfer', 'debt'].includes(t.type) ? t.type : 'expense',
         label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
       };
       // receiptUri must match the exact shape the app itself writes,
@@ -195,6 +204,10 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // Same discipline for categoryId: a string or absent, never junk.
       if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
       else delete out.categoryId;
+      // Record rows never carry accountId: their balance moves happened at
+      // the moment of the transfer or payment. A crafted backup that adds
+      // one would make a later edit or delete shift a balance a second time.
+      if (out.type === 'transfer' || out.type === 'debt') delete out.accountId;
       return out;
     }),
     goals: cleanList(src.goals).map((g) => ({
