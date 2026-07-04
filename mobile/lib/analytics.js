@@ -54,8 +54,9 @@ export function safeToSpend(data, ref = new Date()) {
     const posted = typeof r.lastPosted === 'string' && r.lastPosted >= monthKey;
     if (posted) continue;
     const due = nextOccurrence(r.dayOfMonth, today);
-    if (due && due <= payday) {
-      committed += Math.max(0, num(r.amount));
+    const amt = Math.max(0, num(r.amount));
+    if (due && due <= payday && amt > 0) {
+      committed += amt;
       billCount += 1;
     }
   }
