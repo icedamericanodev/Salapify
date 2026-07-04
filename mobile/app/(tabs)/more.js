@@ -573,13 +573,13 @@ export default function More() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>1.2.0</Text>
+            <Text style={styles.rowValue}>1.2.1</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.6: day 6 hardening</Text>
+            <Text style={styles.rowValue}>v2.7: money stream and payday</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
