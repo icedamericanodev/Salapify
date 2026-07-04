@@ -28,6 +28,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney, normalizeSchedule, scheduleLabel } from '../../lib/format';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../../lib/backup';
 import { SIZE_NUDGE, SIZE_WARN } from '../../lib/storage';
+import Mascot from '../../components/Mascot';
 import { ensureNotifPermission } from '../../lib/notifications';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { saveTextFile, saveToDevice, pickTextFile } from '../../lib/files';
@@ -620,6 +621,11 @@ export default function More() {
           </Pressable>
         </View>
 
+        <View style={styles.mascotWrap}>
+          <Mascot size={104} />
+          <Text style={styles.mascotName}>Pan, your kape powered money buddy. ☕</Text>
+        </View>
+
         <Text style={styles.sectionTitle}>ABOUT</Text>
         <View style={styles.card}>
           <View style={styles.row}>
@@ -630,7 +636,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.2: Barako brand and 8 themes</Text>
+            <Text style={styles.rowValue}>v3.5: committed split, utang aging, goal pace</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -880,6 +886,8 @@ function makeStyles(colors) {
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
     pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.lg },
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
+    mascotWrap: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.sm },
+    mascotName: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm, textAlign: 'center' },
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.lg },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md + 2 },
     rowDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
