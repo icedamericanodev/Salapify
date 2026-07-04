@@ -72,3 +72,14 @@ export async function loadSnapshot() {
     return null;
   }
 }
+
+// Delete the snapshot. Erase everything must erase this too, otherwise
+// "cannot be undone" would be a lie and the erased ledger would survive
+// in a hidden key.
+export async function clearSnapshot() {
+  try {
+    await AsyncStorage.removeItem(SNAPSHOT_KEY);
+  } catch (e) {
+    console.warn('clearSnapshot failed', e);
+  }
+}
