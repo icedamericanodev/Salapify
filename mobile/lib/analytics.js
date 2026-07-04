@@ -81,6 +81,97 @@ export function safeToSpend(data, ref = new Date()) {
   };
 }
 
+// The utang ledger, aged. Groups everything people owe you by person, nets
+// out any partial payments, and ranks by who has owed you the longest so the
+// screen can say who to follow up first, then who owes the most. A
+// receivable counts as still outstanding when it is not marked paid and has a
+// balance left after its payments. Its dueDate drives the aging: a due date
+// in the past makes it overdue by that many days. Everything is money already
+// on the phone. Returns:
+//   { people: [{ personId, name, phone, outstanding, count, daysOverdue,
+//     oldestDue }], totalOutstanding, overdueTotal, overdueCount, worst }
+export function utangAging(data, ref = new Date()) {
+  const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const groups = new Map();
+  for (const r of data.receivables || []) {
+    if (!r || r.paid) continue;
+    const paidSoFar = (r.payments || []).reduce((t, p) => t + Math.max(0, num(p && p.amount)), 0);
+    const outstanding = num(r.amount) - paidSoFar;
+    if (outstanding <= 0) continue;
+    const name = (typeof r.person === 'string' && r.person.trim()) || 'Someone';
+    // Group by the person id when present, else by name so a pre v3 blob
+    // still folds the same person's rows together instead of listing each.
+    const key = r.personId || `name:${name.toLowerCase()}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { personId: r.personId || '', name, phone: '', outstanding: 0, count: 0, oldestDue: null };
+      groups.set(key, g);
+    }
+    g.outstanding += outstanding;
+    g.count += 1;
+    if (!g.phone && typeof r.phone === 'string' && r.phone) g.phone = r.phone;
+    const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(r.dueDate || '').trim());
+    if (dm) {
+      const due = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]));
+      if (!g.oldestDue || due < g.oldestDue) g.oldestDue = due;
+    }
+  }
+  const people = [...groups.values()].map((g) => ({
+    personId: g.personId,
+    name: g.name,
+    phone: g.phone,
+    outstanding: g.outstanding,
+    count: g.count,
+    daysOverdue: g.oldestDue ? Math.max(0, Math.round((today - g.oldestDue) / MS_PER_DAY)) : 0,
+    oldestDue: g.oldestDue ? todayISO(g.oldestDue) : '',
+  }));
+  // Follow up the one who has owed you longest first, then the biggest
+  // balance. A tie on both keeps a stable order by name.
+  people.sort(
+    (a, b) => b.daysOverdue - a.daysOverdue || b.outstanding - a.outstanding || a.name.localeCompare(b.name)
+  );
+  const totalOutstanding = people.reduce((t, p) => t + p.outstanding, 0);
+  const overdue = people.filter((p) => p.daysOverdue > 0);
+  const overdueTotal = overdue.reduce((t, p) => t + p.outstanding, 0);
+  return { people, totalOutstanding, overdueTotal, overdueCount: overdue.length, worst: people[0] || null };
+}
+
+// One savings goal's pace: how far along it is, and the honest amount it
+// takes to finish on time. progress is saved over target. With a real future
+// target month, perMonth and perWeek are the catch up pace. A target month
+// that has already arrived or passed with money still to save reads as
+// behind, and perMonth becomes the whole remaining amount (it is due now).
+// Returns { pct, saved, target, remaining, done, status, monthsLeft,
+//   perMonth, perWeek, targetDate }. status is one of
+//   'done' | 'behind' | 'active' | 'no-date'.
+export function goalPace(goal, ref = new Date()) {
+  const target = Math.max(0, num(goal && goal.target));
+  const saved = Math.max(0, num(goal && goal.saved));
+  const remaining = Math.max(0, target - saved);
+  const pct = target > 0 ? Math.min(saved / target, 1) : saved > 0 ? 1 : 0;
+  const targetDate = typeof (goal && goal.targetDate) === 'string' ? goal.targetDate.trim() : '';
+  const base = { pct, saved, target, remaining, targetDate };
+  if (remaining <= 0) {
+    return { ...base, remaining: 0, pct: target > 0 ? 1 : pct, done: true, status: 'done', monthsLeft: 0, perMonth: 0, perWeek: 0 };
+  }
+  const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(targetDate);
+  if (!m) {
+    return { ...base, done: false, status: 'no-date', monthsLeft: null, perMonth: 0, perWeek: 0 };
+  }
+  // Whole months from this month to the target month, matching the Goals
+  // screen's own perMonth math so the two never disagree.
+  const monthsLeft = (Number(m[1]) - ref.getFullYear()) * 12 + (Number(m[2]) - 1 - ref.getMonth());
+  if (monthsLeft <= 0) {
+    // The deadline is this month or already gone, so the whole balance is
+    // due now. That is behind unless it is exactly this month with room.
+    return { ...base, done: false, status: 'behind', monthsLeft: Math.min(monthsLeft, 0), perMonth: remaining, perWeek: remaining };
+  }
+  const perMonth = Math.ceil(remaining / monthsLeft);
+  const perWeek = Math.ceil(remaining / (monthsLeft * (52 / 12)));
+  return { ...base, done: false, status: 'active', monthsLeft, perMonth, perWeek };
+}
+
 // Month key like "2026-07" for a Date.
 function monthKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;

@@ -18,6 +18,9 @@ import {
   savingsRate,
   forecastMonthEnd,
   healthScore,
+  safeToSpend,
+  utangAging,
+  goalPace,
 } from '../../lib/analytics';
 
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -156,6 +159,51 @@ export default function Insights() {
   }));
   const trendMax = Math.max(...trendPoints.map((p) => p.value), 1);
 
+  // What is already spoken for: the bills and minimums that land before the
+  // next sweldo, against the money you can actually spend right now. Turns
+  // the abstract balance into "this much is free to live on". Same engine as
+  // the Overview Safe to spend card, shown here as the split.
+  const sts = safeToSpend(data);
+  const committedShare = sts.liquid > 0 ? Math.min(sts.committed / sts.liquid, 1) : sts.committed > 0 ? 1 : 0;
+  const showCommitted = sts.liquid > 0 || sts.committed > 0;
+  const paydayLabel = sts.payday
+    ? sts.payday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : '';
+  let committedLine = '';
+  if (showCommitted) {
+    if (sts.available > 0) {
+      committedLine =
+        `${formatMoney(sts.committed)} of your ${formatMoney(sts.liquid)} is already committed to bills and minimums before ${paydayLabel}. ` +
+        `That leaves ${formatMoney(sts.available)} to live on, about ${formatMoney(Math.round(sts.perDay))} a day for ${sts.daysLeft} days.`;
+    } else {
+      committedLine =
+        `Bills and minimums due before ${paydayLabel} come to ${formatMoney(sts.committed)}, more than the ${formatMoney(sts.liquid)} you can spend right now. ` +
+        `Nothing is free until sweldo, so hold off on anything you can.`;
+    }
+  }
+
+  // Utang, aged: who owes you, oldest debt first. The brand wedge, so it is
+  // free, not Pro. Bars scale to the biggest single balance.
+  const utang = utangAging(data);
+  const utangTop = utang.people.slice(0, 5);
+  const utangMax = Math.max(...utangTop.map((p) => p.outstanding), 1);
+  let utangLine = '';
+  if (utang.people.length > 0) {
+    const w = utang.worst;
+    if (w && w.daysOverdue > 0) {
+      utangLine =
+        `${w.name} has owed you ${formatMoney(w.outstanding)} for ${w.daysOverdue} ${w.daysOverdue === 1 ? 'day' : 'days'}. ` +
+        `Follow up there first.`;
+    } else {
+      utangLine =
+        `${formatMoney(utang.totalOutstanding)} is still out with ${utang.people.length} ${utang.people.length === 1 ? 'person' : 'people'}. ` +
+        `Nothing is overdue yet, so a gentle reminder is enough.`;
+    }
+  }
+
+  // Goal pace: every goal with the honest amount per month to finish on time.
+  const goalRows = (data.goals || []).map((g) => ({ goal: g, pace: goalPace(g) }));
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -227,6 +275,107 @@ export default function Insights() {
               ))}
             </View>
             <Text style={styles.trendNow}>Now: {formatMoney(netWorthNow)}</Text>
+          </View>
+        ) : null}
+
+        {showCommitted ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>WHAT IS ALREADY SPOKEN FOR</Text>
+            <View style={styles.propBar}>
+              <View style={{ width: `${Math.max(committedShare * 100, 1)}%`, backgroundColor: colors.warning }} />
+              {sts.available > 0 ? (
+                <View style={{ width: `${Math.max((1 - committedShare) * 100, 1)}%`, backgroundColor: colors.primary }} />
+              ) : null}
+            </View>
+            <View style={styles.legend}>
+              <View style={styles.legendRow}>
+                <View style={styles.legendLeft}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
+                  <Text style={styles.legendLabel}>Committed</Text>
+                </View>
+                <Text style={styles.legendVal}>{formatMoney(sts.committed)}</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={styles.legendLeft}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+                  <Text style={styles.legendLabel}>{sts.available > 0 ? 'Free to spend' : 'Short'}</Text>
+                </View>
+                <Text style={styles.legendVal}>{formatMoney(Math.abs(sts.available))}</Text>
+              </View>
+            </View>
+            {committedLine ? <Text style={styles.insightLine}>{committedLine}</Text> : null}
+          </View>
+        ) : null}
+
+        {utang.people.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>UTANG: WHO OWES YOU</Text>
+            <View style={styles.cardBody}>
+              {utangTop.map((p) => (
+                <View key={p.personId || p.name} style={styles.utangRow}>
+                  <View style={styles.utangHead}>
+                    <Text style={styles.moverLabel} numberOfLines={1}>{p.name}</Text>
+                    <Text style={styles.utangAmt}>{formatMoney(p.outstanding)}</Text>
+                  </View>
+                  <View style={styles.hbarTrack}>
+                    <View
+                      style={[
+                        styles.hbarFill,
+                        {
+                          width: `${Math.max((p.outstanding / utangMax) * 100, 2)}%`,
+                          backgroundColor: p.daysOverdue > 0 ? colors.warning : colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.utangSub}>
+                    {p.daysOverdue > 0
+                      ? `${p.daysOverdue} ${p.daysOverdue === 1 ? 'day' : 'days'} overdue`
+                      : p.oldestDue
+                      ? `due ${p.oldestDue}`
+                      : 'no due date set'}
+                    {p.count > 1 ? ` . ${p.count} utang` : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {utangLine ? <Text style={styles.insightLine}>{utangLine}</Text> : null}
+          </View>
+        ) : null}
+
+        {goalRows.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>GOAL PACE</Text>
+            <View style={styles.cardBody}>
+              {goalRows.map(({ goal, pace }) => (
+                <View key={goal.id} style={styles.utangRow}>
+                  <View style={styles.utangHead}>
+                    <Text style={styles.moverLabel} numberOfLines={1}>{goal.name}</Text>
+                    <Text style={styles.goalPct}>{Math.round(pace.pct * 100)}%</Text>
+                  </View>
+                  <View style={styles.hbarTrack}>
+                    <View
+                      style={[
+                        styles.hbarFill,
+                        {
+                          width: `${Math.max(pace.pct * 100, 2)}%`,
+                          backgroundColor: pace.status === 'behind' ? colors.warning : colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={[styles.utangSub, pace.status === 'behind' && { color: colors.warning }]}>
+                    {pace.status === 'done'
+                      ? 'Funded. 🎉'
+                      : pace.status === 'behind'
+                      ? `Behind: ${formatMoney(pace.remaining)} still to go, the target date has passed.`
+                      : pace.status === 'active'
+                      ? `Save ${formatMoney(pace.perMonth)} a month (${formatMoney(pace.perWeek)} a week) to hit it by ${pace.targetDate}.`
+                      : `${formatMoney(pace.remaining)} to go. Add a target date to get a monthly pace.`}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -498,6 +647,12 @@ function makeStyles(colors) {
     vsNums: { color: colors.muted, fontSize: fontSize.caption },
     moverVal: { fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
     wkBar: { width: 16, borderRadius: 4 },
+
+    utangRow: { gap: spacing.xs },
+    utangHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+    utangAmt: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
+    utangSub: { color: colors.muted, fontSize: fontSize.caption },
+    goalPct: { color: colors.softGreen, fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
 
     footnote: {
       color: colors.faint,
