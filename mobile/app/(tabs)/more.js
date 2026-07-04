@@ -357,6 +357,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Recurring bills and income</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/history')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>All transactions</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
@@ -493,7 +497,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v2.0: launch hardening</Text>
+            <Text style={styles.rowValue}>v2.2.1: ledger gate fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

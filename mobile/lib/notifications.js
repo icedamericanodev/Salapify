@@ -164,9 +164,14 @@ export async function rescheduleAll(data) {
   if (notifs.collect) {
     for (const r of data.receivables || []) {
       if (r.paid || !r.dueDate) continue;
+      // Remind for what is STILL owed. After partial payments the original
+      // amount would be a false claim pushed to a lock screen.
+      const paidSoFar = (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      const remaining = Math.max(0, (Number(r.amount) || 0) - paidSoFar);
+      if (remaining <= 0) continue;
       const due = atHour(r.dueDate, 9);
       if (!due) continue;
-      const amount = formatMoney(r.amount);
+      const amount = formatMoney(remaining);
 
       const dayBefore = new Date(due.getFullYear(), due.getMonth(), due.getDate() - 1, 9, 0, 0);
       if (dayBefore > now) {

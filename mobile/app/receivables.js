@@ -21,7 +21,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
-import { useAppData } from '../context/AppData';
+import { useAppData, genId } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import EmptyState from '../components/EmptyState';
 
@@ -53,9 +53,42 @@ export default function Receivables() {
   const [form, setForm] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [err, setErr] = useState('');
+  // Inline partial payment: which receivable is taking a payment, and the
+  // amount being typed.
+  const [payFor, setPayFor] = useState(null);
+  const [payAmt, setPayAmt] = useState('');
 
   const list = data.receivables || [];
-  const owedTotal = list.filter((r) => !r.paid).reduce((t, r) => t + r.amount, 0);
+  const people = data.people || [];
+
+  // Partial payments: what is still owed on one receivable.
+  const paidSum = (r) => (r.payments || []).reduce((t, p) => t + (Number(p.amount) || 0), 0);
+  const remainingOf = (r) => Math.max(0, (Number(r.amount) || 0) - paidSum(r));
+  const owedTotal = list.filter((r) => !r.paid).reduce((t, r) => t + remainingOf(r), 0);
+
+  // The display name for a receivable: the person record wins (it follows
+  // renames), the legacy person string is the fallback.
+  const nameOf = (r) => {
+    const p = people.find((x) => x.id === r.personId);
+    return (p && p.name) || r.person || 'Someone';
+  };
+
+  // Group by person for the ledger view: every group has a name, the
+  // receivables newest first, and how much that person still owes in total.
+  const groups = [];
+  const groupIndex = new Map();
+  for (const r of list) {
+    const key = r.personId || `name:${String(r.person || '').trim().toLowerCase()}`;
+    let g = groupIndex.get(key);
+    if (!g) {
+      g = { key, name: nameOf(r), items: [], owed: 0 };
+      groupIndex.set(key, g);
+      groups.push(g);
+    }
+    g.items.push(r);
+    if (!r.paid) g.owed += remainingOf(r);
+  }
+  groups.sort((a, b) => b.owed - a.owed);
 
   function openAdd() {
     setForm({ id: null, person: '', amount: '', dueDate: '', phone: '', note: '', paid: false });
@@ -101,8 +134,20 @@ export default function Receivables() {
         return;
       }
     }
+    // Find or create the person record so "Juan" is one ledger entry no
+    // matter how many utang he racks up. Case and spacing insensitive.
+    const name = form.person.trim();
+    const key = name.toLowerCase();
+    let person = people.find((p) => String(p.name || '').trim().toLowerCase() === key);
+    if (!person) {
+      const personId = addItem('people', { name, phone: form.phone.trim(), note: '' });
+      person = { id: personId };
+    } else if (form.phone.trim()) {
+      updateItem('people', person.id, { phone: form.phone.trim() });
+    }
     const payload = {
-      person: form.person.trim(),
+      person: name,
+      personId: person.id,
       amount,
       dueDate: form.dueDate.trim(),
       phone: form.phone.trim(),
@@ -110,7 +155,7 @@ export default function Receivables() {
       paid: form.paid,
     };
     if (form.id) updateItem('receivables', form.id, payload);
-    else addItem('receivables', payload);
+    else addItem('receivables', { ...payload, payments: [] });
     setForm(null);
   }
   function del() {
@@ -122,17 +167,47 @@ export default function Receivables() {
     setForm(null);
   }
 
-  // Mark paid records the money coming back as real income, into the
-  // remembered account when one is set, so cash flow and balances agree
-  // with what happened instead of the utang just silently vanishing.
-  function markPaid(r) {
-    updateItem('receivables', r.id, { paid: true });
-    const amount = Number(r.amount) || 0;
+  // Money coming back is real income, into the remembered account when
+  // one is set, so cash flow and balances agree with what happened
+  // instead of the utang just silently vanishing.
+  function postIncome(r, amount) {
     if (amount <= 0) return;
     const def = data.settings.defaultAccountId;
     const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
-    const entry = { type: 'income', label: `${r.person} paid you back`, amount, date: todayISO() };
+    const entry = { type: 'income', label: `${nameOf(r)} paid you back`, amount, date: todayISO() };
     addTransaction(accountId ? { ...entry, accountId } : entry);
+  }
+
+  // Mark paid settles whatever is STILL owed after partial payments.
+  function markPaid(r) {
+    const remaining = remainingOf(r);
+    const payment = { id: genId('rpay'), amount: remaining, date: todayISO() };
+    updateItem('receivables', r.id, {
+      paid: true,
+      payments: remaining > 0 ? [...(r.payments || []), payment] : r.payments || [],
+    });
+    postIncome(r, remaining);
+  }
+
+  // A partial payment: "Juan gave me 200 of the 500." Records the payment
+  // on the receivable, posts the income, and settles the utang by itself
+  // when the last peso arrives.
+  function logPartial(r) {
+    const amount = Number(String(payAmt).replace(/[, ]/g, ''));
+    const remaining = remainingOf(r);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const applied = Math.min(amount, remaining);
+    // Nothing left to pay means nothing to record: no phantom zero
+    // payment rows on an already covered utang.
+    if (applied <= 0) return;
+    const payment = { id: genId('rpay'), amount: applied, date: todayISO() };
+    updateItem('receivables', r.id, {
+      payments: [...(r.payments || []), payment],
+      paid: applied >= remaining,
+    });
+    postIncome(r, applied);
+    setPayFor(null);
+    setPayAmt('');
   }
 
   // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a
@@ -179,34 +254,77 @@ export default function Receivables() {
         {list.length === 0 ? (
           <EmptyState icon="🤝" title="No one owes you" subtitle="Tap + Add to track money owed to you." />
         ) : (
-          list.map((r) => (
-            <View key={r.id} style={[styles.card, r.paid && styles.cardPaid]}>
-              <Pressable onPress={() => openEdit(r)} style={styles.cardMain}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.person}>
-                    {r.person} {r.paid ? <Text style={styles.paidTag}>· paid</Text> : null}
-                  </Text>
-                  <Text style={styles.sub}>
-                    {r.dueDate ? `Due ${r.dueDate}` : 'No due date'}
-                    {r.note ? ` · ${r.note}` : ''}
-                  </Text>
-                </View>
-                <Text style={[styles.amount, r.paid && styles.amountPaid]}>{formatMoney(r.amount)}</Text>
-              </Pressable>
-              {!r.paid ? (
-                <View style={styles.actions}>
-                  <Pressable onPress={() => remind(r)} style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}>
-                    <Ionicons name="paper-plane-outline" size={15} color={colors.primary} />
-                    <Text style={styles.remindText}>Remind</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => markPaid(r)}
-                    style={({ pressed }) => [styles.paidBtn, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.paidBtnText}>Mark paid</Text>
-                  </Pressable>
-                </View>
-              ) : null}
+          groups.map((g) => (
+            <View key={g.key} style={styles.group}>
+              <View style={styles.groupHeader}>
+                <Text style={styles.groupName}>{g.name}</Text>
+                <Text style={[styles.groupOwed, g.owed === 0 && styles.groupSettled]}>
+                  {g.owed > 0 ? `owes ${formatMoney(g.owed)}` : 'all settled'}
+                </Text>
+              </View>
+              {g.items.map((r) => {
+                const remaining = remainingOf(r);
+                const partial = !r.paid && paidSum(r) > 0;
+                return (
+                  <View key={r.id} style={[styles.card, r.paid && styles.cardPaid]}>
+                    <Pressable onPress={() => openEdit(r)} style={styles.cardMain}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.person}>
+                          {r.note || 'Utang'} {r.paid ? <Text style={styles.paidTag}>· paid</Text> : null}
+                        </Text>
+                        <Text style={styles.sub}>
+                          {r.dueDate ? `Due ${r.dueDate}` : 'No due date'}
+                          {partial ? ` · ${formatMoney(paidSum(r))} of ${formatMoney(r.amount)} paid` : ''}
+                        </Text>
+                      </View>
+                      <Text style={[styles.amount, r.paid && styles.amountPaid]}>
+                        {formatMoney(r.paid ? r.amount : remaining)}
+                      </Text>
+                    </Pressable>
+                    {!r.paid ? (
+                      <>
+                        <View style={styles.actions}>
+                          <Pressable onPress={() => remind(r)} style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}>
+                            <Ionicons name="paper-plane-outline" size={15} color={colors.primary} />
+                            <Text style={styles.remindText}>Remind</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => {
+                              setPayFor(payFor === r.id ? null : r.id);
+                              setPayAmt('');
+                            }}
+                            style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}
+                          >
+                            <Text style={styles.remindText}>+ Payment</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => markPaid(r)}
+                            style={({ pressed }) => [styles.paidBtn, pressed && styles.pressed]}
+                          >
+                            <Text style={styles.paidBtnText}>Mark paid</Text>
+                          </Pressable>
+                        </View>
+                        {payFor === r.id ? (
+                          <View style={styles.payRow}>
+                            <TextInput
+                              style={[styles.input, styles.payInput]}
+                              value={payAmt}
+                              onChangeText={setPayAmt}
+                              placeholder={`up to ${formatMoney(remaining)}`}
+                              placeholderTextColor={colors.faint}
+                              keyboardType="numeric"
+                              autoFocus
+                            />
+                            <Pressable onPress={() => logPartial(r)} style={[styles.logBtn]}>
+                              <Text style={styles.logBtnText}>Log</Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </View>
+                );
+              })}
             </View>
           ))
         )}
@@ -284,6 +402,16 @@ function makeStyles(colors) {
     totalCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
     total: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs },
+
+    group: { marginBottom: spacing.lg },
+    groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
+    groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    groupOwed: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
+    groupSettled: { color: colors.muted, fontWeight: fontWeight.regular },
+    payRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'center' },
+    payInput: { flex: 1 },
+    logBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
+    logBtnText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
     cardPaid: { opacity: 0.6 },

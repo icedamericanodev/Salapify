@@ -39,6 +39,7 @@ const seedData = {
   wins: [],
   notes: [],
   recurring: [],
+  people: [],
   receivables: [
     // The sample utang is due two weeks from first run, so a new user is
     // never greeted by an already overdue fake debt.
@@ -80,11 +81,14 @@ export function AppDataProvider({ children }) {
       const res = await loadData();
       if (res.status === 'ok' && res.data && Array.isArray(res.data.accounts)) {
         try {
-          // When a real schema migration is about to rewrite this blob,
-          // snapshot the pre migration shape first. The one deep net must
-          // exist BEFORE the first post migration save lands.
-          const incoming = Math.trunc(Number(res.data.schemaVersion));
-          if (Number.isFinite(incoming) && incoming >= 1 && incoming < SCHEMA_VERSION) {
+          // When a schema migration is about to rewrite this blob,
+          // snapshot the pre migration shape first. The clamp mirrors
+          // migrate() exactly: blobs with NO version (everything saved
+          // before the framework existed) count as version 2 and DO get
+          // migrated, so they must get the snapshot too.
+          let incoming = Math.trunc(Number(res.data.schemaVersion));
+          if (!Number.isFinite(incoming) || incoming < 1) incoming = 2;
+          if (incoming < SCHEMA_VERSION) {
             await snapshotData();
           }
           const clean = sanitizeData(res.data, { keepAppLock: true });
@@ -145,9 +149,28 @@ export function AppDataProvider({ children }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
-      if (pendingData.current) persist(pendingData.current);
+      const d = pendingData.current;
+      pendingData.current = null;
+      if (d) persist(d);
     }, 500);
   }, [data, loaded]);
+
+  // If the provider ever unmounts (the crash shield's Try again remounts
+  // the whole tree), flush the pending save right now, before the remount
+  // reloads from disk. Without this, an entry logged just before a crash
+  // could be silently lost to the debounce window. Raw saveData here, no
+  // state updates during unmount.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      const d = pendingData.current;
+      pendingData.current = null;
+      if (d) saveData(d);
+    };
+  }, []);
 
   // Flush the pending save the moment the app goes to the background, and
   // nudge the recurring engine when it comes back (people keep apps in the
@@ -159,7 +182,9 @@ export function AppDataProvider({ children }) {
         if (saveTimer.current) {
           clearTimeout(saveTimer.current);
           saveTimer.current = null;
-          if (pendingData.current) persist(pendingData.current);
+          const d = pendingData.current;
+          pendingData.current = null;
+          if (d) persist(d);
         }
       } else {
         setResumeTick((t) => t + 1);
@@ -271,6 +296,30 @@ export function AppDataProvider({ children }) {
     return withId.id;
   }
 
+  // Edit a transaction honestly: the old entry's effect on its linked
+  // account is reversed, then the new version's effect is applied, so
+  // changing an amount, a type, or the account can never drift a balance.
+  function updateTransaction(id, patch) {
+    setData((prev) => {
+      const tx = prev.transactions.find((t) => t.id === id);
+      if (!tx) return prev;
+      const next = { ...tx, ...patch };
+      const shift = (accs, t, sign) => {
+        if (!t.accountId || !accs.some((a) => a.id === t.accountId)) return accs;
+        const delta = sign * (t.type === 'income' ? 1 : -1) * (Number(t.amount) || 0);
+        return accs.map((a) =>
+          a.id === t.accountId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
+        );
+      };
+      const accounts = shift(shift(prev.accounts, tx, -1), next, 1);
+      return {
+        ...prev,
+        accounts,
+        transactions: prev.transactions.map((t) => (t.id === id ? next : t)),
+      };
+    });
+  }
+
   // Remove a transaction and undo its effect on the linked account, so a
   // delete or an Undo never leaves a balance permanently shifted.
   function removeTransaction(id) {
@@ -326,7 +375,7 @@ export function AppDataProvider({ children }) {
     // appears on top of freshly restored data.
     const hasData = [
       'accounts', 'assets', 'debts', 'payments', 'transactions',
-      'goals', 'wins', 'receivables', 'notes', 'recurring',
+      'goals', 'wins', 'receivables', 'notes', 'recurring', 'people',
     ].some((k) => (clean[k] || []).length > 0);
     setData({
       ...clean,
@@ -353,6 +402,7 @@ export function AppDataProvider({ children }) {
     updateItem,
     removeItem,
     addTransaction,
+    updateTransaction,
     removeTransaction,
     updateSettings,
     replaceAll,
