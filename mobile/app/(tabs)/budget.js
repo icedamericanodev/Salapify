@@ -92,11 +92,20 @@ export default function Budget() {
 
   function quickAdd(item) {
     // One tap logs use the remembered account (set in the entry sheet), so
-    // fast logging still keeps balances honest.
+    // fast logging still keeps balances honest, and a label that matches a
+    // category gets tagged with it so caps and charts count it.
     const def = data.settings.defaultAccountId;
     const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
-    const entry = { type: 'expense', label: item.label, amount: item.amount, date: today() };
-    const id = addTransaction(accountId ? { ...entry, accountId } : entry);
+    const cat = (data.categories || []).find((c) => c.name === item.label);
+    const entry = {
+      type: 'expense',
+      label: item.label,
+      amount: item.amount,
+      date: today(),
+      ...(accountId ? { accountId } : {}),
+      ...(cat ? { categoryId: cat.id } : {}),
+    };
+    const id = addTransaction(entry);
     celebrate(item.label, item.amount, id);
   }
   // + Custom opens the same LogSheet as the global floating button, so the

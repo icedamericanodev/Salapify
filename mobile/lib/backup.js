@@ -22,7 +22,20 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
+
+// The starter categories every user gets, tuned to Filipino daily life.
+// Stable ids on purpose: quick adds and transactions point at them.
+export const DEFAULT_CATEGORIES = [
+  { id: 'cat_food', name: 'Food', icon: '🍜', monthlyCap: 0 },
+  { id: 'cat_transport', name: 'Transport', icon: '🚌', monthlyCap: 0 },
+  { id: 'cat_load', name: 'Load', icon: '📱', monthlyCap: 0 },
+  { id: 'cat_bills', name: 'Bills', icon: '💡', monthlyCap: 0 },
+  { id: 'cat_groceries', name: 'Groceries', icon: '🛒', monthlyCap: 0 },
+  { id: 'cat_fun', name: 'Fun', icon: '🎉', monthlyCap: 0 },
+  { id: 'cat_padala', name: 'Padala', icon: '💸', monthlyCap: 0 },
+  { id: 'cat_health', name: 'Health', icon: '💊', monthlyCap: 0 },
+];
 
 // Forward only migrations, keyed by the version each one PRODUCES. Every
 // migration is a pure function of the blob: no clock tricks that make it
@@ -79,6 +92,15 @@ const MIGRATIONS = {
       return { payments: [], ...r, personId: person.id };
     });
     return { ...d, people, receivables: migrated };
+  },
+  // v4: categories. Existing users get the starter set; blobs that
+  // already carry categories keep theirs. Existing transactions stay
+  // uncategorized on purpose, guessing would be inventing history.
+  4: (d) => {
+    // cleanList, not raw length: a blob carrying [null] must not block
+    // the seed and then coerce down to zero categories.
+    if (cleanList(d.categories).length > 0) return { ...d };
+    return { ...d, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })) };
   },
 };
 
@@ -158,6 +180,9 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // reach Image source.uri and crash native Android.
       if (typeof t.receiptUri === 'string' && t.receiptUri) out.receiptUri = t.receiptUri;
       else delete out.receiptUri;
+      // Same discipline for categoryId: a string or absent, never junk.
+      if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
+      else delete out.categoryId;
       return out;
     }),
     goals: cleanList(src.goals).map((g) => ({
@@ -180,6 +205,23 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       accountId: str(r.accountId),
       lastPosted: str(r.lastPosted),
     })),
+    categories: (() => {
+      // Ids must be unique: a hand edited backup with two cat_food rows
+      // would double count the same money in both and break editing.
+      const seen = new Set();
+      return cleanList(src.categories).map((c, i) => {
+        let id = typeof c.id === 'string' && c.id ? c.id : `cat_restored_${i}`;
+        while (seen.has(id)) id = `${id}_dup`;
+        seen.add(id);
+        return {
+          ...c,
+          id,
+          name: str(c.name, 'Category'),
+          icon: str(c.icon, '🏷️'),
+          monthlyCap: Math.max(0, num(c.monthlyCap)),
+        };
+      });
+    })(),
     people: cleanList(src.people).map((p) => ({
       ...p,
       name: str(p.name, 'Someone'),

@@ -53,6 +53,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   const [otherDate, setOtherDate] = useState('');
   const [accountId, setAccountId] = useState('');
   const [receiptUri, setReceiptUri] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [err, setErr] = useState('');
 
   // Fresh form every time the sheet opens. The account chip starts on the
@@ -67,6 +68,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       const def = data.settings.defaultAccountId;
       setAccountId(def && data.accounts.some((a) => a.id === def) ? def : '');
       setReceiptUri('');
+      setCategoryId('');
       setErr('');
     }
   }, [visible]);
@@ -134,11 +136,12 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
   // Save an entry through the store, remember the account choice for next
   // time, close, and celebrate.
-  function logEntry(entry) {
+  function logEntry(entry, catId = categoryId) {
     const withExtras = {
       ...entry,
       ...(accountId ? { accountId } : {}),
       ...(receiptUri ? { receiptUri } : {}),
+      ...(catId && entry.type === 'expense' ? { categoryId: catId } : {}),
     };
     const id = addTransaction(withExtras);
     if ((data.settings.defaultAccountId || '') !== accountId) {
@@ -169,7 +172,10 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setErr(date === 'future' ? 'That date is in the future.' : 'Type the date as YYYY-MM-DD, like 2026-06-28.');
       return;
     }
-    logEntry({ type: 'expense', label: item.label, amount: item.amount, date });
+    // A quick add whose label matches a category gets tagged with it, so
+    // Food from the quick row and Food from the chips count together.
+    const match = (data.categories || []).find((c) => c.name === item.label);
+    logEntry({ type: 'expense', label: item.label, amount: item.amount, date }, match ? match.id : '');
   }
 
   function save() {
@@ -260,11 +266,39 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
             ) : null}
 
             <Text style={styles.fieldLabel}>{type === 'income' ? 'Source' : 'Category'}</Text>
+            {type === 'expense' && (data.categories || []).length > 0 ? (
+              <View style={[styles.chips, { marginBottom: spacing.xs }]}>
+                {(data.categories || []).map((c) => {
+                  const on = categoryId === c.id;
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => {
+                        // Tapping again unpicks. Picking fills the label
+                        // unless the user already typed their own.
+                        if (on) {
+                          setCategoryId('');
+                          return;
+                        }
+                        setCategoryId(c.id);
+                        const names = (data.categories || []).map((x) => x.name);
+                        if (!label.trim() || names.includes(label.trim())) setLabel(c.name);
+                      }}
+                      style={[styles.chip, on && styles.chipOn]}
+                    >
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                        {c.icon} {c.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
             <TextInput
               style={styles.input}
               value={label}
               onChangeText={setLabel}
-              placeholder={type === 'income' ? 'e.g. Salary' : 'e.g. Groceries'}
+              placeholder={type === 'income' ? 'e.g. Salary' : 'or type your own label'}
               placeholderTextColor={colors.faint}
             />
             <Text style={styles.fieldLabel}>Amount</Text>

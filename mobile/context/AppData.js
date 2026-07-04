@@ -11,7 +11,7 @@ import { loadData, saveData, snapshotData } from '../lib/storage';
 import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
 import { setCurrencySymbol } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
-import { sanitizeData, SCHEMA_VERSION } from '../lib/backup';
+import { sanitizeData, SCHEMA_VERSION, DEFAULT_CATEGORIES } from '../lib/backup';
 import {
   sampleAccounts,
   sampleAssets,
@@ -29,7 +29,7 @@ export function genId(prefix = 'id') {
 // The starting data, used the very first time the app runs (nothing saved yet).
 // We seed it from the sample data so the app is not empty on first open.
 const seedData = {
-  schemaVersion: 2,
+  schemaVersion: SCHEMA_VERSION,
   accounts: sampleAccounts,
   assets: sampleAssets,
   debts: sampleDebts,
@@ -40,6 +40,7 @@ const seedData = {
   notes: [],
   recurring: [],
   people: [],
+  categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
   receivables: [
     // The sample utang is due two weeks from first run, so a new user is
     // never greeted by an already overdue fake debt.
