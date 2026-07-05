@@ -11,7 +11,7 @@
 // the same hygiene as backups.
 
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import {
   Canvas,
   RoundedRect,
@@ -43,6 +43,13 @@ const MUTED = '#A99182';
 
 const FAMILY = Platform.select({ android: 'sans-serif', ios: 'Helvetica', default: 'sans-serif' });
 
+// Truncate free user text (category names, labels) so a long name cannot
+// run past the card edge and get chopped mid letter in the shared image.
+function fit(text, max) {
+  const s = String(text);
+  return s.length <= max ? s : s.slice(0, max - 1).trimEnd() + '…';
+}
+
 // Wrap a sentence into at most `max` lines of roughly `width` characters,
 // because plain Skia text does not wrap on its own.
 function wrapLines(text, width = 40, max = 2) {
@@ -65,6 +72,7 @@ function RecapCanvas({ canvasRef, recap, hideAmounts }) {
     () => ({
       kicker: matchFont({ fontFamily: FAMILY, fontSize: 12, fontWeight: 'bold' }),
       big: matchFont({ fontFamily: FAMILY, fontSize: 30, fontWeight: 'bold' }),
+      bigSmall: matchFont({ fontFamily: FAMILY, fontSize: 22, fontWeight: 'bold' }),
       sub: matchFont({ fontFamily: FAMILY, fontSize: 12 }),
       row: matchFont({ fontFamily: FAMILY, fontSize: 13 }),
       rowBold: matchFont({ fontFamily: FAMILY, fontSize: 13, fontWeight: 'bold' }),
@@ -94,12 +102,12 @@ function RecapCanvas({ canvasRef, recap, hideAmounts }) {
         : `${Math.max(0, pct)}% of income kept`
       : 'spending passed income';
 
+  // Money rows show whenever that money moved, so an expenses-only month
+  // still says what went out instead of hiding the spending.
   const rows = [];
-  if (pct !== null) {
-    rows.push(['Money in', money(recap.moneyIn)]);
-    rows.push(['Money out', money(recap.moneyOut)]);
-  }
-  if (recap.topCats[0]) rows.push(['Top spending', `${recap.topCats[0].label} ${recap.topCats[0].pct}%`]);
+  if (recap.moneyIn > 0) rows.push(['Money in', money(recap.moneyIn)]);
+  if (recap.moneyOut > 0) rows.push(['Money out', money(recap.moneyOut)]);
+  if (recap.topCats[0]) rows.push(['Top spending', `${fit(recap.topCats[0].label, 13)} ${recap.topCats[0].pct}%`]);
   if (recap.utangCollected > 0) rows.push(['Utang collected', money(recap.utangCollected)]);
   if (recap.debtPaid > 0) rows.push(['Debt paid down', money(recap.debtPaid)]);
   rows.push(['Days logged', String(recap.daysLogged)]);
@@ -116,7 +124,8 @@ function RecapCanvas({ canvasRef, recap, hideAmounts }) {
       {pan ? <SkImage image={pan} x={CW - 96} y={16} width={80} height={80} fit="contain" /> : null}
 
       <SkText x={22} y={40} text={`MY ${recap.label.toUpperCase()}`} font={fonts.kicker} color={ORANGE} />
-      <SkText x={22} y={104} text={big} font={fonts.big} color={CREAM} />
+      {/* Long amounts drop to the smaller font so they never run under Pan. */}
+      <SkText x={22} y={104} text={big} font={big.length > 13 ? fonts.bigSmall : fonts.big} color={CREAM} />
       <SkText x={22} y={128} text={sub} font={fonts.sub} color={MUTED} />
 
       <Line p1={{ x: 22, y: 150 }} p2={{ x: CW - 22, y: 150 }} color={BORDER} strokeWidth={1} />
@@ -207,6 +216,9 @@ export default function RecapShare({ data }) {
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.overlay}>
           <View style={styles.sheet}>
+            {/* Scrolls because the card plus controls is taller than small
+                screens; without this the top of the card clips off. */}
+            <ScrollView>
             <Text style={styles.sheetTitle}>Your {recap.label} recap</Text>
 
             <View style={styles.preview}>
@@ -249,6 +261,7 @@ export default function RecapShare({ data }) {
                 <Text style={styles.ghostText}>Close</Text>
               </Pressable>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -287,6 +300,7 @@ function makeStyles(colors) {
       borderColor: colors.border,
       borderWidth: 1,
       padding: spacing.xl,
+      maxHeight: '92%',
     },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
     preview: { alignItems: 'center' },

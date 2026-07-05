@@ -32,13 +32,21 @@ export function monthRecap(data, ref = new Date()) {
   let biggest = null;
   for (const t of txns) {
     if (!t || String(t.date || '').slice(0, 7) !== key) continue;
-    days.add(String(t.date).slice(0, 10));
     if (t.type === 'income') {
+      // Days logged counts only real income and expense entries; transfer
+      // and debt record rows are bookkeeping, not logging.
+      days.add(String(t.date).slice(0, 10));
       moneyIn += num(t.amount);
     } else if (t.type === 'expense') {
+      days.add(String(t.date).slice(0, 10));
       const amt = num(t.amount);
       moneyOut += amt;
-      const name = (t.categoryId && catNames.get(t.categoryId)) || (t.label || 'Other').trim() || 'Other';
+      // String() everywhere: a quick add restored from a hand edited backup
+      // can carry a numeric label, and that must never crash the recap.
+      const name =
+        String((t.categoryId && catNames.get(t.categoryId)) || '').trim() ||
+        String(t.label || '').trim() ||
+        'Other';
       const k = name.toLowerCase();
       if (!byCat[k]) byCat[k] = { label: name, amount: 0 };
       byCat[k].amount += amt;
@@ -70,9 +78,11 @@ export function monthRecap(data, ref = new Date()) {
   const keptRate = moneyIn > 0 ? kept / moneyIn : null;
 
   // One honest sentence. Thresholds mirror the coach's tone elsewhere:
-  // celebrate real saving, stay factual when money ran negative.
+  // celebrate real saving, stay factual when money ran negative. Quiet
+  // only means truly quiet: no logging AND no money moved anywhere, or a
+  // debt-payment-only month would carry a verdict claiming nothing happened.
   let verdict;
-  if (moneyIn === 0 && moneyOut === 0) {
+  if (moneyIn === 0 && moneyOut === 0 && days.size === 0 && debtPaid === 0 && utangCollected === 0) {
     verdict = 'A quiet month. Log your money and next month tells a story.';
   } else if (keptRate !== null && keptRate >= 0.2) {
     verdict = `You kept ${Math.round(keptRate * 100)}% of your income. Solid month.`;
@@ -106,11 +116,18 @@ export function monthRecap(data, ref = new Date()) {
 export function recapText(recap, formatMoney, hideAmounts = false) {
   const lines = [`My ${recap.label} with Salapify:`];
   if (recap.keptRate !== null) {
-    lines.push(
-      hideAmounts
-        ? `Kept ${Math.max(0, Math.round(recap.keptRate * 100))}% of my income.`
-        : `Money in ${formatMoney(recap.moneyIn)}, out ${formatMoney(recap.moneyOut)}, kept ${formatMoney(recap.kept)}.`
-    );
+    if (hideAmounts) {
+      // Never claim "kept 0%" about an overspent month; say what happened.
+      lines.push(
+        recap.kept >= 0
+          ? `Kept ${Math.round(recap.keptRate * 100)}% of my income.`
+          : 'Spending passed my income this month.'
+      );
+    } else {
+      lines.push(
+        `Money in ${formatMoney(recap.moneyIn)}, out ${formatMoney(recap.moneyOut)}, kept ${formatMoney(recap.kept)}.`
+      );
+    }
   }
   if (recap.topCats[0]) {
     lines.push(`Top spending: ${recap.topCats[0].label} (${recap.topCats[0].pct}%).`);
