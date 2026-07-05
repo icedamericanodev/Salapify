@@ -282,6 +282,16 @@ export default function Receivables() {
           <Text style={styles.total}>{formatMoney(owedTotal)}</Text>
         </View>
 
+        {/* The barkada flow: split one bill into your expense plus an utang
+            per friend, all in one pass. */}
+        <Pressable
+          onPress={() => router.push('/split')}
+          style={({ pressed }) => [styles.splitBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="people-outline" size={18} color={colors.onPrimary} />
+          <Text style={styles.splitText}>Split a bill with friends</Text>
+        </Pressable>
+
         {list.length === 0 ? (
           <EmptyState icon="🤝" title="No one owes you" subtitle="Tap + Add to track money owed to you." />
         ) : (
@@ -431,6 +441,17 @@ function makeStyles(colors) {
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
 
     totalCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
+    splitBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.primary,
+      borderRadius: radius.md,
+      minHeight: 48,
+      marginBottom: spacing.lg,
+    },
+    splitText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
     total: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs },
 
