@@ -4,12 +4,13 @@
 // monthly snapshots taken whenever this screen is opened.
 
 import { useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format';
+import RecapShare from '../../components/RecapShare';
 import {
   monthlySeries,
   categoryMovers,
@@ -413,6 +414,8 @@ export default function Insights() {
             <ProInsights data={data} styles={styles} colors={colors} />
           </>
         )}
+
+        {Platform.OS !== 'web' ? <RecapShare data={data} /> : null}
 
         <Text style={styles.footnote}>
           Charts show {monthLabel()}.
