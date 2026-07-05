@@ -14,7 +14,7 @@
 // - Confirm writes everything in one pass: one expense (your share) and one
 //   receivable per friend. No schema change, only existing collections.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -56,15 +56,23 @@ export default function SplitBill() {
   const totalOk = total !== '' && Number.isFinite(totalNum) && totalNum > 0;
 
   // Suggestions from the existing ledger, minus people already added.
-  const suggestions = people
-    .map((p) => String(p.name || '').trim())
-    .filter(
-      (n) =>
-        n &&
-        !friends.some((f) => f.name.toLowerCase() === n.toLowerCase()) &&
-        (!nameInput.trim() || n.toLowerCase().includes(nameInput.trim().toLowerCase()))
-    )
-    .slice(0, 6);
+  // Deduped by folded name, because a restored backup can legally carry two
+  // person records with the same name and duplicate chips would collide.
+  const suggestions = (() => {
+    const seen = new Set();
+    const out = [];
+    for (const p of people) {
+      const n = String(p.name || '').trim();
+      const k = n.toLowerCase();
+      if (!n || seen.has(k)) continue;
+      seen.add(k);
+      if (friends.some((f) => f.name.toLowerCase() === k)) continue;
+      if (nameInput.trim() && !k.includes(nameInput.trim().toLowerCase())) continue;
+      out.push(n);
+      if (out.length >= 6) break;
+    }
+    return out;
+  })();
 
   function addFriend(rawName) {
     const name = String(rawName || '').trim();
@@ -87,31 +95,46 @@ export default function SplitBill() {
 
   // The share math. Friends without an override take the equal share of
   // whatever the overrides left behind; you get the exact remainder.
+  // A cleared box means "back to the automatic equal share" (never a silent
+  // zero), and junk or negative text refuses to confirm instead of quietly
+  // reassigning someone's money.
   const shares = useMemo(() => {
     if (!totalOk || friends.length === 0) return null;
-    const headCount = friends.length + 1; // you included
-    const overridden = friends.filter((f) => f.override !== null);
-    const overrideSum = overridden.reduce((t, f) => {
-      const v = toNum(f.override);
-      return t + (Number.isFinite(v) && v >= 0 ? v : 0);
-    }, 0);
-    if (overrideSum > totalNum + 1e-9) return { invalid: `Custom shares add up to more than the bill.` };
-    const flexCount = friends.length - overridden.length + 1; // flexible friends plus you
+    const parsed = friends.map((f) => {
+      const raw = f.override === null ? '' : String(f.override).trim();
+      if (raw === '') return { name: f.name, mode: 'auto' };
+      const v = toNum(raw);
+      if (!Number.isFinite(v) || v < 0) return { name: f.name, mode: 'bad' };
+      return { name: f.name, mode: 'fixed', amount: round2(v) };
+    });
+    if (parsed.some((p) => p.mode === 'bad')) {
+      return { invalid: 'One of the shares is not a valid amount.' };
+    }
+    const overrideSum = parsed.reduce((t, p) => t + (p.mode === 'fixed' ? p.amount : 0), 0);
+    if (overrideSum > totalNum + 1e-9) return { invalid: 'Shares add up to more than the bill.' };
+    const flexCount = parsed.filter((p) => p.mode === 'auto').length + 1; // flexible friends plus you
     const equalShare = round2((totalNum - overrideSum) / flexCount);
-    const rows = friends.map((f) => ({
-      name: f.name,
-      override: f.override,
-      amount: f.override !== null ? round2(Math.max(0, toNum(f.override) || 0)) : equalShare,
+    const rows = parsed.map((p) => ({
+      name: p.name,
+      amount: p.mode === 'fixed' ? p.amount : equalShare,
     }));
-    const friendsSum = rows.reduce((t, r) => t + r.amount, 0);
+    const friendsSum = round2(rows.reduce((t, r) => t + r.amount, 0));
     // You absorb the rounding so the sum is exact to the centavo.
     const yours = round2(totalNum - friendsSum);
     if (yours < 0) return { invalid: 'Shares add up to more than the bill.' };
+    if (yours <= 0 && rows.every((r) => r.amount <= 0)) {
+      return { invalid: 'The amounts are too small to split.' };
+    }
     return { rows, yours };
   }, [totalOk, totalNum, friends]);
 
+  // Stacked confirm dialogs or a double tap must not post a split twice:
+  // the second pass would duplicate the expense and receivables AND create
+  // duplicate person records from its stale snapshot. Same ref guard as the
+  // receivables screen's settleOnce.
+  const settleBusy = useRef(false);
+
   function confirm() {
-    if (busy) return;
     if (!totalOk) {
       setErr('Enter the bill total first.');
       return;
@@ -125,30 +148,46 @@ export default function SplitBill() {
       return;
     }
     const billLabel = label.trim() || 'Split bill';
+    const def = data.settings.defaultAccountId;
+    const account = def ? data.accounts.find((a) => a.id === def) : null;
+    const friendsTotal = round2(shares.rows.reduce((t, r) => t + (r.amount > 0 ? r.amount : 0), 0));
+
     const doIt = () => {
+      if (settleBusy.current) return;
+      settleBusy.current = true;
       setBusy(true);
       try {
-        // Your share is your real spending today.
+        // Your share is your real spending today, out of the linked account.
         if (shares.yours > 0) {
-          const def = data.settings.defaultAccountId;
-          const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
           const entry = { type: 'expense', label: billLabel, amount: shares.yours, date: todayISO() };
-          addTransaction(accountId ? { ...entry, accountId } : entry);
+          addTransaction(account ? { ...entry, accountId: account.id } : entry);
+        }
+        // The friends' shares also physically left your account when you
+        // paid the whole bill. A debt RECORD row (skipped by all spending
+        // math, shown muted in History) moves the balance so the app's
+        // account matches the real one; the money comes back as income when
+        // each friend pays. Without a linked account there is no balance to
+        // move, so no record is written.
+        if (account && friendsTotal > 0) {
+          addTransaction({
+            type: 'debt',
+            label: `Lent for ${billLabel} (split)`,
+            amount: friendsTotal,
+            date: todayISO(),
+            accountId: account.id,
+          });
         }
         // Each friend's share becomes an utang on their ledger, reusing the
         // same find-or-create person logic as the receivables screen.
         for (const row of shares.rows) {
           if (row.amount <= 0) continue;
           const key = row.name.toLowerCase();
-          let person = (data.people || []).find(
+          const person = (data.people || []).find(
             (p) => String(p.name || '').trim().toLowerCase() === key
           );
-          let personId;
-          if (person) {
-            personId = person.id;
-          } else {
-            personId = addItem('people', { name: row.name, phone: '', note: '' });
-          }
+          const personId = person
+            ? person.id
+            : addItem('people', { name: row.name, phone: '', note: '' });
           addItem('receivables', {
             person: row.name,
             personId,
@@ -163,12 +202,19 @@ export default function SplitBill() {
         router.back();
       } finally {
         setBusy(false);
+        // A short quiet beat, then release, in case navigation failed.
+        setTimeout(() => {
+          settleBusy.current = false;
+        }, 800);
       }
     };
     const summary =
       `${billLabel}: ${formatMoney(totalNum)} total.\n` +
       `Your share ${formatMoney(shares.yours)} is logged as an expense.\n` +
-      shares.rows.map((r) => `${r.name} owes you ${formatMoney(r.amount)}.`).join('\n');
+      shares.rows.map((r) => `${r.name} owes you ${formatMoney(r.amount)}.`).join('\n') +
+      (account && friendsTotal > 0
+        ? `\nThe whole bill leaves ${account.name || 'your account'}; the lent part comes back as each friend pays.`
+        : '');
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.confirm(summary)) doIt();
       return;
@@ -246,31 +292,36 @@ export default function SplitBill() {
                   <Text style={styles.shareName}>You (paid the bill)</Text>
                   <Text style={styles.shareAmt}>{formatMoney(shares.yours)}</Text>
                 </View>
-                {shares.rows.map((r) => (
-                  <View key={r.name} style={styles.shareRow}>
-                    <View style={styles.shareLeft}>
-                      <Pressable onPress={() => removeFriend(r.name)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={18} color={colors.faint} />
-                      </Pressable>
-                      <Text style={styles.shareName} numberOfLines={1}>
-                        {r.name}
-                      </Text>
+                {shares.rows.map((r) => {
+                  const f = friends.find((x) => x.name === r.name);
+                  const editing = f && f.override !== null;
+                  return (
+                    <View key={r.name} style={styles.shareRow}>
+                      <View style={styles.shareLeft}>
+                        <Pressable onPress={() => removeFriend(r.name)} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={colors.faint} />
+                        </Pressable>
+                        <Text style={styles.shareName} numberOfLines={1}>
+                          {r.name}
+                        </Text>
+                      </View>
+                      <TextInput
+                        style={styles.shareInput}
+                        value={editing ? String(f.override) : String(r.amount)}
+                        onChangeText={(t) =>
+                          setFriends((fs) =>
+                            fs.map((x) => (x.name === r.name ? { ...x, override: t } : x))
+                          )
+                        }
+                        keyboardType="numeric"
+                      />
                     </View>
-                    <TextInput
-                      style={styles.shareInput}
-                      value={r.override !== null ? String(r.override) : String(r.amount)}
-                      onChangeText={(t) =>
-                        setFriends((fs) =>
-                          fs.map((f) => (f.name === r.name ? { ...f, override: t } : f))
-                        )
-                      }
-                      keyboardType="numeric"
-                    />
-                  </View>
-                ))}
+                  );
+                })}
                 <Text style={styles.hint}>
                   Equal split by default. Change anyone's share and your share becomes the remainder,
-                  so the total always matches the bill.
+                  so the total always matches the bill. Clear a box to put that person back on the
+                  equal share.
                 </Text>
               </>
             ) : (
