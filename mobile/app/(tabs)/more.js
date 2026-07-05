@@ -630,13 +630,13 @@ export default function More() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>1.3.0</Text>
+            <Text style={styles.rowValue}>1.3.1</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.8: Skia Pan, home widgets (new build)</Text>
+            <Text style={styles.rowValue}>v3.10: Pan is now the 3D clay mug</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
