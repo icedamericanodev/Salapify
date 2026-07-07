@@ -410,6 +410,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Goals</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/learn')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Money lessons</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
           <Pressable onPress={() => router.push('/mindset')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Money mindset</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
@@ -649,7 +653,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.26: weekly check-in, your one money move</Text>
+            <Text style={styles.rowValue}>v3.27: Learn track, money lessons that stay free</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
