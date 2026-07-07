@@ -111,3 +111,113 @@ export function takeHomePay(basic, opts = {}) {
     ratesYear: RATES_YEAR,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Self-employed, freelancer, and professional income tax.
+//
+// A small self-employed taxpayer (annual gross of 3,000,000 or less, not
+// VAT-registered) chooses ONE of two ways to be taxed on business income:
+//
+//   8% option: a flat 8% on gross receipts. For a purely self-employed
+//     person the first 250,000 is exempt; this ONE tax replaces both the
+//     graduated income tax AND the 3% percentage tax.
+//
+//   Graduated option: the same graduated income tax as an employee, but on
+//     net income (gross minus deductions), PLUS a separate 3% percentage tax
+//     on the whole gross. Deductions are either the 40% Optional Standard
+//     Deduction (OSD) or the taxpayer's real itemized expenses.
+//
+// Which is cheaper depends on the margin: high real expenses favor graduated,
+// thin expenses favor the flat 8%. This tool computes both and points to the
+// lower one. It is an estimate; the 8% must be elected on time with the BIR.
+// ---------------------------------------------------------------------------
+
+// 2025: the percentage tax is back to 3% of gross for non-VAT taxpayers (the
+// 1% CREATE relief ended 30 June 2023). Above the 3,000,000 threshold a
+// taxpayer is VAT-registered and these self-employed rules no longer apply.
+export const PERCENTAGE_TAX_RATE = 0.03;
+export const VAT_THRESHOLD = 3000000;
+export const SELF_EMPLOYED_EXEMPT = 250000;
+
+// 3% percentage tax on annual gross (non-VAT self-employed).
+export function percentageTax(annualGross) {
+  const g = Math.max(0, num(annualGross));
+  return round2(g * PERCENTAGE_TAX_RATE);
+}
+
+// The flat 8% option. For a purely self-employed taxpayer the first 250,000 of
+// gross is exempt; for a mixed-income earner (also drawing a salary) the
+// 250,000 is already used by the compensation, so the whole gross is taxed.
+// This single figure replaces both the graduated income tax and percentage tax.
+export function eightPercentTax(annualGross, opts = {}) {
+  const g = Math.max(0, num(annualGross));
+  const mixedIncome = !!(opts && opts.mixedIncome);
+  const taxBase = mixedIncome ? g : Math.max(0, g - SELF_EMPLOYED_EXEMPT);
+  return round2(taxBase * 0.08);
+}
+
+// The graduated option for a self-employed taxpayer. Deduction is the 40% OSD
+// by default, or itemized expenses when opts.useOSD is false. Returns the
+// pieces plus the total (graduated income tax on net + 3% percentage tax).
+export function graduatedSelfEmployedTax(annualGross, opts = {}) {
+  const g = Math.max(0, num(annualGross));
+  const useOSD = !(opts && opts.useOSD === false);
+  const expenses = Math.max(0, num(opts && opts.expenses));
+  const deduction = useOSD ? round2(g * 0.4) : Math.min(expenses, g);
+  const net = Math.max(0, round2(g - deduction));
+  const incomeTax = annualIncomeTax(net);
+  const pct = percentageTax(g);
+  return {
+    deduction: round2(deduction),
+    net,
+    incomeTax: round2(incomeTax),
+    percentageTax: pct,
+    total: round2(incomeTax + pct),
+  };
+}
+
+// selfEmployedTax(annualGross, opts) -> both options compared, with a pick.
+//   opts.mixedIncome  true if the person also earns a salary (no 250k exempt)
+//   opts.useOSD       true (default) uses the 40% OSD; false uses opts.expenses
+//   opts.expenses     itemized annual expenses when useOSD is false
+// Returns { gross, mixedIncome, eligible8, eightPercent, graduated,
+//   recommended ('eight'|'graduated'), savings, effectiveRate, ratesYear }.
+export function selfEmployedTax(annualGross, opts = {}) {
+  const gross = Math.max(0, num(annualGross));
+  const mixedIncome = !!(opts && opts.mixedIncome);
+  // The 8% option is only open to non-VAT taxpayers at or under the threshold.
+  const eligible8 = gross <= VAT_THRESHOLD;
+
+  const eightTotal = eightPercentTax(gross, { mixedIncome });
+  const graduated = graduatedSelfEmployedTax(gross, opts);
+
+  const eightPercent = {
+    exempt: mixedIncome ? 0 : SELF_EMPLOYED_EXEMPT,
+    total: eightTotal,
+  };
+
+  // Recommend the lower tax, but only offer 8% when the taxpayer qualifies.
+  let recommended, savings;
+  if (eligible8) {
+    recommended = eightTotal <= graduated.total ? 'eight' : 'graduated';
+    savings = round2(Math.abs(graduated.total - eightTotal));
+  } else {
+    recommended = 'graduated';
+    savings = 0;
+  }
+
+  const chosenTotal = recommended === 'eight' ? eightTotal : graduated.total;
+  const effectiveRate = gross > 0 ? round2((chosenTotal / gross) * 100) / 100 : 0;
+
+  return {
+    gross,
+    mixedIncome,
+    eligible8,
+    eightPercent,
+    graduated,
+    recommended,
+    savings,
+    effectiveRate,
+    ratesYear: RATES_YEAR,
+  };
+}

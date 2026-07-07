@@ -657,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.31: take-home pay guards low salary and allowance-only input</Text>
+            <Text style={styles.rowValue}>v3.32: income tax calculator, flat 8% versus graduated</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
