@@ -120,27 +120,40 @@ export function parseReceipt(input) {
     return { total: null, totalConfidence: 'low', date: null, merchant: null, amounts: [], lineItems: [], raw: '' };
   }
 
-  // Every amount anywhere, for the fallback and for the picker the UI shows.
-  const allAmounts = [];
-  for (const line of lines) {
-    if (isNoise(line)) continue;
-    for (const a of amountsOn(line)) allAmounts.push(a);
-  }
-  const amounts = [...new Set(allAmounts)].sort((x, y) => y - x);
+  const date = parseDate(raw);
+  const year = date ? Number(date.slice(0, 4)) : null;
 
-  // Find the total by keyword, strongest keyword wins, ties break on the
-  // larger amount. Lines that look like a total but are not (subtotal, cash,
-  // change) are skipped entirely.
+  // The pool of real money amounts, for the fallback and the picker the UI
+  // shows. Skip identifier lines (TIN, serial), skip the cash tendered and
+  // change lines, and drop the date's year, so none of those can be mistaken
+  // for what you paid.
+  const pool = [];
+  for (const line of lines) {
+    if (isNoise(line) || NOT_TOTAL.test(line)) continue;
+    for (const a of amountsOn(line)) if (a !== year) pool.push(a);
+  }
+  const amounts = [...new Set(pool)].sort((x, y) => y - x);
+
+  // Find the total by keyword, strongest keyword wins. Take the amount right
+  // AFTER the keyword, not the largest on the line: receipts often OCR the
+  // total and the cash tendered onto one row, and the cash is the bigger
+  // number. Lines that look like a total but are not (subtotal, cash, change)
+  // are skipped entirely.
   let best = null; // { rank, amount }
   for (const line of lines) {
     if (NOT_TOTAL.test(line)) continue;
-    let rank = 0;
-    for (const k of TOTAL_KEYS) if (k.re.test(line)) { rank = Math.max(rank, k.rank); }
-    if (!rank) continue;
+    let hit = null;
+    for (const k of TOTAL_KEYS) {
+      const mm = k.re.exec(line);
+      if (mm && (!hit || k.rank > hit.rank)) hit = { rank: k.rank, after: line.slice(mm.index + mm[0].length) };
+    }
+    if (!hit) continue;
+    // First amount after the keyword; if none, the first amount on the line.
+    const afterAmts = amountsOn(hit.after);
     const onLine = amountsOn(line);
-    if (!onLine.length) continue;
-    const amount = Math.max(...onLine);
-    if (!best || rank > best.rank || (rank === best.rank && amount > best.amount)) best = { rank, amount };
+    const amount = afterAmts.length ? afterAmts[0] : onLine.length ? onLine[0] : null;
+    if (amount == null) continue;
+    if (!best || hit.rank > best.rank) best = { rank: hit.rank, amount };
   }
 
   let total = null;
@@ -149,8 +162,8 @@ export function parseReceipt(input) {
     total = best.amount;
     totalConfidence = 'high';
   } else if (amounts.length) {
-    // No total keyword found: fall back to the largest amount, but flag it
-    // low so the screen asks the user to confirm before saving.
+    // No total keyword found: fall back to the largest real amount, but flag
+    // it low so the screen asks the user to confirm before saving.
     total = amounts[0];
     totalConfidence = 'low';
   }
@@ -169,7 +182,7 @@ export function parseReceipt(input) {
   return {
     total,
     totalConfidence,
-    date: parseDate(raw),
+    date,
     merchant: parseMerchant(lines),
     amounts,
     lineItems,

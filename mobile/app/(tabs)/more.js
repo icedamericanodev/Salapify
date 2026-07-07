@@ -649,7 +649,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.20: Pan input clears the keyboard</Text>
+            <Text style={styles.rowValue}>v3.21: Pan keyboard lift, receipt parser fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
