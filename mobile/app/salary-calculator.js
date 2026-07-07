@@ -83,7 +83,7 @@ export default function SalaryCalculator() {
           Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.
         </Text>
 
-        {basicNum > 0 ? (
+        {basicNum > 0 && r.net >= 0 ? (
           <>
             <View style={styles.card}>
               <View style={styles.grossRow}>
@@ -119,6 +119,7 @@ export default function SalaryCalculator() {
                 <Text style={styles.netValue}>{m(r.net)}</Text>
               </View>
               <Text style={styles.perYear}>About {m(r.net * 12)} a year, before any 13th month.</Text>
+              <Text style={styles.perYear}>Paid twice a month? That is about {m(r.net / 2)} each cutoff.</Text>
             </View>
 
             <View style={styles.deductCard}>
@@ -131,8 +132,12 @@ export default function SalaryCalculator() {
               </Text>
             </View>
           </>
+        ) : basicNum > 0 ? (
+          <Text style={styles.hint}>
+            That looks too low for a monthly salary. The minimum SSS and PhilHealth contributions alone come to about {m(r.contributions)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.
+          </Text>
         ) : (
-          <Text style={styles.hint}>Enter your monthly basic pay to see the breakdown.</Text>
+          <Text style={styles.hint}>Enter your monthly basic pay to see the breakdown. Allowances add on top of it.</Text>
         )}
 
         <Text style={styles.disclaimer}>
