@@ -406,6 +406,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Search everything</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/accounts')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Accounts</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
           <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Goals</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
@@ -653,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.27: Learn track, money lessons that stay free</Text>
+            <Text style={styles.rowValue}>v3.28: Tools tab, take-home pay calculator</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
