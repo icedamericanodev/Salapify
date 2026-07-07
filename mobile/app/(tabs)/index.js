@@ -15,6 +15,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import { sweldoAllocation, planForSave } from '../../lib/allocation';
+import { weeklyCheckIn } from '../../lib/coach';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
@@ -222,6 +223,22 @@ export default function Overview() {
   // never carries a stale number (or a stale rate) into the next split.
   useEffect(() => { setSaveInput(''); }, [paydayKey]);
 
+  // The weekly check-in: the one money move worth making this week. Hidden
+  // once dismissed for that week and that kind, so it does not nag, but a new
+  // week or a different (more urgent) item brings it back. The calm all-clear
+  // is not shown as a card, a quiet home is its own reward.
+  // Memoized: it scans transactions several times, so recompute only when the
+  // data changes, not on every keystroke in the salary or save inputs.
+  const checkIn = useMemo(() => weeklyCheckIn(data, now), [data]);
+  const coachSeen = (data.settings && data.settings.coachSeen) || '';
+  const coachTag = checkIn ? `${checkIn.week}:${checkIn.kind}` : '';
+  const showCoach = checkIn && checkIn.kind !== 'good' && coachSeen !== coachTag;
+  const dismissCoach = () => updateSettings({ coachSeen: coachTag });
+  const openCoach = () => {
+    if (!checkIn || !checkIn.action) return;
+    try { router.push(checkIn.action.route); } catch (e) { /* a bad route must never crash home */ }
+  };
+
   // Time-based greeting for the header.
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -330,6 +347,26 @@ export default function Overview() {
           <View style={styles.planCard}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>All three done. This cycle is planned. Nice one. ✅</Text>
+          </View>
+        ) : null}
+
+        {/* The weekly check-in: one money move worth making this week. */}
+        {showCoach ? (
+          <View style={[styles.coachCard, styles[`coach_${checkIn.tone}`]]}>
+            <View style={styles.coachHead}>
+              <Text style={styles.coachKicker}>THIS WEEK</Text>
+              <Pressable onPress={dismissCoach} hitSlop={10}>
+                <Ionicons name="close" size={16} color={colors.faint} />
+              </Pressable>
+            </View>
+            <Text style={styles.coachTitle}>{checkIn.title}</Text>
+            <Text style={styles.coachMsg}>{checkIn.message}</Text>
+            {checkIn.action ? (
+              <Pressable onPress={openCoach} style={({ pressed }) => [styles.coachBtn, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.coachBtnText}>{checkIn.action.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.primary} />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -755,6 +792,16 @@ function makeStyles(colors) {
     allocSet: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.medium, marginTop: spacing.sm },
     allocNote: { color: colors.faint, fontSize: fontSize.caption, marginTop: spacing.sm },
     allocHint: { color: colors.muted, fontSize: fontSize.small, marginVertical: spacing.sm, marginLeft: 34 },
+    coachCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderLeftWidth: 4, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
+    coach_urgent: { borderLeftColor: colors.warning },
+    coach_watch: { borderLeftColor: colors.primary },
+    coach_nudge: { borderLeftColor: colors.muted },
+    coachHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+    coachKicker: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
+    coachTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold, marginBottom: 4 },
+    coachMsg: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 19 },
+    coachBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: spacing.md },
+    coachBtnText: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
 
     dueRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
     dueDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
