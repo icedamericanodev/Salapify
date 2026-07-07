@@ -111,6 +111,23 @@ export const LESSONS = [
       'Salapify tracks who owes you, how long it has been, and can draft a gentle reminder you can send, so collecting stays kind.',
     ],
   },
+  {
+    id: 'tax-forms',
+    title: 'Which tax forms do I actually file?',
+    emoji: '🧾',
+    minutes: 3,
+    summary: 'A plain map of BIR returns for employees, freelancers, and the self-employed.',
+    body: [
+      'If you are an employee with just one job, good news, you usually file nothing yourself. Your employer takes the tax from your sweldo, remits it, and gives you Form 2316 every January. That shortcut is called substituted filing.',
+      'You do need to file your own return, Form 1700, if you had two or more employers during the year, if your tax was not withheld correctly, or if you also run a sideline. A sideline makes you a mixed income earner, and then you file Form 1701 instead.',
+      'If you are a freelancer, online seller, or professional, you register once with Form 1901. There is no more 500 peso yearly registration fee, it was removed in 2024 by the Ease of Paying Taxes law, so ignore old guides that still mention it.',
+      'As self-employed you pay income tax quarterly on Form 1701Q, due May 15, August 15, and November 15, then once a year on Form 1701 or 1701A by April 15. Take note, the first quarter is due in May, not April. A quarter with zero income still means you file, just with nothing to pay.',
+      'Percentage tax is a separate 3 percent tax on your sales, filed each quarter on Form 2551Q. If you chose the 8 percent flat rate, you skip this one, because the 8 percent already covers both your income tax and this. But the 8 percent is not automatic, you must choose it on time and it is locked for the whole year.',
+      'If clients withhold tax from your fees, they hand you Form 2307. Keep every single one. It is tax you already paid, and it lowers your bill at year end. Throwing them away means paying twice.',
+      'Cross 3,000,000 pesos in sales in a year and you move into VAT at 12 percent, filed on Form 2550Q each quarter. That is a bigger topic, so get an accountant before you reach that line.',
+      'This is awareness, not tax advice, and Salapify does not file anything for you. Deadlines can shift when they land on a weekend or holiday, so confirm with the BIR or a licensed accountant before you file.',
+    ],
+  },
 ];
 
 // The lesson to feature today, rotating by the day of the year so it is stable
