@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { formatMoney } from '../lib/format';
-import { loanSummary } from '../lib/loan';
+import { loanSummary, payoffSaving, MAX_MONTHS } from '../lib/loan';
 
 export default function LoanCalculator() {
   const { colors } = useTheme();
@@ -31,16 +31,25 @@ export default function LoanCalculator() {
   const amountNum = parse(amount);
   const termNum = parse(term);
   const rateNum = parse(rate);
-  const months = termUnit === 'years' ? Math.round(termNum * 12) : Math.round(termNum);
+  const rawMonths = termUnit === 'years' ? Math.round(termNum * 12) : Math.round(termNum);
+  // Clamp the term so a runaway number can never build a giant schedule and
+  // freeze the screen. Anything past the cap is treated as the cap.
+  const months = Math.min(Math.max(rawMonths, 0), MAX_MONTHS);
+  const termClamped = rawMonths > MAX_MONTHS;
 
   const r = useMemo(
     () => loanSummary(amountNum, rateNum, months, { method, rateBasis }),
     [amountNum, rateNum, months, method, rateBasis]
   );
+  const payoff = useMemo(
+    () => payoffSaving(amountNum, r.quotedMonthlyRate, months, Math.floor(months / 2)),
+    [amountNum, r.quotedMonthlyRate, months]
+  );
   const m = (n) => formatMoney(Math.round(n));
   const pct = (x) => (x * 100).toFixed(2) + '%';
 
   const ready = amountNum > 0 && months >= 1 && rateNum >= 0;
+  const badInput = !ready && (amountNum !== 0 || termNum !== 0 || rateNum !== 0) && (amountNum < 0 || rawMonths < 1 || rateNum < 0);
   const addon = method === 'addon';
 
   const Seg = ({ options, value, onChange }) => (
@@ -120,14 +129,23 @@ export default function LoanCalculator() {
             <View style={[styles.rateCard, addon && styles.rateCardWarn]}>
               <Text style={styles.rateKicker}>TRUE COST</Text>
               <View style={styles.rateRow}>
+                <Text style={styles.rateLabel}>Quoted rate per year</Text>
+                <Text style={styles.rateSubtle}>{pct(r.nominalAnnualRate)}</Text>
+              </View>
+              <View style={styles.rateRow}>
                 <Text style={styles.rateLabel}>Effective interest per year</Text>
                 <Text style={[styles.rateValue, addon && styles.rateValueWarn]}>{pct(r.effectiveAnnualRate)}</Text>
               </View>
               <Text style={styles.rateNote}>
                 {addon
-                  ? `Your ${pct(r.quotedMonthlyRate)} a month add-on really costs about ${pct(r.effectiveMonthlyRate)} a month, or ${pct(r.effectiveAnnualRate)} a year, once you account for paying interest on money you have already returned.`
-                  : `This is the yearly rate with monthly compounding. On a diminishing balance the effective rate is close to the quoted rate.`}
+                  ? `Your ${rateBasis === 'annual' ? pct(r.nominalAnnualRate) + ' a year' : pct(r.quotedMonthlyRate) + ' a month'} add-on really works out to about ${pct(r.effectiveAnnualRate)} a year, once you account for paying interest on money you have already returned.`
+                  : `The quoted and effective rates differ only because of monthly compounding. On a diminishing balance they stay close.`}
               </Text>
+              {!addon && months >= 2 && payoff.interestSaved > 0 ? (
+                <Text style={styles.rateNote}>
+                  Pay it off at the halfway point ({Math.floor(months / 2)} months in) and save about {m(payoff.interestSaved)} in interest, if there is no pre-termination fee.
+                </Text>
+              ) : null}
             </View>
 
             <Pressable style={styles.scheduleToggle} onPress={() => setShowSchedule((v) => !v)}>
@@ -153,7 +171,12 @@ export default function LoanCalculator() {
                 ))}
               </View>
             ) : null}
+            {termClamped ? (
+              <Text style={styles.clampNote}>Capped at {Math.round(MAX_MONTHS / 12)} years for this estimate.</Text>
+            ) : null}
           </>
+        ) : badInput ? (
+          <Text style={styles.hint}>Check your numbers. The amount, term, and rate should all be zero or more.</Text>
         ) : (
           <Text style={styles.hint}>Enter the loan amount, term, and interest rate to see the payment and the true cost.</Text>
         )}
@@ -208,6 +231,7 @@ function makeStyles(colors) {
     rateLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium, flexShrink: 1, paddingRight: spacing.md },
     rateValue: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy },
     rateValueWarn: { color: colors.warning || colors.primary },
+    rateSubtle: { color: colors.muted, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rateNote: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 19, marginTop: spacing.sm },
 
     scheduleToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: spacing.md, marginTop: spacing.md },
@@ -220,6 +244,7 @@ function makeStyles(colors) {
     schAmt: { flex: 1, textAlign: 'right', color: colors.text, fontWeight: fontWeight.medium },
     schMuted: { color: colors.muted, fontWeight: fontWeight.regular },
 
+    clampNote: { color: colors.faint, fontSize: fontSize.caption, textAlign: 'center', marginTop: spacing.sm },
     hint: { color: colors.muted, fontSize: fontSize.body, textAlign: 'center', marginTop: spacing.xl, marginBottom: spacing.xl },
     disclaimer: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 17, marginTop: spacing.xl },
   });

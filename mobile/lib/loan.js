@@ -17,12 +17,18 @@
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const round2 = (x) => Math.round(num(x) * 100) / 100;
 
+// A hard ceiling on the term. A consumer loan never runs a century, and this
+// keeps the schedule (one row per month) from ever growing without bound and
+// freezing the UI. The screen clamps too; this is defense in depth.
+export const MAX_MONTHS = 1200;
+const clampMonths = (months) => Math.min(Math.max(1, Math.round(num(months))), MAX_MONTHS);
+
 // Level monthly payment on a diminishing-balance loan.
 //   A = P * r / (1 - (1 + r)^-n), and A = P / n when the rate is zero.
 export function monthlyPayment(principal, monthlyRate, months) {
   const P = Math.max(0, num(principal));
   const r = Math.max(0, num(monthlyRate));
-  const n = Math.max(1, Math.round(num(months)));
+  const n = clampMonths(months);
   if (P === 0) return 0;
   if (r === 0) return round2(P / n);
   const factor = r / (1 - Math.pow(1 + r, -n));
@@ -35,7 +41,7 @@ export function monthlyPayment(principal, monthlyRate, months) {
 export function amortize(principal, monthlyRate, months) {
   const P = Math.max(0, num(principal));
   const r = Math.max(0, num(monthlyRate));
-  const n = Math.max(1, Math.round(num(months)));
+  const n = clampMonths(months);
   const payment = monthlyPayment(P, r, n);
   const schedule = [];
   let balance = P;
@@ -65,7 +71,7 @@ export function amortize(principal, monthlyRate, months) {
 export function addOnLoan(principal, monthlyAddOnRate, months) {
   const P = Math.max(0, num(principal));
   const rate = Math.max(0, num(monthlyAddOnRate));
-  const n = Math.max(1, Math.round(num(months)));
+  const n = clampMonths(months);
   const totalInterest = round2(P * rate * n);
   const totalPaid = round2(P + totalInterest);
   const payment = round2(totalPaid / n);
@@ -79,13 +85,16 @@ export function addOnLoan(principal, monthlyAddOnRate, months) {
 export function effectiveMonthlyRate(principal, payment, months) {
   const P = Math.max(0, num(principal));
   const A = Math.max(0, num(payment));
-  const n = Math.max(1, Math.round(num(months)));
+  const n = clampMonths(months);
   if (P <= 0 || A <= 0) return 0;
   if (A * n <= P) return 0; // paid no more than borrowed, so no interest
   // Present value of n level payments of A at monthly rate r.
   const pv = (r) => (r === 0 ? A * n : A * (1 - Math.pow(1 + r, -n)) / r);
   let lo = 0;
-  let hi = 1; // 100% a month is a generous upper bound for any real loan
+  // Expand the upper bound until it actually brackets the root, so even a
+  // punishing loan-shark rate is never silently clamped. pv falls as r rises.
+  let hi = 1;
+  while (pv(hi) > P && hi < 1e6) hi *= 2;
   for (let i = 0; i < 200; i++) {
     const mid = (lo + hi) / 2;
     // pv decreases as r rises; if pv is still above P, the rate must be higher.
@@ -108,7 +117,7 @@ export function effectiveAnnualRate(monthlyRate) {
 // effective annual rate so the real cost is never hidden.
 export function loanSummary(principal, ratePercent, months, opts = {}) {
   const P = Math.max(0, num(principal));
-  const n = Math.max(1, Math.round(num(months)));
+  const n = clampMonths(months);
   const method = opts && opts.method === 'addon' ? 'addon' : 'diminishing';
   const rateBasis = opts && opts.rateBasis === 'annual' ? 'annual' : 'monthly';
   // The quoted rate as a monthly decimal.
@@ -121,9 +130,17 @@ export function loanSummary(principal, ratePercent, months, opts = {}) {
     totalInterest = a.totalInterest;
     totalPaid = a.totalPaid;
     // Rebuild a diminishing schedule at the loan's TRUE rate so the row split is
-    // honest, then let the last row absorb rounding to the same total.
+    // honest. The rounded level payment leaves a few centavos, so reconcile the
+    // interest column to the add-on headline by letting the last row absorb it.
     const eff = effectiveMonthlyRate(P, payment, n);
     schedule = amortize(P, eff, n).schedule;
+    const sumInterest = round2(schedule.reduce((s, row) => s + row.interest, 0));
+    const drift = round2(totalInterest - sumInterest);
+    if (schedule.length && drift !== 0) {
+      const last = schedule[schedule.length - 1];
+      last.interest = round2(last.interest + drift);
+      last.payment = round2(last.payment + drift);
+    }
   } else {
     const am = amortize(P, quotedMonthly, n);
     payment = am.payment;
@@ -143,6 +160,7 @@ export function loanSummary(principal, ratePercent, months, opts = {}) {
     totalInterest,
     totalPaid,
     quotedMonthlyRate: round4(quotedMonthly),
+    nominalAnnualRate: round4(quotedMonthly * 12),
     effectiveMonthlyRate: round4(effMonthly),
     effectiveAnnualRate: round4(effAnnual),
     schedule,
