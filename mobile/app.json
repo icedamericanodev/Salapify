@@ -3,7 +3,7 @@
     "name": "Salapify",
     "slug": "salapify-v2",
     "owner": "icedamericanodev",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "orientation": "portrait",
     "scheme": "salapify",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
     "updates": {
       "url": "https://u.expo.dev/8bc5a127-b145-41c3-a4f4-790afd91c9f2"
     },
-    "runtimeVersion": "1.3.1",
+    "runtimeVersion": "1.4.0",
     "plugins": [
       "expo-router",
       [
@@ -148,7 +148,7 @@
     "android": {
       "package": "com.icedamericanodev.salapify",
       "allowBackup": false,
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#FFA45C"
