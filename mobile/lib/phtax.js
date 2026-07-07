@@ -173,6 +173,10 @@ export function graduatedSelfEmployedTax(annualGross, opts = {}) {
   const salaryTaxable = Math.max(0, num(opts && opts.salaryTaxable));
   const vatRegistered = !!(opts && opts.vatRegistered);
   const deduction = useOSD ? round2(g * 0.4) : Math.min(expenses, g);
+  // Note: a self-employed person's own SSS, PhilHealth, and Pag-IBIG are also
+  // deductible, which would lower net a little. We leave them out here, which
+  // makes the graduated estimate marginally conservative (tax a touch high),
+  // the safe direction for a set-aside tool.
   const net = Math.max(0, round2(g - deduction));
   // Marginal: the tax the business net adds on top of the salary. For a purely
   // self-employed person salaryTaxable is 0, so this is just the tax on net.

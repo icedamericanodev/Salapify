@@ -172,7 +172,11 @@ export default function TaxCalculator() {
                   <Text style={styles.totalLabel}>Total tax</Text>
                   <Text style={styles.totalValue}>{m(r.eightPercent.total)}</Text>
                 </View>
-                <Text style={styles.optNote}>One flat tax. It covers both income tax and the percentage tax, and needs no expense receipts.</Text>
+                <Text style={styles.optNote}>
+                  {r.mixedIncome
+                    ? 'This is the tax on your business income only. Your salary is taxed separately by your employer. One flat tax, no expense receipts.'
+                    : 'One flat tax. It covers both income tax and the percentage tax, and needs no expense receipts.'}
+                </Text>
               </View>
             ) : null}
 
@@ -229,7 +233,7 @@ export default function TaxCalculator() {
         )}
 
         <Text style={styles.disclaimer}>
-          Estimate based on {RATES_YEAR} BIR rates: the graduated income tax table, the 8% option, and the 3% percentage tax for non-VAT taxpayers. The 8% must be chosen with the BIR on time (at registration or the first quarter). This is a guide, not a tax filing or professional advice.
+          Estimate based on {RATES_YEAR} BIR rates: the graduated income tax table, the 8% option, and the 3% percentage tax for non-VAT taxpayers. The 8% must be chosen with the BIR on time (at registration or the first quarter return) and it is locked in for the whole year. This is a guide, not a tax filing or professional advice.
         </Text>
       </ScrollView>
     </SafeAreaView>
