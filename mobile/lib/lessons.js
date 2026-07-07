@@ -29,7 +29,7 @@ export const LESSONS = [
     summary: 'How paying only the minimum quietly grows what you owe.',
     body: [
       'A credit card gives you a grace period. If you pay the full statement balance by the due date, you pay zero interest. That is the deal working in your favor.',
-      'The trap is the minimum payment. It is usually a small slice, often around 3 to 5 percent of your balance. Pay only that, and interest, often 3 percent or more per month, is charged on the rest. Next month you owe interest on the interest. This is how a small balance quietly becomes a big one.',
+      'The trap is the minimum payment. It is usually a small slice, often around 3 to 5 percent of your balance, or a few hundred pesos, whichever is higher. Pay only that and you lose the interest-free grace period, so interest, up to about 3 percent per month (the BSP cap), can apply to your balance including new purchases. Next month you owe interest on the interest. This is how a small balance quietly becomes a big one.',
       'The rule of thumb: pay in full whenever you can. If a month is tight, pay as much above the minimum as you can, even a little extra shrinks the balance faster than you think.',
       'Salapify shows your card due date and warns you when only paying the minimum would add interest. Use it to stay in the interest-free zone.',
     ],
