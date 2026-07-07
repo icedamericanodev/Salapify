@@ -14,6 +14,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
+import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
 import WeekRecap from '../../components/WeekRecap';
@@ -32,6 +33,9 @@ export default function Overview() {
   const [salaryErr, setSalaryErr] = useState('');
   const [showPeak, setShowPeak] = useState(false);
   const peakAnim = useRef(new Animated.Value(0)).current;
+  // The save amount the user types into the sweldo allocation. Empty means
+  // "use the suggested amount"; once they type, their number wins.
+  const [saveInput, setSaveInput] = useState('');
 
   // Helper to add up a number field across a list.
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
@@ -195,6 +199,29 @@ export default function Overview() {
     markStep('logged');
   }
 
+  // The sweldo allocation: split this cycle's pay into bills, a savings-first
+  // slice, and what is left to live on per day. A plan, not a transfer.
+  const alloc = sweldoAllocation(data, now);
+  const saveAmt = saveInput === '' ? alloc.save : Number(String(saveInput).replace(/[, ]/g, '')) || 0;
+  const plan = planForSave(data, now, saveAmt);
+  const allocPayday = alloc.payday ? `${MONTHS_SHORT[alloc.payday.getMonth()]} ${alloc.payday.getDate()}` : '';
+  // Committing the plan marks the savings step done. It moves no money. It
+  // remembers a new savings rate ONLY when the user actually chose an amount
+  // that still leaves something to live on, so a high-bills cycle or a
+  // fat-fingered number can never silently ratchet their ongoing rate down (or
+  // up to an absurd value). An untouched confirm keeps their existing rate.
+  function commitPlan() {
+    if (saveInput !== '' && alloc.income > 0 && plan.save > 0 && plan.leftToLive > 0) {
+      const pct = Math.min(Math.max(plan.save / alloc.income, 0), 0.9);
+      updateSettings({ savePct: pct });
+    }
+    markStep('saved');
+  }
+
+  // A new payday cycle starts fresh: clear any amount typed last cycle so it
+  // never carries a stale number (or a stale rate) into the next split.
+  useEffect(() => { setSaveInput(''); }, [paydayKey]);
+
   // Time-based greeting for the header.
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -221,31 +248,82 @@ export default function Overview() {
           <Mascot size={62} state={panState} />
         </View>
 
-        {/* Sweldo plan: appears for 48 hours after each payday. */}
+        {/* Sweldo plan: appears for 48 hours after each payday. Now a real
+            allocation once the sweldo is logged, not just a checklist. */}
         {paydayKey && !planDone ? (
           <Animated.View style={[styles.planCard, { transform: [{ scale: planPop }] }]}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>
-              Payday! Three taps and this cycle is planned before the money moves.
+              Payday! Plan this cycle before the money spends itself.
             </Text>
-            {[
-              { k: 'logged', label: 'Log your sweldo', action: openSalary },
-              { k: 'saved', label: 'Move savings first', action: () => { markStep('saved'); router.push('/goals'); } },
-              { k: 'budget', label: 'Check your spending budget', action: () => { markStep('budget'); router.push('/budget'); } },
-            ].map((s) => (
-              <Pressable
-                key={s.k}
-                onPress={planSteps[s.k] ? undefined : s.action}
-                style={styles.planRow}
-              >
-                <Ionicons
-                  name={planSteps[s.k] ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={22}
-                  color={planSteps[s.k] ? colors.primary : colors.faint}
-                />
-                <Text style={[styles.planLabel, planSteps[s.k] && styles.planLabelDone]}>{s.label}</Text>
-              </Pressable>
-            ))}
+
+            {/* Step 1: log the sweldo. */}
+            <Pressable onPress={planSteps.logged ? undefined : openSalary} style={styles.planRow}>
+              <Ionicons
+                name={planSteps.logged ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={planSteps.logged ? colors.primary : colors.faint}
+              />
+              <Text style={[styles.planLabel, planSteps.logged && styles.planLabelDone]}>Log your sweldo</Text>
+            </Pressable>
+
+            {/* The allocation, once there is a sweldo to split. */}
+            {planSteps.logged && alloc.hasIncome ? (
+              <View style={styles.allocBox}>
+                <Text style={styles.allocLead}>
+                  Your {formatMoney(alloc.income)} sweldo, for the {alloc.daysLeft} days until {allocPayday}:
+                </Text>
+                <View style={styles.allocRow}>
+                  <Text style={styles.allocKey}>Bills before then</Text>
+                  <Text style={styles.allocVal}>{formatMoney(alloc.bills)}</Text>
+                </View>
+                <View style={styles.allocRow}>
+                  <Text style={styles.allocKey}>Set aside to save</Text>
+                  <TextInput
+                    style={styles.allocInput}
+                    value={saveInput === '' ? String(alloc.save) : saveInput}
+                    onChangeText={setSaveInput}
+                    keyboardType="numeric"
+                    selectTextOnFocus
+                    placeholderTextColor={colors.faint}
+                  />
+                </View>
+                <View style={[styles.allocRow, styles.allocTotalRow]}>
+                  <Text style={styles.allocKeyStrong}>Left to live on</Text>
+                  <Text style={styles.allocValStrong}>{formatMoney(plan.leftToLive)}</Text>
+                </View>
+                <Text style={styles.allocPerDay}>
+                  {plan.leftToLive > 0
+                    ? `about ${formatMoney(plan.perDay)} a day`
+                    : alloc.bills >= alloc.income
+                    ? 'Bills use it all this cycle. Go gentle.'
+                    : 'Your savings slice uses it all. Lower it to leave daily money.'}
+                </Text>
+                {planSteps.saved ? (
+                  <Text style={styles.allocSet}>Plan set. ✅</Text>
+                ) : (
+                  <Pressable onPress={commitPlan} style={({ pressed }) => [styles.allocBtn, pressed && { opacity: 0.85 }]}>
+                    <Text style={styles.allocBtnText}>Set my plan</Text>
+                  </Pressable>
+                )}
+                <Text style={styles.allocNote}>A plan, not a transfer. Nothing moves out of your accounts.</Text>
+              </View>
+            ) : !planSteps.logged ? (
+              <Text style={styles.allocHint}>Log your sweldo to see your split.</Text>
+            ) : null}
+
+            {/* Step 3: check the spending budget. */}
+            <Pressable
+              onPress={planSteps.budget ? undefined : () => { markStep('budget'); router.push('/budget'); }}
+              style={styles.planRow}
+            >
+              <Ionicons
+                name={planSteps.budget ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={planSteps.budget ? colors.primary : colors.faint}
+              />
+              <Text style={[styles.planLabel, planSteps.budget && styles.planLabelDone]}>Check your spending budget</Text>
+            </Pressable>
           </Animated.View>
         ) : null}
         {paydayKey && planDone ? (
@@ -662,6 +740,21 @@ function makeStyles(colors) {
     planRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 },
     planLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     planLabelDone: { color: colors.muted, textDecorationLine: 'line-through' },
+    allocBox: { marginVertical: spacing.sm, paddingVertical: spacing.md, paddingHorizontal: spacing.md, backgroundColor: colors.background, borderRadius: radius.md, borderColor: colors.border, borderWidth: 1 },
+    allocLead: { color: colors.textSecondary, fontSize: fontSize.small, marginBottom: spacing.sm, lineHeight: 18 },
+    allocRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.xs, gap: spacing.md },
+    allocKey: { color: colors.muted, fontSize: fontSize.small },
+    allocVal: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    allocInput: { minWidth: 90, textAlign: 'right', color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium, paddingVertical: 4, paddingHorizontal: spacing.sm, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.sm },
+    allocTotalRow: { borderTopColor: colors.border, borderTopWidth: 1, marginTop: spacing.xs, paddingTop: spacing.sm },
+    allocKeyStrong: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    allocValStrong: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    allocPerDay: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: 2 },
+    allocBtn: { marginTop: spacing.md, backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' },
+    allocBtnText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    allocSet: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.medium, marginTop: spacing.sm },
+    allocNote: { color: colors.faint, fontSize: fontSize.caption, marginTop: spacing.sm },
+    allocHint: { color: colors.muted, fontSize: fontSize.small, marginVertical: spacing.sm, marginLeft: 34 },
 
     dueRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
     dueDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
