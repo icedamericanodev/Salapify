@@ -12,6 +12,10 @@
 import { formatMoney } from './format';
 
 const lower = (s) => String(s == null ? '' : s).toLowerCase();
+// Collections in the blob should always be arrays, but a hand edited or
+// partial backup could carry an object; coerce so a loop never throws and
+// unwinds the whole app through the render-time useMemo.
+const arr = (x) => (Array.isArray(x) ? x : []);
 
 // Every searchable value for an item, folded into one lowercased string.
 const hay = (...parts) => parts.map(lower).filter(Boolean).join(' ');
@@ -22,13 +26,44 @@ function matches(haystack, tokens) {
   return true;
 }
 
-// Amount searchable as "2300" and "2,300" (formatMoney adds the currency
-// symbol; strip it so a bare-number query still hits).
+// Amount searchable as "2300", "2,300", and its exact value "2300.5". The
+// date is deliberately NOT part of any haystack: folding "2026-07-03" in made
+// a bare "2" or "07" match every row by its date instead of its amount.
 const amountHay = (n) => {
   const v = Number(n);
   if (!Number.isFinite(v) || v === 0) return '';
-  return `${Math.round(v)} ${String(formatMoney(v)).replace(/[^\d.,]/g, '')}`;
+  return `${v} ${Math.round(v)} ${String(formatMoney(v)).replace(/[^\d.,]/g, '')}`;
 };
+
+// Build the id -> name lookups once, so a transaction is findable by its
+// category or account name, not only its own label.
+export function buildNameMaps(d) {
+  const data = d || {};
+  const catName = new Map();
+  for (const c of arr(data.categories)) if (c && c.id) catName.set(c.id, c.name || '');
+  const acctName = new Map();
+  for (const a of arr(data.accounts)) if (a && a.id) acctName.set(a.id, a.name || '');
+  return { catName, acctName };
+}
+
+// The one transaction haystack, shared by global search and History's own
+// filter so a result never disappears when you drill into it.
+export function txHaystack(t, catName, acctName) {
+  if (!t) return '';
+  const cat = t.categoryId && catName ? catName.get(t.categoryId) : '';
+  const acct = t.accountId && acctName ? acctName.get(t.accountId) : '';
+  const kind = t.type === 'income' ? 'income' : t.type === 'transfer' ? 'transfer' : t.type === 'debt' ? 'debt payment' : 'expense';
+  return hay(t.label, cat, acct, amountHay(t.amount), kind);
+}
+
+// True when a transaction matches every word in the query. A blank query
+// matches everything (History uses this as its filter).
+export function txMatches(t, query, catName, acctName) {
+  const tokens = String(query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  if (!t) return false;
+  return matches(txHaystack(t, catName, acctName), tokens);
+}
 
 const PER_GROUP = 8; // show this many per group, count the rest as "more"
 
@@ -38,12 +73,7 @@ export function search(data, rawQuery) {
   const tokens = q.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return { query: '', empty: true, total: 0, groups: [] };
 
-  // Lookups so a transaction can be found by its category or account name,
-  // not only its own label.
-  const catName = new Map();
-  for (const c of d.categories || []) if (c && c.id) catName.set(c.id, c.name || '');
-  const acctName = new Map();
-  for (const a of d.accounts || []) if (a && a.id) acctName.set(a.id, a.name || '');
+  const { catName, acctName } = buildNameMaps(d);
 
   const groups = [];
   const add = (kind, title, route, all) => {
@@ -54,12 +84,11 @@ export function search(data, rawQuery) {
   // Transactions, newest first. Records (transfer, debt) are searchable too
   // so a past money move can still be found.
   const tx = [];
-  for (const t of d.transactions || []) {
+  for (const t of arr(d.transactions)) {
     if (!t) continue;
     const cat = t.categoryId ? catName.get(t.categoryId) : '';
     const acct = t.accountId ? acctName.get(t.accountId) : '';
-    const h = hay(t.label, cat, acct, t.date, amountHay(t.amount), t.type === 'income' ? 'income' : t.type === 'transfer' ? 'transfer' : t.type === 'debt' ? 'debt payment' : 'expense');
-    if (!matches(h, tokens)) continue;
+    if (!matches(txHaystack(t, catName, acctName), tokens)) continue;
     tx.push({
       id: t.id,
       title: t.label || 'Entry',
@@ -74,9 +103,9 @@ export function search(data, rawQuery) {
 
   // Utang: who owes you. Search person, note, phone, and the amount.
   const utang = [];
-  for (const r of d.receivables || []) {
+  for (const r of arr(d.receivables)) {
     if (!r) continue;
-    const paid = (r.payments || []).reduce((s, p) => s + (Number(p && p.amount) || 0), 0);
+    const paid = arr(r.payments).reduce((s, p) => s + (Number(p && p.amount) || 0), 0);
     const outstanding = Math.max(0, (Number(r.amount) || 0) - paid);
     const h = hay(r.person, r.note, r.phone, amountHay(r.amount), amountHay(outstanding), 'utang owes');
     if (!matches(h, tokens)) continue;
@@ -92,7 +121,7 @@ export function search(data, rawQuery) {
 
   // Debts you owe.
   const debts = [];
-  for (const dd of d.debts || []) {
+  for (const dd of arr(d.debts)) {
     if (!dd) continue;
     const h = hay(dd.name, dd.type, amountHay(dd.remaining), 'debt loan card');
     if (!matches(h, tokens)) continue;
@@ -102,7 +131,7 @@ export function search(data, rawQuery) {
 
   // Goals.
   const goals = [];
-  for (const g of d.goals || []) {
+  for (const g of arr(d.goals)) {
     if (!g) continue;
     const h = hay(g.name, amountHay(g.target), amountHay(g.saved), 'goal save');
     if (!matches(h, tokens)) continue;
@@ -112,18 +141,18 @@ export function search(data, rawQuery) {
 
   // Notes.
   const notes = [];
-  for (const n of d.notes || []) {
+  for (const n of arr(d.notes)) {
     if (!n) continue;
     const text = String(n.text || '');
     if (!matches(lower(text), tokens)) continue;
     const first = text.split('\n')[0].trim();
-    notes.push({ id: n.id, title: first || 'Note', subtitle: text.length > first.length ? 'note' : '', amount: null, sign: '' });
+    notes.push({ id: n.id, title: first || 'Note', subtitle: text.trim().includes('\n') ? 'note' : '', amount: null, sign: '' });
   }
   add('notes', 'Notes', '/notes', notes);
 
   // Accounts by name.
   const accts = [];
-  for (const a of d.accounts || []) {
+  for (const a of arr(d.accounts)) {
     if (!a) continue;
     const h = hay(a.name, a.kind, 'account wallet');
     if (!matches(h, tokens)) continue;

@@ -40,8 +40,9 @@ export default function Search() {
 
   const openGroup = (route) => {
     try {
-      // Entries land on History pre-filtered to the same words.
-      if (route === '/history') router.push({ pathname: '/history', params: { q: query.trim() } });
+      // Entries land on History pre-filtered to the same words. Use the
+      // deferred query, the exact text the shown results were built from.
+      if (route === '/history') router.push({ pathname: '/history', params: { q: deferred.trim() } });
       else router.push(route);
     } catch (e) {
       // A bad route must never crash search.
