@@ -23,13 +23,15 @@ export const GUARDRAILS = [
     id: 'no_loan',
     keywords: ['apply for a loan', 'get a loan', 'cash loan', 'borrow money', 'lend me', 'loan app', 'where to borrow', 'sangla'],
     reply:
-      'I cannot help you find or apply for a loan. I can track debts you already have and show you what to pay to avoid interest and late fees. Want your upcoming due dates?',
+      'I cannot help you find or apply for a loan. But if you are weighing one, the Loan calculator in Tools shows its real monthly payment and true interest rate, so you go in with clear eyes. I can also track debts you already have.',
+    cta: { label: 'Open Loan calculator', route: '/loan-calculator' },
   },
   {
     id: 'no_tax',
     keywords: ['tax', 'bir', 'income tax', 'vat', 'withholding'],
     reply:
-      'I cannot advise on taxes, please check the BIR or a tax professional. I can total your income and expenses for a period for your own records if that helps.',
+      'I cannot give tax advice, please check the BIR or a tax professional for your actual filing. What I can do is point you to the Income tax calculator in Tools, which estimates the 8% versus graduated tax and lists the BIR forms you file.',
+    cta: { label: 'Open Income tax calculator', route: '/tax-calculator' },
   },
   {
     id: 'no_legal',
@@ -188,6 +190,68 @@ export const INTENTS = [
       any: ['payday', 'sweldo', 'sahod'],
     },
     examples: ['When is my next sweldo?', 'Ilang araw bago sweldo?'],
+  },
+
+  // Tool pointers. These do not read your data, they open the right calculator
+  // in Tools. `pointer` short-circuits the resolver in ask(), so Pan explains
+  // in one line and offers a button, never inventing a number.
+  {
+    id: 'tool_take_home',
+    title: 'Take-home pay',
+    pointer: {
+      route: '/salary-calculator',
+      label: 'Open Take-home pay',
+      text: 'To turn a gross salary into net, the Take-home pay calculator in Tools does it properly, with SSS, PhilHealth, Pag-IBIG, tax, and allowances, and can show it per cutoff, monthly, or yearly.',
+    },
+    keywords: {
+      strong: ['take home', 'take home pay', 'net pay', 'net salary', 'gross to net'],
+      any: ['takehome', 'deductions from salary'],
+    },
+    examples: ['What is my take-home pay?', 'Gross to net salary'],
+  },
+  {
+    id: 'tool_thirteenth',
+    title: '13th month pay',
+    pointer: {
+      route: '/thirteenth-calculator',
+      label: 'Open 13th month pay',
+      text: 'For 13th month pay, the calculator in Tools figures what you should get, prorated for months worked, and shows the tax-free part up to the 90,000 ceiling.',
+    },
+    keywords: {
+      strong: ['13th month', '13 month', 'thirteenth month', '13th month pay'],
+      any: ['13th', 'bonus'],
+    },
+    examples: ['How much is my 13th month?', 'Compute 13th month pay'],
+  },
+  {
+    id: 'tool_contributions',
+    title: 'SSS, PhilHealth, Pag-IBIG',
+    pointer: {
+      route: '/contribution-calculator',
+      label: 'Open Contribution checker',
+      text: 'For your monthly SSS, PhilHealth, and Pag-IBIG, the Contribution checker in Tools shows what comes out of your pay, what your employer adds, and the total, for any salary.',
+    },
+    keywords: {
+      strong: ['sss', 'philhealth', 'phil health', 'pag ibig', 'pagibig', 'contribution', 'contributions'],
+      any: ['hdmf', 'sss contribution', 'monthly contribution'],
+    },
+    examples: ['How much is my SSS?', 'PhilHealth and Pag-IBIG for 25000'],
+  },
+  {
+    id: 'tool_loan_cost',
+    title: 'Loan cost',
+    pointer: {
+      route: '/loan-calculator',
+      label: 'Open Loan calculator',
+      text: 'To see the real cost of a loan, the Loan calculator in Tools shows the monthly payment, total interest, and the true effective rate, so an add-on quote cannot hide how much it really costs.',
+    },
+    keywords: {
+      // No bare "interest rate" here: a card-interest question should stay on
+      // the debt due-date intent, not jump to the loan tool.
+      strong: ['amortization', 'monthly amortization', 'loan calculator', 'effective rate', 'true cost of a loan'],
+      any: ['amortize', 'add on rate'],
+    },
+    examples: ['Monthly amortization of a loan', 'True cost of a loan'],
   },
 ];
 

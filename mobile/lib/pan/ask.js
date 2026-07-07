@@ -33,9 +33,10 @@ export function ask(data, message, ctx = {}) {
   const det = detectIntent(norm);
 
   // Out-of-scope, liability-sensitive topics: decline and redirect. Matched
-  // before any data intent so investment or loan guidance can never leak.
+  // before any data intent so investment or loan guidance can never leak. Some
+  // rails now also offer a button to the matching estimate tool.
   if (det.guardrail) {
-    return { intent: det.id, mood: 'idle', text: det.guardrail.reply };
+    return { intent: det.id, mood: 'idle', text: det.guardrail.reply, cta: det.guardrail.cta };
   }
 
   if (det.id === HELP_ID) {
@@ -43,6 +44,18 @@ export function ask(data, message, ctx = {}) {
   }
 
   const intent = INTENTS.find((i) => i.id === det.id);
+
+  // Tool pointers do not read data: Pan explains in one line and offers a
+  // button to open the right calculator. No resolver, no invented number.
+  if (intent && intent.pointer) {
+    return {
+      intent: intent.id,
+      mood: 'idle',
+      text: intent.pointer.text,
+      cta: { label: intent.pointer.label, route: intent.pointer.route },
+    };
+  }
+
   const resolver = intent && RESOLVERS[intent.resolve];
   if (!resolver) return helpReply();
 
