@@ -14,7 +14,7 @@ const TOOLS = [
   { id: 'salary', emoji: '🧾', title: 'Take-home pay', desc: 'Gross to net, with SSS, PhilHealth, Pag-IBIG, and tax.', route: '/salary-calculator', ready: true },
   { id: 'tax', emoji: '🧮', title: 'Income tax calculator', desc: 'Flat 8% or graduated? For freelancers and the self-employed.', route: '/tax-calculator', ready: true },
   { id: 'thirteenth', emoji: '🎁', title: '13th month pay', desc: 'What you should receive, and how to split it.', ready: false },
-  { id: 'loan', emoji: '📆', title: 'Loan and amortization', desc: 'Monthly payment and total interest on a loan you have.', ready: false },
+  { id: 'loan', emoji: '📆', title: 'Loan and amortization', desc: 'Real monthly payment, total interest, and the true rate.', route: '/loan-calculator', ready: true },
   { id: 'contrib', emoji: '🏦', title: 'Contribution checker', desc: 'SSS, PhilHealth, and Pag-IBIG for any salary.', ready: false },
 ];
 
