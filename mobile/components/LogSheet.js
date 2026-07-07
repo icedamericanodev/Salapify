@@ -47,16 +47,7 @@ function isRealDate(s) {
 export default function LogSheet({ visible, onClose, toastBottom = spacing.lg }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const insets = useSafeAreaInsets();
   const { data, addTransaction, removeTransaction, updateSettings } = useAppData();
-
-  // Lift the sheet above the keyboard. This is an in-window overlay, not a
-  // native Modal, so Reanimated's keyboard height (which tracks the main
-  // window) applies the same way it does in Pan and notes. Padding the overlay
-  // bottom by the keyboard height, or the safe area when the keyboard is down,
-  // pushes the bottom-anchored sheet clear of the keys and the nav bar.
-  const keyboard = useAnimatedKeyboard();
-  const overlayLift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, insets.bottom) }));
 
   const [type, setType] = useState('expense');
   const [label, setLabel] = useState('');
@@ -106,12 +97,17 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
   // Closing without saving must not leave an orphan photo behind, and a
   // camera shot has exactly one copy, so discarding it asks first.
+  const discardAskRef = useRef(false);
   function cancel() {
     if (!receiptUri) {
       onClose();
       return;
     }
+    // A second back press (or tap) while the discard dialog is up must not
+    // stack another identical dialog.
+    if (discardAskRef.current) return;
     const discard = () => {
+      discardAskRef.current = false;
       deleteReceipt(receiptUri);
       setReceiptUri('');
       onClose();
@@ -120,8 +116,9 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       discard();
       return;
     }
+    discardAskRef.current = true;
     Alert.alert('Discard this entry?', 'The attached receipt photo will be deleted.', [
-      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Keep editing', style: 'cancel', onPress: () => { discardAskRef.current = false; } },
       { text: 'Discard', style: 'destructive', onPress: discard },
     ]);
   }
@@ -226,10 +223,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   return (
     <>
       {visible ? (
-        <Reanimated.View style={[styles.overlay, overlayLift]}>
-          <Pressable style={styles.backdrop} onPress={cancel} />
-          <View style={styles.sheet}>
-            <ScrollView keyboardShouldPersistTaps="handled">
+        <SheetOverlay styles={styles} onBackdrop={cancel}>
+          <ScrollView keyboardShouldPersistTaps="handled">
             <Text style={styles.sheetTitle}>Add entry</Text>
 
             <View style={styles.typeRow}>
@@ -407,9 +402,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                 <Text style={styles.saveText}>Add</Text>
               </Pressable>
             </View>
-            </ScrollView>
-          </View>
-        </Reanimated.View>
+          </ScrollView>
+        </SheetOverlay>
       ) : null}
 
       {toast ? (
@@ -437,9 +431,28 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   );
 }
 
+// The lifting overlay lives in its own component so useAnimatedKeyboard, which
+// installs a window keyboard listener, mounts only while the sheet is open
+// rather than for the whole session (LogSheet itself is always mounted at the
+// tab root).
+function SheetOverlay({ styles, onBackdrop, children }) {
+  const insets = useSafeAreaInsets();
+  const keyboard = useAnimatedKeyboard();
+  const lift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, insets.bottom) }));
+  return (
+    <Reanimated.View style={[styles.overlay, lift]}>
+      <Pressable style={styles.backdrop} onPress={onBackdrop} />
+      <View style={styles.sheet}>{children}</View>
+    </Reanimated.View>
+  );
+}
+
 function makeStyles(colors) {
   return StyleSheet.create({
-    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    // elevation and zIndex must beat the tab bar (elevation 8) and the FAB
+    // (elevation 6), or on Android those siblings draw on top of the overlay
+    // and its buttons become untappable and the tabs stay live behind it.
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay, justifyContent: 'flex-end', elevation: 32, zIndex: 100 },
     backdrop: { ...StyleSheet.absoluteFillObject },
     sheet: {
       backgroundColor: colors.background,
