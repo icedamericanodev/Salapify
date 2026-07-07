@@ -10,17 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-
-// Currency-neutral tips. One is shown per day.
-const TIPS = [
-  'Pay yourself first: save a little before you spend anything.',
-  'A small daily expense adds up. Track it for one week and see.',
-  'Before a big buy, wait 24 hours. If you still want it, plan for it.',
-  'Clearing the smallest debt first builds momentum.',
-  'A budget is permission to spend, not a punishment.',
-  'Automate savings so it happens without willpower.',
-  'Compare price per use, not just price.',
-];
+import { lessonOfTheDay } from '../lib/lessons';
 
 // The impulse check questions.
 const QUESTIONS = [
@@ -35,8 +25,8 @@ export default function Mindset() {
   const router = useRouter();
   const { data, addItem, removeItem } = useAppData();
 
-  // Pick today's tip by the day of the month.
-  const tip = TIPS[new Date().getDate() % TIPS.length];
+  // Today's featured lesson, a pointer into the full Learn track.
+  const lesson = lessonOfTheDay(new Date());
 
   // Impulse check toggles.
   const [checks, setChecks] = useState([false, false, false]);
@@ -61,11 +51,13 @@ export default function Mindset() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Daily tip. */}
-        <View style={styles.tipCard}>
-          <Text style={styles.kicker}>TODAY'S TIP</Text>
-          <Text style={styles.tip}>{tip}</Text>
-        </View>
+        {/* Today's lesson: a pointer into the Learn track. */}
+        <Pressable onPress={() => router.push('/learn')} style={({ pressed }) => [styles.tipCard, pressed && styles.pressed]}>
+          <Text style={styles.kicker}>TODAY'S LESSON</Text>
+          <Text style={styles.tip}>{lesson.emoji}  {lesson.title}</Text>
+          <Text style={styles.tipSub}>{lesson.summary}</Text>
+          <Text style={styles.tipLink}>Read this and more in Money lessons ›</Text>
+        </Pressable>
 
         {/* Impulse check. */}
         <Text style={styles.sectionTitle}>IMPULSE CHECK</Text>
@@ -135,7 +127,9 @@ function makeStyles(colors) {
 
     tipCard: { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     kicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2, marginBottom: spacing.sm },
-    tip: { color: colors.text, fontSize: fontSize.body, lineHeight: 22 },
+    tip: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold, lineHeight: 22 },
+    tipSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs, lineHeight: 18 },
+    tipLink: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.medium, marginTop: spacing.sm },
 
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
