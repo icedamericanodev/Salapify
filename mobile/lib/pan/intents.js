@@ -246,8 +246,10 @@ export const INTENTS = [
       text: 'To see the real cost of a loan, the Loan calculator in Tools shows the monthly payment, total interest, and the true effective rate, so an add-on quote cannot hide how much it really costs.',
     },
     keywords: {
+      // No bare "interest rate" here: a card-interest question should stay on
+      // the debt due-date intent, not jump to the loan tool.
       strong: ['amortization', 'monthly amortization', 'loan calculator', 'effective rate', 'true cost of a loan'],
-      any: ['amortize', 'add on rate', 'interest rate'],
+      any: ['amortize', 'add on rate'],
     },
     examples: ['Monthly amortization of a loan', 'True cost of a loan'],
   },

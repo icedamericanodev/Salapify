@@ -657,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.46: Pan points you to the right calculator</Text>
+            <Text style={styles.rowValue}>v3.47: Pan keeps card questions on due dates</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
