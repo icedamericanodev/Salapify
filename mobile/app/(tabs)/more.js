@@ -657,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.33: tax calculator handles mixed income and the VAT threshold</Text>
+            <Text style={styles.rowValue}>v3.34: tax calculator over-threshold mixed income fix</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

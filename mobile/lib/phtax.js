@@ -221,17 +221,19 @@ export function selfEmployedTax(annualGross, opts = {}) {
   };
 
   // Recommend the lower tax, but only when we can trust both numbers and the
-  // taxpayer actually qualifies for the 8%.
+  // taxpayer actually qualifies for the 8%. The threshold check comes first:
+  // over the VAT threshold the 8% is not even available, so a mixed earner who
+  // left the salary blank must still be pointed at the graduated regime, not 8%.
   let recommended, savings;
-  if (!canCompareGraduated) {
-    recommended = 'eight'; // the screen shows only 8% and explains why
-    savings = 0;
-  } else if (eligible8) {
-    recommended = eightTotal <= graduated.total ? 'eight' : 'graduated';
-    savings = round2(Math.abs(graduated.total - eightTotal));
-  } else {
+  if (!eligible8) {
     recommended = 'graduated';
     savings = 0;
+  } else if (!canCompareGraduated) {
+    recommended = 'eight'; // the screen shows only 8% and explains why
+    savings = 0;
+  } else {
+    recommended = eightTotal <= graduated.total ? 'eight' : 'graduated';
+    savings = round2(Math.abs(graduated.total - eightTotal));
   }
 
   const chosenTotal = recommended === 'eight' ? eightTotal : graduated.total;
