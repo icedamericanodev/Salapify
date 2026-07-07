@@ -5,11 +5,9 @@
 // the money engine computed. Conversation is in memory only, so nothing is
 // stored and there is no schema change.
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
 import {
   FlatList,
-  Keyboard,
-  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -18,6 +16,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,21 +36,16 @@ export default function Pan() {
   const insets = useSafeAreaInsets();
   const { data } = useAppData();
 
-  // Lift the input above the keyboard ourselves. On Android SDK 54 the window
-  // does not resize for us, so KeyboardAvoidingView left the type box hidden.
-  // We track the real keyboard height and pad the column by it, which works
-  // the same on both platforms. When the keyboard is down, pad by the bottom
-  // safe area so the input clears the system nav bar.
-  const [kbHeight, setKbHeight] = useState(0);
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = (e) => setKbHeight((e && e.endCoordinates && e.endCoordinates.height) || 0);
-    const onHide = () => setKbHeight(0);
-    const s = Keyboard.addListener(showEvt, onShow);
-    const h = Keyboard.addListener(hideEvt, onHide);
-    return () => { s.remove(); h.remove(); };
-  }, []);
+  // Lift the input above the keyboard. On Android SDK 54 with edge to edge the
+  // window does not resize and React Native's Keyboard height reads 0, so the
+  // type box stayed hidden. Reanimated (already in the app) reports the real
+  // keyboard height under edge to edge, so we pad the chat column by it on the
+  // UI thread. When the keyboard is down we pad by the bottom safe area so the
+  // input still clears the system nav bar.
+  const keyboard = useAnimatedKeyboard();
+  const liftStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboard.height.value, insets.bottom),
+  }));
 
   // Newest first, so the inverted list renders naturally.
   const [messages, setMessages] = useState([]);
@@ -159,7 +153,7 @@ export default function Pan() {
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={{ flex: 1, paddingBottom: kbHeight > 0 ? kbHeight : insets.bottom }}>
+      <Animated.View style={[{ flex: 1 }, liftStyle]}>
         {messages.length === 0 ? (
           <ScrollView contentContainerStyle={styles.empty}>
             <Mascot size={120} state="idle" />
@@ -211,7 +205,7 @@ export default function Pan() {
             <Ionicons name="arrow-up" size={20} color={colors.onPrimary} />
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
