@@ -15,7 +15,7 @@ const TOOLS = [
   { id: 'tax', emoji: '🧮', title: 'Income tax calculator', desc: 'Flat 8% or graduated? For freelancers and the self-employed.', route: '/tax-calculator', ready: true },
   { id: 'thirteenth', emoji: '🎁', title: '13th month pay', desc: 'What you should receive, prorated, and the tax-free part.', route: '/thirteenth-calculator', ready: true },
   { id: 'loan', emoji: '📆', title: 'Loan and amortization', desc: 'Real monthly payment, total interest, and the true rate.', route: '/loan-calculator', ready: true },
-  { id: 'contrib', emoji: '🏦', title: 'Contribution checker', desc: 'SSS, PhilHealth, and Pag-IBIG for any salary.', ready: false },
+  { id: 'contrib', emoji: '🏦', title: 'Contribution checker', desc: 'SSS, PhilHealth, and Pag-IBIG for any salary.', route: '/contribution-calculator', ready: true },
 ];
 
 export default function Tools() {
