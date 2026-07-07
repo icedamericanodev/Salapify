@@ -90,7 +90,7 @@ export default function SalaryCalculator() {
         )}
 
         <Text style={styles.disclaimer}>
-          Estimate based on {RATES_YEAR} SSS, PhilHealth, Pag-IBIG, and BIR rates. Your real payslip can differ with allowances, de minimis benefits, and your employer's rounding. Not a substitute for your official payslip or a BIR filing.
+          Estimate based on {RATES_YEAR} SSS, PhilHealth, Pag-IBIG, and BIR rates. It assumes a regular salaried job with no other income, and low salaries still pay the minimum contributions. Your real payslip can differ with allowances, de minimis benefits, and your employer's rounding. Not a substitute for your official payslip or a BIR filing.
         </Text>
       </ScrollView>
     </SafeAreaView>
