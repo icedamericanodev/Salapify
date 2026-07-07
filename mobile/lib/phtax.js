@@ -157,22 +157,33 @@ export function eightPercentTax(annualGross, opts = {}) {
 }
 
 // The graduated option for a self-employed taxpayer. Deduction is the 40% OSD
-// by default, or itemized expenses when opts.useOSD is false. Returns the
-// pieces plus the total (graduated income tax on net + 3% percentage tax).
+// by default, or itemized expenses when opts.useOSD is false.
+//   opts.salaryTaxable  yearly taxable salary of a mixed-income earner. The
+//     business net stacks ON TOP of it and is taxed at the marginal rungs, so
+//     the income tax here is the extra tax the business net adds. Zero (the
+//     default) means purely self-employed and the net is taxed from the bottom.
+//   opts.vatRegistered  true above the VAT threshold, where the 3% percentage
+//     tax does not apply (12% VAT does instead, which this tool does not model).
+// Returns the pieces plus the total (graduated income tax on net + percentage
+// tax where it applies).
 export function graduatedSelfEmployedTax(annualGross, opts = {}) {
   const g = Math.max(0, num(annualGross));
   const useOSD = !(opts && opts.useOSD === false);
   const expenses = Math.max(0, num(opts && opts.expenses));
+  const salaryTaxable = Math.max(0, num(opts && opts.salaryTaxable));
+  const vatRegistered = !!(opts && opts.vatRegistered);
   const deduction = useOSD ? round2(g * 0.4) : Math.min(expenses, g);
   const net = Math.max(0, round2(g - deduction));
-  const incomeTax = annualIncomeTax(net);
-  const pct = percentageTax(g);
+  // Marginal: the tax the business net adds on top of the salary. For a purely
+  // self-employed person salaryTaxable is 0, so this is just the tax on net.
+  const incomeTax = round2(annualIncomeTax(salaryTaxable + net) - annualIncomeTax(salaryTaxable));
+  const pct = vatRegistered ? 0 : percentageTax(g);
   return {
     deduction: round2(deduction),
     net,
-    incomeTax: round2(incomeTax),
+    incomeTax: Math.max(0, incomeTax),
     percentageTax: pct,
-    total: round2(incomeTax + pct),
+    total: round2(Math.max(0, incomeTax) + pct),
   };
 }
 
@@ -180,25 +191,42 @@ export function graduatedSelfEmployedTax(annualGross, opts = {}) {
 //   opts.mixedIncome  true if the person also earns a salary (no 250k exempt)
 //   opts.useOSD       true (default) uses the 40% OSD; false uses opts.expenses
 //   opts.expenses     itemized annual expenses when useOSD is false
-// Returns { gross, mixedIncome, eligible8, eightPercent, graduated,
-//   recommended ('eight'|'graduated'), savings, effectiveRate, ratesYear }.
+//   opts.salaryTaxable  yearly taxable salary of a mixed-income earner, needed
+//     to compute the graduated branch correctly (business net stacks on it).
+// Returns { gross, mixedIncome, eligible8, canCompareGraduated, eightPercent,
+//   graduated, recommended ('eight'|'graduated'), savings, effectiveRate,
+//   ratesYear }. canCompareGraduated is false for a mixed earner who has not
+//   given a salary, since the graduated tax cannot be trusted without it.
 export function selfEmployedTax(annualGross, opts = {}) {
   const gross = Math.max(0, num(annualGross));
   const mixedIncome = !!(opts && opts.mixedIncome);
+  const salaryTaxable = Math.max(0, num(opts && opts.salaryTaxable));
   // The 8% option is only open to non-VAT taxpayers at or under the threshold.
   const eligible8 = gross <= VAT_THRESHOLD;
 
+  // The 8% figure is always self-contained and correct. The graduated figure
+  // for a mixed earner needs their salary; without it we do not compare.
+  const canCompareGraduated = !mixedIncome || salaryTaxable > 0;
+
   const eightTotal = eightPercentTax(gross, { mixedIncome });
-  const graduated = graduatedSelfEmployedTax(gross, opts);
+  const graduated = graduatedSelfEmployedTax(gross, {
+    ...opts,
+    salaryTaxable,
+    vatRegistered: !eligible8,
+  });
 
   const eightPercent = {
     exempt: mixedIncome ? 0 : SELF_EMPLOYED_EXEMPT,
     total: eightTotal,
   };
 
-  // Recommend the lower tax, but only offer 8% when the taxpayer qualifies.
+  // Recommend the lower tax, but only when we can trust both numbers and the
+  // taxpayer actually qualifies for the 8%.
   let recommended, savings;
-  if (eligible8) {
+  if (!canCompareGraduated) {
+    recommended = 'eight'; // the screen shows only 8% and explains why
+    savings = 0;
+  } else if (eligible8) {
     recommended = eightTotal <= graduated.total ? 'eight' : 'graduated';
     savings = round2(Math.abs(graduated.total - eightTotal));
   } else {
@@ -207,12 +235,13 @@ export function selfEmployedTax(annualGross, opts = {}) {
   }
 
   const chosenTotal = recommended === 'eight' ? eightTotal : graduated.total;
-  const effectiveRate = gross > 0 ? round2((chosenTotal / gross) * 100) / 100 : 0;
+  const effectiveRate = gross > 0 ? round2((chosenTotal / gross) * 100) : 0;
 
   return {
     gross,
     mixedIncome,
     eligible8,
+    canCompareGraduated,
     eightPercent,
     graduated,
     recommended,

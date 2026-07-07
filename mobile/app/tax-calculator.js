@@ -21,19 +21,25 @@ export default function TaxCalculator() {
 
   const [gross, setGross] = useState('');
   const [mixedIncome, setMixedIncome] = useState(false);
+  const [salaryTaxable, setSalaryTaxable] = useState('');
   const [useOSD, setUseOSD] = useState(true);
   const [expenses, setExpenses] = useState('');
 
   const parse = (s) => Number(String(s).replace(/[, ]/g, '')) || 0;
   const grossNum = parse(gross);
   const expensesNum = parse(expenses);
+  const salaryNum = parse(salaryTaxable);
   const r = useMemo(
-    () => selfEmployedTax(grossNum, { mixedIncome, useOSD, expenses: expensesNum }),
-    [grossNum, mixedIncome, useOSD, expensesNum]
+    () => selfEmployedTax(grossNum, { mixedIncome, useOSD, expenses: expensesNum, salaryTaxable: salaryNum }),
+    [grossNum, mixedIncome, useOSD, expensesNum, salaryNum]
   );
   const m = (n) => formatMoney(Math.round(n));
 
   const eightWins = r.recommended === 'eight';
+  // Only claim one option is cheaper when the gap is a real peso or more and we
+  // could actually compare both (a mixed earner needs a salary to compare).
+  const meaningful = r.canCompareGraduated && r.savings >= 1;
+  const chosenTotal = eightWins ? r.eightPercent.total : r.graduated.total;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -77,6 +83,24 @@ export default function TaxCalculator() {
           </View>
         </Pressable>
 
+        {mixedIncome ? (
+          <View style={{ marginTop: spacing.md }}>
+            <Text style={styles.fieldLabel}>Your yearly taxable salary</Text>
+            <View style={styles.inputWrap}>
+              <Text style={styles.peso}>₱</Text>
+              <TextInput
+                style={styles.input}
+                value={salaryTaxable}
+                onChangeText={setSalaryTaxable}
+                keyboardType="numeric"
+                placeholder="e.g. 400,000"
+                placeholderTextColor={colors.faint}
+              />
+            </View>
+            <Text style={styles.subHint}>Roughly your yearly basic pay minus SSS, PhilHealth, and Pag-IBIG. The take-home pay tool shows this. Needed to compare the graduated option fairly.</Text>
+          </View>
+        ) : null}
+
         <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>Deductions for the graduated option</Text>
         <View style={styles.segment}>
           <Pressable style={[styles.segBtn, useOSD && styles.segBtnOn]} onPress={() => setUseOSD(true)}>
@@ -104,17 +128,7 @@ export default function TaxCalculator() {
 
         {grossNum > 0 ? (
           <>
-            {r.eligible8 ? (
-              <View style={[styles.pickCard, eightWins ? styles.pickEight : styles.pickGrad]}>
-                <Text style={styles.pickKicker}>OUR PICK</Text>
-                <Text style={styles.pickTitle}>{eightWins ? 'Take the flat 8%' : 'Use the graduated rate'}</Text>
-                <Text style={styles.pickSave}>
-                  {r.savings > 0
-                    ? `Saves you about ${m(r.savings)} a year versus the other option.`
-                    : 'Both options cost about the same this year.'}
-                </Text>
-              </View>
-            ) : (
+            {!r.eligible8 ? (
               <View style={[styles.pickCard, styles.pickGrad]}>
                 <Text style={styles.pickKicker}>HEADS UP</Text>
                 <Text style={styles.pickTitle}>Over {m(VAT_THRESHOLD)} a year</Text>
@@ -122,16 +136,36 @@ export default function TaxCalculator() {
                   The flat 8% is only for income of {m(VAT_THRESHOLD)} or less. Above it you register for VAT (12%), so this graduated figure is a rough floor, not the full picture. Talk to an accountant.
                 </Text>
               </View>
+            ) : !r.canCompareGraduated ? (
+              <View style={[styles.pickCard, styles.pickEight]}>
+                <Text style={styles.pickKicker}>OUR PICK</Text>
+                <Text style={styles.pickTitle}>Take the flat 8%</Text>
+                <Text style={styles.pickSave}>
+                  One simple tax, no receipts. To compare the graduated route fairly we need your yearly taxable salary, so add it above if you want to check both.
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.pickCard, eightWins ? styles.pickEight : styles.pickGrad]}>
+                <Text style={styles.pickKicker}>OUR PICK</Text>
+                <Text style={styles.pickTitle}>
+                  {!meaningful ? 'Either option works' : eightWins ? 'Take the flat 8%' : 'Use the graduated rate'}
+                </Text>
+                <Text style={styles.pickSave}>
+                  {meaningful
+                    ? `Saves you about ${m(r.savings)} a year versus the other option.`
+                    : 'Both options cost about the same this year, so pick whichever is simpler for you.'}
+                </Text>
+              </View>
             )}
 
             {r.eligible8 ? (
-              <View style={[styles.optCard, eightWins && styles.optCardWin]}>
+              <View style={[styles.optCard, eightWins && meaningful && styles.optCardWin]}>
                 <View style={styles.optHead}>
                   <Text style={styles.optTitle}>Flat 8% option</Text>
-                  {eightWins ? <Text style={styles.winTag}>LOWER</Text> : null}
+                  {eightWins && meaningful ? <Text style={styles.winTag}>LOWER</Text> : null}
                 </View>
                 <View style={styles.row}>
-                  <Text style={styles.rowLabel}>{r.mixedIncome ? '8% on all income' : '8% on income over ' + m(250000)}</Text>
+                  <Text style={styles.rowLabel}>{r.mixedIncome ? '8% on all business income' : '8% on income over ' + m(250000)}</Text>
                   <Text style={styles.rowValue}>{m(r.eightPercent.total)}</Text>
                 </View>
                 <View style={styles.totalRow}>
@@ -142,37 +176,51 @@ export default function TaxCalculator() {
               </View>
             ) : null}
 
-            <View style={[styles.optCard, !eightWins && styles.optCardWin]}>
-              <View style={styles.optHead}>
-                <Text style={styles.optTitle}>Graduated option</Text>
-                {r.eligible8 && !eightWins ? <Text style={styles.winTag}>LOWER</Text> : null}
+            {r.canCompareGraduated ? (
+              <View style={[styles.optCard, !eightWins && meaningful && styles.optCardWin]}>
+                <View style={styles.optHead}>
+                  <Text style={styles.optTitle}>Graduated option</Text>
+                  {!eightWins && meaningful ? <Text style={styles.winTag}>LOWER</Text> : null}
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>{useOSD ? '40% standard deduction' : 'Your expenses'}</Text>
+                  <Text style={styles.rowSubtle}>- {m(r.graduated.deduction)}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Net taxable income</Text>
+                  <Text style={styles.rowSubtle}>{m(r.graduated.net)}</Text>
+                </View>
+                {r.mixedIncome ? (
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Taxed on top of your salary</Text>
+                    <Text style={styles.rowSubtle}>{m(salaryNum)}</Text>
+                  </View>
+                ) : null}
+                <View style={[styles.row, styles.rowBorder]}>
+                  <Text style={styles.rowLabel}>{r.mixedIncome ? 'Extra income tax (graduated)' : 'Income tax (graduated)'}</Text>
+                  <Text style={styles.rowValue}>{m(r.graduated.incomeTax)}</Text>
+                </View>
+                {r.graduated.percentageTax > 0 ? (
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Percentage tax (3%)</Text>
+                    <Text style={styles.rowValue}>{m(r.graduated.percentageTax)}</Text>
+                  </View>
+                ) : null}
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total tax</Text>
+                  <Text style={styles.totalValue}>{m(r.graduated.total)}</Text>
+                </View>
+                <Text style={styles.optNote}>
+                  {r.graduated.percentageTax > 0
+                    ? 'Graduated income tax on your net, plus a separate 3% tax on your whole gross.'
+                    : 'Graduated income tax on your net. Above the VAT threshold the 3% tax is replaced by 12% VAT, which this tool does not compute.'}
+                </Text>
               </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{useOSD ? '40% standard deduction' : 'Your expenses'}</Text>
-                <Text style={styles.rowSubtle}>- {m(r.graduated.deduction)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Net taxable income</Text>
-                <Text style={styles.rowSubtle}>{m(r.graduated.net)}</Text>
-              </View>
-              <View style={[styles.row, styles.rowBorder]}>
-                <Text style={styles.rowLabel}>Income tax (graduated)</Text>
-                <Text style={styles.rowValue}>{m(r.graduated.incomeTax)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Percentage tax (3%)</Text>
-                <Text style={styles.rowValue}>{m(r.graduated.percentageTax)}</Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total tax</Text>
-                <Text style={styles.totalValue}>{m(r.graduated.total)}</Text>
-              </View>
-              <Text style={styles.optNote}>Graduated income tax on your net, plus a separate 3% tax on your whole gross.</Text>
-            </View>
+            ) : null}
 
             <View style={styles.setAside}>
               <Text style={styles.setAsideText}>
-                On your pick, set aside about {m((eightWins ? r.eightPercent.total : r.graduated.total) / 12)} a month so the tax is ready when it is due.
+                On your pick, set aside about {m(chosenTotal / 12)} a month so the tax is ready when it is due.
               </Text>
             </View>
           </>
