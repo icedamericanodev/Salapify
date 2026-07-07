@@ -75,9 +75,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Accounts moved off the bar to make room for Tools. Still reachable
-          from the Home quick links and the More tab. */}
-      <Tabs.Screen name="accounts" options={{ href: null }} />
       <Tabs.Screen
         name="debts"
         options={{
