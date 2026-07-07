@@ -21,6 +21,7 @@ export default function SalaryCalculator() {
   const [basic, setBasic] = useState('');
   const [taxAllow, setTaxAllow] = useState('');
   const [nonTaxAllow, setNonTaxAllow] = useState('');
+  const [period, setPeriod] = useState('month');
   const parse = (s) => Number(String(s).replace(/[, ]/g, '')) || 0;
   const basicNum = parse(basic);
   const taxAllowNum = parse(taxAllow);
@@ -30,6 +31,18 @@ export default function SalaryCalculator() {
     [basicNum, taxAllowNum, nonTaxAllowNum]
   );
   const m = (n) => formatMoney(Math.round(n));
+
+  // The engine works in monthly pesos. The user can view the result per
+  // semi-monthly cutoff (half), monthly, or annualized (times twelve). The
+  // basic pay input stays monthly; only the breakdown figures are scaled.
+  const PERIODS = [
+    { id: 'cutoff', label: 'Per cutoff', factor: 0.5, word: 'per cutoff' },
+    { id: 'month', label: 'Monthly', factor: 1, word: 'a month' },
+    { id: 'year', label: 'Per year', factor: 12, word: 'a year' },
+  ];
+  const active = PERIODS.find((p) => p.id === period) || PERIODS[1];
+  const ms = (n) => m(n * active.factor);
+  const netLabel = period === 'cutoff' ? 'Take-home per cutoff' : period === 'year' ? 'Take-home per year' : 'Take-home pay';
 
   const rows = [
     { label: 'SSS', value: r.sss },
@@ -82,59 +95,76 @@ export default function SalaryCalculator() {
         <Text style={styles.allowHint}>
           Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.
         </Text>
+        {nonTaxAllowNum > 12000 ? (
+          <Text style={styles.warnHint}>
+            Heads up: most de minimis benefits max out around ₱10,000 to ₱12,000 a month combined. Anything above the BIR limits is actually taxable, so a large non-taxable amount here can overstate your take-home.
+          </Text>
+        ) : null}
 
         {basicNum > 0 && r.net >= 0 ? (
           <>
+            <Text style={styles.fieldLabel}>Show results</Text>
+            <View style={styles.segment}>
+              {PERIODS.map((p) => (
+                <Pressable key={p.id} style={[styles.segBtn, period === p.id && styles.segBtnOn]} onPress={() => setPeriod(p.id)}>
+                  <Text style={[styles.segText, period === p.id && styles.segTextOn]}>{p.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
             <View style={styles.card}>
               <View style={styles.grossRow}>
                 <Text style={styles.grossLabel}>Basic pay</Text>
-                <Text style={styles.grossValue}>{m(r.basic)}</Text>
+                <Text style={styles.grossValue}>{ms(r.basic)}</Text>
               </View>
               {r.taxableAllowance > 0 ? (
                 <View style={styles.row}>
                   <Text style={styles.rowLabel}>Taxable allowance</Text>
-                  <Text style={styles.addValue}>+ {m(r.taxableAllowance)}</Text>
+                  <Text style={styles.addValue}>+ {ms(r.taxableAllowance)}</Text>
                 </View>
               ) : null}
               {r.nonTaxableAllowance > 0 ? (
                 <View style={styles.row}>
                   <Text style={styles.rowLabel}>Non-taxable allowance</Text>
-                  <Text style={styles.addValue}>+ {m(r.nonTaxableAllowance)}</Text>
+                  <Text style={styles.addValue}>+ {ms(r.nonTaxableAllowance)}</Text>
                 </View>
               ) : null}
               {r.taxableAllowance > 0 || r.nonTaxableAllowance > 0 ? (
                 <View style={[styles.row, styles.rowTopBorder]}>
                   <Text style={styles.grossLabel}>Gross pay</Text>
-                  <Text style={styles.grossValue}>{m(r.gross)}</Text>
+                  <Text style={styles.grossValue}>{ms(r.gross)}</Text>
                 </View>
               ) : null}
               {rows.map((row, i) => (
                 <View key={row.label} style={[styles.row, i === 0 && styles.rowTopBorder]}>
                   <Text style={styles.rowLabel}>{row.label}</Text>
-                  <Text style={styles.rowValue}>- {m(row.value)}</Text>
+                  <Text style={styles.rowValue}>- {ms(row.value)}</Text>
                 </View>
               ))}
               <View style={styles.netRow}>
-                <Text style={styles.netLabel}>Take-home pay</Text>
-                <Text style={styles.netValue}>{m(r.net)}</Text>
+                <Text style={styles.netLabel}>{netLabel}</Text>
+                <Text style={styles.netValue}>{ms(r.net)}</Text>
               </View>
-              <Text style={styles.perYear}>About {m(r.net * 12)} a year, before any 13th month.</Text>
-              <Text style={styles.perYear}>Paid twice a month? That is about {m(r.net / 2)} each cutoff.</Text>
+              {period === 'cutoff' ? (
+                <Text style={styles.perYear}>An estimate for each of the two cutoffs (15th and end of month). Real cutoff withholding can split a little differently.</Text>
+              ) : (
+                <Text style={styles.perYear}>About {m(r.net * 12)} a year, before any 13th month.</Text>
+              )}
             </View>
 
             <View style={styles.deductCard}>
               <Text style={styles.deductKicker}>WHAT COMES OUT, AND WHY</Text>
               <Text style={styles.deductLine}>
-                Contributions total {m(r.contributions)}. They come out before tax, so your taxable pay is {m(r.monthlyTaxable)}.
+                Contributions total {ms(r.contributions)} {active.word}. They come out before tax, so your taxable pay is {ms(r.monthlyTaxable)}.
               </Text>
               <Text style={styles.deductLine}>
-                Income tax uses the graduated BIR table on your yearly taxable pay, spread across 12 months.
+                Income tax uses the graduated BIR table on your yearly taxable pay, spread across the year.
               </Text>
             </View>
           </>
         ) : basicNum > 0 ? (
           <Text style={styles.hint}>
-            That looks too low for a monthly salary. The minimum SSS and PhilHealth contributions alone come to about {m(r.contributions)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.
+            That looks too low for a monthly salary. The minimum SSS, PhilHealth, and Pag-IBIG contributions come to about {m(r.contributions)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.
           </Text>
         ) : (
           <Text style={styles.hint}>Enter your monthly basic pay to see the breakdown. Allowances add on top of it.</Text>
@@ -167,7 +197,14 @@ function makeStyles(colors) {
     pesoSm: { color: colors.muted, fontSize: fontSize.body, marginRight: spacing.xs },
     smallInput: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     allowHint: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 16, marginBottom: spacing.lg },
+    warnHint: { color: colors.warning || colors.primary, fontSize: fontSize.caption, lineHeight: 16, marginTop: -spacing.md, marginBottom: spacing.lg },
     addValue: { color: colors.textSecondary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
+
+    segment: { flexDirection: 'row', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: 3, marginBottom: spacing.lg },
+    segBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
+    segBtnOn: { backgroundColor: colors.primary },
+    segText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
+    segTextOn: { color: colors.background, fontWeight: fontWeight.bold },
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
     grossRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: spacing.md },
