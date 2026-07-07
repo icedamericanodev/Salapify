@@ -18,9 +18,17 @@ export default function SalaryCalculator() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
 
-  const [gross, setGross] = useState('');
-  const grossNum = Number(String(gross).replace(/[, ]/g, '')) || 0;
-  const r = useMemo(() => takeHomePay(grossNum), [grossNum]);
+  const [basic, setBasic] = useState('');
+  const [taxAllow, setTaxAllow] = useState('');
+  const [nonTaxAllow, setNonTaxAllow] = useState('');
+  const parse = (s) => Number(String(s).replace(/[, ]/g, '')) || 0;
+  const basicNum = parse(basic);
+  const taxAllowNum = parse(taxAllow);
+  const nonTaxAllowNum = parse(nonTaxAllow);
+  const r = useMemo(
+    () => takeHomePay(basicNum, { taxableAllowance: taxAllowNum, nonTaxableAllowance: nonTaxAllowNum }),
+    [basicNum, taxAllowNum, nonTaxAllowNum]
+  );
   const m = (n) => formatMoney(Math.round(n));
 
   const rows = [
@@ -41,13 +49,13 @@ export default function SalaryCalculator() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.fieldLabel}>Your monthly gross pay</Text>
+        <Text style={styles.fieldLabel}>Monthly basic pay</Text>
         <View style={styles.inputWrap}>
           <Text style={styles.peso}>₱</Text>
           <TextInput
             style={styles.input}
-            value={gross}
-            onChangeText={setGross}
+            value={basic}
+            onChangeText={setBasic}
             keyboardType="numeric"
             placeholder="e.g. 25,000"
             placeholderTextColor={colors.faint}
@@ -55,13 +63,51 @@ export default function SalaryCalculator() {
           />
         </View>
 
-        {grossNum > 0 ? (
+        <View style={styles.allowRow}>
+          <View style={styles.allowCol}>
+            <Text style={styles.fieldLabel}>Taxable allowance</Text>
+            <View style={styles.smallInputWrap}>
+              <Text style={styles.pesoSm}>₱</Text>
+              <TextInput style={styles.smallInput} value={taxAllow} onChangeText={setTaxAllow} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.faint} />
+            </View>
+          </View>
+          <View style={styles.allowCol}>
+            <Text style={styles.fieldLabel}>Non-taxable allowance</Text>
+            <View style={styles.smallInputWrap}>
+              <Text style={styles.pesoSm}>₱</Text>
+              <TextInput style={styles.smallInput} value={nonTaxAllow} onChangeText={setNonTaxAllow} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.faint} />
+            </View>
+          </View>
+        </View>
+        <Text style={styles.allowHint}>
+          Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.
+        </Text>
+
+        {basicNum > 0 ? (
           <>
             <View style={styles.card}>
               <View style={styles.grossRow}>
-                <Text style={styles.grossLabel}>Gross pay</Text>
-                <Text style={styles.grossValue}>{m(r.gross)}</Text>
+                <Text style={styles.grossLabel}>Basic pay</Text>
+                <Text style={styles.grossValue}>{m(r.basic)}</Text>
               </View>
+              {r.taxableAllowance > 0 ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Taxable allowance</Text>
+                  <Text style={styles.addValue}>+ {m(r.taxableAllowance)}</Text>
+                </View>
+              ) : null}
+              {r.nonTaxableAllowance > 0 ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Non-taxable allowance</Text>
+                  <Text style={styles.addValue}>+ {m(r.nonTaxableAllowance)}</Text>
+                </View>
+              ) : null}
+              {r.taxableAllowance > 0 || r.nonTaxableAllowance > 0 ? (
+                <View style={[styles.row, styles.rowTopBorder]}>
+                  <Text style={styles.grossLabel}>Gross pay</Text>
+                  <Text style={styles.grossValue}>{m(r.gross)}</Text>
+                </View>
+              ) : null}
               {rows.map((row, i) => (
                 <View key={row.label} style={[styles.row, i === 0 && styles.rowTopBorder]}>
                   <Text style={styles.rowLabel}>{row.label}</Text>
@@ -86,11 +132,11 @@ export default function SalaryCalculator() {
             </View>
           </>
         ) : (
-          <Text style={styles.hint}>Enter your monthly gross pay to see the breakdown.</Text>
+          <Text style={styles.hint}>Enter your monthly basic pay to see the breakdown.</Text>
         )}
 
         <Text style={styles.disclaimer}>
-          Estimate based on {RATES_YEAR} SSS, PhilHealth, Pag-IBIG, and BIR rates. It assumes a regular salaried job with no other income, and low salaries still pay the minimum contributions. Your real payslip can differ with allowances, de minimis benefits, and your employer's rounding. Not a substitute for your official payslip or a BIR filing.
+          Estimate based on {RATES_YEAR} SSS, PhilHealth, Pag-IBIG, and BIR rates. Contributions are figured on your basic pay, non-taxable allowances are not taxed, and low salaries still pay the minimum contributions. Your real payslip can differ with de minimis limits and your employer's rounding. Not a substitute for your official payslip or a BIR filing.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -109,6 +155,14 @@ function makeStyles(colors) {
     inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
     peso: { color: colors.muted, fontSize: fontSize.title, fontWeight: fontWeight.bold, marginRight: spacing.sm },
     input: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.bold },
+
+    allowRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
+    allowCol: { flex: 1 },
+    smallInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md },
+    pesoSm: { color: colors.muted, fontSize: fontSize.body, marginRight: spacing.xs },
+    smallInput: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    allowHint: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 16, marginBottom: spacing.lg },
+    addValue: { color: colors.textSecondary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
 
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
     grossRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: spacing.md },
