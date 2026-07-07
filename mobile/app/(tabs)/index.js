@@ -205,13 +205,22 @@ export default function Overview() {
   const saveAmt = saveInput === '' ? alloc.save : Number(String(saveInput).replace(/[, ]/g, '')) || 0;
   const plan = planForSave(data, now, saveAmt);
   const allocPayday = alloc.payday ? `${MONTHS_SHORT[alloc.payday.getMonth()]} ${alloc.payday.getDate()}` : '';
-  // Committing the plan saves the chosen percentage so next payday pre-fills
-  // it, and marks the savings step done. It moves no money.
+  // Committing the plan marks the savings step done. It moves no money. It
+  // remembers a new savings rate ONLY when the user actually chose an amount
+  // that still leaves something to live on, so a high-bills cycle or a
+  // fat-fingered number can never silently ratchet their ongoing rate down (or
+  // up to an absurd value). An untouched confirm keeps their existing rate.
   function commitPlan() {
-    const pct = alloc.income > 0 ? Math.min(Math.max(saveAmt / alloc.income, 0), 0.9) : 0;
-    updateSettings({ savePct: pct });
+    if (saveInput !== '' && alloc.income > 0 && plan.save > 0 && plan.leftToLive > 0) {
+      const pct = Math.min(Math.max(plan.save / alloc.income, 0), 0.9);
+      updateSettings({ savePct: pct });
+    }
     markStep('saved');
   }
+
+  // A new payday cycle starts fresh: clear any amount typed last cycle so it
+  // never carries a stale number (or a stale rate) into the next split.
+  useEffect(() => { setSaveInput(''); }, [paydayKey]);
 
   // Time-based greeting for the header.
   const hour = new Date().getHours();
@@ -284,7 +293,11 @@ export default function Overview() {
                   <Text style={styles.allocValStrong}>{formatMoney(plan.leftToLive)}</Text>
                 </View>
                 <Text style={styles.allocPerDay}>
-                  {plan.leftToLive > 0 ? `about ${formatMoney(plan.perDay)} a day` : 'Bills use it all this cycle. Go gentle.'}
+                  {plan.leftToLive > 0
+                    ? `about ${formatMoney(plan.perDay)} a day`
+                    : alloc.bills >= alloc.income
+                    ? 'Bills use it all this cycle. Go gentle.'
+                    : 'Your savings slice uses it all. Lower it to leave daily money.'}
                 </Text>
                 {planSteps.saved ? (
                   <Text style={styles.allocSet}>Plan set. ✅</Text>
