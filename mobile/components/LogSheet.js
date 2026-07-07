@@ -12,8 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  KeyboardAvoidingView,
-  Modal,
+  BackHandler,
   Platform,
   Pressable,
   ScrollView,
@@ -22,6 +21,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Reanimated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
@@ -46,7 +47,16 @@ function isRealDate(s) {
 export default function LogSheet({ visible, onClose, toastBottom = spacing.lg }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const { data, addTransaction, removeTransaction, updateSettings } = useAppData();
+
+  // Lift the sheet above the keyboard. This is an in-window overlay, not a
+  // native Modal, so Reanimated's keyboard height (which tracks the main
+  // window) applies the same way it does in Pan and notes. Padding the overlay
+  // bottom by the keyboard height, or the safe area when the keyboard is down,
+  // pushes the bottom-anchored sheet clear of the keys and the nav bar.
+  const keyboard = useAnimatedKeyboard();
+  const overlayLift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, insets.bottom) }));
 
   const [type, setType] = useState('expense');
   const [label, setLabel] = useState('');
@@ -81,6 +91,18 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   useEffect(() => {
     openRef.current = !!visible;
   }, [visible]);
+
+  // As an in-window overlay rather than a native Modal, the hardware back
+  // button must close the sheet (routing through cancel so an attached receipt
+  // is still cleaned up) instead of leaving the screen behind it.
+  useEffect(() => {
+    if (!visible) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      cancel();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, receiptUri]);
 
   // Closing without saving must not leave an orphan photo behind, and a
   // camera shot has exactly one copy, so discarding it asks first.
@@ -203,11 +225,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
   return (
     <>
-      <Modal visible={!!visible} transparent animationType="slide" onRequestClose={cancel}>
-        <KeyboardAvoidingView
-          style={styles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
+      {visible ? (
+        <Reanimated.View style={[styles.overlay, overlayLift]}>
           <Pressable style={styles.backdrop} onPress={cancel} />
           <View style={styles.sheet}>
             <ScrollView keyboardShouldPersistTaps="handled">
@@ -390,8 +409,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
             </View>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </Reanimated.View>
+      ) : null}
 
       {toast ? (
         <Animated.View
@@ -420,7 +439,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
 function makeStyles(colors) {
   return StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject },
     sheet: {
       backgroundColor: colors.background,
