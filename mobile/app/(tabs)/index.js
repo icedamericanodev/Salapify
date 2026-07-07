@@ -215,6 +215,9 @@ export default function Overview() {
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.subgreeting}>Here is your money today</Text>
           </View>
+          <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+            <Ionicons name="search" size={22} color={colors.text} />
+          </Pressable>
           <Mascot size={62} state={panState} />
         </View>
 
@@ -512,6 +515,16 @@ function makeStyles(colors) {
       alignItems: 'center',
       gap: spacing.md,
       marginBottom: spacing.lg,
+    },
+    searchBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.pill,
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     avatar: {
       width: 44,

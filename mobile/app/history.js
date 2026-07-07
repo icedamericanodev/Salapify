@@ -23,7 +23,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
@@ -210,10 +210,12 @@ export default function History() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { data, updateTransaction, removeTransaction } = useAppData();
 
   const [month, setMonth] = useState('all');
-  const [query, setQuery] = useState('');
+  // Opened from global Search? Start filtered to the same words.
+  const [query, setQuery] = useState(() => (typeof params.q === 'string' ? params.q : ''));
   const [editTx, setEditTx] = useState(null);
   const [receiptView, setReceiptView] = useState('');
   const [receiptDead, setReceiptDead] = useState(false);
