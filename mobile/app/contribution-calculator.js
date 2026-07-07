@@ -26,11 +26,18 @@ export default function ContributionCalculator() {
 
   const ready = salaryNum > 0;
 
-  const programs = [
-    { key: 'SSS', data: r.sss },
-    { key: 'PhilHealth', data: r.philhealth },
-    { key: 'Pag-IBIG', data: r.pagibig },
+  // Round each line item to whole pesos once, then derive the totals by summing
+  // those rounded values. If we rounded the engine's float totals separately,
+  // the displayed You total plus Employer total could be a peso off the shown
+  // grand total (PhilHealth's identical halves carry the same fraction twice).
+  const rows = [
+    { key: 'SSS', ee: Math.round(r.sss.employee), er: Math.round(r.sss.employer) },
+    { key: 'PhilHealth', ee: Math.round(r.philhealth.employee), er: Math.round(r.philhealth.employer) },
+    { key: 'Pag-IBIG', ee: Math.round(r.pagibig.employee), er: Math.round(r.pagibig.employer) },
   ];
+  const eeTotal = rows.reduce((s, x) => s + x.ee, 0);
+  const erTotal = rows.reduce((s, x) => s + x.er, 0);
+  const grandTotal = eeTotal + erTotal;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -61,32 +68,32 @@ export default function ContributionCalculator() {
                 <Text style={styles.thAmt}>You</Text>
                 <Text style={styles.thAmt}>Employer</Text>
               </View>
-              {programs.map((p, i) => (
-                <View key={p.key} style={[styles.tblRow, i === 0 && styles.tblRowFirst]}>
-                  <Text style={styles.tdProgram}>{p.key}</Text>
-                  <Text style={styles.tdAmt}>{m(p.data.employee)}</Text>
-                  <Text style={styles.tdAmtMuted}>{m(p.data.employer)}</Text>
+              {rows.map((x, i) => (
+                <View key={x.key} style={[styles.tblRow, i === 0 && styles.tblRowFirst]}>
+                  <Text style={styles.tdProgram}>{x.key}</Text>
+                  <Text style={styles.tdAmt}>{m(x.ee)}</Text>
+                  <Text style={styles.tdAmtMuted}>{m(x.er)}</Text>
                 </View>
               ))}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalAmt}>{m(r.employeeTotal)}</Text>
-                <Text style={styles.totalAmtMuted}>{m(r.employerTotal)}</Text>
+                <Text style={styles.totalAmt}>{m(eeTotal)}</Text>
+                <Text style={styles.totalAmtMuted}>{m(erTotal)}</Text>
               </View>
             </View>
 
             <View style={styles.summaryCard}>
               <View style={styles.sumRow}>
                 <Text style={styles.sumLabel}>Deducted from your pay</Text>
-                <Text style={styles.sumValue}>{m(r.employeeTotal)}</Text>
+                <Text style={styles.sumValue}>{m(eeTotal)}</Text>
               </View>
               <View style={styles.sumRow}>
                 <Text style={styles.sumLabelMuted}>Your employer adds</Text>
-                <Text style={styles.sumValueMuted}>{m(r.employerTotal)}</Text>
+                <Text style={styles.sumValueMuted}>{m(erTotal)}</Text>
               </View>
               <View style={[styles.sumRow, styles.sumRowTop]}>
                 <Text style={styles.sumLabel}>Total credited to you</Text>
-                <Text style={styles.sumValueStrong}>{m(r.grandTotal)}</Text>
+                <Text style={styles.sumValueStrong}>{m(grandTotal)}</Text>
               </View>
             </View>
 
@@ -96,7 +103,7 @@ export default function ContributionCalculator() {
                 Your SSS is based on a Monthly Salary Credit of {m(r.msc)}, your salary rounded to the nearest 500 and kept between 5,000 and 35,000.
               </Text>
               <Text style={styles.infoLine}>
-                If you are self-employed or a voluntary member, you pay the total yourself, about {m(r.grandTotal)} a month, since there is no employer to share it.
+                If you are self-employed or a voluntary member, you pay both shares yourself, so budget for close to the {m(grandTotal)} total above, less the small employer-only Employees Compensation part.
               </Text>
             </View>
           </>
