@@ -49,7 +49,10 @@ export default function LoanCalculator() {
   const pct = (x) => (x * 100).toFixed(2) + '%';
 
   const ready = amountNum > 0 && months >= 1 && rateNum >= 0;
-  const badInput = !ready && (amountNum !== 0 || termNum !== 0 || rateNum !== 0) && (amountNum < 0 || rawMonths < 1 || rateNum < 0);
+  // A genuinely bad entry is a negative number. An empty or zero term is just
+  // incomplete, not bad, so it gets a clear "enter the term" nudge instead.
+  const badInput = amountNum < 0 || termNum < 0 || rateNum < 0;
+  const needTerm = !ready && !badInput && amountNum > 0 && rateNum >= 0 && rawMonths < 1;
   const addon = method === 'addon';
 
   const Seg = ({ options, value, onChange }) => (
@@ -87,14 +90,14 @@ export default function LoanCalculator() {
           <View style={styles.col}>
             <Text style={styles.fieldLabel}>Term</Text>
             <View style={styles.smallInputWrap}>
-              <TextInput style={styles.smallInput} value={term} onChangeText={setTerm} keyboardType="numeric" placeholder="12" placeholderTextColor={colors.faint} />
+              <TextInput style={styles.smallInput} value={term} onChangeText={setTerm} keyboardType="numeric" placeholder="e.g. 12" placeholderTextColor={colors.faint} />
             </View>
             <Seg options={[{ id: 'months', label: 'Months' }, { id: 'years', label: 'Years' }]} value={termUnit} onChange={setTermUnit} />
           </View>
           <View style={styles.col}>
             <Text style={styles.fieldLabel}>Interest rate</Text>
             <View style={styles.smallInputWrap}>
-              <TextInput style={styles.smallInput} value={rate} onChangeText={setRate} keyboardType="numeric" placeholder="1.5" placeholderTextColor={colors.faint} />
+              <TextInput style={styles.smallInput} value={rate} onChangeText={setRate} keyboardType="numeric" placeholder="e.g. 1.5" placeholderTextColor={colors.faint} />
               <Text style={styles.pctSign}>%</Text>
             </View>
             <Seg options={[{ id: 'monthly', label: 'Per month' }, { id: 'annual', label: 'Per year' }]} value={rateBasis} onChange={setRateBasis} />
@@ -176,7 +179,9 @@ export default function LoanCalculator() {
             ) : null}
           </>
         ) : badInput ? (
-          <Text style={styles.hint}>Check your numbers. The amount, term, and rate should all be zero or more.</Text>
+          <Text style={styles.hint}>Check your numbers. The amount, term, and rate cannot be negative.</Text>
+        ) : needTerm ? (
+          <Text style={styles.hint}>Enter the loan term, in months or years, to see the results.</Text>
         ) : (
           <Text style={styles.hint}>Enter the loan amount, term, and interest rate to see the payment and the true cost.</Text>
         )}
