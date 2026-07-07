@@ -250,7 +250,10 @@ export default function Notes() {
   // the overlay bottom by the keyboard height pushes the bottom-anchored sheet
   // up above the keys.
   const keyboard = useAnimatedKeyboard();
-  const overlayLift = useAnimatedStyle(() => ({ paddingBottom: keyboard.height.value }));
+  // Pad by the keyboard height, or by the bottom safe area when the keyboard
+  // is down, never both, so there is no extra gap above the keys (the keyboard
+  // height already spans the nav bar area).
+  const overlayLift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, insets.bottom) }));
 
   // We only keep the id of the note being edited. The text itself lives in
   // AppData, so every keystroke is already saved and nothing can be lost.
@@ -368,7 +371,7 @@ export default function Notes() {
       {editing ? (
         <Animated.View style={[styles.overlay, overlayLift]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeEditor} />
-          <View style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]}>
+          <View style={styles.sheet}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={styles.sheetTitle}>Note</Text>
 
