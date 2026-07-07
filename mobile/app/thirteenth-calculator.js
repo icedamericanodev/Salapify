@@ -35,7 +35,10 @@ export default function ThirteenthCalculator() {
   const m = (n) => formatMoney(Math.round(n));
 
   const ready = basicNum > 0;
-  const taxed = r.taxable > 0;
+  // Only show the taxable breakdown when there is real tax to show. A sub-peso
+  // excess that rounds to zero should still read as tax free, not an all-zero
+  // breakdown with a "- 0" line.
+  const taxed = Math.round(r.taxOnExcess) > 0;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>

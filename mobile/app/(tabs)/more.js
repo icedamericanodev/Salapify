@@ -657,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.40: 13th month pay calculator with tax-free ceiling</Text>
+            <Text style={styles.rowValue}>v3.41: 13th month proration, months guard, tax-free display</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

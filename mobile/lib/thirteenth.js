@@ -33,7 +33,13 @@ const round2 = (x) => Math.round(num(x) * 100) / 100;
 // remainder is marginal: it stacks on top of the year's regular taxable pay.
 export function thirteenthMonth(monthlyBasic, opts = {}) {
   const basic = Math.max(0, num(monthlyBasic));
-  const monthsWorked = Math.min(Math.max(1, Math.round(num(opts && opts.monthsWorked) || 12)), 12);
+  // Default to a full year only when months is genuinely not given. A real 0
+  // (or any value below 1) clamps to the legal minimum of one month, so it never
+  // silently becomes 12.
+  const hasMonths = opts && opts.monthsWorked != null && opts.monthsWorked !== '';
+  const monthsWorked = hasMonths
+    ? Math.min(Math.max(1, Math.round(num(opts.monthsWorked))), 12)
+    : 12;
   const otherBenefits = Math.max(0, num(opts && opts.otherBenefits));
 
   // Total basic earned in the year, over 12. For a full year this is one
@@ -46,8 +52,10 @@ export function thirteenthMonth(monthlyBasic, opts = {}) {
   const taxable = round2(Math.max(0, amount - remainingExemption));
 
   // Marginal tax on the taxable part: it sits on top of the year's regular
-  // taxable compensation (basic minus mandatory contributions, annualized).
-  const regularAnnualTaxable = round2(takeHomePay(basic).monthlyTaxable * 12);
+  // taxable compensation (basic minus mandatory contributions), scaled by the
+  // months actually worked so a partial-year earner is not pushed into too high
+  // a bracket.
+  const regularAnnualTaxable = round2(takeHomePay(basic).monthlyTaxable * monthsWorked);
   const taxOnExcess = taxable > 0
     ? round2(annualIncomeTax(regularAnnualTaxable + taxable) - annualIncomeTax(regularAnnualTaxable))
     : 0;
