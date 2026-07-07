@@ -14,12 +14,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { spacing, radius, fontSize, fontWeight } from '../../theme';
-import { useTheme } from '../../context/Theme';
-import { useAppData } from '../../context/AppData';
-import { formatMoney, todayISO } from '../../lib/format';
-import { BANK_BRANDS, findBrand } from '../../lib/banks';
-import BankBadge from '../../components/BankBadge';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { spacing, radius, fontSize, fontWeight } from '../theme';
+import { useTheme } from '../context/Theme';
+import { useAppData } from '../context/AppData';
+import { formatMoney, todayISO } from '../lib/format';
+import { BANK_BRANDS, findBrand } from '../lib/banks';
+import BankBadge from '../components/BankBadge';
 
 // The kinds you can pick in the form.
 const ACCOUNT_KINDS = [
@@ -40,6 +42,7 @@ const ASSET_KINDS = [
 export default function Accounts() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const router = useRouter();
   const { data, addItem, updateItem, removeItem, updateSettings, addTransaction } = useAppData();
 
   // The form modal. null when closed; otherwise holds the fields being edited.
@@ -230,8 +233,18 @@ export default function Accounts() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={styles.headerBar}>
+        <Pressable
+          onPress={() => (router.canGoBack && router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+          hitSlop={10}
+          style={styles.back}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Accounts</Text>
+        <View style={{ width: 24 }} />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Accounts</Text>
 
         <View style={styles.summaryCard}>
           <Text style={styles.kicker}>NET WORTH</Text>
@@ -568,6 +581,9 @@ function Empty({ styles, text }) {
 function makeStyles(colors) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
+    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+    back: { marginLeft: -4 },
+    headerTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
     pageTitle: {
       color: colors.text,
