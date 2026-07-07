@@ -95,6 +95,11 @@ export default function SalaryCalculator() {
         <Text style={styles.allowHint}>
           Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.
         </Text>
+        {nonTaxAllowNum > 12000 ? (
+          <Text style={styles.warnHint}>
+            Heads up: most de minimis benefits max out around ₱10,000 to ₱12,000 a month combined. Anything above the BIR limits is actually taxable, so a large non-taxable amount here can overstate your take-home.
+          </Text>
+        ) : null}
 
         {basicNum > 0 && r.net >= 0 ? (
           <>
@@ -159,7 +164,7 @@ export default function SalaryCalculator() {
           </>
         ) : basicNum > 0 ? (
           <Text style={styles.hint}>
-            That looks too low for a monthly salary. The minimum SSS and PhilHealth contributions alone come to about {m(r.contributions)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.
+            That looks too low for a monthly salary. The minimum SSS, PhilHealth, and Pag-IBIG contributions come to about {m(r.contributions)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.
           </Text>
         ) : (
           <Text style={styles.hint}>Enter your monthly basic pay to see the breakdown. Allowances add on top of it.</Text>
@@ -192,6 +197,7 @@ function makeStyles(colors) {
     pesoSm: { color: colors.muted, fontSize: fontSize.body, marginRight: spacing.xs },
     smallInput: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     allowHint: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 16, marginBottom: spacing.lg },
+    warnHint: { color: colors.warning || colors.primary, fontSize: fontSize.caption, lineHeight: 16, marginTop: -spacing.md, marginBottom: spacing.lg },
     addValue: { color: colors.textSecondary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
 
     segment: { flexDirection: 'row', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: 3, marginBottom: spacing.lg },
