@@ -391,6 +391,15 @@ export default function More() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Settings</Text>
 
+        <Pressable onPress={() => router.push('/pan')} style={({ pressed }) => [styles.panRow, pressed && styles.pressed]}>
+          <Mascot size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.panRowTitle}>Ask Pan</Text>
+            <Text style={styles.panRowSub}>Your money buddy. Ask about spending, utang, goals, and bills.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.onPrimary} />
+        </Pressable>
+
         <Text style={styles.sectionTitle}>MY MONEY</Text>
         <View style={styles.card}>
           <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -636,7 +645,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.14: split a bill with friends</Text>
+            <Text style={styles.rowValue}>v3.15: meet Pan, your chat money buddy</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -885,6 +894,17 @@ function makeStyles(colors) {
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
     pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.lg },
+    panRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      backgroundColor: colors.primary,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    panRowTitle: { color: colors.onPrimary, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
+    panRowSub: { color: colors.onPrimary, fontSize: fontSize.small, opacity: 0.85, marginTop: 2 },
     sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
     mascotWrap: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.sm },
     mascotName: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm, textAlign: 'center' },
