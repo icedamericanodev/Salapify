@@ -28,7 +28,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
-import { pickReceipt, deleteReceipt } from '../lib/receipts';
+import { pickReceipt, deleteReceipt, resolveReceipt } from '../lib/receipts';
 import { scanReceiptText } from '../lib/ocr';
 import { parseReceipt } from '../lib/receipt-parse';
 
@@ -93,7 +93,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   // user has by then, not the empty values captured when the scan started, and
   // therefore never clobbers something they typed while it was reading.
   const fieldRef = useRef({});
-  fieldRef.current = { amount, label, when, otherDate };
+  fieldRef.current = { amount, label, when, otherDate, receiptUri };
 
   // As an in-window overlay rather than a native Modal, the hardware back
   // button must close the sheet (routing through cancel so an attached receipt
@@ -217,9 +217,12 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   async function scanAndPrefill(uri) {
     setScanNote('');
     setScanning(true);
-    const text = await scanReceiptText(uri);
-    if (!openRef.current) return; // sheet closed while scanning
+    // pickReceipt stores a relative path; ML Kit needs an absolute file uri.
+    const text = await scanReceiptText(resolveReceipt(uri));
     setScanning(false);
+    // Bail if the sheet closed, or if this receipt was removed or replaced
+    // while it was reading, so we never fill money from a discarded photo.
+    if (!openRef.current || fieldRef.current.receiptUri !== uri) return;
     if (!text) {
       setScanNote('Could not read this receipt. Type the amount in.');
       return;
@@ -230,7 +233,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
     const f = fieldRef.current;
     if (parsed.total && !String(f.amount).trim()) setAmount(String(parsed.total));
     if (parsed.merchant && !String(f.label).trim()) setLabel(parsed.merchant);
-    if (parsed.date && parsed.date !== todayISO() && f.when === 'today' && !String(f.otherDate).trim()) {
+    // A past date only: never a future one, which would just block Save.
+    if (parsed.date && parsed.date < todayISO() && f.when === 'today' && !String(f.otherDate).trim()) {
       setWhen('other');
       setOtherDate(parsed.date);
     }
