@@ -402,7 +402,11 @@ export default function More() {
 
         <Text style={styles.sectionTitle}>MY MONEY</Text>
         <View style={styles.card}>
-          <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+          <Pressable onPress={() => router.push('/search')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Search everything</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Goals</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
@@ -645,7 +649,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.17: Pan QA sweep, layout and honesty fixes</Text>
+            <Text style={styles.rowValue}>v3.19: search QA, drill-down and match fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

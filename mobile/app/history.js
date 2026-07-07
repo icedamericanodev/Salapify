@@ -23,12 +23,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
+import { txMatches, buildNameMaps } from '../lib/search';
 import { resolveReceipt } from '../lib/receipts';
 import EmptyState from '../components/EmptyState';
 
@@ -210,10 +211,12 @@ export default function History() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { data, updateTransaction, removeTransaction } = useAppData();
 
   const [month, setMonth] = useState('all');
-  const [query, setQuery] = useState('');
+  // Opened from global Search? Start filtered to the same words.
+  const [query, setQuery] = useState(() => (typeof params.q === 'string' ? params.q : ''));
   const [editTx, setEditTx] = useState(null);
   const [receiptView, setReceiptView] = useState('');
   const [receiptDead, setReceiptDead] = useState(false);
@@ -227,16 +230,20 @@ export default function History() {
     return [...keys].sort().reverse();
   }, [data.transactions]);
 
+  // Match the same fields global search does (label, category, account,
+  // amount), so an entry found in Search never vanishes when you drill in.
+  const nameMaps = useMemo(() => buildNameMaps(data), [data.categories, data.accounts]);
+
   const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     const list = (data.transactions || []).filter((t) => {
       if (!t) return false;
       if (month !== 'all' && String(t.date || '').slice(0, 7) !== month) return false;
-      if (q && !String(t.label || '').toLowerCase().includes(q)) return false;
+      if (q && !txMatches(t, q, nameMaps.catName, nameMaps.acctName)) return false;
       return true;
     });
     return [...list].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  }, [data.transactions, month, query]);
+  }, [data.transactions, month, query, nameMaps]);
 
   const totals = useMemo(() => {
     // Only real income and expenses. Transfer and debt payment records are
