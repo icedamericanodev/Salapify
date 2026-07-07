@@ -29,6 +29,8 @@ import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import { pickReceipt, deleteReceipt } from '../lib/receipts';
+import { scanReceiptText } from '../lib/ocr';
+import { parseReceipt } from '../lib/receipt-parse';
 
 const TOAST_EMOJI = ['✅', '⚡', '🔥', '💚', '✨'];
 const TOAST_PRAISE = ['Nakalista na. Ang bilis mo.', 'Logged. Galing.', 'Ayan, updated ka na.'];
@@ -58,6 +60,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   const [receiptUri, setReceiptUri] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [err, setErr] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState('');
 
   // Fresh form every time the sheet opens. The account chip starts on the
   // last one used (settings.defaultAccountId), so regulars never re-pick.
@@ -73,6 +77,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setReceiptUri('');
       setCategoryId('');
       setErr('');
+      setScanning(false);
+      setScanNote('');
     }
   }, [visible]);
 
@@ -197,6 +203,35 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
     // Food from the quick row and Food from the chips count together.
     const match = (data.categories || []).find((c) => c.name === item.label);
     logEntry({ type: 'expense', label: item.label, amount: item.amount, date }, match ? match.id : '');
+  }
+
+  // Read a freshly attached receipt with on-device OCR and prefill only the
+  // fields the user has not filled themselves, so a scan never overwrites what
+  // they typed. Everything is a suggestion they can correct before saving.
+  async function scanAndPrefill(uri) {
+    setScanNote('');
+    setScanning(true);
+    const text = await scanReceiptText(uri);
+    if (!openRef.current) return; // sheet closed while scanning
+    setScanning(false);
+    if (!text) {
+      setScanNote('Could not read this receipt. Type the amount in.');
+      return;
+    }
+    const parsed = parseReceipt(text);
+    if (parsed.total && !String(amount).trim()) setAmount(String(parsed.total));
+    if (parsed.merchant && !label.trim()) setLabel(parsed.merchant);
+    if (parsed.date && parsed.date !== todayISO()) {
+      setWhen('other');
+      setOtherDate(parsed.date);
+    }
+    if (!parsed.total) {
+      setScanNote('Read the receipt, but not the total. Type the amount in.');
+    } else if (parsed.totalConfidence === 'low') {
+      setScanNote('Filled in what I found. Double check the amount, I was not sure.');
+    } else {
+      setScanNote('Filled in from the receipt. Check it before saving.');
+    }
   }
 
   function save() {
@@ -370,6 +405,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                         onPress: () => {
                           deleteReceipt(receiptUri);
                           setReceiptUri('');
+                          setScanNote('');
                         },
                       },
                     ]);
@@ -384,6 +420,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                     return;
                   }
                   setReceiptUri(uri);
+                  scanAndPrefill(uri);
                 }}
                 style={[styles.receiptBtn, receiptUri ? styles.receiptOn : null]}
               >
@@ -392,6 +429,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                 </Text>
               </Pressable>
             ) : null}
+            {scanning ? <Text style={styles.scanNote}>Reading the receipt...</Text> : scanNote ? <Text style={styles.scanNote}>{scanNote}</Text> : null}
 
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>
@@ -516,6 +554,7 @@ function makeStyles(colors) {
     receiptOn: { borderColor: colors.primary, backgroundColor: colors.positiveSurface },
     receiptText: { color: colors.muted, fontSize: fontSize.small },
     receiptTextOn: { color: colors.text, fontWeight: fontWeight.medium },
+    scanNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.sm },
     err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xl },
     sheetBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md },
