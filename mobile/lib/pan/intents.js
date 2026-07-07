@@ -250,7 +250,12 @@ function scoreIntent(norm, tokens, intent) {
 // lowercased to letters, digits, and single spaces, so simple boundaries work.
 const wordHit = (norm, kw) => {
   const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp('(?:^|[^a-z0-9])' + esc + '(?![a-z0-9])').test(norm);
+  // Allow a trailing plural or common inflection on the keyword itself, so
+  // tax also catches taxes, invest catches investing and investment, bitcoin
+  // catches bitcoins. It still refuses a different word that merely contains
+  // the keyword (taxi, birthday, private, tissue), because the leading
+  // boundary and the limited suffix set never line up for those.
+  return new RegExp('(?:^|[^a-z0-9])' + esc + '(?:s|es|ing|ment|ments)?(?![a-z0-9])').test(norm);
 };
 
 // detectIntent(normalized) -> { id, guardrail?, score, alternatives:[id...] }

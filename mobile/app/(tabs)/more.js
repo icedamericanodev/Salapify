@@ -645,7 +645,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.16: Pan chip layout and answer fixes</Text>
+            <Text style={styles.rowValue}>v3.17: Pan QA sweep, layout and honesty fixes</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

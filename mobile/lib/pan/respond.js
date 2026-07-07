@@ -132,7 +132,14 @@ export function respond(facts) {
 
     case 'recap': {
       const r = facts.recap;
-      const kept = r.keptRate !== null ? `you kept ${Math.round(r.keptRate * 100)}%` : `${r.daysLogged} ${r.daysLogged === 1 ? 'day' : 'days'} logged`;
+      // A negative kept rate means spending passed income, so say that in
+      // words instead of printing a nonsense "you kept -100%".
+      const kept =
+        r.keptRate === null
+          ? `${r.daysLogged} ${r.daysLogged === 1 ? 'day' : 'days'} logged`
+          : r.keptRate < 0
+          ? 'spending passed income'
+          : `you kept ${Math.round(r.keptRate * 100)}%`;
       const top = r.topCats[0] ? ` Top spend was ${r.topCats[0].label} at ${r.topCats[0].pct}%.` : '';
       return {
         mood: r.keptRate !== null && r.keptRate >= 0.2 ? 'happy' : 'idle',
@@ -167,6 +174,12 @@ export function respond(facts) {
 
     case 'savings_rate': {
       if (facts.rate === null) return { mood: 'idle', text: 'Log some income this month and I can show your savings rate, the share of income you kept.' };
+      if (facts.rate < 0) {
+        return {
+          mood: 'worried',
+          text: 'Your spending outran your income this month, so nothing was saved and you dipped into reserves. No shame, it happens. The fix is one category at a time, and I can show which one ran hottest.',
+        };
+      }
       const pct = Math.round(facts.rate * 100);
       return {
         mood: pct >= 20 ? 'happy' : 'idle',
@@ -180,7 +193,12 @@ export function respond(facts) {
       const p = f.pace;
       if (p.status === 'done') return { mood: 'happy', text: `Your ${f.name} is fully funded. Time to set the next one.`, cta: { label: 'Goals', route: '/goals' } };
       const pctStr = `${f.name} is ${Math.round(p.pct * 100)}%`;
-      if (p.status === 'active') return { mood: 'idle', text: `${pctStr}. To finish by ${fmtTarget(p.targetDate)} you need about ${m(p.perMonth)} a month, or ${m(p.perWeek)} a week. That is one small habit change.`, cta: { label: 'Goals', route: '/goals' } };
+      if (p.status === 'active') {
+        // Only call it a small habit when the pace really is gentle; a huge
+        // required monthly amount makes "one small habit change" tone-deaf.
+        const nudge = p.perMonth > 0 && p.perMonth <= 3000 ? ' That is one small habit change.' : ' Set that aside each payday and you stay on track.';
+        return { mood: 'idle', text: `${pctStr}. To finish by ${fmtTarget(p.targetDate)} you need about ${m(p.perMonth)} a month, or ${m(p.perWeek)} a week.${nudge}`, cta: { label: 'Goals', route: '/goals' } };
+      }
       if (p.status === 'due-soon') return { mood: 'idle', text: `${pctStr}. Your ${fmtTarget(p.targetDate)} target lands this month, so you would need about ${m(p.remaining)} more to finish on time. Even part of it keeps you close.`, cta: { label: 'Goals', route: '/goals' } };
       if (p.status === 'behind') return { mood: 'worried', text: `${pctStr}, and the target date has passed with ${m(p.remaining)} still to go. Set a fresh date and I will give you a new weekly pace.`, cta: { label: 'Goals', route: '/goals' } };
       return { mood: 'idle', text: `${pctStr}, ${m(p.remaining)} to go. Add a target date and I will pace it for you.`, cta: { label: 'Goals', route: '/goals' } };

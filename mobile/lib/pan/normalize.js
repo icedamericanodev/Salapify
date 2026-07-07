@@ -93,14 +93,16 @@ export function normalize(raw) {
 // can-I-afford intent; the arithmetic that follows stays in the engine.
 export function extractAmount(raw) {
   const s = String(raw || '').toLowerCase().replace(/,/g, '');
-  // The k/m multiplier only counts when it is attached to the number with no
-  // space and is not the start of another word, so "2 movie tickets" is 2,
-  // not 2,000,000, and "1000 monthly" is 1000, not a billion. "1.5k" is 1500.
-  const m = s.match(/(\d+(?:\.\d+)?)(k|m)?(?![a-z0-9])/);
+  // Grab the first number as-is, even when it is glued to a word, so
+  // "2000shoes" is 2000 and "50pesos" is 50 rather than lost.
+  const m = s.match(/\d+(?:\.\d+)?/);
   if (!m) return null;
-  let n = Number(m[1]);
+  let n = Number(m[0]);
   if (!Number.isFinite(n)) return null;
-  if (m[2] === 'k') n *= 1000;
-  if (m[2] === 'm') n *= 1000000;
+  // Apply a k or m multiplier only when it is a lone suffix right after the
+  // number, so "1.5k" is 1500 and "2m" is 2,000,000, but "2 movie tickets" is
+  // 2, "2000km" is 2000, and "1000 monthly" is 1000.
+  const mult = s.slice(m.index + m[0].length).match(/^(k|m)(?![a-z0-9])/);
+  if (mult) n *= mult[1] === 'k' ? 1000 : 1000000;
   return n;
 }

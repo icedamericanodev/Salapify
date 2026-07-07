@@ -241,7 +241,12 @@ function makeStyles(colors) {
     emptyText: { color: colors.textSecondary, fontSize: fontSize.body, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
     emptyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.xl },
 
-    chipBar: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
+    // The chip strip must hug its content height, or as a horizontal scroll
+    // view in a flex column it stretches vertically and the pills grow tall.
+    // flexGrow 0 stops the strip stretching; alignItems center stops each pill
+    // stretching to the strip height.
+    chipBarWrap: { flexGrow: 0, flexShrink: 0 },
+    chipBar: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm, alignItems: 'center' },
     chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.card },
     chipText: { color: colors.textSecondary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
 
