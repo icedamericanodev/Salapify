@@ -3,9 +3,9 @@
 // works out 185 for that line, then adds up every line into one total at the
 // bottom of the editor. Notes save on the device on every keystroke.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
+  BackHandler,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +13,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
@@ -240,7 +241,19 @@ export default function Notes() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { data, addItem, updateItem, removeItem } = useAppData();
+
+  // Lift the editor sheet above the keyboard. It is an in-window overlay (not
+  // a native Modal) precisely so Reanimated's keyboard height, which tracks
+  // the main window, applies here the same way it does in Pan chat. Padding
+  // the overlay bottom by the keyboard height pushes the bottom-anchored sheet
+  // up above the keys.
+  const keyboard = useAnimatedKeyboard();
+  // Pad by the keyboard height, or by the bottom safe area when the keyboard
+  // is down, never both, so there is no extra gap above the keys (the keyboard
+  // height already spans the nav bar area).
+  const overlayLift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, insets.bottom) }));
 
   // We only keep the id of the note being edited. The text itself lives in
   // AppData, so every keystroke is already saved and nothing can be lost.
@@ -283,6 +296,17 @@ export default function Notes() {
     }
     setEditingId(null);
   }
+
+  // With the editor as an in-window overlay rather than a native Modal, the
+  // hardware back button must close it instead of leaving the screen.
+  useEffect(() => {
+    if (!editing) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeEditor();
+      return true;
+    });
+    return () => sub.remove();
+  }, [editing]);
 
   // Card helpers: the first line is the title, the next non empty line is
   // the preview underneath it.
@@ -344,13 +368,9 @@ export default function Notes() {
         )}
       </ScrollView>
 
-      <Modal
-        visible={!!editing}
-        transparent
-        animationType="slide"
-        onRequestClose={closeEditor}
-      >
-        <View style={styles.overlay}>
+      {editing ? (
+        <Animated.View style={[styles.overlay, overlayLift]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeEditor} />
           <View style={styles.sheet}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={styles.sheetTitle}>Note</Text>
@@ -395,8 +415,8 @@ export default function Notes() {
               </View>
             </ScrollView>
           </View>
-        </View>
-      </Modal>
+        </Animated.View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -416,7 +436,7 @@ function makeStyles(colors) {
     sub: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2 },
     cardTotal: { color: colors.primary, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
 
-    overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     noteInput: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body, minHeight: 220, marginTop: spacing.md, textAlignVertical: 'top' },
