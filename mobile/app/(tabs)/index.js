@@ -227,7 +227,9 @@ export default function Overview() {
   // once dismissed for that week and that kind, so it does not nag, but a new
   // week or a different (more urgent) item brings it back. The calm all-clear
   // is not shown as a card, a quiet home is its own reward.
-  const checkIn = weeklyCheckIn(data, now);
+  // Memoized: it scans transactions several times, so recompute only when the
+  // data changes, not on every keystroke in the salary or save inputs.
+  const checkIn = useMemo(() => weeklyCheckIn(data, now), [data]);
   const coachSeen = (data.settings && data.settings.coachSeen) || '';
   const coachTag = checkIn ? `${checkIn.week}:${checkIn.kind}` : '';
   const showCoach = checkIn && checkIn.kind !== 'good' && coachSeen !== coachTag;

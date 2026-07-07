@@ -79,16 +79,23 @@ export function weeklyCheckIn(data, ref = new Date()) {
     });
   }
 
-  // A card or debt due within the week: pay in full to stay interest free.
+  // A debt due within the week. Time-critical (a late payment adds a fee, and
+  // for a card, interest), so it ranks high. The interest-free advice is only
+  // true for revolving debt; an amortized loan bakes interest into every
+  // installment, so it gets honest late-fee copy instead.
   const dues = upcomingDues(d.debts, 7, ref) || [];
   if (dues.length) {
-    const name = (dues[0].debt && dues[0].debt.name) || 'A card';
+    const debt = dues[0].debt || {};
+    const name = debt.name || 'A debt';
+    const revolving = debt.type === 'credit card' || debt.type === 'bnpl';
     cands.push({
-      prio: 80,
+      prio: 92,
       kind: 'debtdue',
       tone: 'watch',
       title: `${name} is due soon`,
-      message: `${name} is due within the week. Paying it in full keeps you interest free; at least pay the minimum to dodge a late fee.`,
+      message: revolving
+        ? `${name} is due within the week. Paying it in full keeps you interest free; at least pay the minimum to dodge a late fee.`
+        : `${name} is due within the week. Do not miss it, a late payment usually adds a fee on top.`,
       action: { label: 'Open debts', route: '/debts' },
     });
   }
@@ -107,10 +114,12 @@ export function weeklyCheckIn(data, ref = new Date()) {
     });
   }
 
-  // Projected to blow the monthly budget at today's pace.
+  // Projected to blow the monthly budget at today's pace. Only after the first
+  // week, so a single day-one expense does not extrapolate to an alarming, and
+  // meaningless, month-end figure.
   const f = forecastMonthEnd(d.transactions || [], ref);
   const limit = num(d.settings && d.settings.monthlyLimit);
-  if (limit > 0 && f.projected > limit) {
+  if (limit > 0 && f.dayOfMonth >= 7 && f.projected > limit) {
     cands.push({
       prio: 60,
       kind: 'forecast',
