@@ -649,7 +649,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.22: Pan keyboard lift via Reanimated</Text>
+            <Text style={styles.rowValue}>v3.23: Money notes editor clears the keyboard</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
