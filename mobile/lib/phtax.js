@@ -66,22 +66,39 @@ export function pagibigEmployee(monthly) {
   return round2(fund * rate);
 }
 
-// takeHomePay(monthlyGross) -> full monthly payslip estimate for an employee:
-//   { gross, sss, philhealth, pagibig, contributions, monthlyTaxable,
-//     monthlyTax, annualTax, net, ratesYear }
-// Contributions are deducted before tax (they are exempt), then the graduated
-// annual tax is spread across 12 months for the monthly withholding estimate.
-export function takeHomePay(monthlyGross) {
-  const gross = Math.max(0, num(monthlyGross));
-  const sss = sssEmployee(gross);
-  const philhealth = philhealthEmployee(gross);
-  const pagibig = pagibigEmployee(gross);
+// takeHomePay(basic, opts) -> full monthly payslip estimate for an employee.
+//   opts.taxableAllowance    added to taxable pay AND to gross (taxed)
+//   opts.nonTaxableAllowance added to gross only (never taxed, e.g. de minimis)
+// Returns { basic, taxableAllowance, nonTaxableAllowance, gross, sss,
+//   philhealth, pagibig, contributions, monthlyTaxable, monthlyTax, annualTax,
+//   net, ratesYear }.
+//
+// Model: the mandatory contributions are computed on the BASIC salary, the
+// common payroll convention. Contributions come out before tax (they are
+// exempt). Taxable allowances are taxed with the basic pay; non-taxable
+// allowances pass straight to take-home. The graduated annual tax is spread
+// across 12 months for the monthly withholding estimate.
+export function takeHomePay(basic, opts = {}) {
+  const basicPay = Math.max(0, num(basic));
+  const taxableAllowance = Math.max(0, num(opts && opts.taxableAllowance));
+  const nonTaxableAllowance = Math.max(0, num(opts && opts.nonTaxableAllowance));
+
+  const sss = sssEmployee(basicPay);
+  const philhealth = philhealthEmployee(basicPay);
+  const pagibig = pagibigEmployee(basicPay);
   const contributions = round2(sss + philhealth + pagibig);
-  const monthlyTaxable = Math.max(0, round2(gross - contributions));
+
+  const monthlyTaxable = Math.max(0, round2(basicPay + taxableAllowance - contributions));
   const annualTax = annualIncomeTax(monthlyTaxable * 12);
   const monthlyTax = round2(annualTax / 12);
+
+  const gross = round2(basicPay + taxableAllowance + nonTaxableAllowance);
   const net = round2(gross - contributions - monthlyTax);
+
   return {
+    basic: basicPay,
+    taxableAllowance,
+    nonTaxableAllowance,
     gross,
     sss,
     philhealth,
