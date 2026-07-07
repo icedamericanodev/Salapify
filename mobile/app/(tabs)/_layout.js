@@ -75,15 +75,9 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="accounts"
-        options={{
-          title: 'Accounts',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" color={color} size={size} />
-          ),
-        }}
-      />
+      {/* Accounts moved off the bar to make room for Tools. Still reachable
+          from the Home quick links and the More tab. */}
+      <Tabs.Screen name="accounts" options={{ href: null }} />
       <Tabs.Screen
         name="debts"
         options={{
@@ -99,6 +93,15 @@ export default function TabsLayout() {
           title: 'Budget',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="pie-chart-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tools"
+        options={{
+          title: 'Tools',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calculator-outline" color={color} size={size} />
           ),
         }}
       />
