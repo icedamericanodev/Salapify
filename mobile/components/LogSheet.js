@@ -89,6 +89,12 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
     openRef.current = !!visible;
   }, [visible]);
 
+  // Latest field values, so a scan that resolves a second later reads what the
+  // user has by then, not the empty values captured when the scan started, and
+  // therefore never clobbers something they typed while it was reading.
+  const fieldRef = useRef({});
+  fieldRef.current = { amount, label, when, otherDate };
+
   // As an in-window overlay rather than a native Modal, the hardware back
   // button must close the sheet (routing through cancel so an attached receipt
   // is still cleaned up) instead of leaving the screen behind it.
@@ -219,9 +225,12 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       return;
     }
     const parsed = parseReceipt(text);
-    if (parsed.total && !String(amount).trim()) setAmount(String(parsed.total));
-    if (parsed.merchant && !label.trim()) setLabel(parsed.merchant);
-    if (parsed.date && parsed.date !== todayISO()) {
+    // Read the latest field values, not the ones captured when the scan
+    // started, so typing during the scan is never overwritten.
+    const f = fieldRef.current;
+    if (parsed.total && !String(f.amount).trim()) setAmount(String(parsed.total));
+    if (parsed.merchant && !String(f.label).trim()) setLabel(parsed.merchant);
+    if (parsed.date && parsed.date !== todayISO() && f.when === 'today' && !String(f.otherDate).trim()) {
       setWhen('other');
       setOtherDate(parsed.date);
     }
