@@ -7,13 +7,15 @@
 // semi-monthly withholding rounding, employer-specific rules). The UI must say
 // so and show the rates year. No em or en dashes in any copy this feeds.
 //
-// Sources (2025 rates, unchanged for 2026 as of this writing):
+// Sources (2025 rates, confirmed unchanged for 2026):
 //   Income tax: TRAIN law graduated table effective 2023 onward (BIR).
-//   SSS: 15% of MSC total, employee 5%, MSC 5,000 to 35,000 (RA 11199, 2025).
+//   SSS: 15% of MSC total, employee 5%, MSC 5,000 to 35,000 (RA 11199).
 //   PhilHealth: 5% premium, employee half (2.5%), floor 10,000 ceiling 100,000.
 //   Pag-IBIG: employee 2% (1% at 1,500 and below), max fund salary 10,000.
+// Tax return forms and deadlines used by the tools were reviewed against the
+// TRAIN law and the 2024 Ease of Paying Taxes Act (RA 11976).
 
-export const RATES_YEAR = 2025;
+export const RATES_YEAR = 2026;
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const round2 = (x) => Math.round(num(x) * 100) / 100;

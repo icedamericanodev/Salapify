@@ -41,6 +41,17 @@ export default function TaxCalculator() {
   const meaningful = r.canCompareGraduated && r.savings >= 1;
   const chosenTotal = eightWins ? r.eightPercent.total : r.graduated.total;
 
+  // Which BIR returns the filer should know about, tied to the state they chose.
+  // Awareness only, verified with the tax-professional against TRAIN and the
+  // 2024 Ease of Paying Taxes Act (RA 11976).
+  const formsText = !r.eligible8
+    ? `Over ${m(VAT_THRESHOLD)} a year you register for VAT and file Form 2550Q every quarter. This tool does not compute VAT, so please see an accountant.`
+    : r.mixedIncome
+      ? 'You file for both. Your employer gives you Form 2316 for the job. For your business, register once with Form 1901, file Form 1701Q each quarter (May 15, Aug 15, Nov 15), and file the yearly Form 1701 by April 15. Add Form 2551Q each quarter unless you are on the 8% option. Mixed income uses Form 1701, not 1701A.'
+      : eightWins
+        ? 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on Form 1701A (April 15). On the 8% option you skip the percentage tax. Choose the 8% on time and it is locked for the year.'
+        : 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on Form 1701 or 1701A (April 15). Also file percentage tax quarterly on Form 2551Q, 3% of your gross.';
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.headerBar}>
@@ -227,13 +238,19 @@ export default function TaxCalculator() {
                 On your pick, set aside about {m(chosenTotal / 12)} a month so the tax is ready when it is due.
               </Text>
             </View>
+
+            <View style={styles.formsCard}>
+              <Text style={styles.formsKicker}>FORMS YOU WILL FILE</Text>
+              <Text style={styles.formsText}>{formsText}</Text>
+              <Text style={styles.formsFootnote}>No more 500 peso annual registration fee since 2024 (Ease of Paying Taxes Act). A quarter with zero income still means you file, just with nothing to pay.</Text>
+            </View>
           </>
         ) : (
           <Text style={styles.hint}>Enter your yearly gross income to compare the two options.</Text>
         )}
 
         <Text style={styles.disclaimer}>
-          Estimate based on {RATES_YEAR} BIR rates: the graduated income tax table, the 8% option, and the 3% percentage tax for non-VAT taxpayers. The 8% must be chosen with the BIR on time (at registration or the first quarter return) and it is locked in for the whole year. This is a guide, not a tax filing or professional advice.
+          Estimate based on {RATES_YEAR} BIR rates: the graduated income tax table, the 8% option, and the 3% percentage tax for non-VAT taxpayers. The 8% must be chosen with the BIR on time (at registration or the first quarter return) and it is locked in for the whole year. The forms and deadlines here are for awareness, not tax advice or a filing service, and a deadline can shift when it lands on a weekend or holiday. Confirm with the BIR or a licensed accountant before you file.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -291,6 +308,11 @@ function makeStyles(colors) {
 
     setAside: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginTop: spacing.md },
     setAsideText: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 19 },
+
+    formsCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginTop: spacing.md },
+    formsKicker: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2, marginBottom: spacing.sm },
+    formsText: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 20 },
+    formsFootnote: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 16, marginTop: spacing.sm },
 
     hint: { color: colors.muted, fontSize: fontSize.body, textAlign: 'center', marginTop: spacing.xl, marginBottom: spacing.xl },
     disclaimer: { color: colors.faint, fontSize: fontSize.caption, lineHeight: 17, marginTop: spacing.xl },
