@@ -91,15 +91,20 @@ export const RESOLVERS = {
 
   debtFree(data, ctx) {
     const debts = (data.debts || []).filter((d) => d && num(d.remaining) > 0);
-    const base = debtFreeProjection(debts, 'avalanche', 0, ctx.now);
     const extra = num(ctx.amount);
+    // debtFreeProjection returns null when interest outruns the payments and
+    // the balance never clears, exactly the case a struggling user asks
+    // about. Guard it, and see whether the extra payment fixes it.
+    const base = debtFreeProjection(debts, 'avalanche', 0, ctx.now);
     const withExtra = extra > 0 ? debtFreeProjection(debts, 'avalanche', extra, ctx.now) : null;
+    const pack = (p) => (p ? { months: p.months, totalInterest: p.totalInterest, date: p.date } : null);
     return {
       kind: 'debt_free',
       hasDebt: debts.length > 0,
-      base: { months: base.months, totalInterest: base.totalInterest, date: base.date },
+      growing: debts.length > 0 && !base, // minimums are not keeping up
+      base: pack(base),
       extra,
-      withExtra: withExtra ? { months: withExtra.months, totalInterest: withExtra.totalInterest, date: withExtra.date } : null,
+      withExtra: pack(withExtra),
     };
   },
 

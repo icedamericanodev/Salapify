@@ -43,11 +43,18 @@ export default function Pan() {
   const chips = useMemo(() => suggestions(6), []);
   const greeting = useMemo(() => helpReply(), []);
   const listRef = useRef(null);
+  // Guards a double fire: on Android the keyboard "send" (onSubmitEditing) and
+  // the send button can both land the same text in the same instant. Block an
+  // identical message inside a short window, but allow asking it again later.
+  const lastSent = useRef({ text: '', at: 0 });
 
   const send = useCallback(
     (raw) => {
       const text = String(raw || '').trim();
       if (!text) return;
+      const now = Date.now();
+      if (text === lastSent.current.text && now - lastSent.current.at < 600) return;
+      lastSent.current = { text, at: now };
       const userMsg = { id: nextId(), role: 'user', text };
       let reply;
       try {
@@ -160,6 +167,7 @@ export default function Pan() {
             keyExtractor={(m) => m.id}
             renderItem={renderItem}
             inverted
+            style={styles.listFlex}
             contentContainerStyle={styles.list}
             keyboardShouldPersistTaps="handled"
           />
@@ -167,7 +175,7 @@ export default function Pan() {
 
         {/* Quick chips above the input once a chat has started. */}
         {messages.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBar} keyboardShouldPersistTaps="handled">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipBarWrap} contentContainerStyle={styles.chipBar} keyboardShouldPersistTaps="handled">
             {chips.map((c) => (
               <Pressable key={c.id} onPress={() => send(c.example)} style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
                 <Text style={styles.chipText}>{c.label}</Text>
@@ -213,6 +221,7 @@ function makeStyles(colors) {
     headerTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     headerSub: { color: colors.faint, fontSize: fontSize.caption },
 
+    listFlex: { flex: 1 },
     list: { padding: spacing.lg, paddingBottom: spacing.md },
     row: { flexDirection: 'row', marginBottom: spacing.md },
     rowLeft: { justifyContent: 'flex-start' },

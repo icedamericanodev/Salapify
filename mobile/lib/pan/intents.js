@@ -15,7 +15,7 @@
 export const GUARDRAILS = [
   {
     id: 'no_invest',
-    keywords: ['invest', 'stock', 'crypto', 'bitcoin', 'forex', 'mutual fund', 'uitf', 'trading', 'shares of', 'good return', 'grow my money where'],
+    keywords: ['invest', 'stocks', 'stock market', 'crypto', 'bitcoin', 'forex', 'mutual fund', 'uitf', 'mp2', 'trading', 'shares', 'good return', 'grow my money', 'where to invest', 'good investment'],
     reply:
       'I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?',
   },
@@ -174,7 +174,7 @@ export const INTENTS = [
     title: 'My balances',
     resolve: 'balances',
     keywords: {
-      strong: ['how much do i have', 'my balance', 'total money', 'net worth', 'howmuch i have', 'howmuch money'],
+      strong: ['how much do i have', 'my balance', 'total money', 'net worth', 'howmuch i have', 'howmuch money', 'how much do i owe', 'howmuch i owe', 'total debt', 'how much i owe', 'how much debt'],
       any: ['balance', 'money', 'cash', 'total'],
     },
     examples: ['How much do I have?', 'Magkano pera ko?'],
@@ -244,10 +244,19 @@ function scoreIntent(norm, tokens, intent) {
   return score;
 }
 
+// A guardrail keyword must hit on a whole-word boundary, never as a substring,
+// or innocent words trip it: "taxi" would fire the tax rail, "birthday" the
+// BIR rail, "private" the VAT rail, "tissue" the legal rail. norm is already
+// lowercased to letters, digits, and single spaces, so simple boundaries work.
+const wordHit = (norm, kw) => {
+  const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('(?:^|[^a-z0-9])' + esc + '(?![a-z0-9])').test(norm);
+};
+
 // detectIntent(normalized) -> { id, guardrail?, score, alternatives:[id...] }
 export function detectIntent(norm) {
   for (const g of GUARDRAILS) {
-    if (g.keywords.some((k) => norm.includes(k))) {
+    if (g.keywords.some((k) => wordHit(norm, k))) {
       return { id: g.id, guardrail: g, score: 99, alternatives: [] };
     }
   }

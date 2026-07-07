@@ -17,6 +17,17 @@ function fmtDate(d) {
   return `${DAY[dt.getDay()]}, ${MON[dt.getMonth()]} ${dt.getDate()}`;
 }
 
+// Goal target dates are stored as "YYYY-MM" or "YYYY-MM-DD" strings. Format
+// them by hand, no Date parsing, so a month-only target never gets a spurious
+// day and a timezone never shifts it. Returns "Dec 2026" or "Dec 25, 2026".
+function fmtTarget(iso) {
+  const mt = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(String(iso || '').trim());
+  if (!mt) return '';
+  const mon = MON[Number(mt[2]) - 1];
+  if (!mon) return '';
+  return mt[3] ? `${mon} ${Number(mt[3])}, ${mt[1]}` : `${mon} ${mt[1]}`;
+}
+
 export function respond(facts) {
   switch (facts.kind) {
     case 'safe_to_spend': {
@@ -101,6 +112,13 @@ export function respond(facts) {
 
     case 'debt_free': {
       if (!facts.hasDebt) return { mood: 'happy', text: 'You have no debts to pay off. That is the finish line most people are working toward, and you are already there.' };
+      if (facts.growing) {
+        // Minimums are not covering the interest, so the balance never clears.
+        if (facts.withExtra) {
+          return { mood: 'idle', text: `At the current minimums, interest is outpacing your payments, so the balance is not going down. But adding ${m(facts.extra)} a month gets you to debt free around ${fmtDate(facts.withExtra.date)}. Paying more than the minimum is the way out.`, cta: { label: 'Plan payoff', route: '/reports' } };
+        }
+        return { mood: 'worried', text: 'At the current minimums, interest is outpacing your payments, so the balance is not going down. Paying more than the minimum, even a little, is what turns it around. Try "if I add 1000 a month" to see the difference.', cta: { label: 'Plan payoff', route: '/reports' } };
+      }
       const base = `Paying current minimums, you are debt free around ${fmtDate(facts.base.date)} with about ${m(facts.base.totalInterest)} total interest.`;
       if (facts.withExtra) {
         return {
@@ -162,7 +180,8 @@ export function respond(facts) {
       const p = f.pace;
       if (p.status === 'done') return { mood: 'happy', text: `Your ${f.name} is fully funded. Time to set the next one.`, cta: { label: 'Goals', route: '/goals' } };
       const pctStr = `${f.name} is ${Math.round(p.pct * 100)}%`;
-      if (p.status === 'active') return { mood: 'idle', text: `${pctStr}. To finish by ${p.targetDate} you need about ${m(p.perMonth)} a month, or ${m(p.perWeek)} a week. That is one small habit change.`, cta: { label: 'Goals', route: '/goals' } };
+      if (p.status === 'active') return { mood: 'idle', text: `${pctStr}. To finish by ${fmtTarget(p.targetDate)} you need about ${m(p.perMonth)} a month, or ${m(p.perWeek)} a week. That is one small habit change.`, cta: { label: 'Goals', route: '/goals' } };
+      if (p.status === 'due-soon') return { mood: 'idle', text: `${pctStr}. Your ${fmtTarget(p.targetDate)} target lands this month, so you would need about ${m(p.remaining)} more to finish on time. Even part of it keeps you close.`, cta: { label: 'Goals', route: '/goals' } };
       if (p.status === 'behind') return { mood: 'worried', text: `${pctStr}, and the target date has passed with ${m(p.remaining)} still to go. Set a fresh date and I will give you a new weekly pace.`, cta: { label: 'Goals', route: '/goals' } };
       return { mood: 'idle', text: `${pctStr}, ${m(p.remaining)} to go. Add a target date and I will pace it for you.`, cta: { label: 'Goals', route: '/goals' } };
     }

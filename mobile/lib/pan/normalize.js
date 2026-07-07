@@ -93,7 +93,10 @@ export function normalize(raw) {
 // can-I-afford intent; the arithmetic that follows stays in the engine.
 export function extractAmount(raw) {
   const s = String(raw || '').toLowerCase().replace(/,/g, '');
-  const m = s.match(/(\d+(?:\.\d+)?)\s*([km])?/);
+  // The k/m multiplier only counts when it is attached to the number with no
+  // space and is not the start of another word, so "2 movie tickets" is 2,
+  // not 2,000,000, and "1000 monthly" is 1000, not a billion. "1.5k" is 1500.
+  const m = s.match(/(\d+(?:\.\d+)?)(k|m)?(?![a-z0-9])/);
   if (!m) return null;
   let n = Number(m[1]);
   if (!Number.isFinite(n)) return null;
