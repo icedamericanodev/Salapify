@@ -38,13 +38,27 @@ export function annualIncomeTax(annualTaxable) {
   return 0;
 }
 
-// Employee monthly SSS contribution: 5% of the Monthly Salary Credit, which is
-// the pay rounded to the nearest 500 and held between 5,000 and 35,000.
-export function sssEmployee(monthly) {
+// The SSS Monthly Salary Credit: pay rounded to the nearest 500 and held
+// between 5,000 and 35,000. Zero for a non-positive salary.
+export function sssMSC(monthly) {
   const m = num(monthly);
   if (m <= 0) return 0;
-  const msc = Math.min(Math.max(Math.round(m / 500) * 500, 5000), 35000);
-  return round2(msc * 0.05);
+  return Math.min(Math.max(Math.round(m / 500) * 500, 5000), 35000);
+}
+
+// Employee monthly SSS contribution: 5% of the Monthly Salary Credit.
+export function sssEmployee(monthly) {
+  return round2(sssMSC(monthly) * 0.05);
+}
+
+// Employer monthly SSS contribution: 10% of the MSC (so 15% total with the
+// employee), plus the Employees Compensation (EC) contribution the employer
+// pays: 10 pesos below a 15,000 MSC, 30 pesos at 15,000 and above.
+export function sssEmployer(monthly) {
+  const msc = sssMSC(monthly);
+  if (msc <= 0) return 0;
+  const ec = msc >= 15000 ? 30 : 10;
+  return round2(msc * 0.1 + ec);
 }
 
 // Employee monthly PhilHealth: half of the 5% premium, so 2.5% of pay held
@@ -56,6 +70,12 @@ export function philhealthEmployee(monthly) {
   return round2((base * 0.05) / 2);
 }
 
+// Employer monthly PhilHealth: the other half of the 5% premium, so 2.5% of
+// pay between the 10,000 floor and 100,000 ceiling (same as the employee).
+export function philhealthEmployer(monthly) {
+  return philhealthEmployee(monthly);
+}
+
 // Employee monthly Pag-IBIG: 2% of pay (1% at 1,500 and below), on a fund
 // salary capped at 10,000, so at most 200.
 export function pagibigEmployee(monthly) {
@@ -64,6 +84,43 @@ export function pagibigEmployee(monthly) {
   const fund = Math.min(m, 10000);
   const rate = m <= 1500 ? 0.01 : 0.02;
   return round2(fund * rate);
+}
+
+// Employer monthly Pag-IBIG: always 2% of the fund salary (capped at 10,000),
+// so at most 200. The 1% reduced rate at 1,500 and below is the employee side
+// only; the employer always matches at 2%.
+export function pagibigEmployer(monthly) {
+  const m = num(monthly);
+  if (m <= 0) return 0;
+  const fund = Math.min(m, 10000);
+  return round2(fund * 0.02);
+}
+
+// contributionBreakdown(monthly) -> employee, employer, and total for each of
+// the three mandatory contributions, plus the grand totals and the SSS MSC the
+// figures are based on. Everything a contribution checker screen needs.
+export function contributionBreakdown(monthly) {
+  const sss = { employee: sssEmployee(monthly), employer: sssEmployer(monthly) };
+  sss.total = round2(sss.employee + sss.employer);
+  const philhealth = { employee: philhealthEmployee(monthly), employer: philhealthEmployer(monthly) };
+  philhealth.total = round2(philhealth.employee + philhealth.employer);
+  const pagibig = { employee: pagibigEmployee(monthly), employer: pagibigEmployer(monthly) };
+  pagibig.total = round2(pagibig.employee + pagibig.employer);
+
+  const employeeTotal = round2(sss.employee + philhealth.employee + pagibig.employee);
+  const employerTotal = round2(sss.employer + philhealth.employer + pagibig.employer);
+  const grandTotal = round2(employeeTotal + employerTotal);
+
+  return {
+    msc: sssMSC(monthly),
+    sss,
+    philhealth,
+    pagibig,
+    employeeTotal,
+    employerTotal,
+    grandTotal,
+    ratesYear: RATES_YEAR,
+  };
 }
 
 // takeHomePay(basic, opts) -> full monthly payslip estimate for an employee.
