@@ -661,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.64: shared SectionHeader, Overview and Budget cards on the shared Card system</Text>
+            <Text style={styles.rowValue}>v3.65: shared Bar component, Insights on the shared Card, SectionHeader, and Bar system</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
