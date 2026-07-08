@@ -50,19 +50,20 @@ const DATA_ACTIONS = [
 ];
 
 // The MY MONEY tools, shown as a compact 2-column icon grid instead of ten
-// tall rows so the tab is a shorter, more scannable scroll. Each tile just
-// opens the same screen the old row did; nothing about the destinations
-// changed. Icons do the wayfinding, the label stays full so meaning is clear.
+// tall rows so the tab scans faster (five rows of tiles, half the scan
+// targets). Each tile just opens the same screen the old row did; nothing
+// about the destinations changed. Icons do the wayfinding, the label stays
+// clear. Labels are kept short enough to sit on at most two lines in a tile.
 const MONEY_LINKS = [
   { route: '/search', label: 'Search everything', icon: 'search-outline' },
   { route: '/accounts', label: 'Accounts', icon: 'wallet-outline' },
   { route: '/goals', label: 'Goals', icon: 'flag-outline' },
   { route: '/learn', label: 'Money lessons', icon: 'school-outline' },
-  { route: '/mindset', label: 'Money mindset', icon: 'bulb-outline' },
+  { route: '/mindset', label: 'Money mindset', icon: 'sparkles-outline' },
   { route: '/receivables', label: 'People who owe me', icon: 'people-outline' },
   { route: '/reports', label: 'Reports', icon: 'bar-chart-outline' },
-  { route: '/notes', label: 'Notes with calculator', icon: 'create-outline' },
-  { route: '/recurring', label: 'Recurring bills and income', icon: 'repeat-outline' },
+  { route: '/notes', label: 'Notes with calculator', icon: 'document-text-outline' },
+  { route: '/recurring', label: 'Recurring', icon: 'repeat-outline' },
   { route: '/history', label: 'All transactions', icon: 'list-outline' },
 ];
 
@@ -410,7 +411,7 @@ export default function More() {
               accessibilityRole="button"
               accessibilityLabel={link.label}
             >
-              <Ionicons name={link.icon} size={26} color={colors.primary} style={styles.moneyIcon} />
+              <Ionicons name={link.icon} size={26} color={colors.text} style={styles.moneyIcon} />
               <Text style={styles.moneyLabel} numberOfLines={2}>{link.label}</Text>
             </Pressable>
           ))}
