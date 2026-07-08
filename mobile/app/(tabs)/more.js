@@ -566,6 +566,10 @@ export default function More() {
             <Text style={styles.rowLabel}>Categories and caps</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
+          <Pressable onPress={() => router.push('/treats')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Earn your treats</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>DATA</Text>
@@ -657,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.54: health lesson adds the PhilHealth shield</Text>
+            <Text style={styles.rowValue}>v3.55: earn your treats, healthy habit rewards</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

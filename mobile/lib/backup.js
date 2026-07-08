@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -108,6 +108,10 @@ const MIGRATIONS = {
   // bump exists as a fence, because a v4 build restoring a v5 backup would
   // coerce those records into expenses and double count real spending.
   5: (d) => ({ ...d }),
+  // v6 adds settings.treats (the earn-your-treats wellness feature). A missing
+  // array defaults to empty in sanitizeData, so no data transform is needed;
+  // the fence just stops a v5 build from silently dropping a v6 backup's treats.
+  6: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -279,6 +283,25 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         // Strict boolean: a truthy string like "no" must not unlock Pro.
         pro: settings.pro === true,
         notifications: isObj(settings.notifications) ? settings.notifications : {},
+        // Earn-your-treats rules. Each rule is tiny: its check-ins are pruned to
+        // the rolling window by the app, and lifetime never decreases. A missing
+        // array cleans to empty, so old blobs degrade to the empty state.
+        treats: cleanList(settings.treats).map((t, i) => ({
+          ...t,
+          id: str(t.id) || `treat_restored_${i}`,
+          treat: str(t.treat, 'My treat'),
+          action: str(t.action, 'My healthy action'),
+          emoji: str(t.emoji, '☕'),
+          target: Math.min(Math.max(Math.round(num(t.target)) || 3, 1), 14),
+          windowDays: Math.min(Math.max(Math.round(num(t.windowDays)) || 7, 1), 31),
+          checkIns: Array.from(new Set(
+            (Array.isArray(t.checkIns) ? t.checkIns : []).filter(
+              (dt) => typeof dt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dt)
+            )
+          )),
+          lifetime: Math.max(0, Math.round(num(t.lifetime))),
+          createdAt: str(t.createdAt) || stampDate,
+        })),
       };
       // Junk currency poisons every formatted amount app wide; a missing
       // key lets the seed defaults fill in instead.
