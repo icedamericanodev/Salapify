@@ -18,6 +18,7 @@ import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import { weeklyCheckIn } from '../../lib/coach';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
+import TreatCard from '../../components/TreatCard';
 import WeekRecap from '../../components/WeekRecap';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -488,6 +489,9 @@ export default function Overview() {
 
         {/* Logging chain: filled dots for days you logged in the last week. */}
         <WeekChain transactions={data.transactions} />
+
+        {/* Earn your treats: temptation bundling, one tap check-in. */}
+        <TreatCard />
 
         {/* The share worthy week recap, when the week deserves it. */}
         <WeekRecap transactions={data.transactions} />
