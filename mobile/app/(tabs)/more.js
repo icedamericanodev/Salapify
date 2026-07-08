@@ -661,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.61: web build, try Salapify on a laptop too</Text>
+            <Text style={styles.rowValue}>v3.62: installment true cost tool, honest de minimis note</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
