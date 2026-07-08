@@ -22,16 +22,48 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Collect site files
+
+      # The landing site (marketing page + privacy policy) at the Pages root.
+      - name: Collect landing site files
         run: |
           mkdir -p _site
           cp index.html 404.html manifest.json sw.js robots.txt privacy.html _site/ 2>/dev/null || true
           cp icon-192.png icon-512.png _site/ 2>/dev/null || true
           ls -la _site
-      # The artifact name includes the attempt number. Re-running a failed
-      # deploy keeps the first attempt's artifact around, and deploy-pages
-      # refuses when it finds two artifacts with the same name; unique
-      # names per attempt make re-runs safe.
+
+      # The actual app, built for the browser and served under /app so it
+      # never touches the landing page or privacy policy at the root. The web
+      # base path is set by experiments.baseUrl in mobile/app.json.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      # The app build is allowed to fail without blocking the deploy: the
+      # landing page and privacy policy at the root must always ship (Play
+      # requires the privacy URL to stay reachable), so a broken web export
+      # can never hold them hostage. If the export fails, the last good /app
+      # stays live from the previous deploy.
+      - name: Build the web app
+        id: webapp
+        continue-on-error: true
+        working-directory: mobile
+        run: |
+          npm ci
+          npx expo export --platform web
+      - name: Place the web app under /app
+        if: steps.webapp.outcome == 'success'
+        run: |
+          mkdir -p _site/app
+          cp -r mobile/dist/. _site/app/
+          # Single page app: any unknown /app/... path should still boot the
+          # app so a refresh or a direct link does not dead end.
+          cp mobile/dist/index.html _site/app/404.html
+          ls -la _site/app
+      - name: Note a skipped app build
+        if: steps.webapp.outcome != 'success'
+        run: echo "Web app export failed; deploying the landing site only. The previous /app stays live."
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

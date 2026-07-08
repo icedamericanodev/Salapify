@@ -12,6 +12,9 @@
       "url": "https://u.expo.dev/8bc5a127-b145-41c3-a4f4-790afd91c9f2"
     },
     "runtimeVersion": "1.4.0",
+    "experiments": {
+      "baseUrl": "/Salapify/app"
+    },
     "plugins": [
       "expo-router",
       [
