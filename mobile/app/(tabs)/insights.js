@@ -11,6 +11,9 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format';
 import RecapShare from '../../components/RecapShare';
+import Card from '../../components/Card';
+import SectionHeader from '../../components/SectionHeader';
+import Bar from '../../components/Bar';
 import {
   monthlySeries,
   categoryMovers,
@@ -114,15 +117,13 @@ export default function Insights() {
   const HBar = ({ label, amount, max, color }) => (
     <View style={styles.hbarRow}>
       <Text style={styles.hbarLabel}>{label}</Text>
-      <View style={styles.hbarTrack}>
-        <View
-          style={[
-            styles.hbarFill,
-            { width: `${max ? Math.max((amount / max) * 100, 2) : 0}%`, backgroundColor: color },
-          ]}
-        />
-      </View>
-      <Text style={styles.hbarValue}>{formatMoney(amount)}</Text>
+      <Bar
+        fraction={max ? Math.max(amount / max, 0.02) : 0}
+        color={color}
+        height="md"
+        style={styles.hbarBar}
+      />
+      <Text style={styles.hbarValue} numberOfLines={1} adjustsFontSizeToFit>{formatMoney(amount)}</Text>
     </View>
   );
 
@@ -240,15 +241,15 @@ export default function Insights() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Insights</Text>
 
-        <View style={styles.card}>
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>INCOME VS SPENDING ({monthLabel().toUpperCase()})</Text>
           <View style={styles.cardBody}>
             <HBar label="In" amount={moneyIn} max={inOutMax} color={colors.primary} />
             <HBar label="Out" amount={moneyOut} max={inOutMax} color={colors.textSecondary} />
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.card}>
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>WHERE YOUR MONEY WENT ({monthLabel().toUpperCase()})</Text>
           {byCategory.length > 0 && totalSpent > 0 ? (
             <>
@@ -278,19 +279,19 @@ export default function Insights() {
           ) : (
             <Text style={styles.proNote}>Nothing spent this month yet. Log an expense and the breakdown appears.</Text>
           )}
-        </View>
+        </Card>
 
-        <View style={styles.card}>
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>NET WORTH BY CATEGORY</Text>
           <View style={styles.cardBody}>
             {worthRows.map((w) => (
               <HBar key={w.label} label={w.label} amount={w.amount} max={worthMax} color={w.color} />
             ))}
           </View>
-        </View>
+        </Card>
 
         {trendPoints.length >= 2 ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>NET WORTH TREND</Text>
             <View style={styles.trend}>
               {trendPoints.map((p) => (
@@ -306,11 +307,11 @@ export default function Insights() {
               ))}
             </View>
             <Text style={styles.trendNow}>Now: {formatMoney(netWorthNow)}</Text>
-          </View>
+          </Card>
         ) : null}
 
         {showCommitted ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>WHAT IS ALREADY SPOKEN FOR</Text>
             <View style={styles.propBar}>
               <View style={{ width: `${Math.max(committedShare * 100, 1)}%`, backgroundColor: colors.warning }} />
@@ -335,31 +336,34 @@ export default function Insights() {
               </View>
             </View>
             {committedLine ? <Text style={styles.insightLine}>{committedLine}</Text> : null}
-          </View>
+          </Card>
         ) : null}
 
         {showRunway ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>EMERGENCY FUND RUNWAY</Text>
             {runway.monthsCovered != null ? (
               <>
                 <Text style={styles.runwayValue}>
                   {runway.monthsCovered} {runway.monthsCovered === 1 ? 'month' : 'months'} covered
                 </Text>
-                <View style={styles.propBar}>
-                  <View style={{ width: `${Math.max(Math.min(runway.monthsCovered / 3, 1) * 100, 1)}%`, backgroundColor: colors.primary }} />
-                </View>
+                <Bar
+                  fraction={Math.max(Math.min(runway.monthsCovered / 3, 1), 0.01)}
+                  color={colors.primary}
+                  height="lg"
+                  style={styles.barSpaced}
+                />
                 <Text style={styles.runwaySub}>Goal: 3 to 6 months of expenses</Text>
               </>
             ) : (
               <Text style={styles.runwayValue}>{formatMoney(runway.buffer)} set aside</Text>
             )}
             {runwayLine ? <Text style={styles.insightLine}>{runwayLine}</Text> : null}
-          </View>
+          </Card>
         ) : null}
 
         {utang.people.length > 0 ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>UTANG: WHO OWES YOU</Text>
             <View style={styles.cardBody}>
               {utangTop.map((p) => (
@@ -368,17 +372,11 @@ export default function Insights() {
                     <Text style={styles.moverLabel} numberOfLines={1}>{p.name}</Text>
                     <Text style={styles.utangAmt}>{formatMoney(p.outstanding)}</Text>
                   </View>
-                  <View style={styles.hbarTrack}>
-                    <View
-                      style={[
-                        styles.hbarFill,
-                        {
-                          width: `${Math.max((p.outstanding / utangMax) * 100, 2)}%`,
-                          backgroundColor: p.daysOverdue > 0 ? colors.warning : colors.primary,
-                        },
-                      ]}
-                    />
-                  </View>
+                  <Bar
+                    fraction={Math.max(p.outstanding / utangMax, 0.02)}
+                    color={p.daysOverdue > 0 ? colors.warning : colors.primary}
+                    height="md"
+                  />
                   <Text style={styles.utangSub}>
                     {p.daysOverdue > 0
                       ? `${p.daysOverdue} ${p.daysOverdue === 1 ? 'day' : 'days'} overdue`
@@ -391,11 +389,11 @@ export default function Insights() {
               ))}
             </View>
             {utangLine ? <Text style={styles.insightLine}>{utangLine}</Text> : null}
-          </View>
+          </Card>
         ) : null}
 
         {goalRows.length > 0 ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>GOAL PACE</Text>
             <View style={styles.cardBody}>
               {goalRows.map(({ goal, pace }) => (
@@ -404,17 +402,11 @@ export default function Insights() {
                     <Text style={styles.moverLabel} numberOfLines={1}>{goal.name}</Text>
                     <Text style={styles.goalPct}>{Math.round(pace.pct * 100)}%</Text>
                   </View>
-                  <View style={styles.hbarTrack}>
-                    <View
-                      style={[
-                        styles.hbarFill,
-                        {
-                          width: `${Math.max(pace.pct * 100, 2)}%`,
-                          backgroundColor: pace.status === 'behind' ? colors.warning : colors.primary,
-                        },
-                      ]}
-                    />
-                  </View>
+                  <Bar
+                    fraction={Math.max(pace.pct, 0.02)}
+                    color={pace.status === 'behind' ? colors.warning : colors.primary}
+                    height="md"
+                  />
                   <Text style={[styles.utangSub, pace.status === 'behind' && { color: colors.warning }]}>
                     {pace.status === 'done'
                       ? 'Funded. 🎉'
@@ -431,15 +423,13 @@ export default function Insights() {
                 </View>
               ))}
             </View>
-          </View>
+          </Card>
         ) : null}
 
         {/* ---- Pro analytics: the deep analysis tier ---- */}
-        <Text style={styles.sectionTitleRow}>
-          PRO ANALYTICS <Text style={styles.proBadge}>PRO</Text>
-        </Text>
+        <SectionHeader title="PRO ANALYTICS" trailing={<Text style={styles.proBadge}>PRO</Text>} />
         {!pro ? (
-          <View style={styles.card}>
+          <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.lockTitle}>See the patterns behind your money</Text>
             <Text style={styles.lockLine}>Financial health score out of 100</Text>
             <Text style={styles.lockLine}>Six month income and spending trend</Text>
@@ -454,7 +444,7 @@ export default function Insights() {
               <Text style={styles.unlockText}>Unlock free during early access</Text>
             </Pressable>
             <Text style={styles.lockHint}>Pro will be a one time purchase at launch. Early users keep it free.</Text>
-          </View>
+          </Card>
         ) : (
           <>
             <ProInsights data={data} styles={styles} colors={colors} />
@@ -492,7 +482,7 @@ function ProInsights({ data, styles, colors }) {
 
   return (
     <>
-      <View style={styles.card}>
+      <Card variant="raised" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>FINANCIAL HEALTH SCORE</Text>
         <View style={styles.scoreRow}>
           <Text style={styles.scoreBig}>{score.total}</Text>
@@ -502,9 +492,9 @@ function ProInsights({ data, styles, colors }) {
         <View style={styles.partRow}><Text style={styles.partLabel}>Budget discipline</Text><Text style={styles.partVal}>{score.parts.budget}/25</Text></View>
         <View style={styles.partRow}><Text style={styles.partLabel}>Debt load</Text><Text style={styles.partVal}>{score.parts.debt}/25</Text></View>
         <View style={styles.partRow}><Text style={styles.partLabel}>Logging habit</Text><Text style={styles.partVal}>{score.parts.logging}/15</Text></View>
-      </View>
+      </Card>
 
-      <View style={styles.card}>
+      <Card variant="flat" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>SIX MONTH TREND</Text>
         <View style={styles.trend}>
           {series.map((m) => (
@@ -518,9 +508,9 @@ function ProInsights({ data, styles, colors }) {
           ))}
         </View>
         <Text style={styles.proNote}>Bright bars are income, dim bars are spending. Net this month: {formatMoney(series[series.length - 1].net)}.</Text>
-      </View>
+      </Card>
 
-      <View style={styles.card}>
+      <Card variant="flat" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>THIS MONTH, AT THIS PACE</Text>
         <Text style={styles.forecastBig}>{formatMoney(fc.projected)}</Text>
         <Text style={styles.proNote}>
@@ -528,10 +518,10 @@ function ProInsights({ data, styles, colors }) {
           {limit > 0 && fc.projected > limit ? ' Ease off a little.' : ''}
           {rate !== null ? ` Savings rate so far: ${Math.round(rate * 100)}% of income kept.` : ''}
         </Text>
-      </View>
+      </Card>
 
       {vsAvg.length > 0 ? (
-        <View style={styles.card}>
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>THIS MONTH VS YOUR 6 MONTH NORMAL</Text>
           <View style={styles.cardBody}>
             {vsAvg.map((v) => {
@@ -547,12 +537,18 @@ function ProInsights({ data, styles, colors }) {
                       {v.avg === 0 ? 'new' : over ? 'above normal' : under ? 'below normal' : 'on track'}
                     </Text>
                   </View>
-                  <View style={styles.vsTrack}>
-                    <View style={[styles.vsBarNow, { width: `${Math.max((v.now / vsAvgMax) * 100, 1)}%`, backgroundColor: over ? colors.warning : colors.primary }]} />
-                  </View>
-                  <View style={styles.vsTrack}>
-                    <View style={[styles.vsBarAvg, { width: `${Math.max((v.avg / vsAvgMax) * 100, 1)}%` }]} />
-                  </View>
+                  <Bar
+                    fraction={Math.max(v.now / vsAvgMax, 0.01)}
+                    color={over ? colors.warning : colors.primary}
+                    height="sm"
+                    style={styles.vsBarGap}
+                  />
+                  <Bar
+                    fraction={Math.max(v.avg / vsAvgMax, 0.01)}
+                    color={colors.muted}
+                    height="sm"
+                    style={styles.vsBarGap}
+                  />
                   <Text style={styles.vsNums}>
                     {formatMoney(v.now)} now, usually {formatMoney(Math.round(v.avg))}
                   </Text>
@@ -560,26 +556,26 @@ function ProInsights({ data, styles, colors }) {
               );
             })}
           </View>
-        </View>
+        </Card>
       ) : null}
 
       {movers.length > 0 ? (
-        <View style={styles.card}>
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>MOVERS VS LAST MONTH</Text>
           <View style={styles.cardBody}>
             {movers.map((mv) => (
               <View key={mv.label} style={styles.moverRow}>
                 <Text style={styles.moverLabel}>{mv.label}</Text>
-                <Text style={[styles.moverVal, { color: mv.change > 0 ? colors.warning : colors.primary }]}>
+                <Text style={[styles.moverVal, { color: mv.change > 0 ? colors.textSecondary : colors.primary }]}>
                   {mv.change > 0 ? '+' : '-'}{formatMoney(Math.abs(mv.change))}
                 </Text>
               </View>
             ))}
           </View>
-        </View>
+        </Card>
       ) : null}
 
-      <View style={styles.card}>
+      <Card variant="flat" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>YOUR WEEK IN SPENDING</Text>
         <View style={styles.trend}>
           {wk.map((w, i) => (
@@ -594,7 +590,7 @@ function ProInsights({ data, styles, colors }) {
         ) : (
           <Text style={styles.proNote}>Log a few weeks of spending and your pattern appears here.</Text>
         )}
-      </View>
+      </Card>
     </>
   );
 }
@@ -610,14 +606,10 @@ function makeStyles(colors) {
       marginBottom: spacing.md,
     },
 
-    card: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: radius.lg,
-      padding: spacing.xl,
-      marginBottom: spacing.lg,
-    },
+    // Every card on this screen is now the shared <Card> component, which owns its
+    // own surface, radius, padding, and depth. The parent only supplies the gap
+    // below each one, so the vertical rhythm stays even.
+    cardGap: { marginBottom: spacing.lg },
     kicker: {
       color: colors.softGreen,
       fontSize: fontSize.caption,
@@ -626,6 +618,9 @@ function makeStyles(colors) {
     },
     cardBody: { marginTop: spacing.md, gap: spacing.md },
 
+    // propBar stays for the two genuinely multi-segment bars (where your money
+    // went, and what is already spoken for): several colored slices side by side.
+    // The single-fraction <Bar> is not built for that, so those remain here.
     propBar: {
       flexDirection: 'row',
       height: 16,
@@ -634,6 +629,8 @@ function makeStyles(colors) {
       marginTop: spacing.md,
       backgroundColor: colors.border,
     },
+    // Spacing for a standalone <Bar> that sits under a headline value.
+    barSpaced: { marginTop: spacing.md },
     legend: { marginTop: spacing.md, gap: spacing.sm },
     legendRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
     legendLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
@@ -646,15 +643,8 @@ function makeStyles(colors) {
 
     hbarRow: { flexDirection: 'row', alignItems: 'center' },
     hbarLabel: { color: colors.textSecondary, fontSize: fontSize.small, width: 92 },
-    hbarTrack: {
-      flex: 1,
-      height: 12,
-      borderRadius: radius.pill,
-      backgroundColor: colors.border,
-      overflow: 'hidden',
-      marginHorizontal: spacing.sm,
-    },
-    hbarFill: { height: '100%', borderRadius: radius.pill },
+    // The shared <Bar> grows to fill the row between the label and the value.
+    hbarBar: { flex: 1, marginHorizontal: spacing.sm },
     hbarValue: {
       color: colors.text,
       fontSize: fontSize.small,
@@ -679,8 +669,7 @@ function makeStyles(colors) {
     trendLabel: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.xs },
     trendNow: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
 
-    sectionTitleRow: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
-    proBadge: { color: colors.celebrate, fontWeight: fontWeight.heavy },
+    proBadge: { color: colors.celebrate, fontSize: fontSize.caption, fontWeight: fontWeight.heavy, letterSpacing: 1.2 },
     lockTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
     lockLine: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
     unlockBtn: { backgroundColor: colors.primary, borderRadius: radius.md, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
@@ -700,9 +689,8 @@ function makeStyles(colors) {
     moverLabel: { color: colors.text, fontSize: fontSize.body },
     vsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
     vsVerdict: { fontSize: fontSize.caption, fontWeight: fontWeight.medium },
-    vsTrack: { height: 8, borderRadius: radius.pill, backgroundColor: 'transparent', marginBottom: 3 },
-    vsBarNow: { height: 8, borderRadius: radius.pill },
-    vsBarAvg: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border },
+    // The now/normal pair of <Bar>s each carry this small gap under them.
+    vsBarGap: { marginBottom: 3 },
     vsNums: { color: colors.muted, fontSize: fontSize.caption },
     moverVal: { fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
     wkBar: { width: 16, borderRadius: 4 },
