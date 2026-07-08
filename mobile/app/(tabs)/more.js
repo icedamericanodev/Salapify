@@ -22,7 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { spacing, radius, fontSize, fontWeight, palettes } from '../../theme';
+import { spacing, radius, fontSize, fontWeight, PALETTE_OPTIONS, APPEARANCE_MODES } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, normalizeSchedule, scheduleLabel } from '../../lib/format';
@@ -40,25 +40,6 @@ const NOTIF_OPTIONS = [
   { key: 'bills', label: 'Bill due reminders', hint: 'Cards and loans, 3 days before and on the day' },
   { key: 'collect', label: 'Collect money reminders', hint: 'When someone owes you and it is due' },
   { key: 'daily', label: 'Daily log reminder', hint: 'A quick 8pm nudge' },
-];
-
-const APPEARANCE = [
-  { key: 'light', label: 'Light' },
-  { key: 'dark', label: 'Dark' },
-  { key: 'system', label: 'System' },
-];
-
-// The color themes. Barako is the Salapify brand; Forest and Mint are
-// alternates kept for anyone who prefers green.
-const PALETTE_OPTIONS = [
-  { key: 'barako', label: 'Barako', hint: 'Roasted orange on dark-roast coffee. The Salapify look.' },
-  { key: 'ultraviolet', label: 'Ultraviolet', hint: 'Midnight violet with an electric-lime glow.' },
-  { key: 'tidal', label: 'Tidal', hint: 'Deep navy with a vivid aqua pop.' },
-  { key: 'voltage', label: 'Voltage', hint: 'Ink black with an electric-blue current.' },
-  { key: 'ember', label: 'Ember', hint: 'Warm charcoal with a sunrise coral.' },
-  { key: 'orchidgold', label: 'Orchid Gold', hint: 'Berry plum with gold trophies.' },
-  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green.' },
-  { key: 'mint', label: 'Mint', hint: 'A glowing green.' },
 ];
 
 const DATA_ACTIONS = [
@@ -104,7 +85,7 @@ function downloadFile(filename, text) {
 }
 
 export default function More() {
-  const { colors, mode, setMode, palette, setPalette } = useTheme();
+  const { colors, palette, mode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, replaceAll, updateSettings, storageSize } = useAppData();
   const router = useRouter();
@@ -446,41 +427,21 @@ export default function More() {
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
         <View style={styles.card}>
-          {APPEARANCE.map((opt, i) => {
-            const selected = mode === opt.key;
-            return (
-              <Pressable key={opt.key} onPress={() => setMode(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
-                <Text style={styles.rowLabel}>{opt.label}</Text>
-                {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.sectionTitle}>COLOR THEME</Text>
-        <View style={styles.card}>
-          {PALETTE_OPTIONS.map((opt, i) => {
-            const selected = palette === opt.key;
-            // A little three dot preview from the theme's dark variant, so
-            // you can browse by look: base, brand accent, and win color.
-            const pv = palettes[opt.key] && palettes[opt.key].dark;
-            return (
-              <Pressable key={opt.key} onPress={() => setPalette(opt.key)} style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}>
-                {pv ? (
-                  <View style={styles.swatchRow}>
-                    <View style={[styles.swatchDot, { backgroundColor: pv.background, borderColor: pv.border }]} />
-                    <View style={[styles.swatchDot, styles.swatchOverlap, { backgroundColor: pv.primary, borderColor: pv.background }]} />
-                    <View style={[styles.swatchDot, styles.swatchOverlap, { backgroundColor: pv.celebrate, borderColor: pv.background }]} />
-                  </View>
-                ) : null}
-                <View style={{ flex: 1, paddingRight: spacing.md }}>
-                  <Text style={styles.rowLabel}>{opt.label}</Text>
-                  <Text style={styles.rowHint}>{opt.hint}</Text>
-                </View>
-                {selected ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
-              </Pressable>
-            );
-          })}
+          {/* Both the light/dark mode and the 8 color themes now live on their
+              own /appearance screen, so this tab stays short. This row shows the
+              current theme's name and opens that screen. */}
+          <Pressable onPress={() => router.push('/appearance')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <Text style={styles.rowLabel}>Theme and colors</Text>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>
+                {[
+                  (PALETTE_OPTIONS.find((o) => o.key === palette) || {}).label,
+                  (APPEARANCE_MODES.find((m) => m.key === mode) || {}).label,
+                ].filter(Boolean).join(', ')}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+            </View>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
@@ -661,7 +622,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.66: utang ledger and person detail on the shared Card and SectionHeader system</Text>
+            <Text style={styles.rowValue}>v3.67: Appearance moved to its own screen, theme previews now match your light or dark mode, so the More tab is a shorter scroll</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -943,10 +904,8 @@ function makeStyles(colors) {
     pressed: { opacity: 0.6 },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
+    rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
-    swatchRow: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
-    swatchDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 1 },
-    swatchOverlap: { marginLeft: -8 },
     sizeNote: { color: colors.muted, fontSize: fontSize.small, paddingVertical: spacing.md },
     soon: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
     qaRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

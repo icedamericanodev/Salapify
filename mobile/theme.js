@@ -362,6 +362,28 @@ export const palettes = {
 // The brand default.
 export const DEFAULT_PALETTE = 'barako';
 
+// The light/dark/system choices, shared by the More tab entry row and the
+// Appearance screen so both read from one source of truth.
+export const APPEARANCE_MODES = [
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+  { key: 'system', label: 'System' },
+];
+
+// The color themes, with a short hint each. Barako is the Salapify brand;
+// Forest and Mint are alternates kept for anyone who prefers green. Shared by
+// the More tab (for the current theme label) and the Appearance screen grid.
+export const PALETTE_OPTIONS = [
+  { key: 'barako', label: 'Barako', hint: 'Roasted orange on dark-roast coffee. The Salapify look.' },
+  { key: 'ultraviolet', label: 'Ultraviolet', hint: 'Midnight violet with an electric-lime glow.' },
+  { key: 'tidal', label: 'Tidal', hint: 'Deep navy with a vivid aqua pop.' },
+  { key: 'voltage', label: 'Voltage', hint: 'Ink black with an electric-blue current.' },
+  { key: 'ember', label: 'Ember', hint: 'Warm charcoal with a sunrise coral.' },
+  { key: 'orchidgold', label: 'Orchid Gold', hint: 'Berry plum with gold trophies.' },
+  { key: 'forest', label: 'Forest', hint: 'Warm orange on deep green.' },
+  { key: 'mint', label: 'Mint', hint: 'A glowing green.' },
+];
+
 // Kept for anything still importing the old names; they point at the brand.
 export const darkColors = palettes.barako.dark;
 export const lightColors = palettes.barako.light;
