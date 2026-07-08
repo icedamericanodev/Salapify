@@ -24,6 +24,8 @@ import { useTheme } from '../context/Theme';
 import { useAppData, genId } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import EmptyState from '../components/EmptyState';
+import Card from '../components/Card';
+import SectionHeader from '../components/SectionHeader';
 
 // Quick due date choices, so nobody has to type a date by hand. Next sweldo
 // is the 15th or the end of the month, whichever comes first.
@@ -337,10 +339,10 @@ export default function Receivables() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.totalCard}>
+        <Card variant="hero" style={styles.totalCard}>
           <Text style={styles.kicker}>TOTAL OWED TO YOU</Text>
           <Text style={styles.total} accessibilityLabel={`${formatMoney(owedTotal)} pesos`}>{formatMoney(owedTotal)}</Text>
-        </View>
+        </Card>
 
         {/* The barkada flow: split one bill into your expense plus an utang
             per friend, all in one pass. */}
@@ -355,7 +357,9 @@ export default function Receivables() {
         {list.length === 0 ? (
           <EmptyState icon="🤝" title="No one owes you" subtitle="Tap + Add to track money owed to you." />
         ) : (
-          groups.map((g) => (
+          <>
+          <SectionHeader title="WHO OWES YOU" />
+          {groups.map((g) => (
             <View key={g.key} style={styles.group}>
               <Pressable
                 onPress={() =>
@@ -381,7 +385,7 @@ export default function Receivables() {
                 const remaining = remainingOf(r);
                 const partial = !r.paid && paidSum(r) > 0;
                 return (
-                  <View key={r.id} style={[styles.card, r.paid && styles.cardPaid]}>
+                  <Card key={r.id} variant="flat" style={[styles.cardGap, r.paid && styles.cardPaid]}>
                     <Pressable onPress={() => openEdit(r)} style={styles.cardMain}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.person}>
@@ -459,11 +463,12 @@ export default function Receivables() {
                         ))}
                       </View>
                     ) : null}
-                  </View>
+                  </Card>
                 );
               })}
             </View>
-          ))
+          ))}
+          </>
         )}
       </ScrollView>
 
@@ -544,7 +549,8 @@ function makeStyles(colors) {
     add: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
 
-    totalCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
+    // The hero surface (radius, border, padding, lift) is owned by <Card variant="hero">; this only sets the gap below it.
+    totalCard: { marginBottom: spacing.lg },
     splitBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -575,7 +581,8 @@ function makeStyles(colors) {
     logBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
     logBtnText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
 
-    card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
+    // The card surface is owned by <Card variant="flat">; this only sets the gap below each utang card.
+    cardGap: { marginBottom: spacing.md },
     cardPaid: { opacity: 0.6 },
     cardMain: { flexDirection: 'row', alignItems: 'center' },
     person: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
@@ -585,7 +592,7 @@ function makeStyles(colors) {
     amountPaid: { color: colors.muted },
     actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
     pressed: { opacity: 0.6 },
-    remindBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+    remindBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.md },
     remindText: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.medium },
     paidBtn: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
     paidBtnText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
