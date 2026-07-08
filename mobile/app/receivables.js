@@ -81,7 +81,7 @@ export default function Receivables() {
     const key = r.personId || `name:${String(r.person || '').trim().toLowerCase()}`;
     let g = groupIndex.get(key);
     if (!g) {
-      g = { key, name: nameOf(r), items: [], owed: 0 };
+      g = { key, name: nameOf(r), personId: r.personId || '', items: [], owed: 0 };
       groupIndex.set(key, g);
       groups.push(g);
     }
@@ -357,12 +357,26 @@ export default function Receivables() {
         ) : (
           groups.map((g) => (
             <View key={g.key} style={styles.group}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.groupName}>{g.name}</Text>
-                <Text style={[styles.groupOwed, g.owed === 0 && styles.groupSettled]}>
-                  {g.owed > 0 ? `owes ${formatMoney(g.owed)}` : 'all settled'}
-                </Text>
-              </View>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/person',
+                    params: g.personId ? { id: g.personId } : { name: g.name },
+                  })
+                }
+                style={({ pressed }) => [styles.groupHeader, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel={`${g.name}, ${g.owed > 0 ? `owes ${formatMoney(g.owed)} pesos` : 'all settled'}`}
+                accessibilityHint="Opens this person's full ledger"
+              >
+                <Text style={styles.groupName} numberOfLines={1}>{g.name}</Text>
+                <View style={styles.groupRight}>
+                  <Text style={[styles.groupOwed, g.owed === 0 && styles.groupSettled]}>
+                    {g.owed > 0 ? `owes ${formatMoney(g.owed)}` : 'all settled'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                </View>
+              </Pressable>
               {g.items.map((r) => {
                 const remaining = remainingOf(r);
                 const partial = !r.paid && paidSum(r) > 0;
@@ -546,8 +560,9 @@ function makeStyles(colors) {
     total: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs },
 
     group: { marginBottom: spacing.lg },
-    groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
-    groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
+    groupRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold, flex: 1 },
     groupOwed: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
     groupSettled: { color: colors.muted, fontWeight: fontWeight.regular },
     payHistory: { marginTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm },

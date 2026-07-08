@@ -661,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.59: bigger tap targets, screen reader labels, contrast</Text>
+            <Text style={styles.rowValue}>v3.60: tap a name for their ledger and a shareable statement</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
