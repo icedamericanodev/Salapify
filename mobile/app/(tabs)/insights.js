@@ -203,7 +203,7 @@ export default function Insights() {
     runwayLine = `About ${runway.monthsCovered} months covered. That is a strong cushion, well done.`;
   } else if (runway.monthsCovered >= 1) {
     runwayLine = `About ${runway.monthsCovered} ${moWord} covered. Building toward 3 to 6 months is real peace of mind.`;
-  } else if (runway.oneMonthTarget > runway.firstTarget) {
+  } else if (runway.buffer < runway.firstTarget && runway.oneMonthTarget > runway.firstTarget) {
     runwayLine = `Your ${formatMoney(runway.buffer)} covers under a month. Aim for your first ${formatMoney(runway.firstTarget)}, then one full month, about ${formatMoney(runway.oneMonthTarget)}.`;
   } else {
     runwayLine = `Your ${formatMoney(runway.buffer)} covers under a month. Aim for one full month, about ${formatMoney(runway.oneMonthTarget)}, to stop most surprises from becoming debt.`;

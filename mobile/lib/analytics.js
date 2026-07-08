@@ -417,16 +417,12 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
 //   { buffer, avgMonthlyExpense, monthsCovered, firstTarget, oneMonthTarget }
 export function emergencyRunway(data, ref = new Date()) {
   const d = data || {};
+  // Buffer is the accessible account money: cash, e-wallets, checking, and
+  // savings, but not illiquid assets. Goal saved amounts are a separate,
+  // independent number in this app (funding a goal never moves an account
+  // balance), so they are neither added nor subtracted here, no double count.
   const accountSum = (Array.isArray(d.accounts) ? d.accounts : []).reduce((t, a) => t + num(a && a.balance), 0);
-  // Money already earmarked for goals is not emergency money, and it usually
-  // sits inside the same account balances, so remove it to avoid counting it
-  // twice. A goal is earmarked up to its target (saved beyond target is spare).
-  const earmarked = (Array.isArray(d.goals) ? d.goals : []).reduce((t, g) => {
-    const target = num(g && g.target);
-    const saved = Math.max(0, num(g && g.saved));
-    return t + (target > 0 ? Math.min(saved, target) : saved);
-  }, 0);
-  const buffer = Math.max(0, accountSum - earmarked);
+  const buffer = Math.max(0, accountSum);
   // Typical monthly spend: the median of COMPLETED months that had any expense,
   // over the last 6. The median resists a one-off big month (tuition, a
   // hospital bill), and excluding the current partial month stops an early-in-

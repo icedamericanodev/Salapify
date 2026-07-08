@@ -657,7 +657,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.50: emergency fund runway, median spend and goal-aware</Text>
+            <Text style={styles.rowValue}>v3.51: emergency fund runway counts your full buffer</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
