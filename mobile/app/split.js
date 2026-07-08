@@ -144,7 +144,9 @@ export default function SplitBill() {
       return;
     }
     if (!shares || shares.invalid) {
-      setErr((shares && shares.invalid) || 'Check the shares.');
+      // The invalid reason already shows as a banner above the friend rows,
+      // so clear the bottom error to avoid the same message twice.
+      setErr(shares ? '' : 'Check the shares.');
       return;
     }
     const billLabel = label.trim() || 'Split bill';
@@ -286,47 +288,57 @@ export default function SplitBill() {
         {friends.length > 0 && totalOk ? (
           <View style={styles.card}>
             <Text style={styles.kicker}>THE SPLIT</Text>
-            {shares && !shares.invalid ? (
-              <>
-                <View style={styles.shareRow}>
-                  <Text style={styles.shareName}>You (paid the bill)</Text>
-                  <Text style={styles.shareAmt}>{formatMoney(shares.yours)}</Text>
+            {/* The friend rows always render, even when a share is invalid,
+                so the person can always fix or remove the bad entry. The
+                error shows as a banner above the rows, never in place of
+                them (that used to trap the user with no way out). */}
+            {shares && shares.invalid ? (
+              <Text style={styles.err}>{shares.invalid} Fix or remove a share below.</Text>
+            ) : shares ? (
+              <View style={styles.shareRow}>
+                <Text style={styles.shareName}>You (paid the bill)</Text>
+                <Text style={styles.shareAmt}>{formatMoney(shares.yours)}</Text>
+              </View>
+            ) : null}
+            {friends.map((f) => {
+              const editing = f.override !== null;
+              const row = shares && shares.rows ? shares.rows.find((r) => r.name === f.name) : null;
+              // Show the raw text being edited; otherwise the computed share
+              // when the split is valid, or empty while it is not.
+              const shown = editing ? String(f.override) : row ? String(row.amount) : '';
+              return (
+                <View key={f.name} style={styles.shareRow}>
+                  <View style={styles.shareLeft}>
+                    <Pressable
+                      onPress={() => removeFriend(f.name)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${f.name}`}
+                    >
+                      <Ionicons name="close-circle" size={18} color={colors.faint} />
+                    </Pressable>
+                    <Text style={styles.shareName} numberOfLines={1}>
+                      {f.name}
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={styles.shareInput}
+                    value={shown}
+                    onChangeText={(t) =>
+                      setFriends((fs) =>
+                        fs.map((x) => (x.name === f.name ? { ...x, override: t } : x))
+                      )
+                    }
+                    keyboardType="numeric"
+                  />
                 </View>
-                {shares.rows.map((r) => {
-                  const f = friends.find((x) => x.name === r.name);
-                  const editing = f && f.override !== null;
-                  return (
-                    <View key={r.name} style={styles.shareRow}>
-                      <View style={styles.shareLeft}>
-                        <Pressable onPress={() => removeFriend(r.name)} hitSlop={8}>
-                          <Ionicons name="close-circle" size={18} color={colors.faint} />
-                        </Pressable>
-                        <Text style={styles.shareName} numberOfLines={1}>
-                          {r.name}
-                        </Text>
-                      </View>
-                      <TextInput
-                        style={styles.shareInput}
-                        value={editing ? String(f.override) : String(r.amount)}
-                        onChangeText={(t) =>
-                          setFriends((fs) =>
-                            fs.map((x) => (x.name === r.name ? { ...x, override: t } : x))
-                          )
-                        }
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  );
-                })}
-                <Text style={styles.hint}>
-                  Equal split by default. Change anyone's share and your share becomes the remainder,
-                  so the total always matches the bill. Clear a box to put that person back on the
-                  equal share.
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.err}>{(shares && shares.invalid) || ''}</Text>
-            )}
+              );
+            })}
+            <Text style={styles.hint}>
+              Equal split by default. Change anyone's share and your share becomes the remainder,
+              so the total always matches the bill. Clear a box to put that person back on the
+              equal share.
+            </Text>
           </View>
         ) : null}
 
