@@ -74,7 +74,7 @@ export default function TreatCard() {
       </Pressable>
 
       <Pressable onPress={() => router.push('/treats')} style={styles.body}>
-        <Text style={styles.emoji}>{pick.emoji}</Text>
+        <Text style={styles.emoji} importantForAccessibility="no">{pick.emoji}</Text>
         <View style={{ flex: 1 }}>
           <Text style={styles.treat}>{pick.treat}</Text>
           <View style={styles.dotsRow}>

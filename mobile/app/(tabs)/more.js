@@ -661,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.58: split bill no longer traps a bad share</Text>
+            <Text style={styles.rowValue}>v3.59: bigger tap targets, screen reader labels, contrast</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -696,7 +696,7 @@ export default function More() {
       {/* Data tool modal. */}
       <Modal visible={!!tool} transparent animationType="slide" onRequestClose={() => setTool(null)}>
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
+          <View style={styles.sheet} accessibilityViewIsModal={true}>
             <Text style={styles.sheetTitle}>{tool ? titleByMode[tool.mode] : ''}</Text>
             <Text style={styles.sheetHint}>
               {isReadOnly
@@ -739,7 +739,7 @@ export default function More() {
       {/* Preferences modal. */}
       <Modal visible={!!pref} transparent animationType="slide" onRequestClose={() => setPref(null)}>
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
+          <View style={styles.sheet} accessibilityViewIsModal={true}>
             {pref?.mode === 'currency' ? (
               <>
                 <Text style={styles.sheetTitle}>Currency</Text>
@@ -855,7 +855,15 @@ export default function More() {
                     </View>
                   </>
                 ) : null}
-                {pref.err ? <Text style={styles.prefErr}>{pref.err}</Text> : null}
+                {pref.err ? (
+                  <Text
+                    style={styles.prefErr}
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="assertive"
+                  >
+                    Error: {pref.err}
+                  </Text>
+                ) : null}
                 <View style={styles.sheetButtons}>
                   <Pressable onPress={() => setPref(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
                     <Text style={styles.cancelText}>Cancel</Text>
@@ -876,7 +884,12 @@ export default function More() {
                       <Text style={styles.rowLabel}>{q.label}</Text>
                       <View style={styles.qaRight}>
                         <Text style={styles.rowValue}>{formatMoney(q.amount)}</Text>
-                        <Pressable onPress={() => removeQuickAdd(i)} hitSlop={8}>
+                        <Pressable
+                          onPress={() => removeQuickAdd(i)}
+                          hitSlop={14}
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove quick add button"
+                        >
                           <Ionicons name="close" size={16} color={colors.faint} />
                         </Pressable>
                       </View>

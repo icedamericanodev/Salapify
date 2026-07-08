@@ -100,7 +100,7 @@ export default function WeekChain({ transactions }) {
                 { transform: [{ scale: scales[i] }] },
               ]}
             >
-              {d.done ? <Text style={styles.check}>✓</Text> : null}
+              {d.done ? <Text style={styles.check} importantForAccessibility="no">✓</Text> : null}
             </Animated.View>
             <Text style={[styles.letter, d.isToday && styles.letterToday]}>{d.letter}</Text>
           </View>

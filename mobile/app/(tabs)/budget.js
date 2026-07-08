@@ -284,7 +284,9 @@ export default function Budget() {
                         setReceiptDead(false);
                         setReceiptView(resolveReceipt(e.receiptUri));
                       }}
-                      hitSlop={8}
+                      hitSlop={14}
+                      accessibilityRole="button"
+                      accessibilityLabel="View receipt"
                     >
                       <Text style={styles.receiptIcon}>🧾</Text>
                     </Pressable>
@@ -292,7 +294,13 @@ export default function Budget() {
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'expense' ? colors.text : colors.muted }]}>
                     {e.type === 'income' ? '+' : e.type === 'transfer' ? '⇄' : '-'} {formatMoney(e.amount)}
                   </Text>
-                  <Pressable onPress={() => deleteEntry(e)} hitSlop={8} style={styles.trash}>
+                  <Pressable
+                    onPress={() => deleteEntry(e)}
+                    hitSlop={14}
+                    style={styles.trash}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${e.label}`}
+                  >
                     <Ionicons name="close" size={16} color={colors.faint} />
                   </Pressable>
                 </View>
@@ -305,6 +313,7 @@ export default function Budget() {
       {/* Logged toast with Undo, springs in from the bottom. */}
       {toast ? (
         <Animated.View
+          accessibilityLiveRegion="assertive"
           style={[
             styles.toast,
             {
@@ -315,7 +324,7 @@ export default function Budget() {
             },
           ]}
         >
-          <Text style={styles.toastText} numberOfLines={1}>
+          <Text style={styles.toastText}>
             {toast.text}
           </Text>
           <Pressable onPress={undoToast} hitSlop={12} style={styles.toastBtn}>

@@ -260,7 +260,13 @@ export default function Overview() {
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.subgreeting}>Here is your money today</Text>
           </View>
-          <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={10}
+            style={styles.searchBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Search"
+          >
             <Ionicons name="search" size={22} color={colors.text} />
           </Pressable>
           <Mascot size={62} state={panState} />
@@ -356,7 +362,12 @@ export default function Overview() {
           <View style={[styles.coachCard, styles[`coach_${checkIn.tone}`]]}>
             <View style={styles.coachHead}>
               <Text style={styles.coachKicker}>THIS WEEK</Text>
-              <Pressable onPress={dismissCoach} hitSlop={10}>
+              <Pressable
+                onPress={dismissCoach}
+                hitSlop={14}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss"
+              >
                 <Ionicons name="close" size={16} color={colors.faint} />
               </Pressable>
             </View>
@@ -414,12 +425,20 @@ export default function Overview() {
         <Pressable
           onPress={() => router.push('/accounts')}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`Net worth ${formatMoney(netWorth)}. Opens accounts.`}
         >
           <View style={styles.cardHead}>
             <Text style={styles.kicker}>NET WORTH</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </View>
-          <Text style={styles.netWorth} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            style={styles.netWorth}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            accessibilityLabel={`${formatMoney(netWorth)} pesos`}
+          >
             {formatMoney(netWorth)}
           </Text>
           {showPeak ? (
@@ -434,7 +453,7 @@ export default function Overview() {
                 },
               ]}
             >
-              <Text style={styles.peakText}>New peak 📈 Angat ka ngayon.</Text>
+              <Text style={styles.peakText} importantForAccessibility="no">New peak 📈 Angat ka ngayon.</Text>
             </Animated.View>
           ) : null}
           <View style={styles.splitRow}>
@@ -457,6 +476,9 @@ export default function Overview() {
         <Pressable
           onPress={() => router.push('/budget')}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`Cash flow this month ${formatMoney(cashFlow)}. Opens budget.`}
         >
           <View style={styles.cardHead}>
             <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
@@ -467,6 +489,7 @@ export default function Overview() {
               styles.cashFlow,
               { color: cashFlow >= 0 ? colors.primary : colors.warning },
             ]}
+            accessibilityLabel={`${formatMoney(cashFlow)} pesos`}
           >
             {cashFlow >= 0 ? '+' : ''}
             {formatMoney(cashFlow)}
@@ -500,6 +523,9 @@ export default function Overview() {
         <Pressable
           onPress={() => router.push('/receivables')}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`People who owe me ${formatMoney(owedToMe)}. Opens receivables.`}
         >
           <View style={styles.cardHead}>
             <Text style={styles.kicker}>PEOPLE WHO OWE ME</Text>
@@ -564,6 +590,9 @@ export default function Overview() {
               key={link.href}
               onPress={() => router.push(link.href)}
               style={({ pressed }) => [styles.linkCard, pressed && styles.pressed]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${link.label}`}
             >
               <Ionicons name={link.icon} size={22} color={colors.primary} />
               <Text style={styles.linkLabel}>{link.label}</Text>
@@ -577,7 +606,7 @@ export default function Overview() {
       {/* Quick salary entry for the sweldo plan. */}
       <Modal visible={salaryModal} transparent animationType="slide" onRequestClose={() => setSalaryModal(false)}>
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
+          <View style={styles.sheet} accessibilityViewIsModal={true}>
             <Text style={styles.sheetTitle}>Log your sweldo</Text>
             <Text style={styles.fieldLabel}>Amount</Text>
             <TextInput
@@ -589,7 +618,15 @@ export default function Overview() {
               keyboardType="numeric"
               autoFocus
             />
-            {salaryErr ? <Text style={styles.err}>{salaryErr}</Text> : null}
+            {salaryErr ? (
+              <Text
+                style={styles.err}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+              >
+                Error: {salaryErr}
+              </Text>
+            ) : null}
             {data.accounts.length > 0 ? (
               <>
                 <Text style={styles.fieldLabel}>Into which account?</Text>

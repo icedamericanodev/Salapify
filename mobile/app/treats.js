@@ -101,7 +101,13 @@ export default function Treats() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.headerBar}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Earn your treats</Text>
@@ -177,9 +183,21 @@ export default function Treats() {
 
             <Text style={styles.label}>Check-ins to earn it</Text>
             <View style={styles.stepperRow}>
-              <Pressable onPress={() => setField('target', String(Math.max(1, (Number(form.target) || 3) - 1)))} style={styles.stepBtn}><Text style={styles.stepBtnText}>-</Text></Pressable>
+              <Pressable
+                onPress={() => setField('target', String(Math.max(1, (Number(form.target) || 3) - 1)))}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                style={styles.stepBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Fewer check-ins to earn"
+              ><Text style={styles.stepBtnText}>-</Text></Pressable>
               <Text style={styles.stepValue}>{Number(form.target) || 3}</Text>
-              <Pressable onPress={() => setField('target', String(Math.min(14, (Number(form.target) || 3) + 1)))} style={styles.stepBtn}><Text style={styles.stepBtnText}>+</Text></Pressable>
+              <Pressable
+                onPress={() => setField('target', String(Math.min(14, (Number(form.target) || 3) + 1)))}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                style={styles.stepBtn}
+                accessibilityRole="button"
+                accessibilityLabel="More check-ins to earn"
+              ><Text style={styles.stepBtnText}>+</Text></Pressable>
             </View>
 
             <Text style={styles.label}>Within</Text>
