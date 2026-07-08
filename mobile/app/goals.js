@@ -81,6 +81,7 @@ export default function Goals() {
     { icon: '🛟', name: 'Emergency fund', target: 10000 },
     { icon: '🎄', name: 'Pasko fund', target: 5000 },
     { icon: '✈️', name: 'Travel fund', target: 15000 },
+    { icon: '🩺', name: 'Health fund', target: 10000 },
   ];
   function openTemplate(t) {
     setForm({ id: null, name: t.name, target: String(t.target), saved: '', targetDate: '' });
