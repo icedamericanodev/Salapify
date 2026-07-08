@@ -16,6 +16,7 @@ import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, m
 import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import { weeklyCheckIn } from '../../lib/coach';
+import Card from '../../components/Card';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
 import TreatCard from '../../components/TreatCard';
@@ -384,7 +385,7 @@ export default function Overview() {
 
         {/* Safe to spend until sweldo: the daily-open number. */}
         {hasLiquid ? (
-          <View style={[styles.card, sts.available <= 0 && styles.safeTightCard]}>
+          <Card variant="hero" warning={sts.available <= 0} style={styles.heroGap}>
             <Text style={styles.kicker}>SAFE TO SPEND</Text>
             {sts.available > 0 ? (
               <>
@@ -418,13 +419,14 @@ export default function Overview() {
                     sts.liquid
                   )} spendable cash. Ease off until payday, or move some from savings.`}
             </Text>
-          </View>
+          </Card>
         ) : null}
 
         {/* Net worth headline. Tap to open Accounts. */}
-        <Pressable
+        <Card
+          variant="hero"
           onPress={() => router.push('/accounts')}
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          style={styles.heroGap}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Net worth ${formatMoney(netWorth)}. Opens accounts.`}
@@ -470,12 +472,13 @@ export default function Overview() {
               </Text>
             </View>
           </View>
-        </Pressable>
+        </Card>
 
         {/* This month's cash flow. Tap to open Budget. */}
-        <Pressable
+        <Card
+          variant="hero"
           onPress={() => router.push('/budget')}
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          style={styles.heroGap}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Cash flow this month ${formatMoney(cashFlow)}. Opens budget.`}
@@ -508,7 +511,7 @@ export default function Overview() {
               </Text>
             </View>
           </View>
-        </Pressable>
+        </Card>
 
         {/* Logging chain: filled dots for days you logged in the last week. */}
         <WeekChain transactions={data.transactions} />
@@ -574,13 +577,13 @@ export default function Overview() {
         ) : null}
 
         {/* Days to payday, glowing when it is close. */}
-        <View style={[styles.card, paydaySoon && styles.paydaySoonCard]}>
+        <Card variant="hero" style={[styles.heroGap, paydaySoon && styles.paydaySoonCard]}>
           <Text style={styles.kicker}>DAYS TO PAYDAY</Text>
           <Text style={[styles.payday, paydaySoon && styles.paydaySoonNumber]}>
             {payday === 0 ? 'Today' : `${payday} ${payday === 1 ? 'day' : 'days'}`}
           </Text>
           <Text style={styles.smallLabel}>{paydayCopy}</Text>
-        </View>
+        </Card>
 
         {/* Quick links to the other tabs. */}
         <Text style={styles.sectionTitle}>QUICK LINKS</Text>
@@ -705,6 +708,10 @@ function makeStyles(colors) {
       marginBottom: spacing.lg,
     },
     cardPressed: { opacity: 0.7 },
+    // Hero cards are now the shared <Card> component, which owns its own
+    // surface, radius, padding, and depth. The parent only supplies the gap
+    // below each one, so the vertical rhythm matches the other cards.
+    heroGap: { marginBottom: spacing.lg },
     cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     kicker: {
       color: colors.softGreen,
@@ -721,7 +728,6 @@ function makeStyles(colors) {
       marginTop: spacing.xs,
       marginBottom: spacing.lg,
     },
-    safeTightCard: { borderColor: colors.warning },
     safeBig: {
       color: colors.primary,
       fontSize: fontSize.huge,

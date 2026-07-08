@@ -31,6 +31,7 @@ export const palettes = {
     dark: {
       background: '#1A130E',
       card: '#251A13',
+      surfaceRaised: '#2E211A', // one step lighter than card, for lifted hero surfaces
       border: '#3A2A20',
       primary: '#FF8A3D', // roasted orange: buttons, positive numbers, streaks
       softGreen: '#E9BC8E', // warm caramel kicker (legacy name, not green)
@@ -49,6 +50,7 @@ export const palettes = {
     light: {
       background: '#F7F1E7', // oat-milk latte cream
       card: '#FFFDF7',
+      surfaceRaised: '#FFFFFF', // pure white lifts above the cream background
       border: '#E7DCC9',
       primary: '#AE5019', // deep roasted orange, passes AA as money text on cream
       softGreen: '#8A5A2E', // warm brown kicker
@@ -69,6 +71,7 @@ export const palettes = {
     dark: {
       background: '#101E15',
       card: '#1A2C20',
+      surfaceRaised: '#22382A',
       border: '#33503D',
       primary: '#FFA45C', // light orange: buttons, positive numbers
       softGreen: '#E8B98B', // kicker labels, soft peach
@@ -87,6 +90,7 @@ export const palettes = {
     light: {
       background: '#F6F1E7', // warm cream
       card: '#FFFCF5',
+      surfaceRaised: '#FFFFFF',
       border: '#E3DBC9',
       primary: '#B4581E', // burnt orange, passes AA as text on cream
       softGreen: '#7A5A2E', // warm brown kickers
@@ -107,6 +111,7 @@ export const palettes = {
     dark: {
       background: '#0B1210',
       card: '#141F1A',
+      surfaceRaised: '#1C2A23',
       border: '#23372E',
       primary: '#2FD48F',
       softGreen: '#86C7A8',
@@ -125,6 +130,7 @@ export const palettes = {
     light: {
       background: '#F2F7F4',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#DCE7E0',
       primary: '#157A5B',
       softGreen: '#2E7357',
@@ -147,6 +153,7 @@ export const palettes = {
     dark: {
       background: '#14102A',
       card: '#1E1840',
+      surfaceRaised: '#28214F',
       border: '#372C63',
       primary: '#A98BFF',
       softGreen: '#C9B7FF',
@@ -165,6 +172,7 @@ export const palettes = {
     light: {
       background: '#F5F2FF',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#E4DEF7',
       primary: '#6A34D6',
       softGreen: '#6E4FB0',
@@ -187,6 +195,7 @@ export const palettes = {
     dark: {
       background: '#0A121F',
       card: '#131F30',
+      surfaceRaised: '#1B2A3E',
       border: '#24374F',
       primary: '#2DD4E8',
       softGreen: '#7FC5D6',
@@ -205,6 +214,7 @@ export const palettes = {
     light: {
       background: '#F1F6FA',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#D8E4EC',
       primary: '#0A6E82',
       softGreen: '#2C6076',
@@ -227,6 +237,7 @@ export const palettes = {
     dark: {
       background: '#0A0B10',
       card: '#14161F',
+      surfaceRaised: '#1C1F2B',
       border: '#272B39',
       primary: '#4C8DFF',
       softGreen: '#94B5F2',
@@ -245,6 +256,7 @@ export const palettes = {
     light: {
       background: '#F3F5FA',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#DCE1EC',
       primary: '#1F5AD6',
       softGreen: '#3A5AA8',
@@ -267,6 +279,7 @@ export const palettes = {
     dark: {
       background: '#1B1613',
       card: '#271F1B',
+      surfaceRaised: '#322824',
       border: '#403129',
       primary: '#FF7A54',
       softGreen: '#F0B48A',
@@ -285,6 +298,7 @@ export const palettes = {
     light: {
       background: '#FBF4EE',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#EBDDD1',
       primary: '#C1401C',
       softGreen: '#9A5A2C',
@@ -307,6 +321,7 @@ export const palettes = {
     dark: {
       background: '#180E22',
       card: '#241634',
+      surfaceRaised: '#2E1D42',
       border: '#3D2755',
       primary: '#F268B0',
       softGreen: '#E0A8D6',
@@ -325,6 +340,7 @@ export const palettes = {
     light: {
       background: '#FAF2F8',
       card: '#FFFFFF',
+      surfaceRaised: '#FFFFFF',
       border: '#EBD9E8',
       primary: '#B01C6E',
       softGreen: '#8A3A78',
@@ -390,4 +406,33 @@ export const fontWeight = {
   medium: '600',
   bold: '700',
   heavy: '800',
+};
+
+// Elevation: three named, cross-platform depth levels. iOS reads the shadow*
+// fields, Android reads elevation, so one object covers both. shadowColor is a
+// dark, palette-neutral warm black so the soft shadow never tints a theme.
+// Note: shadows barely show on the dark espresso backgrounds, so on dark
+// themes real layering comes from surfaceRaised (a lighter card surface), not
+// from the shadow. The Card component pairs these together.
+//  - flat: no shadow at all, the surface leans on its border to separate.
+//  - raised: soft lift for cards and hero money panels.
+//  - overlay: a stronger lift for sheets and floating layers.
+export const elevation = {
+  flat: {},
+  raised: {
+    // Tuned so the lift is visible even in light mode on a mid range Android,
+    // where a fainter shadow reads as flat. Still soft, never a heavy drop.
+    shadowColor: '#0B0705',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  overlay: {
+    shadowColor: '#0B0705',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+    elevation: 12,
+  },
 };

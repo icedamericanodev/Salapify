@@ -244,7 +244,7 @@ export default function Insights() {
           <Text style={styles.kicker}>INCOME VS SPENDING ({monthLabel().toUpperCase()})</Text>
           <View style={styles.cardBody}>
             <HBar label="In" amount={moneyIn} max={inOutMax} color={colors.primary} />
-            <HBar label="Out" amount={moneyOut} max={inOutMax} color={colors.warning} />
+            <HBar label="Out" amount={moneyOut} max={inOutMax} color={colors.textSecondary} />
           </View>
         </View>
 
