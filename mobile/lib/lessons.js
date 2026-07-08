@@ -128,6 +128,20 @@ export const LESSONS = [
       'This is awareness, not tax advice, and Salapify does not file anything for you. Deadlines can shift when they land on a weekend or holiday, so confirm with the BIR or a licensed accountant before you file.',
     ],
   },
+  {
+    id: 'health-is-wealth',
+    title: 'Health is wealth, literally',
+    emoji: '🩺',
+    minutes: 2,
+    summary: 'Why taking care of your body protects your money too.',
+    body: [
+      'The fastest way to lose years of ipon is one serious illness. A hospital stay, a maintenance medicine, an emergency operation, these can wipe out savings that took a long time to build. So looking after your health is not separate from your money, it is part of it.',
+      'The cheapest health peso you will ever spend is the one that prevents a big bill later. A checkup that catches something early, staying active, sleeping enough, eating a little better, these quietly protect your finances by keeping the huge bills away. Think of it as a return on investment you cannot see, the crisis that never happened.',
+      'Two shields work together. The first is your emergency fund, money ready for the surprise. The second is your health itself, which decides how often the surprise comes. Building both is how you stop one bad week from undoing years of work. Salapify tracks the money shield for you on Insights, as your emergency fund runway.',
+      'If your job offers an HMO or health card, use it, that is real value you already have. Beyond that, a small monthly amount set aside for health, a Health fund goal here in the app, means a checkup or a medicine is a planned cost, not a panic.',
+      'Spending on your health is not gastos to feel guilty about. A gym, a doctor, decent food, these are among the smartest money you spend, because they lower the odds of the one bill big enough to hurt.',
+    ],
+  },
 ];
 
 // The lesson to feature today, rotating by the day of the year so it is stable
