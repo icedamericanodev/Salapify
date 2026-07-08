@@ -97,7 +97,7 @@ export default function SalaryCalculator() {
         </Text>
         {nonTaxAllowNum > 12000 ? (
           <Text style={styles.warnHint}>
-            Heads up: most de minimis benefits max out around ₱10,000 to ₱12,000 a month combined. Anything above the BIR limits is actually taxable, so a large non-taxable amount here can overstate your take-home.
+            Heads up: each de minimis benefit has its own BIR ceiling. Amounts above those ceilings are not taxed right away, they first join the ₱90,000 a year cap together with your 13th month and other bonuses, and only the part above ₱90,000 gets taxed. A large non-taxable amount here can still overstate your take-home.
           </Text>
         ) : null}
 
