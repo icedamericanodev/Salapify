@@ -3,10 +3,10 @@
 // always. Pure content from lib/lessons.js, no network. The reading view is a
 // Modal, which is fine here because it holds no text input, so no keyboard.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
@@ -25,6 +25,17 @@ export default function Learn() {
   const featured = lessonOfTheDay(new Date());
 
   const [reading, setReading] = useState(null);
+
+  // Deep link from the weekly check-in: /learn?focus=<lessonId> opens that
+  // lesson straight away, so the contextual nudge lands the user on the exact
+  // read, not just the list.
+  const { focus } = useLocalSearchParams();
+  useEffect(() => {
+    if (!focus) return;
+    const l = LESSONS.find((x) => x.id === focus);
+    if (l) openLesson(l);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   function openLesson(l) {
     setReading(l);

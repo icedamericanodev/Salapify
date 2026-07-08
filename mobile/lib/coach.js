@@ -146,6 +146,36 @@ export function weeklyCheckIn(data, ref = new Date()) {
     }
   }
 
+  // A contextual lesson or tool, tied to the user's real situation, so a calm
+  // week becomes a learning moment instead of a blank all-clear. Low priority
+  // on purpose: any real money decision above always wins, and only one lesson
+  // is offered, the most relevant. Never a product pitch, just education.
+  const debts = d.debts || [];
+  const hasCard = debts.some((x) => x && x.type === 'credit card' && num(x.remaining) > 0);
+  const hasBnpl = debts.some((x) => x && x.type === 'bnpl' && num(x.remaining) > 0);
+  const hasReceivables = !!(u.people && u.people.length > 0);
+  const yearEnd = ref.getMonth() === 10 || ref.getMonth() === 11; // Nov or Dec
+  let lesson = null;
+  if (yearEnd) {
+    lesson = { prio: 45, id: 'thirteenth-month', title: 'Make your 13th month count', message: 'Sweldo season is here. A short read on making your 13th month pay actually last, so it does not vanish by January.' };
+  } else if (hasCard) {
+    lesson = { prio: 40, id: 'card-interest', title: 'Beat the minimum payment trap', message: 'You are carrying a card balance. A two minute read on how paying only the minimum quietly grows what you owe, and the one rule that stops it.' };
+  } else if (hasBnpl) {
+    lesson = { prio: 38, id: 'bnpl', title: 'Keep BNPL from piling up', message: 'You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one sweldo can cover.' };
+  } else if (hasReceivables) {
+    lesson = { prio: 34, id: 'utang-friends', title: 'Collect utang the kind way', message: 'People owe you. A short read on getting paid back without losing the friendship.' };
+  }
+  if (lesson) {
+    cands.push({
+      prio: lesson.prio,
+      kind: 'lesson',
+      tone: 'nudge',
+      title: lesson.title,
+      message: lesson.message,
+      action: { label: 'Read the lesson', route: `/learn?focus=${lesson.id}` },
+    });
+  }
+
   cands.sort((a, b) => b.prio - a.prio);
   const week = weekKey(ref);
   if (cands.length) {
