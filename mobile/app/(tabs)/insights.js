@@ -20,6 +20,7 @@ import {
   forecastMonthEnd,
   healthScore,
   safeToSpend,
+  emergencyRunway,
   utangAging,
   goalPace,
 } from '../../lib/analytics';
@@ -183,6 +184,27 @@ export default function Insights() {
     }
   }
 
+  // Emergency fund runway: how long your accessible money would last. Free and
+  // near the top, because a buffer is the CFP foundation everything else rests
+  // on. The line meets the user where they are: no history, building the first
+  // month, or already cushioned.
+  const runway = emergencyRunway(data);
+  const showRunway = runway.buffer > 0 || runway.monthsCovered != null;
+  let runwayLine = '';
+  if (runway.monthsCovered == null) {
+    runwayLine = runway.buffer > 0
+      ? `You have ${formatMoney(runway.buffer)} set aside. Log a month of spending and I will show how long it would last.`
+      : 'An emergency fund keeps a surprise from becoming utang. Even your first 10,000 helps.';
+  } else if (runway.buffer < runway.firstTarget) {
+    runwayLine = `Your ${formatMoney(runway.buffer)} covers about ${runway.monthsCovered} ${runway.monthsCovered === 1 ? 'month' : 'months'}. Aim for your first ${formatMoney(runway.firstTarget)}, then one full month, about ${formatMoney(runway.oneMonthTarget)}.`;
+  } else if (runway.monthsCovered < 1) {
+    runwayLine = `You are close to one month covered. Getting to a full month, about ${formatMoney(runway.oneMonthTarget)}, stops most surprises from becoming debt.`;
+  } else if (runway.monthsCovered < 3) {
+    runwayLine = `About ${runway.monthsCovered} months covered. Building toward 3 to 6 months is real peace of mind.`;
+  } else {
+    runwayLine = `About ${runway.monthsCovered} months covered. That is a strong cushion, well done.`;
+  }
+
   // Utang, aged: who owes you, oldest debt first. The brand wedge, so it is
   // free, not Pro. Bars scale to the biggest single balance.
   const utang = utangAging(data);
@@ -309,6 +331,26 @@ export default function Insights() {
               </View>
             </View>
             {committedLine ? <Text style={styles.insightLine}>{committedLine}</Text> : null}
+          </View>
+        ) : null}
+
+        {showRunway ? (
+          <View style={styles.card}>
+            <Text style={styles.kicker}>EMERGENCY FUND RUNWAY</Text>
+            {runway.monthsCovered != null ? (
+              <>
+                <Text style={styles.runwayValue}>
+                  {runway.monthsCovered} {runway.monthsCovered === 1 ? 'month' : 'months'} covered
+                </Text>
+                <View style={styles.propBar}>
+                  <View style={{ width: `${Math.max(Math.min(runway.monthsCovered / 3, 1) * 100, 1)}%`, backgroundColor: colors.primary }} />
+                </View>
+                <Text style={styles.runwaySub}>Goal: 3 to 6 months of expenses</Text>
+              </>
+            ) : (
+              <Text style={styles.runwayValue}>{formatMoney(runway.buffer)} set aside</Text>
+            )}
+            {runwayLine ? <Text style={styles.insightLine}>{runwayLine}</Text> : null}
           </View>
         ) : null}
 
@@ -595,6 +637,8 @@ function makeStyles(colors) {
     legendLabel: { color: colors.textSecondary, fontSize: fontSize.small, flexShrink: 1 },
     legendVal: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
     insightLine: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 20, marginTop: spacing.lg },
+    runwayValue: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.md },
+    runwaySub: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.sm },
 
     hbarRow: { flexDirection: 'row', alignItems: 'center' },
     hbarLabel: { color: colors.textSecondary, fontSize: fontSize.small, width: 92 },

@@ -408,6 +408,30 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
 // savings rate (35), budget adherence (25), debt load vs assets (25), and
 // logging consistency over the last 14 days (15). Returns the total and
 // the parts so the screen can explain itself.
+// Emergency fund runway: how many months of typical spending your accessible
+// money would cover. The buffer is every account balance, cash, e-wallets,
+// checking, and savings, since an emergency fund is money you can actually
+// reach; it excludes illiquid assets like property. Typical monthly spend is
+// the average of the months that had any expense over the last 6, so a new user
+// with no history gets null instead of a made-up number. Returns:
+//   { buffer, avgMonthlyExpense, monthsCovered, firstTarget, oneMonthTarget }
+export function emergencyRunway(data, ref = new Date()) {
+  const d = data || {};
+  const buffer = (Array.isArray(d.accounts) ? d.accounts : []).reduce((t, a) => t + num(a && a.balance), 0);
+  const months = monthlySeries(Array.isArray(d.transactions) ? d.transactions : [], 6, ref).filter((m) => m.expenses > 0);
+  const avgMonthlyExpense = months.length
+    ? months.reduce((t, m) => t + m.expenses, 0) / months.length
+    : 0;
+  const monthsCovered = avgMonthlyExpense > 0 ? Math.round((buffer / avgMonthlyExpense) * 10) / 10 : null;
+  return {
+    buffer: Math.round(buffer),
+    avgMonthlyExpense: Math.round(avgMonthlyExpense),
+    monthsCovered,
+    firstTarget: 10000,
+    oneMonthTarget: Math.round(avgMonthlyExpense),
+  };
+}
+
 export function healthScore(data, ref = new Date()) {
   const rate = savingsRate(data.transactions, data.payments, ref);
   const ratePts = rate === null ? 0 : Math.round(Math.max(0, Math.min(rate / 0.3, 1)) * 35);
