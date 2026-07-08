@@ -202,7 +202,7 @@ export default function Onboarding() {
                 <Text style={styles.heading}>You are all set.</Text>
                 <Text style={styles.body}>
                   The app is empty and ready. Add your accounts, log your first
-                  entry, and your streak starts today.
+                  entry, and your chain starts today.
                 </Text>
 
                 <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
