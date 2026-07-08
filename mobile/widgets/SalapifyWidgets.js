@@ -127,12 +127,20 @@ export function YouOweWidget({ amount = 0, count = 0, symbol = '₱' }) {
 export function SavedMonthWidget({ income = 0, spent = 0, symbol = '₱' }) {
   const saved = income - spent;
   const rate = income > 0 ? Math.round((saved / income) * 100) : null;
+  // A tight month is not a failure. Show the number honestly, but keep the
+  // over-spend calm (no alarm red, no "short") so the widget never shames.
   return (
     <Card
       kicker="SAVED THIS MONTH"
-      big={saved >= 0 ? money(saved, symbol) : money(saved, symbol) + ' short'}
-      bigColor={saved >= 0 ? GOOD : WARN}
-      sub={rate != null ? rate + '% of income kept' : 'Log income to see your rate'}
+      big={saved >= 0 ? money(saved, symbol) : money(-saved, symbol) + ' over'}
+      bigColor={saved >= 0 ? GOOD : TEXT}
+      sub={
+        rate != null
+          ? saved >= 0
+            ? rate + '% of income kept'
+            : 'A tight month. A fresh start tomorrow.'
+          : 'Log income to see your rate'
+      }
     />
   );
 }
@@ -162,14 +170,21 @@ export function GoalWidget({ name = '', pct = 0, left = 0, symbol = '₱' }) {
   );
 }
 
-// 10. The logging streak, the habit engine.
-export function StreakWidget({ streak = 0, loggedToday = false }) {
+// 10. The logging habit. A lifetime days-logged total that never resets, plus
+// the rolling last-7 count, so a missed day never wipes progress or shames.
+export function StreakWidget({ totalLogged = 0, weekCount = 0, loggedToday = false }) {
   return (
     <Card
-      kicker="LOGGING STREAK"
-      big={streak > 0 ? streak + (streak === 1 ? ' day' : ' days') : 'Start today'}
-      bigColor={streak > 0 ? ORANGE : TEXT}
-      sub={loggedToday ? 'Logged today, keep it up' : streak > 0 ? 'Log today to keep the streak' : 'Log once to begin your chain'}
+      kicker="DAYS LOGGED"
+      big={totalLogged > 0 ? totalLogged + (totalLogged === 1 ? ' day' : ' days') : 'Start today'}
+      bigColor={totalLogged > 0 ? ORANGE : TEXT}
+      sub={
+        totalLogged <= 0
+          ? 'Log once to begin your chain'
+          : loggedToday
+          ? `Logged today. ${weekCount} of the last 7.`
+          : `${weekCount} of the last 7 days. A miss changes nothing.`
+      }
     />
   );
 }

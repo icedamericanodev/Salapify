@@ -184,15 +184,17 @@ export default function Onboarding() {
               <>
                 <Text style={styles.heading}>How do you want to start?</Text>
                 <Text style={styles.body}>
-                  The app comes with a little sample data so you can poke around
-                  and see how everything works. Or begin with a clean slate.
+                  Most people start clean and log their own money. The app also
+                  has a little sample data if you would rather look around first,
+                  but clear it before you add real entries so your totals stay
+                  correct.
                 </Text>
 
-                <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
-                  <Text style={styles.primaryText}>Explore with what is in the app</Text>
+                <Pressable onPress={() => finish(true)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+                  <Text style={styles.primaryText}>Start with a clean slate</Text>
                 </Pressable>
-                <Pressable onPress={() => finish(true)} style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}>
-                  <Text style={styles.secondaryText}>Start empty</Text>
+                <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}>
+                  <Text style={styles.secondaryText}>Explore the sample data first</Text>
                 </Pressable>
               </>
             ) : (
@@ -200,7 +202,7 @@ export default function Onboarding() {
                 <Text style={styles.heading}>You are all set.</Text>
                 <Text style={styles.body}>
                   The app is empty and ready. Add your accounts, log your first
-                  entry, and your streak starts today.
+                  entry, and your chain starts today.
                 </Text>
 
                 <Pressable onPress={() => finish(false)} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
