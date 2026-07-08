@@ -24,6 +24,8 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format';
+import Card from '../../components/Card';
+import SectionHeader from '../../components/SectionHeader';
 import EmptyState from '../../components/EmptyState';
 import WeekChain from '../../components/WeekChain';
 import LogSheet from '../../components/LogSheet';
@@ -183,7 +185,7 @@ export default function Budget() {
         <Text style={styles.pageTitle}>Budget</Text>
 
         {showDayOne ? (
-          <View style={[styles.card, styles.dayOneCard]}>
+          <Card variant="flat" padding="xl" style={[styles.cardGap, styles.dayOneCard]}>
             <Text style={styles.dayOneKicker}>NICE START 🎉</Text>
             <Text style={styles.dayOneText}>
               Three logs in. You already know more about your money today than
@@ -192,10 +194,10 @@ export default function Budget() {
             <Pressable onPress={() => updateSettings({ dayOneRecap: true })} hitSlop={8} style={styles.dayOneBtn}>
               <Text style={styles.dayOneBtnText}>Got it</Text>
             </Pressable>
-          </View>
+          </Card>
         ) : null}
 
-        <View style={styles.card}>
+        <Card variant="raised" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
           <Text style={styles.spent}>
             {formatMoney(spent)} <Text style={styles.ofLimit}>of {formatMoney(limit)}</Text>
@@ -208,11 +210,12 @@ export default function Budget() {
           <Text style={[styles.remaining, { color: over ? colors.warning : colors.muted }]}>
             {over ? `${formatMoney(-remaining)} over your limit` : `${formatMoney(remaining)} left to spend`}
           </Text>
-        </View>
+        </Card>
 
         {whereItWent.length > 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.kicker}>WHERE IT WENT</Text>
+          <>
+            <SectionHeader title="WHERE IT WENT" />
+            <Card variant="flat" padding="xl" style={styles.cardGap}>
             {whereItWent.map((w) => {
               const overCap = w.cap > 0 && w.amount > w.cap;
               const frac = w.cap > 0 ? Math.min(w.amount / w.cap, 1) : w.amount / whereMax;
@@ -239,12 +242,13 @@ export default function Budget() {
                 </View>
               );
             })}
-          </View>
+            </Card>
+          </>
         ) : null}
 
         <WeekChain transactions={data.transactions} />
 
-        <Text style={styles.sectionTitle}>QUICK ADD</Text>
+        <SectionHeader title="QUICK ADD" />
         <View style={styles.quickRow}>
           {quickAdds.map((item) => (
             <Pressable
@@ -264,18 +268,20 @@ export default function Budget() {
           </Pressable>
         </View>
 
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>RECENT</Text>
-          <Pressable onPress={() => router.push('/history')} hitSlop={8}>
-            <Text style={styles.seeAll}>See all</Text>
-          </Pressable>
-        </View>
-        <View style={styles.card}>
+        <SectionHeader
+          title="RECENT"
+          trailing={
+            <Pressable onPress={() => router.push('/history')} hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="See all history">
+              <Text style={styles.seeAll}>See all</Text>
+            </Pressable>
+          }
+        />
+        <Card variant="flat" padding="xl" style={styles.cardGap}>
           {recent.length === 0 ? (
             <EmptyState icon="🧾" title="Nothing logged yet" subtitle="Tap a quick add or + Custom to start." />
           ) : (
-            recent.slice(0, 12).map((e) => (
-              <View key={e.id} style={styles.row}>
+            recent.slice(0, 12).map((e, i, arr) => (
+              <View key={e.id} style={[styles.row, i === arr.length - 1 && styles.rowLast]}>
                 <Text style={styles.rowName}>{e.label}</Text>
                 <View style={styles.rowRight}>
                   {e.receiptUri ? (
@@ -307,7 +313,7 @@ export default function Budget() {
               </View>
             ))
           )}
-        </View>
+        </Card>
       </ScrollView>
 
       {/* Logged toast with Undo, springs in from the bottom. */}
@@ -366,7 +372,9 @@ function makeStyles(colors) {
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
     pageTitle: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.heavy, marginBottom: spacing.md },
 
-    card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
+    // Every surface on this screen is the shared <Card> now; this only supplies
+    // the even gap below each one, since Card owns surface, radius, and padding.
+    cardGap: { marginBottom: spacing.lg },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
     wentRow: { marginTop: spacing.md },
     wentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs, gap: spacing.sm },
@@ -385,9 +393,7 @@ function makeStyles(colors) {
     fill: { height: '100%', borderRadius: radius.pill },
     remaining: { fontSize: fontSize.small, marginTop: spacing.sm },
 
-    sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
-    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingRight: spacing.xs },
-    seeAll: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
+    seeAll: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
     quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg },
     quick: {
       flexGrow: 1, flexBasis: '47%', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1,
@@ -401,6 +407,7 @@ function makeStyles(colors) {
     quickAmount: { color: colors.softGreen, fontSize: fontSize.body, fontWeight: fontWeight.bold },
 
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    rowLast: { borderBottomWidth: 0 },
     rowName: { color: colors.text, fontSize: fontSize.body, flex: 1 },
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     rowAmount: { fontSize: fontSize.body, fontWeight: fontWeight.bold },

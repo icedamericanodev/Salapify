@@ -17,6 +17,7 @@ import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import { weeklyCheckIn } from '../../lib/coach';
 import Card from '../../components/Card';
+import SectionHeader from '../../components/SectionHeader';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
 import TreatCard from '../../components/TreatCard';
@@ -276,7 +277,8 @@ export default function Overview() {
         {/* Sweldo plan: appears for 48 hours after each payday. Now a real
             allocation once the sweldo is logged, not just a checklist. */}
         {paydayKey && !planDone ? (
-          <Animated.View style={[styles.planCard, { transform: [{ scale: planPop }] }]}>
+          <Animated.View style={[styles.heroGap, { transform: [{ scale: planPop }] }]}>
+          <Card variant="raised" padding="xl" style={styles.planBorder}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>
               Payday! Plan this cycle before the money spends itself.
@@ -349,13 +351,14 @@ export default function Overview() {
               />
               <Text style={[styles.planLabel, planSteps.budget && styles.planLabelDone]}>Check your spending budget</Text>
             </Pressable>
+          </Card>
           </Animated.View>
         ) : null}
         {paydayKey && planDone ? (
-          <View style={styles.planCard}>
+          <Card variant="raised" padding="xl" style={[styles.heroGap, styles.planBorder]}>
             <Text style={styles.planKicker}>SWELDO PLAN</Text>
             <Text style={styles.planSub}>All three done. This cycle is planned. Nice one. ✅</Text>
-          </View>
+          </Card>
         ) : null}
 
         {/* The weekly check-in: one money move worth making this week. */}
@@ -523,9 +526,11 @@ export default function Overview() {
         <WeekRecap transactions={data.transactions} />
 
         {/* People who owe me, one tap from home. */}
-        <Pressable
+        <Card
+          variant="raised"
+          padding="xl"
           onPress={() => router.push('/receivables')}
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          style={styles.heroGap}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`People who owe me ${formatMoney(owedToMe)}. Opens receivables.`}
@@ -540,13 +545,13 @@ export default function Overview() {
               ? 'No one owes you right now.'
               : `${owedCount} ${owedCount === 1 ? 'person' : 'people'}. Tap to view or send a reminder.`}
           </Text>
-        </Pressable>
+        </Card>
 
         {/* Bills before the next sweldo, with a running balance. */}
         {billRows.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>BILLS BEFORE SWELDO</Text>
-            <View style={styles.card}>
+            <SectionHeader title="BILLS BEFORE SWELDO" />
+            <Card variant="flat" padding="xl" style={styles.heroGap}>
               {billRows.map((b, i) => (
                 <View key={i} style={[styles.dueRow, i > 0 && styles.dueDivider]}>
                   <View style={{ flex: 1 }}>
@@ -572,12 +577,12 @@ export default function Overview() {
                       -endBalance
                     )} more than your ${formatMoney(sts.liquid)} spendable cash. Move some from savings before they hit, or pay what you can.`}
               </Text>
-            </View>
+            </Card>
           </>
         ) : null}
 
         {/* Days to payday, glowing when it is close. */}
-        <Card variant="hero" style={[styles.heroGap, paydaySoon && styles.paydaySoonCard]}>
+        <Card variant="flat" style={[styles.heroGap, paydaySoon && styles.paydaySoonCard]}>
           <Text style={styles.kicker}>DAYS TO PAYDAY</Text>
           <Text style={[styles.payday, paydaySoon && styles.paydaySoonNumber]}>
             {payday === 0 ? 'Today' : `${payday} ${payday === 1 ? 'day' : 'days'}`}
@@ -586,20 +591,21 @@ export default function Overview() {
         </Card>
 
         {/* Quick links to the other tabs. */}
-        <Text style={styles.sectionTitle}>QUICK LINKS</Text>
+        <SectionHeader title="QUICK LINKS" />
         <View style={styles.linksRow}>
           {links.map((link) => (
-            <Pressable
+            <Card
               key={link.href}
+              variant="flat"
               onPress={() => router.push(link.href)}
-              style={({ pressed }) => [styles.linkCard, pressed && styles.pressed]}
+              style={styles.linkTile}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={`Open ${link.label}`}
             >
               <Ionicons name={link.icon} size={22} color={colors.primary} />
               <Text style={styles.linkLabel}>{link.label}</Text>
-            </Pressable>
+            </Card>
           ))}
         </View>
 
@@ -699,19 +705,13 @@ function makeStyles(colors) {
     greeting: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     subgreeting: { color: colors.muted, fontSize: fontSize.small, marginTop: 2 },
 
-    card: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: radius.lg,
-      padding: spacing.xl,
-      marginBottom: spacing.lg,
-    },
-    cardPressed: { opacity: 0.7 },
-    // Hero cards are now the shared <Card> component, which owns its own
-    // surface, radius, padding, and depth. The parent only supplies the gap
-    // below each one, so the vertical rhythm matches the other cards.
+    // Every card on this screen is now the shared <Card> component, which owns
+    // its own surface, radius, padding, and depth. The parent only supplies the
+    // gap below each one, so the vertical rhythm stays even.
     heroGap: { marginBottom: spacing.lg },
+    // The sweldo plan keeps its primary colored border on top of the raised
+    // surface, so it still reads as the one card asking for action this cycle.
+    planBorder: { borderColor: colors.primary },
     cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     kicker: {
       color: colors.softGreen,
@@ -781,27 +781,19 @@ function makeStyles(colors) {
     smallLabel: { color: colors.muted, fontSize: fontSize.caption },
     smallValue: { fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginTop: spacing.xs },
 
-    sectionTitle: {
-      color: colors.muted,
-      fontSize: fontSize.caption,
-      fontWeight: fontWeight.medium,
-      letterSpacing: 1.5,
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.xs,
-    },
     linksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-    linkCard: {
+    // The quick link tiles are flat <Card>s now; this only carries their layout
+    // (two per row) and keeps the tighter radius.md and vertical only padding, so
+    // the surface and border come from the shared component with no duplication.
+    linkTile: {
       flexGrow: 1,
       flexBasis: '47%', // two per row
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderWidth: 1,
       borderRadius: radius.md,
       paddingVertical: spacing.lg,
+      paddingHorizontal: 0,
       alignItems: 'center',
       gap: spacing.xs,
     },
-    pressed: { opacity: 0.6 },
     linkLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
 
     footnote: {
@@ -811,14 +803,6 @@ function makeStyles(colors) {
       marginTop: spacing.lg,
     },
 
-    planCard: {
-      backgroundColor: colors.card,
-      borderColor: colors.primary,
-      borderWidth: 1,
-      borderRadius: radius.lg,
-      padding: spacing.xl,
-      marginBottom: spacing.lg,
-    },
     planKicker: { color: colors.primary, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1.2 },
     planSub: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs, marginBottom: spacing.sm },
     planRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 },
