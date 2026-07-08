@@ -182,7 +182,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       graceDays: num(d.graceDays),
       creditLimit: num(d.creditLimit),
     })),
-    payments: dated(src.payments).map((p) => ({ ...p, amount: Math.max(0, num(p.amount)) })),
+    payments: dated(src.payments).map((p, i) => ({ ...p, id: str(p.id) || `pay_restored_${i}`, amount: Math.max(0, num(p.amount)) })),
     transactions: dated(src.transactions).map((t) => {
       const out = {
         ...t,
@@ -268,8 +268,12 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       note: str(r.note),
       amount: num(r.amount),
       paid: !!r.paid,
-      payments: cleanList(r.payments).map((p) => ({
+      payments: cleanList(r.payments).map((p, i) => ({
         ...p,
+        // A stable id per payment: removing one payment keys on this id, so a
+        // restored payment that lost its id must get one back, else remove
+        // would match every id-less row at once.
+        id: str(p.id) || `rpay_restored_${i}`,
         amount: Math.max(0, num(p.amount)),
         date: typeof p.date === 'string' && p.date ? p.date : stampDate,
       })),

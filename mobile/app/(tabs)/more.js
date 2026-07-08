@@ -661,7 +661,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.56: internal test suite, no visible change</Text>
+            <Text style={styles.rowValue}>v3.57: fix and undo utang payments, correct reminders</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

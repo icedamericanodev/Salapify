@@ -48,7 +48,7 @@ export default function Receivables() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
-  const { data, addItem, updateItem, removeItem, addTransaction } = useAppData();
+  const { data, addItem, updateItem, removeItem, addTransaction, removeTransaction } = useAppData();
 
   const [form, setForm] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -118,6 +118,17 @@ export default function Receivables() {
       setErr('Enter a valid amount.');
       return;
     }
+    // Editing the total below what is already paid would make "paid of
+    // total" read as nonsense and drop the utang out of the totals while
+    // still owing. Refuse it, and point at the real fix.
+    if (form.id) {
+      const existing = list.find((x) => x.id === form.id);
+      const already = existing ? paidSum(existing) : 0;
+      if (amount < already) {
+        setErr(`Already ${formatMoney(already)} paid on this. The amount cannot be lower than that. Remove a payment first if you need to.`);
+        return;
+      }
+    }
     // The date must be real, not just shaped right: 2026-02-30 rolls over
     // to March in JavaScript and reminders would fire on the wrong day.
     const dd = form.dueDate.trim();
@@ -163,19 +174,30 @@ export default function Receivables() {
       setConfirmDel(true);
       return;
     }
-    if (form.id) removeItem('receivables', form.id);
+    if (form.id) {
+      // Reverse every income entry this utang's payments posted, so a
+      // deleted receivable never leaves phantom income and an inflated
+      // balance behind. Payments logged before payment tracking carry no
+      // link, so there is nothing to reverse for those, which is honest.
+      const r = list.find((x) => x.id === form.id);
+      (r?.payments || []).forEach((p) => {
+        if (p.txnId) removeTransaction(p.txnId);
+      });
+      removeItem('receivables', form.id);
+    }
     setForm(null);
   }
 
   // Money coming back is real income, into the remembered account when
   // one is set, so cash flow and balances agree with what happened
-  // instead of the utang just silently vanishing.
+  // instead of the utang just silently vanishing. Returns the new
+  // transaction id so the payment can remember it and reverse it later.
   function postIncome(r, amount) {
-    if (amount <= 0) return;
+    if (amount <= 0) return '';
     const def = data.settings.defaultAccountId;
     const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
     const entry = { type: 'income', label: `${nameOf(r)} paid you back`, amount, date: todayISO() };
-    addTransaction(accountId ? { ...entry, accountId } : entry);
+    return addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
   // Stacked confirm dialogs or a double tap must not post a payment twice
@@ -192,16 +214,17 @@ export default function Receivables() {
 
   // Mark paid settles whatever is STILL owed after partial payments. One
   // tap writes a payment and an income entry, so it confirms first; a
-  // slip of the finger must not invent money received.
+  // slip of the finger must not invent money received. The settling
+  // payment remembers its income entry (txnId) so it can be reversed.
   function markPaid(r) {
     const remaining = remainingOf(r);
     const doIt = () => settleOnce(() => {
-      const payment = { id: genId('rpay'), amount: remaining, date: todayISO() };
-      updateItem('receivables', r.id, {
-        paid: true,
-        payments: remaining > 0 ? [...(r.payments || []), payment] : r.payments || [],
-      });
-      postIncome(r, remaining);
+      let payments = r.payments || [];
+      if (remaining > 0) {
+        const txnId = postIncome(r, remaining);
+        payments = [...payments, { id: genId('rpay'), amount: remaining, date: todayISO(), txnId }];
+      }
+      updateItem('receivables', r.id, { paid: true, payments });
     });
     const message =
       remaining > 0
@@ -230,22 +253,53 @@ export default function Receivables() {
     // payment rows on an already covered utang.
     if (applied <= 0) return;
     settleOnce(() => {
-      const payment = { id: genId('rpay'), amount: applied, date: todayISO() };
+      // Post the income first so the payment can remember its entry and
+      // reverse it if the user removes the payment later.
+      const txnId = postIncome(r, applied);
+      const payment = { id: genId('rpay'), amount: applied, date: todayISO(), txnId };
       updateItem('receivables', r.id, {
         payments: [...(r.payments || []), payment],
         paid: applied >= remaining,
       });
-      postIncome(r, applied);
       setPayFor(null);
       setPayAmt('');
     });
+  }
+
+  // Remove one logged payment: reverse its income entry (so the balance
+  // and cash flow correct themselves), drop the payment row, and reopen
+  // the utang if it was fully paid. This is the fix for a fat fingered
+  // amount, which used to be permanent.
+  function removePayment(r, payment) {
+    const doIt = () => settleOnce(() => {
+      if (payment.txnId) removeTransaction(payment.txnId);
+      const payments = (r.payments || []).filter((p) => p.id !== payment.id);
+      const newPaidSum = payments.reduce((t, p) => t + (Number(p.amount) || 0), 0);
+      // Fully covered stays paid; otherwise removing a payment reopens it.
+      const stillPaid = r.paid && newPaidSum >= (Number(r.amount) || 0);
+      updateItem('receivables', r.id, { payments, paid: stillPaid });
+    });
+    const message = payment.txnId
+      ? `Remove this ${formatMoney(payment.amount)} payment? Its income entry will be reversed too.`
+      : `Remove this ${formatMoney(payment.amount)} payment? It was logged before payment tracking, so no income entry is linked to reverse.`;
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(message)) doIt();
+      return;
+    }
+    Alert.alert('Remove payment?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: doIt },
+    ]);
   }
 
   // Opens the share sheet (SMS, WhatsApp, Messenger, email...) with a
   // friendly reminder already written, in English or Tagalog. You pick the
   // language, then the app, then tap send.
   function remind(r) {
-    const amount = formatMoney(r.amount);
+    // Remind for what is STILL owed after partial payments, never the
+    // original amount, so nobody gets dunned for money they already paid.
+    const remaining = remainingOf(r);
+    const amount = formatMoney(remaining > 0 ? remaining : r.amount);
     const english = `Hi ${r.person}! Friendly reminder about the ${amount} I lent you${
       r.dueDate ? ` (due ${r.dueDate})` : ''
     }. No rush, just don't forget me ha. Thank you!`;
@@ -363,6 +417,26 @@ export default function Receivables() {
                         ) : null}
                       </>
                     ) : null}
+                    {(r.payments || []).length > 0 ? (
+                      <View style={styles.payHistory}>
+                        <Text style={styles.payHistHead}>Payments</Text>
+                        {r.payments.map((p) => (
+                          <View key={p.id} style={styles.payHistRow}>
+                            <Text style={styles.payHistText}>
+                              {formatMoney(p.amount)} <Text style={styles.payHistDate}>· {p.date}</Text>
+                            </Text>
+                            <Pressable
+                              onPress={() => removePayment(r, p)}
+                              hitSlop={10}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Remove ${formatMoney(p.amount)} payment`}
+                            >
+                              <Ionicons name="close-circle-outline" size={18} color={colors.muted} />
+                            </Pressable>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
                   </View>
                 );
               })}
@@ -460,6 +534,11 @@ function makeStyles(colors) {
     groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     groupOwed: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
     groupSettled: { color: colors.muted, fontWeight: fontWeight.regular },
+    payHistory: { marginTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm },
+    payHistHead: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1, marginBottom: spacing.xs },
+    payHistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs },
+    payHistText: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.medium },
+    payHistDate: { color: colors.muted, fontWeight: fontWeight.regular },
     payRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'center' },
     payInput: { flex: 1 },
     logBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
