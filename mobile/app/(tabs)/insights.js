@@ -190,19 +190,23 @@ export default function Insights() {
   // month, or already cushioned.
   const runway = emergencyRunway(data);
   const showRunway = runway.buffer > 0 || runway.monthsCovered != null;
+  // Gate each rung on the real months-covered relationship, not the raw 10,000
+  // floor, so a low spender with several months covered is never told to start
+  // over, and a high spender with under a month is never called well covered.
+  const moWord = runway.monthsCovered === 1 ? 'month' : 'months';
   let runwayLine = '';
   if (runway.monthsCovered == null) {
     runwayLine = runway.buffer > 0
       ? `You have ${formatMoney(runway.buffer)} set aside. Log a month of spending and I will show how long it would last.`
       : 'An emergency fund keeps a surprise from becoming utang. Even your first 10,000 helps.';
-  } else if (runway.buffer < runway.firstTarget) {
-    runwayLine = `Your ${formatMoney(runway.buffer)} covers about ${runway.monthsCovered} ${runway.monthsCovered === 1 ? 'month' : 'months'}. Aim for your first ${formatMoney(runway.firstTarget)}, then one full month, about ${formatMoney(runway.oneMonthTarget)}.`;
-  } else if (runway.monthsCovered < 1) {
-    runwayLine = `You are close to one month covered. Getting to a full month, about ${formatMoney(runway.oneMonthTarget)}, stops most surprises from becoming debt.`;
-  } else if (runway.monthsCovered < 3) {
-    runwayLine = `About ${runway.monthsCovered} months covered. Building toward 3 to 6 months is real peace of mind.`;
-  } else {
+  } else if (runway.monthsCovered >= 3) {
     runwayLine = `About ${runway.monthsCovered} months covered. That is a strong cushion, well done.`;
+  } else if (runway.monthsCovered >= 1) {
+    runwayLine = `About ${runway.monthsCovered} ${moWord} covered. Building toward 3 to 6 months is real peace of mind.`;
+  } else if (runway.oneMonthTarget > runway.firstTarget) {
+    runwayLine = `Your ${formatMoney(runway.buffer)} covers under a month. Aim for your first ${formatMoney(runway.firstTarget)}, then one full month, about ${formatMoney(runway.oneMonthTarget)}.`;
+  } else {
+    runwayLine = `Your ${formatMoney(runway.buffer)} covers under a month. Aim for one full month, about ${formatMoney(runway.oneMonthTarget)}, to stop most surprises from becoming debt.`;
   }
 
   // Utang, aged: who owes you, oldest debt first. The brand wedge, so it is

@@ -417,18 +417,34 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
 //   { buffer, avgMonthlyExpense, monthsCovered, firstTarget, oneMonthTarget }
 export function emergencyRunway(data, ref = new Date()) {
   const d = data || {};
-  const buffer = (Array.isArray(d.accounts) ? d.accounts : []).reduce((t, a) => t + num(a && a.balance), 0);
-  const months = monthlySeries(Array.isArray(d.transactions) ? d.transactions : [], 6, ref).filter((m) => m.expenses > 0);
-  const avgMonthlyExpense = months.length
-    ? months.reduce((t, m) => t + m.expenses, 0) / months.length
-    : 0;
-  const monthsCovered = avgMonthlyExpense > 0 ? Math.round((buffer / avgMonthlyExpense) * 10) / 10 : null;
+  const accountSum = (Array.isArray(d.accounts) ? d.accounts : []).reduce((t, a) => t + num(a && a.balance), 0);
+  // Money already earmarked for goals is not emergency money, and it usually
+  // sits inside the same account balances, so remove it to avoid counting it
+  // twice. A goal is earmarked up to its target (saved beyond target is spare).
+  const earmarked = (Array.isArray(d.goals) ? d.goals : []).reduce((t, g) => {
+    const target = num(g && g.target);
+    const saved = Math.max(0, num(g && g.saved));
+    return t + (target > 0 ? Math.min(saved, target) : saved);
+  }, 0);
+  const buffer = Math.max(0, accountSum - earmarked);
+  // Typical monthly spend: the median of COMPLETED months that had any expense,
+  // over the last 6. The median resists a one-off big month (tuition, a
+  // hospital bill), and excluding the current partial month stops an early-in-
+  // the-month low total from overstating the runway.
+  const series = monthlySeries(Array.isArray(d.transactions) ? d.transactions : [], 7, ref);
+  const completed = series.slice(0, 6).map((mo) => mo.expenses).filter((x) => x > 0).sort((a, b) => a - b);
+  let typical = 0;
+  if (completed.length) {
+    const mid = Math.floor(completed.length / 2);
+    typical = completed.length % 2 ? completed[mid] : (completed[mid - 1] + completed[mid]) / 2;
+  }
+  const monthsCovered = typical > 0 ? Math.round((buffer / typical) * 10) / 10 : null;
   return {
     buffer: Math.round(buffer),
-    avgMonthlyExpense: Math.round(avgMonthlyExpense),
+    avgMonthlyExpense: Math.round(typical),
     monthsCovered,
     firstTarget: 10000,
-    oneMonthTarget: Math.round(avgMonthlyExpense),
+    oneMonthTarget: Math.round(typical),
   };
 }
 
