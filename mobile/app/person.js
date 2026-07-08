@@ -19,7 +19,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
@@ -28,12 +28,15 @@ import { useAppData } from '../context/AppData';
 import { formatMoney } from '../lib/format';
 import { buildPersonStatement, buildPersonReminder } from '../lib/statement';
 import EmptyState from '../components/EmptyState';
+import Card from '../components/Card';
+import SectionHeader from '../components/SectionHeader';
 
 export default function Person() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const { data, updateItem } = useAppData();
 
   const idParam = typeof params.id === 'string' ? params.id : '';
@@ -151,8 +154,8 @@ export default function Person() {
         />
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.content}>
-            <View style={styles.totalCard}>
+          <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}>
+            <Card variant="hero" style={styles.totalCard}>
               <Text style={styles.kicker}>{owed > 0 ? 'STILL OWES YOU' : 'ALL SETTLED'}</Text>
               <Text
                 style={[styles.total, owed === 0 && styles.totalSettled]}
@@ -168,10 +171,10 @@ export default function Person() {
                     : ''
                   : ' · all paid'}
               </Text>
-            </View>
+            </Card>
 
             {phone || note ? (
-              <View style={styles.card}>
+              <Card variant="raised" style={styles.cardGap}>
                 {phone ? (
                   <Pressable
                     onPress={() => Linking.openURL(`tel:${phone}`).catch(() => {})}
@@ -184,17 +187,18 @@ export default function Person() {
                   </Pressable>
                 ) : null}
                 {note ? <Text style={styles.noteText}>{note}</Text> : null}
-              </View>
+              </Card>
             ) : null}
 
-            <Text style={styles.section}>UTANG</Text>
+            <SectionHeader title="UTANG" />
             {receivables.map((r) => {
               const remaining = remainingOf(r);
               const partial = !r.paid && paidSum(r) > 0;
               return (
-                <View
+                <Card
                   key={r.id}
-                  style={[styles.card, r.paid && styles.cardPaid]}
+                  variant="flat"
+                  style={[styles.cardGap, r.paid && styles.cardPaid]}
                   accessible={true}
                   accessibilityLabel={`${r.note || 'Utang'}, ${
                     r.paid
@@ -221,12 +225,12 @@ export default function Person() {
                       {formatMoney(r.paid ? r.amount : remaining)}
                     </Text>
                   </View>
-                </View>
+                </Card>
               );
             })}
             <Text style={styles.hint}>Add utang, log payments, or mark paid back in the ledger.</Text>
 
-            <Text style={styles.section}>PAYMENT HISTORY</Text>
+            <SectionHeader title="PAYMENT HISTORY" />
             {paymentRows.length === 0 ? (
               <EmptyState icon="🧾" title="No payments yet" subtitle="Log a payment from the ledger and it shows up here." />
             ) : (
@@ -237,7 +241,7 @@ export default function Person() {
                   accessible={true}
                   accessibilityLabel={`${formatMoney(p.amount)} pesos received${p.date ? ` ${p.date}` : ''} for ${p.from}. ${formatMoney(p.running)} received in total.`}
                 >
-                  <Text style={styles.payLeft}>
+                  <Text style={styles.payLeft} numberOfLines={1}>
                     {formatMoney(p.amount)} <Text style={styles.payMeta}>· {p.date ? `${p.date} · ` : ''}{p.from}</Text>
                   </Text>
                   <Text style={styles.payRunning}>{formatMoney(p.running)} received</Text>
@@ -246,7 +250,7 @@ export default function Person() {
             )}
           </ScrollView>
 
-          <View style={styles.actionBar}>
+          <View style={[styles.actionBar, { paddingBottom: spacing.lg + insets.bottom }]}>
             {owed > 0 ? (
               <Pressable
                 onPress={remindAll}
@@ -310,19 +314,20 @@ function makeStyles(colors) {
     edit: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     content: { padding: spacing.lg, paddingBottom: 96 },
 
-    totalCard: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
+    // The hero surface (radius, border, padding, lift) is owned by <Card variant="hero">; this only sets the gap below it.
+    totalCard: { marginBottom: spacing.lg },
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
     total: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs },
     totalSettled: { color: colors.muted },
     totalSub: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs },
 
-    card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
+    // The card surface is owned by <Card> (raised for the contact summary, flat for utang rows); this only sets the gap below each card.
+    cardGap: { marginBottom: spacing.md },
     cardPaid: { opacity: 0.6 },
     contactRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
     contactText: { color: colors.primary, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     noteText: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.xs },
 
-    section: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2, marginBottom: spacing.sm, marginTop: spacing.xs },
     utangRow: { flexDirection: 'row', alignItems: 'center' },
     utangName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
     paidTag: { color: colors.muted, fontWeight: fontWeight.regular, fontSize: fontSize.small },
