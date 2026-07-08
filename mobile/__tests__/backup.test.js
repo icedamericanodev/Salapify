@@ -85,6 +85,34 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(out.receivables[0].amount).toBe(500);
   });
 
+  test('receivable payments keep their txnId and get a fallback id if missing', () => {
+    const blob = {
+      ...fixtureAt(3),
+      people: [{ id: 'person_m3_0', name: 'Ate', phone: '', note: '' }],
+      receivables: [
+        {
+          id: 'rc1',
+          person: 'Ate',
+          personId: 'person_m3_0',
+          amount: 500,
+          payments: [
+            { id: 'rpay_1', amount: 200, date: '2026-05-02', txnId: 'transactions_9' },
+            { amount: 300, date: '2026-05-03' }, // no id: must gain a stable one
+          ],
+        },
+      ],
+    };
+    const out = sanitizeData(blob);
+    const pays = out.receivables[0].payments;
+    expect(pays).toHaveLength(2);
+    // The income link survives so a payment stays reversible after restore.
+    expect(pays[0].txnId).toBe('transactions_9');
+    // Both payments end up with a distinct, truthy id so remove keys cleanly.
+    expect(pays[0].id).toBe('rpay_1');
+    expect(pays[1].id).toBeTruthy();
+    expect(pays[1].id).not.toBe(pays[0].id);
+  });
+
   test('a v3 migration from a v2 blob builds people out of receivable names', () => {
     const blob = {
       schemaVersion: 2,
