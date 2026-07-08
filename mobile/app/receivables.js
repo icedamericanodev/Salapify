@@ -321,7 +321,13 @@ export default function Receivables() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.headerBar}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>People who owe me</Text>
@@ -333,7 +339,7 @@ export default function Receivables() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.totalCard}>
           <Text style={styles.kicker}>TOTAL OWED TO YOU</Text>
-          <Text style={styles.total}>{formatMoney(owedTotal)}</Text>
+          <Text style={styles.total} accessibilityLabel={`${formatMoney(owedTotal)} pesos`}>{formatMoney(owedTotal)}</Text>
         </View>
 
         {/* The barkada flow: split one bill into your expense plus an utang
@@ -379,7 +385,7 @@ export default function Receivables() {
                     {!r.paid ? (
                       <>
                         <View style={styles.actions}>
-                          <Pressable onPress={() => remind(r)} style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}>
+                          <Pressable onPress={() => remind(r)} hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }} style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}>
                             <Ionicons name="paper-plane-outline" size={15} color={colors.primary} />
                             <Text style={styles.remindText}>Remind</Text>
                           </Pressable>
@@ -388,12 +394,14 @@ export default function Receivables() {
                               setPayFor(payFor === r.id ? null : r.id);
                               setPayAmt('');
                             }}
+                            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                             style={({ pressed }) => [styles.remindBtn, pressed && styles.pressed]}
                           >
                             <Text style={styles.remindText}>+ Payment</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => markPaid(r)}
+                            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                             style={({ pressed }) => [styles.paidBtn, pressed && styles.pressed]}
                           >
                             <Text style={styles.paidBtnText}>Mark paid</Text>
@@ -427,7 +435,7 @@ export default function Receivables() {
                             </Text>
                             <Pressable
                               onPress={() => removePayment(r, p)}
-                              hitSlop={10}
+                              hitSlop={14}
                               accessibilityRole="button"
                               accessibilityLabel={`Remove ${formatMoney(p.amount)} payment`}
                             >
@@ -447,7 +455,7 @@ export default function Receivables() {
 
       <Modal visible={!!form} transparent animationType="slide" onRequestClose={() => setForm(null)}>
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
+          <View style={styles.sheet} accessibilityViewIsModal={true}>
             <ScrollView>
               <Text style={styles.sheetTitle}>{form?.id ? 'Edit' : 'Add'} person</Text>
 
@@ -479,7 +487,15 @@ export default function Receivables() {
                 />
               </View>
 
-              {err ? <Text style={styles.err}>{err}</Text> : null}
+              {err ? (
+                <Text
+                  style={styles.err}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive"
+                >
+                  Error: {err}
+                </Text>
+              ) : null}
               <View style={styles.sheetButtons}>
                 {form?.id ? (
                   <Pressable onPress={del} style={[styles.sheetBtn, styles.deleteBtn]}>
