@@ -36,7 +36,7 @@ async function readNumbers() {
     owed: 0, owedCount: 0, youOwe: 0, debtCount: 0,
     topName: '', topAmount: 0, topPct: 0,
     goalName: '', goalPct: 0, goalLeft: 0,
-    streak: 0, loggedToday: false,
+    totalLogged: 0, weekCount: 0, loggedToday: false,
     sweldoDays: null, sweldoLabel: '',
   };
   try {
@@ -116,14 +116,15 @@ async function readNumbers() {
     }
     if (best) { out.goalName = best.name; out.goalPct = best.pct; out.goalLeft = best.left; }
 
-    // Logging streak: consecutive days with any entry, ending today (with a
-    // one day grace so an unlogged today does not read as a broken chain).
+    // Logging habit: a lifetime count of distinct days logged that never
+    // resets, plus how many of the last 7 days have an entry. No consecutive
+    // streak that a single miss can wipe, matching the app's recovery model.
     out.loggedToday = logDates.has(isoLocal(now));
-    let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (!logDates.has(isoLocal(cursor))) cursor.setDate(cursor.getDate() - 1);
-    while (logDates.has(isoLocal(cursor))) {
-      out.streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
+    out.totalLogged = logDates.size;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      d.setDate(d.getDate() - i);
+      if (logDates.has(isoLocal(d))) out.weekCount += 1;
     }
 
     // Next sweldo, only when a schedule is actually set.
@@ -171,7 +172,7 @@ export async function widgetTaskHandler(props) {
       renderWidget(<GoalWidget name={n.goalName} pct={n.goalPct} left={n.goalLeft} symbol={n.symbol} />);
       break;
     case 'StreakWidget':
-      renderWidget(<StreakWidget streak={n.streak} loggedToday={n.loggedToday} />);
+      renderWidget(<StreakWidget totalLogged={n.totalLogged} weekCount={n.weekCount} loggedToday={n.loggedToday} />);
       break;
     case 'BudgetWidget':
     default:
