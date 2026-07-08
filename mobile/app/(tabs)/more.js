@@ -49,6 +49,23 @@ const DATA_ACTIONS = [
   { mode: 'importv1', label: 'Import v1 backup' },
 ];
 
+// The MY MONEY tools, shown as a compact 2-column icon grid instead of ten
+// tall rows so the tab is a shorter, more scannable scroll. Each tile just
+// opens the same screen the old row did; nothing about the destinations
+// changed. Icons do the wayfinding, the label stays full so meaning is clear.
+const MONEY_LINKS = [
+  { route: '/search', label: 'Search everything', icon: 'search-outline' },
+  { route: '/accounts', label: 'Accounts', icon: 'wallet-outline' },
+  { route: '/goals', label: 'Goals', icon: 'flag-outline' },
+  { route: '/learn', label: 'Money lessons', icon: 'school-outline' },
+  { route: '/mindset', label: 'Money mindset', icon: 'bulb-outline' },
+  { route: '/receivables', label: 'People who owe me', icon: 'people-outline' },
+  { route: '/reports', label: 'Reports', icon: 'bar-chart-outline' },
+  { route: '/notes', label: 'Notes with calculator', icon: 'create-outline' },
+  { route: '/recurring', label: 'Recurring bills and income', icon: 'repeat-outline' },
+  { route: '/history', label: 'All transactions', icon: 'list-outline' },
+];
+
 // A short list of common currencies. "relabel" only changes the symbol shown.
 const CURRENCIES = [
   { code: 'PHP', symbol: '₱' },
@@ -382,47 +399,21 @@ export default function More() {
         </Pressable>
 
         <Text style={styles.sectionTitle}>MY MONEY</Text>
-        <View style={styles.card}>
-          <Pressable onPress={() => router.push('/search')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Search everything</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/accounts')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Accounts</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/goals')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Goals</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/learn')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Money lessons</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/mindset')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Money mindset</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/receivables')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>People who owe me</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/reports')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Reports</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/notes')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Notes with calculator</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/recurring')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>Recurring bills and income</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/history')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
-            <Text style={styles.rowLabel}>All transactions</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
-          </Pressable>
+        {/* A compact 2-column icon grid instead of ten tall rows, so the tab
+            scans fast. Even count means five clean rows, no orphan tile. */}
+        <View style={styles.moneyGrid}>
+          {MONEY_LINKS.map((link) => (
+            <Pressable
+              key={link.route}
+              onPress={() => router.push(link.route)}
+              style={({ pressed }) => [styles.moneyTile, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={link.label}
+            >
+              <Ionicons name={link.icon} size={26} color={colors.primary} style={styles.moneyIcon} />
+              <Text style={styles.moneyLabel} numberOfLines={2}>{link.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
         <Text style={styles.sectionTitle}>APPEARANCE</Text>
@@ -622,7 +613,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.67: Appearance moved to its own screen, theme previews now match your light or dark mode, so the More tab is a shorter scroll</Text>
+            <Text style={styles.rowValue}>v3.68: MY MONEY tools are now a compact icon grid instead of ten tall rows, so the More tab scans faster</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -899,6 +890,24 @@ function makeStyles(colors) {
     mascotWrap: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.sm },
     mascotName: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.sm, textAlign: 'center' },
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.lg },
+
+    // MY MONEY icon grid.
+    moneyGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+    moneyTile: {
+      width: '48.5%',
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radius.lg,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 92,
+    },
+    moneyIcon: { marginBottom: spacing.sm },
+    moneyLabel: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.medium, textAlign: 'center' },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md + 2 },
     rowDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
     pressed: { opacity: 0.6 },
