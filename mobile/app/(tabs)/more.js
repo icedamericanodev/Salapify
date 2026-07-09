@@ -190,10 +190,12 @@ export default function More() {
             <Text style={styles.rowValue}>1.3.1</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
-              always tell at a glance whether the latest code has arrived. */}
-          <View style={[styles.row, styles.rowDivider]}>
+              always tell at a glance whether the latest code has arrived. It is
+              a stacked block (label on top, value full width below) and kept to
+              a short line, so a longer note can never run off the card. */}
+          <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.72: Paying an utang you owe now records a real expense that lowers your account balance, the exact mirror of how getting paid back records income. Removing or deleting a payment reverses it, so balances never drift</Text>
+            <Text style={styles.stampValue}>v3.73 · Automatic backups (Pro, Android)</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
@@ -271,6 +273,10 @@ function makeStyles(colors) {
     pressed: { opacity: 0.6 },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     rowValue: { color: colors.muted, fontSize: fontSize.body },
+    // The Update stamp stacks its value under the label so a longer line wraps
+    // full width inside the card instead of overflowing off the screen.
+    stampRow: { paddingVertical: spacing.md + 2 },
+    stampValue: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs },
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     rowHint: { color: colors.faint, fontSize: fontSize.small, marginTop: 2 },
   });
