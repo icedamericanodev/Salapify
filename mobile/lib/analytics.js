@@ -353,13 +353,44 @@ export function weekdayPattern(transactions, ref = new Date()) {
   return totals.map((sum, i) => ({ day: i, avg: counts[i] ? sum / counts[i] : 0 }));
 }
 
+// Split one debt payment into interest and principal, the bank-officer spec.
+// Interest accrues over TIME on the diminishing balance, so it is booked by
+// days elapsed since interestThroughISO (a 30 day month), NOT a full month per
+// payment. That is what stops two payments in one month from booking two months
+// of interest. The accrued interest capitalizes into the balance, the payment
+// covers interest first, and applied is clamped so you never pay or are charged
+// more than you owe (fixing the old overpayment cash-loss). Returns every part
+// the caller and reports need. Pure, so it is unit tested.
+export function splitDebtPayment(remaining, monthlyRate, interestThroughISO, amount, todayStr) {
+  const cur = Math.max(0, num(remaining));
+  const rate = num(monthlyRate);
+  const amt = Math.max(0, num(amount));
+  const fromISO = typeof interestThroughISO === 'string' && interestThroughISO ? interestThroughISO : todayStr;
+  // Guard against a bad stamp: a non-date string makes the diff NaN, which would
+  // otherwise poison the balance (and a later save would coerce NaN to 0,
+  // silently wiping the debt). A non-finite diff accrues 0 instead.
+  const raw = Math.round((new Date(todayStr) - new Date(fromISO)) / 86400000);
+  const days = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+  const accrued = rate > 0 ? Math.round(cur * (rate / 100) * (days / 30)) : 0;
+  const balance = cur + accrued;
+  const applied = Math.min(amt, balance);
+  const interest = Math.min(applied, accrued);
+  const principal = applied - interest;
+  const newRemaining = balance - applied;
+  const overpay = Math.max(0, amt - applied);
+  return { accrued, balance, applied, interest, principal, newRemaining, overpay };
+}
+
 // This month's savings rate: what fraction of your EARNINGS you did not spend.
-// Debt payments count as money out too, a month that sent 10,000 to a
-// credit card did not save that 10,000. Repaid utang (someone paying you back)
-// is NOT counted as income here: it is your own money coming home, not new
-// earnings, so counting it would flatter the rate. It still shows in cash flow,
-// which measures money moving through your accounts, a different question.
-// Null when there is no income.
+// Spending includes the INTEREST portion of a debt payment (a real cost, posted
+// as an expense), but NOT the principal portion: paying down principal is not
+// spending, it moves the same peso from cash to a smaller debt and builds net
+// worth, so it must not lower the rate. That is why the whole debt payment is no
+// longer subtracted here, only the interest, which already sits in expenses.
+// Repaid utang (someone paying you back) is NOT counted as income: it is your
+// own money coming home, not new earnings. It still shows in cash flow, which
+// measures money moving through accounts, a different question. Null with no
+// income. The payments argument is kept for callers but no longer used.
 export function savingsRate(transactions, payments = [], ref = new Date()) {
   const key = monthKey(ref);
   let income = 0;
@@ -369,12 +400,8 @@ export function savingsRate(transactions, payments = [], ref = new Date()) {
     if (t.type === 'income' && t.source !== 'receivable') income += num(t.amount);
     else if (t.type === 'expense') expenses += num(t.amount);
   }
-  let debtPaid = 0;
-  for (const p of payments || []) {
-    if (p && String(p.date || '').slice(0, 7) === key) debtPaid += num(p.amount);
-  }
   if (income <= 0) return null;
-  return (income - expenses - debtPaid) / income;
+  return (income - expenses) / income;
 }
 
 // If spending keeps its current daily pace, where does the month land?

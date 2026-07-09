@@ -59,10 +59,15 @@ export function monthRecap(data, ref = new Date()) {
     .slice(0, 3)
     .map((c) => ({ ...c, pct: moneyOut > 0 ? Math.round((c.amount / moneyOut) * 100) : 0 }));
 
-  // Debt payments made this month.
+  // Debt paid down this month: count principal only, since interest is a cost
+  // that does not lower what you owe. Legacy payments predate the split, so fall
+  // back to the whole amount as principal for them.
   const payments = Array.isArray(data && data.payments) ? data.payments : [];
   const debtPaid = payments.reduce(
-    (t, p) => (p && String(p.date || '').slice(0, 7) === key ? t + Math.max(0, num(p.amount)) : t),
+    (t, p) =>
+      p && String(p.date || '').slice(0, 7) === key
+        ? t + Math.max(0, num(p.principal != null ? p.principal : p.amount))
+        : t,
     0
   );
 
