@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(10);
+    expect(SCHEMA_VERSION).toBe(11);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(10);
+    expect(out.schemaVersion).toBe(11);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(10);
+    expect(out.schemaVersion).toBe(11);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -168,6 +168,29 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(bad.type).toBe('adjustment');
     expect(bad.flow).toBeUndefined();
     expect(bad.accountId).toBeUndefined();
+  });
+
+  test('a foreign currency expense keeps its original amount and currency', () => {
+    const blob = {
+      schemaVersion: 10,
+      accounts: [{ id: 'a1', name: 'GCash', kind: 'ewallet', balance: 5000 }],
+      transactions: [
+        // Paid ¥1000, stored as the converted base amount 380, with the original
+        // kept for display.
+        { id: 't1', type: 'expense', label: 'Ramen', amount: 380, date: '2026-07-02', origCurrency: 'JPY', origAmount: 1000 },
+        // origAmount present but no currency: both dropped (never a foreign
+        // amount with no currency).
+        { id: 't2', type: 'expense', label: 'Snack', amount: 50, date: '2026-07-03', origAmount: 5 },
+      ],
+    };
+    const out = sanitizeData(blob);
+    const foreign = out.transactions.find((t) => t.id === 't1');
+    const orphan = out.transactions.find((t) => t.id === 't2');
+    expect(foreign.amount).toBe(380); // the base amount is untouched
+    expect(foreign.origCurrency).toBe('JPY');
+    expect(foreign.origAmount).toBe(1000);
+    expect(orphan.origCurrency).toBeUndefined();
+    expect(orphan.origAmount).toBeUndefined();
   });
 
   test('a v3 migration from a v2 blob builds people out of receivable names', () => {
@@ -299,7 +322,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(10);
+    expect(out.schemaVersion).toBe(11);
     expect(out.payables).toHaveLength(1);
     const pay = out.payables[0];
     expect(pay.person).toBe('Nanay');

@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -136,6 +136,12 @@ const MIGRATIONS = {
   // into an account-linked phantom expense (which would double count spending
   // and, on a later edit or delete, shift the real balance).
   10: (d) => ({ ...d }),
+  // v11 adds per transaction currency: an expense can carry origCurrency +
+  // origAmount (its foreign amount), while the stored amount stays in the base
+  // currency. No transform needed (absent means a plain base currency entry);
+  // the fence stops an older build from accepting a v11 backup, though the
+  // amount would read fine there, the foreign detail would just be invisible.
+  11: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -260,6 +266,17 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // Same discipline for categoryId: a string or absent, never junk.
       if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
       else delete out.categoryId;
+      // Per transaction currency: the stored `amount` is already in the base
+      // currency, so origCurrency (a code string) and origAmount (a positive
+      // number) are display only, kept together or dropped together so a row can
+      // never claim a foreign amount with no currency or vice versa.
+      if (typeof t.origCurrency === 'string' && t.origCurrency && num(t.origAmount) > 0) {
+        out.origCurrency = t.origCurrency;
+        out.origAmount = num(t.origAmount);
+      } else {
+        delete out.origCurrency;
+        delete out.origAmount;
+      }
       // flow decides which way a linked transaction moves its account balance,
       // so it is only trusted as an exact 'in' or 'out' on a transfer or a
       // balance adjustment. Anything else is dropped, so a hand edited backup

@@ -28,6 +28,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
+import { CURRENCIES, currencySymbol } from '../lib/currencies';
 import { pickReceipt, deleteReceipt, resolveReceipt } from '../lib/receipts';
 import { scanReceiptText } from '../lib/ocr';
 import { parseReceipt } from '../lib/receipt-parse';
@@ -62,6 +63,11 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   const [err, setErr] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState('');
+  // Per transaction currency (expenses). The base currency is the app wide one;
+  // curCode is what THIS expense was paid in, and rate is base per 1 unit of it.
+  const baseCode = (data.settings && data.settings.currencyCode) || 'PHP';
+  const [curCode, setCurCode] = useState(baseCode);
+  const [rate, setRate] = useState('');
 
   // Fresh form every time the sheet opens. The account chip starts on the
   // last one used (settings.defaultAccountId), so regulars never re-pick.
@@ -79,6 +85,8 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       setErr('');
       setScanning(false);
       setScanNote('');
+      setCurCode(baseCode);
+      setRate('');
     }
   }, [visible]);
 
@@ -263,7 +271,22 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
       return;
     }
     const entryLabel = label.trim() || (type === 'income' ? 'Income' : 'Expense');
-    logEntry({ type, label: entryLabel, amount: amt, date });
+    // Per transaction currency (expenses only). When the expense was paid in a
+    // currency other than the base, the typed amount is in THAT currency and the
+    // user gives the rate; we store the converted base amount so every total
+    // stays in one currency, plus the original amount and code for display.
+    let baseAmt = amt;
+    let extra = {};
+    if (type === 'expense' && curCode !== baseCode) {
+      const r = Number(String(rate).replace(/[, ]/g, ''));
+      if (!Number.isFinite(r) || r <= 0) {
+        setErr(`Enter the rate: 1 ${curCode} in ${baseCode}.`);
+        return;
+      }
+      baseAmt = Math.round(amt * r * 100) / 100;
+      extra = { origCurrency: curCode, origAmount: amt };
+    }
+    logEntry({ type, label: entryLabel, amount: baseAmt, date, ...extra });
   }
 
   const quickAdds = data.settings.quickAdds || [];
@@ -279,7 +302,20 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               {['expense', 'income'].map((t) => {
                 const on = type === t;
                 return (
-                  <Pressable key={t} onPress={() => setType(t)} style={[styles.typeBtn, on && styles.typeOn]}>
+                  <Pressable
+                    key={t}
+                    onPress={() => {
+                      setType(t);
+                      // Foreign currency is an expense only field; switching to
+                      // income resets it so a foreign amount is never saved as a
+                      // plain base income.
+                      if (t !== 'expense') {
+                        setCurCode(baseCode);
+                        setRate('');
+                      }
+                    }}
+                    style={[styles.typeBtn, on && styles.typeOn]}
+                  >
                     <Text style={[styles.typeText, on && styles.typeTextOn]}>
                       {t === 'expense' ? 'Expense' : 'Income'}
                     </Text>
@@ -369,7 +405,9 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               placeholder={type === 'income' ? 'e.g. Salary' : 'or type your own label'}
               placeholderTextColor={colors.faint}
             />
-            <Text style={styles.fieldLabel}>Amount</Text>
+            <Text style={styles.fieldLabel}>
+              {type === 'expense' && curCode !== baseCode ? `Amount in ${curCode}` : 'Amount'}
+            </Text>
             <TextInput
               style={styles.input}
               value={amount}
@@ -378,6 +416,59 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
               placeholderTextColor={colors.faint}
               keyboardType="numeric"
             />
+
+            {/* Per transaction currency, for expenses only. Default is your base
+                currency; pick another when you paid in a foreign currency (e.g.
+                travel, an online order). You give the rate so the peso figure is
+                honest, nothing is fetched from the internet. */}
+            {type === 'expense' ? (
+              <>
+                <Text style={styles.fieldLabel}>Currency</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+                  {CURRENCIES.map((c) => {
+                    const on = curCode === c.code;
+                    return (
+                      <Pressable key={c.code} onPress={() => setCurCode(c.code)} style={[styles.chip, on && styles.chipOn]}>
+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{c.symbol} {c.code}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                {curCode !== baseCode ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Rate: 1 {curCode} = ? {baseCode}</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={rate}
+                      onChangeText={setRate}
+                      placeholder={`e.g. how many ${baseCode} for one ${curCode}`}
+                      placeholderTextColor={colors.faint}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.rateHint}>Type how many {baseCode} one {curCode} is worth.</Text>
+                    {(() => {
+                      const a = Number(String(amount).replace(/[, ]/g, ''));
+                      const r = Number(String(rate).replace(/[, ]/g, ''));
+                      if (a > 0 && r > 0) {
+                        // The implied inverse is shown as a sanity check: a user
+                        // who thinks in the other direction (common for weak
+                        // currencies like yen or won) catches a flipped rate here.
+                        const inv = Math.round((1 / r) * 100) / 100;
+                        return (
+                          <>
+                            <Text style={styles.convertNote}>
+                              {currencySymbol(curCode)}{Math.round(a).toLocaleString('en-US')} = {formatMoney(Math.round(a * r * 100) / 100)}
+                            </Text>
+                            <Text style={styles.rateHint}>Check: 1 {baseCode} ≈ {inv} {curCode}</Text>
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </>
+                ) : null}
+              </>
+            ) : null}
 
             {data.accounts.length > 0 ? (
               <>
@@ -523,6 +614,8 @@ function makeStyles(colors) {
     typeTextOn: { color: colors.onPrimary },
 
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    convertNote: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold, marginTop: spacing.xs },
+    rateHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.xs },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },

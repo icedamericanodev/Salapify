@@ -14,30 +14,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, normalizeSchedule, scheduleLabel } from '../lib/format';
-
-// A short list of common currencies. "relabel" only changes the symbol shown.
-const CURRENCIES = [
-  { code: 'PHP', symbol: '₱' },
-  { code: 'USD', symbol: '$' },
-  { code: 'EUR', symbol: '€' },
-  { code: 'GBP', symbol: '£' },
-  { code: 'JPY', symbol: '¥' },
-  { code: 'CNY', symbol: '¥' },
-  { code: 'KRW', symbol: '₩' },
-  { code: 'INR', symbol: '₹' },
-  { code: 'IDR', symbol: 'Rp' },
-  { code: 'MYR', symbol: 'RM' },
-  { code: 'SGD', symbol: 'S$' },
-  { code: 'THB', symbol: '฿' },
-  { code: 'VND', symbol: '₫' },
-  { code: 'HKD', symbol: 'HK$' },
-  { code: 'AUD', symbol: 'A$' },
-  { code: 'CAD', symbol: 'C$' },
-  { code: 'AED', symbol: 'AED' },
-  { code: 'SAR', symbol: 'SAR' },
-  { code: 'CHF', symbol: 'CHF' },
-  { code: 'NZD', symbol: 'NZ$' },
-];
+import { CURRENCIES } from '../lib/currencies';
 
 export default function Preferences() {
   const { colors } = useTheme();
