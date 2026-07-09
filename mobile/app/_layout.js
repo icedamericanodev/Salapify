@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppDataProvider, useAppData } from '../context/AppData';
 import { ThemeProvider, useTheme } from '../context/Theme';
+import { MotionProvider } from '../context/Motion';
 import LockGate from '../components/LockGate';
 import Onboarding from '../components/Onboarding';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -86,6 +87,7 @@ export default function RootLayout() {
     <ErrorBoundary>
     <ThemeProvider>
       <AppDataProvider>
+        <MotionProvider>
         <SafeAreaProvider>
           <PhoneFrame>
             {/* LockGate shows the fingerprint screen first when App lock is on. */}
@@ -101,6 +103,7 @@ export default function RootLayout() {
 
           <ThemedStatusBar />
         </SafeAreaProvider>
+        </MotionProvider>
       </AppDataProvider>
     </ThemeProvider>
     </ErrorBoundary>

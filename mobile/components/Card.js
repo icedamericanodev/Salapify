@@ -10,23 +10,28 @@
 //    lighter surface so dark themes still read as lifted), or 'hero' (raised
 //    plus the extra-round radius and roomy padding for headline money panels).
 //  - padding: 'lg' (default) or 'xl'. hero always uses 'xl'.
-//  - onPress: when set, the card becomes a Pressable with an honest pressed
-//    state (a subtle opacity dip). A scale spring can come later.
+//  - onPress: when set, the card becomes a pressable that springs down a touch
+//    on press with a light haptic (via PressableScale), so tapping a card feels
+//    physical. Reduce motion falls back to a gentle opacity dip, no buzz.
+//  - haptic: which buzz a pressable card fires on press ('light' by default,
+//    pass null to silence). Ignored when onPress is not set.
 //  - warning: draws a red border, reserved for debt and over-limit states.
 //  - style: extra styles, applied last so a screen can still override.
 //  - accessibilityRole / accessibilityLabel: passed through to the pressable
 //    so screen readers keep announcing what they announced before.
 
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { spacing, radius, elevation } from '../theme';
 import { useTheme } from '../context/Theme';
+import PressableScale from './motion/PressableScale';
 
 export default function Card({
   variant = 'flat',
   padding = 'lg',
   onPress,
   warning = false,
+  haptic = 'light',
   style,
   children,
   accessibilityRole,
@@ -54,15 +59,16 @@ export default function Card({
 
   if (onPress) {
     return (
-      <Pressable
+      <PressableScale
         onPress={onPress}
+        haptic={haptic}
         accessibilityRole={accessibilityRole || 'button'}
         accessibilityLabel={accessibilityLabel}
-        style={({ pressed }) => [base, pressed && styles.pressed]}
+        style={base}
         {...rest}
       >
         {children}
-      </Pressable>
+      </PressableScale>
     );
   }
 
@@ -96,6 +102,5 @@ function makeStyles(colors) {
       ...elevation.raised,
     },
     warning: { borderColor: colors.warning },
-    pressed: { opacity: 0.85 },
   });
 }

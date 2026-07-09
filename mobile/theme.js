@@ -471,3 +471,36 @@ export const elevation = {
     elevation: 12,
   },
 };
+
+// Motion. One source of truth for how fast and how springy things move, so
+// every screen animates at the same tempo instead of hand typed durations.
+// Everything stays quick, 120 to 260ms. Motion is polish, never a delay before
+// a tap does its job, and every animation still respects the OS reduce motion
+// setting (see the useReduceMotion hook).
+export const duration = {
+  instant: 120, // press in and out, tiny state flips
+  fast: 180,    // most micro interactions, toggles, fades
+  base: 220,    // standard enter and exit, sheet content, list items
+  slow: 260,    // hero money count ups and bar fills, the one place slow is ok
+};
+
+// Easing curves as plain bezier control points so this file needs no imports
+// and still compiles under the Babel preset. Wrap them in Easing.bezier(...)
+// at the call site. standard is ease in out for moves, decelerate is ease out
+// for things arriving, accelerate is ease in for things leaving.
+export const easing = {
+  standard: [0.4, 0.0, 0.2, 1],
+  decelerate: [0.0, 0.0, 0.2, 1],
+  accelerate: [0.4, 0.0, 1, 1],
+};
+
+// Spring presets for press and pop feedback, tuned to settle fast with no
+// wobble on money. Pass straight into withSpring(value, spring.press).
+export const spring = {
+  press: { damping: 18, stiffness: 320, mass: 0.7 },  // button and card press
+  gentle: { damping: 20, stiffness: 180, mass: 0.9 }, // sheets, larger surfaces
+  bouncy: { damping: 12, stiffness: 260, mass: 0.8 }, // an earned celebration
+};
+
+// The one scale a press dips to. Subtle so it reads as alive, not jumpy.
+export const pressScale = 0.97;
