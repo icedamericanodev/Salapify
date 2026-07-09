@@ -32,6 +32,7 @@ import { txMatches, buildNameMaps } from '../lib/search';
 import { resolveReceipt } from '../lib/receipts';
 import EmptyState from '../components/EmptyState';
 import PeriodSelector from '../components/PeriodSelector';
+import { formatForeign } from '../lib/currencies';
 
 function isRealDate(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).trim());
@@ -51,6 +52,7 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
           <Text style={styles.rowSub}>
             {t.date}
             {accountName ? ` · ${accountName}` : ''}
+            {t.origCurrency && t.origAmount ? ` · ${formatForeign(t.origAmount, t.origCurrency)}` : ''}
           </Text>
         </View>
         <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : t.type === 'expense' ? colors.text : colors.muted }]}>
@@ -390,7 +392,16 @@ export default function History() {
             // the new label (matching category name), otherwise it clears,
             // so caps and charts can never disagree about a relabeled peso.
             const cat = (data.categories || []).find((c) => c.name === patch.label);
-            updateTransaction(editTx.id, { ...patch, categoryId: cat ? cat.id : undefined });
+            // Drop the foreign currency tag when the base amount changed or the
+            // entry is no longer an expense, so the row can never show a stale
+            // "¥1,000" next to an edited peso figure it no longer equals.
+            const amountChanged = Number(patch.amount) !== Number(editTx.amount);
+            const dropForeign = amountChanged || patch.type !== 'expense';
+            updateTransaction(editTx.id, {
+              ...patch,
+              categoryId: cat ? cat.id : undefined,
+              ...(dropForeign ? { origCurrency: undefined, origAmount: undefined } : {}),
+            });
             setEditTx(null);
           }}
         />
