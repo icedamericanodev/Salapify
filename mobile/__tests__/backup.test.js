@@ -214,6 +214,39 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
     expect(pay.payments[1].id).not.toBe(pay.payments[0].id);
   });
 
+  test('payable payments keep their txnId and get a fallback id if missing', () => {
+    // Paying a payable posts a real expense; the payment remembers that
+    // expense as txnId. A restored backup must keep that link intact so the
+    // expense can still be reversed on remove or delete, exactly like the
+    // receivable income link.
+    const blob = {
+      ...fixtureAt(7),
+      people: [{ id: 'person_m3_0', name: 'Nanay', phone: '', note: '' }],
+      payables: [
+        {
+          id: 'pay1',
+          person: 'Nanay',
+          personId: 'person_m3_0',
+          amount: 800,
+          paid: false,
+          payments: [
+            { id: 'ppay_1', amount: 300, date: '2026-07-05', txnId: 'transactions_9' },
+            { amount: 200, date: '2026-07-06' }, // no id: must gain a stable one
+          ],
+        },
+      ],
+    };
+    const out = sanitizeData(blob);
+    const pays = out.payables[0].payments;
+    expect(pays).toHaveLength(2);
+    // The expense link survives sanitize untouched.
+    expect(pays[0].txnId).toBe('transactions_9');
+    // Both payments end up with a distinct, truthy id so remove keys cleanly.
+    expect(pays[0].id).toBe('ppay_1');
+    expect(pays[1].id).toBeTruthy();
+    expect(pays[1].id).not.toBe(pays[0].id);
+  });
+
   test('an unknown field on a payable survives so future data is never erased', () => {
     const blob = {
       schemaVersion: 7,

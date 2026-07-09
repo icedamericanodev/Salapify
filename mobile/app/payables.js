@@ -1,12 +1,14 @@
 // People I owe (payables). Track who you owe, how much, and when it is due.
 // Mark paid, log partial payments, edit, delete. All saved on the device.
 //
-// This is the display only mirror of receivables (People who owe me). Paying
-// an utang here records it on the payable (payments list and paid flag) but
-// posts NO transaction and touches NO account balance, net worth, cash flow,
-// or analytics. Expense posting on pay is a deliberate later batch. There is
-// no Remind action and no split a bill entry, because those do not fit money
-// you owe, and there is no borrow or lender affordance of any kind.
+// This is the exact mirror of receivables (People who owe me), just the other
+// direction. Paying an utang here records it on the payable (payments list and
+// paid flag) AND posts a REAL EXPENSE that lowers your default account
+// balance, the mirror of how receivables posts income when someone pays you
+// back. Every payment path both posts an expense and, on remove or delete,
+// reverses it, so balances can never drift. There is no Remind action and no
+// split a bill entry, because those do not fit money you owe, and there is no
+// borrow or lender affordance of any kind.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -55,7 +57,7 @@ export default function Payables() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
-  const { data, addItem, updateItem, removeItem } = useAppData();
+  const { data, addItem, updateItem, removeItem, addTransaction, removeTransaction } = useAppData();
 
   const [form, setForm] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -203,10 +205,39 @@ export default function Payables() {
       setConfirmDel(true);
       return;
     }
-    // Display only: a payable never posted a transaction, so there is nothing
-    // to reverse. Just drop the row.
-    if (form.id) removeItem('payables', form.id);
+    if (form.id) {
+      // Reverse every expense entry this utang's payments posted, so a
+      // deleted payable never leaves a phantom expense and a deflated
+      // balance behind. Payments logged before expense posting carry no
+      // link, so there is nothing to reverse for those, which is honest.
+      const r = list.find((x) => x.id === form.id);
+      (r?.payments || []).forEach((p) => {
+        if (p.txnId) removeTransaction(p.txnId);
+      });
+      removeItem('payables', form.id);
+    }
     setForm(null);
+  }
+
+  // The account a payment comes out of, for honest confirm copy. Null when no
+  // default is set: the expense still records, it just does not move a specific
+  // balance (mirror of how postIncome falls back to an unlinked entry).
+  const payAccount = () => {
+    const def = data.settings.defaultAccountId;
+    return (def && data.accounts.find((a) => a.id === def)) || null;
+  };
+
+  // Paying an utang is a real expense: money leaves the remembered account when
+  // one is set, so cash flow and balances agree with what happened instead of
+  // the utang just silently vanishing. This is the exact mirror of receivables'
+  // postIncome, expense not income. Returns the new transaction id so the
+  // payment can remember it and reverse it later.
+  function postExpense(r, amount) {
+    if (amount <= 0) return '';
+    const def = data.settings.defaultAccountId;
+    const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
+    const entry = { type: 'expense', label: `You paid ${nameOf(r)}`, amount, date: todayISO() };
+    return addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
   // Stacked confirm dialogs or a double tap must not record a payment twice
@@ -222,22 +253,27 @@ export default function Payables() {
   }
 
   // Mark paid settles whatever is STILL owed after partial payments. It
-  // confirms first so a slip of the finger does not close an utang, then
-  // records the settling payment. IMPORTANT: this posts NO transaction and
-  // moves NO account balance. It only updates this payable's ledger.
+  // confirms first so a slip of the finger does not invent an expense, then
+  // records the settling payment AND posts a real expense for the remaining
+  // amount. The settling payment remembers its expense entry (txnId) so it can
+  // be reversed. This mirrors receivables' markPaid exactly, expense not income.
   function markPaid(r) {
     const remaining = remainingOf(r);
     const doIt = () => settleOnce(() => {
       let payments = r.payments || [];
       if (remaining > 0) {
-        payments = [...payments, { id: genId('ppay'), amount: remaining, date: todayISO() }];
+        const txnId = postExpense(r, remaining);
+        payments = [...payments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId }];
       }
       updateItem('payables', r.id, { paid: true, payments });
       praiseNow();
     });
+    const acct = payAccount();
     const message =
       remaining > 0
-        ? `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This only updates your ledger, it does not move money in your accounts.`
+        ? (acct
+            ? `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)} from ${acct.name} and lowers your balance, just like real bayad.`
+            : `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)}. No default account is set, so no balance moves, set one in Settings to track the cash leaving.`)
         : 'Close this utang? Everything is already paid.';
     if (Platform.OS === 'web') {
       // Alert buttons are a no-op in browsers, so confirm the web way.
@@ -251,8 +287,8 @@ export default function Payables() {
   }
 
   // A partial payment: "I gave Nanay 300 of the 800." Records the payment on
-  // the payable and settles the utang by itself when the last peso is paid.
-  // Like markPaid, this posts NO transaction and moves NO balance.
+  // the payable, posts the expense, and settles the utang by itself when the
+  // last peso is paid. Mirror of receivables' logPartial, expense not income.
   function logPartial(r) {
     const amount = Number(String(payAmt).replace(/[, ]/g, ''));
     const remaining = remainingOf(r);
@@ -262,7 +298,10 @@ export default function Payables() {
     // rows on an already covered utang.
     if (applied <= 0) return;
     settleOnce(() => {
-      const payment = { id: genId('ppay'), amount: applied, date: todayISO() };
+      // Post the expense first so the payment can remember its entry and
+      // reverse it if the user removes the payment later.
+      const txnId = postExpense(r, applied);
+      const payment = { id: genId('ppay'), amount: applied, date: todayISO(), txnId };
       const willSettle = applied >= remaining;
       updateItem('payables', r.id, {
         payments: [...(r.payments || []), payment],
@@ -274,18 +313,22 @@ export default function Payables() {
     });
   }
 
-  // Remove one logged payment: drop the payment row and reopen the utang if it
-  // was fully paid. Nothing to reverse, because paying posted no income or
-  // expense in this batch. This is the fix for a fat fingered amount.
+  // Remove one logged payment: reverse its expense entry (so the balance and
+  // cash flow correct themselves), drop the payment row, and reopen the utang
+  // if it was fully paid. Mirror of receivables' removePayment. This is the fix
+  // for a fat fingered amount.
   function removePayment(r, payment) {
     const doIt = () => settleOnce(() => {
+      if (payment.txnId) removeTransaction(payment.txnId);
       const payments = (r.payments || []).filter((p) => p.id !== payment.id);
       const newPaidSum = payments.reduce((t, p) => t + (Number(p.amount) || 0), 0);
       // Fully covered stays paid; otherwise removing a payment reopens it.
       const stillPaid = r.paid && newPaidSum >= (Number(r.amount) || 0);
       updateItem('payables', r.id, { payments, paid: stillPaid });
     });
-    const message = `Remove this ${formatMoney(payment.amount)} payment?`;
+    const message = payment.txnId
+      ? `Remove this ${formatMoney(payment.amount)} payment? Its expense entry will be reversed too.`
+      : `Remove this ${formatMoney(payment.amount)} payment? It was logged before expense tracking, so no expense entry is linked to reverse.`;
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.confirm(message)) doIt();
       return;
@@ -402,7 +445,11 @@ export default function Payables() {
                                 <Text style={styles.logBtnText}>Log</Text>
                               </Pressable>
                             </View>
-                            <Text style={styles.payHint}>Updates this utang only, not your account balance.</Text>
+                            <Text style={styles.payHint}>
+                              {payAccount()
+                                ? `This logs an expense from ${payAccount().name} and lowers your balance.`
+                                : 'This logs an expense. No default account is set yet, so no balance changes. Set one in Settings to track the cash leaving.'}
+                            </Text>
                           </>
                         ) : null}
                       </>

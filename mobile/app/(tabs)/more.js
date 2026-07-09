@@ -193,7 +193,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.71: People I owe ledger added, the calm mirror of People who owe me. Display only for now, it records payments without touching your balances</Text>
+            <Text style={styles.rowValue}>v3.72: Paying an utang you owe now records a real expense that lowers your account balance, the exact mirror of how getting paid back records income. Removing or deleting a payment reverses it, so balances never drift</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

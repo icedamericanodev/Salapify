@@ -284,8 +284,10 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       })),
     })),
     // Payables mirror receivables exactly (People I owe), coerced the same way.
-    // This batch is display only: a payable's payments never posted a
-    // transaction, so there is no txnId to protect, just the money and dates.
+    // Paying a payable now posts a real expense, so each payment carries a
+    // txnId linking it to that expense. The spread below keeps txnId (and any
+    // other field) intact, so a restored backup keeps the payment<->expense
+    // link and can still reverse it on remove or delete.
     payables: cleanList(src.payables).map((r) => ({
       ...r,
       person: typeof r.person === 'string' && r.person ? r.person : 'Someone',
