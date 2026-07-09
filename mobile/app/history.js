@@ -248,11 +248,13 @@ export default function History() {
   const totals = useMemo(() => {
     // Only real income and expenses. Transfer and debt payment records are
     // visible as rows but never enter money math: a 5,000 transfer between
-    // your own accounts is not 5,000 spent.
+    // your own accounts is not 5,000 spent. Utang collected (source
+    // 'receivable') is money that was always yours, not earnings, so it is left
+    // out of the in total too, matching every other screen.
     let tin = 0;
     let tout = 0;
     for (const t of shown) {
-      if (t.type === 'income') tin += Number(t.amount) || 0;
+      if (t.type === 'income' && t.source !== 'receivable') tin += Number(t.amount) || 0;
       else if (t.type === 'expense') tout += Number(t.amount) || 0;
     }
     return { tin, tout };

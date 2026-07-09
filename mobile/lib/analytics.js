@@ -261,7 +261,9 @@ export function monthlySeries(transactions, n = 6, ref = new Date()) {
     let expenses = 0;
     for (const t of transactions || []) {
       if (!t || String(t.date || '').slice(0, 7) !== key) continue;
-      if (t.type === 'income') income += num(t.amount);
+      // Utang collected (source 'receivable') is not income, so the trend chart
+      // excludes it to match moneyIn, the income statement, and the savings rate.
+      if (t.type === 'income' && t.source !== 'receivable') income += num(t.amount);
       else if (t.type === 'expense') expenses += num(t.amount);
     }
     out.push({ key, label: MONTHS_SHORT[d.getMonth()], income, expenses, net: income - expenses });
