@@ -31,7 +31,7 @@ import {
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function Insights() {
-  const { colors } = useTheme();
+  const { colors, chartColors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { data, updateSettings } = useAppData(); // live data from the store
   const pro = !!(data.settings && data.settings.pro);
@@ -60,22 +60,24 @@ export default function Insights() {
   }
   const byCategory = Object.values(catTotals).sort((a, b) => b.amount - a.amount);
 
-  // Where your money went, as one 100 percent proportion bar (the pie, done
-  // with plain views so it ships now; a true donut arrives with the chart
-  // rebuild). Top six categories get their own segment shaded from the brand
-  // color, so the bar always matches whatever theme is chosen; the rest fold
-  // into one muted "more" segment. Legend carries the labels and amounts.
+  // Where your money went, as one 100 percent proportion bar. A stacked bar is
+  // the correct part-to-whole form here (deliberately not a pie or donut), done
+  // with plain views so it stays web-safe. Distinct categories must read as
+  // distinct hues, never shades of one color, so the top categories take the
+  // validated categorical palette in FIXED slot order (chartColors[0], [1]...).
+  // Everything past the top 7 folds into one neutral "more" segment in a gray
+  // tone (colors.faint), which must never impersonate a real category hue.
+  // Legend carries the labels, amounts, and percents.
   const totalSpent = byCategory.reduce((t, c) => t + c.amount, 0);
-  const TOP_N = 6;
+  const TOP_N = 7;
   const topCats = byCategory.slice(0, TOP_N);
   const restCats = byCategory.slice(TOP_N);
   const restSum = restCats.reduce((t, c) => t + c.amount, 0);
-  const SEG_ALPHA = ['FF', 'D9', 'B8', '99', '7A', '5E'];
   const segments = topCats.map((c, i) => ({
     label: c.label,
     amount: c.amount,
     pct: totalSpent > 0 ? c.amount / totalSpent : 0,
-    color: `${colors.primary}${SEG_ALPHA[i] || '5E'}`,
+    color: chartColors[i],
   }));
   if (restSum > 0) {
     segments.push({
@@ -253,19 +255,37 @@ export default function Insights() {
           <Text style={styles.kicker}>WHERE YOUR MONEY WENT ({monthLabel().toUpperCase()})</Text>
           {byCategory.length > 0 && totalSpent > 0 ? (
             <>
-              <View style={styles.propBar}>
+              <View
+                style={styles.propBar}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
                 {segments.map((s, i) => (
                   <View
                     key={s.label + i}
-                    style={{ width: `${Math.max(s.pct * 100, 1)}%`, backgroundColor: s.color }}
+                    style={{
+                      width: `${Math.max(s.pct * 100, 1)}%`,
+                      backgroundColor: s.color,
+                      // A 2px card-colored gap separates adjacent segments so
+                      // touching categories never blur together (the required
+                      // secondary encoding alongside the legend). Not on the
+                      // last segment, so the bar ends flush.
+                      borderRightWidth: i < segments.length - 1 ? 2 : 0,
+                      borderRightColor: colors.card,
+                    }}
                   />
                 ))}
               </View>
               <View style={styles.legend}>
                 {segments.map((s, i) => (
-                  <View key={s.label + i} style={styles.legendRow}>
+                  <View
+                    key={s.label + i}
+                    style={styles.legendRow}
+                    accessible
+                    accessibilityLabel={`${s.label}, ${formatMoney(s.amount)}, ${Math.round(s.pct * 100)} percent`}
+                  >
                     <View style={styles.legendLeft}>
-                      <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                      <View style={[styles.legendDot, { backgroundColor: s.color }]} importantForAccessibility="no" />
                       <Text style={styles.legendLabel} numberOfLines={1}>{s.label}</Text>
                     </View>
                     <Text style={styles.legendVal}>
@@ -295,12 +315,19 @@ export default function Insights() {
             <Text style={styles.kicker}>NET WORTH TREND</Text>
             <View style={styles.trend}>
               {trendPoints.map((p) => (
-                <View key={p.month} style={styles.trendCol}>
+                <View
+                  key={p.month}
+                  style={styles.trendCol}
+                  accessible
+                  accessibilityLabel={`${p.label}: ${formatMoney(p.value)}`}
+                >
                   <View
                     style={[
                       styles.trendBar,
                       { height: Math.max((p.value / trendMax) * 120, 4) },
                     ]}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                   />
                   <Text style={styles.trendLabel}>{p.label}</Text>
                 </View>
@@ -313,23 +340,45 @@ export default function Insights() {
         {showCommitted ? (
           <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>WHAT IS ALREADY SPOKEN FOR</Text>
-            <View style={styles.propBar}>
-              <View style={{ width: `${Math.max(committedShare * 100, 1)}%`, backgroundColor: colors.warning }} />
+            <View
+              style={styles.propBar}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <View
+                style={{
+                  width: `${Math.max(committedShare * 100, 1)}%`,
+                  backgroundColor: colors.warning,
+                  // A 2px card-colored gap so Committed and Free never touch
+                  // flush, matching the "where your money went" bar. Only when
+                  // the Free slice actually renders.
+                  borderRightWidth: sts.available > 0 ? 2 : 0,
+                  borderRightColor: colors.card,
+                }}
+              />
               {sts.available > 0 ? (
                 <View style={{ width: `${Math.max((1 - committedShare) * 100, 1)}%`, backgroundColor: colors.primary }} />
               ) : null}
             </View>
             <View style={styles.legend}>
-              <View style={styles.legendRow}>
+              <View
+                style={styles.legendRow}
+                accessible
+                accessibilityLabel={`Committed, ${formatMoney(sts.committed)}`}
+              >
                 <View style={styles.legendLeft}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
+                  <View style={[styles.legendDot, { backgroundColor: colors.warning }]} importantForAccessibility="no" />
                   <Text style={styles.legendLabel}>Committed</Text>
                 </View>
                 <Text style={styles.legendVal}>{formatMoney(sts.committed)}</Text>
               </View>
-              <View style={styles.legendRow}>
+              <View
+                style={styles.legendRow}
+                accessible
+                accessibilityLabel={`${sts.available > 0 ? 'Free to spend' : 'Short'}, ${formatMoney(Math.abs(sts.available))}`}
+              >
                 <View style={styles.legendLeft}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+                  <View style={[styles.legendDot, { backgroundColor: colors.primary }]} importantForAccessibility="no" />
                   <Text style={styles.legendLabel}>{sts.available > 0 ? 'Free to spend' : 'Short'}</Text>
                 </View>
                 <Text style={styles.legendVal}>{formatMoney(Math.abs(sts.available))}</Text>
@@ -447,7 +496,7 @@ export default function Insights() {
           </Card>
         ) : (
           <>
-            <ProInsights data={data} styles={styles} colors={colors} />
+            <ProInsights data={data} styles={styles} colors={colors} chartColors={chartColors} />
           </>
         )}
 
@@ -465,7 +514,13 @@ export default function Insights() {
 }
 
 // The Pro cards: computed fresh from the store on every render.
-function ProInsights({ data, styles, colors }) {
+function ProInsights({ data, styles, colors, chartColors }) {
+  // Two distinct, calm categorical hues for the income vs spending series.
+  // Income is the green slot (reads as money-in); spending is the violet
+  // slot. Neither is red or orange: warning hues are reserved for debt and
+  // over-limit, so expense must never wear one.
+  const incomeColor = chartColors[1]; // green
+  const expenseColor = chartColors[4]; // violet
   const score = healthScore(data);
   const series = monthlySeries(data.transactions, 6);
   const seriesMax = Math.max(...series.map((m) => Math.max(m.income, m.expenses)), 1);
@@ -496,18 +551,37 @@ function ProInsights({ data, styles, colors }) {
 
       <Card variant="flat" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>SIX MONTH TREND</Text>
+        <View style={styles.chartLegend}>
+          <View style={styles.chartLegendItem}>
+            <View style={[styles.chartLegendSwatch, { backgroundColor: incomeColor }]} />
+            <Text style={styles.chartLegendText}>Income</Text>
+          </View>
+          <View style={styles.chartLegendItem}>
+            <View style={[styles.chartLegendSwatch, { backgroundColor: expenseColor }]} />
+            <Text style={styles.chartLegendText}>Spending</Text>
+          </View>
+        </View>
         <View style={styles.trend}>
           {series.map((m) => (
-            <View key={m.key} style={styles.trendCol}>
-              <View style={styles.duoBars}>
-                <View style={[styles.duoBar, { height: Math.max((m.income / seriesMax) * 100, 2), backgroundColor: colors.primary }]} />
-                <View style={[styles.duoBar, { height: Math.max((m.expenses / seriesMax) * 100, 2), backgroundColor: colors.border }]} />
+            <View
+              key={m.key}
+              style={styles.trendCol}
+              accessible
+              accessibilityLabel={`${m.label}: income ${formatMoney(m.income)}, spending ${formatMoney(m.expenses)}`}
+            >
+              <View
+                style={styles.duoBars}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <View style={[styles.duoBar, { height: Math.max((m.income / seriesMax) * 100, 2), backgroundColor: incomeColor }]} />
+                <View style={[styles.duoBar, { height: Math.max((m.expenses / seriesMax) * 100, 2), backgroundColor: expenseColor }]} />
               </View>
               <Text style={styles.trendLabel}>{m.label}</Text>
             </View>
           ))}
         </View>
-        <Text style={styles.proNote}>Bright bars are income, dim bars are spending. Net this month: {formatMoney(series[series.length - 1].net)}.</Text>
+        <Text style={styles.proNote}>Net this month: {formatMoney(series[series.length - 1].net)}.</Text>
       </Card>
 
       <Card variant="flat" padding="xl" style={styles.cardGap}>
@@ -580,7 +654,7 @@ function ProInsights({ data, styles, colors }) {
         <View style={styles.trend}>
           {wk.map((w, i) => (
             <View key={i} style={styles.trendCol}>
-              <View style={[styles.wkBar, { height: Math.max((w.avg / wkMax) * 90, 3), backgroundColor: w.day === topDay.day && w.avg > 0 ? colors.primary : colors.border }]} />
+              <View style={[styles.wkBar, { height: Math.max((w.avg / wkMax) * 90, 3), backgroundColor: w.day === topDay.day && w.avg > 0 ? colors.primary : colors.muted }]} />
               <Text style={styles.trendLabel}>{WEEKDAY_LETTERS[i]}</Text>
             </View>
           ))}
@@ -683,6 +757,11 @@ function makeStyles(colors) {
     partVal: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
     duoBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 100 },
     duoBar: { width: 10, borderRadius: 3 },
+    // A small swatch + label legend, the honest key for a multi-series chart.
+    chartLegend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md },
+    chartLegendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    chartLegendSwatch: { width: 11, height: 11, borderRadius: 3 },
+    chartLegendText: { color: colors.textSecondary, fontSize: fontSize.small },
     proNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
     forecastBig: { color: colors.text, fontSize: fontSize.big, fontWeight: fontWeight.heavy, fontVariant: ['tabular-nums'], marginTop: spacing.xs },
     moverRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs },

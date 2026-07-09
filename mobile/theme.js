@@ -359,6 +359,19 @@ export const palettes = {
   },
 };
 
+// Categorical chart hues, for telling distinct series/categories apart (not
+// magnitude). Validated colorblind-safe on our light and dark card surfaces
+// (worst adjacent CVD dE 24.2 light / 17.6 dark; the chart legends + segment
+// gaps are the required secondary encoding). Slot ORDER is CVD-optimized for
+// adjacency, so assign in fixed order and never cycle. A 8th+ category folds
+// into a neutral "more", never a generated hue. Dark slot 3 is a brighter
+// green (#37A84E, not the light deck's #008300) so it clears >=3:1 on the dark
+// cards and never reads as dim green-on-green on the mint/forest dark themes.
+export const CHART_CATEGORICAL = {
+  light: ['#2a78d6','#1baf7a','#eda100','#008300','#4a3aa7','#e34948','#e87ba4','#eb6834'],
+  dark:  ['#3987e5','#199e70','#c98500','#37A84E','#9085e9','#e66767','#d55181','#d95926'],
+};
+
 // The brand default.
 export const DEFAULT_PALETTE = 'barako';
 
