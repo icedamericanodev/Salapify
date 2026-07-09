@@ -25,13 +25,25 @@
 //    'transparent' for a bar that floats with no visible track.
 //  - height: 'sm' (8), 'md' (10, the default), or 'lg' (16). The bar's thickness.
 //  - rounded: pill caps on the track and fill. Default true.
+//  - animate: grow the fill in from empty on mount and glide to a new fraction
+//    when it changes. Default true. The growth is a GPU composited scaleX from
+//    the left edge, so it stays smooth on budget phones, and it respects the OS
+//    reduce motion setting (then the fill just shows at its final width).
 //  - style: extra styles on the track, applied last, so a caller can add flex or a
 //    margin (for example a bar that sits in a row next to a label and a value).
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { radius } from '../theme';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  ReduceMotion,
+} from 'react-native-reanimated';
+import { radius, duration } from '../theme';
 import { useTheme } from '../context/Theme';
+import { useReduceMotion } from '../context/Motion';
 
 const HEIGHTS = { sm: 8, md: 10, lg: 16 };
 
@@ -41,15 +53,38 @@ export default function Bar({
   trackColor,
   height = 'md',
   rounded = true,
+  animate = true,
   style,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const reduce = useReduceMotion();
 
   // Clamp so a bad ratio can never overflow the track or go negative.
   const f = Number.isFinite(fraction) ? Math.max(0, Math.min(1, fraction)) : 0;
   const h = HEIGHTS[height] || HEIGHTS.md;
   const cap = rounded ? radius.pill : 0;
+
+  const on = animate && !reduce;
+  // The fill is full width and we scaleX it to the fraction from the left edge,
+  // which composites on the UI thread. Start empty when animating so it grows in;
+  // start at the final fraction otherwise so there is no flash.
+  const progress = useSharedValue(on ? 0 : f);
+  useEffect(() => {
+    if (on) {
+      progress.value = withTiming(f, {
+        duration: duration.slow,
+        easing: Easing.out(Easing.cubic),
+        reduceMotion: ReduceMotion.System,
+      });
+    } else {
+      progress.value = f;
+    }
+  }, [f, on]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: progress.value }],
+  }));
 
   return (
     <View
@@ -63,13 +98,17 @@ export default function Bar({
       accessibilityElementsHidden={true}
       importantForAccessibility="no-hide-descendants"
     >
-      <View
-        style={{
-          width: `${f * 100}%`,
-          height: '100%',
-          borderRadius: cap,
-          backgroundColor: color || colors.primary,
-        }}
+      <Animated.View
+        style={[
+          {
+            width: '100%',
+            height: '100%',
+            borderRadius: cap,
+            backgroundColor: color || colors.primary,
+            transformOrigin: 'left',
+          },
+          fillStyle,
+        ]}
       />
     </View>
   );

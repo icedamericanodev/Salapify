@@ -8,6 +8,12 @@ let currentSymbol = '₱';
 export function setCurrencySymbol(symbol) {
   if (symbol) currentSymbol = symbol;
 }
+// The current symbol as a plain string, for callers that need to capture it on
+// the JS side and hand it to a worklet (the animated count-up cannot read this
+// module's state from the UI thread).
+export function getCurrencySymbol() {
+  return currentSymbol;
+}
 
 // formatMoney turns a number like 48500 into a string like "₱48,500".
 // It rounds to whole units, adds commas every three digits, and uses the
