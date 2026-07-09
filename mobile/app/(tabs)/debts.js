@@ -21,6 +21,7 @@ import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO } from '../../lib/format';
 import { cardForecast, buildSOA } from '../../lib/soa';
 import EmptyState from '../../components/EmptyState';
+import Celebration from '../../components/motion/Celebration';
 
 const SHORT_TERM_TYPES = ['credit card', 'bnpl', 'short term', 'insurance'];
 const termOf = (type) => (SHORT_TERM_TYPES.includes(type) ? 'short' : 'long');
@@ -52,6 +53,8 @@ export default function Debts() {
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmPaidOff, setConfirmPaidOff] = useState(false);
+  // The win overlay shown when a debt is cleared to zero.
+  const [celebrate, setCelebrate] = useState(null);
 
   const debts = data.debts;
   const sum = (list, fn) => list.reduce((t, d) => t + fn(d), 0);
@@ -251,6 +254,15 @@ export default function Debts() {
     setMsg(
       `Logged ${formatMoney(amt)}${acct ? ` from ${acct.name}` : ''}. New balance ${formatMoney(newRem)}.`
     );
+    // Cleared to zero from a real balance: a debt is gone. The best moment in
+    // the app to celebrate. Covers both a full mark paid off and a partial
+    // payment that happens to finish it, since both route through here. Close
+    // the edit modal first, or the celebration renders behind it (a Modal is a
+    // separate native window on top) and the user never sees it.
+    if (newRem === 0 && cur > 0) {
+      setForm(null);
+      setCelebrate({ message: `${name} paid off! Utang free.`, id: Date.now() });
+    }
     return newRem;
   }
   function logPayment() {
@@ -568,6 +580,13 @@ export default function Debts() {
           </View>
         </View>
       </Modal>
+
+      <Celebration
+        key={celebrate?.id}
+        visible={!!celebrate}
+        message={celebrate?.message}
+        onDone={() => setCelebrate(null)}
+      />
     </SafeAreaView>
   );
 }

@@ -25,6 +25,7 @@ import { useAppData, genId } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import EmptyState from '../components/EmptyState';
 import Card from '../components/Card';
+import Celebration from '../components/motion/Celebration';
 import SectionHeader from '../components/SectionHeader';
 
 // Quick due date choices, so nobody has to type a date by hand. Next sweldo
@@ -59,6 +60,8 @@ export default function Receivables() {
   // amount being typed.
   const [payFor, setPayFor] = useState(null);
   const [payAmt, setPayAmt] = useState('');
+  // The win overlay shown when an utang is fully collected.
+  const [celebrate, setCelebrate] = useState(null);
 
   const list = data.receivables || [];
   const people = data.people || [];
@@ -280,6 +283,11 @@ export default function Receivables() {
         payments = [...payments, { id: genId('rpay'), amount: remaining, date: todayISO(), txnId, settled: true }];
       }
       updateItem('receivables', r.id, { paid: true, payments });
+      // The happy moment: money actually came back. Only celebrate when there
+      // was something to collect, not when closing an already settled utang.
+      if (remaining > 0) {
+        setCelebrate({ message: `Ayos! ${nameOf(r)} paid you back.`, id: Date.now() });
+      }
     });
     const message =
       remaining > 0
@@ -312,12 +320,18 @@ export default function Receivables() {
       // reverse it if the user removes the payment later.
       const txnId = postIncome(r, applied);
       const payment = { id: genId('rpay'), amount: applied, date: todayISO(), txnId };
+      const settles = applied >= remaining;
       updateItem('receivables', r.id, {
         payments: [...(r.payments || []), payment],
-        paid: applied >= remaining,
+        paid: settles,
       });
       setPayFor(null);
       setPayAmt('');
+      // If this partial was the last peso, the utang is collected in full.
+      // Celebrate it here too, matching payables' settling partial.
+      if (settles) {
+        setCelebrate({ message: `Ayos! ${nameOf(r)} paid you back.`, id: Date.now() });
+      }
     });
   }
 
@@ -589,6 +603,13 @@ export default function Receivables() {
           </View>
         </View>
       </Modal>
+
+      <Celebration
+        key={celebrate?.id}
+        visible={!!celebrate}
+        message={celebrate?.message}
+        onDone={() => setCelebrate(null)}
+      />
     </SafeAreaView>
   );
 }

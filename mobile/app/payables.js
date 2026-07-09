@@ -10,7 +10,7 @@
 // split a bill entry, because those do not fit money you owe, and there is no
 // borrow or lender affordance of any kind.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -32,6 +32,7 @@ import { useAppData, genId } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import EmptyState from '../components/EmptyState';
 import Card from '../components/Card';
+import Celebration from '../components/motion/Celebration';
 import SectionHeader from '../components/SectionHeader';
 
 // Quick due date choices, so nobody has to type a date by hand. Next sweldo
@@ -66,13 +67,8 @@ export default function Payables() {
   // being typed.
   const [payFor, setPayFor] = useState(null);
   const [payAmt, setPayAmt] = useState('');
-  // A warm, transient affirmation shown after an utang is fully paid. It is
-  // plain text, so it delights without blocking input or animating anything.
-  const [praise, setPraise] = useState('');
-  const praiseTimer = useRef(null);
-  // Clear the affirmation timer on unmount, so tapping back within 3.5s of
-  // paying off an utang does not set state on an unmounted screen.
-  useEffect(() => () => clearTimeout(praiseTimer.current), []);
+  // The win overlay shown when a payable is fully paid off.
+  const [celebrate, setCelebrate] = useState(null);
 
   const list = data.payables || [];
   const people = data.people || [];
@@ -114,9 +110,9 @@ export default function Payables() {
   groups.sort((a, b) => b.owed - a.owed);
 
   function praiseNow() {
-    setPraise('Bayad na! One less utang. 🎉');
-    if (praiseTimer.current) clearTimeout(praiseTimer.current);
-    praiseTimer.current = setTimeout(() => setPraise(''), 3500);
+    // One reward for a paid off utang: the celebration burst, which carries the
+    // confetti, the success buzz, and the spoken announcement for a reader.
+    setCelebrate({ message: 'Bayad na! One less utang.', id: Date.now() });
   }
 
   function openAdd() {
@@ -319,7 +315,8 @@ export default function Payables() {
         payments = [...payments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId, settled: true }];
       }
       updateItem('payables', r.id, { paid: true, payments });
-      praiseNow();
+      // Only celebrate a real payoff, not closing an already settled utang.
+      if (remaining > 0) praiseNow();
     });
     const acct = payAccount();
     const message =
@@ -422,12 +419,6 @@ export default function Payables() {
             </Text>
           ) : null}
         </Card>
-
-        {praise ? (
-          <View style={styles.praise} accessibilityLiveRegion="polite">
-            <Text style={styles.praiseText}>{praise}</Text>
-          </View>
-        ) : null}
 
         {list.length === 0 ? (
           <EmptyState icon="🫶" title="You owe no one" subtitle="Tap + Add to track money you owe." />
@@ -600,6 +591,13 @@ export default function Payables() {
           </View>
         </View>
       </Modal>
+
+      <Celebration
+        key={celebrate?.id}
+        visible={!!celebrate}
+        message={celebrate?.message}
+        onDone={() => setCelebrate(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -618,18 +616,6 @@ function makeStyles(colors) {
     kicker: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.2 },
     total: { color: colors.primary, fontSize: fontSize.huge, fontWeight: fontWeight.bold, marginTop: spacing.xs },
     progress: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.sm, lineHeight: 19 },
-
-    praise: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.positiveSurface,
-      borderColor: colors.positiveBorder,
-      borderWidth: 1,
-      borderRadius: radius.pill,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginBottom: spacing.lg,
-    },
-    praiseText: { color: colors.celebrate, fontSize: fontSize.small, fontWeight: fontWeight.medium },
 
     group: { marginBottom: spacing.lg },
     groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
