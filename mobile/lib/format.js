@@ -58,6 +58,79 @@ export function monthLabel(ref = new Date()) {
   return `${MONTH_NAMES[ref.getMonth()]} ${ref.getFullYear()}`;
 }
 
+// ---- Period views ----
+// A "period" says which slice of time a screen is showing. It is a small plain
+// object, one of:
+//   { mode: 'all' }
+//   { mode: 'month', ym: 'YYYY-MM' }
+//   { mode: 'year',  y:  'YYYY' }
+//   { mode: 'custom', from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }  (from/to may be '')
+// A screen keeps one period in state and filters its rows through inPeriod, so
+// Month, Year, and a Custom range all share the exact same logic. This is the
+// reusable core behind the Month/Year/Custom selector.
+
+// currentMonthPeriod is the sensible default: this calendar month.
+export function currentMonthPeriod(ref = new Date()) {
+  return { mode: 'month', ym: todayISO(ref).slice(0, 7) };
+}
+
+// inPeriod tells you if a transaction date belongs to the period. A dateless
+// entry never belongs to a chosen period (it only comes from an imported backup
+// and would otherwise leak into every view).
+export function inPeriod(dateStr, period) {
+  if (!period || period.mode === 'all') return true;
+  const d = dateStr ? String(dateStr).slice(0, 10) : '';
+  if (!d) return false;
+  if (period.mode === 'year') return d.slice(0, 4) === period.y;
+  if (period.mode === 'custom') {
+    if (period.from && d < period.from) return false;
+    if (period.to && d > period.to) return false;
+    return true;
+  }
+  // month (the default shape)
+  return d.slice(0, 7) === period.ym;
+}
+
+// periodLabel is the human title for the current period, e.g. "July 2026",
+// "2026", "2026-06-01 to 2026-06-15", or "All time".
+export function periodLabel(period) {
+  if (!period || period.mode === 'all') return 'All time';
+  if (period.mode === 'year') return period.y;
+  if (period.mode === 'custom') {
+    if (period.from && period.to) return `${period.from} to ${period.to}`;
+    if (period.from) return `From ${period.from}`;
+    if (period.to) return `Until ${period.to}`;
+    return 'All dates';
+  }
+  // month: build a local date from the YYYY-MM so the label reads "July 2026".
+  const [y, m] = String(period.ym || '').split('-').map(Number);
+  if (!y || !m) return '';
+  return monthLabel(new Date(y, m - 1, 1));
+}
+
+// shiftPeriod steps a month or year period by delta (negative = back). A custom
+// range has explicit dates, so it is returned unchanged.
+export function shiftPeriod(period, delta) {
+  if (!period) return period;
+  if (period.mode === 'year') return { mode: 'year', y: String(Number(period.y) + delta) };
+  if (period.mode === 'month') {
+    const [y, m] = String(period.ym).split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return { mode: 'month', ym: todayISO(d).slice(0, 7) };
+  }
+  return period;
+}
+
+// periodIsFuture is true when the whole period is past today, so a screen can
+// stop the user stepping forward into an empty future month or year.
+export function periodIsFuture(period, ref = new Date()) {
+  if (!period) return false;
+  const now = todayISO(ref);
+  if (period.mode === 'year') return period.y > now.slice(0, 4);
+  if (period.mode === 'month') return period.ym > now.slice(0, 7);
+  return false;
+}
+
 // ---- Payday schedule ----
 // The schedule lives in settings.paydaySchedule and comes in three shapes:
 //   { mode: 'semimonthly', days: [15, 31] }  the Filipino kinsenas and

@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.85 · Fixed the debt free plan amount overlapping the label in Reports</Text>
+            <Text style={styles.stampValue}>v3.86 · History now views by Month, Year, or a Custom date range</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

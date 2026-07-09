@@ -28,10 +28,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-import { formatMoney, todayISO } from '../lib/format';
+import { formatMoney, todayISO, inPeriod, periodLabel } from '../lib/format';
 import { txMatches, buildNameMaps } from '../lib/search';
 import { resolveReceipt } from '../lib/receipts';
 import EmptyState from '../components/EmptyState';
+import PeriodSelector from '../components/PeriodSelector';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -214,21 +215,14 @@ export default function History() {
   const params = useLocalSearchParams();
   const { data, updateTransaction, removeTransaction } = useAppData();
 
-  const [month, setMonth] = useState('all');
+  // The time slice shown: All time, a Month, a Year, or a Custom range. Starts
+  // on All so opening History still shows the full record like before.
+  const [period, setPeriod] = useState({ mode: 'all' });
   // Opened from global Search? Start filtered to the same words.
   const [query, setQuery] = useState(() => (typeof params.q === 'string' ? params.q : ''));
   const [editTx, setEditTx] = useState(null);
   const [receiptView, setReceiptView] = useState('');
   const [receiptDead, setReceiptDead] = useState(false);
-
-  // Which months exist in the data, newest first.
-  const monthKeys = useMemo(() => {
-    const keys = new Set();
-    for (const t of data.transactions || []) {
-      if (t && typeof t.date === 'string' && /^\d{4}-\d{2}/.test(t.date)) keys.add(t.date.slice(0, 7));
-    }
-    return [...keys].sort().reverse();
-  }, [data.transactions]);
 
   // Match the same fields global search does (label, category, account,
   // amount), so an entry found in Search never vanishes when you drill in.
@@ -238,12 +232,12 @@ export default function History() {
     const q = query.trim();
     const list = (data.transactions || []).filter((t) => {
       if (!t) return false;
-      if (month !== 'all' && String(t.date || '').slice(0, 7) !== month) return false;
+      if (!inPeriod(t.date, period)) return false;
       if (q && !txMatches(t, q, nameMaps.catName, nameMaps.acctName)) return false;
       return true;
     });
     return [...list].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  }, [data.transactions, month, query, nameMaps]);
+  }, [data.transactions, period, query, nameMaps]);
 
   const totals = useMemo(() => {
     // Only real income and expenses. Transfer and debt payment records are
@@ -354,16 +348,9 @@ export default function History() {
         ) : null}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthBar} contentContainerStyle={styles.monthRow}>
-        <Pressable onPress={() => setMonth('all')} style={[styles.chip, month === 'all' && styles.chipOn]}>
-          <Text style={[styles.chipText, month === 'all' && styles.chipTextOn]}>All</Text>
-        </Pressable>
-        {monthKeys.map((k) => (
-          <Pressable key={k} onPress={() => setMonth(k)} style={[styles.chip, month === k && styles.chipOn]}>
-            <Text style={[styles.chipText, month === k && styles.chipTextOn]}>{monthTitle(k)}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.periodWrap}>
+        <PeriodSelector period={period} onChange={setPeriod} colors={colors} allowAll />
+      </View>
 
       <FlatList
         data={shown}
@@ -373,18 +360,21 @@ export default function History() {
         initialNumToRender={20}
         windowSize={7}
         ListHeaderComponent={
-          <View style={styles.totalsCard}>
-            <View>
-              <Text style={styles.totalsLabel}>Money in</Text>
-              <Text style={[styles.totalsValue, { color: colors.primary }]}>{formatMoney(totals.tin)}</Text>
-            </View>
-            <View>
-              <Text style={styles.totalsLabel}>Money out</Text>
-              <Text style={styles.totalsValue}>{formatMoney(totals.tout)}</Text>
-            </View>
-            <View>
-              <Text style={styles.totalsLabel}>Entries</Text>
-              <Text style={styles.totalsValue}>{shown.length}</Text>
+          <View>
+            <Text style={styles.periodCaption}>{periodLabel(period)}</Text>
+            <View style={styles.totalsCard}>
+              <View>
+                <Text style={styles.totalsLabel}>Money in</Text>
+                <Text style={[styles.totalsValue, { color: colors.primary }]}>{formatMoney(totals.tin)}</Text>
+              </View>
+              <View>
+                <Text style={styles.totalsLabel}>Money out</Text>
+                <Text style={styles.totalsValue}>{formatMoney(totals.tout)}</Text>
+              </View>
+              <View>
+                <Text style={styles.totalsLabel}>Entries</Text>
+                <Text style={styles.totalsValue}>{shown.length}</Text>
+              </View>
             </View>
           </View>
         }
@@ -450,8 +440,8 @@ function makeStyles(colors) {
       borderRadius: radius.md,
     },
     searchInput: { flex: 1, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
-    monthBar: { flexGrow: 0 },
-    monthRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+    periodWrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+    periodCaption: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, marginBottom: spacing.xs, marginLeft: spacing.xs },
     chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     chipText: { color: colors.text, fontSize: fontSize.small },
