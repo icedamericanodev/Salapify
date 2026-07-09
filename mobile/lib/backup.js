@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -124,6 +124,11 @@ const MIGRATIONS = {
   // understating net worth (it would see the reduced balance but not count the
   // tracked utang).
   8: (d) => ({ ...d }),
+  // v9 adds the debt interest split: debts carry interestThroughISO, debt
+  // payments carry interest/principal. No transform needed (absent fields
+  // default safely: no back accrual, whole legacy payment treated as
+  // principal); the fence stops an older build from mis-reading a v9 backup.
+  9: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -200,8 +205,28 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       statementDay: num(d.statementDay),
       graceDays: num(d.graceDays),
       creditLimit: num(d.creditLimit),
+      // The date interest has been accrued up to (kept as a plain date string or
+      // absent). Absent means a payment accrues 0 interest and then starts the
+      // clock, which is the correct no-back-accrual default for old debts.
+      // Keep only a real YYYY-MM-DD stamp: a malformed string would make the
+      // day-count diff NaN in splitDebtPayment and could wipe a balance, so a
+      // bad value drops to undefined (the safe no-back-accrual default).
+      interestThroughISO:
+        typeof d.interestThroughISO === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d.interestThroughISO)
+          ? d.interestThroughISO
+          : undefined,
     })),
-    payments: dated(src.payments).map((p, i) => ({ ...p, id: str(p.id) || `pay_restored_${i}`, amount: Math.max(0, num(p.amount)) })),
+    // Payments carry their interest/principal split so reports read stored
+    // values, never recompute from live balances. Coerced to safe numbers when
+    // present; left ABSENT for legacy payments so a reader can fall back to
+    // treating the whole legacy amount as principal (they predate the split).
+    payments: dated(src.payments).map((p, i) => ({
+      ...p,
+      id: str(p.id) || `pay_restored_${i}`,
+      amount: Math.max(0, num(p.amount)),
+      interest: p.interest != null ? Math.max(0, num(p.interest)) : undefined,
+      principal: p.principal != null ? Math.max(0, num(p.principal)) : undefined,
+    })),
     transactions: dated(src.transactions).map((t) => {
       const out = {
         ...t,

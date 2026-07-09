@@ -20,6 +20,7 @@ import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO } from '../../lib/format';
 import { cardForecast, buildSOA } from '../../lib/soa';
+import { splitDebtPayment } from '../../lib/analytics';
 import EmptyState from '../../components/EmptyState';
 import Celebration from '../../components/motion/Celebration';
 
@@ -193,8 +194,18 @@ export default function Debts() {
       graceDays: grace,
       creditLimit: limit,
     };
-    if (form.id) updateItem('debts', form.id, payload);
-    else addItem('debts', payload);
+    if (form.id) {
+      // A typed in balance is current as of today, so reset the interest clock
+      // when the remaining balance is edited. Without this the next payment
+      // would accrue interest for the gap before a balance you just corrected.
+      const existing = data.debts.find((d) => d.id === form.id);
+      if (!existing || Number(existing.remaining) !== rem) payload.interestThroughISO = today();
+      updateItem('debts', form.id, payload);
+    } else {
+      // New debt: start the interest clock now, so a first payment does not
+      // back accrue interest for time before the debt existed in the app.
+      addItem('debts', { ...payload, interestThroughISO: today() });
+    }
     close();
   }
   function del() {
@@ -226,34 +237,66 @@ export default function Debts() {
     // or half-typed Remaining box must not zero out a real debt.
     const debt = data.debts.find((d) => d.id === form.id);
     const cur = debt ? Number(debt.remaining) || 0 : Number(form.remaining) || 0;
-    const newRem = Math.max(0, cur - amt);
-    updateItem('debts', form.id, { remaining: newRem });
-    // Take the money out of the chosen account too, so net worth stays
-    // honest: the debt goes down and the cash goes down by the same amount.
+    const rate = debt ? Number(debt.monthlyRate) || 0 : Number(form.monthlyRate) || 0;
+    // Split the payment into interest and principal by day-count accrual (see
+    // splitDebtPayment). A first payment on a debt with no stamp accrues 0 (we
+    // never back accrue history we did not have), then the clock starts, so two
+    // payments in one month never book two months of interest. applied is
+    // clamped to what is owed, fixing the old overpayment cash-loss.
+    const stamp = today();
+    const { accrued, applied, interest: interestPortion, principal: principalPortion, newRemaining: newRem, overpay } =
+      splitDebtPayment(cur, rate, debt && debt.interestThroughISO, amt, stamp);
+    updateItem('debts', form.id, { remaining: newRem, interestThroughISO: stamp });
+    // Cash leaves only for what was actually applied, so an overpayment is never
+    // taken from the account.
     const acct = data.accounts.find((a) => a.id === payFrom);
-    if (acct) updateItem('accounts', acct.id, { balance: acct.balance - amt });
+    if (acct && applied > 0) updateItem('accounts', acct.id, { balance: acct.balance - applied });
     // Credit card payments start as pending, because banks take a day or
     // three to post them. Other debts post right away.
     const isCard = (debt ? debt.type : form.type) === 'credit card';
     addItem('payments', {
       debtId: form.id,
-      amount: amt,
+      amount: applied,
+      interest: interestPortion,
+      principal: principalPortion,
       date: today(),
       account: acct ? acct.id : '',
       status: isCard ? 'pending' : 'posted',
     });
     const name = (debt && debt.name) || form.name || 'Debt';
-    addTransaction({
-      type: 'debt',
-      label: `Debt payment: ${name}`,
-      amount: amt,
-      date: today(),
-      debtId: form.id,
-    });
+    // Principal paydown is a balance sheet move (financing), not spending: a
+    // debt record row that the income and expense filters skip.
+    if (principalPortion > 0) {
+      addTransaction({
+        type: 'debt',
+        label: `Debt payment: ${name}`,
+        amount: principalPortion,
+        date: today(),
+        debtId: form.id,
+      });
+    }
+    // Interest is a real cost, a genuine expense. Recorded without an accountId
+    // (the cash already left via the applied debit above), so it counts in
+    // spending and the income statement without moving a balance twice.
+    if (interestPortion > 0) {
+      addTransaction({
+        type: 'expense',
+        label: `Interest: ${name}`,
+        amount: interestPortion,
+        date: today(),
+        debtId: form.id,
+        source: 'interest',
+      });
+    }
     setForm((f) => ({ ...f, remaining: String(newRem) }));
-    setMsg(
-      `Logged ${formatMoney(amt)}${acct ? ` from ${acct.name}` : ''}. New balance ${formatMoney(newRem)}.`
-    );
+    let msg = `Logged ${formatMoney(applied)}${acct ? ` from ${acct.name}` : ''}.`;
+    if (interestPortion > 0) msg += ` ${formatMoney(interestPortion)} of it was interest.`;
+    // Balance only grows when the payment falls short of the interest that
+    // accrued. Paying exactly the interest holds it flat, so do not claim growth.
+    if (applied < accrued) msg += ` That did not cover the interest, so the balance grew.`;
+    if (overpay > 0) msg += ` ${formatMoney(overpay)} was more than you owed and was not taken.`;
+    msg += ` New balance ${formatMoney(newRem)}.`;
+    setMsg(msg);
     // Cleared to zero from a real balance: a debt is gone. The best moment in
     // the app to celebrate. Covers both a full mark paid off and a partial
     // payment that happens to finish it, since both route through here. Close
@@ -285,7 +328,13 @@ export default function Debts() {
       return;
     }
     setConfirmPaidOff(false);
-    applyPayment(remaining);
+    // Pay the FULL balance including interest accrued since the last payment, so
+    // "Mark paid off" truly zeroes the debt instead of leaving the accrued
+    // interest behind. splitDebtPayment gives that balance for the same inputs
+    // applyPayment will use, so applied clamps to it and the debt lands at 0.
+    const rate = debt ? Number(debt.monthlyRate) || 0 : 0;
+    const { balance } = splitDebtPayment(remaining, rate, debt && debt.interestThroughISO, 0, today());
+    applyPayment(balance > 0 ? balance : remaining);
   }
 
   return (
@@ -398,6 +447,13 @@ export default function Debts() {
                 placeholderTextColor={colors.faint}
                 keyboardType="numeric"
               />
+              {form?.type === 'credit card' ? (
+                <Text style={styles.fieldHint}>
+                  This rate applies to a balance you carry past the due date. If you pay
+                  your card in full every month, you are inside the grace period and pay no
+                  interest, so set this to 0.
+                </Text>
+              ) : null}
               <Text style={styles.fieldLabel}>Minimum payment</Text>
               <TextInput
                 style={styles.input}
@@ -669,6 +725,7 @@ function makeStyles(colors) {
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.sm },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    fieldHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.xs, lineHeight: 16 },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },

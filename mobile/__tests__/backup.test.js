@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(8);
+    expect(SCHEMA_VERSION).toBe(9);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(8);
+    expect(out.schemaVersion).toBe(9);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(8);
+    expect(out.schemaVersion).toBe(9);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -111,6 +111,40 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(pays[0].id).toBe('rpay_1');
     expect(pays[1].id).toBeTruthy();
     expect(pays[1].id).not.toBe(pays[0].id);
+  });
+
+  test('debts keep a real interestThroughISO stamp and drop a malformed one', () => {
+    const blob = {
+      schemaVersion: 9,
+      debts: [
+        { id: 'd1', name: 'Card A', remaining: 20000, monthlyRate: 3, interestThroughISO: '2026-06-09' },
+        { id: 'd2', name: 'Card B', remaining: 10000, monthlyRate: 2, interestThroughISO: 'not-a-date' },
+        { id: 'd3', name: 'Card C', remaining: 5000, monthlyRate: 1, interestThroughISO: 42 },
+      ],
+    };
+    const out = sanitizeData(blob);
+    // A valid stamp survives; a garbage string or non-string drops to undefined
+    // (the safe no-back-accrual default) so it can never poison the balance.
+    expect(out.debts[0].interestThroughISO).toBe('2026-06-09');
+    expect(out.debts[1].interestThroughISO).toBeUndefined();
+    expect(out.debts[2].interestThroughISO).toBeUndefined();
+  });
+
+  test('debt payments keep their interest/principal split and coerce bad values', () => {
+    const blob = {
+      schemaVersion: 9,
+      debts: [{ id: 'd1', name: 'Card', remaining: 20000, monthlyRate: 3 }],
+      payments: [
+        { id: 'p1', debtId: 'd1', amount: 5000, interest: 600, principal: 4400, date: '2026-07-09' },
+        { id: 'p2', debtId: 'd1', amount: 1000, date: '2026-06-09' }, // legacy, no split
+      ],
+    };
+    const out = sanitizeData(blob);
+    expect(out.payments[0].interest).toBe(600);
+    expect(out.payments[0].principal).toBe(4400);
+    // A legacy payment has no split; readers fall back to the whole amount.
+    expect(out.payments[1].interest).toBeUndefined();
+    expect(out.payments[1].principal).toBeUndefined();
   });
 
   test('a v3 migration from a v2 blob builds people out of receivable names', () => {
@@ -242,7 +276,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(8);
+    expect(out.schemaVersion).toBe(9);
     expect(out.payables).toHaveLength(1);
     const pay = out.payables[0];
     expect(pay.person).toBe('Nanay');
@@ -303,7 +337,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
   });
 
   test('a blob with schemaVersion 8 (above the current) is refused, protecting payables', () => {
-    expect(() => sanitizeData({ schemaVersion: 9, accounts: [] })).toThrow(
+    expect(() => sanitizeData({ schemaVersion: 10, accounts: [] })).toThrow(
       /newer version of Salapify/
     );
   });
@@ -339,7 +373,7 @@ describe('sanitizeData refuses data from a newer app', () => {
   test('the refusal never partially applies (it throws, returns nothing)', () => {
     let result;
     try {
-      result = sanitizeData({ schemaVersion: 9, accounts: [] });
+      result = sanitizeData({ schemaVersion: 10, accounts: [] });
     } catch (e) {
       result = 'threw';
     }

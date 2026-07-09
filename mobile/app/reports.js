@@ -61,9 +61,17 @@ export default function Reports() {
   const netIncome = income - expenses;
 
   // ---- Cash Flow (this month only) ----
-  const debtPaid = sum((data.payments || []).filter((p) => isThisMonth(p.date)), (p) => p.amount);
+  // Only the PRINCIPAL portion of a debt payment is a separate cash out here:
+  // the interest portion is already an expense (counted in `expenses`), so
+  // adding the whole payment would double count the interest. Legacy payments
+  // predate the split and have no principal field, so their whole amount is
+  // treated as principal (they booked no interest). Interest is shown on its own
+  // line for honesty but is NOT added again (it lives inside `expenses`).
+  const monthPayments = (data.payments || []).filter((p) => isThisMonth(p.date));
+  const principalPaid = sum(monthPayments, (p) => (p.principal != null ? p.principal : p.amount));
+  const interestPaid = sum(monthPayments, (p) => (p.interest != null ? p.interest : 0));
   const cashIn = income;
-  const cashOut = expenses + debtPaid;
+  const cashOut = expenses + principalPaid;
   const netCash = cashIn - cashOut;
 
   const Line = ({ label, value, strong, color }) => (
@@ -118,9 +126,12 @@ export default function Reports() {
         <View style={styles.card}>
           <Line label="Cash in (income)" value={cashIn} color={colors.primary} />
           <Line label="Cash out (spending)" value={expenses} color={colors.warning} />
-          <Line label="Cash out (debt payments)" value={debtPaid} color={colors.warning} />
+          <Line label="Cash out (debt principal)" value={principalPaid} color={colors.warning} />
           <View style={styles.divider} />
           <Line label="Net cash flow" value={netCash} strong color={netCash >= 0 ? colors.primary : colors.warning} />
+          {interestPaid > 0 ? (
+            <Text style={styles.note}>Spending above includes {formatMoney(interestPaid)} of debt interest this month. The principal you paid is shown separately since it lowers what you owe rather than being spending.</Text>
+          ) : null}
         </View>
 
         {/* Debt free plan: the Pro projection. */}
@@ -211,6 +222,7 @@ function makeStyles(colors) {
     strongValue: { fontWeight: fontWeight.bold, fontSize: fontSize.subtitle },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.sm },
     footnote: { color: colors.faint, fontSize: fontSize.small, textAlign: 'center', marginTop: spacing.sm },
+    note: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.sm, lineHeight: 18 },
     proBadge: { color: colors.celebrate, fontWeight: fontWeight.heavy },
     projNote: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
     extraLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs },

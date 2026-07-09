@@ -12,6 +12,7 @@ import {
   monthlySeries,
   netWorth,
   trackedRemaining,
+  splitDebtPayment,
 } from '../lib/analytics';
 
 const REF = new Date(2026, 6, 10); // 10 July 2026
@@ -111,7 +112,58 @@ describe('netWorth is one formula, counting only tracked utang', () => {
   });
 });
 
-describe('savingsRate counts debt payments as money out', () => {
+describe('splitDebtPayment splits interest and principal by day-count', () => {
+  test('a full month elapsed: 20000 at 3%, pay 5000 -> 600 interest, 4400 principal, 15600 left', () => {
+    const r = splitDebtPayment(20000, 3, '2026-06-09', 5000, '2026-07-09'); // 30 days
+    expect(r.interest).toBe(600);
+    expect(r.principal).toBe(4400);
+    expect(r.newRemaining).toBe(15600);
+    expect(r.overpay).toBe(0);
+  });
+  test('a second payment the same day books no more interest (no double count)', () => {
+    // interestThroughISO is now today, so 0 days elapsed -> 0 accrued.
+    const r = splitDebtPayment(15600, 3, '2026-07-09', 5000, '2026-07-09');
+    expect(r.interest).toBe(0);
+    expect(r.principal).toBe(5000);
+    expect(r.newRemaining).toBe(10600);
+  });
+  test('a 0% debt: whole payment is principal', () => {
+    const r = splitDebtPayment(10000, 0, '2026-06-09', 3000, '2026-07-09');
+    expect(r.interest).toBe(0);
+    expect(r.principal).toBe(3000);
+    expect(r.newRemaining).toBe(7000);
+  });
+  test('no stamp: first payment accrues 0, never back-accrues history', () => {
+    const r = splitDebtPayment(20000, 3, undefined, 5000, '2026-07-09');
+    expect(r.interest).toBe(0);
+    expect(r.principal).toBe(5000);
+    expect(r.newRemaining).toBe(15000);
+  });
+  test('overpayment is clamped: never pay or be charged more than owed', () => {
+    const r = splitDebtPayment(5000, 0, '2026-07-09', 6000, '2026-07-09');
+    expect(r.applied).toBe(5000);
+    expect(r.newRemaining).toBe(0);
+    expect(r.overpay).toBe(1000);
+  });
+  test('a payment below the accrued interest grows the balance (negative amortization)', () => {
+    // 30 days at 3% on 20000 = 600 interest; pay only 100.
+    const r = splitDebtPayment(20000, 3, '2026-06-09', 100, '2026-07-09');
+    expect(r.interest).toBe(100);
+    expect(r.principal).toBe(0);
+    expect(r.newRemaining).toBe(20500); // 20600 balance - 100 applied
+  });
+  test('a malformed stamp never poisons the balance with NaN', () => {
+    // A non-date string makes the day-count diff NaN, which would wipe the debt
+    // on the next save. The guard accrues 0 instead of propagating NaN.
+    const r = splitDebtPayment(20000, 3, 'not-a-date', 5000, '2026-07-09');
+    expect(Number.isFinite(r.newRemaining)).toBe(true);
+    expect(r.interest).toBe(0);
+    expect(r.principal).toBe(5000);
+    expect(r.newRemaining).toBe(15000);
+  });
+});
+
+describe('savingsRate is earnings minus spending, principal paydown excluded', () => {
   test('income minus expenses over income for this month', () => {
     const tx = [
       { type: 'income', amount: 20000, date: '2026-07-01' },
@@ -119,10 +171,16 @@ describe('savingsRate counts debt payments as money out', () => {
     ];
     expect(savingsRate(tx, [], REF)).toBe(0.5);
   });
-  test('a debt payment lowers the savings rate', () => {
-    const tx = [{ type: 'income', amount: 20000, date: '2026-07-01' }];
-    const payments = [{ amount: 5000, date: '2026-07-03' }];
-    expect(savingsRate(tx, payments, REF)).toBe(0.75); // (20000 - 0 - 5000) / 20000
+  test('debt INTEREST (an expense) lowers the rate, but principal paydown does not', () => {
+    // A debt payment now posts the principal as a type:debt record (skipped by
+    // the expense filter) and only the interest as an expense. So the rate is
+    // dented only by interest, not by the principal that builds net worth.
+    const tx = [
+      { type: 'income', amount: 20000, date: '2026-07-01' },
+      { type: 'debt', amount: 4400, date: '2026-07-03' }, // principal, not spending
+      { type: 'expense', amount: 600, date: '2026-07-03', source: 'interest' }, // interest, spending
+    ];
+    expect(savingsRate(tx, [], REF)).toBe(0.97); // (20000 - 600) / 20000
   });
   test('no income yields null, never a divide-by-zero', () => {
     expect(savingsRate([], [], REF)).toBeNull();
