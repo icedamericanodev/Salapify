@@ -20,6 +20,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
+import { netWorthParts } from '../lib/analytics';
 import { BANK_BRANDS, findBrand } from '../lib/banks';
 import BankBadge from '../components/BankBadge';
 
@@ -199,9 +200,14 @@ export default function Accounts() {
     ['savings', 'checking', 'ewallet'].includes(a.kind)
   );
   const sum = (list, key) => list.reduce((t, x) => t + (x[key] || 0), 0);
-  const totalAssets = sum(data.accounts, 'balance') + sum(data.assets, 'value');
-  const totalDebt = sum(data.debts, 'remaining');
-  const netWorth = totalAssets - totalDebt;
+  // One shared net worth formula so this screen agrees with Home and the rest.
+  // totalAssets / totalDebt here include tracked (cash leg) utang, so the two
+  // reconcile to the headline. debtsSubtotal is debts only, for the Debts group.
+  const nwParts = netWorthParts(data);
+  const totalAssets = nwParts.assets;
+  const totalDebt = nwParts.liabilities;
+  const debtsSubtotal = nwParts.debts;
+  const netWorth = nwParts.netWorth;
 
   const Row = ({ icon, brand, name, sub, amount, amountColor, onPress, progress }) => (
     <Pressable
@@ -339,7 +345,7 @@ export default function Accounts() {
 
         <Section
           title="DEBTS"
-          subtotal={formatMoney(totalDebt)}
+          subtotal={formatMoney(debtsSubtotal)}
           subtotalColor={colors.warning}
           styles={styles}
         >

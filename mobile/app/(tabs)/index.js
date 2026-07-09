@@ -13,7 +13,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, daysUntilPayday, prevPayday, scheduleLabel, isThisMonth, monthLabel, todayISO } from '../../lib/format';
-import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
+import { safeToSpend, upcomingCommitments, netWorthParts } from '../../lib/analytics';
 import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import { weeklyCheckIn } from '../../lib/coach';
 import Card from '../../components/Card';
@@ -45,10 +45,14 @@ export default function Overview() {
   // Helper to add up a number field across a list.
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
 
-  // Net worth: everything you own minus everything you owe.
-  const totalAssets = sum(data.accounts, 'balance') + sum(data.assets, 'value');
-  const totalDebt = sum(data.debts, 'remaining');
-  const netWorth = totalAssets - totalDebt;
+  // Net worth: everything you own minus everything you owe. One shared helper
+  // so Home, Insights, Accounts, the widget, and Reports never disagree. Assets
+  // and debt here include utang that has a cash leg, so the two lines below
+  // always add up to the headline.
+  const nwParts = netWorthParts(data);
+  const totalAssets = nwParts.assets;
+  const totalDebt = nwParts.liabilities;
+  const netWorth = nwParts.netWorth;
   // Precomputed once so the hero can pick a font size that keeps a long amount
   // on one line (a TextInput cannot shrink to fit the way a Text can).
   const netWorthStr = formatMoney(netWorth);

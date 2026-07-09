@@ -96,7 +96,10 @@ export default function Receivables() {
   groups.sort((a, b) => b.owed - a.owed);
 
   function openAdd() {
-    setForm({ id: null, person: '', amount: '', dueDate: '', phone: '', note: '', paid: false });
+    // fromAccount: which account the lent money leaves (optional). When set, the
+    // receivable gets a real cash leg and counts in net worth; when left null it
+    // behaves like before (money not tracked leaving, excluded from net worth).
+    setForm({ id: null, person: '', amount: '', dueDate: '', phone: '', note: '', paid: false, fromAccount: null });
     setErr('');
     setConfirmDel(false);
   }
@@ -109,6 +112,9 @@ export default function Receivables() {
       phone: r.phone || '',
       note: r.note || '',
       paid: !!r.paid,
+      // Tracked utang carries a cash leg tied to this exact amount. The edit
+      // form locks the amount so it cannot drift the recorded cash move.
+      cashLeg: !!r.cashLeg,
     });
     setErr('');
     setConfirmDel(false);
@@ -170,6 +176,14 @@ export default function Receivables() {
     }
     const existing = form.id ? list.find((x) => x.id === form.id) : null;
     const wasPaid = !!(existing && existing.paid);
+    // A lending cash leg is recorded only for a NEW receivable where the user
+    // named the source account. It deducts the lent money (a transfer out) and
+    // marks the receivable tracked, so it counts in net worth and collecting it
+    // later returns the cash instead of posting phantom income.
+    const lendAcctId =
+      !form.id && form.fromAccount && data.accounts.some((a) => a.id === form.fromAccount)
+        ? form.fromAccount
+        : '';
     // Write the fields first, then reconcile the paid toggle below. The paid
     // state is deliberately NOT part of this payload: flipping it has to move
     // money the same way the Mark paid button does, never just flip a flag.
@@ -184,6 +198,23 @@ export default function Receivables() {
     let id = form.id;
     if (form.id) updateItem('receivables', form.id, payload);
     else id = addItem('receivables', { ...payload, payments: [], paid: false });
+
+    // Record the lending outflow and mark the receivable tracked.
+    if (lendAcctId) {
+      const lendTxnId = addTransaction({
+        type: 'transfer',
+        flow: 'out',
+        label: `Lent to ${name}`,
+        amount,
+        date: todayISO(),
+        accountId: lendAcctId,
+        source: 'receivable',
+      });
+      updateItem('receivables', id, { cashLeg: true, accountId: lendAcctId, lendTxnId });
+    }
+    // What postIncome needs to route collection correctly for a brand new item
+    // (the stored item is not in `list` yet within this synchronous save).
+    const collectRef = { person: name, personId: person.id, cashLeg: !!lendAcctId, accountId: lendAcctId };
 
     // Reconcile the "Marked as paid" toggle through the same money path as the
     // Mark paid button, so it can never leave an utang shown as paid with no
@@ -200,7 +231,7 @@ export default function Receivables() {
       const remaining = Math.max(0, amount - priorPaid);
       let payments = priorPayments;
       if (remaining > 0) {
-        const txnId = postIncome({ person: name, personId: person.id }, remaining);
+        const txnId = postIncome(collectRef, remaining);
         payments = [...priorPayments, { id: genId('rpay'), amount: remaining, date: todayISO(), txnId, settled: true }];
       }
       updateItem('receivables', id, { paid: true, payments });
@@ -237,20 +268,34 @@ export default function Receivables() {
       (r?.payments || []).forEach((p) => {
         if (p.txnId) removeTransaction(p.txnId);
       });
+      // If this receivable recorded a lending outflow, reverse it too so the
+      // lent money returns to the account (deleting the utang undoes the lend).
+      if (r?.lendTxnId) removeTransaction(r.lendTxnId);
       removeItem('receivables', form.id);
     }
     setForm(null);
   }
 
-  // Money coming back is real income, into the remembered account when
-  // one is set, so cash flow and balances agree with what happened
-  // instead of the utang just silently vanishing. Returns the new
-  // transaction id so the payment can remember it and reverse it later.
+  // Record money coming back. Returns the transaction id so the payment can
+  // remember it and reverse it later.
+  //
+  // Two honest cases:
+  //  - Tracked utang (r.cashLeg): the cash left a real account when you lent, so
+  //    collecting is a TRANSFER back into that same account, not income. Net
+  //    worth is unchanged by the round trip (the receivable shrinks, cash grows).
+  //  - Legacy/untracked utang: no cash leg was recorded when you lent, so the
+  //    money returning reads as a real inflow. Post it as income (tagged
+  //    source: 'receivable' so the savings rate still leaves it out of earnings).
   function postIncome(r, amount) {
     if (amount <= 0) return '';
+    if (r.cashLeg) {
+      const acctId = r.accountId && data.accounts.some((a) => a.id === r.accountId) ? r.accountId : '';
+      const entry = { type: 'transfer', flow: 'in', label: `${nameOf(r)} paid you back`, amount, date: todayISO(), source: 'receivable' };
+      return addTransaction(acctId ? { ...entry, accountId: acctId } : entry);
+    }
     const def = data.settings.defaultAccountId;
     const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
-    const entry = { type: 'income', label: `${nameOf(r)} paid you back`, amount, date: todayISO() };
+    const entry = { type: 'income', label: `${nameOf(r)} paid you back`, amount, date: todayISO(), source: 'receivable' };
     return addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
@@ -548,7 +593,32 @@ export default function Receivables() {
               <Text style={styles.fieldLabel}>Name</Text>
               <TextInput style={styles.input} value={form?.person} onChangeText={(t) => setForm((f) => ({ ...f, person: t }))} placeholder="e.g. Juan" placeholderTextColor={colors.faint} />
               <Text style={styles.fieldLabel}>Amount owed</Text>
-              <TextInput style={styles.input} value={form?.amount} onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
+              <TextInput style={[styles.input, form?.id && form?.cashLeg && styles.inputLocked]} value={form?.amount} onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" editable={!(form?.id && form?.cashLeg)} />
+              {form?.id && form?.cashLeg ? (
+                <Text style={styles.lockNote}>This utang tracked a real cash move, so its amount is locked. To change it, delete and add it again.</Text>
+              ) : null}
+              {/* Where the lent money left from. Optional: pick an account to
+                  track it (it lowers that balance now and counts in net worth,
+                  and collecting later returns it), or leave it not tracked. Only
+                  offered when adding, since editing must not re-move money. */}
+              {!form?.id && (data.accounts || []).length > 0 ? (
+                <>
+                  <Text style={styles.fieldLabel}>Money came from (optional)</Text>
+                  <View style={styles.chips}>
+                    <Pressable onPress={() => setForm((f) => ({ ...f, fromAccount: null }))} style={[styles.chip, !form?.fromAccount && styles.chipOn]}>
+                      <Text style={[styles.chipText, !form?.fromAccount && styles.chipTextOn]}>Not tracked</Text>
+                    </Pressable>
+                    {data.accounts.map((a) => {
+                      const on = form?.fromAccount === a.id;
+                      return (
+                        <Pressable key={a.id} onPress={() => setForm((f) => ({ ...f, fromAccount: a.id }))} style={[styles.chip, on && styles.chipOn]}>
+                          <Text style={[styles.chipText, on && styles.chipTextOn]}>{a.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
               <Text style={styles.fieldLabel}>Due date (optional)</Text>
               <View style={styles.chips}>
                 {quickDates().map((q) => {
@@ -681,6 +751,8 @@ function makeStyles(colors) {
     chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
     chipTextOn: { color: colors.onPrimary },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    inputLocked: { opacity: 0.6 },
+    lockNote: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs, lineHeight: 16 },
     paidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.lg },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.md },

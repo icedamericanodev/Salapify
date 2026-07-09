@@ -17,6 +17,7 @@ import {
   goalPace,
   savingsRate,
   emergencyRunway,
+  netWorth,
 } from './analytics';
 import { upcomingDues } from './soa';
 import { formatMoney, todayISO } from './format';
@@ -314,14 +315,9 @@ export function weeklyCheckIn(data, ref = new Date()) {
 export function pickWin(data, ref = new Date()) {
   const d = data || {};
 
-  // (a) Net worth up versus the previous real snapshot.
-  const accounts = Array.isArray(d.accounts) ? d.accounts : [];
-  const assets = Array.isArray(d.assets) ? d.assets : [];
-  const debts = Array.isArray(d.debts) ? d.debts : [];
-  const nw =
-    accounts.reduce((t, a) => t + num(a && a.balance), 0) +
-    assets.reduce((t, a) => t + num(a && a.value), 0) -
-    debts.reduce((t, x) => t + num(x && x.remaining), 0);
+  // (a) Net worth up versus the previous real snapshot. One shared formula so
+  // this matches Home, Insights, and Reports exactly (includes tracked utang).
+  const nw = netWorth(d);
   const hist = (Array.isArray(d.settings && d.settings.nwHistory) ? d.settings.nwHistory : []).filter(
     (h) => h && typeof h.month === 'string' && Number.isFinite(Number(h.value))
   );

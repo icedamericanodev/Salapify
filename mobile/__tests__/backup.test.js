@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(7);
+    expect(SCHEMA_VERSION).toBe(8);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(7);
+    expect(out.schemaVersion).toBe(8);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(7);
+    expect(out.schemaVersion).toBe(8);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -152,6 +152,48 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(out.transactions.map((t) => t.type)).toEqual(['transfer', 'debt']);
   });
 
+  test('a legacy transfer/debt record row (no flow) loses its accountId', () => {
+    const out = sanitizeData({
+      ...fixtureAt(8),
+      accounts: [{ id: 'a1', name: 'Cash', balance: 100 }],
+      transactions: [{ id: 'tr1', type: 'transfer', label: 'Move', amount: 100, date: '2026-07-02', accountId: 'a1' }],
+    });
+    expect(out.transactions[0].accountId).toBeUndefined();
+  });
+
+  test('a cash leg transfer (has flow) KEEPS its accountId so it can be reversed', () => {
+    const out = sanitizeData({
+      ...fixtureAt(8),
+      accounts: [{ id: 'a1', name: 'GCash', balance: 5000 }],
+      transactions: [
+        { id: 'lend1', type: 'transfer', flow: 'out', source: 'receivable', label: 'Lent to Juan', amount: 3000, date: '2026-07-02', accountId: 'a1' },
+      ],
+    });
+    const leg = out.transactions[0];
+    expect(leg.accountId).toBe('a1');
+    expect(leg.flow).toBe('out');
+    expect(leg.source).toBe('receivable');
+  });
+
+  test('a corrupt flow on a non-transfer is stripped, so balanceSign cannot be flipped', () => {
+    const out = sanitizeData({
+      ...fixtureAt(8),
+      accounts: [{ id: 'a1', name: 'Cash', balance: 100 }],
+      transactions: [{ id: 'x1', type: 'expense', flow: 'in', label: 'Groceries', amount: 500, date: '2026-07-02', accountId: 'a1' }],
+    });
+    expect(out.transactions[0].flow).toBeUndefined();
+  });
+
+  test('cashLeg on utang is coerced to a real boolean', () => {
+    const out = sanitizeData({
+      ...fixtureAt(8),
+      receivables: [{ id: 'r1', person: 'Juan', amount: 500, cashLeg: 'yes', payments: [] }],
+      payables: [{ id: 'p1', person: 'Nanay', amount: 200, cashLeg: 0, payments: [] }],
+    });
+    expect(out.receivables[0].cashLeg).toBe(true);
+    expect(out.payables[0].cashLeg).toBe(false);
+  });
+
   test('a v6 blob (current) keeps treats intact', () => {
     const blob = {
       ...fixtureAt(6),
@@ -200,7 +242,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(7);
+    expect(out.schemaVersion).toBe(8);
     expect(out.payables).toHaveLength(1);
     const pay = out.payables[0];
     expect(pay.person).toBe('Nanay');
@@ -261,7 +303,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
   });
 
   test('a blob with schemaVersion 8 (above the current) is refused, protecting payables', () => {
-    expect(() => sanitizeData({ schemaVersion: 8, accounts: [] })).toThrow(
+    expect(() => sanitizeData({ schemaVersion: 9, accounts: [] })).toThrow(
       /newer version of Salapify/
     );
   });
@@ -297,7 +339,7 @@ describe('sanitizeData refuses data from a newer app', () => {
   test('the refusal never partially applies (it throws, returns nothing)', () => {
     let result;
     try {
-      result = sanitizeData({ schemaVersion: 8, accounts: [] });
+      result = sanitizeData({ schemaVersion: 9, accounts: [] });
     } catch (e) {
       result = 'threw';
     }

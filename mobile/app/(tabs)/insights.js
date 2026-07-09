@@ -30,6 +30,7 @@ import {
   emergencyRunway,
   utangAging,
   goalPace,
+  netWorthParts,
 } from '../../lib/analytics';
 
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -125,11 +126,16 @@ export default function Insights() {
   const bank = accountsTotal - cash;
   const investments = sum(data.assets, (a) => a.value);
   const debt = sum(data.debts, (d) => d.remaining);
+  // Tracked (cash leg) utang belongs in net worth. Shown as its own rows only
+  // when there is any, so the breakdown adds up to the headline either way.
+  const nwParts = netWorthParts(data);
   const worthRows = [
     { label: 'Cash', amount: cash, color: colors.primary },
     { label: 'Bank', amount: bank, color: colors.primary },
     { label: 'Investments', amount: investments, color: colors.primary },
+    ...(nwParts.receivables > 0 ? [{ label: 'Owed to you', amount: nwParts.receivables, color: colors.primary }] : []),
     { label: 'Debt', amount: debt, color: colors.warning },
+    ...(nwParts.payables > 0 ? [{ label: 'You owe', amount: nwParts.payables, color: colors.warning }] : []),
   ];
 
   // A horizontal bar: label, a filled track sized by share of max, and amount.
@@ -149,11 +155,11 @@ export default function Insights() {
   const worthMax = Math.max(...worthRows.map((w) => w.amount), 1);
   const inOutMax = Math.max(moneyIn, moneyOut, 1);
 
-  // Real net worth history: same formula as the Overview headline
-  // (accounts plus assets minus debts). Opening this screen stamps this
-  // month's snapshot, so the trend grows one honest bar per month. Until
-  // there are two real months, the card stays hidden, no made up bars.
-  const netWorthNow = Math.round(accountsTotal + investments - debt);
+  // Real net worth history: the one shared formula (accounts plus assets, plus
+  // tracked utang owed to you, minus debts and tracked utang you owe). Opening
+  // this screen stamps this month's snapshot, so the trend grows one honest bar
+  // per month. Until there are two real months, the card stays hidden.
+  const netWorthNow = Math.round(nwParts.netWorth);
   // Array.isArray, not ||: a corrupt backup can carry nwHistory as a string
   // or object, and .filter on that would crash this screen on every mount.
   const nwHistory = (Array.isArray(data.settings.nwHistory) ? data.settings.nwHistory : []).filter(

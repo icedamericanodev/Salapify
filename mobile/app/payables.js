@@ -116,7 +116,10 @@ export default function Payables() {
   }
 
   function openAdd() {
-    setForm({ id: null, person: '', amount: '', dueDate: '', phone: '', note: '', paid: false });
+    // intoAccount: which account the borrowed money landed in (optional). When
+    // set, the payable gets a real cash leg (the borrowed cash raises that
+    // balance now) and counts in net worth; when null it behaves like before.
+    setForm({ id: null, person: '', amount: '', dueDate: '', phone: '', note: '', paid: false, intoAccount: null });
     setErr('');
     setConfirmDel(false);
   }
@@ -129,6 +132,8 @@ export default function Payables() {
       phone: r.phone || '',
       note: r.note || '',
       paid: !!r.paid,
+      // Tracked utang carries a cash leg tied to this exact amount; lock it.
+      cashLeg: !!r.cashLeg,
     });
     setErr('');
     setConfirmDel(false);
@@ -192,6 +197,14 @@ export default function Payables() {
     }
     const existing = form.id ? list.find((x) => x.id === form.id) : null;
     const wasPaid = !!(existing && existing.paid);
+    // A borrowing cash leg is recorded only for a NEW payable where the user
+    // named the account the money landed in. It raises that balance now (a
+    // transfer in) and marks the payable tracked, so it counts in net worth and
+    // paying it back later leaves that same account instead of posting an expense.
+    const intoAcctId =
+      !form.id && form.intoAccount && data.accounts.some((a) => a.id === form.intoAccount)
+        ? form.intoAccount
+        : '';
     // Write the fields first, then reconcile the paid toggle below. The paid
     // state is deliberately NOT part of this payload: flipping it has to move
     // money the same way the Mark paid button does, never just flip a flag.
@@ -206,6 +219,22 @@ export default function Payables() {
     let id = form.id;
     if (form.id) updateItem('payables', form.id, payload);
     else id = addItem('payables', { ...payload, payments: [], paid: false });
+
+    // Record the borrowing inflow and mark the payable tracked.
+    if (intoAcctId) {
+      const borrowTxnId = addTransaction({
+        type: 'transfer',
+        flow: 'in',
+        label: `Borrowed from ${name}`,
+        amount,
+        date: todayISO(),
+        accountId: intoAcctId,
+        source: 'payable',
+      });
+      updateItem('payables', id, { cashLeg: true, accountId: intoAcctId, borrowTxnId });
+    }
+    // What postExpense needs to route payment correctly for a brand new item.
+    const payRef = { person: name, personId: person.id, cashLeg: !!intoAcctId, accountId: intoAcctId };
 
     // Reconcile the "Marked as paid" toggle through the same money path as the
     // Mark paid button, so it can never leave an utang shown as paid with no
@@ -222,7 +251,7 @@ export default function Payables() {
       const remaining = Math.max(0, amount - priorPaid);
       let payments = priorPayments;
       if (remaining > 0) {
-        const txnId = postExpense({ person: name, personId: person.id }, remaining);
+        const txnId = postExpense(payRef, remaining);
         payments = [...priorPayments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId, settled: true }];
       }
       updateItem('payables', id, { paid: true, payments });
@@ -259,6 +288,9 @@ export default function Payables() {
       (r?.payments || []).forEach((p) => {
         if (p.txnId) removeTransaction(p.txnId);
       });
+      // If this payable recorded a borrowing inflow, reverse it too so deleting
+      // the utang undoes the borrow (the borrowed cash leaves the account again).
+      if (r?.borrowTxnId) removeTransaction(r.borrowTxnId);
       removeItem('payables', form.id);
     }
     setForm(null);
@@ -272,13 +304,20 @@ export default function Payables() {
     return (def && data.accounts.find((a) => a.id === def)) || null;
   };
 
-  // Paying an utang is a real expense: money leaves the remembered account when
-  // one is set, so cash flow and balances agree with what happened instead of
-  // the utang just silently vanishing. This is the exact mirror of receivables'
-  // postIncome, expense not income. Returns the new transaction id so the
-  // payment can remember it and reverse it later.
+  // Record paying an utang you owe. Mirror of receivables' postIncome. Returns
+  // the transaction id so the payment can remember and reverse it.
+  //  - Tracked utang (r.cashLeg): the borrowed cash entered a real account when
+  //    you borrowed, so paying it back is a TRANSFER out of that same account,
+  //    not spending. Net worth is unchanged by the round trip.
+  //  - Legacy/untracked utang: no cash leg when you borrowed, so paying it reads
+  //    as a real expense. Post it as an expense (old behavior).
   function postExpense(r, amount) {
     if (amount <= 0) return '';
+    if (r.cashLeg) {
+      const acctId = r.accountId && data.accounts.some((a) => a.id === r.accountId) ? r.accountId : '';
+      const entry = { type: 'transfer', flow: 'out', label: `You paid ${nameOf(r)}`, amount, date: todayISO(), source: 'payable' };
+      return addTransaction(acctId ? { ...entry, accountId: acctId } : entry);
+    }
     const def = data.settings.defaultAccountId;
     const accountId = def && data.accounts.some((a) => a.id === def) ? def : '';
     const entry = { type: 'expense', label: `You paid ${nameOf(r)}`, amount, date: todayISO() };
@@ -319,11 +358,18 @@ export default function Payables() {
       if (remaining > 0) praiseNow();
     });
     const acct = payAccount();
+    // Tracked payables return borrowed money: a transfer out of the account it
+    // landed in, not spending. The copy must say so and name the right account.
+    const trackedAcct = r.cashLeg && r.accountId ? data.accounts.find((a) => a.id === r.accountId) : null;
     const message =
       remaining > 0
-        ? (acct
-            ? `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)} from ${acct.name} and lowers your balance, just like real bayad.`
-            : `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)}. No default account is set, so no balance moves, set one in Settings to track the cash leaving.`)
+        ? (r.cashLeg
+            ? (trackedAcct
+                ? `Return ${formatMoney(remaining)} to ${nameOf(r)} and close this utang? This moves ${formatMoney(remaining)} out of ${trackedAcct.name}. It is returning what you borrowed, not spending, so it does not count as an expense.`
+                : `Return ${formatMoney(remaining)} to ${nameOf(r)} and close this utang? This records returning what you borrowed, not spending.`)
+            : (acct
+                ? `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)} from ${acct.name} and lowers your balance, just like real bayad.`
+                : `Record ${formatMoney(remaining)} paid to ${nameOf(r)} and close this utang? This logs an expense of ${formatMoney(remaining)}. No default account is set, so no balance moves, set one in Settings to track the cash leaving.`))
         : 'Close this utang? Everything is already paid.';
     if (Platform.OS === 'web') {
       // Alert buttons are a no-op in browsers, so confirm the web way.
@@ -536,7 +582,32 @@ export default function Payables() {
               <Text style={styles.fieldLabel}>Name</Text>
               <TextInput style={styles.input} value={form?.person} onChangeText={(t) => setForm((f) => ({ ...f, person: t }))} placeholder="e.g. Nanay" placeholderTextColor={colors.faint} />
               <Text style={styles.fieldLabel}>Amount you owe</Text>
-              <TextInput style={styles.input} value={form?.amount} onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" />
+              <TextInput style={[styles.input, form?.id && form?.cashLeg && styles.inputLocked]} value={form?.amount} onChangeText={(t) => setForm((f) => ({ ...f, amount: t }))} placeholder="0" placeholderTextColor={colors.faint} keyboardType="numeric" editable={!(form?.id && form?.cashLeg)} />
+              {form?.id && form?.cashLeg ? (
+                <Text style={styles.lockNote}>This utang tracked a real cash move, so its amount is locked. To change it, delete and add it again.</Text>
+              ) : null}
+              {/* Where the borrowed money landed. Optional: pick an account to
+                  track it (it raises that balance now and counts in net worth,
+                  and paying back later leaves it), or leave it not tracked. Only
+                  offered when adding, since editing must not re-move money. */}
+              {!form?.id && (data.accounts || []).length > 0 ? (
+                <>
+                  <Text style={styles.fieldLabel}>Money went into (optional)</Text>
+                  <View style={styles.chips}>
+                    <Pressable onPress={() => setForm((f) => ({ ...f, intoAccount: null }))} style={[styles.chip, !form?.intoAccount && styles.chipOn]}>
+                      <Text style={[styles.chipText, !form?.intoAccount && styles.chipTextOn]}>Not tracked</Text>
+                    </Pressable>
+                    {data.accounts.map((a) => {
+                      const on = form?.intoAccount === a.id;
+                      return (
+                        <Pressable key={a.id} onPress={() => setForm((f) => ({ ...f, intoAccount: a.id }))} style={[styles.chip, on && styles.chipOn]}>
+                          <Text style={[styles.chipText, on && styles.chipTextOn]}>{a.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
               <Text style={styles.fieldLabel}>Due date (optional)</Text>
               <View style={styles.chips}>
                 {quickDates().map((q) => {
@@ -659,6 +730,8 @@ function makeStyles(colors) {
     chipText: { color: colors.muted, fontSize: fontSize.small, fontWeight: fontWeight.medium },
     chipTextOn: { color: colors.onPrimary },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    inputLocked: { opacity: 0.6 },
+    lockNote: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xs, lineHeight: 16 },
     paidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.lg },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
     err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.md },

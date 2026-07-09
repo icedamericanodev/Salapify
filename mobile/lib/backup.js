@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -117,6 +117,13 @@ const MIGRATIONS = {
   // needed; the fence just stops a v6 build from silently dropping a v7
   // backup's payables.
   7: (d) => ({ ...d }),
+  // v8 adds cash leg tracking: utang can carry cashLeg + accountId + a lend or
+  // borrow transaction id, and those transactions carry flow ('in'/'out'). No
+  // data transform is needed (absent cashLeg defaults to legacy behavior); the
+  // fence stops an older build from accepting a v8 backup and silently
+  // understating net worth (it would see the reduced balance but not count the
+  // tracked utang).
+  8: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -220,10 +227,22 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // Same discipline for categoryId: a string or absent, never junk.
       if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
       else delete out.categoryId;
-      // Record rows never carry accountId: their balance moves happened at
-      // the moment of the transfer or payment. A crafted backup that adds
-      // one would make a later edit or delete shift a balance a second time.
-      if (out.type === 'transfer' || out.type === 'debt') delete out.accountId;
+      // flow decides which way a linked transaction moves its account balance,
+      // so it is only trusted as an exact 'in' or 'out' on a transfer. Anything
+      // else is dropped, so a hand edited backup cannot flip an expense into an
+      // inflow. source is a plain label (receivable/payable) kept as a string.
+      if (out.type === 'transfer' && (t.flow === 'in' || t.flow === 'out')) out.flow = t.flow;
+      else delete out.flow;
+      if (typeof t.source === 'string' && t.source) out.source = t.source;
+      else delete out.source;
+      // Legacy record rows never carry accountId: their balance moves happened
+      // by hand at the moment of the transfer or debt payment, so a stray
+      // accountId would let a later edit or delete shift a balance a second
+      // time. BUT a cash leg transfer (utang lending, borrowing, collecting,
+      // repaying) is different: it is a real linked move that keeps its
+      // accountId on purpose, since that is the only thing that lets removing it
+      // put the money back. Those carry a flow ('in'/'out'); keep their account.
+      if ((out.type === 'transfer' || out.type === 'debt') && !out.flow) delete out.accountId;
       return out;
     }),
     goals: cleanList(src.goals).map((g) => ({
@@ -280,6 +299,10 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       note: str(r.note),
       amount: num(r.amount),
       paid: !!r.paid,
+      // cashLeg true means lending recorded a real cash outflow, so this utang
+      // counts in net worth and collection returns cash. Coerced to a real
+      // boolean so a hand edited backup cannot flip the accounting with a string.
+      cashLeg: !!r.cashLeg,
       payments: cleanList(r.payments).map((p, i) => ({
         ...p,
         // A stable id per payment: removing one payment keys on this id, so a
@@ -309,6 +332,9 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       note: str(r.note),
       amount: num(r.amount),
       paid: !!r.paid,
+      // cashLeg true means borrowing recorded a real cash inflow, so this utang
+      // counts in net worth and paying it leaves cash. Coerced to a real boolean.
+      cashLeg: !!r.cashLeg,
       payments: cleanList(r.payments).map((p, i) => ({
         ...p,
         // A stable id per payment: removing one payment keys on this id, so a

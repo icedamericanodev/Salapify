@@ -85,9 +85,18 @@ async function readNumbers() {
       out.topPct = Math.round((top.amount / out.spent) * 100);
     }
 
-    // Net worth: liquid accounts plus assets minus debts.
+    // Net worth: accounts plus assets minus debts, plus/minus utang that has a
+    // recorded cash leg (matches the netWorth helper the app screens use).
     const sum = (arr, key) => (Array.isArray(arr) ? arr : []).reduce((t, x) => t + num(x && x[key]), 0);
-    out.netWorth = sum(data.accounts, 'balance') + sum(data.assets, 'value') - sum(data.debts, 'remaining');
+    const trackedRem = (arr) =>
+      (Array.isArray(arr) ? arr : []).reduce((t, r) => {
+        if (!r || !r.cashLeg || r.paid) return t;
+        const paid = (r.payments || []).reduce((s, p) => s + num(p && p.amount), 0);
+        return t + Math.max(0, num(r.amount) - paid);
+      }, 0);
+    out.netWorth =
+      sum(data.accounts, 'balance') + sum(data.assets, 'value') - sum(data.debts, 'remaining') +
+      trackedRem(data.receivables) - trackedRem(data.payables);
 
     // You owe: outstanding debt across debts with a balance.
     const debts = Array.isArray(data.debts) ? data.debts : [];
