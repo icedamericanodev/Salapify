@@ -3,7 +3,7 @@
 // category, net worth by category, and a net worth trend built from real
 // monthly snapshots taken whenever this screen is opened.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,8 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format';
+import { formatMoney, monthLabel, todayISO, inPeriod, periodLabel, currentMonthPeriod } from '../../lib/format';
 import { decisionCandidates, pickWin } from '../../lib/coach';
+import PeriodSelector from '../../components/PeriodSelector';
 import RecapShare from '../../components/RecapShare';
 import Card from '../../components/Card';
 import AnimatedNumber from '../../components/motion/AnimatedNumber';
@@ -52,12 +53,17 @@ export default function Insights() {
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
-  // Income vs spending, this month only. Utang collected (source 'receivable')
-  // is not income, so it is excluded to match the income statement and savings
-  // rate; otherwise the income bar would overstate money in.
-  const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
-  const moneyIn = sum(thisMonth.filter((t) => t.type === 'income' && t.source !== 'receivable'), (t) => t.amount);
-  const moneyOut = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
+  // The time slice the two spending cards below show: Month (default), Year, or a
+  // Custom range. The net worth trend and forecasts lower down stay monthly by
+  // nature, so only these cards read `period`.
+  const [period, setPeriod] = useState(currentMonthPeriod());
+
+  // Income vs spending for the chosen period. Utang collected (source
+  // 'receivable') is not income, so it is excluded to match the income statement
+  // and savings rate; otherwise the income bar would overstate money in.
+  const inView = data.transactions.filter((t) => inPeriod(t.date, period));
+  const moneyIn = sum(inView.filter((t) => t.type === 'income' && t.source !== 'receivable'), (t) => t.amount);
+  const moneyOut = sum(inView.filter((t) => t.type === 'expense'), (t) => t.amount);
 
   // Spending by category, this month only. Entries tagged with a category
   // group under its name; untagged ones fall back to their label so nothing
@@ -66,7 +72,7 @@ export default function Insights() {
   // constructor collide with built in properties and vanish from the chart.
   const catNames = new Map((data.categories || []).map((c) => [c.id, c.name]));
   const catTotals = Object.create(null);
-  for (const t of thisMonth) {
+  for (const t of inView) {
     if (t.type !== 'expense') continue;
     const name =
       (t.categoryId && catNames.get(t.categoryId)) || (t.label || 'Other').trim() || 'Other';
@@ -111,7 +117,7 @@ export default function Insights() {
     const nextTwo = byCategory.slice(1, 3).reduce((t, c) => t + c.amount, 0);
     const beatsNextTwo = byCategory.length >= 3 && top.amount > nextTwo;
     catInsight =
-      `${top.label} is ${topPct}% of the ${formatMoney(totalSpent)} you spent this month` +
+      `${top.label} is ${topPct}% of the ${formatMoney(totalSpent)} you spent in ${periodLabel(period)}` +
       (beatsNextTwo ? `, more than ${byCategory[1].label} and ${byCategory[2].label} combined.` : '.') +
       (topPct >= 40 ? ' If you want to trim, that is the lever.' : '');
   }
@@ -340,8 +346,14 @@ export default function Insights() {
           ) : null}
         </Card>
 
+        {/* PeriodSelector carries its own bottom margin, so the wrapper only
+            adds the top gap from the card above (no double spacing). */}
+        <View style={{ marginTop: spacing.md }}>
+          <PeriodSelector period={period} onChange={setPeriod} colors={colors} />
+        </View>
+
         <Card variant="flat" padding="xl" style={styles.cardGap}>
-          <Text style={styles.kicker}>INCOME VS SPENDING ({monthLabel().toUpperCase()})</Text>
+          <Text style={styles.kicker}>INCOME VS SPENDING ({periodLabel(period).toUpperCase()})</Text>
           <View style={styles.cardBody}>
             <HBar label="In" amount={moneyIn} max={inOutMax} color={colors.primary} />
             <HBar label="Out" amount={moneyOut} max={inOutMax} color={colors.textSecondary} />
@@ -349,7 +361,7 @@ export default function Insights() {
         </Card>
 
         <Card variant="flat" padding="xl" style={styles.cardGap}>
-          <Text style={styles.kicker}>WHERE YOUR MONEY WENT ({monthLabel().toUpperCase()})</Text>
+          <Text style={styles.kicker}>WHERE YOUR MONEY WENT ({periodLabel(period).toUpperCase()})</Text>
           {byCategory.length > 0 && totalSpent > 0 ? (
             <>
               <View
@@ -394,7 +406,7 @@ export default function Insights() {
               {catInsight ? <Text style={styles.insightLine}>{catInsight}</Text> : null}
             </>
           ) : (
-            <Text style={styles.proNote}>Nothing spent this month yet. Log an expense and the breakdown appears.</Text>
+            <Text style={styles.proNote}>Nothing spent in {periodLabel(period)} yet. Log an expense and the breakdown appears.</Text>
           )}
         </Card>
 
