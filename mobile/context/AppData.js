@@ -51,6 +51,9 @@ const seedData = {
       return { id: 'r1', person: 'Juan', amount: 500, dueDate: due, phone: '', note: 'Lunch', paid: false };
     })(),
   ],
+  // People I owe (payables). A fresh install has none: we never seed a sample
+  // debt, so a new user is never shown a fake utang they owe someone.
+  payables: [],
   settings: {
     currency: '₱',
     currencyCode: 'PHP',
@@ -390,7 +393,7 @@ export function AppDataProvider({ children }) {
     // appears on top of freshly restored data.
     const hasData = [
       'accounts', 'assets', 'debts', 'payments', 'transactions',
-      'goals', 'wins', 'receivables', 'notes', 'recurring', 'people',
+      'goals', 'wins', 'receivables', 'payables', 'notes', 'recurring', 'people',
     ].some((k) => (clean[k] || []).length > 0);
     setData({
       ...clean,

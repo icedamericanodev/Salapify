@@ -138,6 +138,16 @@ export default function Overview() {
   }, 0);
   const owedCount = unpaid.length;
 
+  // Unpaid utang you owe, the calm mirror of the above. Display only for now:
+  // this total never touches net worth, cash flow, or any balance. Partial
+  // payments reduce what is still owed.
+  const unpaidIOwe = (data.payables || []).filter((r) => !r.paid);
+  const iOwe = unpaidIOwe.reduce((t, r) => {
+    const paidSoFar = (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    return t + Math.max(0, (Number(r.amount) || 0) - paidSoFar);
+  }, 0);
+  const iOweCount = unpaidIOwe.length;
+
   // The bills that land before the next sweldo, with a running balance so
   // the katapusan question, "will my money survive until payday?", is
   // answered bill by bill. This is the detail behind the safe to spend
@@ -544,6 +554,28 @@ export default function Overview() {
             {owedCount === 0
               ? 'No one owes you right now.'
               : `${owedCount} ${owedCount === 1 ? 'person' : 'people'}. Tap to view or send a reminder.`}
+          </Text>
+        </Card>
+
+        {/* People I owe, the calm mirror. One tap from home. */}
+        <Card
+          variant="raised"
+          padding="xl"
+          onPress={() => router.push('/payables')}
+          style={styles.heroGap}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`People I owe ${formatMoney(iOwe)}. Opens payables.`}
+        >
+          <View style={styles.cardHead}>
+            <Text style={styles.kicker}>PEOPLE I OWE</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+          </View>
+          <Text style={styles.payday}>{formatMoney(iOwe)}</Text>
+          <Text style={styles.smallLabel}>
+            {iOweCount === 0
+              ? 'You owe no one right now.'
+              : `${iOweCount} ${iOweCount === 1 ? 'person' : 'people'}. Tap to view or pay off.`}
           </Text>
         </Card>
 
