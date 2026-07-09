@@ -71,16 +71,26 @@ export default function Reports() {
           <Line label="Cash" value={bs.cash} indent />
           <Line label="Savings and bank" value={bs.bank} indent />
           {bs.receivables > 0 ? <Line label="Utang owed to you (tracked)" value={bs.receivables} indent /> : null}
-          <Line label="Current assets" value={bs.currentAssets} />
-          {bs.longTermAssets > 0 ? <Line label="Investments and things you own" value={bs.longTermAssets} indent /> : null}
+          {/* The current subtotal only earns its place when there is a long term
+              line to contrast with, otherwise it just repeats the total. */}
+          {bs.longTermAssets > 0 ? (
+            <>
+              <Line label="Current assets" value={bs.currentAssets} />
+              <Line label="Investments and things you own" value={bs.longTermAssets} indent />
+            </>
+          ) : null}
           <Line label="Total assets" value={bs.totalAssets} strong color={colors.primary} />
 
           <View style={styles.divider} />
           <Text style={styles.groupLabel}>Liabilities</Text>
           {bs.shortDebts > 0 ? <Line label="Cards and short term debt" value={bs.shortDebts} indent /> : null}
           {bs.payables > 0 ? <Line label="Utang you owe (tracked)" value={bs.payables} indent /> : null}
-          <Line label="Current liabilities" value={bs.currentLiabilities} />
-          {bs.longDebts > 0 ? <Line label="Long term loans" value={bs.longDebts} indent /> : null}
+          {bs.longDebts > 0 ? (
+            <>
+              <Line label="Current liabilities" value={bs.currentLiabilities} />
+              <Line label="Long term loans" value={bs.longDebts} indent />
+            </>
+          ) : null}
           <Line label="Total liabilities" value={bs.totalLiabilities} strong color={colors.warning} />
 
           <View style={styles.divider} />
@@ -90,6 +100,12 @@ export default function Reports() {
             Assets {formatMoney(bs.totalAssets)} = Liabilities {formatMoney(bs.totalLiabilities)} + Equity {formatMoney(bs.equity)}.
             {bs.balances ? ' Balanced.' : ' Check your figures.'}
           </Text>
+          {bs.receivables > 0 ? (
+            <Text style={styles.note}>
+              Utang owed to you counts toward your net worth, but do not spend it until it
+              actually lands in your account.
+            </Text>
+          ) : null}
         </View>
 
         {/* Income Statement */}
@@ -119,7 +135,7 @@ export default function Reports() {
           <Line label="Net operating" value={cf.operating.net} color={cf.operating.net >= 0 ? colors.primary : colors.warning} />
 
           <View style={styles.divider} />
-          <Text style={styles.groupLabel}>Investing (things you own)</Text>
+          <Text style={styles.groupLabel}>Investing (buying or selling assets)</Text>
           {cf.investing.in === 0 && cf.investing.out === 0 ? (
             <Text style={[styles.subLabel, styles.emptyLine]}>No investing activity this month.</Text>
           ) : (
@@ -146,11 +162,14 @@ export default function Reports() {
           <Line label="Net change in cash" value={cf.netChange} strong color={cf.netChange >= 0 ? colors.primary : colors.warning} />
           {!cf.reconciles ? (
             <Text style={[styles.note, { color: colors.warning }]}>
-              Some cash movement could not be sorted into a section. Editing an account
-              balance by hand does not show here, only logged income, spending, and
-              payments do.
+              A saved payment did not split cleanly into principal and interest, so a small
+              amount could not be sorted. Your other totals are still correct.
             </Text>
           ) : null}
+          <Text style={styles.note}>
+            This tracks logged income, spending, and payments only. Editing an account
+            balance by hand does not appear here.
+          </Text>
         </View>
 
         {/* Debt free plan: the Pro projection. */}

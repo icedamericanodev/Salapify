@@ -28,6 +28,11 @@ const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 // Money can carry cents, so equality checks use a half centavo tolerance to
 // avoid floating point noise flagging a false mismatch.
 const eq = (a, b) => Math.abs(a - b) < 0.005;
+// A period filter that, unlike isThisMonth, treats a MISSING date as "not this
+// month". isThisMonth counts a dateless entry as this month, which would let one
+// undated transaction from an imported backup inflate every month's statement
+// forever. Statements only count entries with a real date.
+const inMonth = (dateStr, ref) => !!dateStr && isThisMonth(dateStr, ref);
 
 // The same split the Debts screen uses: these clear within about a year, so they
 // are current liabilities; everything else (a car loan, a personal loan) is long
@@ -91,7 +96,7 @@ export function balanceSheet(data) {
 // cost). Debt principal is not here (it lowers what you owe, it is not spending).
 export function incomeStatement(data, ref = new Date()) {
   const tx = (data && data.transactions ? data.transactions : []).filter((t) =>
-    isThisMonth(t && t.date, ref)
+    inMonth(t && t.date, ref)
   );
   const income = tx
     .filter((t) => t.type === 'income' && t.source !== 'receivable')
@@ -124,7 +129,7 @@ export function incomeStatement(data, ref = new Date()) {
 export function cashFlowStatement(data, ref = new Date()) {
   const d = data || {};
   const accountIds = new Set((d.accounts || []).map((a) => a && a.id));
-  const tx = (d.transactions || []).filter((t) => isThisMonth(t && t.date, ref));
+  const tx = (d.transactions || []).filter((t) => inMonth(t && t.date, ref));
   const linked = tx.filter((t) => t.accountId && accountIds.has(t.accountId));
 
   // The direction the store moves a balance, mirrored from AppData.balanceSign
@@ -163,15 +168,20 @@ export function cashFlowStatement(data, ref = new Date()) {
 
   // Debt payments: the cash left via a direct account debit, so read the ledger.
   // Only payments tied to a real account moved in app cash.
-  const payments = (d.payments || []).filter((p) => isThisMonth(p && p.date, ref));
+  const payments = (d.payments || []).filter((p) => inMonth(p && p.date, ref));
   let principalPaid = 0;
   let interestPaid = 0;
   for (const p of payments) {
     const paidFromAccount = p.account && accountIds.has(p.account);
     if (!paidFromAccount) continue;
-    // Legacy payments predate the split: treat the whole amount as principal.
-    const interest = p.interest != null ? num(p.interest) : 0;
-    const principal = p.principal != null ? num(p.principal) : num(p.amount);
+    // The whole payment amount left the account. Split it so interest plus
+    // principal always sums back to that amount, whatever the record carries:
+    // interest is what is stored (0 for legacy/absent), and principal is the
+    // rest. This keeps the sections reconciled even for an imported payment that
+    // stored an interest figure but no principal.
+    const amount = num(p.amount);
+    const interest = Math.min(amount, Math.max(0, p.interest != null ? num(p.interest) : 0));
+    const principal = amount - interest;
     interestPaid += interest;
     principalPaid += principal;
     op.out += interest; // interest is an operating cost

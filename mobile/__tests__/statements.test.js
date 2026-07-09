@@ -145,4 +145,35 @@ describe('cashFlowStatement: sections reconcile to the cash that moved', () => {
     expect(cf.netChange).toBe(-3000);
     expect(cf.reconciles).toBe(true);
   });
+
+  test('an imported payment with interest but no principal still reconciles', () => {
+    // Principal is derived as amount minus interest, so the sections always sum
+    // back to the amount that left the account.
+    const data = {
+      accounts: [{ id: 'a1', kind: 'cash', balance: 0 }],
+      transactions: [],
+      payments: [{ id: 'pm1', debtId: 'd1', account: 'a1', amount: 5000, interest: 600, date: '2026-07-06' }],
+    };
+    const cf = cashFlowStatement(data, REF);
+    expect(cf.interestPaid).toBe(600);
+    expect(cf.principalPaid).toBe(4400);
+    expect(cf.netChange).toBe(-5000);
+    expect(cf.reconciles).toBe(true);
+  });
+
+  test('a transaction with no date is not counted in any month', () => {
+    const data = {
+      accounts: [{ id: 'a1', kind: 'cash', balance: 0 }],
+      transactions: [
+        { type: 'income', amount: 1000, date: '2026-07-01', accountId: 'a1' },
+        { type: 'income', amount: 9999, accountId: 'a1' }, // no date: must be excluded
+      ],
+      payments: [],
+    };
+    const cf = cashFlowStatement(data, REF);
+    expect(cf.operating.in).toBe(1000);
+    expect(cf.netChange).toBe(1000);
+    const is = incomeStatement(data, REF);
+    expect(is.income).toBe(1000);
+  });
 });
