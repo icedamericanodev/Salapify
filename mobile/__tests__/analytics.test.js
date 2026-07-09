@@ -282,4 +282,16 @@ describe('monthlySeries never lies by omission', () => {
     expect(series).toHaveLength(6);
     expect(series.every((m) => m.income === 0 && m.expenses === 0)).toBe(true);
   });
+  test('utang collected is not income in the trend, matching the other screens', () => {
+    const tx = [
+      { type: 'income', amount: 20000, date: '2026-07-01' },
+      { type: 'income', amount: 5000, date: '2026-07-02', source: 'receivable' },
+      { type: 'expense', amount: 8000, date: '2026-07-03' },
+    ];
+    const series = monthlySeries(tx, 6, REF);
+    const july = series[series.length - 1];
+    expect(july.income).toBe(20000); // not 25000
+    expect(july.expenses).toBe(8000);
+    expect(july.net).toBe(12000);
+  });
 });

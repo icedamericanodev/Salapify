@@ -263,7 +263,10 @@ export default function Accounts() {
               </Text>
             </View>
             <View>
-              <Text style={styles.smallLabel}>Total debt</Text>
+              {/* Liabilities (debts plus tracked utang you owe), the mirror of
+                  Total assets, so it reads Total owed. The Debts tab uses Total
+                  debt for formal debts only. */}
+              <Text style={styles.smallLabel}>Total owed</Text>
               <Text style={[styles.smallValue, { color: colors.warning }]}>
                 {formatMoney(totalDebt)}
               </Text>

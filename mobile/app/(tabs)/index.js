@@ -60,7 +60,10 @@ export default function Overview() {
   // This month's cash flow. Only transactions dated in the current month
   // count, so every new month starts fresh.
   const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
-  const income = thisMonth.filter((t) => t.type === 'income');
+  // Utang collected is not income (it was always yours), so entries tagged
+  // source 'receivable' are left out, matching the income statement and savings
+  // rate. Without this the cash flow card would overstate money in.
+  const income = thisMonth.filter((t) => t.type === 'income' && t.source !== 'receivable');
   const expense = thisMonth.filter((t) => t.type === 'expense');
   const moneyIn = sum(income, 'amount');
   const moneyOut = sum(expense, 'amount');
@@ -499,7 +502,10 @@ export default function Overview() {
               </Text>
             </View>
             <View>
-              <Text style={styles.smallLabel}>Total debt</Text>
+              {/* This is liabilities (debts plus tracked utang you owe), the
+                  mirror of Total assets in net worth, so it is labelled Total
+                  owed. The Debts tab shows formal debts only under Total debt. */}
+              <Text style={styles.smallLabel}>Total owed</Text>
               <Text style={[styles.smallValue, { color: colors.warning }]}>
                 {formatMoney(totalDebt)}
               </Text>

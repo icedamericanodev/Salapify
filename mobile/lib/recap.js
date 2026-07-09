@@ -36,7 +36,10 @@ export function monthRecap(data, ref = new Date()) {
       // Days logged counts only real income and expense entries; transfer
       // and debt record rows are bookkeeping, not logging.
       days.add(String(t.date).slice(0, 10));
-      moneyIn += num(t.amount);
+      // Utang collected (source 'receivable') is not income, so it is left out
+      // of money in and the kept rate, matching the income statement and savings
+      // rate. It still counts as a day you logged.
+      if (t.source !== 'receivable') moneyIn += num(t.amount);
     } else if (t.type === 'expense') {
       days.add(String(t.date).slice(0, 10));
       const amt = num(t.amount);

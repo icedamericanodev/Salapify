@@ -52,9 +52,11 @@ export default function Insights() {
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
-  // Income vs spending, this month only.
+  // Income vs spending, this month only. Utang collected (source 'receivable')
+  // is not income, so it is excluded to match the income statement and savings
+  // rate; otherwise the income bar would overstate money in.
   const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
-  const moneyIn = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
+  const moneyIn = sum(thisMonth.filter((t) => t.type === 'income' && t.source !== 'receivable'), (t) => t.amount);
   const moneyOut = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
 
   // Spending by category, this month only. Entries tagged with a category

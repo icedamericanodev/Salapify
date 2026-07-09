@@ -61,7 +61,9 @@ async function readNumbers() {
       const d = String(t.date || '');
       if (d) logDates.add(d.slice(0, 10));
       const mp = d.slice(0, 7);
-      if (t.type === 'income' && mp === thisPrefix) out.income += num(t.amount);
+      // Utang collected (source 'receivable') is not income, so it is excluded
+      // to match the app's income statement and the saved month rate.
+      if (t.type === 'income' && t.source !== 'receivable' && mp === thisPrefix) out.income += num(t.amount);
       if (t.type === 'expense') {
         if (mp === thisPrefix) {
           out.spent += num(t.amount);
