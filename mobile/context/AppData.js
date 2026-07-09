@@ -353,15 +353,27 @@ export function AppDataProvider({ children }) {
     }));
   }
 
+  // The direction a linked transaction moves its account balance. Income
+  // raises it and everything else lowers it, EXCEPT a transaction that names
+  // its own flow: flow 'in' always raises, flow 'out' always lowers. This lets
+  // a cash move that is not income or spending (collecting an utang you lent,
+  // taking a loan, a transfer between pockets) raise a balance without being
+  // mislabeled as income. Transactions with no flow behave exactly as before.
+  function balanceSign(t) {
+    if (t && t.flow === 'in') return 1;
+    if (t && t.flow === 'out') return -1;
+    return t && t.type === 'income' ? 1 : -1;
+  }
+
   // Add a transaction, and when it is linked to an account, move the
-  // account's balance with it (income raises it, an expense lowers it).
+  // account's balance with it (see balanceSign for the direction).
   // This is the seam that keeps GCash in the app matching GCash in real
   // life. Transactions without an accountId behave exactly as before.
   function addTransaction(tx) {
     const withId = { ...tx, id: tx.id || genId('transactions') };
     setData((prev) => {
       const linked = withId.accountId && prev.accounts.some((a) => a.id === withId.accountId);
-      const delta = (withId.type === 'income' ? 1 : -1) * (Number(withId.amount) || 0);
+      const delta = balanceSign(withId) * (Number(withId.amount) || 0);
       const accounts = linked
         ? prev.accounts.map((a) =>
             a.id === withId.accountId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
@@ -382,7 +394,7 @@ export function AppDataProvider({ children }) {
       const next = { ...tx, ...patch };
       const shift = (accs, t, sign) => {
         if (!t.accountId || !accs.some((a) => a.id === t.accountId)) return accs;
-        const delta = sign * (t.type === 'income' ? 1 : -1) * (Number(t.amount) || 0);
+        const delta = sign * balanceSign(t) * (Number(t.amount) || 0);
         return accs.map((a) =>
           a.id === t.accountId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a
         );
@@ -406,7 +418,7 @@ export function AppDataProvider({ children }) {
       // leave orphan files piling up in storage.
       if (tx.receiptUri) deleteReceipt(tx.receiptUri);
       const linked = tx.accountId && prev.accounts.some((a) => a.id === tx.accountId);
-      const delta = (tx.type === 'income' ? 1 : -1) * (Number(tx.amount) || 0);
+      const delta = balanceSign(tx) * (Number(tx.amount) || 0);
       const accounts = linked
         ? prev.accounts.map((a) =>
             a.id === tx.accountId ? { ...a, balance: (Number(a.balance) || 0) - delta } : a

@@ -272,6 +272,21 @@ export default function History() {
   }, []);
   const onDelete = useCallback(
     (t) => {
+      // A cash leg transfer (utang lending, borrowing, collecting, repaying) is
+      // tied to a specific utang AND moves a real balance. Deleting just this
+      // row would move the cash but leave the utang standing, double counting
+      // net worth, so send the user to the utang screen where removing or
+      // editing the utang undoes the whole thing in sync.
+      if (t.type === 'transfer' && (t.source === 'receivable' || t.source === 'payable')) {
+        const where = t.source === 'receivable' ? 'People who owe me' : 'People I owe';
+        const msg = `This entry is part of an utang. To undo it, open ${where} and remove or edit that utang, so the balance and the utang stay in sync.`;
+        if (Platform.OS === 'web') {
+          if (typeof window !== 'undefined') window.alert(msg);
+          return;
+        }
+        Alert.alert('Manage this on the utang screen', msg, [{ text: 'OK' }]);
+        return;
+      }
       const doIt = () => removeTransaction(t.id);
       // Record rows move nothing when deleted, so their confirm must not
       // promise a refund the way the normal entry confirm does.

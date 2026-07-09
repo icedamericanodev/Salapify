@@ -9,6 +9,48 @@ import { upcomingDues, nextOccurrence, daysUntil } from './soa';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
+// Tracked utang: the still owed amount of receivables/payables that have a
+// recorded cash leg (cashLeg === true), i.e. lending or borrowing that actually
+// moved money out of or into an account. Only tracked utang belongs in net
+// worth. Legacy utang, or new utang where the user skipped naming an account,
+// has no cash leg: its money still sits in an account balance, so counting it
+// again would double count. A partial payment already moved into an account, so
+// only the remaining slice is still an asset/liability.
+export function trackedRemaining(list) {
+  return (list || []).reduce((t, r) => {
+    if (!r || !r.cashLeg || r.paid) return t;
+    const paid = (r.payments || []).reduce((s, p) => s + num(p && p.amount), 0);
+    return t + Math.max(0, num(r.amount) - paid);
+  }, 0);
+}
+
+// The ONE net worth breakdown for the whole app, so every screen agrees.
+// Everything you own minus everything you owe, with the parts a screen needs to
+// show a breakdown that always sums back to the headline:
+//   assets      = accounts + holdings (assets) + tracked receivables
+//   liabilities = debts + tracked payables
+//   netWorth    = assets - liabilities
+// Only tracked (cash leg) utang is included, so with none this is exactly
+// accounts + holdings - debts and wiring every screen through it changes nothing
+// until tracked utang exists.
+export function netWorthParts(data) {
+  const d = data || {};
+  const accounts = (d.accounts || []).reduce((t, a) => t + num(a && a.balance), 0);
+  const holdings = (d.assets || []).reduce((t, a) => t + num(a && a.value), 0);
+  const receivables = trackedRemaining(d.receivables);
+  const payables = trackedRemaining(d.payables);
+  const debts = (d.debts || []).reduce((t, x) => t + num(x && x.remaining), 0);
+  const assets = accounts + holdings + receivables;
+  const liabilities = debts + payables;
+  return { accounts, holdings, receivables, payables, debts, assets, liabilities, netWorth: assets - liabilities };
+}
+
+// The single net worth number. Same formula as netWorthParts, for callers that
+// only need the total.
+export function netWorth(data) {
+  return netWorthParts(data).netWorth;
+}
+
 // Accounts you can actually spend from day to day. Savings are deliberately
 // excluded: the whole point of safe to spend is to protect them.
 const LIQUID_KINDS = ['cash', 'ewallet', 'checking'];
@@ -311,16 +353,20 @@ export function weekdayPattern(transactions, ref = new Date()) {
   return totals.map((sum, i) => ({ day: i, avg: counts[i] ? sum / counts[i] : 0 }));
 }
 
-// This month's savings rate: what fraction of income was not spent.
+// This month's savings rate: what fraction of your EARNINGS you did not spend.
 // Debt payments count as money out too, a month that sent 10,000 to a
-// credit card did not save that 10,000. Null when there is no income.
+// credit card did not save that 10,000. Repaid utang (someone paying you back)
+// is NOT counted as income here: it is your own money coming home, not new
+// earnings, so counting it would flatter the rate. It still shows in cash flow,
+// which measures money moving through your accounts, a different question.
+// Null when there is no income.
 export function savingsRate(transactions, payments = [], ref = new Date()) {
   const key = monthKey(ref);
   let income = 0;
   let expenses = 0;
   for (const t of transactions || []) {
     if (!t || String(t.date || '').slice(0, 7) !== key) continue;
-    if (t.type === 'income') income += num(t.amount);
+    if (t.type === 'income' && t.source !== 'receivable') income += num(t.amount);
     else if (t.type === 'expense') expenses += num(t.amount);
   }
   let debtPaid = 0;

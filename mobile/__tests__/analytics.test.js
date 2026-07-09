@@ -10,6 +10,8 @@ import {
   goalPace,
   debtFreeProjection,
   monthlySeries,
+  netWorth,
+  trackedRemaining,
 } from '../lib/analytics';
 
 const REF = new Date(2026, 6, 10); // 10 July 2026
@@ -70,6 +72,45 @@ describe('safeToSpend protects savings and sets aside committed bills', () => {
   });
 });
 
+describe('netWorth is one formula, counting only tracked utang', () => {
+  test('with no utang it is accounts + assets - debts', () => {
+    const data = {
+      accounts: [{ balance: 20000 }, { balance: 5000 }],
+      assets: [{ value: 100000 }],
+      debts: [{ remaining: 30000 }],
+      receivables: [],
+      payables: [],
+    };
+    expect(netWorth(data)).toBe(95000); // 25000 + 100000 - 30000
+  });
+  test('legacy utang (no cash leg) is excluded, so the number never jumps', () => {
+    const data = {
+      accounts: [{ balance: 10000 }],
+      receivables: [{ amount: 5000, paid: false, payments: [] }], // no cashLeg
+      payables: [{ amount: 2000, paid: false, payments: [] }],
+    };
+    expect(netWorth(data)).toBe(10000); // utang without a cash leg does not count
+  });
+  test('tracked utang counts: receivable adds, payable subtracts, net of payments', () => {
+    const data = {
+      accounts: [{ balance: 10000 }],
+      receivables: [{ amount: 5000, paid: false, cashLeg: true, payments: [{ amount: 2000 }] }],
+      payables: [{ amount: 3000, paid: false, cashLeg: true, payments: [] }],
+    };
+    // 10000 + (5000 - 2000 remaining) - 3000 = 10000
+    expect(netWorth(data)).toBe(10000);
+    expect(trackedRemaining(data.receivables)).toBe(3000);
+    expect(trackedRemaining(data.payables)).toBe(3000);
+  });
+  test('a paid tracked utang no longer counts', () => {
+    const data = {
+      accounts: [{ balance: 1000 }],
+      receivables: [{ amount: 5000, paid: true, cashLeg: true, payments: [{ amount: 5000 }] }],
+    };
+    expect(netWorth(data)).toBe(1000);
+  });
+});
+
 describe('savingsRate counts debt payments as money out', () => {
   test('income minus expenses over income for this month', () => {
     const tx = [
@@ -85,6 +126,16 @@ describe('savingsRate counts debt payments as money out', () => {
   });
   test('no income yields null, never a divide-by-zero', () => {
     expect(savingsRate([], [], REF)).toBeNull();
+  });
+  test('repaid utang is not counted as income (own money coming home)', () => {
+    const tx = [
+      { type: 'income', amount: 20000, date: '2026-07-01' },
+      { type: 'income', amount: 5000, date: '2026-07-02', source: 'receivable' }, // someone paid you back
+      { type: 'expense', amount: 10000, date: '2026-07-05' },
+    ];
+    // Only the 20000 real income counts: (20000 - 10000) / 20000 = 0.5,
+    // not (25000 - 10000) / 25000 = 0.6.
+    expect(savingsRate(tx, [], REF)).toBe(0.5);
   });
 });
 

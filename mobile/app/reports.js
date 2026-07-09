@@ -13,7 +13,7 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, isThisMonth, monthLabel } from '../lib/format';
-import { debtFreeProjection } from '../lib/analytics';
+import { debtFreeProjection, netWorthParts } from '../lib/analytics';
 
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const fmtMonth = (d) => `${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
@@ -38,18 +38,21 @@ export default function Reports() {
   const sum = (list, fn) => (list || []).reduce((t, x) => t + fn(x), 0);
 
   // ---- Financial Position ----
+  // Net worth comes from the one shared helper so this screen agrees with Home
+  // and the rest. Only tracked (cash leg) utang counts, because untracked utang
+  // still sits inside an account balance and counting it would double it. Cash
+  // is cash accounts; Bank is every other account, so the two add up.
+  const nwParts = netWorthParts(data);
+  const accountsTotal = sum(data.accounts, (a) => a.balance);
   const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
-  const bank = sum(data.accounts.filter((a) => ['savings', 'checking', 'ewallet'].includes(a.kind)), (a) => a.balance);
-  const investments = sum(data.assets, (a) => a.value);
-  // Only what is STILL owed counts: a partial payment already became cash
-  // in an account, counting the full amount here would double count it.
-  const receivables = sum((data.receivables || []).filter((r) => !r.paid), (r) => {
-    const paidSoFar = (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    return Math.max(0, (Number(r.amount) || 0) - paidSoFar);
-  });
-  const totalAssets = cash + bank + investments + receivables;
-  const liabilities = sum(data.debts, (d) => d.remaining);
-  const netWorth = totalAssets - liabilities;
+  const bank = accountsTotal - cash;
+  const investments = nwParts.holdings;
+  const receivables = nwParts.receivables;
+  const payablesOwed = nwParts.payables;
+  const totalAssets = nwParts.assets;
+  const liabilities = nwParts.liabilities;
+  const debtsOnly = nwParts.debts;
+  const netWorth = nwParts.netWorth;
 
   // ---- Income Statement (this month only) ----
   const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
@@ -90,11 +93,12 @@ export default function Reports() {
           <Line label="Cash" value={cash} />
           <Line label="Savings and bank" value={bank} />
           <Line label="Investments" value={investments} />
-          <Line label="Receivables" value={receivables} />
+          {receivables > 0 ? <Line label="Utang owed to you (tracked)" value={receivables} /> : null}
           <Line label="Total assets" value={totalAssets} strong color={colors.primary} />
           <View style={styles.divider} />
           <Text style={styles.groupLabel}>Liabilities</Text>
-          <Line label="Debts" value={liabilities} />
+          <Line label="Debts" value={debtsOnly} />
+          {payablesOwed > 0 ? <Line label="Utang you owe (tracked)" value={payablesOwed} /> : null}
           <Line label="Total liabilities" value={liabilities} strong color={colors.warning} />
           <View style={styles.divider} />
           <Line label="Net worth" value={netWorth} strong color={netWorth >= 0 ? colors.primary : colors.warning} />
