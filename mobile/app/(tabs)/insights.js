@@ -346,7 +346,9 @@ export default function Insights() {
           ) : null}
         </Card>
 
-        <View style={styles.cardGap}>
+        {/* PeriodSelector carries its own bottom margin, so the wrapper only
+            adds the top gap from the card above (no double spacing). */}
+        <View style={{ marginTop: spacing.md }}>
           <PeriodSelector period={period} onChange={setPeriod} colors={colors} />
         </View>
 
