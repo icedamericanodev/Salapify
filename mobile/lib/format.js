@@ -39,10 +39,11 @@ export function todayISO(d = new Date()) {
 }
 
 // isThisMonth checks whether a "YYYY-MM-DD" date string falls in the current
-// month. Items with no date count as this month, so nothing ever silently
-// disappears from the totals.
+// month. An item with no date is NOT this month: every real entry is dated at
+// creation, so a dateless one only comes from an imported or hand edited backup,
+// and counting it would inflate this month's totals every single month forever.
 export function isThisMonth(dateStr, ref = new Date()) {
-  if (!dateStr) return true;
+  if (!dateStr) return false;
   return String(dateStr).slice(0, 7) === todayISO(ref).slice(0, 7);
 }
 

@@ -21,11 +21,14 @@ describe('todayISO builds the local date, never a UTC-shifted one', () => {
   });
 });
 
-describe('isThisMonth treats undated items as belonging to this month', () => {
+describe('isThisMonth matches the current month and excludes dateless items', () => {
   const ref = new Date(2026, 6, 15);
   test('a date in the same month counts', () => expect(isThisMonth('2026-07-01', ref)).toBe(true));
   test('a date in another month does not', () => expect(isThisMonth('2026-06-30', ref)).toBe(false));
-  test('an empty date counts as this month', () => expect(isThisMonth('', ref)).toBe(true));
+  // A dateless entry only comes from an imported backup; counting it would
+  // inflate this month's totals every month, so it is excluded.
+  test('an empty date is not this month', () => expect(isThisMonth('', ref)).toBe(false));
+  test('a missing date is not this month', () => expect(isThisMonth(undefined, ref)).toBe(false));
 });
 
 describe('normalizeSchedule repairs any malformed schedule to a usable shape', () => {

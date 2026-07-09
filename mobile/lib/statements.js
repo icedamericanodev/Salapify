@@ -28,10 +28,9 @@ const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 // Money can carry cents, so equality checks use a half centavo tolerance to
 // avoid floating point noise flagging a false mismatch.
 const eq = (a, b) => Math.abs(a - b) < 0.005;
-// A period filter that, unlike isThisMonth, treats a MISSING date as "not this
-// month". isThisMonth counts a dateless entry as this month, which would let one
-// undated transaction from an imported backup inflate every month's statement
-// forever. Statements only count entries with a real date.
+// Statements only count entries with a real date. isThisMonth already excludes a
+// missing date; the explicit guard keeps that intent local and safe even if that
+// shared behavior ever changes.
 const inMonth = (dateStr, ref) => !!dateStr && isThisMonth(dateStr, ref);
 
 // The same split the Debts screen uses: these clear within about a year, so they
