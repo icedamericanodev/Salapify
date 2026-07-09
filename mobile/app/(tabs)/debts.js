@@ -80,6 +80,18 @@ export default function Debts() {
   const pendingPays = editDebt
     ? (data.payments || []).filter((p) => p.debtId === editDebt.id && p.status === 'pending')
     : [];
+  // What "Mark paid off" will actually debit: the remaining balance plus any
+  // interest accrued since the last payment. Shown on the confirm label so the
+  // prompt matches the amount that leaves the account.
+  const payoffAmount = editDebt
+    ? splitDebtPayment(
+        Number(editDebt.remaining) || 0,
+        Number(editDebt.monthlyRate) || 0,
+        editDebt.interestThroughISO,
+        0,
+        today()
+      ).balance
+    : 0;
   const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const fmtDate = (d) => (d ? `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}` : '');
 
@@ -538,7 +550,7 @@ export default function Debts() {
                   <Pressable onPress={markPaid} style={styles.markPaid}>
                     <Text style={styles.markPaidText}>
                       {confirmPaidOff
-                        ? `Tap again to log ${formatMoney(Number(editDebt ? editDebt.remaining : 0) || 0)} as paid`
+                        ? `Tap again to log ${formatMoney(payoffAmount)} as paid`
                         : 'Mark paid off'}
                     </Text>
                   </Pressable>
