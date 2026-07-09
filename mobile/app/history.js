@@ -16,7 +16,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -33,15 +32,6 @@ import { txMatches, buildNameMaps } from '../lib/search';
 import { resolveReceipt } from '../lib/receipts';
 import EmptyState from '../components/EmptyState';
 import PeriodSelector from '../components/PeriodSelector';
-
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// "2026-07" -> "Jul 2026"
-function monthTitle(key) {
-  const [y, m] = String(key).split('-').map(Number);
-  if (!y || !m || m < 1 || m > 12) return key;
-  return `${MONTHS_SHORT[m - 1]} ${y}`;
-}
 
 function isRealDate(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).trim());

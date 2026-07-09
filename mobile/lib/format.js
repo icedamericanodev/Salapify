@@ -83,8 +83,14 @@ export function inPeriod(dateStr, period) {
   if (!d) return false;
   if (period.mode === 'year') return d.slice(0, 4) === period.y;
   if (period.mode === 'custom') {
-    if (period.from && d < period.from) return false;
-    if (period.to && d > period.to) return false;
+    // Only apply a bound once it is a complete YYYY-MM-DD. A half typed date
+    // like "2026" or "2026-6-1" is treated as not set (open ended) rather than
+    // silently mis-filtering, because the comparison is lexical.
+    const full = /^\d{4}-\d{2}-\d{2}$/;
+    const from = full.test(period.from || '') ? period.from : '';
+    const to = full.test(period.to || '') ? period.to : '';
+    if (from && d < from) return false;
+    if (to && d > to) return false;
     return true;
   }
   // month (the default shape)

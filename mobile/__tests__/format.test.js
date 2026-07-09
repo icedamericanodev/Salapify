@@ -71,6 +71,15 @@ describe('period views: Month, Year, Custom, and All', () => {
     expect(inPeriod('2020-01-01', { mode: 'custom', from: '', to: '2026-06-15' })).toBe(true);
   });
 
+  test('a half typed custom date is ignored, not silently mis-filtered', () => {
+    // "2026" and "2026-6-1" are incomplete; they must not act as a bound (which
+    // would wrongly exclude rows via lexical compare). They read as open ended.
+    expect(inPeriod('2026-06-10', { mode: 'custom', from: '2026', to: '' })).toBe(true);
+    expect(inPeriod('2026-06-10', { mode: 'custom', from: '2026-6-1', to: '' })).toBe(true);
+    // A complete bound still applies.
+    expect(inPeriod('2026-06-10', { mode: 'custom', from: '2026-06-11', to: '' })).toBe(false);
+  });
+
   test('all mode shows everything, even a dateless entry', () => {
     expect(inPeriod('2026-07-01', { mode: 'all' })).toBe(true);
     expect(inPeriod('', { mode: 'all' })).toBe(true);
