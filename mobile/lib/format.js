@@ -58,6 +58,18 @@ export function monthLabel(ref = new Date()) {
   return `${MONTH_NAMES[ref.getMonth()]} ${ref.getFullYear()}`;
 }
 
+// txSign is the little symbol shown before a transaction amount in a list.
+// Income and an upward balance adjustment add (+); a transfer between your own
+// pockets is neutral (arrows); everything else subtracts (-). One helper so every
+// list (History, Budget recent, search) shows the same sign for the same row.
+export function txSign(t) {
+  if (!t) return '-';
+  if (t.type === 'income') return '+';
+  if (t.type === 'transfer') return '⇄';
+  if (t.type === 'adjustment') return t.flow === 'in' ? '+' : '-';
+  return '-';
+}
+
 // ---- Period views ----
 // A "period" says which slice of time a screen is showing. It is a small plain
 // object, one of:

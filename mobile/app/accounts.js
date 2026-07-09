@@ -5,7 +5,9 @@
 
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -158,16 +160,70 @@ export default function Accounts() {
         setErr('Enter a valid target amount, or leave it empty.');
         return;
       }
-      const payload = {
+      const details = {
         name: form.name.trim() || 'Account',
         kind: form.kind,
         brand: form.brand.trim(),
         icon: form.icon.trim() || '💵',
-        balance: amount,
         target: form.target.trim() === '' ? 0 : target,
       };
-      if (form.id) updateItem('accounts', form.id, payload);
-      else addItem('accounts', payload);
+      if (form.id) {
+        // Editing an existing account: update its details, but move the balance
+        // through a recorded "Balance adjustment" transaction instead of silently
+        // overwriting the number. That way the change shows in History, feeds the
+        // account correctly (addTransaction moves the balance by the difference),
+        // and stays reversible, deleting the adjustment puts the balance back.
+        const acct = data.accounts.find((a) => a.id === form.id);
+        const oldBal = acct ? Number(acct.balance) || 0 : 0;
+        // Round to the centavo so tiny float noise never posts a stray 0.00...1.
+        const delta = Math.round((amount - oldBal) * 100) / 100;
+        updateItem('accounts', form.id, details);
+        if (!acct) {
+          // The account somehow vanished mid edit: fall back to a plain set so
+          // the typed balance is never lost.
+          updateItem('accounts', form.id, { balance: amount });
+        } else if (delta > 0) {
+          // More money than the app knew about: a plain reconciliation.
+          addTransaction({
+            type: 'adjustment',
+            accountId: form.id,
+            flow: 'in',
+            amount: delta,
+            label: 'Balance adjustment',
+            date: todayISO(),
+          });
+        } else if (delta < 0) {
+          // Less money than the app knew about is often a purchase the user
+          // forgot to log. Offer to log it as a real expense (which counts in
+          // spending reports) instead of a silent plug. Either choice lands the
+          // balance on the typed total, and the prompt is not cancelable so the
+          // change is never dropped.
+          const amt = Math.abs(delta);
+          const postExpense = () =>
+            addTransaction({ type: 'expense', accountId: form.id, amount: amt, label: 'Unlogged expense', date: todayISO() });
+          const postAdjust = () =>
+            addTransaction({ type: 'adjustment', accountId: form.id, flow: 'out', amount: amt, label: 'Balance adjustment', date: todayISO() });
+          const q = `Your balance is ${formatMoney(amt)} lower. Was this money you spent? Logging it as an expense keeps your spending reports right. If it is just a correction, we record a balance adjustment instead.`;
+          if (Platform.OS === 'web') {
+            if (typeof window !== 'undefined' && window.confirm(`${q}\n\nOK = Log as expense. Cancel = Just a correction.`)) postExpense();
+            else postAdjust();
+          } else {
+            Alert.alert(
+              'Was this money spent?',
+              q,
+              [
+                { text: 'Just a correction', onPress: postAdjust },
+                { text: 'Log as expense', onPress: postExpense },
+              ],
+              { cancelable: false }
+            );
+          }
+        }
+      } else {
+        // A brand new account: the typed number is its opening balance, no
+        // adjustment needed (there is no prior balance to reconcile against).
+        addItem('accounts', { ...details, balance: amount });
+      }
     } else {
       const payload = { name: form.name.trim() || 'Asset', kind: form.kind, value: amount };
       if (form.id) updateItem('assets', form.id, payload);
@@ -477,6 +533,13 @@ export default function Accounts() {
                 placeholderTextColor={colors.faint}
                 keyboardType="numeric"
               />
+              {form?.id && form?.type === 'account' ? (
+                <Text style={styles.fieldHint}>
+                  Set this to the real total in your account, after logging your spending. We
+                  record the difference so History stays accurate. If money is missing because
+                  of a purchase you forgot, we will offer to log it as an expense.
+                </Text>
+              ) : null}
 
               {err ? <Text style={styles.err}>{err}</Text> : null}
               <View style={styles.sheetButtons}>
@@ -701,6 +764,7 @@ function makeStyles(colors) {
       textTransform: 'capitalize',
     },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    fieldHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.xs, lineHeight: 16 },
     input: {
       backgroundColor: colors.card,
       borderColor: colors.border,

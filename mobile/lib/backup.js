@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -129,6 +129,13 @@ const MIGRATIONS = {
   // default safely: no back accrual, whole legacy payment treated as
   // principal); the fence stops an older build from mis-reading a v9 backup.
   9: (d) => ({ ...d }),
+  // v10 adds the balance adjustment: editing an account's total posts a
+  // transaction of type 'adjustment' (flow 'in'/'out', kept accountId) instead
+  // of silently overwriting the balance. No transform needed, but the fence
+  // stops an OLDER build from accepting a v10 backup and coercing the adjustment
+  // into an account-linked phantom expense (which would double count spending
+  // and, on a later edit or delete, shift the real balance).
+  10: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -233,10 +240,11 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         // Negative amounts are direction smuggling (an expense that ADDS
         // money); the type field owns direction, amounts stay positive.
         amount: Math.max(0, num(t.amount)),
-        // Four honest directions. income and expense are the money math;
-        // transfer and debt are record rows that every expense and income
-        // filter automatically skips. Anything else becomes an expense.
-        type: ['income', 'transfer', 'debt'].includes(t.type) ? t.type : 'expense',
+        // The honest directions. income and expense are the money math;
+        // transfer, debt, and adjustment are record rows that every expense and
+        // income filter automatically skips (adjustment is a manual balance
+        // reconciliation). Anything else becomes an expense.
+        type: ['income', 'transfer', 'debt', 'adjustment'].includes(t.type) ? t.type : 'expense',
         label: typeof t.label === 'string' && t.label ? t.label : 'Entry',
       };
       // receiptUri must match the exact shape the app itself writes,
@@ -253,10 +261,11 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       if (typeof t.categoryId === 'string' && t.categoryId) out.categoryId = t.categoryId;
       else delete out.categoryId;
       // flow decides which way a linked transaction moves its account balance,
-      // so it is only trusted as an exact 'in' or 'out' on a transfer. Anything
-      // else is dropped, so a hand edited backup cannot flip an expense into an
-      // inflow. source is a plain label (receivable/payable) kept as a string.
-      if (out.type === 'transfer' && (t.flow === 'in' || t.flow === 'out')) out.flow = t.flow;
+      // so it is only trusted as an exact 'in' or 'out' on a transfer or a
+      // balance adjustment. Anything else is dropped, so a hand edited backup
+      // cannot flip an expense into an inflow. source is a plain label
+      // (receivable/payable) kept as a string.
+      if ((out.type === 'transfer' || out.type === 'adjustment') && (t.flow === 'in' || t.flow === 'out')) out.flow = t.flow;
       else delete out.flow;
       if (typeof t.source === 'string' && t.source) out.source = t.source;
       else delete out.source;
@@ -268,6 +277,11 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // accountId on purpose, since that is the only thing that lets removing it
       // put the money back. Those carry a flow ('in'/'out'); keep their account.
       if ((out.type === 'transfer' || out.type === 'debt') && !out.flow) delete out.accountId;
+      // A balance adjustment moves its account by its flow, so a valid flow is
+      // required. If a hand edited backup stripped it, drop the accountId too so
+      // the row becomes an inert history record instead of moving a balance with
+      // no known direction.
+      if (out.type === 'adjustment' && !out.flow) delete out.accountId;
       return out;
     }),
     goals: cleanList(src.goals).map((g) => ({

@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(9);
+    expect(SCHEMA_VERSION).toBe(10);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(9);
+    expect(out.schemaVersion).toBe(10);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(9);
+    expect(out.schemaVersion).toBe(10);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -145,6 +145,29 @@ describe('sanitizeData always produces the current schema shape', () => {
     // A legacy payment has no split; readers fall back to the whole amount.
     expect(out.payments[1].interest).toBeUndefined();
     expect(out.payments[1].principal).toBeUndefined();
+  });
+
+  test('a balance adjustment survives restore with its flow and account link', () => {
+    const blob = {
+      schemaVersion: 9,
+      accounts: [{ id: 'a1', name: 'GCash', kind: 'ewallet', balance: 5000 }],
+      transactions: [
+        { id: 't1', type: 'adjustment', flow: 'in', amount: 500, date: '2026-07-02', accountId: 'a1', label: 'Balance adjustment' },
+        // A corrupt adjustment with no valid flow must lose its accountId so it
+        // can never move a balance in an unknown direction; it stays a record.
+        { id: 't2', type: 'adjustment', amount: 300, date: '2026-07-03', accountId: 'a1', label: 'Balance adjustment' },
+      ],
+    };
+    const out = sanitizeData(blob);
+    const good = out.transactions.find((t) => t.id === 't1');
+    const bad = out.transactions.find((t) => t.id === 't2');
+    expect(good.type).toBe('adjustment');
+    expect(good.flow).toBe('in');
+    expect(good.accountId).toBe('a1');
+    expect(good.amount).toBe(500);
+    expect(bad.type).toBe('adjustment');
+    expect(bad.flow).toBeUndefined();
+    expect(bad.accountId).toBeUndefined();
   });
 
   test('a v3 migration from a v2 blob builds people out of receivable names', () => {
@@ -276,7 +299,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(9);
+    expect(out.schemaVersion).toBe(10);
     expect(out.payables).toHaveLength(1);
     const pay = out.payables[0];
     expect(pay.person).toBe('Nanay');
@@ -336,10 +359,15 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
     expect(out.payables[0].note).toBe('keep me');
   });
 
-  test('a blob with schemaVersion 8 (above the current) is refused, protecting payables', () => {
-    expect(() => sanitizeData({ schemaVersion: 10, accounts: [] })).toThrow(
+  test('a blob one version above the current is refused, protecting older builds', () => {
+    expect(() => sanitizeData({ schemaVersion: SCHEMA_VERSION + 1, accounts: [] })).toThrow(
       /newer version of Salapify/
     );
+  });
+
+  test('a blob at the current version is accepted', () => {
+    const out = sanitizeData({ schemaVersion: SCHEMA_VERSION, accounts: [{ id: 'a1', name: 'Cash', balance: 0 }] });
+    expect(out.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   test('receivables still sanitize as before while payables coexist', () => {
@@ -373,7 +401,7 @@ describe('sanitizeData refuses data from a newer app', () => {
   test('the refusal never partially applies (it throws, returns nothing)', () => {
     let result;
     try {
-      result = sanitizeData({ schemaVersion: 10, accounts: [] });
+      result = sanitizeData({ schemaVersion: SCHEMA_VERSION + 1, accounts: [] });
     } catch (e) {
       result = 'threw';
     }

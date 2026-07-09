@@ -36,6 +36,24 @@ describe('isThisMonth matches the current month and excludes dateless items', ()
   test('a missing date is not this month', () => expect(isThisMonth(undefined, ref)).toBe(false));
 });
 
+describe('txSign shows the right symbol for each transaction type', () => {
+  const { txSign } = require('../lib/format');
+  test('income adds, expense subtracts', () => {
+    expect(txSign({ type: 'income' })).toBe('+');
+    expect(txSign({ type: 'expense' })).toBe('-');
+  });
+  test('transfer is neutral arrows', () => {
+    expect(txSign({ type: 'transfer', flow: 'out' })).toBe('⇄');
+  });
+  test('a balance adjustment follows its direction', () => {
+    expect(txSign({ type: 'adjustment', flow: 'in' })).toBe('+');
+    expect(txSign({ type: 'adjustment', flow: 'out' })).toBe('-');
+  });
+  test('a missing transaction is safe', () => {
+    expect(txSign(null)).toBe('-');
+  });
+});
+
 describe('period views: Month, Year, Custom, and All', () => {
   const ref = new Date(2026, 6, 15); // 15 July 2026
 

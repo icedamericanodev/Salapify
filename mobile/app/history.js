@@ -27,7 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-import { formatMoney, todayISO, inPeriod, periodLabel } from '../lib/format';
+import { formatMoney, todayISO, inPeriod, periodLabel, txSign } from '../lib/format';
 import { txMatches, buildNameMaps } from '../lib/search';
 import { resolveReceipt } from '../lib/receipts';
 import EmptyState from '../components/EmptyState';
@@ -54,7 +54,7 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
           </Text>
         </View>
         <Text style={[styles.rowAmount, { color: t.type === 'income' ? colors.primary : t.type === 'expense' ? colors.text : colors.muted }]}>
-          {t.type === 'income' ? '+' : t.type === 'transfer' ? '⇄' : '-'} {formatMoney(t.amount)}
+          {txSign(t)} {formatMoney(t.amount)}
         </Text>
       </Pressable>
       {t.receiptUri && Platform.OS !== 'web' ? (
@@ -72,10 +72,10 @@ const Row = memo(function Row({ t, accountName, colors, styles, onEdit, onDelete
 // The edit sheet owns its form state, so typing re-renders only this
 // small component, never the list behind it.
 function EditSheet({ tx, accounts, colors, styles, onClose, onSave }) {
-  // Transfer and debt payment rows are records of something that already
-  // moved balances when it happened. Editing one would let the story and
-  // the balances disagree, so records open read only.
-  const isRecord = tx.type === 'transfer' || tx.type === 'debt';
+  // Transfer, debt payment, and balance adjustment rows are records of something
+  // that already moved a balance. Editing one would let the story and the
+  // balances disagree, so records open read only.
+  const isRecord = tx.type === 'transfer' || tx.type === 'debt' || tx.type === 'adjustment';
   const [form, setForm] = useState(() => ({
     type: tx.type === 'income' ? 'income' : 'expense',
     label: String(tx.label || ''),
@@ -121,10 +121,9 @@ function EditSheet({ tx, accounts, colors, styles, onClose, onSave }) {
             <Text style={styles.sheetTitle}>{tx.label}</Text>
             <Text style={styles.recordNote}>
               {formatMoney(tx.amount)} on {tx.date}.{'\n\n'}
-              This row is a record of {tx.type === 'transfer' ? 'a transfer between accounts' : 'a debt payment'},
-              written the moment it happened. The balances already moved then, so the record
-              cannot be edited. Deleting it with the x only removes this history row, it does
-              not undo the {tx.type === 'transfer' ? 'transfer' : 'payment'}.
+              {tx.type === 'adjustment'
+                ? 'This row records a balance adjustment you made to an account. It cannot be edited, but deleting it with the x undoes the change and moves the balance back.'
+                : `This row is a record of ${tx.type === 'transfer' ? 'a transfer between accounts' : 'a debt payment'}, written the moment it happened. The balances already moved then, so the record cannot be edited. Deleting it with the x only removes this history row, it does not undo the ${tx.type === 'transfer' ? 'transfer' : 'payment'}.`}
             </Text>
             <View style={styles.sheetButtons}>
               <View />
@@ -275,11 +274,16 @@ export default function History() {
       }
       const doIt = () => removeTransaction(t.id);
       // Record rows move nothing when deleted, so their confirm must not
-      // promise a refund the way the normal entry confirm does.
+      // promise a refund the way the normal entry confirm does. A balance
+      // adjustment is reversible (it carries an accountId), so deleting it puts
+      // the balance back to what it was, in whichever direction.
       const isRecord = t.type === 'transfer' || t.type === 'debt';
-      const detail = isRecord
-        ? 'This only removes the history row. It does not undo the money move.'
-        : 'A linked account gets its money back.';
+      const detail =
+        t.type === 'adjustment'
+          ? 'This undoes the adjustment and moves the balance back to what it was.'
+          : isRecord
+          ? 'This only removes the history row. It does not undo the money move.'
+          : 'A linked account gets its money back.';
       if (Platform.OS === 'web') {
         if (window.confirm(`Delete ${t.label} ${formatMoney(t.amount)}? ${detail}`)) doIt();
         return;
