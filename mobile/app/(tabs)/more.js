@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.74 · Barako app icon and splash</Text>
+            <Text style={styles.stampValue}>v3.75 · Clearer, colorblind-safe Insights charts</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

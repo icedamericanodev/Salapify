@@ -6,7 +6,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { palettes, DEFAULT_PALETTE } from '../theme';
+import { palettes, DEFAULT_PALETTE, CHART_CATEGORICAL } from '../theme';
 
 // Where we save the choices on the phone.
 const MODE_KEY = 'salapify_theme_mode';
@@ -59,11 +59,14 @@ export function ThemeProvider({ children }) {
   const scheme = mode === 'system' ? device || 'dark' : mode;
   const isDark = scheme === 'dark';
   const colors = palettes[palette][isDark ? 'dark' : 'light'];
+  // Distinct categorical hues for charts. Palette-independent (same on all 8
+  // themes), only mode-dependent, so screens do const { colors, chartColors }.
+  const chartColors = isDark ? CHART_CATEGORICAL.dark : CHART_CATEGORICAL.light;
 
   // useMemo avoids rebuilding this object unless something actually changed.
   const value = useMemo(
-    () => ({ mode, setMode, palette, setPalette, colors, isDark }),
-    [mode, palette, colors, isDark]
+    () => ({ mode, setMode, palette, setPalette, colors, chartColors, isDark }),
+    [mode, palette, colors, chartColors, isDark]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
