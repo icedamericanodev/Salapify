@@ -410,7 +410,12 @@ export function debtFreeProjection(debts, strategy = 'avalanche', extra = 0, ref
 // reach; it excludes illiquid assets like property. Typical monthly spend is
 // the median of the completed months that had any expense over the last 6, so a
 // new user with no history gets null instead of a made-up number. Returns:
-//   { buffer, avgMonthlyExpense, monthsCovered, firstTarget, oneMonthTarget }
+//   { buffer, avgMonthlyExpense, monthsCovered, capped, firstTarget, oneMonthTarget }
+// RUNWAY_CAP: we never claim more than this many months covered. A single
+// sparse month of logging (say only 120 pesos recorded) would otherwise divide
+// a real balance into a nonsense figure like 429 months, which reads as broken
+// rather than reassuring. Anything past the cap is shown as "12+ months".
+export const RUNWAY_CAP = 12;
 export function emergencyRunway(data, ref = new Date()) {
   const d = data || {};
   // Buffer is the accessible account money: cash, e-wallets, checking, and
@@ -426,15 +431,23 @@ export function emergencyRunway(data, ref = new Date()) {
   const series = monthlySeries(Array.isArray(d.transactions) ? d.transactions : [], 7, ref);
   const completed = series.slice(0, 6).map((mo) => mo.expenses).filter((x) => x > 0).sort((a, b) => a - b);
   let typical = 0;
-  if (completed.length) {
+  // Require at least TWO completed months with spending before we quote a
+  // months-covered figure. With a single month the "typical" is just that one
+  // number, and a light logging month makes the runway wildly overstated. Two
+  // months of real data give the median something to resist an outlier with.
+  const RUNWAY_MIN_MONTHS = 2;
+  if (completed.length >= RUNWAY_MIN_MONTHS) {
     const mid = Math.floor(completed.length / 2);
     typical = completed.length % 2 ? completed[mid] : (completed[mid - 1] + completed[mid]) / 2;
   }
-  const monthsCovered = typical > 0 ? Math.round((buffer / typical) * 10) / 10 : null;
+  const rawMonths = typical > 0 ? Math.round((buffer / typical) * 10) / 10 : null;
+  const capped = rawMonths != null && rawMonths > RUNWAY_CAP;
+  const monthsCovered = capped ? RUNWAY_CAP : rawMonths;
   return {
     buffer: Math.round(buffer),
     avgMonthlyExpense: Math.round(typical),
     monthsCovered,
+    capped,
     firstTarget: 10000,
     oneMonthTarget: Math.round(typical),
   };

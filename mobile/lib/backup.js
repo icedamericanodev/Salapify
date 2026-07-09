@@ -169,6 +169,13 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       name: str(a.name, 'Account'),
       brand: str(a.brand),
       icon: str(a.icon),
+      // Coerce an unknown or missing kind to a known one. The screens bucket
+      // accounts by kind (Cash vs Bank) and analytics tests liquidity by kind,
+      // so a stray kind from a legacy or hand edited backup would otherwise
+      // drop the account out of those views. Valid kinds pass through
+      // untouched; anything else defaults to cash, the app's default for a new
+      // account. Balance still counts toward net worth either way.
+      kind: ['cash', 'savings', 'checking', 'ewallet'].includes(a.kind) ? a.kind : 'cash',
       balance: num(a.balance),
       target: num(a.target),
     })),
@@ -281,6 +288,11 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         id: str(p.id) || `rpay_restored_${i}`,
         amount: Math.max(0, num(p.amount)),
         date: typeof p.date === 'string' && p.date ? p.date : stampDate,
+        // A settling payment is tagged so reopening an utang reverses only it,
+        // never a genuine partial. Coerce to a real boolean so a hand edited or
+        // corrupt backup cannot mark a real partial settled and have it silently
+        // reversed and dropped on the next reopen.
+        settled: !!p.settled,
       })),
     })),
     // Payables mirror receivables exactly (People I owe), coerced the same way.
@@ -305,6 +317,11 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         id: str(p.id) || `ppay_restored_${i}`,
         amount: Math.max(0, num(p.amount)),
         date: typeof p.date === 'string' && p.date ? p.date : stampDate,
+        // A settling payment is tagged so reopening an utang reverses only it,
+        // never a genuine partial. Coerce to a real boolean so a hand edited or
+        // corrupt backup cannot mark a real partial settled and have it silently
+        // reversed and dropped on the next reopen.
+        settled: !!p.settled,
       })),
     })),
     settings: (() => {

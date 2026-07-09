@@ -109,6 +109,29 @@ describe('emergencyRunway uses the median of completed months', () => {
     expect(runway.monthsCovered).toBeNull();
     expect(runway.avgMonthlyExpense).toBe(0);
   });
+  test('a single sparse month is not enough: null, not a huge number', () => {
+    // One completed month with only 120 logged would divide 25000 into ~208
+    // months. We refuse to quote it until there are two real months.
+    const runway = emergencyRunway({
+      accounts: [{ kind: 'cash', balance: 25000 }],
+      transactions: [{ type: 'expense', amount: 120, date: '2026-02-15' }],
+    }, REF);
+    expect(runway.monthsCovered).toBeNull();
+    expect(runway.capped).toBe(false);
+  });
+  test('a real but very long runway is capped at 12+, never a silly figure', () => {
+    // Two thin months (120 median) against a real balance would be ~208
+    // months; we cap the claim at 12 and flag it so the screen shows "12+".
+    const runway = emergencyRunway({
+      accounts: [{ kind: 'cash', balance: 25000 }],
+      transactions: [
+        { type: 'expense', amount: 120, date: '2026-01-15' },
+        { type: 'expense', amount: 120, date: '2026-02-15' },
+      ],
+    }, REF);
+    expect(runway.monthsCovered).toBe(12);
+    expect(runway.capped).toBe(true);
+  });
 });
 
 describe('goalPace reports an honest status for every deadline', () => {

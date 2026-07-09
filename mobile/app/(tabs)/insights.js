@@ -112,12 +112,16 @@ export default function Insights() {
       (topPct >= 40 ? ' If you want to trim, that is the lever.' : '');
   }
 
-  // Net worth by category.
+  // Net worth by category. The account side sums EVERY account, exactly like
+  // the Overview headline, so the two screens can never disagree. Cash is the
+  // cash-kind accounts; Bank is everything else in accounts (savings, checking,
+  // e-wallet). sanitizeData coerces any unknown kind to cash on load, so in
+  // practice nothing falls between the two buckets, but even if it did the Bank
+  // = total minus cash formula keeps the breakdown summing to the headline, so
+  // no account is ever silently dropped from net worth.
+  const accountsTotal = sum(data.accounts, (a) => a.balance);
   const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
-  const bank = sum(
-    data.accounts.filter((a) => ['savings', 'checking', 'ewallet'].includes(a.kind)),
-    (a) => a.balance
-  );
+  const bank = accountsTotal - cash;
   const investments = sum(data.assets, (a) => a.value);
   const debt = sum(data.debts, (d) => d.remaining);
   const worthRows = [
@@ -148,7 +152,7 @@ export default function Insights() {
   // (accounts plus assets minus debts). Opening this screen stamps this
   // month's snapshot, so the trend grows one honest bar per month. Until
   // there are two real months, the card stays hidden, no made up bars.
-  const netWorthNow = Math.round(cash + bank + investments - debt);
+  const netWorthNow = Math.round(accountsTotal + investments - debt);
   // Array.isArray, not ||: a corrupt backup can carry nwHistory as a string
   // or object, and .filter on that would crash this screen on every mount.
   const nwHistory = (Array.isArray(data.settings.nwHistory) ? data.settings.nwHistory : []).filter(
@@ -209,13 +213,16 @@ export default function Insights() {
   // floor, so a low spender with several months covered is never told to start
   // over, and a high spender with under a month is never called well covered.
   const moWord = runway.monthsCovered === 1 ? 'month' : 'months';
+  // When capped, the real figure is above the cap, so read it as "12+ months"
+  // rather than a precise number we do not actually trust from thin logging.
+  const monthsLabel = runway.capped ? `${runway.monthsCovered}+` : `${runway.monthsCovered}`;
   let runwayLine = '';
   if (runway.monthsCovered == null) {
     runwayLine = runway.buffer > 0
-      ? `You have ${formatMoney(runway.buffer)} set aside. Log a month of spending and I will show how long it would last.`
+      ? `You have ${formatMoney(runway.buffer)} set aside. Log two months of spending and I will show how long it would last.`
       : 'An emergency fund keeps a surprise from becoming utang. Even your first 10,000 helps.';
   } else if (runway.monthsCovered >= 3) {
-    runwayLine = `About ${runway.monthsCovered} months covered. That is a strong cushion, well done.`;
+    runwayLine = `About ${monthsLabel} months covered. That is a strong cushion, well done.`;
   } else if (runway.monthsCovered >= 1) {
     runwayLine = `About ${runway.monthsCovered} ${moWord} covered. Building toward 3 to 6 months is real peace of mind.`;
   } else if (runway.buffer < runway.firstTarget && runway.oneMonthTarget > runway.firstTarget) {
@@ -475,7 +482,7 @@ export default function Insights() {
             {runway.monthsCovered != null ? (
               <>
                 <Text style={styles.runwayValue}>
-                  {runway.monthsCovered} {runway.monthsCovered === 1 ? 'month' : 'months'} covered
+                  {monthsLabel} {runway.monthsCovered === 1 ? 'month' : 'months'} covered
                 </Text>
                 <Bar
                   fraction={Math.max(Math.min(runway.monthsCovered / 3, 1), 0.01)}

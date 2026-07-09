@@ -174,6 +174,13 @@ export default function Payables() {
         return;
       }
     }
+    // Everything below mutates: it creates people, writes the utang, and can
+    // post a settling expense. A double tap must run it exactly once. All the
+    // early returns above are pure validation, so the guard sits here, after
+    // the last of them, and clears on the next beat like settleOnce does.
+    if (saveBusy.current) return;
+    saveBusy.current = true;
+    setTimeout(() => { saveBusy.current = false; }, 400);
     // Find or create the person record so "Nanay" is one ledger entry no
     // matter how many utang you rack up with them. This reuses the SHARED
     // people collection, so a person can be both someone who owes you and
@@ -187,6 +194,11 @@ export default function Payables() {
     } else if (form.phone.trim()) {
       updateItem('people', person.id, { phone: form.phone.trim() });
     }
+    const existing = form.id ? list.find((x) => x.id === form.id) : null;
+    const wasPaid = !!(existing && existing.paid);
+    // Write the fields first, then reconcile the paid toggle below. The paid
+    // state is deliberately NOT part of this payload: flipping it has to move
+    // money the same way the Mark paid button does, never just flip a flag.
     const payload = {
       person: name,
       personId: person.id,
@@ -194,10 +206,47 @@ export default function Payables() {
       dueDate: form.dueDate.trim(),
       phone: form.phone.trim(),
       note: form.note.trim(),
-      paid: form.paid,
     };
+    let id = form.id;
     if (form.id) updateItem('payables', form.id, payload);
-    else addItem('payables', { ...payload, payments: [] });
+    else id = addItem('payables', { ...payload, payments: [], paid: false });
+
+    // Reconcile the "Marked as paid" toggle through the same money path as the
+    // Mark paid button, so it can never leave an utang shown as paid with no
+    // expense recorded, or reopened with a phantom expense left behind. The
+    // settling payment is tagged settled so turning the toggle back off knows
+    // exactly which entries to reverse, while genuine partial payments stay.
+    const priorPayments = existing ? (existing.payments || []) : [];
+    if (form.paid) {
+      // Post expense for whatever is still owed and record it as a settling
+      // payment. This one branch covers a fresh paid utang, flipping an unpaid
+      // one to paid, AND raising the amount of an already paid one (the top up
+      // is posted too), so the recorded expense always matches the paid total.
+      const priorPaid = priorPayments.reduce((t, p) => t + (Number(p.amount) || 0), 0);
+      const remaining = Math.max(0, amount - priorPaid);
+      let payments = priorPayments;
+      if (remaining > 0) {
+        const txnId = postExpense({ person: name, personId: person.id }, remaining);
+        payments = [...priorPayments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId, settled: true }];
+      }
+      updateItem('payables', id, { paid: true, payments });
+    } else if (wasPaid) {
+      // Reopening. Reverse ONLY the entries we tagged as settling when the
+      // utang was closed, and drop them. If none are tagged, the utang was
+      // closed by an older build or paid off entirely through genuine partial
+      // payments (logPartial marks paid without tagging), so we keep every
+      // payment and its transaction untouched and just flip paid back to false.
+      // That can leave a legacy row reading "0 owed but reopened", which is
+      // honest (the money really moved, and the user can delete a specific
+      // payment from the history), and it never deletes money the user logged.
+      const settledTagged = priorPayments.filter((p) => p.settled);
+      let payments = priorPayments;
+      if (settledTagged.length) {
+        settledTagged.forEach((p) => { if (p.txnId) removeTransaction(p.txnId); });
+        payments = priorPayments.filter((p) => !p.settled);
+      }
+      updateItem('payables', id, { paid: false, payments });
+    }
     setForm(null);
   }
   function del() {
@@ -240,6 +289,10 @@ export default function Payables() {
     return addTransaction(accountId ? { ...entry, accountId } : entry);
   }
 
+  // A double tap on Save must not run the money reconcile twice: both taps
+  // would see the same pre-save state, post two settling expenses, and create a
+  // duplicate item. One beat of quiet, same idea as settleOnce below.
+  const saveBusy = useRef(false);
   // Stacked confirm dialogs or a double tap must not record a payment twice
   // while both reads saw the same pre-payment state. One beat of quiet.
   const settleBusy = useRef(false);
@@ -263,7 +316,7 @@ export default function Payables() {
       let payments = r.payments || [];
       if (remaining > 0) {
         const txnId = postExpense(r, remaining);
-        payments = [...payments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId }];
+        payments = [...payments, { id: genId('ppay'), amount: remaining, date: todayISO(), txnId, settled: true }];
       }
       updateItem('payables', r.id, { paid: true, payments });
       praiseNow();
