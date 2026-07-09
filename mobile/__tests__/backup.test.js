@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(6);
+    expect(SCHEMA_VERSION).toBe(7);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(6);
+    expect(out.schemaVersion).toBe(7);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(6);
+    expect(out.schemaVersion).toBe(7);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -166,6 +166,94 @@ describe('sanitizeData always produces the current schema shape', () => {
   });
 });
 
+describe('the payables collection (People I owe) migrates and coerces', () => {
+  test('an old backup with no payables key migrates to an empty payables array', () => {
+    // A v2 blob predates payables entirely: it must arrive with payables: [],
+    // never undefined, so the People I owe screen can read it without a guard.
+    const out = sanitizeData(fixtureAt(2));
+    expect(Array.isArray(out.payables)).toBe(true);
+    expect(out.payables).toHaveLength(0);
+  });
+
+  test('a v6 backup (before payables) also lands on an empty payables array', () => {
+    const out = sanitizeData(fixtureAt(6));
+    expect(out.payables).toEqual([]);
+  });
+
+  test('a v7 backup round-trips payables, preserving amount, person, and payments', () => {
+    const blob = {
+      ...fixtureAt(7),
+      people: [{ id: 'person_m3_0', name: 'Nanay', phone: '', note: '' }],
+      payables: [
+        {
+          id: 'pay1',
+          person: 'Nanay',
+          personId: 'person_m3_0',
+          amount: 800,
+          dueDate: '2026-08-01',
+          paid: false,
+          payments: [
+            { id: 'ppay_1', amount: 300, date: '2026-07-05' },
+            { amount: 200, date: '2026-07-06' }, // no id: must gain a stable one
+          ],
+        },
+      ],
+    };
+    const out = sanitizeData(blob);
+    expect(out.schemaVersion).toBe(7);
+    expect(out.payables).toHaveLength(1);
+    const pay = out.payables[0];
+    expect(pay.person).toBe('Nanay');
+    expect(pay.personId).toBe('person_m3_0');
+    expect(pay.amount).toBe(800);
+    expect(pay.payments).toHaveLength(2);
+    expect(pay.payments[0].amount).toBe(300);
+    // The id-less payment gains a distinct, truthy id so remove keys cleanly.
+    expect(pay.payments[0].id).toBe('ppay_1');
+    expect(pay.payments[1].id).toBeTruthy();
+    expect(pay.payments[1].id).not.toBe(pay.payments[0].id);
+  });
+
+  test('an unknown field on a payable survives so future data is never erased', () => {
+    const blob = {
+      schemaVersion: 7,
+      accounts: [{ id: 'a1', name: 'Cash', balance: 0 }],
+      payables: [
+        { id: 'pay1', person: 'Kuya', amount: 500, futureField: 'from a newer build', note: 'keep me' },
+      ],
+    };
+    const out = sanitizeData(blob);
+    expect(out.payables[0].futureField).toBe('from a newer build');
+    expect(out.payables[0].note).toBe('keep me');
+  });
+
+  test('a blob with schemaVersion 8 (above the current) is refused, protecting payables', () => {
+    expect(() => sanitizeData({ schemaVersion: 8, accounts: [] })).toThrow(
+      /newer version of Salapify/
+    );
+  });
+
+  test('receivables still sanitize as before while payables coexist', () => {
+    const blob = {
+      schemaVersion: 7,
+      accounts: [{ id: 'a1', name: 'Cash', balance: 0 }],
+      receivables: [
+        { id: 'rc1', person: 'Ate', amount: 500, paid: false, payments: [{ id: 'rpay_1', amount: 100, date: '2026-07-01', txnId: 'transactions_3' }] },
+      ],
+      payables: [
+        { id: 'pay1', person: 'Nanay', amount: 800, paid: false, payments: [] },
+      ],
+    };
+    const out = sanitizeData(blob);
+    expect(out.receivables).toHaveLength(1);
+    expect(out.receivables[0].amount).toBe(500);
+    // The receivable's income link is still protected exactly as before.
+    expect(out.receivables[0].payments[0].txnId).toBe('transactions_3');
+    expect(out.payables).toHaveLength(1);
+    expect(out.payables[0].amount).toBe(800);
+  });
+});
+
 describe('sanitizeData refuses data from a newer app', () => {
   test('a schemaVersion above the current one throws the clear update message', () => {
     expect(() => sanitizeData({ schemaVersion: 99, accounts: [] })).toThrow(
@@ -176,7 +264,7 @@ describe('sanitizeData refuses data from a newer app', () => {
   test('the refusal never partially applies (it throws, returns nothing)', () => {
     let result;
     try {
-      result = sanitizeData({ schemaVersion: 7, accounts: [] });
+      result = sanitizeData({ schemaVersion: 8, accounts: [] });
     } catch (e) {
       result = 'threw';
     }

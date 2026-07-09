@@ -28,6 +28,7 @@ const MONEY_LINKS = [
   { route: '/learn', label: 'Money lessons', icon: 'school-outline' },
   { route: '/mindset', label: 'Money mindset', icon: 'sparkles-outline' },
   { route: '/receivables', label: 'People who owe me', icon: 'people-outline' },
+  { route: '/payables', label: 'People I owe', icon: 'arrow-up-circle-outline' },
   { route: '/reports', label: 'Reports', icon: 'bar-chart-outline' },
   { route: '/notes', label: 'Notes with calculator', icon: 'document-text-outline' },
   { route: '/recurring', label: 'Recurring', icon: 'repeat-outline' },
@@ -83,8 +84,9 @@ export default function More() {
         </Pressable>
 
         <Text style={styles.sectionTitle}>MY MONEY</Text>
-        {/* A compact 2-column icon grid instead of ten tall rows, so the tab
-            scans fast. Even count means five clean rows, no orphan tile. */}
+        {/* A compact 2-column icon grid instead of tall rows, so the tab scans
+            fast. An odd count leaves one tile alone on the last row, which the
+            space-between layout keeps left aligned and tidy. */}
         <View style={styles.moneyGrid}>
           {MONEY_LINKS.map((link) => (
             <Pressable
@@ -191,7 +193,7 @@ export default function More() {
               always tell at a glance whether the latest code has arrived. */}
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.rowValue}>v3.70: Backup and data tools moved to their own screen, the More tab is now a short list of rooms</Text>
+            <Text style={styles.rowValue}>v3.71: People I owe ledger added, the calm mirror of People who owe me. Display only for now, it records payments without touching your balances</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

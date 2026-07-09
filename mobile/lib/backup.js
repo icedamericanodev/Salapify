@@ -22,7 +22,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -112,6 +112,11 @@ const MIGRATIONS = {
   // array defaults to empty in sanitizeData, so no data transform is needed;
   // the fence just stops a v5 build from silently dropping a v6 backup's treats.
   6: (d) => ({ ...d }),
+  // v7 adds the payables collection (People I owe, the mirror of receivables).
+  // A missing array defaults to empty in sanitizeData, so no data transform is
+  // needed; the fence just stops a v6 build from silently dropping a v7
+  // backup's payables.
+  7: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -274,6 +279,28 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         // restored payment that lost its id must get one back, else remove
         // would match every id-less row at once.
         id: str(p.id) || `rpay_restored_${i}`,
+        amount: Math.max(0, num(p.amount)),
+        date: typeof p.date === 'string' && p.date ? p.date : stampDate,
+      })),
+    })),
+    // Payables mirror receivables exactly (People I owe), coerced the same way.
+    // This batch is display only: a payable's payments never posted a
+    // transaction, so there is no txnId to protect, just the money and dates.
+    payables: cleanList(src.payables).map((r) => ({
+      ...r,
+      person: typeof r.person === 'string' && r.person ? r.person : 'Someone',
+      personId: str(r.personId),
+      dueDate: str(r.dueDate),
+      phone: str(r.phone),
+      note: str(r.note),
+      amount: num(r.amount),
+      paid: !!r.paid,
+      payments: cleanList(r.payments).map((p, i) => ({
+        ...p,
+        // A stable id per payment: removing one payment keys on this id, so a
+        // restored payment that lost its id must get one back, else remove
+        // would match every id-less row at once.
+        id: str(p.id) || `ppay_restored_${i}`,
         amount: Math.max(0, num(p.amount)),
         date: typeof p.date === 'string' && p.date ? p.date : stampDate,
       })),
