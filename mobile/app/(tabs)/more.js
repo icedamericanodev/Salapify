@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.79 · Money counts up, chart bars grow in (motion pass 2)</Text>
+            <Text style={styles.stampValue}>v3.80 · Confetti when you clear an utang or debt (motion pass 3)</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
