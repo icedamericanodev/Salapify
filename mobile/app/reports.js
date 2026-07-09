@@ -256,8 +256,11 @@ function makeStyles(colors) {
     groupLabel: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1, marginBottom: spacing.sm },
     line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm },
     lineIndent: { paddingVertical: spacing.xs },
-    lineLabel: { color: colors.textSecondary, fontSize: fontSize.body },
-    lineValue: { color: colors.text, fontSize: fontSize.body },
+    // The label takes the leftover width and wraps if long (e.g. "Minimums only:
+    // debt free September 2027"); the value keeps its own width and never shrinks,
+    // so a long label can never overlap the amount.
+    lineLabel: { color: colors.textSecondary, fontSize: fontSize.body, flex: 1, marginRight: spacing.md },
+    lineValue: { color: colors.text, fontSize: fontSize.body, flexShrink: 0, textAlign: 'right' },
     subLabel: { color: colors.muted, fontSize: fontSize.small, paddingLeft: spacing.md },
     subValue: { color: colors.muted, fontSize: fontSize.small },
     emptyLine: { paddingVertical: spacing.xs },
