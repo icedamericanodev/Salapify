@@ -179,7 +179,12 @@ describe('EMERGENCY BUFFER THIN candidate', () => {
     const data = {
       settings: { ...SEMI },
       accounts: [{ id: 'a', kind: 'cash', balance: 2000 }],
-      transactions: [{ type: 'expense', label: 'x', amount: 8000, date: '2026-06-10' }],
+      // Two completed months of spending so the runway is real, not a guess
+      // from a single sparse month.
+      transactions: [
+        { type: 'expense', label: 'x', amount: 8000, date: '2026-06-10' },
+        { type: 'expense', label: 'x', amount: 8000, date: '2026-05-10' },
+      ],
       debts: [],
       recurring: [],
       goals: [],
@@ -224,7 +229,10 @@ describe('weeklyCheckIn stays the single top Home decision', () => {
     const data = {
       settings: { ...SEMI },
       accounts: [{ id: 'a', kind: 'cash', balance: 2000 }],
-      transactions: [{ type: 'expense', label: 'x', amount: 8000, date: '2026-06-10' }],
+      transactions: [
+        { type: 'expense', label: 'x', amount: 8000, date: '2026-06-10' },
+        { type: 'expense', label: 'x', amount: 8000, date: '2026-05-10' },
+      ],
       debts: [],
       recurring: [],
       goals: [],
