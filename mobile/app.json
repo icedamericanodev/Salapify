@@ -3,7 +3,7 @@
     "name": "Salapify",
     "slug": "salapify-v2",
     "owner": "icedamericanodev",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "orientation": "portrait",
     "scheme": "salapify",
     "icon": "./assets/icon.png",
@@ -20,7 +20,7 @@
       [
         "expo-notifications",
         {
-          "color": "#F4813F"
+          "color": "#FF8A3D"
         }
       ],
       [
@@ -142,7 +142,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#101E15"
+      "backgroundColor": "#1A130E"
     },
     "ios": {
       "supportsTablet": true,
@@ -151,10 +151,10 @@
     "android": {
       "package": "com.icedamericanodev.salapify",
       "allowBackup": false,
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
-        "backgroundColor": "#FFA45C"
+        "backgroundColor": "#FF8A3D"
       }
     },
     "web": {
