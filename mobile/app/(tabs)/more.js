@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.89 · Log an expense in another currency, you give the rate and we keep totals in your base currency</Text>
+            <Text style={styles.stampValue}>v3.90 · Foreign expense rates now fill in live when you are online, still editable and offline safe</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

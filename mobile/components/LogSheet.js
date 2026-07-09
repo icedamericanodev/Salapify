@@ -13,6 +13,7 @@ import {
   Alert,
   Animated,
   BackHandler,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -29,6 +30,8 @@ import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, todayISO } from '../lib/format';
 import { CURRENCIES, currencySymbol } from '../lib/currencies';
+import { basePerUnit, roundRate } from '../lib/fxrates';
+import { useFxRates } from '../hooks/useFxRates';
 import { pickReceipt, deleteReceipt, resolveReceipt } from '../lib/receipts';
 import { scanReceiptText } from '../lib/ocr';
 import { parseReceipt } from '../lib/receipt-parse';
@@ -68,6 +71,25 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
   const baseCode = (data.settings && data.settings.currencyCode) || 'PHP';
   const [curCode, setCurCode] = useState(baseCode);
   const [rate, setRate] = useState('');
+  // Live rates when online (offline first: this only pre fills the rate; the user
+  // can always override, and offline they just type it). See hooks/useFxRates.
+  const fx = useFxRates(baseCode);
+  // Only trust the live rate when the fetched table is for the CURRENT base
+  // currency. After a base change (offline or mid fetch) the hook may still hold
+  // the old base's table; without this check a JPY rate against a stale PHP table
+  // would be shown as a USD rate, wrong by tens of times. Falls back to typing.
+  const liveRate =
+    curCode !== baseCode && fx.base === baseCode
+      ? roundRate(basePerUnit(fx.rates, curCode))
+      : null;
+  // When a foreign currency is chosen and the rate field is still empty, drop in
+  // today's live rate so the common case needs no typing. An empty field is the
+  // signal, so it never clobbers a rate the user typed.
+  useEffect(() => {
+    if (type === 'expense' && curCode !== baseCode && liveRate && rate === '') {
+      setRate(String(liveRate));
+    }
+  }, [type, curCode, baseCode, liveRate, rate]);
 
   // Fresh form every time the sheet opens. The account chip starts on the
   // last one used (settings.defaultAccountId), so regulars never re-pick.
@@ -419,8 +441,9 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
 
             {/* Per transaction currency, for expenses only. Default is your base
                 currency; pick another when you paid in a foreign currency (e.g.
-                travel, an online order). You give the rate so the peso figure is
-                honest, nothing is fetched from the internet. */}
+                travel, an online order). When online, today's rate is fetched and
+                pre filled (only your base currency code is sent, never your data);
+                offline, or if you disagree, you type the rate yourself. */}
             {type === 'expense' ? (
               <>
                 <Text style={styles.fieldLabel}>Currency</Text>
@@ -428,7 +451,16 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                   {CURRENCIES.map((c) => {
                     const on = curCode === c.code;
                     return (
-                      <Pressable key={c.code} onPress={() => setCurCode(c.code)} style={[styles.chip, on && styles.chipOn]}>
+                      <Pressable
+                        key={c.code}
+                        onPress={() => {
+                          setCurCode(c.code);
+                          // Clear the rate so the newly chosen currency fills in
+                          // its own live rate (or waits for a typed one).
+                          setRate('');
+                        }}
+                        style={[styles.chip, on && styles.chipOn]}
+                      >
                         <Text style={[styles.chipText, on && styles.chipTextOn]}>{c.symbol} {c.code}</Text>
                       </Pressable>
                     );
@@ -445,7 +477,13 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                       placeholderTextColor={colors.faint}
                       keyboardType="numeric"
                     />
-                    <Text style={styles.rateHint}>Type how many {baseCode} one {curCode} is worth.</Text>
+                    <Text style={styles.rateHint}>
+                      {liveRate
+                        ? "Today's live rate, filled in for you. Edit if yours differs."
+                        : fx.loading
+                        ? 'Checking for today’s rate… or type how many ' + baseCode + ' one ' + curCode + ' is worth.'
+                        : 'Type how many ' + baseCode + ' one ' + curCode + ' is worth.'}
+                    </Text>
                     {(() => {
                       const a = Number(String(amount).replace(/[, ]/g, ''));
                       const r = Number(String(rate).replace(/[, ]/g, ''));
@@ -465,6 +503,10 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                       }
                       return null;
                     })()}
+                    {/* Attribution required by the free rate provider's terms. */}
+                    <Pressable onPress={() => Linking.openURL('https://www.exchangerate-api.com').catch(() => {})}>
+                      <Text style={styles.attribution}>Rates by Exchange Rate API</Text>
+                    </Pressable>
                   </>
                 ) : null}
               </>
@@ -616,6 +658,7 @@ function makeStyles(colors) {
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
     convertNote: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold, marginTop: spacing.xs },
     rateHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.xs },
+    attribution: { color: colors.faint, fontSize: fontSize.caption, marginTop: spacing.sm, textDecorationLine: 'underline' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     chip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
     chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
