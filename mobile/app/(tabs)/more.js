@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.82 · Debt payments split into interest and principal (accounting 2)</Text>
+            <Text style={styles.stampValue}>v3.83 · Reports rebuilt as proper balance sheet, income, and cash flow (accounting 3)</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
