@@ -15,6 +15,7 @@ import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format
 import { decisionCandidates, pickWin } from '../../lib/coach';
 import RecapShare from '../../components/RecapShare';
 import Card from '../../components/Card';
+import AnimatedNumber from '../../components/motion/AnimatedNumber';
 import SectionHeader from '../../components/SectionHeader';
 import Bar from '../../components/Bar';
 import {
@@ -627,8 +628,22 @@ function ProInsights({ data, styles, colors, chartColors }) {
     <>
       <Card variant="raised" padding="xl" style={styles.cardGap}>
         <Text style={styles.kicker}>FINANCIAL HEALTH SCORE</Text>
-        <View style={styles.scoreRow}>
-          <Text style={styles.scoreBig}>{score.total}</Text>
+        {/* Group the number and the "/ 100" into one spoken unit with a real
+            label, and hide the descendants, so a screen reader reads one clean
+            fact instead of an "edit box" then a floating "/ 100". */}
+        <View
+          style={styles.scoreRow}
+          accessible={true}
+          accessibilityLabel={`Financial health score ${score.total} out of 100`}
+          importantForAccessibility="no-hide-descendants"
+        >
+          <AnimatedNumber
+            value={score.total}
+            money={false}
+            style={styles.scoreBig}
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+          />
           <Text style={styles.scoreOf}>/ 100</Text>
         </View>
         <View style={styles.partRow}><Text style={styles.partLabel}>Savings rate</Text><Text style={styles.partVal}>{score.parts.savings}/35</Text></View>

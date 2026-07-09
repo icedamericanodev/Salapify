@@ -17,6 +17,7 @@ import { safeToSpend, upcomingCommitments } from '../../lib/analytics';
 import { sweldoAllocation, planForSave } from '../../lib/allocation';
 import { weeklyCheckIn } from '../../lib/coach';
 import Card from '../../components/Card';
+import AnimatedNumber from '../../components/motion/AnimatedNumber';
 import SectionHeader from '../../components/SectionHeader';
 import Mascot from '../../components/Mascot';
 import WeekChain from '../../components/WeekChain';
@@ -48,6 +49,9 @@ export default function Overview() {
   const totalAssets = sum(data.accounts, 'balance') + sum(data.assets, 'value');
   const totalDebt = sum(data.debts, 'remaining');
   const netWorth = totalAssets - totalDebt;
+  // Precomputed once so the hero can pick a font size that keeps a long amount
+  // on one line (a TextInput cannot shrink to fit the way a Text can).
+  const netWorthStr = formatMoney(netWorth);
 
   // This month's cash flow. Only transactions dated in the current month
   // count, so every new month starts fresh.
@@ -448,14 +452,26 @@ export default function Overview() {
             <Text style={styles.kicker}>NET WORTH</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </View>
-          <Text
-            style={styles.netWorth}
+          {/* The Card above already speaks the net worth, so hide this inner
+              number from screen readers (no duplicate "edit box" stop). Step the
+              font down for long amounts since a TextInput cannot shrink to fit
+              the way the old Text did; the reduce motion path is a real Text and
+              still uses adjustsFontSizeToFit for large system fonts. */}
+          <AnimatedNumber
+            value={netWorth}
+            style={[
+              styles.netWorth,
+              { fontSize: netWorthStr.length <= 9 ? fontSize.display : netWorthStr.length <= 11 ? 34 : netWorthStr.length <= 13 ? 28 : 24 },
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
-            accessibilityLabel={`${formatMoney(netWorth)} pesos`}
-          >
-            {formatMoney(netWorth)}
-          </Text>
+            // Cap OS font scaling on this one hero so a very large system font
+            // cannot push the amount past the card edge (a TextInput cannot
+            // shrink to fit). Text still scales, just bounded.
+            maxFontSizeMultiplier={1.5}
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+          />
           {showPeak ? (
             <Animated.View
               style={[
@@ -500,16 +516,18 @@ export default function Overview() {
             <Text style={styles.kicker}>{monthLabel().toUpperCase()}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </View>
-          <Text
+          {/* The Card already speaks the cash flow, so hide this inner number
+              from screen readers to avoid a duplicate "edit box" stop. */}
+          <AnimatedNumber
+            value={cashFlow}
+            signed
             style={[
               styles.cashFlow,
               { color: cashFlow >= 0 ? colors.primary : colors.warning },
             ]}
-            accessibilityLabel={`${formatMoney(cashFlow)} pesos`}
-          >
-            {cashFlow >= 0 ? '+' : ''}
-            {formatMoney(cashFlow)}
-          </Text>
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+          />
           <View style={styles.splitRow}>
             <View>
               <Text style={styles.smallLabel}>Money in</Text>
