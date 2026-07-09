@@ -6,12 +6,14 @@
 // changing any screen.
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager, Platform } from 'react-native';
 import { loadData, saveData, snapshotData, clearSnapshot } from '../lib/storage';
 import { deleteReceipt, cleanupReceipts } from '../lib/receipts';
-import { setCurrencySymbol } from '../lib/format';
+import { setCurrencySymbol, todayISO } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
-import { sanitizeData, SCHEMA_VERSION, DEFAULT_CATEGORIES } from '../lib/backup';
+import { sanitizeData, SCHEMA_VERSION, DEFAULT_CATEGORIES, buildBackup } from '../lib/backup';
+import { shouldRunAutoBackup, autoBackupFilenameFromDate } from '../lib/autobackup';
+import { writeAutoBackup, pruneAutoBackups } from '../lib/files';
 import {
   sampleAccounts,
   sampleAssets,
@@ -63,6 +65,14 @@ const seedData = {
     appLock: false,
     onboarded: false,
     pro: false,
+    // Automatic backup (Pro, Android only). Off by default; the user turns it
+    // on and picks a folder in the Backup and data screen. These keys are
+    // additive and survive a restore because sanitizeData spreads settings.
+    autoBackup: false,
+    autoBackupUri: '',
+    lastAutoBackupAt: '',
+    autoBackupKeep: 7,
+    autoBackupBroken: false,
   },
 };
 
@@ -132,6 +142,14 @@ export function AppDataProvider({ children }) {
   const saveTimer = useRef(null);
   const pendingData = useRef(null);
   const failCount = useRef(0);
+  // A live mirror of the latest data, so the AppState listener (which is set
+  // up once with an empty dep array) can read the current settings and blob on
+  // resume instead of a stale first-render copy.
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  // Guards a slow auto-backup write from overlapping itself if the app is
+  // backgrounded and foregrounded again before the first write finishes.
+  const autoBackupRunning = useRef(false);
 
   async function persist(d) {
     const res = await saveData(d);
@@ -176,6 +194,48 @@ export function AppDataProvider({ children }) {
     };
   }, []);
 
+  // The automatic backup runner. Writes a dated backup file into the folder
+  // the user granted, on FOREGROUND resume only. It is never called from the
+  // background branch: a background write can be suspended by Android mid-write
+  // and truncate the file, which is unacceptable for a money app, so the
+  // existing background flush below stays exactly as it was. Only the automatic
+  // backup is Pro; the manual tools in the Backup and data screen stay free.
+  async function runAutoBackup() {
+    // Platform check lives here (files.js and autobackup.js stay pure). iOS and
+    // web are a no-op.
+    if (Platform.OS !== 'android') return;
+    if (autoBackupRunning.current) return;
+    const today = todayISO();
+    const settings = dataRef.current.settings;
+    if (!shouldRunAutoBackup(settings, today)) return;
+    autoBackupRunning.current = true;
+    // runAfterInteractions so stringifying a large blob never janks the resume
+    // frame or delays a tap; the write happens after the UI settles.
+    InteractionManager.runAfterInteractions(async () => {
+      try {
+        const text = buildBackup(dataRef.current);
+        const filename = autoBackupFilenameFromDate(new Date());
+        // Create the NEW dated file first. Only after it succeeds do we prune,
+        // so a failed write never leaves the folder emptier than before.
+        await writeAutoBackup(settings.autoBackupUri, filename, text);
+        // Best-effort rotation: prune failure is swallowed inside pruneAutoBackups
+        // and must never turn a good backup into an error.
+        await pruneAutoBackups(settings.autoBackupUri, Number(settings.autoBackupKeep) || 7);
+        // Success clears any previous broken flag and stamps today so we run at
+        // most once per day.
+        updateSettings({ lastAutoBackupAt: today, autoBackupBroken: false });
+      } catch (e) {
+        // A SAF failure (folder revoked, storage full) flips the banner. We do
+        // NOT wipe autoBackupUri and do NOT disable the feature: the user just
+        // reconnects the folder from the gentle banner in the Backup screen.
+        updateSettings({ autoBackupBroken: true });
+        console.warn('Automatic backup could not write. The folder may need reconnecting.', e);
+      } finally {
+        autoBackupRunning.current = false;
+      }
+    });
+  }
+
   // Flush the pending save the moment the app goes to the background, and
   // nudge the recurring engine when it comes back (people keep apps in the
   // switcher for weeks; bills must post on resume, not only cold start).
@@ -192,10 +252,22 @@ export function AppDataProvider({ children }) {
         }
       } else {
         setResumeTick((t) => t + 1);
+        // Foreground-only automatic backup. Guarded and self-throttling; never
+        // blocks the resume or a tap.
+        runAutoBackup();
       }
     });
     return () => sub.remove();
   }, []);
+
+  // Also run the automatic backup once on cold start, not only on warm resume.
+  // React Native does not emit an AppState 'active' event for the initial
+  // launch, so a user who opens the app fresh and swipe kills it would never
+  // get a backup from the resume listener alone. Same guard and in-flight ref,
+  // so it stays at most once a day and never overlaps a resume run.
+  useEffect(() => {
+    if (loaded) runAutoBackup();
+  }, [loaded]);
 
   // Keep scheduled reminders in sync with the data. Runs when the
   // notification switches, receivables, transactions, or debts change, so

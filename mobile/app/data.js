@@ -7,7 +7,7 @@
 // render correctly.
 
 import { useMemo, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -17,7 +17,7 @@ import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { buildBackup, parseBackup, toCSV, parseV1 } from '../lib/backup';
 import { SIZE_NUDGE, SIZE_WARN } from '../lib/storage';
-import { saveTextFile, saveToDevice, pickTextFile } from '../lib/files';
+import { saveTextFile, saveToDevice, pickTextFile, pickBackupFolder } from '../lib/files';
 import { todayISO } from '../lib/format';
 import SectionHeader from '../components/SectionHeader';
 
@@ -49,6 +49,47 @@ export default function Data() {
   const [msg, setMsg] = useState('');
 
   const settings = data.settings;
+
+  // ---- Automatic backups (Pro, Android only) ----
+  // Only the AUTOMATIC backup is Pro. The manual tools above (backup, restore,
+  // CSV, v1 import) stay free forever: data portability is never locked.
+  const isAndroid = Platform.OS === 'android';
+  const isPro = !!settings.pro;
+  const KEEP_OPTIONS = [3, 7, 14];
+
+  async function chooseBackupFolder({ enableOnPick = false } = {}) {
+    try {
+      const uri = await pickBackupFolder();
+      if (uri) {
+        // A fresh folder clears the broken flag; the next resume or cold start
+        // writes here. If we were turning the feature on, enable it now that a
+        // folder exists.
+        updateSettings({ autoBackupUri: uri, autoBackupBroken: false, ...(enableOnPick ? { autoBackup: true } : {}) });
+        Alert.alert(
+          'Folder connected',
+          'Automatic backups will be saved here. Pick a Google Drive or Dropbox synced folder and the copies land in the cloud, no account linking needed.'
+        );
+      } else if (enableOnPick) {
+        // Picker cancelled while turning it on: leave the switch off, so it
+        // never reads on with no folder actually connected.
+        updateSettings({ autoBackup: false });
+      }
+    } catch (e) {
+      if (enableOnPick) updateSettings({ autoBackup: false });
+      Alert.alert('Could not open the folder picker', e.message || 'Try again.');
+    }
+  }
+
+  function toggleAutoBackup(on) {
+    if (!isPro) return; // gated: a non-Pro user sees the upsell row instead
+    if (on && !settings.autoBackupUri) {
+      // Turning it on with no folder yet: ask for the folder first, and only
+      // flip the switch on if one is actually picked.
+      chooseBackupFolder({ enableOnPick: true });
+      return;
+    }
+    updateSettings({ autoBackup: on });
+  }
 
   // ---- Data tools ----
   // On the phone these are real files: backup and CSV ask whether to save
@@ -91,7 +132,7 @@ export default function Data() {
             `salapify-backup-${todayISO()}.json`,
             buildBackup(data),
             'application/json',
-            'Receipt photos stay on this phone. The backup covers your money data, not the photos.',
+            'Receipt photos stay on this phone. The backup covers your money data, not the photos. Tip: on Save to my device you can pick a Google Drive or Dropbox folder, that keeps a copy in the cloud with no account linking.',
             // Remember when the last backup happened, so the reminder in
             // the DATA section can tell the truth.
             () => updateSettings({ lastBackupAt: todayISO() })
@@ -236,6 +277,126 @@ export default function Data() {
           ))}
         </View>
 
+        {/* Automatic backups: the only Pro part of this screen. On foreground
+            resume the app writes a dated backup into the folder you pick, at
+            most once a day, and keeps the newest few. Hidden work on iOS and
+            web (no SAF), so the section shows an "Available on Android" note. */}
+        <SectionHeader title="AUTOMATIC BACKUPS" style={styles.autoHeader} />
+        <View style={styles.card}>
+          {!isAndroid ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>Available on Android</Text>
+            </View>
+          ) : (
+            <>
+              {settings.autoBackupBroken ? (
+                <View style={styles.banner} accessibilityRole="alert">
+                  <Text style={styles.bannerText}>
+                    Your backup folder needs reconnecting. The last automatic backup could not be
+                    saved, so no copies are being made right now.
+                  </Text>
+                  <Pressable
+                    onPress={() => chooseBackupFolder()}
+                    style={({ pressed }) => [styles.bannerBtn, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reconnect backup folder"
+                  >
+                    <Text style={styles.bannerBtnText}>Reconnect folder</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {!isPro ? (
+                <Pressable
+                  onPress={() => router.push('/insights')}
+                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Unlock Pro to turn on automatic backups"
+                >
+                  <View style={{ flex: 1, paddingRight: spacing.md }}>
+                    <Text style={styles.rowLabel}>
+                      Back up automatically <Text style={styles.proBadge}>PRO</Text>
+                    </Text>
+                    <Text style={styles.rowHint}>
+                      Unlock Pro on the Insights tab to save a dated backup to your folder every day,
+                      hands free. Manual backup and restore stay free.
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+                </Pressable>
+              ) : (
+                <View style={styles.row}>
+                  <View style={{ flex: 1, paddingRight: spacing.md }}>
+                    <Text style={styles.rowLabel}>Back up automatically</Text>
+                    <Text style={styles.rowHint}>
+                      When you open the app, a dated backup is saved to your folder, at most once a
+                      day.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={!!settings.autoBackup}
+                    onValueChange={toggleAutoBackup}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={colors.onPrimary}
+                    accessibilityLabel="Back up automatically"
+                  />
+                </View>
+              )}
+
+              {isPro ? (
+                <>
+                  <Pressable
+                    onPress={() => chooseBackupFolder()}
+                    style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose backup folder"
+                  >
+                    <View style={{ flex: 1, paddingRight: spacing.md }}>
+                      <Text style={styles.rowLabel}>Choose backup folder</Text>
+                      <Text style={styles.rowHint}>
+                        {settings.autoBackupUri
+                          ? 'Folder connected. Tip: a Google Drive or Dropbox folder keeps copies in the cloud.'
+                          : 'Not set yet. Pick a Google Drive or Dropbox folder for cloud copies.'}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+                  </Pressable>
+
+                  <View style={[styles.row, styles.rowDivider]}>
+                    <Text style={styles.rowLabel}>Keep last</Text>
+                    <View style={styles.keepRow}>
+                      {KEEP_OPTIONS.map((n) => {
+                        const active = (Number(settings.autoBackupKeep) || 7) === n;
+                        return (
+                          <Pressable
+                            key={n}
+                            onPress={() => updateSettings({ autoBackupKeep: n })}
+                            style={({ pressed }) => [
+                              styles.keepPill,
+                              active && styles.keepPillActive,
+                              pressed && styles.pressed,
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active }}
+                            accessibilityLabel={`Keep last ${n} backups`}
+                          >
+                            <Text style={[styles.keepText, active && styles.keepTextActive]}>{n}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  <View style={[styles.row, styles.rowDivider]}>
+                    <Text style={styles.rowLabel}>Last automatic backup</Text>
+                    <Text style={styles.rowValue}>{settings.lastAutoBackupAt || 'not yet'}</Text>
+                  </View>
+                </>
+              ) : null}
+            </>
+          )}
+        </View>
+
         {/* Erase lives in its own separated card, not a hairline under the
             everyday actions, so an accidental tap is far less likely. It keeps
             the stronger warning hue (reserved here for the one irreversible
@@ -312,6 +473,45 @@ function makeStyles(colors) {
     leadNote: { color: colors.muted, fontSize: fontSize.small, paddingTop: spacing.md, paddingBottom: spacing.sm },
     dangerHeader: { marginTop: spacing.xl },
     dangerLabel: { color: colors.warningStrong },
+
+    // Automatic backups section.
+    autoHeader: { marginTop: spacing.xl },
+    rowHint: { color: colors.muted, fontSize: fontSize.small, marginTop: spacing.xxs },
+    rowValue: { color: colors.muted, fontSize: fontSize.small },
+    proBadge: { color: colors.celebrate, fontSize: fontSize.caption, fontWeight: fontWeight.heavy },
+    banner: {
+      backgroundColor: colors.positiveSurface,
+      borderColor: colors.warning,
+      borderWidth: 1,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    bannerText: { color: colors.text, fontSize: fontSize.small },
+    bannerBtn: {
+      alignSelf: 'flex-start',
+      marginTop: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary,
+    },
+    bannerBtnText: { color: colors.onPrimary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
+    keepRow: { flexDirection: 'row', gap: spacing.xs },
+    keepPill: {
+      minWidth: 44,
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.pill,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    keepPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    keepText: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    keepTextActive: { color: colors.onPrimary, fontWeight: fontWeight.bold },
 
     overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl, maxHeight: '90%' },

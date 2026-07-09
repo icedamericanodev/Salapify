@@ -10,6 +10,7 @@ import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import { filesToPrune } from './autobackup';
 
 export async function saveTextFile(filename, text, mimeType = 'application/json') {
   const uri = FileSystem.cacheDirectory + filename;
@@ -43,6 +44,63 @@ export async function saveToDevice(filename, text, mimeType = 'application/json'
   );
   await FileSystem.writeAsStringAsync(uri, text);
   return true;
+}
+
+// ---- Automatic backup IO (Android SAF) ----
+// These two wrappers power the Pro automatic backup. They write into a folder
+// the user already granted us through requestDirectoryPermissionsAsync (the
+// dirUri is a SAF tree uri, stored in settings.autoBackupUri). They use the
+// SAME 'expo-file-system/legacy' import as saveToDevice above, so no new native
+// module is added and this whole feature ships over the air.
+
+// pickBackupFolder: show the Android folder picker (SAF) and return the granted
+// tree uri, or null if the user cancelled. This is the same permission dialog
+// saveToDevice uses; picking a Google Drive or Dropbox synced folder here is
+// exactly how the cloud export works, no API or OAuth needed.
+export async function pickBackupFolder() {
+  if (Platform.OS !== 'android') return null;
+  const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  return perms.granted ? perms.directoryUri : null;
+}
+
+// writeAutoBackup: create the dated file first, then write the blob into it.
+// Returns the created file uri. Any failure throws to the caller, which flips
+// settings.autoBackupBroken and surfaces the reconnect banner.
+export async function writeAutoBackup(dirUri, filename, text) {
+  const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+    dirUri,
+    filename,
+    'application/json'
+  );
+  await FileSystem.writeAsStringAsync(fileUri, text);
+  return fileUri;
+}
+
+// pruneAutoBackups: rotation. List the folder, ask the pure filesToPrune which
+// of OUR dated files fall outside the newest keep, and delete just those. Best
+// effort: any failure here is swallowed, because a failed prune must never turn
+// a successful backup into an error the user sees. Never touches a file that
+// does not start with our 'salapify-auto-' prefix.
+export async function pruneAutoBackups(dirUri, keep) {
+  try {
+    const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(dirUri);
+    // SAF returns full content uris, not bare names. The tail after the last
+    // encoded separator carries the filename, so decode and take that piece.
+    const withNames = entries.map((uri) => {
+      const decoded = decodeURIComponent(uri);
+      const name = decoded.slice(decoded.lastIndexOf('/') + 1);
+      return { uri, name };
+    });
+    const toDelete = filesToPrune(withNames.map((e) => e.name), keep);
+    const dead = new Set(toDelete);
+    for (const e of withNames) {
+      if (dead.has(e.name)) {
+        await FileSystem.deleteAsync(e.uri, { idempotent: true }).catch(() => {});
+      }
+    }
+  } catch {
+    // Best effort only: swallow everything so prune can never error the backup.
+  }
 }
 
 export async function pickTextFile() {
