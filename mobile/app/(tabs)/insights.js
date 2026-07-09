@@ -6,10 +6,13 @@
 import { useEffect, useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, isThisMonth, monthLabel, todayISO } from '../../lib/format';
+import { decisionCandidates, pickWin } from '../../lib/coach';
 import RecapShare from '../../components/RecapShare';
 import Card from '../../components/Card';
 import SectionHeader from '../../components/SectionHeader';
@@ -33,8 +36,17 @@ const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export default function Insights() {
   const { colors, chartColors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const router = useRouter(); // lets a DO NEXT row open the right screen
   const { data, updateSettings } = useAppData(); // live data from the store
   const pro = !!(data.settings && data.settings.pro);
+
+  // DO NEXT: the ranked "what to do right now". Same engine Home reads, so the
+  // two never contradict. Free tier shows the top 3 with an always-present win.
+  const actions = useMemo(() => decisionCandidates(data).slice(0, 3), [data]);
+  const win = useMemo(() => pickWin(data), [data]);
+  const openAction = (route) => {
+    try { router.push(route); } catch (e) { /* a bad route must never crash Insights */ }
+  };
 
   const sum = (list, fn) => list.reduce((t, x) => t + fn(x), 0);
 
@@ -242,6 +254,75 @@ export default function Insights() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>Insights</Text>
+
+        {/* DO NEXT: the hero decision card. Top few ranked money moves, with an
+            always-present honest win at the bottom. Calm, not loud: a raised
+            surface, a tone accent stripe, no shouting colors. Rows whose action
+            already points at this screen (route '/insights': the supporting
+            chart is below) render as plain stated decisions, not dead taps. */}
+        <Card variant="raised" padding="xl" style={styles.cardGap}>
+          <Text style={styles.kicker}>DO NEXT</Text>
+          {actions.length > 0 ? (
+            <View style={styles.doNextList}>
+              {actions.map((a, i) => {
+                // Tone accent only: warning for urgent, primary for watch/nudge.
+                // Never a categorical chart hue; status colors stay reserved.
+                const accent = a.tone === 'urgent' ? colors.warning : colors.primary;
+                const route = a.action && a.action.route;
+                // A row that would navigate to Insights (this very screen) is not
+                // tappable: no onPress, no chevron, no button role, so it never
+                // reads as a dead tap. It stays a fully accessible stated decision.
+                const tappable = route && route !== '/insights';
+                const inner = (
+                  <>
+                    <View style={[styles.doNextAccent, { backgroundColor: accent }]} importantForAccessibility="no" />
+                    <View style={styles.doNextText}>
+                      <Text style={styles.doNextTitle}>{a.title}</Text>
+                      <Text style={styles.doNextMsg} numberOfLines={4}>{a.message}</Text>
+                    </View>
+                    {tappable ? (
+                      <Ionicons name="chevron-forward" size={18} color={colors.faint} importantForAccessibility="no" />
+                    ) : null}
+                  </>
+                );
+                return tappable ? (
+                  <Pressable
+                    key={a.kind + i}
+                    onPress={() => openAction(route)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${a.title}. ${a.message}`}
+                    style={({ pressed }) => [styles.doNextRow, pressed && styles.doNextPressed]}
+                  >
+                    {inner}
+                  </Pressable>
+                ) : (
+                  <View
+                    key={a.kind + i}
+                    accessible
+                    accessibilityLabel={`${a.title}. ${a.message}`}
+                    style={styles.doNextRow}
+                  >
+                    {inner}
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.doNextClear}>
+              <Ionicons name="sparkles-outline" size={16} color={colors.celebrate} importantForAccessibility="no" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.doNextClearTitle}>You are on track</Text>
+                <Text style={styles.doNextMsg}>Nothing needs a decision right now. Keep logging and enjoy the calm.</Text>
+              </View>
+            </View>
+          )}
+          {win ? (
+            <View style={styles.winRow}>
+              <Ionicons name="sparkles-outline" size={15} color={colors.celebrate} importantForAccessibility="no" />
+              <Text style={styles.winText}>{win.text}</Text>
+            </View>
+          ) : null}
+        </Card>
 
         <Card variant="flat" padding="xl" style={styles.cardGap}>
           <Text style={styles.kicker}>INCOME VS SPENDING ({monthLabel().toUpperCase()})</Text>
@@ -691,6 +772,35 @@ function makeStyles(colors) {
       letterSpacing: 1.2,
     },
     cardBody: { marginTop: spacing.md, gap: spacing.md },
+
+    // DO NEXT card. Each row is a tappable decision: a tone accent stripe, the
+    // title and one-line message, and a chevron. Calm surface, honest 44pt tap
+    // target, subtle pressed dip.
+    doNextList: { marginTop: spacing.md, gap: spacing.sm },
+    doNextRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      minHeight: 44,
+      paddingVertical: spacing.sm,
+    },
+    doNextPressed: { opacity: 0.7 },
+    doNextAccent: { width: 4, alignSelf: 'stretch', borderRadius: radius.pill },
+    doNextText: { flex: 1, minWidth: 0 },
+    doNextTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    doNextMsg: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 19, marginTop: 2 },
+    doNextClear: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.md },
+    doNextClearTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold, marginBottom: 2 },
+    winRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+      paddingTop: spacing.md,
+      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    winText: { color: colors.textSecondary, fontSize: fontSize.small, flex: 1, lineHeight: 19 },
 
     // propBar stays for the two genuinely multi-segment bars (where your money
     // went, and what is already spoken for): several colored slices side by side.
