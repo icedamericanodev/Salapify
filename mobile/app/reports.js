@@ -1,8 +1,9 @@
-// Reports: three simple financial statements built from your data.
-//  - Financial Position (assets, liabilities, net worth) like a balance sheet
-//  - Income Statement (income, expenses, net)
-//  - Cash Flow (money in, money out incl. debt payments, net change)
-// Reached from the More tab. Read-only summaries.
+// Reports: three proper personal financial statements built from your data.
+//  - Balance Sheet: Assets = Liabilities + Equity, split current vs long term.
+//  - Income Statement: income earned minus expenses (with interest called out).
+//  - Cash Flow: operating, investing, and financing, reconciled to the cash that
+//    actually moved through your accounts this month.
+// Plus the Pro debt free plan. Reached from the More tab. Read-only summaries.
 
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -12,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
-import { formatMoney, isThisMonth, monthLabel } from '../lib/format';
-import { debtFreeProjection, netWorthParts } from '../lib/analytics';
+import { formatMoney, monthLabel } from '../lib/format';
+import { debtFreeProjection } from '../lib/analytics';
+import { balanceSheet, incomeStatement, cashFlowStatement } from '../lib/statements';
 
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const fmtMonth = (d) => `${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
@@ -35,49 +37,16 @@ export default function Reports() {
   const snowball = pro && hasDebts ? debtFreeProjection(data.debts, 'snowball', extra) : null;
   const interestSaved = avalanche && snowball ? snowball.totalInterest - avalanche.totalInterest : 0;
 
-  const sum = (list, fn) => (list || []).reduce((t, x) => t + fn(x), 0);
+  // All three statements come from the one shared pure module, so the numbers
+  // here match Home, Insights, and the regression tests exactly.
+  const bs = useMemo(() => balanceSheet(data), [data]);
+  const is = useMemo(() => incomeStatement(data), [data]);
+  const cf = useMemo(() => cashFlowStatement(data), [data]);
 
-  // ---- Financial Position ----
-  // Net worth comes from the one shared helper so this screen agrees with Home
-  // and the rest. Only tracked (cash leg) utang counts, because untracked utang
-  // still sits inside an account balance and counting it would double it. Cash
-  // is cash accounts; Bank is every other account, so the two add up.
-  const nwParts = netWorthParts(data);
-  const accountsTotal = sum(data.accounts, (a) => a.balance);
-  const cash = sum(data.accounts.filter((a) => a.kind === 'cash'), (a) => a.balance);
-  const bank = accountsTotal - cash;
-  const investments = nwParts.holdings;
-  const receivables = nwParts.receivables;
-  const payablesOwed = nwParts.payables;
-  const totalAssets = nwParts.assets;
-  const liabilities = nwParts.liabilities;
-  const debtsOnly = nwParts.debts;
-  const netWorth = nwParts.netWorth;
-
-  // ---- Income Statement (this month only) ----
-  const thisMonth = data.transactions.filter((t) => isThisMonth(t.date));
-  const income = sum(thisMonth.filter((t) => t.type === 'income'), (t) => t.amount);
-  const expenses = sum(thisMonth.filter((t) => t.type === 'expense'), (t) => t.amount);
-  const netIncome = income - expenses;
-
-  // ---- Cash Flow (this month only) ----
-  // Only the PRINCIPAL portion of a debt payment is a separate cash out here:
-  // the interest portion is already an expense (counted in `expenses`), so
-  // adding the whole payment would double count the interest. Legacy payments
-  // predate the split and have no principal field, so their whole amount is
-  // treated as principal (they booked no interest). Interest is shown on its own
-  // line for honesty but is NOT added again (it lives inside `expenses`).
-  const monthPayments = (data.payments || []).filter((p) => isThisMonth(p.date));
-  const principalPaid = sum(monthPayments, (p) => (p.principal != null ? p.principal : p.amount));
-  const interestPaid = sum(monthPayments, (p) => (p.interest != null ? p.interest : 0));
-  const cashIn = income;
-  const cashOut = expenses + principalPaid;
-  const netCash = cashIn - cashOut;
-
-  const Line = ({ label, value, strong, color }) => (
-    <View style={styles.line}>
-      <Text style={[styles.lineLabel, strong && styles.strongLabel]}>{label}</Text>
-      <Text style={[styles.lineValue, strong && styles.strongValue, color ? { color } : null]}>
+  const Line = ({ label, value, strong, color, indent }) => (
+    <View style={[styles.line, indent && styles.lineIndent]}>
+      <Text style={[styles.lineLabel, strong && styles.strongLabel, indent && styles.subLabel]}>{label}</Text>
+      <Text style={[styles.lineValue, strong && styles.strongValue, indent && styles.subValue, color ? { color } : null]}>
         {formatMoney(value)}
       </Text>
     </View>
@@ -94,43 +63,93 @@ export default function Reports() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Financial Position */}
-        <Text style={styles.sectionTitle}>FINANCIAL POSITION</Text>
+        {/* Balance Sheet */}
+        <Text style={styles.sectionTitle}>BALANCE SHEET</Text>
+        <Text style={styles.sectionSub}>What you own and owe, as of today</Text>
         <View style={styles.card}>
           <Text style={styles.groupLabel}>Assets</Text>
-          <Line label="Cash" value={cash} />
-          <Line label="Savings and bank" value={bank} />
-          <Line label="Investments" value={investments} />
-          {receivables > 0 ? <Line label="Utang owed to you (tracked)" value={receivables} /> : null}
-          <Line label="Total assets" value={totalAssets} strong color={colors.primary} />
+          <Line label="Cash" value={bs.cash} indent />
+          <Line label="Savings and bank" value={bs.bank} indent />
+          {bs.receivables > 0 ? <Line label="Utang owed to you (tracked)" value={bs.receivables} indent /> : null}
+          <Line label="Current assets" value={bs.currentAssets} />
+          {bs.longTermAssets > 0 ? <Line label="Investments and things you own" value={bs.longTermAssets} indent /> : null}
+          <Line label="Total assets" value={bs.totalAssets} strong color={colors.primary} />
+
           <View style={styles.divider} />
           <Text style={styles.groupLabel}>Liabilities</Text>
-          <Line label="Debts" value={debtsOnly} />
-          {payablesOwed > 0 ? <Line label="Utang you owe (tracked)" value={payablesOwed} /> : null}
-          <Line label="Total liabilities" value={liabilities} strong color={colors.warning} />
+          {bs.shortDebts > 0 ? <Line label="Cards and short term debt" value={bs.shortDebts} indent /> : null}
+          {bs.payables > 0 ? <Line label="Utang you owe (tracked)" value={bs.payables} indent /> : null}
+          <Line label="Current liabilities" value={bs.currentLiabilities} />
+          {bs.longDebts > 0 ? <Line label="Long term loans" value={bs.longDebts} indent /> : null}
+          <Line label="Total liabilities" value={bs.totalLiabilities} strong color={colors.warning} />
+
           <View style={styles.divider} />
-          <Line label="Net worth" value={netWorth} strong color={netWorth >= 0 ? colors.primary : colors.warning} />
+          <Text style={styles.groupLabel}>Equity</Text>
+          <Line label="Net worth" value={bs.equity} strong color={bs.equity >= 0 ? colors.primary : colors.warning} />
+          <Text style={styles.note}>
+            Assets {formatMoney(bs.totalAssets)} = Liabilities {formatMoney(bs.totalLiabilities)} + Equity {formatMoney(bs.equity)}.
+            {bs.balances ? ' Balanced.' : ' Check your figures.'}
+          </Text>
         </View>
 
         {/* Income Statement */}
-        <Text style={styles.sectionTitle}>INCOME STATEMENT ({monthLabel().toUpperCase()})</Text>
+        <Text style={styles.sectionTitle}>INCOME STATEMENT</Text>
+        <Text style={styles.sectionSub}>What you earned and spent in {monthLabel()}</Text>
         <View style={styles.card}>
-          <Line label="Income" value={income} color={colors.primary} />
-          <Line label="Expenses" value={expenses} color={colors.warning} />
+          <Line label="Income earned" value={is.income} color={colors.primary} />
+          <Line label="Spending" value={is.spendingExpense} indent />
+          {is.interestExpense > 0 ? <Line label="Debt interest" value={is.interestExpense} indent /> : null}
+          <Line label="Total expenses" value={is.expenses} color={colors.warning} />
           <View style={styles.divider} />
-          <Line label="Net income" value={netIncome} strong color={netIncome >= 0 ? colors.primary : colors.warning} />
+          <Line label="Net income" value={is.netIncome} strong color={is.netIncome >= 0 ? colors.primary : colors.warning} />
+          <Text style={styles.note}>
+            Money you collected on utang and loans you took are not income, and debt
+            principal you paid is not spending, so this line is your true earnings, not
+            cash movement. See the cash flow below for that.
+          </Text>
         </View>
 
         {/* Cash Flow */}
-        <Text style={styles.sectionTitle}>CASH FLOW ({monthLabel().toUpperCase()})</Text>
+        <Text style={styles.sectionTitle}>CASH FLOW</Text>
+        <Text style={styles.sectionSub}>Where cash moved in {monthLabel()}</Text>
         <View style={styles.card}>
-          <Line label="Cash in (income)" value={cashIn} color={colors.primary} />
-          <Line label="Cash out (spending)" value={expenses} color={colors.warning} />
-          <Line label="Cash out (debt principal)" value={principalPaid} color={colors.warning} />
+          <Text style={styles.groupLabel}>Operating (day to day)</Text>
+          <Line label="Cash in" value={cf.operating.in} indent />
+          <Line label="Cash out" value={cf.operating.out} indent />
+          <Line label="Net operating" value={cf.operating.net} color={cf.operating.net >= 0 ? colors.primary : colors.warning} />
+
           <View style={styles.divider} />
-          <Line label="Net cash flow" value={netCash} strong color={netCash >= 0 ? colors.primary : colors.warning} />
-          {interestPaid > 0 ? (
-            <Text style={styles.note}>Spending above includes {formatMoney(interestPaid)} of debt interest this month. The principal you paid is shown separately since it lowers what you owe rather than being spending.</Text>
+          <Text style={styles.groupLabel}>Investing (things you own)</Text>
+          {cf.investing.in === 0 && cf.investing.out === 0 ? (
+            <Text style={[styles.subLabel, styles.emptyLine]}>No investing activity this month.</Text>
+          ) : (
+            <>
+              <Line label="Cash in" value={cf.investing.in} indent />
+              <Line label="Cash out" value={cf.investing.out} indent />
+            </>
+          )}
+          <Line label="Net investing" value={cf.investing.net} color={cf.investing.net >= 0 ? colors.primary : colors.warning} />
+
+          <View style={styles.divider} />
+          <Text style={styles.groupLabel}>Financing (debt and utang)</Text>
+          {cf.financing.in === 0 && cf.financing.out === 0 ? (
+            <Text style={[styles.subLabel, styles.emptyLine]}>No borrowing, lending, or debt payments this month.</Text>
+          ) : (
+            <>
+              <Line label="Cash in (borrowed, utang collected)" value={cf.financing.in} indent />
+              <Line label="Cash out (repaid, lent out)" value={cf.financing.out} indent />
+            </>
+          )}
+          <Line label="Net financing" value={cf.financing.net} color={cf.financing.net >= 0 ? colors.primary : colors.warning} />
+
+          <View style={styles.divider} />
+          <Line label="Net change in cash" value={cf.netChange} strong color={cf.netChange >= 0 ? colors.primary : colors.warning} />
+          {!cf.reconciles ? (
+            <Text style={[styles.note, { color: colors.warning }]}>
+              Some cash movement could not be sorted into a section. Editing an account
+              balance by hand does not show here, only logged income, spending, and
+              payments do.
+            </Text>
           ) : null}
         </View>
 
@@ -197,7 +216,7 @@ export default function Reports() {
         </View>
 
         <Text style={styles.footnote}>
-          Financial position is as of today. Income and cash flow cover {monthLabel()} only.
+          Balance sheet is as of today. Income and cash flow cover {monthLabel()} only.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -212,12 +231,17 @@ function makeStyles(colors) {
     headerTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold },
     content: { padding: spacing.lg, paddingBottom: spacing.xxl },
 
-    sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: spacing.sm, marginTop: spacing.md, paddingHorizontal: spacing.xs },
+    sectionTitle: { color: colors.muted, fontSize: fontSize.caption, fontWeight: fontWeight.medium, letterSpacing: 1.5, marginBottom: 2, marginTop: spacing.md, paddingHorizontal: spacing.xs },
+    sectionSub: { color: colors.faint, fontSize: fontSize.small, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
     groupLabel: { color: colors.softGreen, fontSize: fontSize.caption, fontWeight: fontWeight.bold, letterSpacing: 1, marginBottom: spacing.sm },
     line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm },
+    lineIndent: { paddingVertical: spacing.xs },
     lineLabel: { color: colors.textSecondary, fontSize: fontSize.body },
     lineValue: { color: colors.text, fontSize: fontSize.body },
+    subLabel: { color: colors.muted, fontSize: fontSize.small, paddingLeft: spacing.md },
+    subValue: { color: colors.muted, fontSize: fontSize.small },
+    emptyLine: { paddingVertical: spacing.xs },
     strongLabel: { color: colors.text, fontWeight: fontWeight.bold },
     strongValue: { fontWeight: fontWeight.bold, fontSize: fontSize.subtitle },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.sm },
