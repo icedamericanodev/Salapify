@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import LogSheet from '../../components/LogSheet';
+import PressableScale from '../../components/motion/PressableScale';
+import { useHaptic } from '../../hooks/useHaptic';
 
 export default function TabsLayout() {
   // Read the active colors so the tab bar recolors when the theme changes.
@@ -24,6 +26,7 @@ export default function TabsLayout() {
   const barHeight = 78 + insets.bottom;
   const { data, updateSettings, saveFailed } = useAppData();
   const router = useRouter();
+  const haptic = useHaptic();
 
   // Right after onboarding, open the add sheet once. The first session
   // should end with one real log, that is the habit's first rep. The flag
@@ -51,6 +54,8 @@ export default function TabsLayout() {
         </Pressable>
       ) : null}
     <Tabs
+      // A light selection tick when switching tabs, a small premium touch.
+      screenListeners={{ tabPress: () => haptic('selection') }}
       screenOptions={{
         headerShown: false, // each screen draws its own header
         tabBarActiveTintColor: colors.primary, // selected tab
@@ -122,23 +127,25 @@ export default function TabsLayout() {
       />
     </Tabs>
 
-      {/* The floating add button, always one tap away above the tab bar. */}
-      <Pressable
+      {/* The floating add button, always one tap away above the tab bar. It
+          is the heartbeat action, so it gets a medium buzz and the press pop. */}
+      <PressableScale
         onPress={() => setLogOpen(true)}
-        style={({ pressed }) => [
+        haptic="medium"
+        style={[
           styles.fab,
           {
             bottom: barHeight + 16,
             backgroundColor: colors.primary,
             shadowColor: colors.primary,
-            opacity: pressed ? 0.85 : 1,
           },
         ]}
         hitSlop={8}
+        accessibilityRole="button"
         accessibilityLabel="Add entry"
       >
         <Ionicons name="add" size={30} color={colors.onPrimary} />
-      </Pressable>
+      </PressableScale>
 
       <LogSheet
         visible={logOpen}
