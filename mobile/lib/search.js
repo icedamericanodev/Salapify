@@ -52,7 +52,12 @@ export function txHaystack(t, catName, acctName) {
   if (!t) return '';
   const cat = t.categoryId && catName ? catName.get(t.categoryId) : '';
   const acct = t.accountId && acctName ? acctName.get(t.accountId) : '';
-  const kind = t.type === 'income' ? 'income' : t.type === 'transfer' ? 'transfer' : t.type === 'debt' ? 'debt payment' : 'expense';
+  const kind =
+    t.type === 'income' ? 'income'
+    : t.type === 'transfer' ? 'transfer'
+    : t.type === 'debt' ? 'debt payment'
+    : t.type === 'adjustment' ? 'balance adjustment'
+    : 'expense';
   return hay(t.label, cat, acct, amountHay(t.amount), kind);
 }
 
@@ -94,7 +99,7 @@ export function search(data, rawQuery) {
       title: t.label || 'Entry',
       subtitle: `${t.date || ''}${acct ? ` · ${acct}` : cat ? ` · ${cat}` : ''}`.trim(),
       amount: Number(t.amount) || 0,
-      sign: t.type === 'income' ? '+' : t.type === 'transfer' ? '⇄' : t.type === 'debt' ? '' : '-',
+      sign: t.type === 'income' ? '+' : t.type === 'transfer' ? '⇄' : t.type === 'debt' ? '' : t.type === 'adjustment' ? (t.flow === 'in' ? '+' : '-') : '-',
       date: String(t.date || ''),
     });
   }

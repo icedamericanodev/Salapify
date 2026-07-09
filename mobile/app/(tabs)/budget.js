@@ -23,7 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
-import { formatMoney, todayISO, isThisMonth, monthLabel } from '../../lib/format';
+import { formatMoney, todayISO, isThisMonth, monthLabel, txSign } from '../../lib/format';
 import Card from '../../components/Card';
 import SectionHeader from '../../components/SectionHeader';
 import EmptyState from '../../components/EmptyState';
@@ -298,7 +298,7 @@ export default function Budget() {
                     </Pressable>
                   ) : null}
                   <Text style={[styles.rowAmount, { color: e.type === 'income' ? colors.primary : e.type === 'expense' ? colors.text : colors.muted }]}>
-                    {e.type === 'income' ? '+' : e.type === 'transfer' ? '⇄' : '-'} {formatMoney(e.amount)}
+                    {txSign(e)} {formatMoney(e.amount)}
                   </Text>
                   <Pressable
                     onPress={() => deleteEntry(e)}

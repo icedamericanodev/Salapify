@@ -161,6 +161,24 @@ describe('cashFlowStatement: sections reconcile to the cash that moved', () => {
     expect(cf.reconciles).toBe(true);
   });
 
+  test('a balance adjustment is left out of the cash flow but still reconciles', () => {
+    // The adjustment moved the account balance (net worth reflects it), but it is
+    // a manual reconciliation, not a real cash flow, so it does not appear here
+    // and does not break the reconcile check.
+    const data = {
+      accounts: [{ id: 'a1', kind: 'cash', balance: 0 }],
+      transactions: [
+        { type: 'income', amount: 1000, date: '2026-07-01', accountId: 'a1' },
+        { type: 'adjustment', flow: 'in', amount: 500, date: '2026-07-02', accountId: 'a1', label: 'Balance adjustment' },
+      ],
+      payments: [],
+    };
+    const cf = cashFlowStatement(data, REF);
+    expect(cf.operating.in).toBe(1000); // the 500 adjustment is NOT counted
+    expect(cf.netChange).toBe(1000);
+    expect(cf.reconciles).toBe(true);
+  });
+
   test('a transaction with no date is not counted in any month', () => {
     const data = {
       accounts: [{ id: 'a1', kind: 'cash', balance: 0 }],

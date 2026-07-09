@@ -129,7 +129,13 @@ export function cashFlowStatement(data, ref = new Date()) {
   const d = data || {};
   const accountIds = new Set((d.accounts || []).map((a) => a && a.id));
   const tx = (d.transactions || []).filter((t) => inMonth(t && t.date, ref));
-  const linked = tx.filter((t) => t.accountId && accountIds.has(t.accountId));
+  // A balance adjustment is a manual reconciliation of an account to reality, not
+  // a real cash flow, so it is left out of the statement (and out of the recorded
+  // tally below, so the sections still reconcile). It already shows in History and
+  // is reflected in net worth through the account balance.
+  const linked = tx.filter(
+    (t) => t.accountId && accountIds.has(t.accountId) && t.type !== 'adjustment'
+  );
 
   // The direction the store moves a balance, mirrored from AppData.balanceSign
   // so the cash flow signs match what actually happened to the account.
