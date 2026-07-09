@@ -187,7 +187,7 @@ export default function More() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Version</Text>
-            <Text style={styles.rowValue}>1.3.1</Text>
+            <Text style={styles.rowValue}>1.4.1</Text>
           </View>
           {/* This stamp changes with every over the air update, so you can
               always tell at a glance whether the latest code has arrived. It is
@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.73 · Automatic backups (Pro, Android)</Text>
+            <Text style={styles.stampValue}>v3.74 · Barako app icon and splash</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

@@ -3,3 +3,4 @@ build request 2: preview APK for runtime 1.3.0 (Skia Pan + reanimated + home wid
 build request 3: preview APK for runtime 1.3.1 (full set of 10 home widgets)
 build request 4: slim arm64 only preview APK (same runtime 1.3.1)
 build request 5: preview APK for runtime 1.4.0 (on-device receipt OCR)
+build request 6: preview APK 1.4.1, runtime still 1.4.0 (Barako app icon and splash color fix)
