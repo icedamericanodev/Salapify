@@ -24,6 +24,7 @@ import { spacing, radius, fontSize, fontWeight } from '../../theme';
 import { useTheme } from '../../context/Theme';
 import { useAppData } from '../../context/AppData';
 import { formatMoney, todayISO, isThisMonth, monthLabel, txSign } from '../../lib/format';
+import { previousMonthLeftover } from '../../lib/analytics';
 import Card from '../../components/Card';
 import SectionHeader from '../../components/SectionHeader';
 import EmptyState from '../../components/EmptyState';
@@ -51,8 +52,16 @@ export default function Budget() {
   const [toast, setToast] = useState(null); // {text, undo} after a log or delete
   const toastTimer = useRef(null);
 
-  const limit = data.settings.monthlyLimit || 0;
+  const baseLimit = data.settings.monthlyLimit || 0;
   const quickAdds = data.settings.quickAdds || [];
+
+  // Carry over: when the user turns it on, last month's unspent budget is added
+  // to this month's limit (never a negative, an overspent month does not shrink
+  // this month). Off by default, so nothing changes for anyone who has not opted
+  // in. See previousMonthLeftover.
+  const carryOn = !!(data.settings && data.settings.budgetCarryOver);
+  const carried = carryOn && baseLimit > 0 ? previousMonthLeftover(data.transactions, baseLimit) : 0;
+  const limit = baseLimit + carried;
 
   // Only this month's expenses count toward the limit, so the budget bar
   // resets automatically when a new month starts.
@@ -210,6 +219,13 @@ export default function Budget() {
           <Text style={[styles.remaining, { color: over ? colors.warning : colors.muted }]}>
             {over ? `${formatMoney(-remaining)} over your limit` : `${formatMoney(remaining)} left to spend`}
           </Text>
+          {carried > 0 ? (
+            <Text style={styles.carriedNote}>
+              {spent > baseLimit
+                ? `You have passed your usual ${formatMoney(baseLimit)} budget. The ${formatMoney(carried)} carried over from last month is covering the rest.`
+                : `Includes ${formatMoney(carried)} carried over from last month's unspent budget.`}
+            </Text>
+          ) : null}
         </Card>
 
         {whereItWent.length > 0 ? (
@@ -392,6 +408,7 @@ function makeStyles(colors) {
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
     fill: { height: '100%', borderRadius: radius.pill },
     remaining: { fontSize: fontSize.small, marginTop: spacing.sm },
+    carriedNote: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.xs },
 
     seeAll: { color: colors.primary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
     quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg },

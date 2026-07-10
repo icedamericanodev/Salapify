@@ -170,6 +170,15 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(bad.accountId).toBeUndefined();
   });
 
+  test('budgetCarryOver coerces to a strict boolean, never a stray string', () => {
+    const on = sanitizeData({ schemaVersion: 11, settings: { budgetCarryOver: true } });
+    const off = sanitizeData({ schemaVersion: 11, settings: { budgetCarryOver: 'no' } });
+    const missing = sanitizeData({ schemaVersion: 11, settings: {} });
+    expect(on.settings.budgetCarryOver).toBe(true);
+    expect(off.settings.budgetCarryOver).toBe(false); // a truthy string must not flip it on
+    expect(missing.settings.budgetCarryOver).toBe(false);
+  });
+
   test('a foreign currency expense keeps its original amount and currency', () => {
     const blob = {
       schemaVersion: 10,
