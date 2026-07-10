@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.91 · Carry over unused budget into next month (optional), and a clearer backups to keep setting</Text>
+            <Text style={styles.stampValue}>v3.92 · New Currency converter in Tools, live rates when online, saved for offline</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

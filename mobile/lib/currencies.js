@@ -37,6 +37,20 @@ export function currencySymbol(code) {
   return c ? c.symbol : String(code || '');
 }
 
+// Currencies that are normally written with no decimal places. Showing "¥1,000"
+// not "¥1,000.00" keeps a converted result honest to how the currency is used.
+const ZERO_DECIMAL = new Set(['JPY', 'KRW', 'VND', 'IDR']);
+
+// A full converted amount with its symbol and the right number of decimals, e.g.
+// "$12.34", "¥1,300", "₱690.50". Used by the currency converter tool.
+export function formatConverted(amount, code) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '';
+  const dp = ZERO_DECIMAL.has(code) ? 0 : 2;
+  const s = n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  return `${currencySymbol(code)}${s}`;
+}
+
 // A short original amount label like "¥1,000" or "USD 12", shown next to a
 // converted expense so the user still sees what they actually paid. Whole
 // numbers only, matching how formatMoney renders base amounts.

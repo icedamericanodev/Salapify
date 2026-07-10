@@ -17,6 +17,7 @@ const TOOLS = [
   { id: 'loan', emoji: '📆', title: 'Loan and amortization', desc: 'Real monthly payment, total interest, and the true rate.', route: '/loan-calculator', ready: true },
   { id: 'bnpl', emoji: '🛒', title: 'Installment true cost', desc: 'Is that 0% installment really 0%? See the real cost.', route: '/bnpl-calculator', ready: true },
   { id: 'contrib', emoji: '🏦', title: 'Contribution checker', desc: 'SSS, PhilHealth, and Pag-IBIG for any salary.', route: '/contribution-calculator', ready: true },
+  { id: 'fx', emoji: '💱', title: 'Currency converter', desc: 'What is your money worth abroad? Live rates when online, saved for offline.', route: '/currency-converter', ready: true },
 ];
 
 export default function Tools() {
