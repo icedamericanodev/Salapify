@@ -33,8 +33,11 @@ export default function TaxDeadlines() {
 
   // Read the device date once per render. lib/taxdeadlines is pure and takes it
   // as an argument, so the list is a plain function of today and the 8% toggle.
-  const list = useMemo(() => taxDeadlines(new Date(), { onEightPercent: onEight, count: 5 }), [onEight]);
+  const list = useMemo(() => taxDeadlines(new Date(), { onEightPercent: onEight, count: 6 }), [onEight]);
   const next = list[0];
+  // The hero card already shows the soonest one, so the list below starts at the
+  // one after it to avoid showing the same deadline twice.
+  const rest = list.slice(1);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -70,8 +73,8 @@ export default function TaxDeadlines() {
           </View>
         ) : null}
 
-        <Text style={styles.sectionLabel}>COMING UP</Text>
-        {list.map((d, i) => (
+        {rest.length > 0 ? <Text style={styles.sectionLabel}>COMING UP</Text> : null}
+        {rest.map((d, i) => (
           <View key={`${d.form}-${d.year}-${d.date.getMonth()}`} style={[styles.row, i === 0 && styles.rowFirst]}>
             <View style={styles.rowDate}>
               <Text style={styles.rowMonth}>{MONTHS[d.date.getMonth()]}</Text>
@@ -97,6 +100,9 @@ export default function TaxDeadlines() {
           </Text>
           <Text style={styles.infoLine}>
             These are the regular statutory dates. When one lands on a weekend or a holiday it moves to the next working day, so confirm with the BIR near the date.
+          </Text>
+          <Text style={styles.infoLine}>
+            This covers income tax and percentage tax for a calendar year filer. If you are VAT registered or you withhold tax on staff, you have extra returns not listed here.
           </Text>
         </View>
 
