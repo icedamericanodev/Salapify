@@ -32,6 +32,7 @@ import { formatMoney, todayISO } from '../lib/format';
 import { CURRENCIES, currencySymbol } from '../lib/currencies';
 import { basePerUnit, roundRate } from '../lib/fxrates';
 import { useFxRates } from '../hooks/useFxRates';
+import { categoryTree } from '../lib/categories';
 import { pickReceipt, deleteReceipt, resolveReceipt } from '../lib/receipts';
 import { scanReceiptText } from '../lib/ocr';
 import { parseReceipt } from '../lib/receipt-parse';
@@ -394,7 +395,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
             <Text style={styles.fieldLabel}>{type === 'income' ? 'Source' : 'Category'}</Text>
             {type === 'expense' && (data.categories || []).length > 0 ? (
               <View style={[styles.chips, { marginBottom: spacing.xs }]}>
-                {(data.categories || []).map((c) => {
+                {categoryTree(data.categories).map(({ cat: c, depth }) => {
                   const on = categoryId === c.id;
                   return (
                     <Pressable
@@ -413,7 +414,7 @@ export default function LogSheet({ visible, onClose, toastBottom = spacing.lg })
                       style={[styles.chip, on && styles.chipOn]}
                     >
                       <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                        {c.icon} {c.name}
+                        {depth === 1 ? '↳ ' : ''}{c.icon} {c.name}
                       </Text>
                     </Pressable>
                   );

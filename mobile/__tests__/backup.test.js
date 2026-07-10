@@ -37,12 +37,12 @@ describe('sanitizeData always produces the current schema shape', () => {
   test('a version-less blob migrates up to the current SCHEMA_VERSION', () => {
     const out = sanitizeData({ accounts: [{ name: 'Cash', balance: 100 }] });
     expect(out.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(11);
+    expect(SCHEMA_VERSION).toBe(12);
   });
 
   test('a v2 blob migrates and keeps every collection row', () => {
     const out = sanitizeData(fixtureAt(2));
-    expect(out.schemaVersion).toBe(11);
+    expect(out.schemaVersion).toBe(12);
     expect(out.accounts).toHaveLength(1);
     expect(out.assets).toHaveLength(1);
     expect(out.debts).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('sanitizeData always produces the current schema shape', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(11);
+    expect(out.schemaVersion).toBe(12);
     expect(out.people).toHaveLength(1);
     expect(out.receivables).toHaveLength(1);
     expect(out.receivables[0].personId).toBe('person_m3_0');
@@ -168,6 +168,24 @@ describe('sanitizeData always produces the current schema shape', () => {
     expect(bad.type).toBe('adjustment');
     expect(bad.flow).toBeUndefined();
     expect(bad.accountId).toBeUndefined();
+  });
+
+  test('subcategory parentId survives restore, and a bad one drops to top level', () => {
+    const blob = {
+      schemaVersion: 11,
+      categories: [
+        { id: 'food', name: 'Food' },
+        { id: 'coffee', name: 'Coffee', parentId: 'food' }, // valid child
+        { id: 'ghostchild', name: 'Ghost', parentId: 'nope' }, // orphan parent
+        { id: 'selfie', name: 'Selfie', parentId: 'selfie' }, // self parent
+      ],
+    };
+    const out = sanitizeData(blob);
+    const byId = Object.fromEntries(out.categories.map((c) => [c.id, c]));
+    expect(byId.coffee.parentId).toBe('food');
+    expect('parentId' in byId.food).toBe(false);
+    expect('parentId' in byId.ghostchild).toBe(false); // orphan promoted
+    expect('parentId' in byId.selfie).toBe(false); // self dropped
   });
 
   test('budgetCarryOver coerces to a strict boolean, never a stray string', () => {
@@ -331,7 +349,7 @@ describe('the payables collection (People I owe) migrates and coerces', () => {
       ],
     };
     const out = sanitizeData(blob);
-    expect(out.schemaVersion).toBe(11);
+    expect(out.schemaVersion).toBe(12);
     expect(out.payables).toHaveLength(1);
     const pay = out.payables[0];
     expect(pay.person).toBe('Nanay');
