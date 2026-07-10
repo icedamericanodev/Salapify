@@ -13,9 +13,12 @@
 //
 // This is an estimate tool. It says so and shows the rates year. No dashes.
 
-import { annualIncomeTax, takeHomePay, RATES_YEAR } from './phtax';
+import { annualIncomeTax, takeHomePay, RATES_YEAR, BONUS_TAX_FREE_CEILING } from './phtax';
 
-export const THIRTEENTH_TAX_FREE_CEILING = 90000;
+// The 90,000 ceiling is shared with the year-end annualization tool, so it
+// lives in phtax.js as the single source of truth and is re-exported here under
+// the name the 13th month screen already uses.
+export const THIRTEENTH_TAX_FREE_CEILING = BONUS_TAX_FREE_CEILING;
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const round2 = (x) => Math.round(num(x) * 100) / 100;
