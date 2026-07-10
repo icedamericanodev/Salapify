@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.95 · New Year-end tax check: are you due a refund, or do you still owe?</Text>
+            <Text style={styles.stampValue}>v3.96 · Take-home pay now shows your effective tax rate and which bracket you are in</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

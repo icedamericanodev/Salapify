@@ -46,6 +46,19 @@ export function annualIncomeTax(annualTaxable) {
   return 0;
 }
 
+// marginalRate(annualTaxable) -> the rate the income's top peso falls in,
+// resolving an exact bracket boundary to the lower bracket (so 400,000 returns
+// 0.15, matching annualIncomeTax which owes 0 tax on the next peso there). Zero
+// below the 250,000 exemption. A fraction like 0.2, so multiply by 100 for a
+// percent.
+export function marginalRate(annualTaxable) {
+  const t = Math.max(0, num(annualTaxable));
+  for (const b of BRACKETS) {
+    if (t <= b.upTo) return b.rate;
+  }
+  return 0;
+}
+
 // The SSS Monthly Salary Credit: pay rounded to the nearest 500 and held
 // between 5,000 and 35,000. Zero for a non-positive salary.
 export function sssMSC(monthly) {
