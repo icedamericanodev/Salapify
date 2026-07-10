@@ -46,11 +46,15 @@ export default function YearEndTax() {
   const m = (n) => formatMoney(Math.round(n));
 
   const ready = basicNum > 0;
-  // Round before deciding the verdict so a sub-peso gap reads as settled, not a
-  // stray one peso refund or shortfall.
-  const gap = Math.round(r.difference);
-  const settled = gap === 0;
-  const refund = gap > 0;
+  // The refund vs owe verdict is meaningless until the user says how much was
+  // withheld. A blank field parses to 0 and would otherwise scream "you owe the
+  // whole year's tax", so treat a blank field as "not answered yet" and show
+  // only the tax due until it is filled. A real typed 0 still counts as answered.
+  const hasWithheld = withheld.trim() !== '';
+  const showVerdict = ready && hasWithheld;
+  // A sub-peso gap is "about even", not a stray one peso refund or shortfall.
+  const settled = Math.abs(r.difference) < 0.5;
+  const refund = r.difference >= 0.5;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -101,25 +105,35 @@ export default function YearEndTax() {
           <Text style={styles.peso}>₱</Text>
           <TextInput style={styles.input} value={withheld} onChangeText={setWithheld} keyboardType="numeric" placeholder="Total for the year" placeholderTextColor={colors.faint} />
         </View>
-        <Text style={styles.subHint}>Add up the tax taken from each payslip this year, or read it from your latest payslip year to date. Your Form 2316 shows the final figure.</Text>
+        <Text style={styles.subHint}>Add up the tax taken from your payslips for the same period as the months above. Your latest payslip shows a year to date figure, and your Form 2316 shows the year's final one.</Text>
 
         {ready ? (
           <>
-            <View style={[styles.card, refund ? styles.cardGood : settled ? styles.cardNeutral : styles.cardOwe]}>
-              <Text style={styles.amtLabel}>
-                {settled ? 'You are about even' : refund ? 'Estimated refund' : 'You may still owe about'}
-              </Text>
-              <Text style={[styles.amtValue, refund ? styles.good : settled ? styles.neutral : styles.owe]}>
-                {settled ? m(0) : m(Math.abs(r.difference))}
-              </Text>
-              <Text style={styles.amtNote}>
-                {settled
-                  ? 'What was withheld matches your estimated tax for the year, so expect little or no adjustment.'
-                  : refund
-                    ? 'More was withheld than your estimated tax for the year, so you should get the difference back.'
-                    : 'Less was withheld than your estimated tax, so a small amount may be deducted at year end.'}
-              </Text>
-            </View>
+            {showVerdict ? (
+              <View style={[styles.card, refund ? styles.cardGood : styles.cardNeutral]}>
+                <Text style={styles.amtLabel}>
+                  {settled ? 'You are about even' : refund ? 'Estimated refund' : 'You may still owe about'}
+                </Text>
+                <Text style={[styles.amtValue, refund ? styles.good : settled ? styles.neutral : styles.owe]}>
+                  {settled ? m(0) : m(Math.abs(r.difference))}
+                </Text>
+                <Text style={styles.amtNote}>
+                  {settled
+                    ? 'What was withheld matches your estimated tax for the year, so expect little or no adjustment.'
+                    : refund
+                      ? 'More was withheld than your estimated tax for the year, so you should get the difference back.'
+                      : 'Less was withheld than your estimated tax, so a small amount may be deducted at year end.'}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.card, styles.cardNeutral]}>
+                <Text style={styles.amtLabel}>Estimated tax due for the year</Text>
+                <Text style={[styles.amtValue, styles.neutral]}>{m(r.annualTaxDue)}</Text>
+                <Text style={styles.amtNote}>
+                  Enter the tax withheld from your payslips above to see if you are due a refund or still owe.
+                </Text>
+              </View>
+            )}
 
             <View style={styles.breakdownCard}>
               <View style={styles.row}>
@@ -136,18 +150,24 @@ export default function YearEndTax() {
                 <Text style={styles.rowLabel}>Tax due for the year</Text>
                 <Text style={styles.rowValue}>{m(r.annualTaxDue)}</Text>
               </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Tax already withheld</Text>
-                <Text style={styles.rowValue}>{m(r.taxWithheld)}</Text>
-              </View>
-              <View style={styles.netRow}>
-                <Text style={styles.netLabel}>{refund ? 'Refund to you' : settled ? 'Difference' : 'Still to pay'}</Text>
-                <Text style={[styles.netValue, refund ? styles.good : settled ? styles.neutral : styles.owe]}>
-                  {settled ? m(0) : m(Math.abs(r.difference))}
-                </Text>
-              </View>
+              {showVerdict ? (
+                <>
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Tax already withheld</Text>
+                    <Text style={styles.rowValue}>{m(r.taxWithheld)}</Text>
+                  </View>
+                  <View style={styles.netRow}>
+                    <Text style={styles.netLabel}>{refund ? 'Refund to you' : settled ? 'Difference' : 'Still to pay'}</Text>
+                    <Text style={[styles.netValue, refund ? styles.good : settled ? styles.neutral : styles.owe]}>
+                      {settled ? m(0) : m(Math.abs(r.difference))}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
               <View style={styles.rateRow}>
-                <Text style={styles.rateText}>Effective tax rate about {r.effectiveRate}% of what you earned this year.</Text>
+                <Text style={styles.rateText}>
+                  Effective tax rate about {r.effectiveRate}% of what you earned{r.monthsWorked < 12 ? ` over ${r.monthsWorked} ${r.monthsWorked === 1 ? 'month' : 'months'}` : ' this year'}.
+                </Text>
               </View>
             </View>
 

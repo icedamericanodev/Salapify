@@ -14,7 +14,7 @@ const TOOLS = [
   { id: 'salary', emoji: '🧾', title: 'Take-home pay', desc: 'Gross to net, with SSS, PhilHealth, Pag-IBIG, and tax.', route: '/salary-calculator', ready: true },
   { id: 'tax', emoji: '🧮', title: 'Income tax calculator', desc: 'Flat 8% or graduated? For freelancers and the self-employed.', route: '/tax-calculator', ready: true },
   { id: 'thirteenth', emoji: '🎁', title: '13th month pay', desc: 'What you should receive, prorated, and the tax-free part.', route: '/thirteenth-calculator', ready: true },
-  { id: 'yearend', emoji: '🧾', title: 'Year-end tax check', desc: 'Refund or still owe? See how your withheld tax compares.', route: '/year-end-tax', ready: true },
+  { id: 'yearend', emoji: '💸', title: 'Year-end tax check', desc: 'Refund or still owe? See how your withheld tax compares.', route: '/year-end-tax', ready: true },
   { id: 'loan', emoji: '📆', title: 'Loan and amortization', desc: 'Real monthly payment, total interest, and the true rate.', route: '/loan-calculator', ready: true },
   { id: 'bnpl', emoji: '🛒', title: 'Installment true cost', desc: 'Is that 0% installment really 0%? See the real cost.', route: '/bnpl-calculator', ready: true },
   { id: 'contrib', emoji: '🏦', title: 'Contribution checker', desc: 'SSS, PhilHealth, and Pag-IBIG for any salary.', route: '/contribution-calculator', ready: true },
