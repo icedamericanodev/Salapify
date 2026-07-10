@@ -17,6 +17,12 @@
 
 export const RATES_YEAR = 2026;
 
+// The TRAIN 90,000 tax-free ceiling for 13th month pay and other bonuses
+// combined for the year. Only the excess above this is taxable. This is the
+// single source of truth: thirteenth.js re-exports it as
+// THIRTEENTH_TAX_FREE_CEILING.
+export const BONUS_TAX_FREE_CEILING = 90000;
+
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const round2 = (x) => Math.round(num(x) * 100) / 100;
 
@@ -312,6 +318,72 @@ export function selfEmployedTax(annualGross, opts = {}) {
     recommended,
     savings,
     effectiveRate,
+    ratesYear: RATES_YEAR,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Employee year-end annualization: refund or amount still due.
+//
+// Every December an employer trues up the whole year's tax. Steady monthly
+// withholding rarely matches the real annual tax once raises, a 13th month,
+// bonuses, or a mid-year start are counted, so the employee gets a refund
+// (over-withheld) or has a little more taken (under-withheld). Substituted
+// filing and the year-end adjustment, RR 11-2018 and Sec 79 NIRC. Estimate
+// only; the payroll figures on your payslips are the real thing.
+// ---------------------------------------------------------------------------
+
+// annualizeCompensation(monthlyBasic, opts) -> the year's tax due versus what
+// was withheld, and the resulting refund or shortfall.
+//   opts.taxableAllowance  monthly taxable allowance (default 0)
+//   opts.monthsWorked      months worked this year, 1 to 12 (default 12)
+//   opts.bonuses           13th month PLUS other bonuses for the year; the
+//                          first 90,000 combined is tax free, the excess is
+//                          taxable (default 0)
+//   opts.taxWithheld       total income tax already withheld this year (default 0)
+// Returns { regularTaxable, bonusTaxable, annualTaxable, annualTaxDue,
+//   taxWithheld, difference, isRefund, effectiveRate, monthsWorked, ratesYear }.
+// difference is positive for a refund (withheld more than owed), negative when
+// the employee still owes. isRefund is true only when there is a real refund.
+export function annualizeCompensation(monthlyBasic, opts = {}) {
+  const basic = Math.max(0, num(monthlyBasic));
+  const taxableAllowance = Math.max(0, num(opts && opts.taxableAllowance));
+  const hasMonths = opts && opts.monthsWorked != null && opts.monthsWorked !== '';
+  const monthsWorked = hasMonths
+    ? Math.min(Math.max(1, Math.round(num(opts.monthsWorked))), 12)
+    : 12;
+  const bonuses = Math.max(0, num(opts && opts.bonuses));
+  const taxWithheld = Math.max(0, num(opts && opts.taxWithheld));
+
+  // Regular monthly taxable pay: basic plus taxable allowance, less the
+  // mandatory contributions (figured on basic, matching takeHomePay), spread
+  // over the months actually worked.
+  const monthlyTaxable = takeHomePay(basic, { taxableAllowance }).monthlyTaxable;
+  const regularTaxable = round2(monthlyTaxable * monthsWorked);
+
+  // 13th month and other bonuses: the first 90,000 combined is exempt, only the
+  // excess joins the taxable income.
+  const bonusTaxable = round2(Math.max(0, bonuses - BONUS_TAX_FREE_CEILING));
+
+  const annualTaxable = round2(regularTaxable + bonusTaxable);
+  const annualTaxDue = annualIncomeTax(annualTaxable);
+  const difference = round2(taxWithheld - annualTaxDue);
+
+  // Effective rate over what was actually earned for the year (gross pay plus
+  // bonuses), so the user sees the real bite, not the marginal bracket.
+  const grossForYear = round2((basic + taxableAllowance) * monthsWorked + bonuses);
+  const effectiveRate = grossForYear > 0 ? round2((annualTaxDue / grossForYear) * 100) : 0;
+
+  return {
+    regularTaxable,
+    bonusTaxable,
+    annualTaxable,
+    annualTaxDue,
+    taxWithheld,
+    difference,
+    isRefund: difference > 0,
+    effectiveRate,
+    monthsWorked,
     ratesYear: RATES_YEAR,
   };
 }

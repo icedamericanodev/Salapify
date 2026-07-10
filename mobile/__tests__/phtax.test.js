@@ -18,10 +18,13 @@ import {
   eightPercentTax,
   graduatedSelfEmployedTax,
   selfEmployedTax,
+  annualizeCompensation,
   PERCENTAGE_TAX_RATE,
   VAT_THRESHOLD,
   SELF_EMPLOYED_EXEMPT,
+  BONUS_TAX_FREE_CEILING,
 } from '../lib/phtax';
+import { THIRTEENTH_TAX_FREE_CEILING } from '../lib/thirteenth';
 
 test('the rates year is 2026', () => {
   expect(RATES_YEAR).toBe(2026);
@@ -227,5 +230,68 @@ describe('selfEmployedTax compares both regimes and picks the cheaper', () => {
     expect(r.canCompareGraduated).toBe(false);
     expect(r.recommended).toBe('eight');
     expect(r.savings).toBe(0);
+  });
+});
+
+describe('the 90k bonus ceiling has a single source of truth', () => {
+  test('phtax owns it and thirteenth re-exports the same value', () => {
+    expect(BONUS_TAX_FREE_CEILING).toBe(90000);
+    expect(THIRTEENTH_TAX_FREE_CEILING).toBe(BONUS_TAX_FREE_CEILING);
+  });
+});
+
+describe('annualizeCompensation trues up the year and shows a refund or a shortfall', () => {
+  test('a mid-year hire was over-withheld and gets a refund', () => {
+    // 25,000 basic for 6 months annualizes to 137,550 taxable, below the
+    // 250,000 floor, so the real tax is 0. If the employer withheld as if it
+    // were a full year (313.75 x 6 = 1,882.50), all of it comes back.
+    const r = annualizeCompensation(25000, { monthsWorked: 6, taxWithheld: 1882.5 });
+    expect(r.regularTaxable).toBe(137550);
+    expect(r.bonusTaxable).toBe(0);
+    expect(r.annualTaxDue).toBe(0);
+    expect(r.difference).toBe(1882.5);
+    expect(r.isRefund).toBe(true);
+    expect(r.effectiveRate).toBe(0);
+  });
+
+  test('a big bonus pushed the real tax above what was withheld, so the employee still owes', () => {
+    // 50,000 basic all year: monthly taxable 46,800, annual 561,600. A 150,000
+    // bonus (13th plus performance) is 60,000 over the 90,000 ceiling, so
+    // taxable income is 621,600 and real tax is 66,820. If payroll only withheld
+    // on the regular pay (54,820), the year-end trueup collects the 12,000 gap.
+    const r = annualizeCompensation(50000, { bonuses: 150000, taxWithheld: 54820 });
+    expect(r.regularTaxable).toBe(561600);
+    expect(r.bonusTaxable).toBe(60000);
+    expect(r.annualTaxable).toBe(621600);
+    expect(r.annualTaxDue).toBe(66820);
+    expect(r.difference).toBe(-12000);
+    expect(r.isRefund).toBe(false);
+  });
+
+  test('withholding that exactly matches the tax due settles to zero, not a refund', () => {
+    const r = annualizeCompensation(25000, { bonuses: 25000, taxWithheld: 3765 });
+    expect(r.annualTaxDue).toBe(3765);
+    expect(r.difference).toBe(0);
+    expect(r.isRefund).toBe(false);
+  });
+
+  test('bonuses up to 90k are fully sheltered; only the excess is taxable', () => {
+    expect(annualizeCompensation(50000, { bonuses: 90000 }).bonusTaxable).toBe(0);
+    expect(annualizeCompensation(50000, { bonuses: 90001 }).bonusTaxable).toBe(1);
+  });
+
+  test('a minimum wage level salary annualizes to zero tax', () => {
+    const r = annualizeCompensation(12000, { taxWithheld: 0 });
+    expect(r.annualTaxDue).toBe(0);
+    expect(r.difference).toBe(0);
+    expect(r.isRefund).toBe(false);
+  });
+
+  test('months default to a full year and never go negative', () => {
+    const r = annualizeCompensation(25000);
+    expect(r.monthsWorked).toBe(12);
+    const zero = annualizeCompensation(0);
+    expect(zero.annualTaxDue).toBe(0);
+    expect(zero.effectiveRate).toBe(0);
   });
 });

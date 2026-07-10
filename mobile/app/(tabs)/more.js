@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.94 · Categories can now nest: group Coffee under Food, Grab under Transport</Text>
+            <Text style={styles.stampValue}>v3.95 · New Year-end tax check: are you due a refund, or do you still owe?</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
