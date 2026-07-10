@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.99 · Insights trends are now real line charts: net worth and income vs spending</Text>
+            <Text style={styles.stampValue}>v4.00 · Chart colors audited across all 8 themes: colorblind safe on every surface</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
