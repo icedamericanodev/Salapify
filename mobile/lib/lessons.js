@@ -142,6 +142,32 @@ export const LESSONS = [
       'Spending on your health is not gastos to feel guilty about. A gym, a doctor, decent food, these are among the smartest money you spend, because they lower the odds of the one bill big enough to hurt.',
     ],
   },
+  {
+    id: 'year-end-refund',
+    title: 'Getting your year-end tax refund',
+    emoji: '💵',
+    minutes: 2,
+    summary: 'Why many employees get money back in December, and how to make sure you do.',
+    body: [
+      'Every payday your employer takes a slice of your pay for income tax, based on a guess of what you will earn for the whole year. At year end they add up what you really earned and compare it to what they already took. If they took too much, the extra comes back to you as a refund, usually in your December or January pay.',
+      'Why would they take too much? A few common reasons. You started partway through the year, so the monthly guess assumed twelve months you did not actually work. Your pay changed during the year. Your 13th month and bonuses stayed within the tax free ceiling but a little was still withheld along the way. Any of these can mean money is owed back to you.',
+      'You usually do not file anything for this yourself. If you had one employer for the year and your tax was withheld correctly, your employer settles it for you. This is called substituted filing, and the refund arrives in your pay, not as a separate check you chase.',
+      'The one thing that trips people up is changing jobs. If you moved this year, give your new employer the Form 2316 from your old one so they add up your whole year correctly. Skip that and you can end up under withheld, owing a little instead of getting a refund. To see roughly where you stand, open Tools and try the Year-end tax check.',
+    ],
+  },
+  {
+    id: 'freelancer-setaside',
+    title: 'Selling online or freelancing? Set aside for tax',
+    emoji: '💼',
+    minutes: 2,
+    summary: 'The simple habit that keeps a sideline or small business out of tax trouble.',
+    body: [
+      'When no employer withholds tax for you, the discipline is yours. The freelancers and online sellers who never panic at deadline are the ones who treat a slice of every payment as not theirs. When a client pays, move a small part aside the same day, before it starts to feel like spending money.',
+      'How big a slice? On the flat 8 percent option, roughly 8 percent of every peso past your first 250,000 for the year is a safe starting point. On the graduated option it depends on your income and your real expenses. The Income tax calculator in Tools compares both for your own numbers, tells you which costs less, and shows about how much to set aside each month.',
+      'The rhythm is quarterly, not just once a year. You file income tax every quarter and again at year end, plus percentage tax each quarter unless you are on the 8 percent. Miss a deadline and the BIR adds a surcharge and interest, so the money you set aside is what keeps a missed filing from hurting. The BIR filing dates tool shows your next deadlines so none sneak up on you.',
+      'One timing trap. The 8 percent flat rate is not automatic. You choose it on time, at registration or on your first quarter return, and it is locked for the whole year. This is awareness, not tax advice, and Salapify does not file anything for you. Confirm with the BIR or a licensed accountant.',
+    ],
+  },
 ];
 
 // The lesson to feature today, rotating by the day of the year so it is stable
