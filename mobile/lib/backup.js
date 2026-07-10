@@ -4,6 +4,7 @@
 // download button.
 
 import { todayISO } from './format';
+import { normalizeCategoryTree } from './categories';
 
 const num = (x) => {
   const n = Number(x);
@@ -22,7 +23,7 @@ function legacyDate() {
 
 // The data shape version this build understands. Bump it together with a
 // new entry in MIGRATIONS whenever the stored shape changes.
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 // The starter categories every user gets, tuned to Filipino daily life.
 // Stable ids on purpose: quick adds and transactions point at them.
@@ -142,6 +143,11 @@ const MIGRATIONS = {
   // the fence stops an older build from accepting a v11 backup, though the
   // amount would read fine there, the foreign detail would just be invisible.
   11: (d) => ({ ...d }),
+  // v12 adds subcategories: a category can carry an optional parentId (max two
+  // levels). No transform needed (absent parentId means top level, the natural
+  // default); the fence stops an older build from accepting a v12 backup and
+  // silently flattening or mis-rendering the nesting.
+  12: (d) => ({ ...d }),
 };
 
 // Bring an older blob forward one version at a time. A blob NEWER than
@@ -327,7 +333,7 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
       // Ids must be unique: a hand edited backup with two cat_food rows
       // would double count the same money in both and break editing.
       const seen = new Set();
-      return cleanList(src.categories).map((c, i) => {
+      const cleaned = cleanList(src.categories).map((c, i) => {
         let id = typeof c.id === 'string' && c.id ? c.id : `cat_restored_${i}`;
         while (seen.has(id)) id = `${id}_dup`;
         seen.add(id);
@@ -337,8 +343,15 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
           name: str(c.name, 'Category'),
           icon: str(c.icon, '🏷️'),
           monthlyCap: Math.max(0, num(c.monthlyCap)),
+          // Keep parentId only as a string here; normalizeCategoryTree below
+          // does the real work (self/orphan/too-deep get dropped to top level).
+          ...(typeof c.parentId === 'string' && c.parentId ? { parentId: c.parentId } : {}),
         };
       });
+      // Run AFTER id-uniqueness so parent references are validated against the
+      // final ids, keeping the tree at most two levels with no self, orphan, or
+      // cycle. A bad parentId simply becomes top level.
+      return normalizeCategoryTree(cleaned);
     })(),
     people: cleanList(src.people).map((p) => ({
       ...p,

@@ -13,7 +13,7 @@ import { setCurrencySymbol, todayISO } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
 import { sanitizeData, SCHEMA_VERSION, DEFAULT_CATEGORIES, buildBackup } from '../lib/backup';
 import { shouldRunAutoBackup, autoBackupFilenameFromDate } from '../lib/autobackup';
-import { recategorizeTransactions } from '../lib/categories';
+import { recategorizeTransactions, promoteChildren } from '../lib/categories';
 import { writeAutoBackup, pruneAutoBackups } from '../lib/files';
 import {
   sampleAccounts,
@@ -367,6 +367,19 @@ export function AppDataProvider({ children }) {
     }));
   }
 
+  // Delete a category in one atomic move: send its tagged entries where the user
+  // chose (reassignToId, or null to uncategorize), promote any child categories
+  // to top level so they are never left pointing at a deleted parent, then remove
+  // the category. One setData so no screen ever sees a half applied state.
+  function deleteCategory(id, reassignToId) {
+    if (!id) return;
+    setData((prev) => ({
+      ...prev,
+      transactions: recategorizeTransactions(prev.transactions, id, reassignToId || null),
+      categories: promoteChildren(prev.categories, id).filter((c) => c && c.id !== id),
+    }));
+  }
+
   // The direction a linked transaction moves its account balance. Income
   // raises it and everything else lowers it, EXCEPT a transaction that names
   // its own flow: flow 'in' always raises, flow 'out' always lowers. This lets
@@ -518,6 +531,7 @@ export function AppDataProvider({ children }) {
     updateItem,
     removeItem,
     recategorize,
+    deleteCategory,
     addTransaction,
     updateTransaction,
     removeTransaction,

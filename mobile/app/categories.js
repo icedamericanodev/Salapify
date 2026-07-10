@@ -21,12 +21,13 @@ import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { useAppData } from '../context/AppData';
 import { formatMoney, isThisMonth } from '../lib/format';
+import { categoryTree } from '../lib/categories';
 
 export default function Categories() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
-  const { data, addItem, updateItem, removeItem, updateSettings, recategorize } = useAppData();
+  const { data, addItem, updateItem, updateSettings, deleteCategory } = useAppData();
 
   const [form, setForm] = useState(null);
   const [err, setErr] = useState('');
@@ -54,12 +55,12 @@ export default function Categories() {
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
   function openAdd() {
-    setForm({ id: null, name: '', icon: '', cap: '' });
+    setForm({ id: null, name: '', icon: '', cap: '', parentId: '' });
     setErr('');
     setDel(null);
   }
   function openEdit(c) {
-    setForm({ id: c.id, name: String(c.name || ''), icon: String(c.icon || ''), cap: c.monthlyCap ? String(c.monthlyCap) : '' });
+    setForm({ id: c.id, name: String(c.name || ''), icon: String(c.icon || ''), cap: c.monthlyCap ? String(c.monthlyCap) : '', parentId: c.parentId || '' });
     setErr('');
     setDel(null);
   }
@@ -84,7 +85,10 @@ export default function Categories() {
       setErr('Monthly caps are a Pro feature. Unlock Pro below, free during early access.');
       return;
     }
-    const payload = { name, icon: form.icon.trim() || '🏷️', monthlyCap: cap };
+    // parentId set to undefined (not omitted) when top level, so editing a
+    // subcategory back to top level actually clears the old parent through the
+    // updateItem merge instead of leaving it stuck.
+    const payload = { name, icon: form.icon.trim() || '🏷️', monthlyCap: cap, parentId: form.parentId || undefined };
     if (form.id) updateItem('categories', form.id, payload);
     else addItem('categories', payload);
     setForm(null);
@@ -102,8 +106,9 @@ export default function Categories() {
   // null so they become uncategorized), then remove the category.
   function finishDelete(toId) {
     if (!del) return;
-    if (del.used > 0) recategorize(del.cat.id, toId || null);
-    removeItem('categories', del.cat.id);
+    // One atomic store move: reassign or clear tagged entries, promote any
+    // children to top level, and remove the category.
+    deleteCategory(del.cat.id, del.used > 0 ? toId || null : null);
     setDel(null);
   }
 
@@ -130,15 +135,16 @@ export default function Categories() {
         </Text>
 
         <View style={styles.card}>
-          {list.map((c, i) => {
+          {categoryTree(list).map(({ cat: c, depth }, i) => {
             const spent = spentFor(c);
             const over = c.monthlyCap > 0 && spent > c.monthlyCap;
             return (
               <Pressable
                 key={c.id}
                 onPress={() => openEdit(c)}
-                style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, depth === 1 && styles.childRow, pressed && styles.pressed]}
               >
+                {depth === 1 ? <Text style={styles.childMark}>↳</Text> : null}
                 <Text style={styles.rowIcon}>{c.icon}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowName}>{c.name}</Text>
@@ -192,6 +198,32 @@ export default function Categories() {
             <TextInput style={styles.input} value={form?.icon} onChangeText={(t) => setForm((f) => ({ ...f, icon: t }))} placeholder="☕" placeholderTextColor={colors.faint} />
             <Text style={styles.fieldLabel}>Monthly cap (Pro, optional)</Text>
             <TextInput style={styles.input} value={form?.cap} onChangeText={(t) => setForm((f) => ({ ...f, cap: t }))} placeholder="e.g. 3000, empty for none" placeholderTextColor={colors.faint} keyboardType="numeric" />
+
+            {/* Parent: a category can sit under one top level category (two levels
+                max). A category that already has its own subcategories must stay
+                top level, so the picker is hidden for it. */}
+            {form && list.some((c) => c.parentId === form.id) ? (
+              <Text style={styles.fieldHint}>This has subcategories, so it stays a top level category.</Text>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>Parent category (optional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.parentRow}>
+                  <Pressable onPress={() => setForm((f) => ({ ...f, parentId: '' }))} style={[styles.chip, !form?.parentId && styles.chipOn]}>
+                    <Text style={[styles.chipText, !form?.parentId && styles.chipTextOn]}>Top level</Text>
+                  </Pressable>
+                  {list
+                    .filter((c) => c.id !== form?.id && !c.parentId)
+                    .map((c) => {
+                      const on = form?.parentId === c.id;
+                      return (
+                        <Pressable key={c.id} onPress={() => setForm((f) => ({ ...f, parentId: c.id }))} style={[styles.chip, on && styles.chipOn]}>
+                          <Text style={[styles.chipText, on && styles.chipTextOn]}>{c.icon} {c.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                </ScrollView>
+              </>
+            )}
 
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>
@@ -299,6 +331,8 @@ function makeStyles(colors) {
     card: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.lg },
     row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
     rowDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+    childRow: { paddingLeft: spacing.lg },
+    childMark: { color: colors.faint, fontSize: fontSize.body, marginRight: -spacing.xs },
     pressed: { opacity: 0.6 },
     rowIcon: { fontSize: 26 },
     rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
@@ -314,7 +348,13 @@ function makeStyles(colors) {
     sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderColor: colors.border, borderWidth: 1, padding: spacing.xl },
     sheetTitle: { color: colors.text, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.md },
     fieldLabel: { color: colors.muted, fontSize: fontSize.caption, marginBottom: spacing.xs, marginTop: spacing.md },
+    fieldHint: { color: colors.faint, fontSize: fontSize.small, marginTop: spacing.md, lineHeight: 16 },
     input: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.text, fontSize: fontSize.body },
+    parentRow: { flexDirection: 'row', gap: spacing.sm, paddingVertical: 2 },
+    chip: { paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { color: colors.text, fontSize: fontSize.small },
+    chipTextOn: { color: colors.onPrimary, fontWeight: fontWeight.bold },
     err: { color: colors.warning, fontSize: fontSize.small, marginTop: spacing.md },
     sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },
     sheetRight: { flexDirection: 'row', gap: spacing.sm },

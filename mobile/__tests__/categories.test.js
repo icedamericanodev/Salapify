@@ -1,6 +1,6 @@
 // Regression suite for lib/categories.js: the pure delete-time recategorize.
 
-import { recategorizeTransactions } from '../lib/categories';
+import { recategorizeTransactions, normalizeCategoryTree, promoteChildren, categoryTree } from '../lib/categories';
 
 const base = [
   { id: 't1', type: 'expense', amount: 100, categoryId: 'cat_food' },
@@ -37,5 +37,71 @@ describe('recategorizeTransactions moves or clears only the matching tag', () =>
   test('a missing fromId or non-array input is safe', () => {
     expect(recategorizeTransactions(base, '', 'cat_x')).toBe(base);
     expect(recategorizeTransactions(null, 'cat_food', 'cat_x')).toEqual([]);
+  });
+});
+
+describe('normalizeCategoryTree keeps the tree at most two levels and valid', () => {
+  const pid = (out, id) => out.find((c) => c.id === id).parentId;
+  test('a valid child keeps its parent; a top level category has no parentId', () => {
+    const out = normalizeCategoryTree([
+      { id: 'food', name: 'Food' },
+      { id: 'coffee', name: 'Coffee', parentId: 'food' },
+    ]);
+    expect(pid(out, 'coffee')).toBe('food');
+    expect('parentId' in out.find((c) => c.id === 'food')).toBe(false);
+  });
+  test('self-parent, orphan parent, and empty parentId all drop to top level', () => {
+    const out = normalizeCategoryTree([
+      { id: 'a', name: 'A', parentId: 'a' }, // self
+      { id: 'b', name: 'B', parentId: 'ghost' }, // orphan
+      { id: 'c', name: 'C', parentId: '' }, // empty
+    ]);
+    expect('parentId' in out.find((c) => c.id === 'a')).toBe(false);
+    expect('parentId' in out.find((c) => c.id === 'b')).toBe(false);
+    expect('parentId' in out.find((c) => c.id === 'c')).toBe(false);
+  });
+  test('a third level is flattened to top level (parent is itself a child)', () => {
+    const out = normalizeCategoryTree([
+      { id: 'food', name: 'Food' },
+      { id: 'coffee', name: 'Coffee', parentId: 'food' },
+      { id: 'latte', name: 'Latte', parentId: 'coffee' }, // would be level 3
+    ]);
+    expect(pid(out, 'coffee')).toBe('food');
+    expect('parentId' in out.find((c) => c.id === 'latte')).toBe(false);
+  });
+  test('a cycle is broken (all flattened), never an infinite loop', () => {
+    const out = normalizeCategoryTree([
+      { id: 'a', name: 'A', parentId: 'b' },
+      { id: 'b', name: 'B', parentId: 'a' },
+    ]);
+    expect('parentId' in out.find((c) => c.id === 'a')).toBe(false);
+    expect('parentId' in out.find((c) => c.id === 'b')).toBe(false);
+  });
+});
+
+describe('promoteChildren lifts a deleted parent\'s children to top level', () => {
+  test('only the deleted parent\'s children lose their parentId', () => {
+    const out = promoteChildren(
+      [
+        { id: 'food', name: 'Food' },
+        { id: 'coffee', name: 'Coffee', parentId: 'food' },
+        { id: 'grab', name: 'Grab', parentId: 'transport' },
+      ],
+      'food'
+    );
+    expect('parentId' in out.find((c) => c.id === 'coffee')).toBe(false);
+    expect(out.find((c) => c.id === 'grab').parentId).toBe('transport');
+  });
+});
+
+describe('categoryTree orders parents then their children with depth', () => {
+  test('each parent is immediately followed by its children', () => {
+    const tree = categoryTree([
+      { id: 'food', name: 'Food' },
+      { id: 'transport', name: 'Transport' },
+      { id: 'coffee', name: 'Coffee', parentId: 'food' },
+    ]);
+    expect(tree.map((x) => x.cat.id)).toEqual(['food', 'coffee', 'transport']);
+    expect(tree.map((x) => x.depth)).toEqual([0, 1, 0]);
   });
 });
