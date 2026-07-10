@@ -54,6 +54,9 @@ export default function SalaryCalculator() {
   // Effective rate is the tax as a share of gross pay; marginal is the bracket
   // the next taxable peso falls in. Both help the user read a raise correctly.
   const effRate = r.gross > 0 ? Math.round((r.monthlyTax / r.gross) * 1000) / 10 : 0;
+  // When there is real tax but it rounds below 0.1% of gross, say so rather than
+  // print a flat "0%" that reads as contradicting the bracket line below it.
+  const effRateText = effRate === 0 && r.monthlyTax > 0 ? 'less than 0.1%' : `${effRate}%`;
   const marginal = Math.round(marginalRate(r.monthlyTaxable * 12) * 100);
 
   return (
@@ -170,7 +173,7 @@ export default function SalaryCalculator() {
             <View style={styles.deductCard}>
               <Text style={styles.deductKicker}>YOUR TAX RATE</Text>
               <Text style={styles.deductLine}>
-                Your income tax is about {effRate}% of your gross pay.
+                Your income tax is about {effRateText} of your gross pay.
               </Text>
               <Text style={styles.deductLine}>
                 {marginal === 0

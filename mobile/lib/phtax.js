@@ -46,9 +46,11 @@ export function annualIncomeTax(annualTaxable) {
   return 0;
 }
 
-// marginalRate(annualTaxable) -> the rate the next peso of taxable income is
-// taxed at (the top bracket it falls in). Zero below the 250,000 exemption. A
-// fraction like 0.2, so multiply by 100 for a percent.
+// marginalRate(annualTaxable) -> the rate the income's top peso falls in,
+// resolving an exact bracket boundary to the lower bracket (so 400,000 returns
+// 0.15, matching annualIncomeTax which owes 0 tax on the next peso there). Zero
+// below the 250,000 exemption. A fraction like 0.2, so multiply by 100 for a
+// percent.
 export function marginalRate(annualTaxable) {
   const t = Math.max(0, num(annualTaxable));
   for (const b of BRACKETS) {
