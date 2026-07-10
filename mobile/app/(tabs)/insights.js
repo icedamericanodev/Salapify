@@ -19,6 +19,7 @@ import Card from '../../components/Card';
 import AnimatedNumber from '../../components/motion/AnimatedNumber';
 import SectionHeader from '../../components/SectionHeader';
 import Bar from '../../components/Bar';
+import TrendChart from '../../components/TrendChart';
 import {
   monthlySeries,
   categoryMovers,
@@ -193,7 +194,6 @@ export default function Insights() {
       Math.max(0, Math.min(11, Number(h.month.slice(5, 7)) - 1))
     ],
   }));
-  const trendMax = Math.max(...trendPoints.map((p) => p.value), 1);
 
   // What is already spoken for: the bills and minimums that land before the
   // next sweldo, against the money you can actually spend right now. Turns
@@ -422,26 +422,14 @@ export default function Insights() {
         {trendPoints.length >= 2 ? (
           <Card variant="flat" padding="xl" style={styles.cardGap}>
             <Text style={styles.kicker}>NET WORTH TREND</Text>
-            <View style={styles.trend}>
-              {trendPoints.map((p) => (
-                <View
-                  key={p.month}
-                  style={styles.trendCol}
-                  accessible
-                  accessibilityLabel={`${p.label}: ${formatMoney(p.value)}`}
-                >
-                  <View
-                    style={[
-                      styles.trendBar,
-                      { height: Math.max((p.value / trendMax) * 120, 4) },
-                    ]}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                  />
-                  <Text style={styles.trendLabel}>{p.label}</Text>
-                </View>
-              ))}
-            </View>
+            <TrendChart
+              series={[{ color: colors.primary, values: trendPoints.map((p) => p.value) }]}
+              labels={trendPoints.map((p) => p.label)}
+              height={140}
+              accessibilityLabel={`Net worth trend: ${trendPoints
+                .map((p) => `${p.label} ${formatMoney(p.value)}`)
+                .join(', ')}`}
+            />
             <Text style={styles.trendNow}>Now: {formatMoney(netWorthNow)}</Text>
           </Card>
         ) : null}
@@ -632,7 +620,6 @@ function ProInsights({ data, styles, colors, chartColors }) {
   const expenseColor = chartColors[4]; // violet
   const score = healthScore(data);
   const series = monthlySeries(data.transactions, 6);
-  const seriesMax = Math.max(...series.map((m) => Math.max(m.income, m.expenses)), 1);
   const movers = categoryMovers(data.transactions);
   const vsAvg = categoryVsAverage(data.transactions);
   const vsAvgMax = Math.max(...vsAvg.map((v) => Math.max(v.now, v.avg)), 1);
@@ -684,26 +671,17 @@ function ProInsights({ data, styles, colors, chartColors }) {
             <Text style={styles.chartLegendText}>Spending</Text>
           </View>
         </View>
-        <View style={styles.trend}>
-          {series.map((m) => (
-            <View
-              key={m.key}
-              style={styles.trendCol}
-              accessible
-              accessibilityLabel={`${m.label}: income ${formatMoney(m.income)}, spending ${formatMoney(m.expenses)}`}
-            >
-              <View
-                style={styles.duoBars}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                <View style={[styles.duoBar, { height: Math.max((m.income / seriesMax) * 100, 2), backgroundColor: incomeColor }]} />
-                <View style={[styles.duoBar, { height: Math.max((m.expenses / seriesMax) * 100, 2), backgroundColor: expenseColor }]} />
-              </View>
-              <Text style={styles.trendLabel}>{m.label}</Text>
-            </View>
-          ))}
-        </View>
+        <TrendChart
+          series={[
+            { color: incomeColor, values: series.map((m) => m.income) },
+            { color: expenseColor, values: series.map((m) => m.expenses) },
+          ]}
+          labels={series.map((m) => m.label)}
+          height={140}
+          accessibilityLabel={`Six month trend: ${series
+            .map((m) => `${m.label} income ${formatMoney(m.income)}, spending ${formatMoney(m.expenses)}`)
+            .join('. ')}`}
+        />
         <Text style={styles.proNote}>Net this month: {formatMoney(series[series.length - 1].net)}.</Text>
       </Card>
 
@@ -887,11 +865,6 @@ function makeStyles(colors) {
       marginTop: spacing.md,
     },
     trendCol: { alignItems: 'center', flex: 1 },
-    trendBar: {
-      width: 22,
-      borderRadius: radius.sm,
-      backgroundColor: colors.primary,
-    },
     trendLabel: { color: colors.muted, fontSize: fontSize.caption, marginTop: spacing.xs },
     trendNow: { color: colors.textSecondary, fontSize: fontSize.small, marginTop: spacing.md },
 
@@ -907,8 +880,6 @@ function makeStyles(colors) {
     partRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
     partLabel: { color: colors.textSecondary, fontSize: fontSize.small },
     partVal: { color: colors.text, fontSize: fontSize.small, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] },
-    duoBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 100 },
-    duoBar: { width: 10, borderRadius: 3 },
     // A small swatch + label legend, the honest key for a multi-series chart.
     chartLegend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md },
     chartLegendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
