@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { spacing, radius, fontSize, fontWeight } from '../theme';
 import { useTheme } from '../context/Theme';
 import { formatMoney } from '../lib/format';
-import { takeHomePay, RATES_YEAR } from '../lib/phtax';
+import { takeHomePay, marginalRate, RATES_YEAR } from '../lib/phtax';
 
 export default function SalaryCalculator() {
   const { colors } = useTheme();
@@ -50,6 +50,11 @@ export default function SalaryCalculator() {
     { label: 'Pag-IBIG', value: r.pagibig },
     { label: 'Income tax', value: r.monthlyTax },
   ];
+
+  // Effective rate is the tax as a share of gross pay; marginal is the bracket
+  // the next taxable peso falls in. Both help the user read a raise correctly.
+  const effRate = r.gross > 0 ? Math.round((r.monthlyTax / r.gross) * 1000) / 10 : 0;
+  const marginal = Math.round(marginalRate(r.monthlyTaxable * 12) * 100);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -159,6 +164,21 @@ export default function SalaryCalculator() {
               </Text>
               <Text style={styles.deductLine}>
                 Income tax uses the graduated BIR table on your yearly taxable pay, spread across the year.
+              </Text>
+            </View>
+
+            <View style={styles.deductCard}>
+              <Text style={styles.deductKicker}>YOUR TAX RATE</Text>
+              <Text style={styles.deductLine}>
+                Your income tax is about {effRate}% of your gross pay.
+              </Text>
+              <Text style={styles.deductLine}>
+                {marginal === 0
+                  ? 'Your taxable pay is within the tax-free ₱250,000 a year, so no income tax is due.'
+                  : `You are in the ${marginal}% tax bracket, so each extra ₱100 of taxable pay is taxed about ₱${marginal}. A raise is only taxed at the margin, never your whole pay.`}
+              </Text>
+              <Text style={styles.deductLine}>
+                If you earn the minimum wage, your basic, overtime, holiday, and night pay are income tax free by law, so your real tax is likely zero.
               </Text>
             </View>
           </>

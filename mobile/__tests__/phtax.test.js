@@ -6,6 +6,7 @@
 import {
   RATES_YEAR,
   annualIncomeTax,
+  marginalRate,
   sssMSC,
   sssEmployee,
   sssEmployer,
@@ -46,6 +47,16 @@ describe('graduated income tax lands exactly on every TRAIN bracket edge', () =>
 
   test('zero taxable income owes zero tax', () => {
     expect(annualIncomeTax(0)).toBe(0);
+  });
+
+  test('the marginal rate is the bracket the next peso falls in', () => {
+    expect(marginalRate(0)).toBe(0);
+    expect(marginalRate(250000)).toBe(0); // still within the exemption
+    expect(marginalRate(250001)).toBe(0.15);
+    expect(marginalRate(500000)).toBe(0.2);
+    expect(marginalRate(1000000)).toBe(0.25);
+    expect(marginalRate(3000000)).toBe(0.3);
+    expect(marginalRate(9000000)).toBe(0.35);
   });
 
   test('a negative taxable income owes zero, never a negative tax', () => {
