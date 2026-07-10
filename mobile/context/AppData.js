@@ -13,6 +13,7 @@ import { setCurrencySymbol, todayISO } from '../lib/format';
 import { rescheduleAll } from '../lib/notifications';
 import { sanitizeData, SCHEMA_VERSION, DEFAULT_CATEGORIES, buildBackup } from '../lib/backup';
 import { shouldRunAutoBackup, autoBackupFilenameFromDate } from '../lib/autobackup';
+import { recategorizeTransactions } from '../lib/categories';
 import { writeAutoBackup, pruneAutoBackups } from '../lib/files';
 import {
   sampleAccounts,
@@ -353,6 +354,19 @@ export function AppDataProvider({ children }) {
     }));
   }
 
+  // Move every transaction tagged with one category to another category, or
+  // (toId null/empty) clear the tag so it becomes uncategorized. Used when a
+  // category is deleted so the user chooses where its history goes instead of it
+  // silently orphaning. This is NOT a money move, so it does not touch balances
+  // (never route it through updateTransaction, which reverses/reapplies balances).
+  function recategorize(fromId, toId) {
+    if (!fromId) return;
+    setData((prev) => ({
+      ...prev,
+      transactions: recategorizeTransactions(prev.transactions, fromId, toId),
+    }));
+  }
+
   // The direction a linked transaction moves its account balance. Income
   // raises it and everything else lowers it, EXCEPT a transaction that names
   // its own flow: flow 'in' always raises, flow 'out' always lowers. This lets
@@ -503,6 +517,7 @@ export function AppDataProvider({ children }) {
     addItem,
     updateItem,
     removeItem,
+    recategorize,
     addTransaction,
     updateTransaction,
     removeTransaction,

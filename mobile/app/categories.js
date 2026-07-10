@@ -26,11 +26,14 @@ export default function Categories() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
-  const { data, addItem, updateItem, removeItem, updateSettings } = useAppData();
+  const { data, addItem, updateItem, removeItem, updateSettings, recategorize } = useAppData();
 
   const [form, setForm] = useState(null);
   const [err, setErr] = useState('');
-  const [confirmDel, setConfirmDel] = useState(false);
+  // The delete flow: null when closed, otherwise { cat, used, choosing } where
+  // cat is the category being deleted, used is how many entries are tagged with
+  // it, and choosing is true while the user picks a category to move them to.
+  const [del, setDel] = useState(null);
 
   const list = data.categories || [];
   const pro = !!data.settings.pro;
@@ -53,12 +56,12 @@ export default function Categories() {
   function openAdd() {
     setForm({ id: null, name: '', icon: '', cap: '' });
     setErr('');
-    setConfirmDel(false);
+    setDel(null);
   }
   function openEdit(c) {
     setForm({ id: c.id, name: String(c.name || ''), icon: String(c.icon || ''), cap: c.monthlyCap ? String(c.monthlyCap) : '' });
     setErr('');
-    setConfirmDel(false);
+    setDel(null);
   }
   function save() {
     const name = form.name.trim();
@@ -86,15 +89,22 @@ export default function Categories() {
     else addItem('categories', payload);
     setForm(null);
   }
-  function del() {
-    if (!confirmDel) {
-      setConfirmDel(true);
-      return;
-    }
-    // Entries keep their categoryId; readers fall back to the label, so
-    // nothing crashes and history stays intact.
-    if (form.id) removeItem('categories', form.id);
+  // Start deleting: count how many entries are tagged with this category, then
+  // open the delete sheet. The edit form closes so the two sheets never stack.
+  function startDelete() {
+    if (!form.id) return;
+    const cat = { id: form.id, name: form.name.trim() || 'Category' };
+    const used = (data.transactions || []).filter((t) => t && t.categoryId === cat.id).length;
     setForm(null);
+    setDel({ cat, used, choosing: false });
+  }
+  // Finish the delete: move tagged entries to toId (or clear the tag when toId is
+  // null so they become uncategorized), then remove the category.
+  function finishDelete(toId) {
+    if (!del) return;
+    if (del.used > 0) recategorize(del.cat.id, toId || null);
+    removeItem('categories', del.cat.id);
+    setDel(null);
   }
 
   return (
@@ -186,8 +196,8 @@ export default function Categories() {
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <View style={styles.sheetButtons}>
               {form?.id ? (
-                <Pressable onPress={del} style={[styles.sheetBtn, styles.deleteBtn]}>
-                  <Text style={styles.deleteText}>{confirmDel ? 'Tap to confirm' : 'Delete'}</Text>
+                <Pressable onPress={startDelete} style={[styles.sheetBtn, styles.deleteBtn]}>
+                  <Text style={styles.deleteText}>Delete</Text>
                 </Pressable>
               ) : (
                 <View />
@@ -201,6 +211,74 @@ export default function Categories() {
                 </Pressable>
               </View>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete flow: choose what happens to this category's entries. */}
+      <Modal visible={!!del} transparent animationType="slide" onRequestClose={() => setDel(null)}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            {del && del.choosing ? (
+              <>
+                <Text style={styles.sheetTitle}>Move entries to</Text>
+                <Text style={styles.delBody}>Pick where the {del.used} {del.used === 1 ? 'entry' : 'entries'} in {del.cat.name} should go.</Text>
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {list
+                    .filter((c) => c.id !== del.cat.id)
+                    .map((c) => (
+                      <Pressable key={c.id} onPress={() => finishDelete(c.id)} style={({ pressed }) => [styles.delRow, pressed && styles.pressed]}>
+                        <Text style={styles.rowIcon}>{c.icon || '🏷️'}</Text>
+                        <Text style={styles.rowName}>{c.name}</Text>
+                      </Pressable>
+                    ))}
+                  {list.filter((c) => c.id !== del.cat.id).length === 0 ? (
+                    <Text style={styles.delBody}>No other category to move to. Go back and leave them uncategorized instead.</Text>
+                  ) : null}
+                </ScrollView>
+                <View style={styles.sheetButtons}>
+                  <View />
+                  <Pressable onPress={() => setDel((d) => ({ ...d, choosing: false }))} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Back</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : del ? (
+              <>
+                <Text style={styles.sheetTitle}>Delete {del.cat.name}?</Text>
+                {del.used > 0 ? (
+                  <Text style={styles.delBody}>
+                    {del.used} {del.used === 1 ? 'entry uses' : 'entries use'} this category. Choose what happens to {del.used === 1 ? 'it' : 'them'}. Your history and totals stay intact either way.
+                  </Text>
+                ) : (
+                  <Text style={styles.delBody}>No entries use this category, so nothing else changes.</Text>
+                )}
+                {del.used > 0 ? (
+                  <>
+                    {list.some((c) => c.id !== del.cat.id) ? (
+                      <Pressable onPress={() => setDel((d) => ({ ...d, choosing: true }))} style={({ pressed }) => [styles.delChoice, pressed && styles.pressed]}>
+                        <Text style={styles.delChoiceTitle}>Move them to another category</Text>
+                        <Text style={styles.delChoiceSub}>Keep them counted, just under a different name.</Text>
+                      </Pressable>
+                    ) : null}
+                    <Pressable onPress={() => finishDelete(null)} style={({ pressed }) => [styles.delChoice, pressed && styles.pressed]}>
+                      <Text style={styles.delChoiceTitle}>Leave them uncategorized</Text>
+                      <Text style={styles.delChoiceSub}>They stay in your history without a category.</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable onPress={() => finishDelete(null)} style={[styles.sheetBtn, styles.deleteBtnSolid]}>
+                    <Text style={styles.saveText}>Delete</Text>
+                  </Pressable>
+                )}
+                <View style={styles.sheetButtons}>
+                  <View />
+                  <Pressable onPress={() => setDel(null)} style={[styles.sheetBtn, styles.cancelBtn]}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -247,5 +325,12 @@ function makeStyles(colors) {
     cancelText: { color: colors.text, fontSize: fontSize.body },
     saveBtn: { backgroundColor: colors.primary },
     saveText: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+
+    delBody: { color: colors.textSecondary, fontSize: fontSize.small, lineHeight: 20, marginBottom: spacing.md },
+    delChoice: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, padding: spacing.lg, marginBottom: spacing.sm },
+    delChoiceTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+    delChoiceSub: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2 },
+    delRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
+    deleteBtnSolid: { backgroundColor: colors.warning, alignItems: 'center', marginTop: spacing.sm },
   });
 }
