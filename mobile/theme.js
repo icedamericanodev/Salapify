@@ -367,6 +367,17 @@ export const palettes = {
 // into a neutral "more", never a generated hue. Dark slot 3 is a brighter
 // green (#37A84E, not the light deck's #008300) so it clears >=3:1 on the dark
 // cards and never reads as dim green-on-green on the mint/forest dark themes.
+//
+// Audited across ALL 8 theme card surfaces in both modes (2026-07): zero
+// validator FAILs on any theme. Two measured constraints to keep if you edit:
+// 1. Light slots 2 (#1baf7a), 3 (#eda100), and 7 (#e87ba4) sit below 3:1 on
+//    the near-white light cards, which is legal ONLY because every categorical
+//    chart carries a labeled legend. Do not use these hues color-alone.
+// 2. The closest any theme's reserved warning hue comes to a chart slot is
+//    dE 12 (orchidgold dark warning vs dark slot 8 #d95926); all other pairs
+//    are dE 14-19. That stays acceptable because warning states always ship
+//    with words, never color alone. If you add a theme, check its warning
+//    keeps dE >= 12 from every chart slot in the same mode.
 export const CHART_CATEGORICAL = {
   light: ['#2a78d6','#1baf7a','#eda100','#008300','#4a3aa7','#e34948','#e87ba4','#eb6834'],
   dark:  ['#3987e5','#199e70','#c98500','#37A84E','#9085e9','#e66767','#d55181','#d95926'],
