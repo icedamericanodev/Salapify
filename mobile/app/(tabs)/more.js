@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.97 · New BIR filing dates tool: your next quarterly and annual tax deadlines</Text>
+            <Text style={styles.stampValue}>v3.98 · Two new money lessons: your year-end tax refund, and setting aside tax when you freelance</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>
