@@ -104,4 +104,15 @@ describe('categoryTree orders parents then their children with depth', () => {
     expect(tree.map((x) => x.cat.id)).toEqual(['food', 'coffee', 'transport']);
     expect(tree.map((x) => x.depth)).toEqual([0, 1, 0]);
   });
+
+  test('a third level row in a non normalized list still renders, never vanishes', () => {
+    // latte -> coffee -> food. childrenOf only expands one level, so without the
+    // defensive tail latte would silently disappear from the list.
+    const tree = categoryTree([
+      { id: 'food', name: 'Food' },
+      { id: 'coffee', name: 'Coffee', parentId: 'food' },
+      { id: 'latte', name: 'Latte', parentId: 'coffee' },
+    ]);
+    expect(tree.map((x) => x.cat.id).sort()).toEqual(['coffee', 'food', 'latte']);
+  });
 });

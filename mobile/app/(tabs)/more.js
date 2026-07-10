@@ -195,7 +195,7 @@ export default function More() {
               a short line, so a longer note can never run off the card. */}
           <View style={[styles.stampRow, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Update stamp</Text>
-            <Text style={styles.stampValue}>v3.93 · Deleting a category now asks where its entries go: move them or leave uncategorized</Text>
+            <Text style={styles.stampValue}>v3.94 · Categories can now nest: group Coffee under Food, Grab under Transport</Text>
           </View>
           {Platform.OS !== 'web' ? (
             <>

@@ -282,6 +282,8 @@ export default function Categories() {
                   <Text style={styles.delBody}>
                     {del.used} {del.used === 1 ? 'entry uses' : 'entries use'} this category. Choose what happens to {del.used === 1 ? 'it' : 'them'}. Your history and totals stay intact either way.
                   </Text>
+                ) : list.some((c) => c.parentId === del.cat.id) ? (
+                  <Text style={styles.delBody}>No entries use this category. Its subcategories will become top level categories.</Text>
                 ) : (
                   <Text style={styles.delBody}>No entries use this category, so nothing else changes.</Text>
                 )}

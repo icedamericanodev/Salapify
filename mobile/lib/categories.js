@@ -59,9 +59,20 @@ export function categoryTree(categories) {
   const tops = list.filter((c) => !(typeof c.parentId === 'string' && c.parentId && ids.has(c.parentId) && c.parentId !== c.id));
   const childrenOf = (pid) => list.filter((c) => c.parentId === pid && c.id !== pid);
   const out = [];
+  const rendered = new Set();
   for (const t of tops) {
     out.push({ cat: t, depth: 0 });
-    for (const child of childrenOf(t.id)) out.push({ cat: child, depth: 1 });
+    rendered.add(t.id);
+    for (const child of childrenOf(t.id)) {
+      out.push({ cat: child, depth: 1 });
+      rendered.add(child.id);
+    }
+  }
+  // Defensive: any category not reached above (for example a third level row in
+  // a list that somehow skipped normalize) still renders at top level so it can
+  // never silently vanish. Normal loads are already normalized, so this is empty.
+  for (const c of list) {
+    if (!rendered.has(c.id)) out.push({ cat: c, depth: 0 });
   }
   return out;
 }
