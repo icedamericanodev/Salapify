@@ -187,9 +187,13 @@ export default function Insights() {
       updateSettings({ nwHistory: next });
     }
   }, [netWorthNow]);
+  // Keep the RAW value, negatives included, so the spoken summary and any
+  // label tell the truth for someone whose debts exceed assets. The chart
+  // itself floors the drawing at zero (chartgeom clamps per point), matching
+  // the old bars, but the announced number is never a fake 0.
   const trendPoints = nwHistory.slice(-6).map((h) => ({
     month: h.month,
-    value: Math.max(0, Number(h.value)),
+    value: Number(h.value),
     label: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][
       Math.max(0, Math.min(11, Number(h.month.slice(5, 7)) - 1))
     ],

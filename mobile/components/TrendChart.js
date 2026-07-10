@@ -1,8 +1,11 @@
 // TrendChart: the trend line chart for Insights. Renders one or two series as
 // proper Skia lines on native (a line is the honest form for change over
-// time), and falls back to the plain-View bar rendering on web or if Skia ever
-// fails, following the Mascot error boundary pattern, so a chart problem can
-// never take down Insights.
+// time), and falls back to the plain-View bar rendering on web or if this
+// component's own render throws, following the Mascot error boundary pattern.
+// Note the boundary's limit: Skia's Canvas renders its children through its
+// own reconciler, so an error INSIDE the canvas draws blank rather than
+// throwing here. Keep every prop passed to Canvas children valid; chartgeom
+// coerces all values to finite numbers for that reason.
 //
 // API:
 //   <TrendChart
@@ -106,18 +109,33 @@ const fb = StyleSheet.create({
 // The labels row is shared by both renderers so the two paths can never drift.
 function LabelsRow({ labels, styles }) {
   if (!Array.isArray(labels) || labels.length === 0) return null;
+  const n = labels.length;
   return (
     <View style={lr.row}>
       {labels.map((l, i) => (
-        <Text key={i} style={[lr.label, { color: styles.labelColor }]}>{l}</Text>
+        // First and last labels hug their edges so they sit under the first
+        // and last dots (which sit at the pad, not at a flex-cell center).
+        <Text
+          key={i}
+          style={[
+            lr.label,
+            { color: styles.labelColor },
+            i === 0 && n > 1 ? lr.first : null,
+            i === n - 1 && n > 1 ? lr.last : null,
+          ]}
+        >
+          {l}
+        </Text>
       ))}
     </View>
   );
 }
 
 const lr = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2, marginTop: spacing.xs },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: spacing.xs },
   label: { fontSize: fontSize.caption, flex: 1, textAlign: 'center' },
+  first: { textAlign: 'left' },
+  last: { textAlign: 'right' },
 });
 
 export default class TrendChart extends React.Component {
@@ -134,14 +152,18 @@ export default class TrendChart extends React.Component {
   render() {
     const { accessibilityLabel, labels } = this.props;
     const useFallback = Platform.OS === 'web' || this.state.failed;
+    // The OUTER view is the one focusable, spoken element. The hide flags live
+    // on the INNER wrapper only: on Android, no-hide-descendants on the outer
+    // view would remove the chart AND its own label from TalkBack entirely.
     return (
-      <View
-        accessible={!!accessibilityLabel}
-        accessibilityLabel={accessibilityLabel}
-        importantForAccessibility={accessibilityLabel ? 'no-hide-descendants' : 'auto'}
-      >
-        {useFallback ? <TrendChartFallback {...this.props} /> : <TrendChartSkia {...this.props} />}
-        <TrendLabels labels={labels} />
+      <View accessible={!!accessibilityLabel} accessibilityLabel={accessibilityLabel}>
+        <View
+          accessibilityElementsHidden={!!accessibilityLabel}
+          importantForAccessibility={accessibilityLabel ? 'no-hide-descendants' : 'auto'}
+        >
+          {useFallback ? <TrendChartFallback {...this.props} /> : <TrendChartSkia {...this.props} />}
+          <TrendLabels labels={labels} />
+        </View>
       </View>
     );
   }
