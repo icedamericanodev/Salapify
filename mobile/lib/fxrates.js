@@ -44,6 +44,17 @@ export function basePerUnit(rates, code) {
   return 1 / perBase;
 }
 
+// The cross rate to convert 1 unit of `from` into `to`, using one rates table
+// (units per base). rates[to] / rates[from] cancels the base out. Returns null if
+// either currency is missing or non positive, so a gap never yields a wrong
+// figure. When `from` is the table's base, rates[base] is 1 and this is rates[to].
+export function crossRate(rates, from, to) {
+  const f = rates ? Number(rates[from]) : NaN;
+  const t = rates ? Number(rates[to]) : NaN;
+  if (!Number.isFinite(f) || f <= 0 || !Number.isFinite(t) || t <= 0) return null;
+  return t / f;
+}
+
 // Round a rate to four significant figures so the pre filled value is tidy for
 // both strong (56.34) and weak (0.002315) currencies without losing accuracy.
 export function roundRate(r) {

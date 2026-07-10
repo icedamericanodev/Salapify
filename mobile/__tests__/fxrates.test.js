@@ -2,7 +2,8 @@
 // The network fetch and cache live in the hook and are not unit tested here; this
 // covers the parsing and conversion math that decides what rate a user sees.
 
-import { parseRatesResponse, basePerUnit, roundRate, isFresh, FX_MAX_AGE_MS } from '../lib/fxrates';
+import { parseRatesResponse, basePerUnit, roundRate, isFresh, crossRate, FX_MAX_AGE_MS } from '../lib/fxrates';
+import { formatConverted } from '../lib/currencies';
 
 describe('parseRatesResponse only trusts a well formed success response', () => {
   test('a good response parses to base, rates, and a millisecond timestamp', () => {
@@ -50,6 +51,37 @@ describe('roundRate keeps four significant figures for strong and weak currencie
   test('a bad input is null', () => {
     expect(roundRate(0)).toBeNull();
     expect(roundRate(NaN)).toBeNull();
+  });
+});
+
+describe('crossRate converts between any two currencies from one base table', () => {
+  // Table is units-per-PHP: 1 PHP = 0.0176 USD = 2.62 JPY.
+  const rates = { PHP: 1, USD: 0.0176, JPY: 2.62 };
+  test('base to another currency is just that currency rate', () => {
+    expect(crossRate(rates, 'PHP', 'USD')).toBeCloseTo(0.0176, 6);
+  });
+  test('two non-base currencies cancel the base out (1 USD in JPY)', () => {
+    // 1 USD = (2.62 JPY per PHP) / (0.0176 USD per PHP) ≈ 148.86 JPY.
+    expect(crossRate(rates, 'USD', 'JPY')).toBeCloseTo(2.62 / 0.0176, 4);
+  });
+  test('same currency is 1', () => {
+    expect(crossRate(rates, 'USD', 'USD')).toBeCloseTo(1, 9);
+  });
+  test('a missing currency yields null, never a wrong figure', () => {
+    expect(crossRate(rates, 'USD', 'VND')).toBeNull();
+    expect(crossRate(rates, 'VND', 'USD')).toBeNull();
+    expect(crossRate(null, 'USD', 'JPY')).toBeNull();
+  });
+});
+
+describe('formatConverted shows the right decimals per currency', () => {
+  test('two decimals for normal currencies, none for zero-decimal ones', () => {
+    expect(formatConverted(12.5, 'USD')).toBe('$12.50');
+    expect(formatConverted(1300.4, 'JPY')).toBe('¥1,300');
+    expect(formatConverted(690.5, 'PHP')).toBe('₱690.50');
+  });
+  test('a bad amount is empty, never NaN', () => {
+    expect(formatConverted(NaN, 'USD')).toBe('');
   });
 });
 
