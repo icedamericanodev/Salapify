@@ -248,6 +248,30 @@ function monthKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Carry over: how much of last month's budget was left unspent, to roll into this
+// month when the user turns carry over on. Floored at 0, so a month you overspent
+// never eats into this month's budget (carry over is a reward for underspending,
+// not a punishment for going over). Returns 0 when there is no limit set.
+export function previousMonthLeftover(transactions, monthlyLimit, ref = new Date()) {
+  const limit = num(monthlyLimit);
+  if (limit <= 0) return 0;
+  const prevKey = monthKey(new Date(ref.getFullYear(), ref.getMonth() - 1, 1));
+  let spent = 0;
+  let count = 0;
+  for (const x of transactions || []) {
+    if (x && x.type === 'expense' && String(x.date || '').slice(0, 7) === prevKey) {
+      spent += num(x.amount);
+      count += 1;
+    }
+  }
+  // No expenses logged last month means we do not actually know what was spent,
+  // so carry nothing rather than hand over a full, fake leftover: a quiet or
+  // brand new month must never silently double this month's budget. Matches the
+  // caution emergencyRunway takes before it will quote a number.
+  if (count === 0) return 0;
+  return Math.max(0, limit - spent);
+}
+
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Income, expenses, and net for each of the last n months, oldest first.

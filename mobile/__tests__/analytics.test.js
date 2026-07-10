@@ -10,6 +10,7 @@ import {
   goalPace,
   debtFreeProjection,
   monthlySeries,
+  previousMonthLeftover,
   netWorth,
   trackedRemaining,
   splitDebtPayment,
@@ -273,6 +274,42 @@ describe('debtFreeProjection simulates payoff month by month', () => {
   test('minimums that can never beat the interest return null, never loop forever', () => {
     const debts = [{ remaining: 100000, monthlyRate: 10, minPayment: 100 }];
     expect(debtFreeProjection(debts, 'avalanche', 0, REF)).toBeNull();
+  });
+});
+
+describe('previousMonthLeftover rolls only real underspending forward', () => {
+  const ref = new Date(2026, 6, 15); // 15 July 2026, so previous month is June
+  test('an underspent month leaves the difference', () => {
+    const tx = [
+      { type: 'expense', amount: 12000, date: '2026-06-10' },
+      { type: 'expense', amount: 3000, date: '2026-06-20' },
+      // July spending must not count toward June's leftover.
+      { type: 'expense', amount: 9999, date: '2026-07-01' },
+    ];
+    // 20000 limit - 15000 spent in June = 5000 left to carry.
+    expect(previousMonthLeftover(tx, 20000, ref)).toBe(5000);
+  });
+  test('an overspent month carries zero, never a negative', () => {
+    const tx = [{ type: 'expense', amount: 25000, date: '2026-06-10' }];
+    expect(previousMonthLeftover(tx, 20000, ref)).toBe(0);
+  });
+  test('no limit set carries nothing', () => {
+    const tx = [{ type: 'expense', amount: 1000, date: '2026-06-10' }];
+    expect(previousMonthLeftover(tx, 0, ref)).toBe(0);
+  });
+  test('a month with NO logged expenses carries nothing, never a full fake leftover', () => {
+    // A quiet or brand new month: only July activity, June has no expenses.
+    const tx = [{ type: 'expense', amount: 500, date: '2026-07-02' }];
+    expect(previousMonthLeftover(tx, 20000, ref)).toBe(0);
+  });
+  test('non expense rows (income, transfers, adjustments) do not reduce the leftover', () => {
+    const tx = [
+      { type: 'expense', amount: 5000, date: '2026-06-10' },
+      { type: 'income', amount: 9000, date: '2026-06-11' },
+      { type: 'transfer', flow: 'out', amount: 4000, date: '2026-06-12' },
+      { type: 'adjustment', flow: 'out', amount: 4000, date: '2026-06-13' },
+    ];
+    expect(previousMonthLeftover(tx, 20000, ref)).toBe(15000);
   });
 });
 

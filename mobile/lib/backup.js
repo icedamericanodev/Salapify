@@ -414,6 +414,9 @@ export function sanitizeData(raw, { keepAppLock = false } = {}) {
         appLock: keepAppLock ? settings.appLock === true : false,
         // Strict boolean: a truthy string like "no" must not unlock Pro.
         pro: settings.pro === true,
+        // Carry over unused budget into next month. Strict boolean so a hand
+        // edited backup value can never flip the budget bar on with a stray string.
+        budgetCarryOver: settings.budgetCarryOver === true,
         notifications: isObj(settings.notifications) ? settings.notifications : {},
         // Earn-your-treats rules. Each rule is tiny: its check-ins are pruned to
         // the rolling window by the app, and lifetime never decreases. A missing

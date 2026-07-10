@@ -362,9 +362,10 @@ export default function Data() {
                     <Ionicons name="chevron-forward" size={18} color={colors.faint} />
                   </Pressable>
 
-                  <View style={[styles.row, styles.rowDivider]}>
-                    <Text style={styles.rowLabel}>Keep last</Text>
-                    <View style={styles.keepRow}>
+                  <View style={[styles.keepBlock, styles.rowDivider]}>
+                    <Text style={styles.rowLabel}>Number of backups to keep</Text>
+                    <Text style={styles.keepHint}>Older backups are deleted automatically, so they never pile up in your folder.</Text>
+                    <View style={[styles.keepRow, { marginTop: spacing.sm }]}>
                       {KEEP_OPTIONS.map((n) => {
                         const active = (Number(settings.autoBackupKeep) || 7) === n;
                         return (
@@ -498,6 +499,8 @@ function makeStyles(colors) {
       backgroundColor: colors.primary,
     },
     bannerBtnText: { color: colors.onPrimary, fontSize: fontSize.small, fontWeight: fontWeight.bold },
+    keepBlock: { paddingVertical: spacing.md },
+    keepHint: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2, lineHeight: 16 },
     keepRow: { flexDirection: 'row', gap: spacing.xs },
     keepPill: {
       minWidth: 44,

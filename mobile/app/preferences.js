@@ -6,7 +6,7 @@
 // useTheme(), so all 8 palettes and both light and dark render correctly.
 
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -127,6 +127,18 @@ export default function Preferences() {
             <Text style={styles.rowLabel}>Monthly budget</Text>
             <Text style={styles.rowValue} numberOfLines={1}>{formatMoney(settings.monthlyLimit)}</Text>
           </Pressable>
+          <View style={[styles.row, styles.rowDivider]}>
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={styles.rowLabel}>Carry over unused budget</Text>
+              <Text style={styles.rowHint}>If you spend under your budget one month, the leftover is added to next month's limit as a bonus. Overspending is never carried over. This changes only the budget bar, not your health score.</Text>
+            </View>
+            <Switch
+              value={!!settings.budgetCarryOver}
+              onValueChange={(on) => updateSettings({ budgetCarryOver: on })}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.onPrimary}
+            />
+          </View>
           <Pressable onPress={() => openPref('payday')} style={({ pressed }) => [styles.row, styles.rowDivider, pressed && styles.pressed]}>
             <Text style={styles.rowLabel}>Payday schedule</Text>
             <Text style={styles.rowValue} numberOfLines={1}>{scheduleLabel(settings.paydaySchedule)}</Text>
@@ -341,6 +353,7 @@ function makeStyles(colors) {
     rowDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
     pressed: { opacity: 0.6 },
     rowLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+    rowHint: { color: colors.muted, fontSize: fontSize.caption, marginTop: 2, lineHeight: 16 },
     // flexShrink lets a long value (a big budget, a wordy payday label) shrink
     // and stay on one line instead of shoving the label or wrapping awkwardly.
     rowValue: { color: colors.muted, fontSize: fontSize.body, flexShrink: 1, textAlign: 'right', marginLeft: spacing.md },
