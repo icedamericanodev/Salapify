@@ -11,7 +11,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.03 · Money engine part 1 golden-verified, plus the live web preview';
+    'f0.04 · Money engine part 2: balances, transactions, and the three Reports statements, golden-verified';
 
 void main() {
   runApp(const SalapifyApp());
