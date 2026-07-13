@@ -5,6 +5,29 @@ Gen Z, millennials, and working corporate adults. React Native with Expo
 SDK 54 lives in mobile/. There is no backend; all data stays on the device
 in AsyncStorage under the key salapify_data_v2.
 
+## Flutter rebuild (founder decision, 2026-07-13)
+
+The founder chose to rebuild Salapify from scratch in Flutter. The rebuild
+lives in flutter/ and grows NEXT TO the live RN app; mobile/ stays shippable
+and untouched for testers until the Flutter app reaches parity. Rules for the
+Flutter track:
+1. Every push touching flutter/ triggers the "Flutter preview APK" action
+   (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
+   flutter test, then a signed APK published to the fixed flutter-preview
+   release tag. The founder installs updates from that one bookmarked link.
+2. Bump the updateStamp constant in flutter/lib/main.dart on every push
+   (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
+3. The committed preview keystore signs every build so updates install in
+   place. It is NOT a production key; the Play upload key never enters the
+   repo.
+4. Port order: pure money logic first with the RN test vectors translated to
+   Dart so every number matches to the centavo, then storage and backup
+   (must import the existing Salapify backup JSON, schema v12 rules), then
+   screens. Money math ports do not merge without matching test vectors.
+5. The local Flutter SDK in a session lives at /opt/flutter (add
+   /opt/flutter/bin to PATH); install 3.44.6 stable from
+   storage.googleapis.com if missing.
+
 ## Writing style
 
 Never use em dashes or en dashes anywhere: code comments, commit messages,
