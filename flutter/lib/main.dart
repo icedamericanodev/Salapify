@@ -11,7 +11,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.01 · Hello from Flutter: the preview pipeline works';
+    'f0.02 · Money engine part 1: PH tax and 13th month ported, 85 golden vectors matching the current app';
 
 void main() {
   runApp(const SalapifyApp());
