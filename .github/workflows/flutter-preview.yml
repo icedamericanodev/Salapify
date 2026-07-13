@@ -1,0 +1,68 @@
+# Flutter preview pipeline. Every push that touches flutter/ builds a signed
+# APK on GitHub's free runners and publishes it to ONE fixed release tag,
+# flutter-preview. The founder bookmarks that release page on the phone: each
+# new build replaces the APK there, and because every build is signed with the
+# committed preview key, the new APK installs OVER the old one in place.
+# This runs on GitHub's free runner minutes, not the EAS allowance.
+
+name: Flutter preview APK
+
+on:
+  push:
+    branches:
+      - claude/salapify-v2
+      - main
+    paths:
+      - 'flutter/**'
+  workflow_dispatch:
+
+# One build at a time; a newer push supersedes an in-flight one.
+concurrency:
+  group: flutter-preview
+  cancel-in-progress: true
+
+permissions:
+  contents: write # needed to update the flutter-preview release
+
+jobs:
+  build:
+    name: Analyze, test, build APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+
+      - name: Analyze (zero tolerance)
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build signed preview APK
+        run: flutter build apk --release
+
+      - name: Publish to the fixed flutter-preview release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: flutter-preview
+          name: Salapify Flutter preview (latest)
+          body: |
+            The latest Flutter preview build. Download the APK below and open
+            it on the phone; it installs over the previous preview build.
+            Check the Update stamp inside the app to confirm which build this
+            is. Built from ${{ github.sha }}.
+          prerelease: true
+          files: flutter/build/app/outputs/flutter-apk/app-release.apk
