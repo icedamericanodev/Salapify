@@ -64,6 +64,30 @@ jobs:
         if: steps.webapp.outcome != 'success'
         run: echo "Web app export failed; deploying the landing site only. The previous /app stays live."
 
+      # The Flutter rebuild as a live web preview under /flutter, so the
+      # founder can watch progress from the phone browser with zero installs
+      # (refresh = latest). Same rule as /app: allowed to fail without ever
+      # blocking the landing page or privacy policy.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+      - name: Build the Flutter web preview
+        id: flutterweb
+        continue-on-error: true
+        working-directory: flutter
+        run: flutter build web --base-href /Salapify/flutter/
+      - name: Place the Flutter preview under /flutter
+        if: steps.flutterweb.outcome == 'success'
+        run: |
+          mkdir -p _site/flutter
+          cp -r flutter/build/web/. _site/flutter/
+          cp flutter/build/web/index.html _site/flutter/404.html
+      - name: Note a skipped Flutter web build
+        if: steps.flutterweb.outcome != 'success'
+        run: echo "Flutter web build failed; the previous /flutter stays live."
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
