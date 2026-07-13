@@ -1,0 +1,1146 @@
+{
+ "now": "2026-07-13",
+ "fixtures": {
+  "v2legacy": {
+   "accounts": [
+    {
+     "id": "cash",
+     "name": "Cash",
+     "kind": "cash",
+     "balance": "1500.5"
+    },
+    {
+     "id": "weird",
+     "kind": "crypto",
+     "balance": 200,
+     "extra": "kept"
+    },
+    null
+   ],
+   "receivables": [
+    {
+     "id": "r1",
+     "person": " Migs ",
+     "phone": "0917",
+     "amount": 500
+    },
+    {
+     "id": "r2",
+     "person": "migs",
+     "amount": 250
+    },
+    {
+     "id": "r3",
+     "person": "Ana",
+     "amount": 100,
+     "paid": "yes"
+    },
+    {
+     "id": "r4",
+     "personId": "person_m3_7",
+     "person": "Old",
+     "amount": 50,
+     "payments": [
+      {
+       "id": "k",
+       "amount": 20
+      }
+     ]
+    }
+   ],
+   "people": [
+    {
+     "id": "person_m3_7",
+     "name": "Old",
+     "phone": ""
+    }
+   ],
+   "transactions": [
+    {
+     "id": "t1",
+     "type": "expense",
+     "amount": -50,
+     "label": "Neg",
+     "date": "2026-05-02T09:30:00Z"
+    },
+    {
+     "id": "t2",
+     "type": "mystery",
+     "amount": 75,
+     "label": ""
+    },
+    {
+     "id": "t3",
+     "type": "expense",
+     "amount": 10,
+     "receiptUri": "https://evil/x.png",
+     "date": "2026-05-03"
+    },
+    {
+     "id": "t4",
+     "type": "expense",
+     "amount": 10,
+     "receiptUri": "receipts/receipt_ab12.jpg",
+     "date": "2026-05-03"
+    },
+    {
+     "id": "t5",
+     "type": "expense",
+     "amount": 10,
+     "flow": "in",
+     "accountId": "cash",
+     "date": "2026-05-04"
+    },
+    {
+     "id": "t6",
+     "type": "transfer",
+     "amount": 30,
+     "accountId": "cash",
+     "date": "2026-05-05"
+    },
+    {
+     "id": "t7",
+     "type": "transfer",
+     "amount": 30,
+     "flow": "out",
+     "accountId": "cash",
+     "date": "2026-05-05"
+    },
+    {
+     "id": "t8",
+     "type": "adjustment",
+     "amount": 12,
+     "accountId": "cash",
+     "date": "2026-05-06"
+    },
+    {
+     "id": "t9",
+     "type": "adjustment",
+     "amount": 12,
+     "flow": "in",
+     "accountId": "cash",
+     "date": "2026-05-06"
+    },
+    {
+     "id": "t10",
+     "type": "expense",
+     "amount": 470,
+     "origCurrency": "JPY",
+     "origAmount": 1200,
+     "date": "2026-05-07"
+    },
+    {
+     "id": "t11",
+     "type": "expense",
+     "amount": 470,
+     "origCurrency": "JPY",
+     "origAmount": 0,
+     "date": "2026-05-07"
+    },
+    {
+     "id": "t12",
+     "type": "income",
+     "amount": 100,
+     "source": "receivable",
+     "categoryId": 42,
+     "date": "2026-05-08"
+    }
+   ],
+   "payments": [
+    {
+     "amount": -5
+    },
+    {
+     "id": "p2",
+     "amount": 100,
+     "interest": 20,
+     "date": "2026-05-09"
+    }
+   ],
+   "settings": {
+    "currency": 7,
+    "monthlyLimit": "9000",
+    "pro": "yes",
+    "appLock": true,
+    "custom": "kept"
+   }
+  },
+  "v12rich": {
+   "schemaVersion": 12,
+   "accounts": [
+    {
+     "id": "bank",
+     "name": "Bank",
+     "kind": "savings",
+     "balance": 42500.5
+    }
+   ],
+   "assets": [
+    {
+     "id": "a1",
+     "value": "15000"
+    }
+   ],
+   "debts": [
+    {
+     "id": "cc",
+     "name": "Card",
+     "type": "credit card",
+     "remaining": 12400,
+     "interestThroughISO": "2026-07-01"
+    },
+    {
+     "id": "bad",
+     "name": 3,
+     "type": "personal loan",
+     "remaining": "30000",
+     "interestThroughISO": "soon"
+    }
+   ],
+   "payments": [
+    {
+     "id": "pay1",
+     "amount": 1500,
+     "interest": 300,
+     "principal": 1200,
+     "date": "2026-07-10"
+    }
+   ],
+   "transactions": [],
+   "categories": [
+    {
+     "id": "food",
+     "name": "Food",
+     "icon": "X",
+     "monthlyCap": -5
+    },
+    {
+     "id": "coffee",
+     "name": "Coffee",
+     "parentId": "food"
+    },
+    {
+     "id": "selfie",
+     "name": "Selfie",
+     "parentId": "selfie"
+    },
+    {
+     "id": "ghost",
+     "name": "Ghost",
+     "parentId": "nope"
+    },
+    {
+     "id": "food",
+     "name": "Dup",
+     "monthlyCap": 10
+    }
+   ],
+   "receivables": [
+    {
+     "id": "r1",
+     "person": "Migs",
+     "cashLeg": "yes",
+     "amount": 2000,
+     "payments": [
+      {
+       "amount": 500,
+       "settled": "yes"
+      }
+     ]
+    }
+   ],
+   "payables": [
+    {
+     "id": "p1",
+     "person": "Lito",
+     "cashLeg": true,
+     "amount": 1200,
+     "payments": []
+    }
+   ],
+   "settings": {
+    "currency": "PHP",
+    "currencyCode": "PHP",
+    "monthlyLimit": 15000,
+    "pro": true,
+    "budgetCarryOver": "yes",
+    "appLock": true,
+    "notifications": "broken",
+    "quickAdds": [
+     {
+      "label": "Food",
+      "amount": 150
+     },
+     null
+    ],
+    "treats": [
+     {
+      "treat": "Milk tea",
+      "target": 99,
+      "windowDays": 0,
+      "checkIns": [
+       "2026-07-01",
+       "junk",
+       "2026-07-01"
+      ],
+      "lifetime": -3
+     }
+    ]
+   }
+  },
+  "junk": {
+   "schemaVersion": "abc",
+   "accounts": "nope",
+   "transactions": [
+    null,
+    "str",
+    {
+     "amount": "x"
+    }
+   ],
+   "goals": [
+    {
+     "name": 5,
+     "target": "much",
+     "saved": null
+    }
+   ],
+   "recurring": [
+    {
+     "type": "weird",
+     "amount": -10,
+     "dayOfMonth": 99
+    }
+   ]
+  }
+ },
+ "sanitized": {
+  "v2legacy": {
+   "schemaVersion": 12,
+   "accounts": [
+    {
+     "id": "cash",
+     "name": "Cash",
+     "kind": "cash",
+     "balance": 1500.5,
+     "brand": "",
+     "icon": "",
+     "target": 0
+    },
+    {
+     "id": "weird",
+     "kind": "cash",
+     "balance": 200,
+     "extra": "kept",
+     "name": "Account",
+     "brand": "",
+     "icon": "",
+     "target": 0
+    }
+   ],
+   "assets": [],
+   "debts": [],
+   "payments": [
+    {
+     "amount": 0,
+     "date": "2026-06-01",
+     "id": "pay_restored_0"
+    },
+    {
+     "id": "p2",
+     "amount": 100,
+     "interest": 20,
+     "date": "2026-05-09"
+    }
+   ],
+   "transactions": [
+    {
+     "id": "t1",
+     "type": "expense",
+     "amount": 0,
+     "label": "Neg",
+     "date": "2026-05-02"
+    },
+    {
+     "id": "t2",
+     "type": "expense",
+     "amount": 75,
+     "label": "Entry",
+     "date": "2026-06-01"
+    },
+    {
+     "id": "t3",
+     "type": "expense",
+     "amount": 10,
+     "date": "2026-05-03",
+     "label": "Entry"
+    },
+    {
+     "id": "t4",
+     "type": "expense",
+     "amount": 10,
+     "receiptUri": "receipts/receipt_ab12.jpg",
+     "date": "2026-05-03",
+     "label": "Entry"
+    },
+    {
+     "id": "t5",
+     "type": "expense",
+     "amount": 10,
+     "accountId": "cash",
+     "date": "2026-05-04",
+     "label": "Entry"
+    },
+    {
+     "id": "t6",
+     "type": "transfer",
+     "amount": 30,
+     "date": "2026-05-05",
+     "label": "Entry"
+    },
+    {
+     "id": "t7",
+     "type": "transfer",
+     "amount": 30,
+     "flow": "out",
+     "accountId": "cash",
+     "date": "2026-05-05",
+     "label": "Entry"
+    },
+    {
+     "id": "t8",
+     "type": "adjustment",
+     "amount": 12,
+     "date": "2026-05-06",
+     "label": "Entry"
+    },
+    {
+     "id": "t9",
+     "type": "adjustment",
+     "amount": 12,
+     "flow": "in",
+     "accountId": "cash",
+     "date": "2026-05-06",
+     "label": "Entry"
+    },
+    {
+     "id": "t10",
+     "type": "expense",
+     "amount": 470,
+     "origCurrency": "JPY",
+     "origAmount": 1200,
+     "date": "2026-05-07",
+     "label": "Entry"
+    },
+    {
+     "id": "t11",
+     "type": "expense",
+     "amount": 470,
+     "date": "2026-05-07",
+     "label": "Entry"
+    },
+    {
+     "id": "t12",
+     "type": "income",
+     "amount": 100,
+     "source": "receivable",
+     "date": "2026-05-08",
+     "label": "Entry"
+    }
+   ],
+   "goals": [],
+   "wins": [],
+   "notes": [],
+   "recurring": [],
+   "categories": [
+    {
+     "id": "cat_food",
+     "name": "Food",
+     "icon": "🍜",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_transport",
+     "name": "Transport",
+     "icon": "🚌",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_load",
+     "name": "Load",
+     "icon": "📱",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_bills",
+     "name": "Bills",
+     "icon": "💡",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_groceries",
+     "name": "Groceries",
+     "icon": "🛒",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_fun",
+     "name": "Fun",
+     "icon": "🎉",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_padala",
+     "name": "Padala",
+     "icon": "💸",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_health",
+     "name": "Health",
+     "icon": "💊",
+     "monthlyCap": 0
+    }
+   ],
+   "people": [
+    {
+     "id": "person_m3_7",
+     "name": "Old",
+     "phone": "",
+     "note": ""
+    },
+    {
+     "id": "person_m3_8",
+     "name": "Migs",
+     "phone": "0917",
+     "note": ""
+    },
+    {
+     "id": "person_m3_9",
+     "name": "Ana",
+     "phone": "",
+     "note": ""
+    }
+   ],
+   "receivables": [
+    {
+     "payments": [],
+     "id": "r1",
+     "person": " Migs ",
+     "phone": "0917",
+     "amount": 500,
+     "personId": "person_m3_8",
+     "dueDate": "",
+     "note": "",
+     "paid": false,
+     "cashLeg": false
+    },
+    {
+     "payments": [],
+     "id": "r2",
+     "person": "migs",
+     "amount": 250,
+     "personId": "person_m3_8",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false,
+     "cashLeg": false
+    },
+    {
+     "payments": [],
+     "id": "r3",
+     "person": "Ana",
+     "amount": 100,
+     "paid": true,
+     "personId": "person_m3_9",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "cashLeg": false
+    },
+    {
+     "payments": [
+      {
+       "id": "k",
+       "amount": 20,
+       "date": "2026-06-01",
+       "settled": false
+      }
+     ],
+     "id": "r4",
+     "personId": "person_m3_7",
+     "person": "Old",
+     "amount": 50,
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false,
+     "cashLeg": false
+    }
+   ],
+   "payables": [],
+   "settings": {
+    "monthlyLimit": 9000,
+    "pro": false,
+    "appLock": false,
+    "custom": "kept",
+    "quickAdds": [],
+    "budgetCarryOver": false,
+    "notifications": {},
+    "treats": []
+   }
+  },
+  "v12rich": {
+   "schemaVersion": 12,
+   "accounts": [
+    {
+     "id": "bank",
+     "name": "Bank",
+     "kind": "savings",
+     "balance": 42500.5,
+     "brand": "",
+     "icon": "",
+     "target": 0
+    }
+   ],
+   "assets": [
+    {
+     "id": "a1",
+     "value": 15000
+    }
+   ],
+   "debts": [
+    {
+     "id": "cc",
+     "name": "Card",
+     "type": "credit card",
+     "remaining": 12400,
+     "interestThroughISO": "2026-07-01",
+     "monthlyRate": 0,
+     "minPayment": 0,
+     "dueDay": 0,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0
+    },
+    {
+     "id": "bad",
+     "name": "Debt",
+     "type": "personal loan",
+     "remaining": 30000,
+     "monthlyRate": 0,
+     "minPayment": 0,
+     "dueDay": 0,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0
+    }
+   ],
+   "payments": [
+    {
+     "id": "pay1",
+     "amount": 1500,
+     "interest": 300,
+     "principal": 1200,
+     "date": "2026-07-10"
+    }
+   ],
+   "transactions": [],
+   "goals": [],
+   "wins": [],
+   "notes": [],
+   "recurring": [],
+   "categories": [
+    {
+     "id": "food",
+     "name": "Food",
+     "icon": "X",
+     "monthlyCap": 0
+    },
+    {
+     "id": "coffee",
+     "name": "Coffee",
+     "parentId": "food",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "selfie",
+     "name": "Selfie",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "ghost",
+     "name": "Ghost",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "food_dup",
+     "name": "Dup",
+     "monthlyCap": 10,
+     "icon": "🏷️"
+    }
+   ],
+   "people": [],
+   "receivables": [
+    {
+     "id": "r1",
+     "person": "Migs",
+     "cashLeg": true,
+     "amount": 2000,
+     "payments": [
+      {
+       "amount": 500,
+       "settled": true,
+       "id": "rpay_restored_0",
+       "date": "2026-06-01"
+      }
+     ],
+     "personId": "",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false
+    }
+   ],
+   "payables": [
+    {
+     "id": "p1",
+     "person": "Lito",
+     "cashLeg": true,
+     "amount": 1200,
+     "payments": [],
+     "personId": "",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false
+    }
+   ],
+   "settings": {
+    "currency": "PHP",
+    "currencyCode": "PHP",
+    "monthlyLimit": 15000,
+    "pro": true,
+    "budgetCarryOver": false,
+    "appLock": false,
+    "notifications": {},
+    "quickAdds": [
+     {
+      "label": "Food",
+      "amount": 150
+     }
+    ],
+    "treats": [
+     {
+      "treat": "Milk tea",
+      "target": 14,
+      "windowDays": 7,
+      "checkIns": [
+       "2026-07-01"
+      ],
+      "lifetime": 0,
+      "id": "treat_restored_0",
+      "action": "My healthy action",
+      "emoji": "☕",
+      "createdAt": "2026-06-01"
+     }
+    ]
+   }
+  },
+  "junk": {
+   "schemaVersion": 12,
+   "accounts": [],
+   "assets": [],
+   "debts": [],
+   "payments": [],
+   "transactions": [
+    {
+     "amount": 0,
+     "date": "2026-06-01",
+     "type": "expense",
+     "label": "Entry"
+    }
+   ],
+   "goals": [
+    {
+     "name": "Goal",
+     "target": 0,
+     "saved": 0,
+     "targetDate": ""
+    }
+   ],
+   "wins": [],
+   "notes": [],
+   "recurring": [
+    {
+     "type": "expense",
+     "amount": 0,
+     "dayOfMonth": 31,
+     "id": "recurring_restored_0",
+     "label": "Recurring",
+     "accountId": "",
+     "lastPosted": ""
+    }
+   ],
+   "categories": [
+    {
+     "id": "cat_food",
+     "name": "Food",
+     "icon": "🍜",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_transport",
+     "name": "Transport",
+     "icon": "🚌",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_load",
+     "name": "Load",
+     "icon": "📱",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_bills",
+     "name": "Bills",
+     "icon": "💡",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_groceries",
+     "name": "Groceries",
+     "icon": "🛒",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_fun",
+     "name": "Fun",
+     "icon": "🎉",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_padala",
+     "name": "Padala",
+     "icon": "💸",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_health",
+     "name": "Health",
+     "icon": "💊",
+     "monthlyCap": 0
+    }
+   ],
+   "people": [],
+   "receivables": [],
+   "payables": [],
+   "settings": {
+    "monthlyLimit": 0,
+    "quickAdds": [],
+    "appLock": false,
+    "pro": false,
+    "budgetCarryOver": false,
+    "notifications": {},
+    "treats": []
+   }
+  }
+ },
+ "refusal": {
+  "threw": true,
+  "message": "This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed."
+ },
+ "parse": {
+  "badThrew": true,
+  "message": "That does not look like a Salapify backup.",
+  "wrapped": {
+   "schemaVersion": 12,
+   "accounts": [
+    {
+     "id": "bank",
+     "name": "Bank",
+     "kind": "savings",
+     "balance": 42500.5,
+     "brand": "",
+     "icon": "",
+     "target": 0
+    }
+   ],
+   "assets": [
+    {
+     "id": "a1",
+     "value": 15000
+    }
+   ],
+   "debts": [
+    {
+     "id": "cc",
+     "name": "Card",
+     "type": "credit card",
+     "remaining": 12400,
+     "interestThroughISO": "2026-07-01",
+     "monthlyRate": 0,
+     "minPayment": 0,
+     "dueDay": 0,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0
+    },
+    {
+     "id": "bad",
+     "name": "Debt",
+     "type": "personal loan",
+     "remaining": 30000,
+     "monthlyRate": 0,
+     "minPayment": 0,
+     "dueDay": 0,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0
+    }
+   ],
+   "payments": [
+    {
+     "id": "pay1",
+     "amount": 1500,
+     "interest": 300,
+     "principal": 1200,
+     "date": "2026-07-10"
+    }
+   ],
+   "transactions": [],
+   "goals": [],
+   "wins": [],
+   "notes": [],
+   "recurring": [],
+   "categories": [
+    {
+     "id": "food",
+     "name": "Food",
+     "icon": "X",
+     "monthlyCap": 0
+    },
+    {
+     "id": "coffee",
+     "name": "Coffee",
+     "parentId": "food",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "selfie",
+     "name": "Selfie",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "ghost",
+     "name": "Ghost",
+     "icon": "🏷️",
+     "monthlyCap": 0
+    },
+    {
+     "id": "food_dup",
+     "name": "Dup",
+     "monthlyCap": 10,
+     "icon": "🏷️"
+    }
+   ],
+   "people": [],
+   "receivables": [
+    {
+     "id": "r1",
+     "person": "Migs",
+     "cashLeg": true,
+     "amount": 2000,
+     "payments": [
+      {
+       "amount": 500,
+       "settled": true,
+       "id": "rpay_restored_0",
+       "date": "2026-06-01"
+      }
+     ],
+     "personId": "",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false
+    }
+   ],
+   "payables": [
+    {
+     "id": "p1",
+     "person": "Lito",
+     "cashLeg": true,
+     "amount": 1200,
+     "payments": [],
+     "personId": "",
+     "dueDate": "",
+     "phone": "",
+     "note": "",
+     "paid": false
+    }
+   ],
+   "settings": {
+    "currency": "PHP",
+    "currencyCode": "PHP",
+    "monthlyLimit": 15000,
+    "pro": true,
+    "budgetCarryOver": false,
+    "appLock": false,
+    "notifications": {},
+    "quickAdds": [
+     {
+      "label": "Food",
+      "amount": 150
+     }
+    ],
+    "treats": [
+     {
+      "treat": "Milk tea",
+      "target": 14,
+      "windowDays": 7,
+      "checkIns": [
+       "2026-07-01"
+      ],
+      "lifetime": 0,
+      "id": "treat_restored_0",
+      "action": "My healthy action",
+      "emoji": "☕",
+      "createdAt": "2026-06-01"
+     }
+    ]
+   }
+  },
+  "bare": {
+   "schemaVersion": 12,
+   "accounts": [],
+   "assets": [],
+   "debts": [],
+   "payments": [],
+   "transactions": [],
+   "goals": [],
+   "wins": [],
+   "notes": [],
+   "recurring": [],
+   "categories": [
+    {
+     "id": "cat_food",
+     "name": "Food",
+     "icon": "🍜",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_transport",
+     "name": "Transport",
+     "icon": "🚌",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_load",
+     "name": "Load",
+     "icon": "📱",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_bills",
+     "name": "Bills",
+     "icon": "💡",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_groceries",
+     "name": "Groceries",
+     "icon": "🛒",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_fun",
+     "name": "Fun",
+     "icon": "🎉",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_padala",
+     "name": "Padala",
+     "icon": "💸",
+     "monthlyCap": 0
+    },
+    {
+     "id": "cat_health",
+     "name": "Health",
+     "icon": "💊",
+     "monthlyCap": 0
+    }
+   ],
+   "people": [],
+   "receivables": [],
+   "payables": [],
+   "settings": {
+    "monthlyLimit": 0,
+    "quickAdds": [],
+    "appLock": false,
+    "pro": false,
+    "budgetCarryOver": false,
+    "notifications": {},
+    "treats": []
+   }
+  }
+ },
+ "schemaVersion": 12,
+ "defaultCategories": [
+  {
+   "id": "cat_food",
+   "name": "Food",
+   "icon": "🍜",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_transport",
+   "name": "Transport",
+   "icon": "🚌",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_load",
+   "name": "Load",
+   "icon": "📱",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_bills",
+   "name": "Bills",
+   "icon": "💡",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_groceries",
+   "name": "Groceries",
+   "icon": "🛒",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_fun",
+   "name": "Fun",
+   "icon": "🎉",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_padala",
+   "name": "Padala",
+   "icon": "💸",
+   "monthlyCap": 0
+  },
+  {
+   "id": "cat_health",
+   "name": "Health",
+   "icon": "💊",
+   "monthlyCap": 0
+  }
+ ]
+}
