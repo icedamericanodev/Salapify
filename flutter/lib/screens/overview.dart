@@ -4,6 +4,8 @@
 // the text the RN Backup screen shows), so the founder's data carries over
 // with zero extra plugins.
 
+import 'dart:convert' show jsonDecode;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
@@ -393,6 +395,21 @@ class _ImportScreenState extends State<ImportScreen> {
   bool busy = false;
 
   Future<void> _import() async {
+    // Validate BEFORE the scary dialog, like the RN app: garbage should get
+    // the JSON error, never a replace-everything confirm.
+    try {
+      parseBackupObject(jsonDecode(controller.text.trim()));
+    } on NewerBackupException catch (e) {
+      setState(() => error = e.message);
+      return;
+    } on NotABackupException catch (e) {
+      setState(() => error = e.message);
+      return;
+    } on FormatException {
+      setState(() => error =
+          'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      return;
+    }
     // Importing over existing data replaces EVERYTHING in one tap, the most
     // destructive action in the app, so it confirms first, the same standard
     // the RN app holds for replaceAll. A snapshot of the outgoing data is
@@ -438,6 +455,11 @@ class _ImportScreenState extends State<ImportScreen> {
     } on FormatException {
       setState(() => error =
           'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+    } catch (e) {
+      // The snapshot or save failed; the store aborted or rolled back, so
+      // nothing was replaced. Say so instead of failing silently.
+      setState(() =>
+          error = 'Could not import, so nothing was changed. $e');
     } finally {
       if (mounted) setState(() => busy = false);
     }

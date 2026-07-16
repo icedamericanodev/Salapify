@@ -101,6 +101,36 @@ void main() {
     expect((store.data['accounts'] as List).single['id'], 'x');
   });
 
+  test('a recovery import over an UNREADABLE blob still snapshots the raw '
+      'bytes, the only copy of data the app could not read', () async {
+    // A blob from a future app version: load() refuses it, memory stays the
+    // empty default, hasData is false. The old snapshot logic (gated on
+    // hasData, reading memory) would have destroyed this blob silently.
+    final newerBlob = jsonEncode({
+      'schemaVersion': 99,
+      'accounts': [
+        {'id': 'future', 'name': 'Future money', 'balance': 12345},
+      ],
+    });
+    SharedPreferences.setMockInitialValues({storageKey: newerBlob});
+    final store = SalapifyStore();
+    await store.load();
+    expect(store.loadError, isNotNull);
+    expect(store.hasData, isFalse);
+    // The documented recovery action: paste a valid backup.
+    await store.importBackupText(buildBackupText(
+        sanitizeData({
+          'accounts': [
+            {'id': 'x', 'name': 'X', 'kind': 'cash', 'balance': 1},
+          ],
+        }),
+        exportedAt: '2026-07-16T12:00:00.000Z'));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(previousBackupKey), newerBlob,
+        reason: 'the unreadable blob must survive byte for byte');
+    expect(store.canWrite, isTrue);
+  });
+
   testWidgets('importing over existing data asks before replacing',
       (tester) async {
     SharedPreferences.setMockInitialValues(

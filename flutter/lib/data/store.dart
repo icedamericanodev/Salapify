@@ -115,6 +115,10 @@ class SalapifyStore extends ChangeNotifier {
         'people',
         'debts',
         'goals',
+        'assets',
+        'wins',
+        'notes',
+        'recurring',
       ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
 
   Future<void> load() async {
@@ -144,13 +148,18 @@ class SalapifyStore extends ChangeNotifier {
   /// replaced and persisted.
   Future<void> importBackupText(String text) => _serialized(() async {
         final parsed = parseBackupObject(jsonDecode(text));
-        // Snapshot BEFORE anything is replaced: the outgoing blob survives
-        // under the side key until the next import. If this write fails the
-        // import aborts with memory and disk untouched; replacing data
-        // without the net would be the one unforgivable loss.
-        if (hasData) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(previousBackupKey, jsonEncode(data));
+        // Snapshot BEFORE anything is replaced, and snapshot the RAW stored
+        // blob, not what memory holds: after a failed or refused read
+        // (newer version, corrupt bytes) memory is the empty default while
+        // disk still holds the ONLY copy of the user's data, and this
+        // import is the documented recovery action about to overwrite it.
+        // If this write fails the import aborts with memory and disk
+        // untouched; replacing data without the net would be the one
+        // unforgivable loss.
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(storageKey);
+        if (raw != null && raw.isNotEmpty) {
+          await prefs.setString(previousBackupKey, raw);
         }
         final previous = data;
         data = ensureUniqueTxnIds(parsed);
