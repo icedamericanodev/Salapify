@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.21 · The safety copy now protects even data the app could not read';
+    'f0.22 · The Insights math engine arrives, screens follow next';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
