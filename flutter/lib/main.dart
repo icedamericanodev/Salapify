@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.15 · Delete is now bulletproof, QA fixes for history';
+    'f0.16 · New base build, icon font fixed so patches always apply';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
