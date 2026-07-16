@@ -10,7 +10,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dart:math';
+
 import '../money/ledger.dart' as ledger;
+import '../money/receivables.dart' as receivables;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -25,12 +28,14 @@ const String storageKey = 'salapify_data_v2';
 Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
   final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
   final seen = <String>{};
+  final duplicated = <String>{};
   var restored = 0;
   var changed = false;
   final out = txs.map((t) {
     final raw = t['id'];
     var id = raw is String ? raw : '';
     if (id.isEmpty || seen.contains(id)) {
+      if (id.isNotEmpty) duplicated.add(id);
       do {
         id = 'tx_restored_$restored';
         restored++;
@@ -42,7 +47,51 @@ Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
     return t;
   }).toList();
   if (!changed) return data;
-  return {...data, 'transactions': out};
+  var result = {...data, 'transactions': out};
+  // A renamed duplicate leaves any payment txnId or lendTxnId that carried
+  // the duplicated id pointing at the SURVIVING row, which may be a totally
+  // unrelated transaction. Reversing through such a link would delete the
+  // wrong entry and move the wrong money, so ambiguous links are cleared;
+  // an unlinked payment falls into the honest "nothing linked to reverse"
+  // path instead.
+  if (duplicated.isNotEmpty) {
+    for (final key in ['receivables', 'payables']) {
+      final rows = result[key];
+      if (rows is! List) continue;
+      var rowsChanged = false;
+      final newRows = rows.map((row) {
+        if (row is! Map) return row;
+        var r = row.cast<String, dynamic>();
+        var rowChanged = false;
+        final lend = r['lendTxnId'];
+        if (lend is String && duplicated.contains(lend)) {
+          r = {...r, 'lendTxnId': ''};
+          rowChanged = true;
+        }
+        final pays = r['payments'];
+        if (pays is List) {
+          var paysChanged = false;
+          final newPays = pays.map((p) {
+            if (p is Map &&
+                p['txnId'] is String &&
+                duplicated.contains(p['txnId'])) {
+              paysChanged = true;
+              return {...p.cast<String, dynamic>(), 'txnId': ''};
+            }
+            return p;
+          }).toList();
+          if (paysChanged) {
+            r = {...r, 'payments': newPays};
+            rowChanged = true;
+          }
+        }
+        if (rowChanged) rowsChanged = true;
+        return rowChanged ? r : row;
+      }).toList();
+      if (rowsChanged) result = {...result, key: newRows};
+    }
+  }
+  return result;
 }
 
 class SalapifyStore extends ChangeNotifier {
@@ -136,6 +185,97 @@ class SalapifyStore extends ChangeNotifier {
           rethrow;
         }
         notifyListeners();
+      });
+
+  /// One shared guard-mutate-save-rollback wrapper for engine writes: check
+  /// canWrite, apply a pure engine function, persist, roll back and rethrow
+  /// if the disk says no. Keeps every receivables write path on exactly the
+  /// same discipline as addEntry and removeEntry.
+  Future<void> _mutate(
+          Map<String, dynamic> Function(Map<String, dynamic>) apply) =>
+      _serialized(() async {
+        if (!canWrite) {
+          throw StateError(
+              'Saving is off because your stored data could not be read. '
+              'Import a backup to recover first.');
+        }
+        final previous = data;
+        data = apply(previous);
+        try {
+          await _save();
+        } catch (e) {
+          data = previous;
+          notifyListeners();
+          rethrow;
+        }
+        notifyListeners();
+      });
+
+  final _rand = Random();
+
+  /// Unique id for engine writes: timestamp plus 48 random bits, the same
+  /// recipe as newEntryId, prefixed per collection like the RN genId.
+  String _genId(String prefix) {
+    final ms = DateTime.now().millisecondsSinceEpoch;
+    final a = _rand.nextInt(0x1000000).toRadixString(36);
+    final b = _rand.nextInt(0x1000000).toRadixString(36);
+    return '${prefix}_$ms$a$b';
+  }
+
+  String _todayISO() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Log a partial utang payment through the golden-verified engine.
+  Future<void> collectUtangPayment(String receivableId, String amountText) =>
+      _mutate((d) => receivables.logPartial(d, receivableId, amountText,
+          today: _todayISO(), genId: _genId));
+
+  /// Settle whatever is still owed on one utang.
+  Future<void> markUtangPaid(String receivableId) =>
+      _mutate((d) => receivables.markPaid(d, receivableId,
+          today: _todayISO(), genId: _genId));
+
+  /// Remove one logged payment and reverse its income entry.
+  Future<void> removeUtangPayment(String receivableId, String paymentId) =>
+      _mutate(
+          (d) => receivables.removePayment(d, receivableId, paymentId));
+
+  /// Create a new utang. Throws ArgumentError with a friendly message when
+  /// the engine refuses (blank name, bad amount, impossible date).
+  Future<void> addUtang({
+    required String person,
+    required String amountText,
+    String dueDate = '',
+    String phone = '',
+    String note = '',
+    String fromAccount = '',
+  }) =>
+      _mutate((d) {
+        final r = receivables.saveReceivable(
+          d,
+          person: person,
+          amountText: amountText,
+          dueDate: dueDate,
+          phone: phone,
+          note: note,
+          fromAccount: fromAccount,
+          today: _todayISO(),
+          genId: _genId,
+        );
+        if (r.error != null) {
+          throw ArgumentError(switch (r.error) {
+            'name' => 'Please enter a name.',
+            'amount' => 'Enter a valid amount.',
+            'date' =>
+              'That date does not exist. Type it like 2026-07-15.',
+            _ => 'Could not save this utang.',
+          });
+        }
+        return r.data;
       });
 
   /// Remove an entry through the engine (the linked account gets its money

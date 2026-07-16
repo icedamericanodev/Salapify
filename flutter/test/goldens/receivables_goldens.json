@@ -1,0 +1,5205 @@
+{
+  "today": "2026-07-16",
+  "scenarios": [
+    {
+      "name": "logPartial legacy routes income to default account",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20250
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 250,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "bank",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              },
+              {
+                "id": "rpay_g1",
+                "amount": 250,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "logPartial clamps above remaining and settles",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 21500
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 1500,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "bank",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              },
+              {
+                "id": "rpay_g1",
+                "amount": 1500,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0"
+              }
+            ],
+            "paid": true
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "logPartial cashLeg routes a transfer back into the account",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5400
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "transfer",
+            "flow": "in",
+            "label": "Ana paid you back",
+            "amount": 400,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "cash",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "rpay_g1",
+                "amount": 400,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0"
+              }
+            ],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "logPartial zero remaining records nothing",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "logPartial junk amount records nothing",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "markPaid settles the remainder with a settled-tagged payment",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 21500
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 1500,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "bank",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              },
+              {
+                "id": "rpay_g1",
+                "amount": 1500,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0",
+                "settled": true
+              }
+            ],
+            "paid": true
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "markPaid with nothing left just closes",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": true
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "markPaid cashLeg returns cash as a transfer",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 6000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "transfer",
+            "flow": "in",
+            "label": "Ana paid you back",
+            "amount": 1000,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "cash",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "rpay_g1",
+                "amount": 1000,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0",
+                "settled": true
+              }
+            ],
+            "paid": true,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "removePayment reverses the txn and reopens",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 19600
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "removePayment without txnId only drops the row",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save creates utang and person, legacy",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "id": "receivables_g1"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          },
+          {
+            "name": "Juan Cruz",
+            "phone": "0999",
+            "note": "",
+            "id": "people_g0"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          },
+          {
+            "person": "Juan Cruz",
+            "personId": "people_g0",
+            "amount": 750,
+            "dueDate": "2026-08-01",
+            "phone": "0999",
+            "note": "sa jeep",
+            "payments": [],
+            "paid": false,
+            "id": "receivables_g1"
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save matches existing person case-insensitively and updates phone",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "id": "receivables_g0"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0918",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          },
+          {
+            "person": "ana",
+            "personId": "p2",
+            "amount": 150,
+            "dueDate": "",
+            "phone": "0918",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "id": "receivables_g0"
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save with fromAccount records the lending cash leg",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "id": "receivables_g0"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 4400
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Migs",
+            "amount": 600,
+            "date": "2026-07-16",
+            "accountId": "cash",
+            "source": "receivable",
+            "id": "transactions_g1"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          },
+          {
+            "person": "Migs",
+            "personId": "p1",
+            "amount": 600,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "id": "receivables_g0",
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "transactions_g1"
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save refuses an impossible date",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "error": "date"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save refuses editing the total below what is paid",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "error": "below-paid"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save paid toggle on posts the settling income",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "id": "r1"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 21500
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 1500,
+            "date": "2026-07-16",
+            "source": "receivable",
+            "accountId": "bank",
+            "id": "transactions_g0"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              },
+              {
+                "id": "rpay_g1",
+                "amount": 1500,
+                "date": "2026-07-16",
+                "txnId": "transactions_g0",
+                "settled": true
+              }
+            ],
+            "paid": true
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "save reopen reverses only settled-tagged payments",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": {
+        "id": "r4"
+      },
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 19600
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "delete reverses payments and the lend leg",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 6000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    },
+    {
+      "name": "delete reverses payment incomes",
+      "initial": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 20000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old3",
+            "type": "income",
+            "label": "Migs paid you back",
+            "amount": 400,
+            "date": "2026-07-02",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r4",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 400,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old3",
+                "amount": 400,
+                "date": "2026-07-02",
+                "txnId": "txn_old3",
+                "settled": true
+              }
+            ],
+            "paid": true
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      },
+      "result": null,
+      "after": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "Cash",
+            "kind": "cash",
+            "balance": 5000
+          },
+          {
+            "id": "bank",
+            "name": "Bank",
+            "kind": "bank",
+            "balance": 19600
+          }
+        ],
+        "transactions": [
+          {
+            "id": "lend1",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Lent to Ana",
+            "amount": 1000,
+            "date": "2026-07-01",
+            "accountId": "cash",
+            "source": "receivable"
+          },
+          {
+            "id": "txn_old2",
+            "type": "income",
+            "label": "Ben paid you back",
+            "amount": 300,
+            "date": "2026-07-01",
+            "accountId": "bank",
+            "source": "receivable"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs",
+            "phone": "",
+            "note": ""
+          },
+          {
+            "id": "p2",
+            "name": "Ana",
+            "phone": "0917",
+            "note": ""
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 2000,
+            "dueDate": "2026-07-04",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old1",
+                "amount": 500,
+                "date": "2026-07-10",
+                "txnId": ""
+              }
+            ],
+            "paid": false
+          },
+          {
+            "id": "r2",
+            "personId": "p2",
+            "person": "Ana",
+            "amount": 1000,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [],
+            "paid": false,
+            "cashLeg": true,
+            "accountId": "cash",
+            "lendTxnId": "lend1"
+          },
+          {
+            "id": "r3",
+            "person": "Ben",
+            "amount": 300,
+            "dueDate": "",
+            "phone": "",
+            "note": "",
+            "payments": [
+              {
+                "id": "old2",
+                "amount": 300,
+                "date": "2026-07-01",
+                "txnId": "txn_old2"
+              }
+            ],
+            "paid": false
+          }
+        ],
+        "settings": {
+          "defaultAccountId": "bank"
+        }
+      }
+    }
+  ]
+}
