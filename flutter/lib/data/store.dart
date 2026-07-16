@@ -95,4 +95,31 @@ class SalapifyStore extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// Remove an entry through the engine (the linked account gets its money
+  /// back), with the same write guard and rollback discipline as addEntry.
+  /// Returns the removed transaction map so the caller can offer undo by
+  /// re-adding the exact same entry.
+  Future<Map<String, dynamic>?> removeEntry(String id) async {
+    if (!canWrite) {
+      throw StateError(
+          'Saving is off because your stored data could not be read. '
+          'Import a backup to recover first.');
+    }
+    final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
+    final idx = txs.indexWhere((t) => t['id'] == id);
+    if (idx < 0) return null;
+    final removed = txs[idx];
+    final previous = data;
+    data = ledger.removeTransaction(data, id);
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    notifyListeners();
+    return removed;
+  }
 }
