@@ -41,14 +41,19 @@ class OverviewScreen extends StatelessWidget {
         (data['accounts'] as List).cast<Map<String, dynamic>>();
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Barako.primary,
-        foregroundColor: Barako.onPrimary,
-        onPressed: () => showLogSheet(context, store),
-        icon: const Icon(Icons.add),
-        label: const Text('Log',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      // No Log button until the store loaded cleanly: after a failed read,
+      // saving would overwrite data we could not read, so the write path
+      // stays closed (the store enforces it too; this hides the door).
+      floatingActionButton: store.canWrite
+          ? FloatingActionButton.extended(
+              backgroundColor: Barako.primary,
+              foregroundColor: Barako.onPrimary,
+              onPressed: () => showLogSheet(context, store),
+              icon: const Icon(Icons.add),
+              label: const Text('Log',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            )
+          : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
