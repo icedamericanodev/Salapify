@@ -16,10 +16,14 @@ on:
       - 'flutter/**'
   workflow_dispatch:
 
-# One build at a time; a newer push supersedes an in-flight one.
+# One build at a time, and builds QUEUE rather than cancel: a Shorebird
+# release or patch in flight must always finish and reach its publish step,
+# otherwise a cancelled first release could exist server-side with no base
+# APK ever published, leaving every later green run patching a release
+# nobody can install.
 concurrency:
   group: flutter-preview
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write # needed to update the flutter-preview release
@@ -65,13 +69,17 @@ jobs:
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
           echo "pubspec version: $VERSION"
-          if shorebird releases list 2>/dev/null | grep -Fq "$VERSION"; then
+          # If the list itself fails (auth, outage), stop loudly rather than
+          # guess the wrong branch. Padded match so 0.1.0+1 never matches a
+          # future 0.1.0+11 row.
+          LIST=$(shorebird releases list) || { echo "shorebird releases list failed; refusing to guess release vs patch."; exit 1; }
+          if echo "$LIST" | grep -Fq " $VERSION "; then
             echo "Release $VERSION exists; pushing an over-the-air PATCH."
             shorebird patch android --release-version "$VERSION" --no-confirm
             echo "mode=patch" >> "$GITHUB_OUTPUT"
           else
             echo "No release $VERSION yet; building the base APK (founder installs this once)."
-            shorebird release android --artifact apk --no-confirm
+            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm
             echo "mode=release" >> "$GITHUB_OUTPUT"
           fi
 

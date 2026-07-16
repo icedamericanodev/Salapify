@@ -13,7 +13,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.10 · Shorebird wired: after one more install, updates arrive on their own';
+    'f0.11 · Self-updating pipeline hardened and live';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
