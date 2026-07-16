@@ -13,7 +13,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.11 · Self-updating pipeline hardened and live';
+    'f0.12 · First self-updating build, secret in place';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
