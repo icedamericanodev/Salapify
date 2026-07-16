@@ -21,9 +21,8 @@ List<Map<String, dynamic>> _list(Map<String, dynamic> data, String key) =>
     (data[key] as List? ?? []).cast<Map<String, dynamic>>();
 
 double paidSumOf(Map<String, dynamic> r) =>
-    (r['payments'] as List? ?? [])
-        .cast<Map<String, dynamic>>()
-        .fold(0.0, (t, p) => t + ledger.amountOf(p['amount']));
+    (r['payments'] as List? ?? []).fold(
+        0.0, (t, p) => t + (p is Map ? ledger.amountOf(p['amount']) : 0.0));
 
 double remainingOf(Map<String, dynamic> r) {
   final rem = ledger.amountOf(r['amount']) - paidSumOf(r);
@@ -35,7 +34,10 @@ String nameOf(Map<String, dynamic> data, Map<String, dynamic> r) {
   for (final p in people) {
     if (p['id'] == r['personId']) {
       final n = p['name'];
-      if (n is String && n.isNotEmpty) return n;
+      // Whitespace-only names fall through to the legacy string, the same
+      // rule utangAging uses, so a person row on the aging screen always
+      // opens a sheet that folds to the same entries.
+      if (n is String && n.trim().isNotEmpty) return n;
       break;
     }
   }
@@ -339,6 +341,13 @@ SaveResult saveReceivable(
     });
   }
 
+  // KNOWN PARITY BUG, kept on purpose: for an EDIT of a cashLeg utang,
+  // lendAcctId is always empty, so flipping paid here would post income to
+  // the default account instead of a transfer back into the lending
+  // account. The RN app has the identical bug (receivables.js:217), the
+  // goldens replay it, and no Flutter UI passes id with paid yet. Fix it in
+  // BOTH apps together (route through the stored cashLeg and accountId)
+  // before any edit-utang UI ships.
   final collectRef = {
     'person': name,
     'personId': personId,

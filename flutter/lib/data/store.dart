@@ -28,12 +28,14 @@ const String storageKey = 'salapify_data_v2';
 Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
   final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
   final seen = <String>{};
+  final duplicated = <String>{};
   var restored = 0;
   var changed = false;
   final out = txs.map((t) {
     final raw = t['id'];
     var id = raw is String ? raw : '';
     if (id.isEmpty || seen.contains(id)) {
+      if (id.isNotEmpty) duplicated.add(id);
       do {
         id = 'tx_restored_$restored';
         restored++;
@@ -45,7 +47,51 @@ Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
     return t;
   }).toList();
   if (!changed) return data;
-  return {...data, 'transactions': out};
+  var result = {...data, 'transactions': out};
+  // A renamed duplicate leaves any payment txnId or lendTxnId that carried
+  // the duplicated id pointing at the SURVIVING row, which may be a totally
+  // unrelated transaction. Reversing through such a link would delete the
+  // wrong entry and move the wrong money, so ambiguous links are cleared;
+  // an unlinked payment falls into the honest "nothing linked to reverse"
+  // path instead.
+  if (duplicated.isNotEmpty) {
+    for (final key in ['receivables', 'payables']) {
+      final rows = result[key];
+      if (rows is! List) continue;
+      var rowsChanged = false;
+      final newRows = rows.map((row) {
+        if (row is! Map) return row;
+        var r = row.cast<String, dynamic>();
+        var rowChanged = false;
+        final lend = r['lendTxnId'];
+        if (lend is String && duplicated.contains(lend)) {
+          r = {...r, 'lendTxnId': ''};
+          rowChanged = true;
+        }
+        final pays = r['payments'];
+        if (pays is List) {
+          var paysChanged = false;
+          final newPays = pays.map((p) {
+            if (p is Map &&
+                p['txnId'] is String &&
+                duplicated.contains(p['txnId'])) {
+              paysChanged = true;
+              return {...p.cast<String, dynamic>(), 'txnId': ''};
+            }
+            return p;
+          }).toList();
+          if (paysChanged) {
+            r = {...r, 'payments': newPays};
+            rowChanged = true;
+          }
+        }
+        if (rowChanged) rowsChanged = true;
+        return rowChanged ? r : row;
+      }).toList();
+      if (rowsChanged) result = {...result, key: newRows};
+    }
+  }
+  return result;
 }
 
 class SalapifyStore extends ChangeNotifier {

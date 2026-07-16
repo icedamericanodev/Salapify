@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/money/receivables.dart' as engine;
+import 'package:salapify/screens/utang.dart' show openUtangFor;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
@@ -159,6 +161,115 @@ void main() {
         .cast<Map<String, dynamic>>()
         .first;
     expect((r['payments'] as List).length, 1);
+  });
+
+  test('repairing duplicate txn ids clears the payment links that carried '
+      'the duplicated id, so removal cannot reverse the wrong money',
+      () async {
+    final dirty = blob();
+    // An unrelated expense and the payment's income share id 'dup'; the
+    // receivable's payment points at 'dup'. After repair the link must be
+    // gone, or removing the payment would refund the Groceries expense.
+    dirty['transactions'] = [
+      {
+        'id': 'dup',
+        'type': 'expense',
+        'label': 'Groceries',
+        'amount': 900,
+        'date': '2026-07-10',
+        'accountId': 'bank',
+      },
+      {
+        'id': 'dup',
+        'type': 'income',
+        'label': 'Migs paid you back',
+        'amount': 250,
+        'date': '2026-07-11',
+        'accountId': 'bank',
+        'source': 'receivable',
+      },
+    ];
+    (dirty['receivables'] as List)[0] = {
+      'id': 'r1',
+      'personId': 'p1',
+      'person': 'Migs',
+      'amount': 2000,
+      'dueDate': '',
+      'payments': [
+        {'id': 'pay1', 'amount': 250, 'date': '2026-07-11', 'txnId': 'dup'},
+      ],
+      'paid': false,
+    };
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(dirty)});
+    final store = await loaded();
+    final r = receivable(store, 'r1');
+    final payment = ((r['payments'] as List).first as Map);
+    expect(payment['txnId'], '',
+        reason: 'the ambiguous link must be cleared on load');
+    // Removing the payment now drops the row and moves NO money: both
+    // transactions and the bank balance stay untouched.
+    await store.removeUtangPayment('r1', 'pay1');
+    expect((store.data['transactions'] as List).length, 2);
+    expect(balanceOf(store, 'bank'), 20000);
+    expect((receivable(store, 'r1')['payments'] as List), isEmpty);
+  });
+
+  test('a whitespace-named person record falls back to the legacy name, '
+      'matching the aging fold', () async {
+    final dirty = blob();
+    (dirty['people'] as List).add({'id': 'p9', 'name': '  '});
+    (dirty['receivables'] as List).add({
+      'id': 'r9',
+      'personId': 'p9',
+      'person': 'Juan',
+      'amount': 500,
+      'dueDate': '',
+      'payments': [],
+      'paid': false,
+    });
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(dirty)});
+    final store = await loaded();
+    expect(openUtangFor(store.data, 'Juan').length, 1,
+        reason: 'the aging row Juan must open a sheet with the entry');
+  });
+
+  test('junk entries inside payments do not crash the pure helpers', () {
+    expect(
+        engine.paidSumOf({
+          'amount': 100,
+          'payments': [null, 'junk', {'amount': 40}],
+        }),
+        40);
+    expect(
+        engine.remainingOf({
+          'amount': 100,
+          'payments': [null, {'amount': 40}],
+        }),
+        60);
+  });
+
+  testWidgets('the add utang sheet refuses a comma decimal amount',
+      (tester) async {
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Utang'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New utang'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Who borrowed? e.g. Juan'), 'Ben');
+    await tester.enterText(find.widgetWithText(TextField, '0.00'), '2,50');
+    await tester.ensureVisible(find.text('Save utang'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save utang'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Use a period for centavos'), findsOneWidget);
+    expect((store.data['receivables'] as List).length, 1,
+        reason: '2,50 must never save as 250');
   });
 
   testWidgets('the add utang sheet saves a new utang', (tester) async {

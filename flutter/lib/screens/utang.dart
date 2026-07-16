@@ -282,11 +282,17 @@ class _PersonSheetState extends State<PersonSheet> {
           error = 'Enter a plain amount above zero, like 250 or 99.50.');
       return;
     }
+    final text = payController.text;
     await _run(() async {
       await widget.store
-          .collectUtangPayment((r['id'] ?? '').toString(), payController.text);
-      payController.clear();
-      payingFor = null;
+          .collectUtangPayment((r['id'] ?? '').toString(), text);
+      // The sheet may have been dismissed while the save was in flight; the
+      // payment is already persisted, so only touch the controller if the
+      // widget is still alive.
+      if (mounted) {
+        payController.clear();
+        payingFor = null;
+      }
     });
   }
 
@@ -620,6 +626,16 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
 
   Future<void> _save() async {
     if (saving) return;
+    // The same strict parse as every other money field: a bare comma decimal
+    // like 2,50 is rejected with guidance, never silently read as 250 (which
+    // would move 250 real pesos out of the source account).
+    final amount = parseAmount(amountController.text);
+    if (amount == null) {
+      setState(() => error = amountController.text.contains(',')
+          ? 'Use a period for centavos, like 2.50. Commas only group thousands.'
+          : 'Enter a plain amount above zero, like 250 or 99.50.');
+      return;
+    }
     setState(() {
       error = null;
       saving = true;
@@ -627,7 +643,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
     try {
       await widget.store.addUtang(
         person: personController.text,
-        amountText: amountController.text.replaceAll(',', ''),
+        amountText: amount.toString(),
         dueDate: dueController.text,
         note: noteController.text,
         fromAccount: fromAccount,
