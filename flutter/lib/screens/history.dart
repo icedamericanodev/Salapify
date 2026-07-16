@@ -19,14 +19,41 @@ const _filters = [
 ];
 
 /// Only a plain logged income or expense may be swiped away: no flow legs,
-/// no utang-sourced income, no record rows. Everything else is a record of
-/// money that already moved elsewhere.
-bool isDeletable(Map<String, dynamic> t) {
+/// no utang-sourced income, no record rows, and nothing a payable or
+/// receivable payment points at through txnId (the legacy payable payment
+/// posts a plain expense with no source stamp, so the txnId link is the only
+/// thing marking it as spoken for). A row with no usable id is not deletable
+/// either: the store could never find it, and the swipe would ghost the row.
+bool isDeletable(Map<String, dynamic> t, {Set<String> lockedIds = const {}}) {
+  final id = t['id'];
+  if (id is! String || id.isEmpty) return false;
+  if (lockedIds.contains(id)) return false;
   final type = t['type'];
   if (type != 'income' && type != 'expense') return false;
   if (t['flow'] != null) return false;
   if (t['source'] != null) return false;
   return true;
+}
+
+/// Every transaction id referenced by a payable or receivable payment.
+Set<String> ledgerLinkedTxnIds(Map<String, dynamic> data) {
+  final ids = <String>{};
+  for (final key in ['payables', 'receivables']) {
+    final list = data[key];
+    if (list is! List) continue;
+    for (final item in list) {
+      if (item is! Map) continue;
+      final payments = item['payments'];
+      if (payments is! List) continue;
+      for (final p in payments) {
+        if (p is Map) {
+          final txnId = p['txnId'];
+          if (txnId is String && txnId.isNotEmpty) ids.add(txnId);
+        }
+      }
+    }
+  }
+  return ids;
 }
 
 String dateHeader(String iso, DateTime now) {
@@ -55,15 +82,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final all = (widget.store.data['transactions'] as List)
         .cast<Map<String, dynamic>>();
-    final txs = all.where((t) {
-      if (filter == 'all') return true;
-      if (filter == 'records') {
-        return t['type'] != 'income' && t['type'] != 'expense';
-      }
-      return t['type'] == filter;
-    }).toList()
-      ..sort((a, b) =>
-          (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()));
+    final locked = ledgerLinkedTxnIds(widget.store.data);
+    // Keep the insertion index as the same-day tie-break (newest log first,
+    // matching the RN app). List.sort alone is not stable, so without it rows
+    // logged on the same day would shuffle between rebuilds.
+    final indexed = <(Map<String, dynamic>, int)>[];
+    for (var i = 0; i < all.length; i++) {
+      final t = all[i];
+      final keep = filter == 'all' ||
+          (filter == 'records'
+              ? t['type'] != 'income' && t['type'] != 'expense'
+              : t['type'] == filter);
+      if (keep) indexed.add((t, i));
+    }
+    indexed.sort((a, b) {
+      final byDate = (b.$1['date'] ?? '')
+          .toString()
+          .compareTo((a.$1['date'] ?? '').toString());
+      if (byDate != 0) return byDate;
+      return b.$2.compareTo(a.$2);
+    });
+    final txs = [for (final e in indexed) e.$1];
 
     final now = DateTime.now();
     // Rows interleaved with headers, newest day first.
@@ -83,7 +122,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   letterSpacing: 1.5)),
         ));
       }
-      items.add(_row(t));
+      items.add(_row(t, locked));
     }
 
     return Scaffold(
@@ -165,7 +204,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       );
 
-  Widget _row(Map<String, dynamic> t) {
+  Widget _row(Map<String, dynamic> t, Set<String> locked) {
     final type = (t['type'] ?? '').toString();
     final isIncome = type == 'income';
     final record = type != 'income' && type != 'expense';
@@ -209,8 +248,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
 
-    if (!isDeletable(t)) return row;
+    if (!isDeletable(t, lockedIds: locked)) return row;
 
+    // The delete runs inside confirmDismiss, so the row only leaves the tree
+    // AFTER the store really removed and persisted it. Doing the work in
+    // onDismissed instead would drop the row from the tree first and then
+    // throw "dismissed Dismissible still part of the tree" whenever the
+    // delete failed or the id did not match anything.
     return Dismissible(
       key: ValueKey(t['id']),
       direction: DismissDirection.endToStart,
@@ -221,24 +265,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
             color: Barako.warning, borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
-      onDismissed: (_) async {
+      confirmDismiss: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         try {
           final removed =
               await widget.store.removeEntry((t['id'] ?? '').toString());
-          if (removed == null) return;
+          if (removed == null) return false;
           messenger.showSnackBar(SnackBar(
             content: const Text(
                 'Deleted. A linked account got its money back.'),
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Undo',
-              onPressed: () => widget.store.addEntry(removed),
+              onPressed: () async {
+                try {
+                  await widget.store.addEntry(removed);
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(
+                      content: Text(
+                          'Could not restore the entry, it is still deleted. $e')));
+                }
+              },
             ),
           ));
+          return true;
         } catch (e) {
           messenger.showSnackBar(SnackBar(
               content: Text('Could not delete, nothing was changed. $e')));
+          return false;
         }
       },
       child: row,

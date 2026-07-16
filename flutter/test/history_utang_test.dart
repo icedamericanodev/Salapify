@@ -5,9 +5,12 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/data/store.dart';
+import 'package:salapify/data/backup.dart' show sanitizeData;
+import 'package:salapify/data/store.dart' show
+    SalapifyStore, ensureUniqueTxnIds, storageKey;
 import 'package:salapify/main.dart';
-import 'package:salapify/screens/history.dart' show isDeletable, dateHeader;
+import 'package:salapify/screens/history.dart'
+    show isDeletable, dateHeader, ledgerLinkedTxnIds;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
@@ -72,13 +75,95 @@ void main() {
     expect((fresh.data['transactions'] as List).length, 2);
   });
 
-  test('only plain income and expense rows are deletable', () {
-    expect(isDeletable({'type': 'expense'}), isTrue);
-    expect(isDeletable({'type': 'income'}), isTrue);
-    expect(isDeletable({'type': 'transfer'}), isFalse);
-    expect(isDeletable({'type': 'expense', 'flow': 'out'}), isFalse);
-    expect(isDeletable({'type': 'income', 'source': 'receivable'}), isFalse);
-    expect(isDeletable({'type': 'adjustment'}), isFalse);
+  test('only plain income and expense rows with a real id are deletable', () {
+    expect(isDeletable({'id': 'a', 'type': 'expense'}), isTrue);
+    expect(isDeletable({'id': 'a', 'type': 'income'}), isTrue);
+    expect(isDeletable({'id': 'a', 'type': 'transfer'}), isFalse);
+    expect(isDeletable({'id': 'a', 'type': 'expense', 'flow': 'out'}), isFalse);
+    expect(isDeletable({'id': 'a', 'type': 'income', 'source': 'receivable'}),
+        isFalse);
+    expect(isDeletable({'id': 'a', 'type': 'adjustment'}), isFalse);
+    // No usable id: the store could never find it, the swipe would only
+    // ghost the row, so it must not be swipeable at all.
+    expect(isDeletable({'type': 'expense'}), isFalse);
+    expect(isDeletable({'id': '', 'type': 'expense'}), isFalse);
+    expect(isDeletable({'id': 42, 'type': 'expense'}), isFalse);
+    // A payable payment's expense leg carries no source stamp; the txnId
+    // link is the only marker, and it must lock the row.
+    expect(
+        isDeletable({'id': 'paid1', 'type': 'expense'},
+            lockedIds: {'paid1'}),
+        isFalse);
+  });
+
+  test('payable and receivable payment txnIds lock their history rows', () {
+    final ids = ledgerLinkedTxnIds({
+      'payables': [
+        {
+          'id': 'pb1',
+          'payments': [
+            {'id': 'pp1', 'amount': 100, 'txnId': 'paid1'},
+            {'id': 'pp2', 'amount': 50},
+          ],
+        },
+      ],
+      'receivables': [
+        {
+          'id': 'r1',
+          'payments': [
+            {'id': 'rp1', 'amount': 25, 'txnId': 'got1'},
+          ],
+        },
+      ],
+    });
+    expect(ids, {'paid1', 'got1'});
+    expect(ledgerLinkedTxnIds({}), isEmpty);
+  });
+
+  test('the store boundary assigns missing transaction ids and splits '
+      'duplicates without touching sanitize parity', () {
+    final clean = ensureUniqueTxnIds(sanitizeData({
+      'transactions': [
+        {'type': 'expense', 'amount': 10, 'date': '2026-07-16'},
+        {'id': 'dup', 'type': 'expense', 'amount': 20, 'date': '2026-07-16'},
+        {'id': 'dup', 'type': 'expense', 'amount': 30, 'date': '2026-07-16'},
+      ],
+    }));
+    final ids = (clean['transactions'] as List)
+        .map((t) => (t as Map)['id'])
+        .toList();
+    expect(ids.length, 3);
+    expect(ids.toSet().length, 3, reason: 'every id must be unique');
+    expect(ids.every((id) => id is String && id.isNotEmpty), isTrue);
+    expect(ids, contains('dup'));
+    // A clean blob passes through untouched (same object, no copies).
+    final untouched = ensureUniqueTxnIds(clean);
+    expect(identical(untouched, clean), isTrue);
+  });
+
+  test('deleting one of two same-id entries can no longer swallow money',
+      () async {
+    // Before the sanitize fix, two entries sharing an id imported cleanly,
+    // and one swipe removed both while refunding the account only once.
+    final dirty = blob();
+    (dirty['transactions'] as List).add({
+      'id': 't1',
+      'type': 'expense',
+      'label': 'Copy',
+      'amount': 100,
+      'date': '2026-07-16',
+      'accountId': 'cash',
+    });
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(dirty)});
+    final store = SalapifyStore();
+    await store.load();
+    final storedIds = (store.data['transactions'] as List)
+        .map((t) => (t as Map)['id'])
+        .toSet();
+    expect(storedIds.length, 3, reason: 'sanitize must split the duplicate');
+    await store.removeEntry('t1');
+    expect((store.data['transactions'] as List).length, 2,
+        reason: 'exactly one row deleted');
   });
 
   test('date headers read Today and Yesterday', () {

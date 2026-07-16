@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.14 · History and the utang ledger arrive, your first automatic patch';
+    'f0.15 · Delete is now bulletproof, QA fixes for history';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
