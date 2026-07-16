@@ -17,11 +17,13 @@ import '../theme.dart';
 
 final Random _rand = Random();
 
-/// Unique entry id: timestamp plus a random suffix, so two saves that land
-/// in the same millisecond still get distinct ids (a duplicated id would let
-/// one delete remove both copies but reverse only one balance move).
-String newEntryId(DateTime now) =>
-    't${now.millisecondsSinceEpoch}${_rand.nextInt(0xFFFFFF).toRadixString(36)}';
+/// Unique entry id: timestamp plus 48 random bits, so two saves that land in
+/// the same millisecond still get distinct ids (a duplicated id would let one
+/// delete remove both copies but reverse only one balance move). Two draws
+/// keep the collision odds far below anything a test suite could flake on.
+String newEntryId(DateTime now) => 't${now.millisecondsSinceEpoch}'
+    '${_rand.nextInt(0x1000000).toRadixString(36)}'
+    '${_rand.nextInt(0x1000000).toRadixString(36)}';
 
 /// Parse the amount field strictly. Commas are accepted only as thousands
 /// separators (1,250 or 12,345.60). A bare comma decimal (2,50) is rejected
@@ -32,7 +34,8 @@ double? parseAmount(String raw) {
   if (text.isEmpty) return null;
   final thousands = RegExp(r'^\d{1,3}(,\d{3})+(\.\d+)?$');
   if (thousands.hasMatch(text)) text = text.replaceAll(',', '');
-  if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(text)) return null;
+  // Plain decimals only; a bare ".50" for fifty centavos is fine too.
+  if (!RegExp(r'^(\d+(\.\d+)?|\.\d+)$').hasMatch(text)) return null;
   final parsed = double.tryParse(text);
   if (parsed == null || !parsed.isFinite || parsed <= 0) return null;
   return parsed;

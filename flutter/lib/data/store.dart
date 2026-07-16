@@ -54,6 +54,11 @@ class SalapifyStore extends ChangeNotifier {
     final parsed = parseBackupObject(jsonDecode(text));
     data = parsed;
     await _save();
+    // A successful import IS the recovery the failed-read message promises:
+    // disk now equals memory and both are readable, so writing is safe again
+    // and the stale read error must not keep the app locked read-only.
+    loadError = null;
+    loaded = true;
     notifyListeners();
   }
 

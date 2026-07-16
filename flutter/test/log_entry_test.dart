@@ -157,6 +157,7 @@ void main() {
     expect(parseAmount('1,250'), 1250);
     expect(parseAmount('12,345.60'), 12345.60);
     expect(parseAmount('99.50'), 99.50);
+    expect(parseAmount('.50'), 0.50);
     expect(parseAmount('2,50'), isNull);
     expect(parseAmount('1e5'), isNull);
     expect(parseAmount('Infinity'), isNull);
@@ -164,5 +165,34 @@ void main() {
     expect(parseAmount('-5'), isNull);
     expect(parseAmount('0'), isNull);
     expect(parseAmount(' '), isNull);
+  });
+
+  testWidgets('importing a backup after a failed read restores writability',
+      (tester) async {
+    // The recovery flow the failed-read message promises: import, then log.
+    SharedPreferences.setMockInitialValues({storageKey: 'not json at all {'});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    expect(store.canWrite, isFalse);
+    expect(find.text('Log'), findsNothing);
+
+    await store.importBackupText(jsonEncode({
+      'app': 'salapify',
+      'schemaVersion': 12,
+      'data': seedBlob(),
+    }));
+    await tester.pumpAndSettle();
+
+    // Writable again: the error card is gone, the Log button is back, and a
+    // real entry saves.
+    expect(store.canWrite, isTrue);
+    expect(store.loadError, isNull);
+    expect(find.text('Log'), findsOneWidget);
+    await store.addEntry(
+        {'id': 'x', 'type': 'expense', 'amount': 50, 'date': '2026-07-13'});
+    final fresh = SalapifyStore();
+    await fresh.load();
+    expect((fresh.data['transactions'] as List).length, 1);
   });
 }
