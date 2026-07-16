@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.22 · The Insights math engine arrives, screens follow next';
+    'f0.23 · Check for update button, grab new builds on your schedule';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

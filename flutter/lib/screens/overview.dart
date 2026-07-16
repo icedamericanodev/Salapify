@@ -11,10 +11,10 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
 import '../data/store.dart';
-import '../main.dart' show updateStamp;
 import '../money/statements.dart';
 import '../theme.dart';
 import 'log_sheet.dart';
+import 'update_card.dart';
 
 String formatMoney(num value) {
   final negative = value < 0;
@@ -215,25 +215,7 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Update stamp',
-                        style: TextStyle(color: Barako.text, fontSize: 14)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(updateStamp,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                              color: Barako.muted, fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const UpdateCard(),
           ],
         ),
       ),
