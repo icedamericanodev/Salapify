@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../money/ledger.dart' as ledger;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -53,6 +54,45 @@ class SalapifyStore extends ChangeNotifier {
     final parsed = parseBackupObject(jsonDecode(text));
     data = parsed;
     await _save();
+    // A successful import IS the recovery the failed-read message promises:
+    // disk now equals memory and both are readable, so writing is safe again
+    // and the stale read error must not keep the app locked read-only.
+    loadError = null;
+    loaded = true;
+    notifyListeners();
+  }
+
+  /// True when writing is safe: the store finished loading and the read did
+  /// not fail. After a failed read, saving would overwrite data we could not
+  /// read, the one unforgivable data loss, so every write path checks this.
+  /// (Importing a backup stays allowed: that is the explicit recovery action,
+  /// a whole-blob replace the user chose.)
+  bool get canWrite => loaded && loadError == null;
+
+  /// Log a new entry through the golden-verified engine: the linked account
+  /// (when one is chosen and really exists) moves by the signed amount, and
+  /// the whole state is persisted before listeners repaint. If the save
+  /// fails, the in-memory state is rolled back so memory never runs ahead of
+  /// disk, and the error is rethrown for the UI to show.
+  Future<void> addEntry(Map<String, dynamic> tx) async {
+    if (!canWrite) {
+      throw StateError(
+          'Saving is off because your stored data could not be read. '
+          'Import a backup to recover first.');
+    }
+    final amount = tx['amount'];
+    if (amount is! num || !amount.isFinite) {
+      throw ArgumentError('That amount is not a normal number.');
+    }
+    final previous = data;
+    data = ledger.addTransaction(data, tx);
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
     notifyListeners();
   }
 }
