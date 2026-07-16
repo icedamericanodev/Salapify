@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../money/ledger.dart' as ledger;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -52,6 +53,15 @@ class SalapifyStore extends ChangeNotifier {
   Future<void> importBackupText(String text) async {
     final parsed = parseBackupObject(jsonDecode(text));
     data = parsed;
+    await _save();
+    notifyListeners();
+  }
+
+  /// Log a new entry through the golden-verified engine: the linked account
+  /// (when one is chosen and really exists) moves by the signed amount, and
+  /// the whole state is persisted before listeners repaint.
+  Future<void> addEntry(Map<String, dynamic> tx) async {
+    data = ledger.addTransaction(data, tx);
     await _save();
     notifyListeners();
   }

@@ -13,7 +13,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.06 · First real screen: Overview with backup import, your data carries over';
+    'f0.07 · You can now log an expense or income, and it moves your balances';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
