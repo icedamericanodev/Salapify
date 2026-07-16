@@ -13,7 +13,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.09 · Import now fully restores a locked app, ready for founder review';
+    'f0.13 · First self-updating build: updater permission added';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

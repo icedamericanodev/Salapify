@@ -16,10 +16,14 @@ on:
       - 'flutter/**'
   workflow_dispatch:
 
-# One build at a time; a newer push supersedes an in-flight one.
+# One build at a time, and builds QUEUE rather than cancel: a Shorebird
+# release or patch in flight must always finish and reach its publish step,
+# otherwise a cancelled first release could exist server-side with no base
+# APK ever published, leaving every later green run patching a release
+# nobody can install.
 concurrency:
   group: flutter-preview
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write # needed to update the flutter-preview release
@@ -51,18 +55,44 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build signed preview APK
-        run: flutter build apk --release
+      - uses: shorebirdtech/setup-shorebird@v1
 
-      - name: Publish to the fixed flutter-preview release
+      # Shorebird model: one RELEASE per pubspec version (the base APK the
+      # founder installs once), then every later push PATCHES that release
+      # over the air, applied when the app restarts. Bump the pubspec version
+      # only for native-level changes; that forces a new release and one
+      # manual APK install, which the log below calls out loudly.
+      - name: Release or patch
+        id: ship
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "pubspec version: $VERSION"
+          # If the list itself fails (auth, outage), stop loudly rather than
+          # guess the wrong branch. Padded match so 0.1.0+1 never matches a
+          # future 0.1.0+11 row.
+          LIST=$(shorebird releases list) || { echo "shorebird releases list failed; refusing to guess release vs patch."; exit 1; }
+          if echo "$LIST" | grep -Fq " $VERSION "; then
+            echo "Release $VERSION exists; pushing an over-the-air PATCH."
+            shorebird patch android --release-version "$VERSION" --no-confirm
+            echo "mode=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "No release $VERSION yet; building the base APK (founder installs this once)."
+            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish the base APK to the fixed flutter-preview release
+        if: steps.ship.outputs.mode == 'release'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: flutter-preview
           name: Salapify Flutter preview (latest)
           body: |
-            The latest Flutter preview build. Download the APK below and open
-            it on the phone; it installs over the previous preview build.
-            Check the Update stamp inside the app to confirm which build this
-            is. Built from ${{ github.sha }}.
+            The Shorebird-enabled base build. Install this APK ONCE; from then
+            on updates patch themselves over the air whenever you reopen the
+            app. Check the Update stamp inside the app to confirm which build
+            you are on. Built from ${{ github.sha }}.
           prerelease: true
           files: flutter/build/app/outputs/flutter-apk/app-release.apk

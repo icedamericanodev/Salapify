@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required by the Shorebird updater to download over-the-air patches.
+         The app's own money data never leaves the device; this permission
+         exists for update delivery, the same trust posture as the RN app. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Salapify Preview"
         android:name="${applicationName}"
