@@ -13,8 +13,13 @@ and untouched for testers until the Flutter app reaches parity. Rules for the
 Flutter track:
 1. Every push touching flutter/ triggers the "Flutter preview APK" action
    (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
-   flutter test, then a signed APK published to the fixed flutter-preview
-   release tag. The founder installs updates from that one bookmarked link.
+   flutter test, then Shorebird ships it. One RELEASE exists per pubspec
+   version (the base APK at the fixed flutter-preview release tag, installed
+   once); every later push PATCHES that release over the air and the
+   installed app updates itself on reopen. Bump the pubspec version ONLY for
+   native-level changes; that forces a new base APK and one manual install,
+   flag it loudly to the founder. Auth is the SHOREBIRD_TOKEN repo secret;
+   the app id lives in flutter/shorebird.yaml (public, not a secret).
 2. Bump the updateStamp constant in flutter/lib/main.dart on every push
    (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
 3. The committed preview keystore signs every build so updates install in

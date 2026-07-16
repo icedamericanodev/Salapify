@@ -1,0 +1,4 @@
+# Shorebird configuration. The app_id identifies this app in the founder's
+# Shorebird account; it is public (it ships inside the APK) and contains no
+# secret. Patching auth lives in the SHOREBIRD_TOKEN repo secret, never here.
+app_id: 27a34b94-b810-4fe1-96c3-2e746ced4654
