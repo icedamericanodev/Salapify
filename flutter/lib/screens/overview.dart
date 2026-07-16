@@ -168,47 +168,46 @@ class OverviewScreen extends StatelessWidget {
                           height: 1.4),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (store.hasData) ...[
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                                backgroundColor: Barako.primary,
-                                foregroundColor: Barako.onPrimary),
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => ExportScreen(store: store)),
-                            ),
-                            child: const Text('Export backup'),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        store.hasData
-                            ? OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(
-                                        color: Barako.border),
-                                    foregroundColor: Barako.textSecondary),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          ImportScreen(store: store)),
-                                ),
-                                child: const Text('Import backup'),
-                              )
-                            : FilledButton(
-                                style: FilledButton.styleFrom(
-                                    backgroundColor: Barako.primary,
-                                    foregroundColor: Barako.onPrimary),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          ImportScreen(store: store)),
-                                ),
-                                child: const Text('Import backup'),
+                    Builder(builder: (context) {
+                      void openImport() => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => ImportScreen(store: store)),
+                          );
+                      const importLabel = Text('Import backup');
+                      return Row(
+                        children: [
+                          if (store.hasData) ...[
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: Barako.primary,
+                                  foregroundColor: Barako.onPrimary),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        ExportScreen(store: store)),
                               ),
-                      ],
-                    ),
+                              child: const Text('Export backup'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                  side:
+                                      const BorderSide(color: Barako.border),
+                                  foregroundColor: Barako.textSecondary),
+                              onPressed: openImport,
+                              child: importLabel,
+                            ),
+                          ] else
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: Barako.primary,
+                                  foregroundColor: Barako.onPrimary),
+                              onPressed: openImport,
+                              child: importLabel,
+                            ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -294,14 +293,23 @@ class OverviewScreen extends StatelessWidget {
       );
 }
 
-class ExportScreen extends StatelessWidget {
+class ExportScreen extends StatefulWidget {
   final SalapifyStore store;
   const ExportScreen({super.key, required this.store});
 
   @override
+  State<ExportScreen> createState() => _ExportScreenState();
+}
+
+class _ExportScreenState extends State<ExportScreen> {
+  // Built ONCE when the screen opens (a big store makes a big string, and
+  // re-encoding it on every rebuild would jank). The store is never written
+  // to from this screen.
+  late final String text = widget.store.exportBackupText();
+
+  @override
   Widget build(BuildContext context) {
-    // Built once when the screen opens; the store is not written to here.
-    final text = store.exportBackupText();
+    final store = widget.store;
     final txns = (store.data['transactions'] as List).length;
     final accounts = (store.data['accounts'] as List).length;
     return Scaffold(
@@ -385,6 +393,37 @@ class _ImportScreenState extends State<ImportScreen> {
   bool busy = false;
 
   Future<void> _import() async {
+    // Importing over existing data replaces EVERYTHING in one tap, the most
+    // destructive action in the app, so it confirms first, the same standard
+    // the RN app holds for replaceAll. A snapshot of the outgoing data is
+    // kept on disk by the store, but a stray tap should never need it.
+    if (widget.store.hasData) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Barako.card,
+          title: const Text('Replace everything?',
+              style: TextStyle(color: Barako.text)),
+          content: const Text(
+            'Everything currently in this preview app will be replaced by '
+            'what you pasted. The replaced data is kept on this phone until '
+            'your next import, but there is no undo button.',
+            style: TextStyle(color: Barako.textSecondary),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Barako.muted))),
+            TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Replace',
+                    style: TextStyle(color: Barako.warning))),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
     setState(() {
       busy = true;
       error = null;

@@ -18,6 +18,10 @@ import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
 
+/// The blob being replaced by an import survives here until the next import,
+/// one step of on-disk undo for the most destructive action in the app.
+const String previousBackupKey = 'salapify_data_v2_prev';
+
 /// Transaction ids must be present and unique before the store accepts a
 /// blob: removeTransaction drops every row matching an id but reverses the
 /// balance only once, so a duplicated id in a merged or hand-edited backup
@@ -99,10 +103,19 @@ class SalapifyStore extends ChangeNotifier {
   bool loaded = false;
   String? loadError;
 
-  /// True once the user has anything at all in the store.
-  bool get hasData =>
-      (data['accounts'] as List).isNotEmpty ||
-      (data['transactions'] as List).isNotEmpty;
+  /// True once the user has anything at all in the store, across every
+  /// collection a backup carries. Utang-only or goals-only data counts: this
+  /// gates the export button and the replace-everything warning, and hiding
+  /// either because only receivables exist would invite a silent wipe.
+  bool get hasData => const [
+        'accounts',
+        'transactions',
+        'receivables',
+        'payables',
+        'people',
+        'debts',
+        'goals',
+      ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
 
   Future<void> load() async {
     try {
@@ -129,17 +142,33 @@ class SalapifyStore extends ChangeNotifier {
   /// shows). Throws NotABackupException, NewerBackupException, or
   /// FormatException for the UI to explain; on success the store is
   /// replaced and persisted.
-  Future<void> importBackupText(String text) async {
-    final parsed = parseBackupObject(jsonDecode(text));
-    data = ensureUniqueTxnIds(parsed);
-    await _save();
-    // A successful import IS the recovery the failed-read message promises:
-    // disk now equals memory and both are readable, so writing is safe again
-    // and the stale read error must not keep the app locked read-only.
-    loadError = null;
-    loaded = true;
-    notifyListeners();
-  }
+  Future<void> importBackupText(String text) => _serialized(() async {
+        final parsed = parseBackupObject(jsonDecode(text));
+        // Snapshot BEFORE anything is replaced: the outgoing blob survives
+        // under the side key until the next import. If this write fails the
+        // import aborts with memory and disk untouched; replacing data
+        // without the net would be the one unforgivable loss.
+        if (hasData) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(previousBackupKey, jsonEncode(data));
+        }
+        final previous = data;
+        data = ensureUniqueTxnIds(parsed);
+        try {
+          await _save();
+        } catch (e) {
+          data = previous;
+          notifyListeners();
+          rethrow;
+        }
+        // A successful import IS the recovery the failed-read message
+        // promises: disk now equals memory and both are readable, so writing
+        // is safe again and the stale read error must not keep the app
+        // locked read-only.
+        loadError = null;
+        loaded = true;
+        notifyListeners();
+      });
 
   /// The backup text for the whole store, same wrapper as the RN Backup
   /// screen, so the current app can import it unchanged. Read-only.

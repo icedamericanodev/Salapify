@@ -55,6 +55,79 @@ void main() {
     expect(normalize(roundTripped), normalize(clean));
   });
 
+  test('hasData counts every collection a backup carries', () async {
+    // Utang-only store (the "Just track it" chip creates no transaction):
+    // export must be offered and the replace warning must fire.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'receivables': [
+          {
+            'id': 'r1',
+            'person': 'Ana',
+            'amount': 500,
+            'payments': [],
+            'paid': false,
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+    expect(store.hasData, isTrue,
+        reason: 'receivables alone are data worth exporting and protecting');
+  });
+
+  test('importing over existing data keeps the outgoing blob under the '
+      'side key', () async {
+    final before = sanitizeData(fixture);
+    SharedPreferences.setMockInitialValues(
+        {storageKey: jsonEncode(before)});
+    final store = SalapifyStore();
+    await store.load();
+    final incoming = buildBackupText(
+        sanitizeData({
+          'accounts': [
+            {'id': 'x', 'name': 'X', 'kind': 'cash', 'balance': 1},
+          ],
+        }),
+        exportedAt: '2026-07-16T12:00:00.000Z');
+    await store.importBackupText(incoming);
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(previousBackupKey);
+    expect(saved, isNotNull, reason: 'the replaced blob must survive');
+    expect(normalize(jsonDecode(saved!)), normalize(before));
+    // The import itself landed.
+    expect((store.data['accounts'] as List).single['id'], 'x');
+  });
+
+  testWidgets('importing over existing data asks before replacing',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(
+        {storageKey: jsonEncode(sanitizeData(fixture))});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Import backup'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Import backup'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField),
+        jsonEncode({'app': 'salapify', 'version': 2, 'data': {'accounts': []}}));
+    await tester.tap(find.text('Import'));
+    await tester.pumpAndSettle();
+    expect(find.text('Replace everything?'), findsOneWidget);
+
+    // Cancel keeps every byte.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect((store.data['transactions'] as List).length,
+        (sanitizeData(fixture)['transactions'] as List).length);
+  });
+
   testWidgets('the export screen shows the backup text from real data',
       (tester) async {
     SharedPreferences.setMockInitialValues(
