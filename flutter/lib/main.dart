@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.18 · Utang money guards: strict amounts and safer backup repair';
+    'f0.19 · Export backup: your way back is always one copy away';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -141,6 +141,11 @@ class SalapifyStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The backup text for the whole store, same wrapper as the RN Backup
+  /// screen, so the current app can import it unchanged. Read-only.
+  String exportBackupText() => buildBackupText(data,
+      exportedAt: DateTime.now().toUtc().toIso8601String());
+
   /// True when writing is safe: the store finished loading and the read did
   /// not fail. After a failed read, saving would overwrite data we could not
   /// read, the one unforgivable data loss, so every write path checks this.

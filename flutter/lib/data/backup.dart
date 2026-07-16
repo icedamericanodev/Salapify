@@ -11,6 +11,8 @@
 // - keys the RN code sets to undefined or deletes are OMITTED here
 // - migrations are pure and forward only; a NEWER blob is refused loudly
 
+import 'dart:convert' show JsonEncoder;
+
 const int schemaVersion = 12;
 
 const List<Map<String, dynamic>> defaultCategories = [
@@ -495,6 +497,20 @@ List<Map<String, dynamic>> _utangList(
       }).toList(),
     };
   }).toList();
+}
+
+/// Build the backup text, the same wrapper the RN buildBackup writes
+/// (mobile/lib/backup.js:472-478): app, version 2, exportedAt, then the
+/// whole data map, pretty printed with two spaces. The RN app's parseBackup
+/// reads it back with JSON.parse plus sanitizeData, so any JSON-equal text
+/// round-trips; number spelling differences (250 vs 250.0) vanish at parse.
+String buildBackupText(Map<String, dynamic> data, {required String exportedAt}) {
+  return const JsonEncoder.withIndent('  ').convert({
+    'app': 'salapify',
+    'version': 2,
+    'exportedAt': exportedAt,
+    'data': data,
+  });
 }
 
 /// Parse a Salapify v2 backup JSON object (already decoded) back into clean

@@ -5,6 +5,7 @@
 // with zero extra plugins.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
 import '../data/store.dart';
@@ -149,37 +150,69 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            if (!store.hasData)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _kicker('BRING YOUR DATA OVER'),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Open the current Salapify app, go to Backup, copy the backup text, and paste it here. Everything comes over: accounts, entries, utang, goals, settings.',
-                        style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 14,
-                            height: 1.4),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                            backgroundColor: Barako.primary,
-                            foregroundColor: Barako.onPrimary),
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => ImportScreen(store: store)),
-                        ),
-                        child: const Text('Import backup'),
-                      ),
-                    ],
-                  ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _kicker(store.hasData ? 'BACKUP' : 'BRING YOUR DATA OVER'),
+                    const SizedBox(height: 8),
+                    Text(
+                      store.hasData
+                          ? 'Your data lives only on this phone. Copy a backup any time; the current Salapify app can import it unchanged, so you always have a way back.'
+                          : 'Open the current Salapify app, go to Backup, copy the backup text, and paste it here. Everything comes over: accounts, entries, utang, goals, settings.',
+                      style: const TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 14,
+                          height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (store.hasData) ...[
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Barako.primary,
+                                foregroundColor: Barako.onPrimary),
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => ExportScreen(store: store)),
+                            ),
+                            child: const Text('Export backup'),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        store.hasData
+                            ? OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                        color: Barako.border),
+                                    foregroundColor: Barako.textSecondary),
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          ImportScreen(store: store)),
+                                ),
+                                child: const Text('Import backup'),
+                              )
+                            : FilledButton(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: Barako.primary,
+                                    foregroundColor: Barako.onPrimary),
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          ImportScreen(store: store)),
+                                ),
+                                child: const Text('Import backup'),
+                              ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+            ),
             const SizedBox(height: 12),
             Card(
               child: Padding(
@@ -259,6 +292,83 @@ class OverviewScreen extends StatelessWidget {
           ],
         ),
       );
+}
+
+class ExportScreen extends StatelessWidget {
+  final SalapifyStore store;
+  const ExportScreen({super.key, required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    // Built once when the screen opens; the store is not written to here.
+    final text = store.exportBackupText();
+    final txns = (store.data['transactions'] as List).length;
+    final accounts = (store.data['accounts'] as List).length;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Barako.background,
+        foregroundColor: Barako.text,
+        title: const Text('Export backup'),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Everything in this app, as one block of text: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Copy it and keep it somewhere safe (notes, email to yourself). The current Salapify app imports it unchanged.',
+                style: const TextStyle(
+                    color: Barako.textSecondary, fontSize: 14, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Barako.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Barako.border),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      text,
+                      style: const TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 11,
+                          fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await Clipboard.setData(ClipboardData(text: text));
+                    messenger.showSnackBar(const SnackBar(
+                        content: Text(
+                            'Copied. Paste it somewhere safe, like a note or an email to yourself.')));
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy backup text',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class ImportScreen extends StatefulWidget {
