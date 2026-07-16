@@ -1,0 +1,314 @@
+{
+  "fixture": {
+    "schemaVersion": 12,
+    "accounts": [
+      {
+        "id": "cash",
+        "name": "Cash",
+        "kind": "cash",
+        "balance": 5230.5
+      },
+      {
+        "id": "bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41890
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "type": "expense",
+        "label": "Groceries",
+        "amount": 250,
+        "date": "2026-07-15",
+        "accountId": "cash",
+        "categoryId": "cat_food"
+      },
+      {
+        "id": "t2",
+        "type": "income",
+        "label": "Sweldo",
+        "amount": 25000,
+        "date": "2026-07-15",
+        "accountId": "bank"
+      },
+      {
+        "id": "t3",
+        "type": "transfer",
+        "flow": "out",
+        "label": "Lent to Ana",
+        "amount": 1000,
+        "date": "2026-07-10",
+        "accountId": "cash",
+        "source": "receivable"
+      },
+      {
+        "id": "t4",
+        "type": "income",
+        "label": "Migs paid you back",
+        "amount": 500,
+        "date": "2026-07-12",
+        "accountId": "bank",
+        "source": "receivable"
+      }
+    ],
+    "people": [
+      {
+        "id": "p1",
+        "name": "Migs",
+        "phone": "0917",
+        "note": ""
+      },
+      {
+        "id": "p2",
+        "name": "Ana",
+        "phone": "",
+        "note": "officemate"
+      }
+    ],
+    "receivables": [
+      {
+        "id": "r1",
+        "personId": "p1",
+        "person": "Migs",
+        "amount": 2000,
+        "dueDate": "2026-07-04",
+        "phone": "",
+        "note": "",
+        "payments": [
+          {
+            "id": "rp1",
+            "amount": 500,
+            "date": "2026-07-12",
+            "txnId": "t4"
+          }
+        ],
+        "paid": false
+      },
+      {
+        "id": "r2",
+        "personId": "p2",
+        "person": "Ana",
+        "amount": 1000,
+        "dueDate": "",
+        "phone": "",
+        "note": "",
+        "payments": [],
+        "paid": false,
+        "cashLeg": true,
+        "accountId": "cash",
+        "lendTxnId": "t3"
+      }
+    ],
+    "debts": [
+      {
+        "id": "d1",
+        "name": "Credit card",
+        "amount": 12000,
+        "rate": 3.5,
+        "minPay": 1000
+      }
+    ],
+    "payments": [
+      {
+        "id": "pay1",
+        "debtId": "d1",
+        "amount": 1000,
+        "date": "2026-07-05",
+        "interest": 350,
+        "principal": 650
+      }
+    ],
+    "goals": [
+      {
+        "id": "g1",
+        "name": "Emergency fund",
+        "target": 30000,
+        "saved": 12000,
+        "targetDate": "2026-12-31"
+      }
+    ],
+    "settings": {
+      "currency": "₱",
+      "monthlyLimit": 15000,
+      "defaultAccountId": "bank",
+      "quickAdds": [
+        {
+          "label": "Food",
+          "amount": 150
+        }
+      ]
+    }
+  },
+  "sanitized": {
+    "schemaVersion": 12,
+    "accounts": [
+      {
+        "id": "cash",
+        "name": "Cash",
+        "kind": "cash",
+        "balance": 5230.5,
+        "brand": "",
+        "icon": "",
+        "target": 0
+      },
+      {
+        "id": "bank",
+        "name": "BPI",
+        "kind": "cash",
+        "balance": 41890,
+        "brand": "",
+        "icon": "",
+        "target": 0
+      }
+    ],
+    "assets": [],
+    "debts": [
+      {
+        "id": "d1",
+        "name": "Credit card",
+        "amount": 12000,
+        "rate": 3.5,
+        "minPay": 1000,
+        "type": "other",
+        "remaining": 0,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0
+      }
+    ],
+    "payments": [
+      {
+        "id": "pay1",
+        "debtId": "d1",
+        "amount": 1000,
+        "date": "2026-07-05",
+        "interest": 350,
+        "principal": 650
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "type": "expense",
+        "label": "Groceries",
+        "amount": 250,
+        "date": "2026-07-15",
+        "accountId": "cash",
+        "categoryId": "cat_food"
+      },
+      {
+        "id": "t2",
+        "type": "income",
+        "label": "Sweldo",
+        "amount": 25000,
+        "date": "2026-07-15",
+        "accountId": "bank"
+      },
+      {
+        "id": "t3",
+        "type": "transfer",
+        "flow": "out",
+        "label": "Lent to Ana",
+        "amount": 1000,
+        "date": "2026-07-10",
+        "accountId": "cash",
+        "source": "receivable"
+      },
+      {
+        "id": "t4",
+        "type": "income",
+        "label": "Migs paid you back",
+        "amount": 500,
+        "date": "2026-07-12",
+        "accountId": "bank",
+        "source": "receivable"
+      }
+    ],
+    "goals": [
+      {
+        "id": "g1",
+        "name": "Emergency fund",
+        "target": 30000,
+        "saved": 12000,
+        "targetDate": "2026-12-31"
+      }
+    ],
+    "wins": [],
+    "notes": [],
+    "recurring": [],
+    "categories": [],
+    "people": [
+      {
+        "id": "p1",
+        "name": "Migs",
+        "phone": "0917",
+        "note": ""
+      },
+      {
+        "id": "p2",
+        "name": "Ana",
+        "phone": "",
+        "note": "officemate"
+      }
+    ],
+    "receivables": [
+      {
+        "id": "r1",
+        "personId": "p1",
+        "person": "Migs",
+        "amount": 2000,
+        "dueDate": "2026-07-04",
+        "phone": "",
+        "note": "",
+        "payments": [
+          {
+            "id": "rp1",
+            "amount": 500,
+            "date": "2026-07-12",
+            "txnId": "t4",
+            "settled": false
+          }
+        ],
+        "paid": false,
+        "cashLeg": false
+      },
+      {
+        "id": "r2",
+        "personId": "p2",
+        "person": "Ana",
+        "amount": 1000,
+        "dueDate": "",
+        "phone": "",
+        "note": "",
+        "payments": [],
+        "paid": false,
+        "cashLeg": true,
+        "accountId": "cash",
+        "lendTxnId": "t3"
+      }
+    ],
+    "payables": [],
+    "settings": {
+      "currency": "₱",
+      "monthlyLimit": 15000,
+      "defaultAccountId": "bank",
+      "quickAdds": [
+        {
+          "label": "Food",
+          "amount": 150
+        }
+      ],
+      "appLock": false,
+      "pro": false,
+      "budgetCarryOver": false,
+      "notifications": {},
+      "treats": []
+    }
+  },
+  "rnText": "{\n  \"app\": \"salapify\",\n  \"version\": 2,\n  \"exportedAt\": \"2026-07-16T22:18:29.866Z\",\n  \"data\": {\n    \"schemaVersion\": 12,\n    \"accounts\": [\n      {\n        \"id\": \"cash\",\n        \"name\": \"Cash\",\n        \"kind\": \"cash\",\n        \"balance\": 5230.5,\n        \"brand\": \"\",\n        \"icon\": \"\",\n        \"target\": 0\n      },\n      {\n        \"id\": \"bank\",\n        \"name\": \"BPI\",\n        \"kind\": \"cash\",\n        \"balance\": 41890,\n        \"brand\": \"\",\n        \"icon\": \"\",\n        \"target\": 0\n      }\n    ],\n    \"assets\": [],\n    \"debts\": [\n      {\n        \"id\": \"d1\",\n        \"name\": \"Credit card\",\n        \"amount\": 12000,\n        \"rate\": 3.5,\n        \"minPay\": 1000,\n        \"type\": \"other\",\n        \"remaining\": 0,\n        \"monthlyRate\": 0,\n        \"minPayment\": 0,\n        \"dueDay\": 0,\n        \"statementDay\": 0,\n        \"graceDays\": 0,\n        \"creditLimit\": 0\n      }\n    ],\n    \"payments\": [\n      {\n        \"id\": \"pay1\",\n        \"debtId\": \"d1\",\n        \"amount\": 1000,\n        \"date\": \"2026-07-05\",\n        \"interest\": 350,\n        \"principal\": 650\n      }\n    ],\n    \"transactions\": [\n      {\n        \"id\": \"t1\",\n        \"type\": \"expense\",\n        \"label\": \"Groceries\",\n        \"amount\": 250,\n        \"date\": \"2026-07-15\",\n        \"accountId\": \"cash\",\n        \"categoryId\": \"cat_food\"\n      },\n      {\n        \"id\": \"t2\",\n        \"type\": \"income\",\n        \"label\": \"Sweldo\",\n        \"amount\": 25000,\n        \"date\": \"2026-07-15\",\n        \"accountId\": \"bank\"\n      },\n      {\n        \"id\": \"t3\",\n        \"type\": \"transfer\",\n        \"flow\": \"out\",\n        \"label\": \"Lent to Ana\",\n        \"amount\": 1000,\n        \"date\": \"2026-07-10\",\n        \"accountId\": \"cash\",\n        \"source\": \"receivable\"\n      },\n      {\n        \"id\": \"t4\",\n        \"type\": \"income\",\n        \"label\": \"Migs paid you back\",\n        \"amount\": 500,\n        \"date\": \"2026-07-12\",\n        \"accountId\": \"bank\",\n        \"source\": \"receivable\"\n      }\n    ],\n    \"goals\": [\n      {\n        \"id\": \"g1\",\n        \"name\": \"Emergency fund\",\n        \"target\": 30000,\n        \"saved\": 12000,\n        \"targetDate\": \"2026-12-31\"\n      }\n    ],\n    \"wins\": [],\n    \"notes\": [],\n    \"recurring\": [],\n    \"categories\": [],\n    \"people\": [\n      {\n        \"id\": \"p1\",\n        \"name\": \"Migs\",\n        \"phone\": \"0917\",\n        \"note\": \"\"\n      },\n      {\n        \"id\": \"p2\",\n        \"name\": \"Ana\",\n        \"phone\": \"\",\n        \"note\": \"officemate\"\n      }\n    ],\n    \"receivables\": [\n      {\n        \"id\": \"r1\",\n        \"personId\": \"p1\",\n        \"person\": \"Migs\",\n        \"amount\": 2000,\n        \"dueDate\": \"2026-07-04\",\n        \"phone\": \"\",\n        \"note\": \"\",\n        \"payments\": [\n          {\n            \"id\": \"rp1\",\n            \"amount\": 500,\n            \"date\": \"2026-07-12\",\n            \"txnId\": \"t4\",\n            \"settled\": false\n          }\n        ],\n        \"paid\": false,\n        \"cashLeg\": false\n      },\n      {\n        \"id\": \"r2\",\n        \"personId\": \"p2\",\n        \"person\": \"Ana\",\n        \"amount\": 1000,\n        \"dueDate\": \"\",\n        \"phone\": \"\",\n        \"note\": \"\",\n        \"payments\": [],\n        \"paid\": false,\n        \"cashLeg\": true,\n        \"accountId\": \"cash\",\n        \"lendTxnId\": \"t3\"\n      }\n    ],\n    \"payables\": [],\n    \"settings\": {\n      \"currency\": \"₱\",\n      \"monthlyLimit\": 15000,\n      \"defaultAccountId\": \"bank\",\n      \"quickAdds\": [\n        {\n          \"label\": \"Food\",\n          \"amount\": 150\n        }\n      ],\n      \"appLock\": false,\n      \"pro\": false,\n      \"budgetCarryOver\": false,\n      \"notifications\": {},\n      \"treats\": []\n    }\n  }\n}"
+}
