@@ -15,6 +15,36 @@ import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
 
+/// Transaction ids must be present and unique before the store accepts a
+/// blob: removeTransaction drops every row matching an id but reverses the
+/// balance only once, so a duplicated id in a merged or hand-edited backup
+/// would let one delete silently swallow money, and a missing id makes a row
+/// unfindable. This runs AFTER sanitizeData on purpose: sanitizeData is
+/// parity-locked to the RN engine by the backup goldens, so this Flutter-side
+/// guard lives at the store boundary instead. Restored ids are deterministic.
+Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
+  final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
+  final seen = <String>{};
+  var restored = 0;
+  var changed = false;
+  final out = txs.map((t) {
+    final raw = t['id'];
+    var id = raw is String ? raw : '';
+    if (id.isEmpty || seen.contains(id)) {
+      do {
+        id = 'tx_restored_$restored';
+        restored++;
+      } while (seen.contains(id));
+      changed = true;
+      t = {...t, 'id': id};
+    }
+    seen.add(id);
+    return t;
+  }).toList();
+  if (!changed) return data;
+  return {...data, 'transactions': out};
+}
+
 class SalapifyStore extends ChangeNotifier {
   Map<String, dynamic> data = sanitizeData({});
   bool loaded = false;
@@ -30,7 +60,7 @@ class SalapifyStore extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(storageKey);
       if (raw != null && raw.isNotEmpty) {
-        data = sanitizeData(jsonDecode(raw));
+        data = ensureUniqueTxnIds(sanitizeData(jsonDecode(raw)));
       }
       loadError = null;
     } catch (e) {
@@ -52,7 +82,7 @@ class SalapifyStore extends ChangeNotifier {
   /// replaced and persisted.
   Future<void> importBackupText(String text) async {
     final parsed = parseBackupObject(jsonDecode(text));
-    data = parsed;
+    data = ensureUniqueTxnIds(parsed);
     await _save();
     // A successful import IS the recovery the failed-read message promises:
     // disk now equals memory and both are readable, so writing is safe again
@@ -69,30 +99,71 @@ class SalapifyStore extends ChangeNotifier {
   /// a whole-blob replace the user chose.)
   bool get canWrite => loaded && loadError == null;
 
+  /// Mutating writes run one at a time through this queue. Two in-flight
+  /// writes each snapshot `data` for rollback at their own start; without the
+  /// queue, a failed first save would restore a snapshot that silently undoes
+  /// the second write. Serializing them makes every snapshot current.
+  Future<void> _writes = Future.value();
+
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final run = _writes.then((_) => action());
+    _writes = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
   /// Log a new entry through the golden-verified engine: the linked account
   /// (when one is chosen and really exists) moves by the signed amount, and
   /// the whole state is persisted before listeners repaint. If the save
   /// fails, the in-memory state is rolled back so memory never runs ahead of
   /// disk, and the error is rethrown for the UI to show.
-  Future<void> addEntry(Map<String, dynamic> tx) async {
-    if (!canWrite) {
-      throw StateError(
-          'Saving is off because your stored data could not be read. '
-          'Import a backup to recover first.');
-    }
-    final amount = tx['amount'];
-    if (amount is! num || !amount.isFinite) {
-      throw ArgumentError('That amount is not a normal number.');
-    }
-    final previous = data;
-    data = ledger.addTransaction(data, tx);
-    try {
-      await _save();
-    } catch (e) {
-      data = previous;
-      notifyListeners();
-      rethrow;
-    }
-    notifyListeners();
-  }
+  Future<void> addEntry(Map<String, dynamic> tx) => _serialized(() async {
+        if (!canWrite) {
+          throw StateError(
+              'Saving is off because your stored data could not be read. '
+              'Import a backup to recover first.');
+        }
+        final amount = tx['amount'];
+        if (amount is! num || !amount.isFinite) {
+          throw ArgumentError('That amount is not a normal number.');
+        }
+        final previous = data;
+        data = ledger.addTransaction(data, tx);
+        try {
+          await _save();
+        } catch (e) {
+          data = previous;
+          notifyListeners();
+          rethrow;
+        }
+        notifyListeners();
+      });
+
+  /// Remove an entry through the engine (the linked account gets its money
+  /// back), with the same write guard and rollback discipline as addEntry.
+  /// Returns the removed transaction map so the caller can offer undo by
+  /// re-adding the exact same entry.
+  Future<Map<String, dynamic>?> removeEntry(String id) =>
+      _serialized(() async {
+        if (!canWrite) {
+          throw StateError(
+              'Saving is off because your stored data could not be read. '
+              'Import a backup to recover first.');
+        }
+        final txs =
+            (data['transactions'] as List).cast<Map<String, dynamic>>();
+        final idx = txs.indexWhere((t) => t['id'] == id);
+        if (idx < 0) return null;
+        final removed = txs[idx];
+        final previous = data;
+        data = ledger.removeTransaction(data, id);
+        try {
+          await _save();
+        } catch (e) {
+          data = previous;
+          notifyListeners();
+          rethrow;
+        }
+        notifyListeners();
+        return removed;
+      });
 }

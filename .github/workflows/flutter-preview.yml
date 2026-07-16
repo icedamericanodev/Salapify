@@ -73,13 +73,19 @@ jobs:
           # guess the wrong branch. Padded match so 0.1.0+1 never matches a
           # future 0.1.0+11 row.
           LIST=$(shorebird releases list) || { echo "shorebird releases list failed; refusing to guess release vs patch."; exit 1; }
+          # --no-tree-shake-icons on BOTH commands: with tree-shaking on,
+          # using any new Material icon changes the shaken icon-font asset,
+          # and Shorebird refuses patches that touch assets
+          # (UnpatchableChangeException, the f0.14 failure). Shipping the
+          # full icon font in the base costs ~1.6MB once and makes icon
+          # changes patchable forever.
           if echo "$LIST" | grep -Fq " $VERSION "; then
             echo "Release $VERSION exists; pushing an over-the-air PATCH."
-            shorebird patch android --release-version "$VERSION" --no-confirm
+            shorebird patch android --release-version "$VERSION" --no-confirm -- --no-tree-shake-icons
             echo "mode=patch" >> "$GITHUB_OUTPUT"
           else
             echo "No release $VERSION yet; building the base APK (founder installs this once)."
-            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm
+            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons
             echo "mode=release" >> "$GITHUB_OUTPUT"
           fi
 

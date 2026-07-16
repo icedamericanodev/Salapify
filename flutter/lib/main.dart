@@ -7,13 +7,15 @@
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
+import 'screens/history.dart';
 import 'screens/overview.dart';
+import 'screens/utang.dart';
 import 'theme.dart';
 
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.13 · First self-updating build: updater permission added';
+    'f0.16 · New base build, icon font fixed so patches always apply';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -34,6 +36,8 @@ class _SalapifyAppState extends State<SalapifyApp> {
     widget.store.load();
   }
 
+  int tab = 0;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,7 +46,34 @@ class _SalapifyAppState extends State<SalapifyApp> {
       debugShowCheckedModeBanner: false,
       home: ListenableBuilder(
         listenable: widget.store,
-        builder: (context, _) => OverviewScreen(store: widget.store),
+        builder: (context, _) => Scaffold(
+          body: switch (tab) {
+            1 => HistoryScreen(store: widget.store),
+            2 => UtangScreen(store: widget.store),
+            _ => OverviewScreen(store: widget.store),
+          },
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: tab,
+            onDestinationSelected: (i) => setState(() => tab = i),
+            backgroundColor: Barako.card,
+            indicatorColor: Barako.primary,
+            destinations: const [
+              NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
+                  label: 'Overview'),
+              NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon:
+                      Icon(Icons.receipt_long, color: Barako.onPrimary),
+                  label: 'History'),
+              NavigationDestination(
+                  icon: Icon(Icons.handshake_outlined),
+                  selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
+                  label: 'Utang'),
+            ],
+          ),
+        ),
       ),
     );
   }
