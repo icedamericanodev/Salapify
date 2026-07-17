@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
+import 'screens/budget.dart';
 import 'screens/history.dart';
 import 'screens/insights.dart';
 import 'screens/overview.dart';
@@ -16,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.28 · The whole Infinity crash family is closed';
+    'f0.29 · The Budget tab: limit, carry over, quick adds, category caps';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -49,9 +50,10 @@ class _SalapifyAppState extends State<SalapifyApp> {
         listenable: widget.store,
         builder: (context, _) => Scaffold(
           body: switch (tab) {
-            1 => HistoryScreen(store: widget.store),
-            2 => UtangScreen(store: widget.store),
-            3 => InsightsScreen(
+            1 => BudgetScreen(store: widget.store),
+            2 => HistoryScreen(store: widget.store),
+            3 => UtangScreen(store: widget.store),
+            4 => InsightsScreen(
                 store: widget.store,
                 onSwitchTab: (i) => setState(() => tab = i)),
             _ => OverviewScreen(store: widget.store),
@@ -66,6 +68,10 @@ class _SalapifyAppState extends State<SalapifyApp> {
                   icon: Icon(Icons.home_outlined),
                   selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
                   label: 'Overview'),
+              NavigationDestination(
+                  icon: Icon(Icons.savings_outlined),
+                  selectedIcon: Icon(Icons.savings, color: Barako.onPrimary),
+                  label: 'Budget'),
               NavigationDestination(
                   icon: Icon(Icons.receipt_long_outlined),
                   selectedIcon:

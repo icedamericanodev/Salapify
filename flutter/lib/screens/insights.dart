@@ -139,7 +139,8 @@ class InsightsScreen extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: utang && onSwitchTab != null ? () => onSwitchTab!(2) : null,
+        // Tab 3 is Utang (Overview, Budget, History, Utang, Insights).
+        onTap: utang && onSwitchTab != null ? () => onSwitchTab!(3) : null,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

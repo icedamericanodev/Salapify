@@ -272,6 +272,15 @@ class SalapifyStore extends ChangeNotifier {
         '${now.day.toString().padLeft(2, '0')}';
   }
 
+  /// Set (or clear, with 0) the monthly budget limit.
+  Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'monthlyLimit': limit,
+        },
+      });
+
   /// Log a partial utang payment through the golden-verified engine.
   Future<void> collectUtangPayment(String receivableId, String amountText) =>
       _mutate((d) => receivables.logPartial(d, receivableId, amountText,
