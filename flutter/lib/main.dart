@@ -15,7 +15,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.24 · Safe to spend engine: paydays, PH holidays, bills before sweldo';
+    'f0.25 · The coach engine: ranked money decisions, ready for the screen';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
