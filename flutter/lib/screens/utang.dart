@@ -109,9 +109,10 @@ class UtangScreen extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(formatMoney(total),
                           style: const TextStyle(
+                              fontFamily: Barako.displayFont,
                               color: Barako.primary,
                               fontSize: 30,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               fontFeatures: [FontFeature.tabularFigures()])),
                       const SizedBox(height: 4),
                       Text(

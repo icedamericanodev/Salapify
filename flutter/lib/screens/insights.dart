@@ -203,9 +203,10 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text(formatMoney(available > 0 ? available : 0),
                 style: TextStyle(
+                    fontFamily: Barako.displayFont,
                     color: tight ? Barako.warning : Barako.primary,
                     fontSize: 30,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontFeatures: const [FontFeature.tabularFigures()])),
             const SizedBox(height: 4),
             Text(
@@ -251,9 +252,10 @@ class InsightsScreen extends StatelessWidget {
               children: [
                 Text('$total',
                     style: const TextStyle(
+                        fontFamily: Barako.displayFont,
                         color: Barako.primary,
                         fontSize: 34,
-                        fontWeight: FontWeight.w800)),
+                        fontWeight: FontWeight.w700)),
                 const Padding(
                   padding: EdgeInsets.only(bottom: 6, left: 4),
                   child: Text('of 100',

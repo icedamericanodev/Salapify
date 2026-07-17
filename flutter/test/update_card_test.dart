@@ -12,7 +12,7 @@ void main() {
   testWidgets('shows the stamp and reports when updates are unavailable',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: barakoDarkTheme(),
+      theme: kapeLatteTheme(),
       home: const Scaffold(body: UpdateCard()),
     ));
     await tester.pumpAndSettle();
