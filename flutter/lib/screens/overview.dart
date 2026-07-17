@@ -23,7 +23,12 @@ String formatMoney(num value) {
   // stays alive, and staying alive is the contract here).
   if (!value.isFinite) return '₱$value';
   final negative = value < 0;
-  final rounded = (value.abs() * 100).round() / 100;
+  // A FINITE value near max double still overflows when scaled by 100 for
+  // centavo rounding, and round() throws on the resulting Infinity. Same
+  // contract: render the raw number, stay alive.
+  final scaled = value.abs() * 100;
+  if (!scaled.isFinite) return '₱$value';
+  final rounded = scaled.round() / 100;
   var whole = rounded.floor();
   final cents = ((rounded - whole) * 100).round();
   final digits = whole.toString();

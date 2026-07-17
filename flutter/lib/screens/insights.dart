@@ -225,7 +225,11 @@ class InsightsScreen extends StatelessWidget {
 
   Widget _healthCard(Map<String, dynamic> health) {
     final parts = (health['parts'] as Map).cast<String, dynamic>();
-    final total = (health['total'] as double).toInt();
+    // Belt and braces: the engine guards every part against non-finite
+    // sums, but toInt() on a non-finite double kills the whole tab, so the
+    // screen never trusts that with its life.
+    final rawTotal = health['total'] as double;
+    final total = rawTotal.isFinite ? rawTotal.toInt() : 0;
     const partMax = {'savings': 35, 'budget': 25, 'debt': 25, 'logging': 15};
     const partLabel = {
       'savings': 'Savings rate',

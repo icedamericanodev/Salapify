@@ -16,7 +16,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.27 · Insights hardened: absurd backups render instead of crashing';
+    'f0.28 · The whole Infinity crash family is closed';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

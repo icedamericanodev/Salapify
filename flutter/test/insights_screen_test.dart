@@ -107,6 +107,34 @@ void main() {
     expect((health['parts'] as Map)['savings'], 0);
   });
 
+  test('a single finite near-max value survives centavo scaling', () {
+    // 1.7e308 is finite, but times 100 overflows; round() must never see it.
+    final text = formatMoney(1.7e308);
+    expect(text.startsWith('₱'), isTrue);
+    // The negative twin must not throw either.
+    expect(formatMoney(-1.7e308), isA<String>());
+  });
+
+  test('infinite debt over infinite assets scores zero, never Infinity', () {
+    final health = analytics.healthScore({
+      'transactions': [],
+      'payments': [],
+      'accounts': [
+        {'id': 'a', 'balance': 1.7e308},
+        {'id': 'b', 'balance': 1.7e308},
+      ],
+      'assets': [],
+      'debts': [
+        {'id': 'd1', 'remaining': 1.7e308},
+        {'id': 'd2', 'remaining': 1.7e308},
+      ],
+      'settings': {},
+    }, DateTime.now());
+    final total = health['total'] as double;
+    expect(total.isFinite, isTrue);
+    expect((health['parts'] as Map)['debt'], 0);
+  });
+
   test('runwayLabel drops the .0 on whole months', () {
     expect(runwayLabel(null, false), 'Not enough history yet');
     expect(runwayLabel(3.0, false), '3 months');

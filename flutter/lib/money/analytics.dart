@@ -377,8 +377,12 @@ Map<String, dynamic> healthScore(Map<String, dynamic> data, DateTime ref) {
   final debt = sum(data['debts'], 'remaining');
   var debtPts = 25.0;
   if (debt > 0) {
-    debtPts = assets > 0
-        ? _jsRound(((1 - debt / assets).clamp(0, double.infinity)) * 25)
+    // Same non-finite guard as the savings rate: infinite debt over
+    // infinite assets is NaN, and NaN.clamp would return the UPPER bound,
+    // scoring Infinity points. A ratio that is not a real number scores 0.
+    final ratio = assets > 0 ? debt / assets : double.infinity;
+    debtPts = ratio.isFinite
+        ? _jsRound(((1 - ratio).clamp(0, double.infinity)) * 25)
         : 0.0;
   }
 
