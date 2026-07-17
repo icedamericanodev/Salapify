@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'data/store.dart';
 import 'screens/history.dart';
+import 'screens/insights.dart';
 import 'screens/overview.dart';
 import 'screens/utang.dart';
 import 'theme.dart';
@@ -15,7 +16,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.25 · The coach engine: ranked money decisions, ready for the screen';
+    'f0.26 · The Insights tab: your money decisions, ranked and explained';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -50,6 +51,9 @@ class _SalapifyAppState extends State<SalapifyApp> {
           body: switch (tab) {
             1 => HistoryScreen(store: widget.store),
             2 => UtangScreen(store: widget.store),
+            3 => InsightsScreen(
+                store: widget.store,
+                onSwitchTab: (i) => setState(() => tab = i)),
             _ => OverviewScreen(store: widget.store),
           },
           bottomNavigationBar: NavigationBar(
@@ -71,6 +75,10 @@ class _SalapifyAppState extends State<SalapifyApp> {
                   icon: Icon(Icons.handshake_outlined),
                   selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
                   label: 'Utang'),
+              NavigationDestination(
+                  icon: Icon(Icons.insights_outlined),
+                  selectedIcon: Icon(Icons.insights, color: Barako.onPrimary),
+                  label: 'Insights'),
             ],
           ),
         ),
