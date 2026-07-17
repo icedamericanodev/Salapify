@@ -17,6 +17,11 @@ import 'log_sheet.dart';
 import 'update_card.dart';
 
 String formatMoney(num value) {
+  // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
+  // round() throws on non-finite, which would take down the whole screen,
+  // so render the raw word instead (the RN app shows the same garbage but
+  // stays alive, and staying alive is the contract here).
+  if (!value.isFinite) return '₱$value';
   final negative = value < 0;
   final rounded = (value.abs() * 100).round() / 100;
   var whole = rounded.floor();

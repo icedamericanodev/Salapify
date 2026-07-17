@@ -346,7 +346,12 @@ Map<String, dynamic> emergencyRunway(Map<String, dynamic>? data, DateTime ref) {
 /// explain itself.
 Map<String, dynamic> healthScore(Map<String, dynamic> data, DateTime ref) {
   final rate = savingsRate(data['transactions'], data['payments'], ref);
-  final ratePts = rate == null
+  // Deliberate divergence from RN for non-finite sums: infinite income
+  // makes savingsRate NaN, and Dart's NaN.clamp returns 1 where JS
+  // Math.min returns NaN, which would FABRICATE 35 savings points. RN
+  // renders NaN garbage; here a rate that is not a real number honestly
+  // scores zero and the total stays finite.
+  final ratePts = rate == null || !rate.isFinite
       ? 0.0
       : _jsRound(((rate / 0.3).clamp(0, 1)) * 35);
 

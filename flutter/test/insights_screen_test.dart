@@ -8,6 +8,9 @@ import 'package:flutter/widgets.dart' show Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/money/analytics.dart' as analytics;
+import 'package:salapify/screens/insights.dart' show runwayLabel;
+import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
@@ -65,6 +68,53 @@ String _monthDay(int day) {
 }
 
 void main() {
+  test('formatMoney survives non-finite sums instead of killing the screen',
+      () {
+    expect(formatMoney(double.infinity), '₱Infinity');
+    expect(formatMoney(double.negativeInfinity), '₱-Infinity');
+    expect(formatMoney(double.nan), '₱NaN');
+    expect(formatMoney(1250.5), '₱1,250.50');
+  });
+
+  test('healthScore never fabricates savings points from a NaN rate', () {
+    // Two near-max incomes sum to Infinity; savingsRate goes NaN. Dart
+    // NaN.clamp would return 1 (35 fake points); the guard scores 0.
+    final health = analytics.healthScore({
+      'transactions': [
+        {
+          'id': 'a',
+          'type': 'income',
+          'label': 'A',
+          'amount': 1.7e308,
+          'date': _monthDay(10),
+        },
+        {
+          'id': 'b',
+          'type': 'income',
+          'label': 'B',
+          'amount': 1.7e308,
+          'date': _monthDay(11),
+        },
+      ],
+      'payments': [],
+      'accounts': [],
+      'assets': [],
+      'debts': [],
+      'settings': {},
+    }, DateTime.now());
+    final total = health['total'] as double;
+    expect(total.isFinite, isTrue);
+    expect((health['parts'] as Map)['savings'], 0);
+  });
+
+  test('runwayLabel drops the .0 on whole months', () {
+    expect(runwayLabel(null, false), 'Not enough history yet');
+    expect(runwayLabel(3.0, false), '3 months');
+    expect(runwayLabel(2.5, false), '2.5 months');
+    expect(runwayLabel(1.0, false), '1 month');
+    expect(runwayLabel(12.0, true), '12+ months');
+  });
+
   testWidgets('the Insights tab renders decisions and numbers from real data',
       (tester) async {
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob())});

@@ -16,6 +16,17 @@ import '../money/commitments.dart' as commitments;
 import '../theme.dart';
 import 'overview.dart' show formatMoney;
 
+/// "3 months", "2.5 months", "1 month", "12+ months", or the honest
+/// not-enough-history label. Whole doubles drop the ".0" the way the RN
+/// screen prints plain JS numbers.
+String runwayLabel(dynamic months, bool capped) {
+  if (months == null) return 'Not enough history yet';
+  if (capped) return '12+ months';
+  final m = months as num;
+  final text = m % 1 == 0 ? m.toInt().toString() : m.toString();
+  return '$text ${m == 1 ? 'month' : 'months'}';
+}
+
 class InsightsScreen extends StatelessWidget {
   final SalapifyStore store;
   final void Function(int tab)? onSwitchTab;
@@ -425,12 +436,7 @@ class InsightsScreen extends StatelessWidget {
           children: [
             _kicker('EMERGENCY RUNWAY'),
             const SizedBox(height: 6),
-            Text(
-                months == null
-                    ? 'Not enough history yet'
-                    : capped
-                        ? '12+ months'
-                        : '$months ${months == 1.0 ? 'month' : 'months'}',
+            Text(runwayLabel(months, capped),
                 style: const TextStyle(
                     color: Barako.text,
                     fontSize: 22,
@@ -439,7 +445,7 @@ class InsightsScreen extends StatelessWidget {
             Text(
               months == null
                   ? 'After two full months of logged spending, this shows how long your accessible money would carry you.'
-                  : 'Your accessible money (${formatMoney(runway['buffer'] as double)}) covers ${capped ? 'more than a year' : 'about $months months'} of your typical ${formatMoney(runway['avgMonthlyExpense'] as double)} monthly spending.',
+                  : 'Your accessible money (${formatMoney(runway['buffer'] as double)}) covers ${capped ? 'more than a year' : 'about ${runwayLabel(months, false)}'} of your typical ${formatMoney(runway['avgMonthlyExpense'] as double)} monthly spending.',
               style: const TextStyle(
                   color: Barako.muted, fontSize: 13, height: 1.4),
             ),

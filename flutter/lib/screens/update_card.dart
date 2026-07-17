@@ -58,27 +58,33 @@ class _UpdateCardState extends State<UpdateCard> {
       busy = true;
       status = 'Checking...';
     });
+    // The card can be disposed mid-await (switching tabs swaps the body),
+    // so every state touch after an await goes through this guard.
+    void safeSet(VoidCallback fn) {
+      if (mounted) setState(fn);
+    }
+
     try {
       final result = await _updater.checkForUpdate();
       switch (result) {
         case UpdateStatus.upToDate:
-          setState(() => status = 'You are on the newest build already.');
+          safeSet(() => status = 'You are on the newest build already.');
         case UpdateStatus.restartRequired:
-          setState(() => status = 'Update ready.');
+          safeSet(() => status = 'Update ready.');
           await _offerRestart('The new build is already downloaded.');
         case UpdateStatus.outdated:
-          setState(() => status = 'Downloading the update...');
+          safeSet(() => status = 'Downloading the update...');
           await _updater.update();
-          setState(() => status = 'Update ready.');
+          safeSet(() => status = 'Update ready.');
           await _offerRestart('The new build finished downloading.');
         case UpdateStatus.unavailable:
-          setState(() =>
+          safeSet(() =>
               status = 'Automatic updates are not active in this build.');
       }
     } on UpdateException catch (e) {
-      setState(() => status = 'Update failed, nothing changed: ${e.message}');
+      safeSet(() => status = 'Update failed, nothing changed: ${e.message}');
     } catch (e) {
-      setState(() =>
+      safeSet(() =>
           status = 'Could not check right now. Are you online? $e');
     } finally {
       if (mounted) setState(() => busy = false);

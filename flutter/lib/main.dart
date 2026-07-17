@@ -16,7 +16,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.26 · The Insights tab: your money decisions, ranked and explained';
+    'f0.27 · Insights hardened: absurd backups render instead of crashing';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
