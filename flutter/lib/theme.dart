@@ -1,67 +1,202 @@
-// Kape Latte: the founder-chosen light theme (2026-07-17, option B of the
-// rendered panel). The Barako brand keeps its name and its roasted orange,
-// but the surfaces flip to steamed milk: cream background, warm white
-// cards, espresso ink text. Type carries the coffee shop personality:
-// Fraunces (a soft serif) on display money, Plus Jakarta Sans everywhere
-// else. Warning stays rose crimson, darkened for contrast on cream, and is
-// reserved for debt and over limit states.
+// The Salapify mood themes. The founder picked Kape Latte as the default
+// (2026-07-17) and asked for mood switching, so the palette became an
+// instance: three coffee-family moods share the Barako brand's roasted
+// orange spine and the Fraunces plus Jakarta type pairing. Colors are pure
+// Dart, so new moods ship as ordinary patches; only the FONTS needed the
+// 0.2.1+4 base APK.
 //
-// The fonts are bundled ASSETS, which cannot ride in a Shorebird patch, so
-// this theme shipped with the 0.2.0+3 base APK (one manual install).
+// Barako stays the color namespace every screen reads (Barako.text and so
+// on), but the members are now getters over the active palette, switched
+// from settings.themeMood and rebuilt from the app root. That is why the
+// screens avoid const on color-bearing widgets: const would freeze the
+// mood at compile time (see analysis_options.yaml).
 
 import 'package:flutter/material.dart';
 
-class Barako {
-  static const background = Color(0xFFF5EDE2);
-  static const card = Color(0xFFFFFAF2);
-  static const surfaceRaised = Color(0xFFFFF6EA);
-  static const border = Color(0xFFE7DACA);
-  static const primary = Color(0xFFC75B12);
-  static const caramel = Color(0xFFB98A55);
-  static const text = Color(0xFF2B1A0E);
-  static const textSecondary = Color(0xFF5C4632);
-  static const muted = Color(0xFF8A7460);
-  static const faint = Color(0xFFA08468);
-  static const warning = Color(0xFFD93A52);
-  static const warningStrong = Color(0xFFC22B42);
-  static const onPrimary = Color(0xFFFFF6EA);
-  static const celebrate = Color(0xFFB97F1F);
+class BarakoPalette {
+  final String mood; // stored in settings.themeMood
+  final String label;
+  final Brightness brightness;
+  final Color background;
+  final Color card;
+  final Color surfaceRaised;
+  final Color border;
+  final Color primary;
+  final Color caramel;
+  final Color text;
+  final Color textSecondary;
+  final Color muted;
+  final Color faint;
+  final Color warning;
+  final Color warningStrong;
+  final Color onPrimary;
+  final Color celebrate;
 
-  /// The display serif for big peso amounts (Fraunces). Body text inherits
-  /// Jakarta from the ThemeData fontFamily.
+  const BarakoPalette({
+    required this.mood,
+    required this.label,
+    required this.brightness,
+    required this.background,
+    required this.card,
+    required this.surfaceRaised,
+    required this.border,
+    required this.primary,
+    required this.caramel,
+    required this.text,
+    required this.textSecondary,
+    required this.muted,
+    required this.faint,
+    required this.warning,
+    required this.warningStrong,
+    required this.onPrimary,
+    required this.celebrate,
+  });
+}
+
+/// Kape Latte: the founder-chosen default. Steamed milk, espresso ink.
+const lattePalette = BarakoPalette(
+  mood: 'latte',
+  label: '☕ Latte',
+  brightness: Brightness.light,
+  background: Color(0xFFF5EDE2),
+  card: Color(0xFFFFFAF2),
+  surfaceRaised: Color(0xFFFFF6EA),
+  border: Color(0xFFE7DACA),
+  primary: Color(0xFFC75B12),
+  caramel: Color(0xFFB98A55),
+  text: Color(0xFF2B1A0E),
+  textSecondary: Color(0xFF5C4632),
+  muted: Color(0xFF8A7460),
+  faint: Color(0xFFA08468),
+  warning: Color(0xFFD93A52),
+  warningStrong: Color(0xFFC22B42),
+  onPrimary: Color(0xFFFFF6EA),
+  celebrate: Color(0xFFB97F1F),
+);
+
+/// Barako: the original dark roast, for late night logging.
+const barakoPalette = BarakoPalette(
+  mood: 'barako',
+  label: '🌙 Barako',
+  brightness: Brightness.dark,
+  background: Color(0xFF17110C),
+  card: Color(0xFF231810),
+  surfaceRaised: Color(0xFF2C1F16),
+  border: Color(0xFF35261B),
+  primary: Color(0xFFFF8A3D),
+  caramel: Color(0xFFE9BC8E),
+  text: Color(0xFFFBF3E9),
+  textSecondary: Color(0xFFE0CEBB),
+  muted: Color(0xFFA99182),
+  faint: Color(0xFF97806F),
+  warning: Color(0xFFFF5D73),
+  warningStrong: Color(0xFFF5384F),
+  onPrimary: Color(0xFF2A1305),
+  celebrate: Color(0xFFFFC24D),
+);
+
+/// Milk Tea: the soft warm middle, honey amber on mocha.
+const milkTeaPalette = BarakoPalette(
+  mood: 'milktea',
+  label: '🧋 Milk Tea',
+  brightness: Brightness.dark,
+  background: Color(0xFF2B211B),
+  card: Color(0xFF382C24),
+  surfaceRaised: Color(0xFF423429),
+  border: Color(0xFF4A3A2E),
+  primary: Color(0xFFF2B04E),
+  caramel: Color(0xFFD9B98A),
+  text: Color(0xFFF7EDDF),
+  textSecondary: Color(0xFFE5D5C2),
+  muted: Color(0xFFB49C87),
+  faint: Color(0xFF9A8270),
+  warning: Color(0xFFFF5D73),
+  warningStrong: Color(0xFFF5384F),
+  onPrimary: Color(0xFF33230F),
+  celebrate: Color(0xFFFFC24D),
+);
+
+const List<BarakoPalette> moodPalettes = [
+  lattePalette,
+  barakoPalette,
+  milkTeaPalette,
+];
+
+BarakoPalette paletteForMood(dynamic mood) {
+  for (final p in moodPalettes) {
+    if (p.mood == mood) return p;
+  }
+  return lattePalette;
+}
+
+/// The color namespace every screen reads. Members are getters over the
+/// active palette so a mood switch repaints the whole app on rebuild.
+class Barako {
+  static BarakoPalette current = lattePalette;
+
+  static Color get background => current.background;
+  static Color get card => current.card;
+  static Color get surfaceRaised => current.surfaceRaised;
+  static Color get border => current.border;
+  static Color get primary => current.primary;
+  static Color get caramel => current.caramel;
+  static Color get text => current.text;
+  static Color get textSecondary => current.textSecondary;
+  static Color get muted => current.muted;
+  static Color get faint => current.faint;
+  static Color get warning => current.warning;
+  static Color get warningStrong => current.warningStrong;
+  static Color get onPrimary => current.onPrimary;
+  static Color get celebrate => current.celebrate;
+
+  /// The display serif for big peso amounts (Fraunces).
   static const displayFont = 'Fraunces';
 }
 
-ThemeData kapeLatteTheme() {
+/// The theme for one mood palette.
+ThemeData salapifyTheme([BarakoPalette? palette]) {
+  final p = palette ?? Barako.current;
+  final isLight = p.brightness == Brightness.light;
+  final scheme = isLight
+      ? ColorScheme.light(
+          primary: p.primary,
+          onPrimary: p.onPrimary,
+          surface: p.card,
+          onSurface: p.text,
+          secondary: p.caramel,
+          onSecondary: p.onPrimary,
+          error: p.warningStrong,
+        )
+      : ColorScheme.dark(
+          primary: p.primary,
+          onPrimary: p.onPrimary,
+          surface: p.card,
+          onSurface: p.text,
+          secondary: p.caramel,
+          onSecondary: p.onPrimary,
+          error: p.warning,
+        );
   return ThemeData(
     useMaterial3: true,
-    brightness: Brightness.light,
+    brightness: p.brightness,
     fontFamily: 'Jakarta',
-    scaffoldBackgroundColor: Barako.background,
-    colorScheme: const ColorScheme.light(
-      primary: Barako.primary,
-      onPrimary: Barako.onPrimary,
-      surface: Barako.card,
-      onSurface: Barako.text,
-      secondary: Barako.caramel,
-      onSecondary: Barako.onPrimary,
-      error: Barako.warningStrong,
-    ),
-    splashColor: Barako.primary.withValues(alpha: 0.08),
-    highlightColor: Barako.primary.withValues(alpha: 0.05),
-    cardTheme: const CardThemeData(
-      color: Barako.card,
+    scaffoldBackgroundColor: p.background,
+    colorScheme: scheme,
+    splashColor: p.primary.withValues(alpha: 0.08),
+    highlightColor: p.primary.withValues(alpha: 0.05),
+    cardTheme: CardThemeData(
+      color: p.card,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(20)),
-        side: BorderSide(color: Barako.border),
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(color: p.border),
       ),
     ),
-    dividerColor: Barako.border,
+    dividerColor: p.border,
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: Barako.card,
-      indicatorColor: Barako.primary,
+      backgroundColor: p.card,
+      indicatorColor: p.primary,
       height: 68,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(
@@ -72,42 +207,42 @@ ThemeData kapeLatteTheme() {
               ? FontWeight.w800
               : FontWeight.w600,
           letterSpacing: 0.3,
-          color: states.contains(WidgetState.selected)
-              ? Barako.text
-              : Barako.muted,
+          color: states.contains(WidgetState.selected) ? p.text : p.muted,
         ),
       ),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           size: 22,
-          color: states.contains(WidgetState.selected)
-              ? Barako.onPrimary
-              : Barako.muted,
+          color:
+              states.contains(WidgetState.selected) ? p.onPrimary : p.muted,
         ),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: Barako.text,
-      contentTextStyle: const TextStyle(
-          fontFamily: 'Jakarta', color: Barako.card, fontSize: 14),
-      actionTextColor: Barako.celebrate,
+      backgroundColor: isLight ? p.text : p.surfaceRaised,
+      contentTextStyle: TextStyle(
+          fontFamily: 'Jakarta',
+          color: isLight ? p.card : p.text,
+          fontSize: 14),
+      actionTextColor: p.celebrate,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
+        side: isLight ? BorderSide.none : BorderSide(color: p.border),
       ),
     ),
-    dialogTheme: const DialogThemeData(
-      backgroundColor: Barako.card,
+    dialogTheme: DialogThemeData(
+      backgroundColor: p.card,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(20)),
-        side: BorderSide(color: Barako.border),
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(color: p.border),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: Barako.primary,
-        foregroundColor: Barako.onPrimary,
+        backgroundColor: p.primary,
+        foregroundColor: p.onPrimary,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
@@ -118,8 +253,8 @@ ThemeData kapeLatteTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Barako.border),
-        foregroundColor: Barako.textSecondary,
+        side: BorderSide(color: p.border),
+        foregroundColor: p.textSecondary,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
@@ -128,48 +263,50 @@ ThemeData kapeLatteTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: Barako.primary,
+        foregroundColor: p.primary,
         textStyle: const TextStyle(
             fontFamily: 'Jakarta', fontWeight: FontWeight.w700),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: Barako.background,
-      side: const BorderSide(color: Barako.border),
-      labelStyle: const TextStyle(
+      backgroundColor: p.background,
+      side: BorderSide(color: p.border),
+      labelStyle: TextStyle(
           fontFamily: 'Jakarta',
-          color: Barako.textSecondary,
+          color: p.textSecondary,
           fontWeight: FontWeight.w600),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       showCheckmark: false,
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: Barako.primary,
-      linearTrackColor: Barako.border,
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: p.primary,
+      linearTrackColor: p.border,
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: Barako.primary,
-      foregroundColor: Barako.onPrimary,
+      backgroundColor: p.primary,
+      foregroundColor: p.onPrimary,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Barako.background,
-      hintStyle:
-          const TextStyle(fontFamily: 'Jakarta', color: Barako.faint),
+      fillColor: p.background,
+      hintStyle: TextStyle(fontFamily: 'Jakarta', color: p.faint),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Barako.border),
+        borderSide: BorderSide(color: p.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Barako.border),
+        borderSide: BorderSide(color: p.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Barako.primary, width: 1.4),
+        borderSide: BorderSide(color: p.primary, width: 1.4),
       ),
     ),
   );
 }
+
+/// Kept for callers and tests that want the default explicitly.
+ThemeData kapeLatteTheme() => salapifyTheme(lattePalette);

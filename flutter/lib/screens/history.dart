@@ -115,7 +115,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         items.add(Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 6),
           child: Text(header,
-              style: const TextStyle(
+              style: TextStyle(
                   color: Barako.muted,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -133,7 +133,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text('HISTORY',
+              Text('HISTORY',
                   style: TextStyle(
                       color: Barako.text,
                       fontSize: 26,
@@ -156,7 +156,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ? Barako.onPrimary
                                 : Barako.textSecondary,
                             fontWeight: FontWeight.w600),
-                        side: const BorderSide(color: Barako.border),
+                        side: BorderSide(color: Barako.border),
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -182,7 +182,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(trulyEmpty ? 'Nothing here yet' : 'No entries match',
-                style: const TextStyle(
+                style: TextStyle(
                     color: Barako.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w700)),
@@ -191,12 +191,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 trulyEmpty
                     ? 'Entries you log will show up here.'
                     : 'Try a different filter.',
-                style: const TextStyle(color: Barako.muted, fontSize: 13)),
+                style: TextStyle(color: Barako.muted, fontSize: 13)),
             if (!trulyEmpty) ...[
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => setState(() => filter = 'all'),
-                child: const Text('Show all',
+                child: Text('Show all',
                     style: TextStyle(color: Barako.primary)),
               ),
             ],
@@ -224,10 +224,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Barako.text, fontSize: 15)),
                   if (record)
-                    const Text('Record of a money move, read-only here',
+                    Text('Record of a money move, read-only here',
                         style:
                             TextStyle(color: Barako.faint, fontSize: 11)),
                 ],

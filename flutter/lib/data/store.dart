@@ -272,6 +272,15 @@ class SalapifyStore extends ChangeNotifier {
         '${now.day.toString().padLeft(2, '0')}';
   }
 
+  /// Remember the mood theme (latte, barako, milktea).
+  Future<void> setThemeMood(String mood) => _mutate((d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'themeMood': mood,
+        },
+      });
+
   /// Set (or clear, with 0) the monthly budget limit.
   Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
         ...d,

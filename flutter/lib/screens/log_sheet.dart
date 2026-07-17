@@ -157,7 +157,7 @@ class _LogSheetState extends State<LogSheet> {
               autofocus: true,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(
+              style: TextStyle(
                   color: Barako.text,
                   fontSize: 28,
                   fontWeight: FontWeight.w700),
@@ -166,13 +166,13 @@ class _LogSheetState extends State<LogSheet> {
             const SizedBox(height: 10),
             TextField(
               controller: labelController,
-              style: const TextStyle(color: Barako.text, fontSize: 16),
+              style: TextStyle(color: Barako.text, fontSize: 16),
               decoration:
                   _decor(type == 'income' ? 'e.g. Sweldo' : 'e.g. Groceries'),
             ),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text('FROM WHICH ACCOUNT',
+              Text('FROM WHICH ACCOUNT',
                   style: TextStyle(
                       color: Barako.muted,
                       fontSize: 11,
@@ -194,7 +194,7 @@ class _LogSheetState extends State<LogSheet> {
               const SizedBox(height: 10),
               Text(error!,
                   style:
-                      const TextStyle(color: Barako.warning, fontSize: 13)),
+                      TextStyle(color: Barako.warning, fontSize: 13)),
             ],
             const SizedBox(height: 16),
             SizedBox(
@@ -218,15 +218,15 @@ class _LogSheetState extends State<LogSheet> {
 
   InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Barako.faint),
+        hintStyle: TextStyle(color: Barako.faint),
         prefixText: prefix,
-        prefixStyle: const TextStyle(
+        prefixStyle: TextStyle(
             color: Barako.muted, fontSize: 28, fontWeight: FontWeight.w700),
         filled: true,
         fillColor: Barako.card,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Barako.border),
+          borderSide: BorderSide(color: Barako.border),
         ),
       );
 
@@ -241,7 +241,7 @@ class _LogSheetState extends State<LogSheet> {
       labelStyle: TextStyle(
           color: on ? Barako.onPrimary : Barako.textSecondary,
           fontWeight: FontWeight.w600),
-      side: const BorderSide(color: Barako.border),
+      side: BorderSide(color: Barako.border),
     );
   }
 
@@ -256,7 +256,7 @@ class _LogSheetState extends State<LogSheet> {
       labelStyle: TextStyle(
           color: on ? Barako.onPrimary : Barako.textSecondary,
           fontWeight: FontWeight.w600),
-      side: const BorderSide(color: Barako.border),
+      side: BorderSide(color: Barako.border),
     );
   }
 }

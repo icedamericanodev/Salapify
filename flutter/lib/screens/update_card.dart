@@ -97,21 +97,21 @@ class _UpdateCardState extends State<UpdateCard> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: const Text('Switch to the new build?',
+        title: Text('Switch to the new build?',
             style: TextStyle(color: Barako.text)),
         content: Text(
           '$detail The app switches to it the next time it starts. '
           'Close the app now and reopen it to finish.',
-          style: const TextStyle(color: Barako.textSecondary),
+          style: TextStyle(color: Barako.textSecondary),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Later',
+              child: Text('Later',
                   style: TextStyle(color: Barako.muted))),
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Close app now',
+              child: Text('Close app now',
                   style: TextStyle(color: Barako.primary))),
         ],
       ),
@@ -138,7 +138,7 @@ class _UpdateCardState extends State<UpdateCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Update stamp',
+                Text('Update stamp',
                     style: TextStyle(color: Barako.text, fontSize: 14)),
                 const SizedBox(width: 16),
                 Expanded(
@@ -147,7 +147,7 @@ class _UpdateCardState extends State<UpdateCard> {
                           ? '$updateStamp (patch $patchNumber)'
                           : updateStamp,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Barako.muted, fontSize: 12)),
                 ),
               ],
@@ -157,11 +157,11 @@ class _UpdateCardState extends State<UpdateCard> {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Barako.border),
+                      side: BorderSide(color: Barako.border),
                       foregroundColor: Barako.textSecondary),
                   onPressed: busy ? null : _check,
                   icon: busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
@@ -175,7 +175,7 @@ class _UpdateCardState extends State<UpdateCard> {
               const SizedBox(height: 8),
               Text(status!,
                   style:
-                      const TextStyle(color: Barako.muted, fontSize: 12)),
+                      TextStyle(color: Barako.muted, fontSize: 12)),
             ],
           ],
         ),

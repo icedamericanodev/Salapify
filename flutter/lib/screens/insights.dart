@@ -51,27 +51,27 @@ class InsightsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           children: [
             const SizedBox(height: 12),
-            const Text('INSIGHTS',
+            Text('INSIGHTS',
                 style: TextStyle(
                     color: Barako.text,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 3)),
             const SizedBox(height: 4),
-            const Text('What your money is telling you, and what to do next',
+            Text('What your money is telling you, and what to do next',
                 style: TextStyle(color: Barako.muted, fontSize: 13)),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             if (candidates.isNotEmpty) ...[
               _kicker('DO NEXT'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               for (final c in candidates.take(3)) _decisionCard(c),
             ] else
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('You are on track',
                           style: TextStyle(
                               color: Barako.primary,
@@ -90,12 +90,12 @@ class InsightsScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.celebration_outlined,
+                  Icon(Icons.celebration_outlined,
                       color: Barako.primary, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(win['text'] as String,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Barako.primary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
@@ -122,7 +122,7 @@ class InsightsScreen extends StatelessWidget {
   }
 
   Widget _kicker(String text) => Text(text,
-      style: const TextStyle(
+      style: TextStyle(
           color: Barako.muted,
           fontSize: 11,
           fontWeight: FontWeight.w700,
@@ -169,13 +169,13 @@ class InsightsScreen extends StatelessWidget {
                             fontWeight: FontWeight.w700)),
                   ),
                   if (utang && onSwitchTab != null)
-                    const Icon(Icons.chevron_right,
+                    Icon(Icons.chevron_right,
                         color: Barako.faint, size: 18),
                 ],
               ),
               const SizedBox(height: 4),
               Text(c['message'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Barako.textSecondary,
                       fontSize: 13,
                       height: 1.4)),
@@ -251,12 +251,12 @@ class InsightsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text('$total',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: Barako.displayFont,
                         color: Barako.primary,
                         fontSize: 34,
                         fontWeight: FontWeight.w700)),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(bottom: 6, left: 4),
                   child: Text('of 100',
                       style: TextStyle(color: Barako.muted, fontSize: 12)),
@@ -272,7 +272,7 @@ class InsightsScreen extends StatelessWidget {
                     SizedBox(
                       width: 110,
                       child: Text(partLabel[key]!,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Barako.textSecondary, fontSize: 12)),
                     ),
                     Expanded(
@@ -292,7 +292,7 @@ class InsightsScreen extends StatelessWidget {
                       child: Text(
                           '${(parts[key] as double).toInt()}/${partMax[key]}',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Barako.muted, fontSize: 11)),
                     ),
                   ],
@@ -329,7 +329,7 @@ class InsightsScreen extends StatelessWidget {
               children: [
                 for (final l in labels)
                   Text(l,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Barako.faint, fontSize: 10)),
               ],
             ),
@@ -356,7 +356,7 @@ class InsightsScreen extends StatelessWidget {
                   BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(label,
-              style: const TextStyle(color: Barako.textSecondary, fontSize: 12)),
+              style: TextStyle(color: Barako.textSecondary, fontSize: 12)),
         ],
       );
 
@@ -378,7 +378,7 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
                 '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
-                style: const TextStyle(color: Barako.muted, fontSize: 12)),
+                style: TextStyle(color: Barako.muted, fontSize: 12)),
             const SizedBox(height: 10),
             for (final c in visible)
               Padding(
@@ -392,11 +392,11 @@ class InsightsScreen extends StatelessWidget {
                         Expanded(
                           child: Text(c['label'] as String,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: Barako.text, fontSize: 13)),
                         ),
                         Text(formatMoney(c['now'] as double),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: Barako.textSecondary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -423,7 +423,7 @@ class InsightsScreen extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
                 'An orange bar is running past its usual pace for this point in the month.',
                 style: TextStyle(color: Barako.faint, fontSize: 11)),
           ],
@@ -444,7 +444,7 @@ class InsightsScreen extends StatelessWidget {
             _kicker('EMERGENCY RUNWAY'),
             const SizedBox(height: 6),
             Text(runwayLabel(months, capped),
-                style: const TextStyle(
+                style: TextStyle(
                     color: Barako.text,
                     fontSize: 22,
                     fontWeight: FontWeight.w800)),
@@ -453,7 +453,7 @@ class InsightsScreen extends StatelessWidget {
               months == null
                   ? 'After two full months of logged spending, this shows how long your accessible money would carry you.'
                   : 'Your accessible money (${formatMoney(runway['buffer'] as double)}) covers ${capped ? 'more than a year' : 'about ${runwayLabel(months, false)}'} of your typical ${formatMoney(runway['avgMonthlyExpense'] as double)} monthly spending.',
-              style: const TextStyle(
+              style: TextStyle(
                   color: Barako.muted, fontSize: 13, height: 1.4),
             ),
           ],
