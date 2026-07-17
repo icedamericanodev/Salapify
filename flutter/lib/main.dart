@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.33 · KAPE LATTE fixed fonts: install THIS base, built from the f0.33 push';
+    'f0.35 · Mood polish: honest chip fills and contrast in every mood';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -42,53 +42,64 @@ class _SalapifyAppState extends State<SalapifyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Salapify Preview',
-      theme: kapeLatteTheme(),
-      debugShowCheckedModeBanner: false,
-      home: ListenableBuilder(
-        listenable: widget.store,
-        builder: (context, _) => Scaffold(
-          body: switch (tab) {
-            1 => BudgetScreen(store: widget.store),
-            2 => HistoryScreen(store: widget.store),
-            3 => UtangScreen(store: widget.store),
-            4 => InsightsScreen(
-                store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i)),
-            _ => OverviewScreen(store: widget.store),
-          },
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: tab,
-            onDestinationSelected: (i) => setState(() => tab = i),
-            backgroundColor: Barako.card,
-            indicatorColor: Barako.primary,
-            destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
-                  label: 'Overview'),
-              NavigationDestination(
-                  icon: Icon(Icons.savings_outlined),
-                  selectedIcon: Icon(Icons.savings, color: Barako.onPrimary),
-                  label: 'Budget'),
-              NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon:
-                      Icon(Icons.receipt_long, color: Barako.onPrimary),
-                  label: 'History'),
-              NavigationDestination(
-                  icon: Icon(Icons.handshake_outlined),
-                  selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
-                  label: 'Utang'),
-              NavigationDestination(
-                  icon: Icon(Icons.insights_outlined),
-                  selectedIcon: Icon(Icons.insights, color: Barako.onPrimary),
-                  label: 'Insights'),
-            ],
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) {
+        // The mood lives in settings so it survives backups. The palette is
+        // set BEFORE anything below reads a Barako color, and the whole tree
+        // rebuilds on every store notify, so a mood switch repaints the app.
+        final settings = widget.store.data['settings'];
+        Barako.current =
+            paletteForMood(settings is Map ? settings['themeMood'] : null);
+        return MaterialApp(
+          title: 'Salapify Preview',
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            body: switch (tab) {
+              1 => BudgetScreen(store: widget.store),
+              2 => HistoryScreen(store: widget.store),
+              3 => UtangScreen(store: widget.store),
+              4 => InsightsScreen(
+                  store: widget.store,
+                  onSwitchTab: (i) => setState(() => tab = i)),
+              _ => OverviewScreen(store: widget.store),
+            },
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: tab,
+              onDestinationSelected: (i) => setState(() => tab = i),
+              backgroundColor: Barako.card,
+              indicatorColor: Barako.primary,
+              destinations: [
+                NavigationDestination(
+                    icon: const Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
+                    label: 'Overview'),
+                NavigationDestination(
+                    icon: const Icon(Icons.savings_outlined),
+                    selectedIcon:
+                        Icon(Icons.savings, color: Barako.onPrimary),
+                    label: 'Budget'),
+                NavigationDestination(
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    selectedIcon:
+                        Icon(Icons.receipt_long, color: Barako.onPrimary),
+                    label: 'History'),
+                NavigationDestination(
+                    icon: const Icon(Icons.handshake_outlined),
+                    selectedIcon:
+                        Icon(Icons.handshake, color: Barako.onPrimary),
+                    label: 'Utang'),
+                NavigationDestination(
+                    icon: const Icon(Icons.insights_outlined),
+                    selectedIcon:
+                        Icon(Icons.insights, color: Barako.onPrimary),
+                    label: 'Insights'),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

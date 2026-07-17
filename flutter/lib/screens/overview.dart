@@ -63,17 +63,17 @@ class OverviewScreen extends StatelessWidget {
               foregroundColor: Barako.onPrimary,
               onPressed: () => showLogSheet(context, store),
               icon: const Icon(Icons.add),
-              label: const Text('Log',
+              label: Text('Log',
                   style: TextStyle(fontWeight: FontWeight.w700)),
             )
           : null,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(
-              children: const [
+              children: [
                 Text('₱',
                     style: TextStyle(
                         color: Barako.primary,
@@ -95,7 +95,7 @@ class OverviewScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     'Your saved data could not be read, so nothing was overwritten. ${store.loadError}',
-                    style: const TextStyle(color: Barako.warning),
+                    style: TextStyle(color: Barako.warning),
                   ),
                 ),
               ),
@@ -123,11 +123,11 @@ class OverviewScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(a['name'] as String? ?? 'Account',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: Barako.text, fontSize: 16)),
                               ),
                               Text(formatMoney(amount(a['balance'])),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: Barako.textSecondary,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600)),
@@ -162,6 +162,50 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+            if (store.canWrite)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _kicker('MOOD'),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final p in moodPalettes)
+                            ChoiceChip(
+                              label: Text(p.label),
+                              selected: Barako.current.mood == p.mood,
+                              onSelected: (_) async {
+                                final messenger =
+                                    ScaffoldMessenger.of(context);
+                                try {
+                                  await store.setThemeMood(p.mood);
+                                } catch (e) {
+                                  messenger.showSnackBar(SnackBar(
+                                      content: Text(
+                                          'Could not save the mood, nothing was changed. $e')));
+                                }
+                              },
+                              selectedColor: Barako.primary,
+                              backgroundColor: Barako.background,
+                              labelStyle: TextStyle(
+                                  color: Barako.current.mood == p.mood
+                                      ? Barako.onPrimary
+                                      : Barako.textSecondary,
+                                  fontWeight: FontWeight.w600),
+                              side: BorderSide(color: Barako.border),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (store.canWrite) const SizedBox(height: 12),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -174,7 +218,7 @@ class OverviewScreen extends StatelessWidget {
                       store.hasData
                           ? 'Your data lives only on this phone. Copy a backup any time; the current Salapify app can import it unchanged, so you always have a way back.'
                           : 'Open the current Salapify app, go to Backup, copy the backup text, and paste it here. Everything comes over: accounts, entries, utang, goals, settings.',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Barako.textSecondary,
                           fontSize: 14,
                           height: 1.4),
@@ -204,7 +248,7 @@ class OverviewScreen extends StatelessWidget {
                             OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                   side:
-                                      const BorderSide(color: Barako.border),
+                                      BorderSide(color: Barako.border),
                                   foregroundColor: Barako.textSecondary),
                               onPressed: openImport,
                               child: importLabel,
@@ -235,7 +279,7 @@ class OverviewScreen extends StatelessWidget {
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
 
   Widget _kicker(String text) => Text(text,
-      style: const TextStyle(
+      style: TextStyle(
           color: Barako.muted,
           fontSize: 11,
           fontWeight: FontWeight.w700,
@@ -250,7 +294,7 @@ class OverviewScreen extends StatelessWidget {
               _kicker(kicker),
               const SizedBox(height: 6),
               Text(big,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: Barako.displayFont,
                       color: Barako.primary,
                       fontSize: 34,
@@ -258,7 +302,7 @@ class OverviewScreen extends StatelessWidget {
               if (sub != null) ...[
                 const SizedBox(height: 4),
                 Text(sub,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: Barako.muted, fontSize: 13)),
               ],
             ],
@@ -321,7 +365,7 @@ class _ExportScreenState extends State<ExportScreen> {
             children: [
               Text(
                 'Everything in this app, as one block of text: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Copy it and keep it somewhere safe (notes, email to yourself). The current Salapify app imports it unchanged.',
-                style: const TextStyle(
+                style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -337,7 +381,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   child: SingleChildScrollView(
                     child: SelectableText(
                       text,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Barako.textSecondary,
                           fontSize: 11,
                           fontFamily: 'monospace'),
@@ -412,9 +456,9 @@ class _ImportScreenState extends State<ImportScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: Barako.card,
-          title: const Text('Replace everything?',
+          title: Text('Replace everything?',
               style: TextStyle(color: Barako.text)),
-          content: const Text(
+          content: Text(
             'Everything currently in this preview app will be replaced by '
             'what you pasted. The replaced data is kept on this phone until '
             'your next import, but there is no undo button.',
@@ -423,11 +467,11 @@ class _ImportScreenState extends State<ImportScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Cancel',
+                child: Text('Cancel',
                     style: TextStyle(color: Barako.muted))),
             TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Replace',
+                child: Text('Replace',
                     style: TextStyle(color: Barako.warning))),
           ],
         ),
@@ -472,7 +516,7 @@ class _ImportScreenState extends State<ImportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Paste the backup text from the current Salapify app (Backup screen, copy button). Importing replaces what is in this preview app only; your current app is untouched.',
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
@@ -484,16 +528,16 @@ class _ImportScreenState extends State<ImportScreen> {
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Barako.text, fontSize: 12, fontFamily: 'monospace'),
                   decoration: InputDecoration(
                     hintText: '{"app":"salapify", ...}',
-                    hintStyle: const TextStyle(color: Barako.faint),
+                    hintStyle: TextStyle(color: Barako.faint),
                     filled: true,
                     fillColor: Barako.card,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Barako.border),
+                      borderSide: BorderSide(color: Barako.border),
                     ),
                   ),
                 ),
@@ -502,7 +546,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 const SizedBox(height: 10),
                 Text(error!,
                     style:
-                        const TextStyle(color: Barako.warning, fontSize: 13)),
+                        TextStyle(color: Barako.warning, fontSize: 13)),
               ],
               const SizedBox(height: 12),
               SizedBox(

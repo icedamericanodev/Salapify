@@ -55,7 +55,7 @@ class BudgetScreen extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           children: [
             const SizedBox(height: 12),
-            const Text('BUDGET',
+            Text('BUDGET',
                 style: TextStyle(
                     color: Barako.text,
                     fontSize: 26,
@@ -71,7 +71,7 @@ class BudgetScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('QUICK ADD',
+                      Text('QUICK ADD',
                           style: TextStyle(
                               color: Barako.muted,
                               fontSize: 11,
@@ -87,20 +87,20 @@ class BudgetScreen extends StatelessWidget {
                               label: Text(
                                   '${q.label}  ${formatMoney(q.amount)}'),
                               backgroundColor: Barako.background,
-                              labelStyle: const TextStyle(
+                              labelStyle: TextStyle(
                                   color: Barako.text,
                                   fontWeight: FontWeight.w600),
                               side:
-                                  const BorderSide(color: Barako.border),
+                                  BorderSide(color: Barako.border),
                               onPressed: () => _quickAdd(context, q),
                             ),
                           ActionChip(
                             label: const Text('+ Custom'),
                             backgroundColor: Barako.background,
-                            labelStyle: const TextStyle(
+                            labelStyle: TextStyle(
                                 color: Barako.primary,
                                 fontWeight: FontWeight.w700),
-                            side: const BorderSide(color: Barako.border),
+                            side: BorderSide(color: Barako.border),
                             onPressed: () => showLogSheet(context, store),
                           ),
                         ],
@@ -118,7 +118,7 @@ class BudgetScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('WHERE IT WENT',
+                      Text('WHERE IT WENT',
                           style: TextStyle(
                               color: Barako.muted,
                               fontSize: 11,
@@ -153,7 +153,7 @@ class BudgetScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text('THIS MONTH',
                       style: TextStyle(
                           color: Barako.muted,
@@ -165,7 +165,7 @@ class BudgetScreen extends StatelessWidget {
                   InkWell(
                     onTap: () => _editLimit(context),
                     child: Text(limit > 0 ? 'Change limit' : 'Set a limit',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Barako.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.w700)),
@@ -189,7 +189,7 @@ class BudgetScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5, left: 6),
                     child: Text('of ${formatMoney(limit)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Barako.muted, fontSize: 13)),
                   ),
                 ],
@@ -217,13 +217,13 @@ class BudgetScreen extends StatelessWidget {
               ),
             ] else ...[
               Text(formatMoney(spent),
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Barako.text,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       fontFeatures: [FontFeature.tabularFigures()])),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                   'Spent so far this month. Set a monthly limit and the bar will keep you honest.',
                   style: TextStyle(color: Barako.muted, fontSize: 13)),
             ],
@@ -252,7 +252,7 @@ class BudgetScreen extends StatelessWidget {
                 child: Text(w['label'] as String,
                     overflow: TextOverflow.ellipsis,
                     style:
-                        const TextStyle(color: Barako.text, fontSize: 13)),
+                        TextStyle(color: Barako.text, fontSize: 13)),
               ),
               Text(
                   cap > 0
@@ -349,14 +349,14 @@ class BudgetScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: const Text('Monthly limit',
+        title: Text('Monthly limit',
             style: TextStyle(color: Barako.text)),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: Barako.text, fontSize: 20),
-          decoration: const InputDecoration(
+          style: TextStyle(color: Barako.text, fontSize: 20),
+          decoration: InputDecoration(
             prefixText: '₱ ',
             prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
             hintText: '15000',
@@ -368,18 +368,18 @@ class BudgetScreen extends StatelessWidget {
             TextButton(
                 // 0 clears the limit; the store treats it as none set.
                 onPressed: () => Navigator.of(dialogContext).pop(0.0),
-                child: const Text('Remove limit',
+                child: Text('Remove limit',
                     style: TextStyle(color: Barako.warning))),
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child:
-                  const Text('Cancel', style: TextStyle(color: Barako.muted))),
+                  Text('Cancel', style: TextStyle(color: Barako.muted))),
           TextButton(
               onPressed: () {
                 final v = parseAmount(controller.text);
                 if (v != null) Navigator.of(dialogContext).pop(v);
               },
-              child: const Text('Save',
+              child: Text('Save',
                   style: TextStyle(color: Barako.primary))),
         ],
       ),
