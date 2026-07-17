@@ -1,48 +1,51 @@
-// The Barako brand palette, ported from mobile/theme.js and given the
-// coffee-shop polish pass the founder asked for: aesthetic, neat, clean,
-// warm. Dark roast espresso base, roasted orange doing the dopamine work,
-// warm caramel and amber for kickers and wins. Warning stays rose crimson
-// and is reserved for debt and over limit states. The component themes
-// below are what make every screen feel like one calm cafe: soft 20px
-// radii, hairline borders instead of harsh outlines, floating rounded
-// snackbars, a pill navigation indicator, and a warm ripple.
+// Kape Latte: the founder-chosen light theme (2026-07-17, option B of the
+// rendered panel). The Barako brand keeps its name and its roasted orange,
+// but the surfaces flip to steamed milk: cream background, warm white
+// cards, espresso ink text. Type carries the coffee shop personality:
+// Fraunces (a soft serif) on display money, Plus Jakarta Sans everywhere
+// else. Warning stays rose crimson, darkened for contrast on cream, and is
+// reserved for debt and over limit states.
 //
-// A custom display font is an ASSET and assets cannot ride in a Shorebird
-// patch (the f0.14 lesson); typography personality beyond weights and
-// letterspacing waits for the next base APK and gets flagged loudly.
+// The fonts are bundled ASSETS, which cannot ride in a Shorebird patch, so
+// this theme shipped with the 0.2.0+3 base APK (one manual install).
 
 import 'package:flutter/material.dart';
 
 class Barako {
-  static const background = Color(0xFF17110C);
-  static const card = Color(0xFF231810);
-  static const surfaceRaised = Color(0xFF2C1F16);
-  static const border = Color(0xFF35261B);
-  static const primary = Color(0xFFFF8A3D);
-  static const caramel = Color(0xFFE9BC8E);
-  static const text = Color(0xFFFBF3E9);
-  static const textSecondary = Color(0xFFE0CEBB);
-  static const muted = Color(0xFFA99182);
-  static const faint = Color(0xFF97806F);
-  static const warning = Color(0xFFFF5D73);
-  static const warningStrong = Color(0xFFF5384F);
-  static const onPrimary = Color(0xFF2A1305);
-  static const celebrate = Color(0xFFFFC24D);
+  static const background = Color(0xFFF5EDE2);
+  static const card = Color(0xFFFFFAF2);
+  static const surfaceRaised = Color(0xFFFFF6EA);
+  static const border = Color(0xFFE7DACA);
+  static const primary = Color(0xFFC75B12);
+  static const caramel = Color(0xFFB98A55);
+  static const text = Color(0xFF2B1A0E);
+  static const textSecondary = Color(0xFF5C4632);
+  static const muted = Color(0xFF8A7460);
+  static const faint = Color(0xFFA08468);
+  static const warning = Color(0xFFD93A52);
+  static const warningStrong = Color(0xFFC22B42);
+  static const onPrimary = Color(0xFFFFF6EA);
+  static const celebrate = Color(0xFFB97F1F);
+
+  /// The display serif for big peso amounts (Fraunces). Body text inherits
+  /// Jakarta from the ThemeData fontFamily.
+  static const displayFont = 'Fraunces';
 }
 
-ThemeData barakoDarkTheme() {
+ThemeData kapeLatteTheme() {
   return ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
+    brightness: Brightness.light,
+    fontFamily: 'Jakarta',
     scaffoldBackgroundColor: Barako.background,
-    colorScheme: const ColorScheme.dark(
+    colorScheme: const ColorScheme.light(
       primary: Barako.primary,
       onPrimary: Barako.onPrimary,
       surface: Barako.card,
       onSurface: Barako.text,
       secondary: Barako.caramel,
       onSecondary: Barako.onPrimary,
-      error: Barako.warning,
+      error: Barako.warningStrong,
     ),
     splashColor: Barako.primary.withValues(alpha: 0.08),
     highlightColor: Barako.primary.withValues(alpha: 0.05),
@@ -63,6 +66,7 @@ ThemeData barakoDarkTheme() {
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
+          fontFamily: 'Jakarta',
           fontSize: 11,
           fontWeight: states.contains(WidgetState.selected)
               ? FontWeight.w800
@@ -83,13 +87,13 @@ ThemeData barakoDarkTheme() {
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: Barako.surfaceRaised,
-      contentTextStyle: const TextStyle(color: Barako.text, fontSize: 14),
-      actionTextColor: Barako.primary,
+      backgroundColor: Barako.text,
+      contentTextStyle: const TextStyle(
+          fontFamily: 'Jakarta', color: Barako.card, fontSize: 14),
+      actionTextColor: Barako.celebrate,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Barako.border),
       ),
     ),
     dialogTheme: const DialogThemeData(
@@ -106,8 +110,10 @@ ThemeData barakoDarkTheme() {
         foregroundColor: Barako.onPrimary,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle:
-            const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.2),
+        textStyle: const TextStyle(
+            fontFamily: 'Jakarta',
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -116,20 +122,24 @@ ThemeData barakoDarkTheme() {
         foregroundColor: Barako.textSecondary,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+            fontFamily: 'Jakarta', fontWeight: FontWeight.w600),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: Barako.primary,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+            fontFamily: 'Jakarta', fontWeight: FontWeight.w700),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: Barako.card,
+      backgroundColor: Barako.background,
       side: const BorderSide(color: Barako.border),
       labelStyle: const TextStyle(
-          color: Barako.textSecondary, fontWeight: FontWeight.w600),
+          fontFamily: 'Jakarta',
+          color: Barako.textSecondary,
+          fontWeight: FontWeight.w600),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       showCheckmark: false,
     ),
@@ -146,7 +156,8 @@ ThemeData barakoDarkTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Barako.background,
-      hintStyle: const TextStyle(color: Barako.faint),
+      hintStyle:
+          const TextStyle(fontFamily: 'Jakarta', color: Barako.faint),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Barako.border),

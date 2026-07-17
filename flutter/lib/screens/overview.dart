@@ -251,9 +251,10 @@ class OverviewScreen extends StatelessWidget {
               const SizedBox(height: 6),
               Text(big,
                   style: const TextStyle(
+                      fontFamily: Barako.displayFont,
                       color: Barako.primary,
                       fontSize: 34,
-                      fontWeight: FontWeight.w800)),
+                      fontWeight: FontWeight.w700)),
               if (sub != null) ...[
                 const SizedBox(height: 4),
                 Text(sub,

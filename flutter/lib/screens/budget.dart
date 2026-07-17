@@ -179,9 +179,10 @@ class BudgetScreen extends StatelessWidget {
                 children: [
                   Text(formatMoney(spent),
                       style: TextStyle(
+                          fontFamily: Barako.displayFont,
                           color: over ? Barako.warning : Barako.text,
                           fontSize: 28,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           fontFeatures: const [
                             FontFeature.tabularFigures()
                           ])),

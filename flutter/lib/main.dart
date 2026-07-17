@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.31 · Budget hardened: overflow clamps, safe quick adds, remove limit';
+    'f0.32 · KAPE LATTE: the new look needs ONE new APK install';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -44,7 +44,7 @@ class _SalapifyAppState extends State<SalapifyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Salapify Preview',
-      theme: barakoDarkTheme(),
+      theme: kapeLatteTheme(),
       debugShowCheckedModeBanner: false,
       home: ListenableBuilder(
         listenable: widget.store,
