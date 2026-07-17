@@ -109,7 +109,7 @@ const milkTeaPalette = BarakoPalette(
   text: Color(0xFFF7EDDF),
   textSecondary: Color(0xFFE5D5C2),
   muted: Color(0xFFB49C87),
-  faint: Color(0xFF9A8270),
+  faint: Color(0xFFAB937D),
   warning: Color(0xFFFF5D73),
   warningStrong: Color(0xFFF5384F),
   onPrimary: Color(0xFF33230F),

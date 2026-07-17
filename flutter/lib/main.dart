@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.34 · Mood themes: Latte, Barako, and Milk Tea, switch anytime';
+    'f0.35 · Mood polish: honest chip fills and contrast in every mood';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

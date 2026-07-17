@@ -179,10 +179,19 @@ class OverviewScreen extends StatelessWidget {
                             ChoiceChip(
                               label: Text(p.label),
                               selected: Barako.current.mood == p.mood,
-                              onSelected: (_) =>
-                                  store.setThemeMood(p.mood),
+                              onSelected: (_) async {
+                                final messenger =
+                                    ScaffoldMessenger.of(context);
+                                try {
+                                  await store.setThemeMood(p.mood);
+                                } catch (e) {
+                                  messenger.showSnackBar(SnackBar(
+                                      content: Text(
+                                          'Could not save the mood, nothing was changed. $e')));
+                                }
+                              },
                               selectedColor: Barako.primary,
-                              backgroundColor: Barako.card,
+                              backgroundColor: Barako.background,
                               labelStyle: TextStyle(
                                   color: Barako.current.mood == p.mood
                                       ? Barako.onPrimary

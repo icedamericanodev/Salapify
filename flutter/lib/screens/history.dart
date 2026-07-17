@@ -263,7 +263,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
             color: Barako.warning, borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.delete_outline, color: Colors.white),
+        // Palette-driven ink so the icon clears contrast on the warning
+        // fill in every mood (white sat at 2.97:1 in the dark moods).
+        child: Icon(Icons.delete_outline, color: Barako.onPrimary),
       ),
       confirmDismiss: (_) async {
         final messenger = ScaffoldMessenger.of(context);
