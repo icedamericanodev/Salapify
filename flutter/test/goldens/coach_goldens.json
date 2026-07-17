@@ -1,0 +1,1112 @@
+{
+  "weekKey": "2026-07-13",
+  "scenarios": {
+    "kitchenSink": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 3000
+          }
+        ],
+        "assets": [],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "Card A",
+            "type": "credit card",
+            "remaining": 12000,
+            "minPayment": 2500,
+            "dueDay": 20
+          }
+        ],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "j1",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-06-15"
+          },
+          {
+            "id": "j2",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 500,
+            "date": "2026-06-10"
+          },
+          {
+            "id": "j3",
+            "type": "expense",
+            "label": "Food",
+            "amount": 6000,
+            "date": "2026-06-12"
+          },
+          {
+            "id": "x1",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 5000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "x2",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 2600,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "x3",
+            "type": "expense",
+            "label": "Food",
+            "amount": 4000,
+            "date": "2026-07-05"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 1500,
+            "payments": [],
+            "paid": false,
+            "dueDate": "2026-07-04"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs"
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Beach fund",
+            "target": 10000,
+            "saved": 2500,
+            "targetDate": "2026-06-01"
+          }
+        ],
+        "recurring": [
+          {
+            "id": "r1",
+            "type": "expense",
+            "label": "Internet",
+            "amount": 1699,
+            "dayOfMonth": 28
+          }
+        ],
+        "settings": {
+          "monthlyLimit": 8000
+        }
+      },
+      "candidates": [
+        {
+          "prio": 100,
+          "kind": "crunch",
+          "tone": "urgent",
+          "title": "Money is tight until sweldo",
+          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "action": {
+            "label": "See what is committed",
+            "route": "/insights"
+          }
+        },
+        {
+          "prio": 92,
+          "kind": "debtdue",
+          "tone": "watch",
+          "title": "Card A is due soon",
+          "message": "Card A is due within the week. Paying it in full keeps you interest free; at least pay the minimum to dodge a late fee.",
+          "action": {
+            "label": "Open debts",
+            "route": "/debts"
+          }
+        },
+        {
+          "prio": 90,
+          "kind": "utang",
+          "tone": "watch",
+          "title": "Follow up Migs",
+          "message": "Migs is 12 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
+          "action": {
+            "label": "Open utang list",
+            "route": "/receivables"
+          }
+        },
+        {
+          "prio": 85,
+          "kind": "overspend",
+          "tone": "watch",
+          "title": "Spending passed income this month",
+          "message": "More went out than came in this month. No shame, it happens. The fastest fix is easing the one category running hottest.",
+          "action": {
+            "label": "See where it went",
+            "route": "/insights"
+          }
+        },
+        {
+          "prio": 70,
+          "kind": "hot",
+          "tone": "watch",
+          "title": "Food is running hot",
+          "message": "Food is running higher than your usual pace this month, worth a look.",
+          "action": {
+            "label": "See categories",
+            "route": "/insights"
+          }
+        },
+        {
+          "prio": 60,
+          "kind": "forecast",
+          "tone": "watch",
+          "title": "On track to go over budget",
+          "message": "At today's pace you will spend about ₱12,788 by month end, over your ₱8,000 limit. Trimming a little each day gets you back under.",
+          "action": {
+            "label": "Check budget",
+            "route": "/budget"
+          }
+        },
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        },
+        {
+          "prio": 50,
+          "kind": "goal",
+          "tone": "nudge",
+          "title": "Beach fund slipped its date",
+          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "action": {
+            "label": "Open goals",
+            "route": "/goals"
+          }
+        },
+        {
+          "prio": 40,
+          "kind": "lesson",
+          "tone": "nudge",
+          "title": "Beat the minimum payment trap",
+          "message": "You are carrying a card balance. A two minute read on how paying only the minimum quietly grows what you owe, and the one rule that stops it.",
+          "action": {
+            "label": "Read the lesson",
+            "route": "/learn?focus=card-interest"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "crunch",
+        "tone": "urgent",
+        "title": "Money is tight until sweldo",
+        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "action": {
+          "label": "See what is committed",
+          "route": "/insights"
+        },
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "essentialHot": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 2000,
+            "date": "2026-06-10"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 5200,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "c1",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "today",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 100,
+            "date": "2026-07-16"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 70,
+          "kind": "hot",
+          "tone": "watch",
+          "title": "Groceries is running hot",
+          "message": "Groceries is running higher than your usual pace this month, worth a look.",
+          "action": {
+            "label": "See categories",
+            "route": "/insights"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "hot",
+        "tone": "watch",
+        "title": "Groceries is running hot",
+        "message": "Groceries is running higher than your usual pace this month, worth a look.",
+        "action": {
+          "label": "See categories",
+          "route": "/insights"
+        },
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "bufferThin": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 2500
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Food",
+            "amount": 4000,
+            "date": "2026-05-10"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "Food",
+            "amount": 4400,
+            "date": "2026-06-10"
+          },
+          {
+            "id": "t",
+            "type": "expense",
+            "label": "Food",
+            "amount": 50,
+            "date": "2026-07-16"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 55,
+          "kind": "buffer",
+          "tone": "nudge",
+          "title": "Your buffer is thin",
+          "message": "Your buffer covers under a month. Even ₱7,500 more toward your first cushion helps stop a surprise from becoming utang.",
+          "action": {
+            "label": "Open goals",
+            "route": "/goals"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "goalTight": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 1000
+          }
+        ],
+        "assets": [],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "Loan",
+            "remaining": 9000,
+            "minPayment": 3000,
+            "dueDay": 25
+          }
+        ],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "t",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-16"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Laptop",
+            "target": 30000,
+            "saved": 3000,
+            "targetDate": "2026-05-01"
+          }
+        ],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 100,
+          "kind": "crunch",
+          "tone": "urgent",
+          "title": "Money is tight until sweldo",
+          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "action": {
+            "label": "See what is committed",
+            "route": "/insights"
+          }
+        },
+        {
+          "prio": 50,
+          "kind": "goal",
+          "tone": "nudge",
+          "title": "Laptop slipped its date",
+          "message": "Laptop's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "action": {
+            "label": "Open goals",
+            "route": "/goals"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "crunch",
+        "tone": "urgent",
+        "title": "Money is tight until sweldo",
+        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "action": {
+          "label": "See what is committed",
+          "route": "/insights"
+        },
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "bnplLesson": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "Gadget BNPL",
+            "type": "bnpl",
+            "remaining": 4000
+          }
+        ],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "t",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-16"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 38,
+          "kind": "lesson",
+          "tone": "nudge",
+          "title": "Keep BNPL from piling up",
+          "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one sweldo can cover.",
+          "action": {
+            "label": "Read the lesson",
+            "route": "/learn?focus=bnpl"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "lesson",
+        "tone": "nudge",
+        "title": "Keep BNPL from piling up",
+        "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one sweldo can cover.",
+        "action": {
+          "label": "Read the lesson",
+          "route": "/learn?focus=bnpl"
+        },
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "utangLesson": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "t",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-16"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "amount": 800,
+            "payments": [],
+            "paid": false
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Ana"
+          }
+        ],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 34,
+          "kind": "lesson",
+          "tone": "nudge",
+          "title": "Collect utang the kind way",
+          "message": "People owe you. A short read on getting paid back without losing the friendship.",
+          "action": {
+            "label": "Read the lesson",
+            "route": "/learn?focus=utang-friends"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "lesson",
+        "tone": "nudge",
+        "title": "Collect utang the kind way",
+        "message": "People owe you. A short read on getting paid back without losing the friendship.",
+        "action": {
+          "label": "Read the lesson",
+          "route": "/learn?focus=utang-friends"
+        },
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "fresh": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "totallyEmpty": {
+      "data": {
+        "accounts": [],
+        "transactions": [],
+        "debts": [],
+        "goals": [],
+        "receivables": [],
+        "people": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": null
+    },
+    "nwUp": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 9000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {
+          "nwHistory": [
+            {
+              "month": "2026-05",
+              "value": 5000
+            },
+            {
+              "month": "2026-06",
+              "value": 7000
+            },
+            {
+              "month": "2026-08",
+              "value": 99999
+            }
+          ]
+        }
+      },
+      "candidates": [
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": {
+        "text": "Your net worth is up ₱2,000 since your last check-in."
+      }
+    },
+    "goalNear": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [],
+        "receivables": [],
+        "people": [],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Phone",
+            "target": 10000,
+            "saved": 8600
+          },
+          {
+            "id": "g2",
+            "name": "Low",
+            "target": 10000,
+            "saved": 1000
+          }
+        ],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": {
+        "text": "Almost there: Phone is 86% funded."
+      }
+    },
+    "goalFull": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [],
+        "receivables": [],
+        "people": [],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Phone",
+            "target": 10000,
+            "saved": 10000
+          }
+        ],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": {
+        "text": "Phone is fully funded. 🎉"
+      }
+    },
+    "healthyRate": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "i",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 10000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-16"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "c1",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-14"
+          },
+          {
+            "id": "d1",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-12"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": {
+        "text": "You kept 96% of your income this month. Nice."
+      }
+    },
+    "streakOnly": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "assets": [],
+        "debts": [],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-16"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "c1",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-14"
+          },
+          {
+            "id": "d1",
+            "type": "expense",
+            "label": "Food",
+            "amount": 100,
+            "date": "2026-07-12"
+          }
+        ],
+        "receivables": [],
+        "people": [],
+        "goals": [],
+        "recurring": [],
+        "settings": {}
+      },
+      "candidates": [],
+      "checkIn": {
+        "kind": "good",
+        "tone": "good",
+        "title": "You are on track this week",
+        "message": "Nothing needs a money decision right now. Keep logging and enjoy the calm.",
+        "action": null,
+        "week": "2026-07-13"
+      },
+      "win": {
+        "text": "You have logged 4 of the last 7 days. That habit is the win."
+      }
+    },
+    "kitchenSinkNov": {
+      "data": {
+        "accounts": [
+          {
+            "id": "c",
+            "kind": "cash",
+            "balance": 3000
+          }
+        ],
+        "assets": [],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "Card A",
+            "type": "credit card",
+            "remaining": 12000,
+            "minPayment": 2500,
+            "dueDay": 20
+          }
+        ],
+        "payments": [],
+        "transactions": [
+          {
+            "id": "j1",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-06-15"
+          },
+          {
+            "id": "j2",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 500,
+            "date": "2026-06-10"
+          },
+          {
+            "id": "j3",
+            "type": "expense",
+            "label": "Food",
+            "amount": 6000,
+            "date": "2026-06-12"
+          },
+          {
+            "id": "x1",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 5000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "x2",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 2600,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "x3",
+            "type": "expense",
+            "label": "Food",
+            "amount": 4000,
+            "date": "2026-07-05"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "personId": "p1",
+            "person": "Migs",
+            "amount": 1500,
+            "payments": [],
+            "paid": false,
+            "dueDate": "2026-07-04"
+          }
+        ],
+        "people": [
+          {
+            "id": "p1",
+            "name": "Migs"
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Beach fund",
+            "target": 10000,
+            "saved": 2500,
+            "targetDate": "2026-06-01"
+          }
+        ],
+        "recurring": [
+          {
+            "id": "r1",
+            "type": "expense",
+            "label": "Internet",
+            "amount": 1699,
+            "dayOfMonth": 28
+          }
+        ],
+        "settings": {
+          "monthlyLimit": 8000
+        }
+      },
+      "candidates": [
+        {
+          "prio": 100,
+          "kind": "crunch",
+          "tone": "urgent",
+          "title": "Money is tight until sweldo",
+          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "action": {
+            "label": "See what is committed",
+            "route": "/insights"
+          }
+        },
+        {
+          "prio": 92,
+          "kind": "debtdue",
+          "tone": "watch",
+          "title": "Card A is due soon",
+          "message": "Card A is due within the week. Paying it in full keeps you interest free; at least pay the minimum to dodge a late fee.",
+          "action": {
+            "label": "Open debts",
+            "route": "/debts"
+          }
+        },
+        {
+          "prio": 90,
+          "kind": "utang",
+          "tone": "watch",
+          "title": "Follow up Migs",
+          "message": "Migs is 135 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
+          "action": {
+            "label": "Open utang list",
+            "route": "/receivables"
+          }
+        },
+        {
+          "prio": 58,
+          "kind": "logtoday",
+          "tone": "nudge",
+          "title": "Log today",
+          "message": "Two seconds keeps your numbers honest. Add what you spent today.",
+          "action": {
+            "label": "Add spending",
+            "route": "/"
+          }
+        },
+        {
+          "prio": 50,
+          "kind": "goal",
+          "tone": "nudge",
+          "title": "Beach fund slipped its date",
+          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "action": {
+            "label": "Open goals",
+            "route": "/goals"
+          }
+        },
+        {
+          "prio": 45,
+          "kind": "lesson",
+          "tone": "nudge",
+          "title": "Make your 13th month count",
+          "message": "Sweldo season is here. A short read on making your 13th month pay actually last, so it does not vanish by January.",
+          "action": {
+            "label": "Read the lesson",
+            "route": "/learn?focus=thirteenth-month"
+          }
+        }
+      ],
+      "checkIn": {
+        "kind": "crunch",
+        "tone": "urgent",
+        "title": "Money is tight until sweldo",
+        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "action": {
+          "label": "See what is committed",
+          "route": "/insights"
+        },
+        "week": "2026-11-16"
+      },
+      "win": null
+    }
+  }
+}

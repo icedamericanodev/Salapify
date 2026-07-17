@@ -11,14 +11,24 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
 import '../data/store.dart';
-import '../main.dart' show updateStamp;
 import '../money/statements.dart';
 import '../theme.dart';
 import 'log_sheet.dart';
+import 'update_card.dart';
 
 String formatMoney(num value) {
+  // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
+  // round() throws on non-finite, which would take down the whole screen,
+  // so render the raw word instead (the RN app shows the same garbage but
+  // stays alive, and staying alive is the contract here).
+  if (!value.isFinite) return '₱$value';
   final negative = value < 0;
-  final rounded = (value.abs() * 100).round() / 100;
+  // A FINITE value near max double still overflows when scaled by 100 for
+  // centavo rounding, and round() throws on the resulting Infinity. Same
+  // contract: render the raw number, stay alive.
+  final scaled = value.abs() * 100;
+  if (!scaled.isFinite) return '₱$value';
+  final rounded = scaled.round() / 100;
   var whole = rounded.floor();
   final cents = ((rounded - whole) * 100).round();
   final digits = whole.toString();
@@ -215,25 +225,7 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Update stamp',
-                        style: TextStyle(color: Barako.text, fontSize: 14)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(updateStamp,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                              color: Barako.muted, fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const UpdateCard(),
           ],
         ),
       ),
