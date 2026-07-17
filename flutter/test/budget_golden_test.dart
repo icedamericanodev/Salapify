@@ -8,7 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/money/budget.dart';
 
 dynamic normalize(dynamic v) {
-  if (v is num) return v.toDouble();
+  // JSON.stringify writes Infinity and NaN as null, so the golden holds
+  // null where the live JS value was non-finite; mirror that here.
+  if (v is num) return v.toDouble().isFinite ? v.toDouble() : null;
   if (v is Map) return v.map((k, x) => MapEntry(k.toString(), normalize(x)));
   if (v is List) return v.map(normalize).toList();
   return v;

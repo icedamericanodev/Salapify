@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/money/budget.dart' as budget;
 import 'package:shared_preferences/shared_preferences.dart';
 
 String _today() {
@@ -74,6 +75,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(cash(store), 5000);
     expect((store.data['transactions'] as List).length, 1);
+  });
+
+  test('budgetSummary clamps the overflow pct to 100 like RN', () {
+    final s = budget.budgetSummary({
+      'transactions': [
+        {'id': 'h1', 'type': 'expense', 'label': 'A', 'amount': 1e308, 'date': _today()},
+        {'id': 'h2', 'type': 'expense', 'label': 'B', 'amount': 1e308, 'date': _today()},
+      ],
+      'settings': {'monthlyLimit': 1},
+    }, DateTime.now());
+    expect(s['pct'], 100);
+    expect(s['over'], true);
+  });
+
+  testWidgets('a negative quick add from a hand-edited backup never renders',
+      (tester) async {
+    final dirty = blob();
+    ((dirty['settings'] as Map)['quickAdds'] as List)
+        .add({'label': 'Neg', 'amount': -150});
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(dirty)});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Budget'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Neg'), findsNothing);
+  });
+
+  testWidgets('the limit can be removed from the dialog', (tester) async {
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Budget'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change limit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove limit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Set a limit'), findsOneWidget);
+    final fresh = SalapifyStore();
+    await fresh.load();
+    expect(
+        ((fresh.data['settings'] as Map)['monthlyLimit'] as num).toDouble(),
+        0);
   });
 
   testWidgets('setting the limit from the screen persists', (tester) async {

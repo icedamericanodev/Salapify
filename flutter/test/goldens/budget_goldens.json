@@ -548,6 +548,49 @@
         "rows": [],
         "max": 1
       }
+    },
+    "hugeSpent": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 1
+        },
+        "categories": [],
+        "transactions": [
+          {
+            "id": "h1",
+            "type": "expense",
+            "label": "Absurd",
+            "amount": 1e+308,
+            "date": "2026-07-05"
+          },
+          {
+            "id": "h2",
+            "type": "expense",
+            "label": "Absurd",
+            "amount": 1e+308,
+            "date": "2026-07-06"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 1,
+        "carried": 0,
+        "limit": 1,
+        "spent": null,
+        "remaining": null,
+        "pct": 100,
+        "over": true
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Absurd",
+            "amount": null,
+            "cap": 0
+          }
+        ],
+        "max": null
+      }
     }
   }
 }

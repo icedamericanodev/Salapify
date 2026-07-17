@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.30 · Barako polish: softer, warmer, one calm coffee shop feel';
+    'f0.31 · Budget hardened: overflow clamps, safe quick adds, remove limit';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

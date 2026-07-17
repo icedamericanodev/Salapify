@@ -36,9 +36,15 @@ class BudgetScreen extends StatelessWidget {
     final rawQuickAdds = (data['settings'] is Map
             ? (data['settings'] as Map)['quickAdds']
             : null) as List?;
+    // Only positive finite amounts become chips: a hand-edited backup with a
+    // negative quick add would otherwise log money BACK on every tap.
     final quickAdds = <({String label, num amount})>[
       for (final q in rawQuickAdds ?? const [])
-        if (q is Map && q['label'] is String && q['amount'] is num)
+        if (q is Map &&
+            q['label'] is String &&
+            q['amount'] is num &&
+            (q['amount'] as num) > 0 &&
+            (q['amount'] as num).isFinite)
           (label: q['label'] as String, amount: q['amount'] as num),
     ];
     final adds = quickAdds.isNotEmpty ? quickAdds : _defaultQuickAdds;
@@ -310,7 +316,15 @@ class BudgetScreen extends StatelessWidget {
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => store.removeEntry(id),
+          onPressed: () async {
+            try {
+              await store.removeEntry(id);
+            } catch (e) {
+              messenger.showSnackBar(SnackBar(
+                  content:
+                      Text('Could not undo, the entry is still logged. $e')));
+            }
+          },
         ),
       ));
     } catch (e) {
@@ -320,7 +334,15 @@ class BudgetScreen extends StatelessWidget {
   }
 
   Future<void> _editLimit(BuildContext context) async {
-    final controller = TextEditingController();
+    final settings =
+        store.data['settings'] is Map ? store.data['settings'] as Map : const {};
+    final current = settings['monthlyLimit'];
+    final controller = TextEditingController(
+        text: current is num && current > 0
+            ? (current % 1 == 0
+                ? current.toInt().toString()
+                : current.toString())
+            : '');
     final messenger = ScaffoldMessenger.of(context);
     final value = await showDialog<double>(
       context: context,
@@ -341,6 +363,12 @@ class BudgetScreen extends StatelessWidget {
           ),
         ),
         actions: [
+          if (current is num && current > 0)
+            TextButton(
+                // 0 clears the limit; the store treats it as none set.
+                onPressed: () => Navigator.of(dialogContext).pop(0.0),
+                child: const Text('Remove limit',
+                    style: TextStyle(color: Barako.warning))),
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child:

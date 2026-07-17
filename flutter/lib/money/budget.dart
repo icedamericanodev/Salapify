@@ -41,8 +41,15 @@ Map<String, dynamic> budgetSummary(Map<String, dynamic> data, DateTime ref) {
     spent += amountOf(e['amount']);
   }
   final remaining = limit - spent;
-  final rawPct = limit != 0 ? _jsRound((spent / limit) * 100).toInt() : 0;
-  final pct = rawPct < 100 ? rawPct : 100;
+  // JS Math.min(Math.round(Infinity), 100) is 100; Dart toInt() on a
+  // non-finite double throws instead, so clamp the overflow the way the RN
+  // reference observably behaves.
+  var pct = 0;
+  if (limit != 0) {
+    final r = _jsRound((spent / limit) * 100);
+    final rawPct = r.isFinite ? r.toInt() : 100;
+    pct = rawPct < 100 ? rawPct : 100;
+  }
   return {
     'baseLimit': baseLimit,
     'carried': carried,
