@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.32 · KAPE LATTE: the new look needs ONE new APK install';
+    'f0.33 · KAPE LATTE fixed fonts: install THIS base, built from the f0.33 push';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
