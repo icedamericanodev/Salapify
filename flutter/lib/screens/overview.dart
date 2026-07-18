@@ -17,6 +17,7 @@ import 'debts.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
 import 'pan.dart';
+import 'tools.dart';
 import 'update_card.dart';
 
 String formatMoney(num value) {
@@ -226,6 +227,42 @@ class OverviewScreen extends StatelessWidget {
                                     fontWeight: FontWeight.w700)),
                             Text(
                                 'Cards and loans, payments split into interest and principal.',
+                                style: TextStyle(
+                                    color: Barako.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color: Barako.faint, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => ToolsScreen(store: store))),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.handyman_outlined,
+                          color: Barako.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Tools',
+                                style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                            Text(
+                                'Loan calculator and friends, arriving one by one.',
                                 style: TextStyle(
                                     color: Barako.muted, fontSize: 12)),
                           ],
