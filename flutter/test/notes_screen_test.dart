@@ -19,6 +19,9 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('Notes'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('No notes yet'), findsOneWidget);
@@ -55,6 +58,9 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('Notes'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('New note'));
@@ -71,6 +77,9 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('Notes'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('New note'));

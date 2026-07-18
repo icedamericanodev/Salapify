@@ -13,6 +13,7 @@ import '../data/backup.dart';
 import '../data/store.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import 'debts.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
 import 'update_card.dart';
@@ -159,6 +160,42 @@ class OverviewScreen extends StatelessWidget {
                             ? Barako.primary
                             : Barako.warning),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => DebtsScreen(store: store))),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.credit_card_outlined,
+                          color: Barako.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Debts',
+                                style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                            Text(
+                                'Cards and loans, payments split into interest and principal.',
+                                style: TextStyle(
+                                    color: Barako.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color: Barako.faint, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
