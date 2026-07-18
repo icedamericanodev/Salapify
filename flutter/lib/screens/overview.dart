@@ -16,6 +16,7 @@ import '../theme.dart';
 import 'debts.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
+import 'pan.dart';
 import 'update_card.dart';
 
 String formatMoney(num value) {
@@ -45,7 +46,8 @@ String formatMoney(num value) {
 
 class OverviewScreen extends StatelessWidget {
   final SalapifyStore store;
-  const OverviewScreen({super.key, required this.store});
+  final void Function(int)? onSwitchTab;
+  const OverviewScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +162,43 @@ class OverviewScreen extends StatelessWidget {
                             ? Barako.primary
                             : Barako.warning),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => PanScreen(
+                        store: store, onSwitchTab: onSwitchTab))),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline,
+                          color: Barako.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Ask Pan',
+                                style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                            Text(
+                                'Your money questions, answered from your own data. Walang halong AI sa cloud.',
+                                style: TextStyle(
+                                    color: Barako.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color: Barako.faint, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ),

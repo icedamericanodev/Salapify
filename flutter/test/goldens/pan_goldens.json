@@ -1,0 +1,1833 @@
+{
+ "nowISO": "2026-07-18T12:00:00",
+ "fixtures": {
+  "main": {
+   "settings": {
+    "paydaySchedule": {
+     "mode": "semimonthly",
+     "days": [
+      15,
+      30
+     ]
+    },
+    "monthlyLimit": 20000,
+    "defaultAccountId": "gcash"
+   },
+   "accounts": [
+    {
+     "id": "cash",
+     "name": "Cash",
+     "kind": "cash",
+     "balance": 2500
+    },
+    {
+     "id": "gcash",
+     "name": "GCash",
+     "kind": "ewallet",
+     "balance": 5200
+    },
+    {
+     "id": "bank",
+     "name": "BPI",
+     "kind": "checking",
+     "balance": 11800
+    },
+    {
+     "id": "save",
+     "name": "CIMB",
+     "kind": "savings",
+     "balance": 20000
+    }
+   ],
+   "debts": [
+    {
+     "id": "card",
+     "name": "BPI Card",
+     "type": "credit card",
+     "remaining": 12000,
+     "monthlyRate": 3,
+     "minPayment": 600,
+     "dueDay": 25,
+     "statementDay": 5,
+     "graceDays": 0,
+     "creditLimit": 50000,
+     "interestThroughISO": "2026-07-01"
+    },
+    {
+     "id": "loan",
+     "name": "Salary Loan",
+     "type": "personal loan",
+     "remaining": 40000,
+     "monthlyRate": 1.5,
+     "minPayment": 2000,
+     "dueDay": 15,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0,
+     "interestThroughISO": "2026-07-03"
+    }
+   ],
+   "payments": [
+    {
+     "id": "p1",
+     "debtId": "loan",
+     "amount": 2000,
+     "interest": 600,
+     "principal": 1400,
+     "date": "2026-07-10",
+     "account": "bank",
+     "status": "posted"
+    }
+   ],
+   "transactions": [
+    {
+     "id": "t1",
+     "type": "income",
+     "label": "Sweldo",
+     "amount": 24000,
+     "date": "2026-07-15",
+     "accountId": "bank"
+    },
+    {
+     "id": "t2",
+     "type": "expense",
+     "label": "Food",
+     "amount": 3200,
+     "date": "2026-07-16",
+     "accountId": "gcash"
+    },
+    {
+     "id": "t3",
+     "type": "expense",
+     "label": "Food",
+     "amount": 1400,
+     "date": "2026-07-17"
+    },
+    {
+     "id": "t4",
+     "type": "expense",
+     "label": "Transport",
+     "amount": 900,
+     "date": "2026-07-16"
+    },
+    {
+     "id": "t5",
+     "type": "expense",
+     "label": "Load",
+     "amount": 300,
+     "date": "2026-07-05"
+    },
+    {
+     "id": "t6",
+     "type": "expense",
+     "label": "Food",
+     "amount": 2800,
+     "date": "2026-06-10"
+    },
+    {
+     "id": "t7",
+     "type": "expense",
+     "label": "Food",
+     "amount": 2500,
+     "date": "2026-05-12"
+    },
+    {
+     "id": "t8",
+     "type": "expense",
+     "label": "Transport",
+     "amount": 1100,
+     "date": "2026-06-20"
+    },
+    {
+     "id": "t9",
+     "type": "income",
+     "label": "Sweldo",
+     "amount": 24000,
+     "date": "2026-06-15"
+    }
+   ],
+   "receivables": [
+    {
+     "id": "r1",
+     "person": "Migs",
+     "personId": "pp1",
+     "amount": 2000,
+     "dueDate": "2026-07-05",
+     "payments": [
+      {
+       "id": "rp1",
+       "amount": 500,
+       "date": "2026-07-10"
+      }
+     ],
+     "paid": false
+    },
+    {
+     "id": "r2",
+     "person": "Ana",
+     "personId": "pp2",
+     "amount": 800,
+     "dueDate": "2026-08-01",
+     "payments": [],
+     "paid": false
+    }
+   ],
+   "people": [
+    {
+     "id": "pp1",
+     "name": "Migs",
+     "phone": "",
+     "note": ""
+    },
+    {
+     "id": "pp2",
+     "name": "Ana",
+     "phone": "",
+     "note": ""
+    }
+   ],
+   "goals": [
+    {
+     "id": "g1",
+     "name": "Christmas fund",
+     "target": 12000,
+     "saved": 4000,
+     "targetDate": "2026-12"
+    }
+   ],
+   "recurring": [
+    {
+     "id": "rc1",
+     "name": "Rent",
+     "amount": 6000,
+     "day": 28,
+     "kind": "bill",
+     "lastPosted": "2026-06"
+    }
+   ]
+  },
+  "growing": {
+   "settings": {},
+   "accounts": [
+    {
+     "id": "cash",
+     "name": "Cash",
+     "kind": "cash",
+     "balance": 1000
+    }
+   ],
+   "debts": [
+    {
+     "id": "d1",
+     "name": "Heavy Card",
+     "type": "credit card",
+     "remaining": 50000,
+     "monthlyRate": 10,
+     "minPayment": 100,
+     "dueDay": 20,
+     "statementDay": 0,
+     "graceDays": 0,
+     "creditLimit": 0,
+     "interestThroughISO": "2026-07-01"
+    }
+   ],
+   "payments": [],
+   "transactions": []
+  },
+  "empty": {}
+ },
+ "cases": [
+  {
+   "fixture": "main",
+   "message": "How much can I safely spend?",
+   "norm": "howmuch can i safely spend",
+   "amount": null,
+   "detect": {
+    "id": "safe_to_spend",
+    "score": 3,
+    "alternatives": [
+     "balances"
+    ]
+   },
+   "reply": {
+    "intent": "safe_to_spend",
+    "mood": "idle",
+    "text": "You have ₱18,900 free to spend until your Thu, Jul 30 sweldo, about ₱1,575 a day for 12 days. That already sets aside ₱600 for bills and minimums, and it does not touch your savings, on purpose.",
+    "cta": {
+     "label": "See the breakdown",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Magkano pa pwede kong gastusin?",
+   "norm": "howmuch left can kong spend",
+   "amount": null,
+   "detect": {
+    "id": "safe_to_spend",
+    "score": 5,
+    "alternatives": [
+     "debt_free",
+     "balances"
+    ]
+   },
+   "reply": {
+    "intent": "safe_to_spend",
+    "mood": "idle",
+    "text": "You have ₱18,900 free to spend until your Thu, Jul 30 sweldo, about ₱1,575 a day for 12 days. That already sets aside ₱600 for bills and minimums, and it does not touch your savings, on purpose.",
+    "cta": {
+     "label": "See the breakdown",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "how much can i spend until payday",
+   "norm": "howmuch can i spend until payday",
+   "amount": null,
+   "detect": {
+    "id": "safe_to_spend",
+    "score": 11,
+    "alternatives": [
+     "payday",
+     "balances"
+    ]
+   },
+   "reply": {
+    "intent": "safe_to_spend",
+    "mood": "idle",
+    "text": "You have ₱18,900 free to spend until your Thu, Jul 30 sweldo, about ₱1,575 a day for 12 days. That already sets aside ₱600 for bills and minimums, and it does not touch your savings, on purpose.",
+    "cta": {
+     "label": "See the breakdown",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Can I afford 2000 shoes?",
+   "norm": "can i afford 2000 shoes",
+   "amount": 2000,
+   "detect": {
+    "id": "can_afford",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend"
+    ]
+   },
+   "reply": {
+    "intent": "can_afford",
+    "mood": "happy",
+    "text": "You have ₱18,900 safe until sweldo. A ₱2,000 buy leaves ₱16,900, about ₱1,408 a day for 12 days. Comfortably doable."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Kaya ko ba bumili ng 1500?",
+   "norm": "can i bumili ng 1500",
+   "amount": 1500,
+   "detect": {
+    "id": "help",
+    "score": 0,
+    "alternatives": []
+   },
+   "reply": {
+    "mood": "idle",
+    "intent": "help",
+    "text": "Hi, I'm Pan. I read only what is on your phone. Ask me things like:",
+    "suggestions": [
+     "How much can I safely spend?",
+     "Can I afford 2000 shoes?",
+     "Who owes me money?",
+     "What's due before my sweldo?"
+    ]
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "can i afford 2.5k",
+   "norm": "can i afford 2 5k",
+   "amount": 2500,
+   "detect": {
+    "id": "can_afford",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend"
+    ]
+   },
+   "reply": {
+    "intent": "can_afford",
+    "mood": "happy",
+    "text": "You have ₱18,900 safe until sweldo. A ₱2,500 buy leaves ₱16,400, about ₱1,367 a day for 12 days. Comfortably doable."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "can I afford it",
+   "norm": "can i afford it",
+   "amount": null,
+   "detect": {
+    "id": "can_afford",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend"
+    ]
+   },
+   "reply": {
+    "intent": "can_afford",
+    "mood": "idle",
+    "text": "Tell me the price and I will check it against what you can safely spend, like \"can I afford 2000\"."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "should i buy a 250000 laptop",
+   "norm": "should i buy a 250000 laptop",
+   "amount": 250000,
+   "detect": {
+    "id": "can_afford",
+    "score": 5,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "can_afford",
+    "mood": "worried",
+    "text": "A ₱250,000 buy is more than the ₱18,900 you have safe until sweldo. If it can wait until after Thu, Jul 30, that is the safer call."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Who owes me money?",
+   "norm": "who owes me money",
+   "amount": null,
+   "detect": {
+    "id": "utang",
+    "score": 9,
+    "alternatives": [
+     "balances",
+     "top_spending"
+    ]
+   },
+   "reply": {
+    "intent": "utang",
+    "mood": "worried",
+    "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being madamot, a calm reminder keeps both the money and the friendship healthy.",
+    "reminder": "Uy Migs, pasensya na sa abala, gentle reminder lang sa ₱1,500, whenever kaya mo na. Salamat!",
+    "cta": {
+     "label": "Open utang list",
+     "route": "/receivables"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Sino may utang sa akin?",
+   "norm": "who who owe me",
+   "amount": null,
+   "detect": {
+    "id": "utang",
+    "score": 7,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "utang",
+    "mood": "worried",
+    "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being madamot, a calm reminder keeps both the money and the friendship healthy.",
+    "reminder": "Uy Migs, pasensya na sa abala, gentle reminder lang sa ₱1,500, whenever kaya mo na. Salamat!",
+    "cta": {
+     "label": "Open utang list",
+     "route": "/receivables"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "utang list please",
+   "norm": "owe list please",
+   "amount": null,
+   "detect": {
+    "id": "utang",
+    "score": 2,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "utang",
+    "mood": "worried",
+    "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being madamot, a calm reminder keeps both the money and the friendship healthy.",
+    "reminder": "Uy Migs, pasensya na sa abala, gentle reminder lang sa ₱1,500, whenever kaya mo na. Salamat!",
+    "cta": {
+     "label": "Open utang list",
+     "route": "/receivables"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "who owes me",
+   "norm": "who owes me",
+   "amount": null,
+   "detect": {
+    "id": "utang",
+    "score": 9,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "utang",
+    "mood": "idle",
+    "text": "No one owes you right now, your utang list is clear. When you lend, log it here and I will track who to follow up."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "What's due before my sweldo?",
+   "norm": "what s due before my payday",
+   "amount": null,
+   "detect": {
+    "id": "help",
+    "score": 2,
+    "alternatives": [
+     "upcoming_bills",
+     "payday"
+    ]
+   },
+   "reply": {
+    "mood": "idle",
+    "intent": "help",
+    "text": "I am not sure I got that. Did you mean one of these?",
+    "suggestions": [
+     "What's due before my sweldo?",
+     "When is my next sweldo?"
+    ]
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "upcoming bills",
+   "norm": "upcoming bills",
+   "amount": null,
+   "detect": {
+    "id": "upcoming_bills",
+    "score": 6,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "upcoming_bills",
+    "mood": "idle",
+    "text": "Before your Thu, Jul 30 sweldo: BPI Card ₱600 (Mon, Jul 27). Total ₱600. Keep that parked so nothing bounces.",
+    "cta": {
+     "label": "See bills",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "what is due",
+   "norm": "what is due",
+   "amount": null,
+   "detect": {
+    "id": "upcoming_bills",
+    "score": 5,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "upcoming_bills",
+    "mood": "idle",
+    "text": "No bills logged before your Fri, Jul 31 sweldo. If you have some coming, add them so I can protect that cash for you."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "When is my credit card due?",
+   "norm": "when is my credit card due",
+   "amount": null,
+   "detect": {
+    "id": "debt_due",
+    "score": 8,
+    "alternatives": [
+     "upcoming_bills",
+     "debt_free"
+    ]
+   },
+   "reply": {
+    "intent": "debt_due",
+    "mood": "idle",
+    "text": "Soonest: BPI Card, due Mon, Jul 27 (moved to the next banking day), balance ₱12,000. Pay in full to stay interest free, or at least the ₱600 minimum. Paying only the minimum adds about ₱360 interest next month.",
+    "cta": {
+     "label": "Open debts",
+     "route": "/debts"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "card due",
+   "norm": "card due",
+   "amount": null,
+   "detect": {
+    "id": "debt_due",
+    "score": 5,
+    "alternatives": [
+     "upcoming_bills"
+    ]
+   },
+   "reply": {
+    "intent": "debt_due",
+    "mood": "idle",
+    "text": "Soonest: BPI Card, due Mon, Jul 27 (moved to the next banking day), balance ₱12,000. Pay in full to stay interest free, or at least the ₱600 minimum. Paying only the minimum adds about ₱360 interest next month.",
+    "cta": {
+     "label": "Open debts",
+     "route": "/debts"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "when is my card due",
+   "norm": "when is my card due",
+   "amount": null,
+   "detect": {
+    "id": "debt_due",
+    "score": 9,
+    "alternatives": [
+     "upcoming_bills",
+     "debt_free"
+    ]
+   },
+   "reply": {
+    "intent": "debt_due",
+    "mood": "happy",
+    "text": "No debts to pay, nice. Debt free is a strong place to be."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "When will I be debt-free?",
+   "norm": "when will i be debt free",
+   "amount": null,
+   "detect": {
+    "id": "debt_free",
+    "score": 10,
+    "alternatives": [
+     "debt_due",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "idle",
+    "text": "Paying current minimums, you are debt free around Fri, Sep 1 with about ₱14,195 total interest. Try asking \"if I add 1000 a month\" to see how much sooner you finish.",
+    "cta": {
+     "label": "Plan payoff",
+     "route": "/reports"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "if i add 1000 a month",
+   "norm": "if i add 1000 a month",
+   "amount": 1000,
+   "detect": {
+    "id": "debt_free",
+    "score": 4,
+    "alternatives": [
+     "month_recap",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "happy",
+    "text": "Paying current minimums, you are debt free around Fri, Sep 1 with about ₱14,195 total interest. Adding ₱1,000 a month moves that to Wed, Dec 1 and cuts interest to about ₱8,153. Small extra, big difference.",
+    "cta": {
+     "label": "Plan payoff",
+     "route": "/reports"
+    }
+   }
+  },
+  {
+   "fixture": "growing",
+   "message": "when will i be debt free",
+   "norm": "when will i be debt free",
+   "amount": null,
+   "detect": {
+    "id": "debt_free",
+    "score": 10,
+    "alternatives": [
+     "debt_due",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "worried",
+    "text": "At the current minimums, interest is outpacing your payments, so the balance is not going down. Paying more than the minimum, even a little, is what turns it around. Try \"if I add 1000 a month\" to see the difference.",
+    "cta": {
+     "label": "Plan payoff",
+     "route": "/reports"
+    }
+   }
+  },
+  {
+   "fixture": "growing",
+   "message": "if i add 1000 a month",
+   "norm": "if i add 1000 a month",
+   "amount": 1000,
+   "detect": {
+    "id": "debt_free",
+    "score": 4,
+    "alternatives": [
+     "month_recap",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "worried",
+    "text": "At the current minimums, interest is outpacing your payments, so the balance is not going down. Paying more than the minimum, even a little, is what turns it around. Try \"if I add 1000 a month\" to see the difference.",
+    "cta": {
+     "label": "Plan payoff",
+     "route": "/reports"
+    }
+   }
+  },
+  {
+   "fixture": "growing",
+   "message": "if i add 6000 a month",
+   "norm": "if i add 6000 a month",
+   "amount": 6000,
+   "detect": {
+    "id": "debt_free",
+    "score": 4,
+    "alternatives": [
+     "month_recap",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "idle",
+    "text": "At the current minimums, interest is outpacing your payments, so the balance is not going down. But adding ₱6,000 a month gets you to debt free around Sat, Jan 1. Paying more than the minimum is the way out.",
+    "cta": {
+     "label": "Plan payoff",
+     "route": "/reports"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "when will i be debt free",
+   "norm": "when will i be debt free",
+   "amount": null,
+   "detect": {
+    "id": "debt_free",
+    "score": 10,
+    "alternatives": [
+     "debt_due",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "debt_free",
+    "mood": "happy",
+    "text": "You have no debts to pay off. That is the finish line most people are working toward, and you are already there."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "How was my month?",
+   "norm": "how was my month",
+   "amount": null,
+   "detect": {
+    "id": "month_recap",
+    "score": 8,
+    "alternatives": [
+     "debt_free",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "month_recap",
+    "mood": "happy",
+    "text": "July 2026: ₱24,000 in, ₱5,800 out, you kept 76%. Top spend was Food at 79%. You kept 76% of your income. Solid month.",
+    "cta": {
+     "label": "Make a share card",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Kumusta gastos ko this month?",
+   "norm": "how spending ko this month",
+   "amount": null,
+   "detect": {
+    "id": "month_recap",
+    "score": 6,
+    "alternatives": [
+     "top_spending",
+     "safe_to_spend"
+    ]
+   },
+   "reply": {
+    "intent": "month_recap",
+    "mood": "happy",
+    "text": "July 2026: ₱24,000 in, ₱5,800 out, you kept 76%. Top spend was Food at 79%. You kept 76% of your income. Solid month.",
+    "cta": {
+     "label": "Make a share card",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "my month recap",
+   "norm": "my month recap",
+   "amount": null,
+   "detect": {
+    "id": "month_recap",
+    "score": 9,
+    "alternatives": [
+     "debt_free",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "month_recap",
+    "mood": "idle",
+    "text": "July 2026: 0 days logged. A quiet month. Log your money and next month tells a story.",
+    "cta": {
+     "label": "Make a share card",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Am I overspending on food?",
+   "norm": "am i overspending on food",
+   "amount": null,
+   "detect": {
+    "id": "top_spending",
+    "score": 8,
+    "alternatives": [
+     "safe_to_spend"
+    ]
+   },
+   "reply": {
+    "intent": "top_spending",
+    "mood": "worried",
+    "text": "Food is at ₱4,600 this month. For this point your usual pace is about ₱1,539, so you are running roughly ₱3,061 hot. Easing back frees that before sweldo.",
+    "cta": {
+     "label": "See categories",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Saan napupunta pera ko?",
+   "norm": "saan napupunta money ko",
+   "amount": null,
+   "detect": {
+    "id": "top_spending",
+    "score": 7,
+    "alternatives": [
+     "balances",
+     "health"
+    ]
+   },
+   "reply": {
+    "intent": "top_spending",
+    "mood": "worried",
+    "text": "Food is at ₱4,600 this month. For this point your usual pace is about ₱1,539, so you are running roughly ₱3,061 hot. Easing back frees that before sweldo.",
+    "cta": {
+     "label": "See categories",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "top spending",
+   "norm": "top spending",
+   "amount": null,
+   "detect": {
+    "id": "top_spending",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend",
+     "month_recap"
+    ]
+   },
+   "reply": {
+    "intent": "top_spending",
+    "mood": "idle",
+    "text": "Not enough spending logged yet to spot a pattern. Log a few more and I will show where it goes."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Will I go over budget?",
+   "norm": "will i go over budget",
+   "amount": null,
+   "detect": {
+    "id": "forecast",
+    "score": 10,
+    "alternatives": [
+     "safe_to_spend",
+     "debt_free"
+    ]
+   },
+   "reply": {
+    "intent": "forecast",
+    "mood": "happy",
+    "text": "At today's pace you are on track to spend about ₱9,989 by month end. That is under your ₱20,000 limit, you are on track."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Lalagpas ba ako this month?",
+   "norm": "lalagpas ba ako this month",
+   "amount": null,
+   "detect": {
+    "id": "forecast",
+    "score": 5,
+    "alternatives": [
+     "month_recap",
+     "can_afford"
+    ]
+   },
+   "reply": {
+    "intent": "forecast",
+    "mood": "happy",
+    "text": "At today's pace you are on track to spend about ₱9,989 by month end. That is under your ₱20,000 limit, you are on track."
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "will i go over budget",
+   "norm": "will i go over budget",
+   "amount": null,
+   "detect": {
+    "id": "forecast",
+    "score": 10,
+    "alternatives": [
+     "safe_to_spend",
+     "debt_free"
+    ]
+   },
+   "reply": {
+    "intent": "forecast",
+    "mood": "idle",
+    "text": "At today's pace you are on track to spend about ₱0 by month end. Set a monthly budget and I will tell you if you are on track to stay under."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Am I saving enough?",
+   "norm": "am i saving enough",
+   "amount": null,
+   "detect": {
+    "id": "savings_rate",
+    "score": 8,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "savings_rate",
+    "mood": "happy",
+    "text": "This month you kept 76% of your income. A common starter target is 20%, and you are there. Strong. Debt payments count as money out here, so paying down debt is progress too."
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "am i saving enough",
+   "norm": "am i saving enough",
+   "amount": null,
+   "detect": {
+    "id": "savings_rate",
+    "score": 8,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "savings_rate",
+    "mood": "idle",
+    "text": "Log some income this month and I can show your savings rate, the share of income you kept."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Will I hit my goal?",
+   "norm": "will i hit my goal",
+   "amount": null,
+   "detect": {
+    "id": "goal_pace",
+    "score": 9,
+    "alternatives": [
+     "debt_free",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "goal_pace",
+    "mood": "idle",
+    "text": "Christmas fund is 33%. To finish by Dec 2026 you need about ₱1,600 a month, or ₱370 a week. That is one small habit change.",
+    "cta": {
+     "label": "Goals",
+     "route": "/goals"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "on track ba ako sa Christmas fund goal?",
+   "norm": "on track ba ako sa christmas fund goal",
+   "amount": null,
+   "detect": {
+    "id": "goal_pace",
+    "score": 8,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "goal_pace",
+    "mood": "idle",
+    "text": "Christmas fund is 33%. To finish by Dec 2026 you need about ₱1,600 a month, or ₱370 a week. That is one small habit change.",
+    "cta": {
+     "label": "Goals",
+     "route": "/goals"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "will i hit my goal",
+   "norm": "will i hit my goal",
+   "amount": null,
+   "detect": {
+    "id": "goal_pace",
+    "score": 9,
+    "alternatives": [
+     "debt_free",
+     "forecast"
+    ]
+   },
+   "reply": {
+    "intent": "goal_pace",
+    "mood": "idle",
+    "text": "You have no savings goals yet. Add one, like a Christmas fund or emergency fund, and I will pace it for you.",
+    "cta": {
+     "label": "Add a goal",
+     "route": "/goals"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "How healthy is my money?",
+   "norm": "how healthy is my money",
+   "amount": null,
+   "detect": {
+    "id": "health",
+    "score": 6,
+    "alternatives": [
+     "balances",
+     "top_spending"
+    ]
+   },
+   "reply": {
+    "intent": "health",
+    "mood": "happy",
+    "text": "Your money health is 64 out of 100. Strongest: savings rate. Weakest: debt load. Working on that one is the fastest way to raise your score.",
+    "cta": {
+     "label": "See the full score",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "money health score",
+   "norm": "money health score",
+   "amount": null,
+   "detect": {
+    "id": "health",
+    "score": 10,
+    "alternatives": [
+     "balances",
+     "top_spending"
+    ]
+   },
+   "reply": {
+    "intent": "health",
+    "mood": "happy",
+    "text": "Your money health is 64 out of 100. Strongest: savings rate. Weakest: debt load. Working on that one is the fastest way to raise your score.",
+    "cta": {
+     "label": "See the full score",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "How much do I have?",
+   "norm": "howmuch i have",
+   "amount": null,
+   "detect": {
+    "id": "balances",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend",
+     "savings_rate"
+    ]
+   },
+   "reply": {
+    "intent": "balances",
+    "mood": "idle",
+    "text": "You have ₱19,500 spendable in cash and e-wallets, plus ₱20,000 in savings. You also owe ₱52,000 on debts. Savings are yours to protect, not daily spending money.",
+    "cta": {
+     "label": "See accounts",
+     "route": "/accounts"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Magkano pera ko?",
+   "norm": "howmuch money ko",
+   "amount": null,
+   "detect": {
+    "id": "balances",
+    "score": 6,
+    "alternatives": [
+     "safe_to_spend",
+     "top_spending"
+    ]
+   },
+   "reply": {
+    "intent": "balances",
+    "mood": "idle",
+    "text": "You have ₱19,500 spendable in cash and e-wallets, plus ₱20,000 in savings. You also owe ₱52,000 on debts. Savings are yours to protect, not daily spending money.",
+    "cta": {
+     "label": "See accounts",
+     "route": "/accounts"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "how much do i owe",
+   "norm": "howmuch i owe",
+   "amount": null,
+   "detect": {
+    "id": "balances",
+    "score": 4,
+    "alternatives": [
+     "safe_to_spend",
+     "utang"
+    ]
+   },
+   "reply": {
+    "intent": "balances",
+    "mood": "idle",
+    "text": "You have ₱19,500 spendable in cash and e-wallets, plus ₱20,000 in savings. You also owe ₱52,000 on debts. Savings are yours to protect, not daily spending money.",
+    "cta": {
+     "label": "See accounts",
+     "route": "/accounts"
+    }
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "how much do i have",
+   "norm": "howmuch i have",
+   "amount": null,
+   "detect": {
+    "id": "balances",
+    "score": 5,
+    "alternatives": [
+     "safe_to_spend",
+     "savings_rate"
+    ]
+   },
+   "reply": {
+    "intent": "balances",
+    "mood": "idle",
+    "text": "You have no accounts set up yet. Add your cash, GCash, or bank so I can track what you have.",
+    "cta": {
+     "label": "Add accounts",
+     "route": "/accounts"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "When is my next sweldo?",
+   "norm": "when is my next payday",
+   "amount": null,
+   "detect": {
+    "id": "payday",
+    "score": 4,
+    "alternatives": [
+     "safe_to_spend",
+     "debt_due"
+    ]
+   },
+   "reply": {
+    "intent": "payday",
+    "mood": "idle",
+    "text": "Your next sweldo is Thu, Jul 30, 12 days away, on your the 15th and the 30th schedule. Want your safe to spend for those days?"
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Kelan sweldo?",
+   "norm": "when payday",
+   "amount": null,
+   "detect": {
+    "id": "payday",
+    "score": 6,
+    "alternatives": [
+     "safe_to_spend",
+     "debt_due"
+    ]
+   },
+   "reply": {
+    "intent": "payday",
+    "mood": "idle",
+    "text": "Your next sweldo is Thu, Jul 30, 12 days away, on your the 15th and the 30th schedule. Want your safe to spend for those days?"
+   }
+  },
+  {
+   "fixture": "empty",
+   "message": "when is payday",
+   "norm": "when is payday",
+   "amount": null,
+   "detect": {
+    "id": "payday",
+    "score": 6,
+    "alternatives": [
+     "safe_to_spend",
+     "debt_due"
+    ]
+   },
+   "reply": {
+    "intent": "payday",
+    "mood": "idle",
+    "text": "Set your payday schedule in More and I will count down your sweldo and figure your safe to spend.",
+    "cta": {
+     "label": "Set payday",
+     "route": "/(tabs)/more"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "What is my take-home pay?",
+   "norm": "what is my take home pay",
+   "amount": null,
+   "detect": {
+    "id": "tool_take_home",
+    "score": 8,
+    "alternatives": [
+     "upcoming_bills"
+    ]
+   },
+   "reply": {
+    "intent": "tool_take_home",
+    "mood": "idle",
+    "text": "To turn a gross salary into net, the Take-home pay calculator in Tools does it properly, with SSS, PhilHealth, Pag-IBIG, tax, and allowances, and can show it per cutoff, monthly, or yearly.",
+    "cta": {
+     "label": "Open Take-home pay",
+     "route": "/salary-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Compute 13th month pay",
+   "norm": "compute 13th month pay",
+   "amount": 13,
+   "detect": {
+    "id": "tool_thirteenth",
+    "score": 9,
+    "alternatives": [
+     "month_recap",
+     "debt_free"
+    ]
+   },
+   "reply": {
+    "intent": "tool_thirteenth",
+    "mood": "idle",
+    "text": "For 13th month pay, the calculator in Tools figures what you should get, prorated for months worked, and shows the tax-free part up to the 90,000 ceiling.",
+    "cta": {
+     "label": "Open 13th month pay",
+     "route": "/thirteenth-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "How much is my SSS?",
+   "norm": "howmuch my sss",
+   "amount": null,
+   "detect": {
+    "id": "tool_contributions",
+    "score": 3,
+    "alternatives": [
+     "safe_to_spend",
+     "balances"
+    ]
+   },
+   "reply": {
+    "intent": "tool_contributions",
+    "mood": "idle",
+    "text": "For your monthly SSS, PhilHealth, and Pag-IBIG, the Contribution checker in Tools shows what comes out of your pay, what your employer adds, and the total, for any salary.",
+    "cta": {
+     "label": "Open Contribution checker",
+     "route": "/contribution-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "Monthly amortization of a loan",
+   "norm": "monthly amortization of a loan",
+   "amount": null,
+   "detect": {
+    "id": "tool_loan_cost",
+    "score": 9,
+    "alternatives": [
+     "month_recap",
+     "tool_contributions"
+    ]
+   },
+   "reply": {
+    "intent": "tool_loan_cost",
+    "mood": "idle",
+    "text": "To see the real cost of a loan, the Loan calculator in Tools shows the monthly payment, total interest, and the true effective rate, so an add-on quote cannot hide how much it really costs.",
+    "cta": {
+     "label": "Open Loan calculator",
+     "route": "/loan-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "where to invest",
+   "norm": "where to invest",
+   "amount": null,
+   "detect": {
+    "id": "no_invest",
+    "guardrail": {
+     "id": "no_invest",
+     "keywords": [
+      "invest",
+      "stocks",
+      "stock market",
+      "crypto",
+      "bitcoin",
+      "forex",
+      "mutual fund",
+      "uitf",
+      "mp2",
+      "trading",
+      "shares",
+      "good return",
+      "grow my money",
+      "where to invest",
+      "good investment"
+     ],
+     "reply": "I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?"
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_invest",
+    "mood": "idle",
+    "text": "I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?"
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "should I buy bitcoin?",
+   "norm": "should i buy bitcoin",
+   "amount": null,
+   "detect": {
+    "id": "no_invest",
+    "guardrail": {
+     "id": "no_invest",
+     "keywords": [
+      "invest",
+      "stocks",
+      "stock market",
+      "crypto",
+      "bitcoin",
+      "forex",
+      "mutual fund",
+      "uitf",
+      "mp2",
+      "trading",
+      "shares",
+      "good return",
+      "grow my money",
+      "where to invest",
+      "good investment"
+     ],
+     "reply": "I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?"
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_invest",
+    "mood": "idle",
+    "text": "I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?"
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "apply for a loan",
+   "norm": "apply for a loan",
+   "amount": null,
+   "detect": {
+    "id": "no_loan",
+    "guardrail": {
+     "id": "no_loan",
+     "keywords": [
+      "apply for a loan",
+      "get a loan",
+      "cash loan",
+      "borrow money",
+      "lend me",
+      "loan app",
+      "where to borrow",
+      "sangla"
+     ],
+     "reply": "I cannot help you find or apply for a loan. But if you are weighing one, the Loan calculator in Tools shows its real monthly payment and true interest rate, so you go in with clear eyes. I can also track debts you already have.",
+     "cta": {
+      "label": "Open Loan calculator",
+      "route": "/loan-calculator"
+     }
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_loan",
+    "mood": "idle",
+    "text": "I cannot help you find or apply for a loan. But if you are weighing one, the Loan calculator in Tools shows its real monthly payment and true interest rate, so you go in with clear eyes. I can also track debts you already have.",
+    "cta": {
+     "label": "Open Loan calculator",
+     "route": "/loan-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "help me with my income tax",
+   "norm": "help me with my income tax",
+   "amount": null,
+   "detect": {
+    "id": "no_tax",
+    "guardrail": {
+     "id": "no_tax",
+     "keywords": [
+      "tax",
+      "bir",
+      "income tax",
+      "vat",
+      "withholding"
+     ],
+     "reply": "I cannot give tax advice, please check the BIR or a tax professional for your actual filing. What I can do is point you to the Income tax calculator in Tools, which estimates the 8% versus graduated tax and lists the BIR forms you file.",
+     "cta": {
+      "label": "Open Income tax calculator",
+      "route": "/tax-calculator"
+     }
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_tax",
+    "mood": "idle",
+    "text": "I cannot give tax advice, please check the BIR or a tax professional for your actual filing. What I can do is point you to the Income tax calculator in Tools, which estimates the 8% versus graduated tax and lists the BIR forms you file.",
+    "cta": {
+     "label": "Open Income tax calculator",
+     "route": "/tax-calculator"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "can I sue my kumare over utang?",
+   "norm": "can i sue my kumare over owe",
+   "amount": null,
+   "detect": {
+    "id": "no_legal",
+    "guardrail": {
+     "id": "no_legal",
+     "keywords": [
+      "sue",
+      "small claims",
+      "estafa",
+      "legal",
+      "lawyer",
+      "demand letter",
+      "contract"
+     ],
+     "reply": "I cannot give legal advice. For utang, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?"
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_legal",
+    "mood": "idle",
+    "text": "I cannot give legal advice. For utang, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?"
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "is VUL insurance worth it?",
+   "norm": "is vul insurance worth it",
+   "amount": null,
+   "detect": {
+    "id": "no_insurance",
+    "guardrail": {
+     "id": "no_insurance",
+     "keywords": [
+      "insurance",
+      "vul",
+      "life plan",
+      "health card",
+      "hmo"
+     ],
+     "reply": "I do not recommend insurance products. A good first shield is an emergency fund sized to your monthly expenses, and I can help you build toward that as a goal."
+    },
+    "score": 99,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "no_insurance",
+    "mood": "idle",
+    "text": "I do not recommend insurance products. A good first shield is an emergency fund sized to your monthly expenses, and I can help you build toward that as a goal."
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "I took a taxi today",
+   "norm": "i took a taxi today",
+   "amount": null,
+   "detect": {
+    "id": "safe_to_spend",
+    "score": 1,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "safe_to_spend",
+    "mood": "idle",
+    "text": "You have ₱18,900 free to spend until your Thu, Jul 30 sweldo, about ₱1,575 a day for 12 days. That already sets aside ₱600 for bills and minimums, and it does not touch your savings, on purpose.",
+    "cta": {
+     "label": "See the breakdown",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "birthday gastos ko 2000",
+   "norm": "birthday spending ko 2000",
+   "amount": 2000,
+   "detect": {
+    "id": "top_spending",
+    "score": 2,
+    "alternatives": [
+     "safe_to_spend",
+     "month_recap"
+    ]
+   },
+   "reply": {
+    "intent": "top_spending",
+    "mood": "worried",
+    "text": "Food is at ₱4,600 this month. For this point your usual pace is about ₱1,539, so you are running roughly ₱3,061 hot. Easing back frees that before sweldo.",
+    "cta": {
+     "label": "See categories",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "how mch can i spned",
+   "norm": "how mch can i spned",
+   "amount": null,
+   "detect": {
+    "id": "safe_to_spend",
+    "score": 1,
+    "alternatives": []
+   },
+   "reply": {
+    "intent": "safe_to_spend",
+    "mood": "idle",
+    "text": "You have ₱18,900 free to spend until your Thu, Jul 30 sweldo, about ₱1,575 a day for 12 days. That already sets aside ₱600 for bills and minimums, and it does not touch your savings, on purpose.",
+    "cta": {
+     "label": "See the breakdown",
+     "route": "/insights"
+    }
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "aford 500",
+   "norm": "aford 500",
+   "amount": 500,
+   "detect": {
+    "id": "help",
+    "score": 1,
+    "alternatives": [
+     "safe_to_spend",
+     "can_afford"
+    ]
+   },
+   "reply": {
+    "mood": "idle",
+    "intent": "help",
+    "text": "I am not sure I got that. Did you mean one of these?",
+    "suggestions": [
+     "How much can I safely spend?",
+     "Can I afford 2000 shoes?"
+    ]
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "asdf qwerty",
+   "norm": "asdf qwerty",
+   "amount": null,
+   "detect": {
+    "id": "help",
+    "score": 0,
+    "alternatives": []
+   },
+   "reply": {
+    "mood": "idle",
+    "intent": "help",
+    "text": "Hi, I'm Pan. I read only what is on your phone. Ask me things like:",
+    "suggestions": [
+     "How much can I safely spend?",
+     "Can I afford 2000 shoes?",
+     "Who owes me money?",
+     "What's due before my sweldo?"
+    ]
+   }
+  },
+  {
+   "fixture": "main",
+   "message": "",
+   "norm": "",
+   "amount": null,
+   "detect": {
+    "id": "help",
+    "score": 0,
+    "alternatives": []
+   },
+   "reply": {
+    "mood": "idle",
+    "intent": "help",
+    "text": "Hi, I'm Pan. I read only what is on your phone. Ask me things like:",
+    "suggestions": [
+     "How much can I safely spend?",
+     "Can I afford 2000 shoes?",
+     "Who owes me money?",
+     "What's due before my sweldo?"
+    ]
+   }
+  }
+ ],
+ "help": {
+  "mood": "idle",
+  "intent": "help",
+  "text": "Hi, I'm Pan. I read only what is on your phone. Ask me things like:",
+  "suggestions": [
+   "How much can I safely spend?",
+   "Can I afford 2000 shoes?",
+   "Who owes me money?",
+   "What's due before my sweldo?"
+  ]
+ },
+ "helpAlt": {
+  "mood": "idle",
+  "intent": "help",
+  "text": "I am not sure I got that. Did you mean one of these?",
+  "suggestions": [
+   "How much do I have?",
+   "When is my next sweldo?"
+  ]
+ },
+ "chips": [
+  {
+   "id": "safe_to_spend",
+   "label": "Safe to spend",
+   "example": "How much can I safely spend?"
+  },
+  {
+   "id": "can_afford",
+   "label": "Can I afford this",
+   "example": "Can I afford 2000 shoes?"
+  },
+  {
+   "id": "utang",
+   "label": "Who owes me",
+   "example": "Who owes me money?"
+  },
+  {
+   "id": "upcoming_bills",
+   "label": "What is due",
+   "example": "What's due before my sweldo?"
+  },
+  {
+   "id": "debt_due",
+   "label": "Card and debt due dates",
+   "example": "When is my credit card due?"
+  },
+  {
+   "id": "debt_free",
+   "label": "Debt-free date",
+   "example": "When will I be debt-free?"
+  }
+ ],
+ "recaps": {
+  "main": {
+   "label": "July 2026",
+   "monthKey": "2026-07",
+   "moneyIn": 24000,
+   "moneyOut": 5800,
+   "kept": 18200,
+   "keptRate": 0.7583333333333333,
+   "topCats": [
+    {
+     "label": "Food",
+     "amount": 4600,
+     "pct": 79
+    },
+    {
+     "label": "Transport",
+     "amount": 900,
+     "pct": 16
+    },
+    {
+     "label": "Load",
+     "amount": 300,
+     "pct": 5
+    }
+   ],
+   "biggest": {
+    "label": "Food",
+    "amount": 3200
+   },
+   "daysLogged": 4,
+   "debtPaid": 1400,
+   "utangCollected": 500,
+   "verdict": "You kept 76% of your income. Solid month."
+  },
+  "empty": {
+   "label": "July 2026",
+   "monthKey": "2026-07",
+   "moneyIn": 0,
+   "moneyOut": 0,
+   "kept": 0,
+   "keptRate": null,
+   "topCats": [],
+   "biggest": null,
+   "daysLogged": 0,
+   "debtPaid": 0,
+   "utangCollected": 0,
+   "verdict": "A quiet month. Log your money and next month tells a story."
+  },
+  "overspent": {
+   "label": "July 2026",
+   "monthKey": "2026-07",
+   "moneyIn": 1000,
+   "moneyOut": 3000,
+   "kept": -2000,
+   "keptRate": -2,
+   "topCats": [
+    {
+     "label": "Food",
+     "amount": 3000,
+     "pct": 100
+    }
+   ],
+   "biggest": {
+    "label": "Food",
+    "amount": 3000
+   },
+   "daysLogged": 2,
+   "debtPaid": 0,
+   "utangCollected": 0,
+   "verdict": "Spending passed income this month. Next month is a fresh start."
+  },
+  "texts": {
+   "main": "My July 2026 with Salapify:\nMoney in ₱24,000, out ₱5,800, kept ₱18,200.\nTop spending: Food (79%).\nLogged 4 days.\nYou kept 76% of your income. Solid month.\nTracked with Salapify, on your money's side. ☕",
+   "mainHidden": "My July 2026 with Salapify:\nKept 76% of my income.\nTop spending: Food (79%).\nLogged 4 days.\nYou kept 76% of your income. Solid month.\nTracked with Salapify, on your money's side. ☕",
+   "empty": "My July 2026 with Salapify:\nA quiet month. Log your money and next month tells a story.\nTracked with Salapify, on your money's side. ☕"
+  }
+ },
+ "schedules": [
+  {
+   "schedule": {
+    "mode": "semimonthly",
+    "days": [
+     15,
+     30
+    ]
+   },
+   "days": 12,
+   "label": "the 15th and the 30th"
+  },
+  {
+   "schedule": {
+    "mode": "monthly",
+    "day": 31
+   },
+   "days": 13,
+   "label": "end of month"
+  },
+  {
+   "schedule": {
+    "mode": "monthly",
+    "day": 3
+   },
+   "days": 16,
+   "label": "the 3rd"
+  },
+  {
+   "schedule": {
+    "mode": "weekly",
+    "weekday": 5
+   },
+   "days": 6,
+   "label": "every Friday"
+  },
+  {
+   "schedule": {
+    "mode": "semimonthly",
+    "days": [
+     1,
+     22
+    ]
+   },
+   "days": 4,
+   "label": "the 1st and the 22nd"
+  },
+  {
+   "schedule": null,
+   "days": 13,
+   "label": "the 15th and end of month"
+  }
+ ]
+}
