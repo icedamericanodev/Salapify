@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 import '../money/ledger.dart' as ledger;
+import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import 'backup.dart';
 
@@ -98,6 +99,119 @@ Map<String, dynamic> ensureUniqueTxnIds(Map<String, dynamic> data) {
   return result;
 }
 
+/// Account and debt ids get the same boundary guard as transaction ids:
+/// the Flutter sheets and engine wrappers address rows by string id, so a
+/// missing id from a merged or hand-edited backup renders as a card that
+/// can never be opened, paid, edited, or deleted, and a numeric id renders
+/// but never matches the stringified id the screens pass around. This runs
+/// AFTER sanitizeData on purpose, same reasoning as ensureUniqueTxnIds:
+/// sanitizeData is parity-locked to the RN engine by the backup goldens.
+/// A numeric id keeps its digits so rows that referenced it follow along;
+/// a missing or duplicated id gets a fresh deterministic one.
+Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
+  var result = data;
+  for (final (key, prefix) in const [
+    ('accounts', 'acct'),
+    ('debts', 'debt'),
+  ]) {
+    final rows = result[key];
+    if (rows is! List) continue;
+    // Reserve every good string id first, so a coerced or restored id can
+    // never steal an existing row's identity.
+    final taken = <String>{
+      for (final r in rows)
+        if (r is Map && r['id'] is String && (r['id'] as String).isNotEmpty)
+          r['id'] as String,
+    };
+    final seen = <String>{};
+    final remap = <Object, String>{};
+    var restored = 0;
+    var changed = false;
+    String fresh() {
+      String id;
+      do {
+        id = '${prefix}_restored_$restored';
+        restored++;
+      } while (taken.contains(id) || seen.contains(id));
+      return id;
+    }
+
+    final newRows = rows.map((row) {
+      if (row is! Map) return row;
+      final raw = row['id'];
+      String id;
+      if (raw is String && raw.isNotEmpty && !seen.contains(raw)) {
+        id = raw;
+      } else if ((raw is num || raw is bool) &&
+          !seen.contains(raw.toString()) &&
+          !taken.contains(raw.toString())) {
+        id = raw.toString();
+        remap[raw] = id;
+      } else {
+        id = fresh();
+      }
+      seen.add(id);
+      if (id == raw) return row;
+      changed = true;
+      return <String, dynamic>{...row.cast<String, dynamic>(), 'id': id};
+    }).toList();
+    if (!changed) continue;
+    result = {...result, key: newRows};
+    if (remap.isEmpty) continue;
+
+    // References that carried the same non-string id follow the rename, so
+    // rows the RN app treated as linked stay linked here too.
+    dynamic followRefs(dynamic list, List<String> fields) {
+      if (list is! List) return list;
+      var listChanged = false;
+      final out = list.map((row) {
+        if (row is! Map) return row;
+        var r = row;
+        for (final f in fields) {
+          final v = row[f];
+          final mapped = v is String ? null : remap[v];
+          if (mapped != null) {
+            r = <String, dynamic>{...r.cast<String, dynamic>(), f: mapped};
+            listChanged = true;
+          }
+        }
+        return r;
+      }).toList();
+      return listChanged ? out : list;
+    }
+
+    if (key == 'accounts') {
+      result = {
+        ...result,
+        'transactions': followRefs(result['transactions'], ['accountId']),
+        'payments': followRefs(result['payments'], ['account']),
+        'receivables': followRefs(result['receivables'], ['accountId']),
+      };
+      final settings = result['settings'];
+      if (settings is Map) {
+        var s = settings.cast<String, dynamic>();
+        var sChanged = false;
+        for (final f in ['defaultAccountId', 'salaryAccountId']) {
+          final v = s[f];
+          final mapped = v is String ? null : remap[v];
+          if (mapped != null) {
+            s = {...s, f: mapped};
+            sChanged = true;
+          }
+        }
+        if (sChanged) result = {...result, 'settings': s};
+      }
+    } else {
+      result = {
+        ...result,
+        'payments': followRefs(result['payments'], ['debtId']),
+        'transactions': followRefs(result['transactions'], ['debtId']),
+      };
+    }
+  }
+  return result;
+}
+
 class SalapifyStore extends ChangeNotifier {
   Map<String, dynamic> data = sanitizeData({});
   bool loaded = false;
@@ -126,7 +240,7 @@ class SalapifyStore extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(storageKey);
       if (raw != null && raw.isNotEmpty) {
-        data = ensureUniqueTxnIds(sanitizeData(jsonDecode(raw)));
+        data = ensureEntityIds(ensureUniqueTxnIds(sanitizeData(jsonDecode(raw))));
       }
       loadError = null;
     } catch (e) {
@@ -162,7 +276,7 @@ class SalapifyStore extends ChangeNotifier {
           await prefs.setString(previousBackupKey, raw);
         }
         final previous = data;
-        data = ensureUniqueTxnIds(parsed);
+        data = ensureEntityIds(ensureUniqueTxnIds(parsed));
         try {
           await _save();
         } catch (e) {
@@ -375,6 +489,65 @@ class SalapifyStore extends ChangeNotifier {
         }
         return r.data;
       });
+
+  /// Save (create or edit) a debt through the golden-verified engine. The
+  /// form map carries the same text fields as the RN screen. Throws
+  /// ArgumentError with the exact RN validation sentence when refused.
+  /// Returns the saved debt's id.
+  Future<String?> saveDebt(Map<String, dynamic> form) async {
+    String? savedId;
+    await _mutate((d) {
+      final r = debts.saveDebt(d, form, today: _todayISO(), genId: _genId);
+      if (r.error.isNotEmpty) throw ArgumentError(r.error);
+      savedId = r.id;
+      return r.data;
+    });
+    return savedId;
+  }
+
+  /// Log a debt payment from the typed amount text ("2,500" works), out of
+  /// the chosen account or from outside the app (null). Returns the engine
+  /// result so the screen can show the logged message and celebrate a debt
+  /// cleared to zero.
+  Future<debts.DebtPayResult> logDebtPayment(
+      String debtId, String amountText, String? payFrom) async {
+    late debts.DebtPayResult result;
+    await _mutate((d) {
+      _requireDebt(d, debtId);
+      result = debts.logDebtPayment(d, {'id': debtId}, payFrom, amountText,
+          today: _todayISO(), genId: _genId);
+      return result.data;
+    });
+    return result;
+  }
+
+  /// The RN screen always pays from a form built off a live debt; the store
+  /// exposes this to any caller, so a debt deleted mid-edit must refuse
+  /// instead of recording a ghost payment row against nothing.
+  void _requireDebt(Map<String, dynamic> d, String debtId) {
+    final list = d['debts'] as List? ?? const [];
+    if (!list.any((x) => x is Map && x['id'] == debtId)) {
+      throw ArgumentError('This debt no longer exists.');
+    }
+  }
+
+  /// Pay off everything still owed on one debt, including interest accrued
+  /// since the last payment, as a real payment through the same path.
+  Future<debts.DebtPayResult> markDebtPaid(
+      String debtId, String? payFrom) async {
+    late debts.DebtPayResult result;
+    await _mutate((d) {
+      _requireDebt(d, debtId);
+      result = debts.markDebtPaid(d, {'id': debtId}, payFrom,
+          today: _todayISO(), genId: _genId);
+      return result.data;
+    });
+    return result;
+  }
+
+  /// Remove a debt. Its payment history and record rows stay on purpose.
+  Future<void> deleteDebt(String debtId) =>
+      _mutate((d) => debts.deleteDebt(d, debtId));
 
   /// Remove an entry through the engine (the linked account gets its money
   /// back), with the same write guard and rollback discipline as addEntry.

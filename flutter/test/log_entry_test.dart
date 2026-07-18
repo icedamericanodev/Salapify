@@ -137,11 +137,16 @@ void main() {
 
     await tester.tap(find.text('Log'));
     await tester.pumpAndSettle();
-    // The sheet opened (no red screen), real accounts have chips, the weird
-    // one is simply not linkable.
+    // The store boundary now repairs the numeric id into its string form
+    // (ensureEntityIds), so the account is a normal, linkable chip instead
+    // of an untouchable ghost.
     expect(find.text('Save entry'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Cash'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'Weird'), findsNothing);
+    expect(find.widgetWithText(ChoiceChip, 'Weird'), findsOneWidget);
+    final weird = (store.data['accounts'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((a) => a['name'] == 'Weird');
+    expect(weird['id'], '123');
   });
 
   test('two ids minted in the same millisecond never collide', () {

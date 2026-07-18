@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.38 · QA hardening: debt math edges and a safer note editor';
+    'f0.41 · Debts hardening: ghost ids repaired, huge balances kept exact';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -214,8 +214,9 @@ String _longDate(String? isoDate) {
   return '${_monthsShort[p[1] - 1]} ${p[2]}, ${p[0]}';
 }
 
-/// RN formatMoney: sign, peso sign, comma-grouped whole pesos.
-String _m(num n) {
+/// RN formatMoney: sign, peso sign, comma-grouped whole pesos. Public so the
+/// debts write engine composes its logged-payment messages byte for byte.
+String formatMoneyText(num n) {
   final v = _jsRound(amountOf(n)).toInt();
   final sign = v < 0 ? '-' : '';
   final digits = v.abs().toString();
@@ -242,7 +243,7 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     lines.add('Next statement cut: ${_longDate(f['statement'] as String)}');
   }
   lines.add(
-      'Forecast statement balance: ${_m(f['forecastBalance'] as double)}');
+      'Forecast statement balance: ${formatMoneyText(f['forecastBalance'] as double)}');
   if ((f['creditLimit'] as double) > 0) {
     // A huge balance over a tiny limit overflows to Infinity. JS survives,
     // Math.min(Math.round(Infinity), 999) is 999, but Dart toInt() throws
@@ -250,19 +251,19 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     final utilRaw = _jsRound(((f['utilization'] as double?) ?? 0) * 100);
     final capped = utilRaw < 999 ? utilRaw.toInt() : 999;
     lines.add(
-        'Credit used: $capped% of ${_m(f['creditLimit'] as double)}');
+        'Credit used: $capped% of ${formatMoneyText(f['creditLimit'] as double)}');
   }
   if ((f['pending'] as double) > 0) {
     lines.add(
-        'Payments sent but not yet posted: ${_m(f['pending'] as double)}');
+        'Payments sent but not yet posted: ${formatMoneyText(f['pending'] as double)}');
   }
 
   lines.add('');
   lines.add('WHAT TO PAY');
   lines.add(
-      'Pay in full: ${_m(f['forecastBalance'] as double)} and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)');
+      'Pay in full: ${formatMoneyText(f['forecastBalance'] as double)} and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)');
   lines.add(
-      'Or at least the minimum: ${_m(f['minDue'] as double)} to avoid late fees');
+      'Or at least the minimum: ${formatMoneyText(f['minDue'] as double)} to avoid late fees');
   if (f['due'] != null) {
     if (f['dueMoved'] as bool) {
       lines.add(
@@ -276,7 +277,7 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     lines.add('');
     lines.add('IF YOU PAY LATE OR ONLY THE MINIMUM');
     lines.add(
-        'About ${_m(f['lateInterest'] as double)} interest gets added next month (${_numText(f['monthlyRate'] as double)}% monthly on the unpaid balance)');
+        'About ${formatMoneyText(f['lateInterest'] as double)} interest gets added next month (${_numText(f['monthlyRate'] as double)}% monthly on the unpaid balance)');
     lines.add(
         'Missing the due date also adds your bank’s late fee, check your card terms for the exact amount');
   } else if ((f['forecastBalance'] as double) > 0) {
