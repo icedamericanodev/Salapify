@@ -149,7 +149,7 @@ class _ThirteenthCalculatorScreenState
             ),
             const SizedBox(height: 6),
             Text(
-                'Only basic pay counts, not overtime, allowances, or holiday pay. Sales commissions that form part of your basic wage do count. Other bonuses matter only for the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling.',
+                'Only basic pay counts, not overtime, allowances, or holiday pay. Sales commissions that form part of your basic wage do count, so include them in the basic pay above. Other bonuses matter only for the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.4)),
             if (ready) ...[

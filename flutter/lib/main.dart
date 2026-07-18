@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.54 · 13th month pay: the comp specialist tightened the copy';
+    'f0.55 · 13th month pay: commission copy points to the right field';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
