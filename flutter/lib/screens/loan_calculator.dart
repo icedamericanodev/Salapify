@@ -89,10 +89,10 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
         ? (termNum * 12 + 0.5).floorToDouble()
         : (termNum + 0.5).floorToDouble();
     final termClamped = rawMonthsD > maxMonths;
-    final months = (rawMonthsD.isFinite
-            ? rawMonthsD.clamp(0, maxMonths.toDouble())
-            : maxMonths.toDouble())
-        .toInt();
+    // clamp handles both infinities: +Infinity lands on the cap like RN's
+    // Math.min, -Infinity lands on zero so a pasted negative monster shows
+    // only the negative warning, never a result card beneath it.
+    final months = rawMonthsD.clamp(0, maxMonths.toDouble()).toInt();
 
     final ready = amountNum > 0 && months >= 1 && rateNum >= 0;
     final badInput = amountNum < 0 || termNum < 0 || rateNum < 0;

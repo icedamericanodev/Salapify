@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.46 · Loan tool hardening: giant pasted terms clamp, never crash';
+    'f0.47 · Loan tool: negative monsters clamp to zero, cleanly';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

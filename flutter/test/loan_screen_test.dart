@@ -104,6 +104,16 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Term capped at 1200 months'), findsOneWidget);
     expect(find.text('MONTHLY PAYMENT'), findsOneWidget);
+
+    // The negative twin: -2e307 years clamps to zero months like RN, so
+    // only the negative warning shows, never a result card beneath it.
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 12'), '-2e307');
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Amounts and rates cannot be negative.'),
+        findsOneWidget);
+    expect(find.text('MONTHLY PAYMENT'), findsNothing);
   });
 
   testWidgets('incomplete and bad inputs nudge instead of breaking',
