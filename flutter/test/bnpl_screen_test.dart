@@ -59,6 +59,43 @@ void main() {
     expect(find.text('Real interest per year'), findsOneWidget);
   });
 
+  testWidgets('the sub-peso band never prints self-contradictions',
+      (tester) async {
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await openBnpl(tester);
+
+    // Underpays by 48 centavos: both figures would round to ₱12,000, so
+    // the sentence must show centavos instead of "12,000 less than 12,000".
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 12,000'), '12000');
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 6'), '6');
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 2,100'), '1999.92');
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('CHECK YOUR NUMBERS'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('₱11,999.52'), findsOneWidget);
+
+    // Over by 30 centavos: every printable figure says same-as-cash, so
+    // the screen reassures instead of warning about "₱0 more" at "0.0%".
+    await tester.scrollUntilVisible(
+        find.widgetWithText(TextField, 'e.g. 2,100'), -200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 2,100'), '2000.05');
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+        find.textContaining('costs the same as paying cash today'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('costs the same as paying cash today'),
+        findsOneWidget);
+    expect(find.textContaining('₱0 more than paying cash'), findsNothing);
+  });
+
   testWidgets('underpaying numbers get the honest check state',
       (tester) async {
     final store = SalapifyStore();

@@ -43,6 +43,22 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
 
   String _m(num n) => formatMoney((n + 0.5).floorToDouble());
 
+  /// Centavo form for the sub-peso band where whole-peso rounding would
+  /// print a self-contradiction like "₱12,000 is less than ₱12,000".
+  String _mc(num n) {
+    final fixed = n.toStringAsFixed(2);
+    final dot = fixed.indexOf('.');
+    var whole = fixed.substring(0, dot);
+    final neg = whole.startsWith('-');
+    if (neg) whole = whole.substring(1);
+    final buf = StringBuffer();
+    for (var i = 0; i < whole.length; i++) {
+      if (i > 0 && (whole.length - i) % 3 == 0) buf.write(',');
+      buf.write(whole[i]);
+    }
+    return '${neg ? '-' : ''}₱$buf${fixed.substring(dot)}';
+  }
+
   Widget _label(String text) => Padding(
         padding: const EdgeInsets.only(top: 14, bottom: 6),
         child: Text(text,
@@ -99,7 +115,25 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
     final ready = priceNum > 0 && monthsNum >= 1 && monthlyNum > 0;
     final monthsCapped = monthsNum > 60;
     final underpays = r['underpays'] as bool;
-    final trulyFree = r['trulyFree'] as bool;
+    // Centavos when whole-peso rounding would make the underpays figures
+    // read equal (QA finding: "₱12,000 is less than ₱12,000").
+    final sameRounded =
+        _m(r['totalPaid'] as double) == _m(r['cash'] as double);
+    final paidText = sameRounded
+        ? _mc(r['totalPaid'] as double)
+        : _m(r['totalPaid'] as double);
+    final cashText =
+        sameRounded ? _mc(r['cash'] as double) : _m(r['cash'] as double);
+    // Display-level honesty for the sub-peso band (QA finding): when the
+    // extra cost and the fee are both under half a peso, every figure the
+    // screen can print says "same as cash", so the warning framing with a
+    // "₱0 more" claim would be the dishonest one. The engine's own
+    // trulyFree (0.005 epsilon) stays golden-locked; this widens only what
+    // the SCREEN calls free, to its own display resolution.
+    final trulyFree = (r['trulyFree'] as bool) ||
+        (!underpays &&
+            (r['extraCost'] as double) < 0.5 &&
+            (r['fee'] as double) < 0.5);
 
     return Scaffold(
       appBar: AppBar(
@@ -195,7 +229,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
                       Text(
-                          'Your payments come to ${_m(r['totalPaid'] as double)}, which is less than the ${_m(r['cash'] as double)} cash price. Double check the monthly amount, the months, and the downpayment. If a trade in, voucher, or discount covers part of the price, add that amount to the downpayment.',
+                          'Your payments come to $paidText, which is less than the $cashText cash price. Double check the monthly amount, the months, and the downpayment. If a trade in, voucher, or discount covers part of the price, add that amount to the downpayment.',
                           style: TextStyle(
                               color: Barako.textSecondary,
                               fontSize: 13,
