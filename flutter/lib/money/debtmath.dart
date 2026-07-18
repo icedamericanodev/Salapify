@@ -16,6 +16,22 @@ import 'ledger.dart' show amountOf;
 
 double _jsRound(num x) => (x + 0.5).floorToDouble();
 
+/// Parse a date stamp the way JS new Date() does. JS rejects an ISO-looking
+/// string whose month is outside 01-12 or day is outside 01-31 at the
+/// grammar level (2026-01-32 is Invalid Date), while Dart tryParse silently
+/// normalizes it to the next month. A day that fits the grammar but
+/// overflows its month (2026-02-30) normalizes in BOTH engines, so only the
+/// grammar check is mirrored here.
+DateTime? _jsDate(String s) {
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(s);
+  if (m != null) {
+    final mo = int.parse(m.group(2)!);
+    final da = int.parse(m.group(3)!);
+    if (mo < 1 || mo > 12 || da < 1 || da > 31) return null;
+  }
+  return DateTime.tryParse(s);
+}
+
 String _iso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -34,9 +50,10 @@ Map<String, dynamic> splitDebtPayment(dynamic remaining, dynamic monthlyRate,
           ? interestThroughISO
           : todayStr;
   // A bad stamp makes the day diff NaN in JS and accrues 0 instead of
-  // poisoning the balance; mirror with tryParse.
-  final fromDate = DateTime.tryParse(fromISO);
-  final todayDate = DateTime.tryParse(todayStr);
+  // poisoning the balance; mirror with the JS-grammar parse so 2026-01-32
+  // accrues nothing here too instead of quietly becoming February 1.
+  final fromDate = _jsDate(fromISO);
+  final todayDate = _jsDate(todayStr);
   var days = 0;
   if (fromDate != null && todayDate != null) {
     final raw = _jsRound(
@@ -227,9 +244,11 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
   lines.add(
       'Forecast statement balance: ${_m(f['forecastBalance'] as double)}');
   if ((f['creditLimit'] as double) > 0) {
-    final utilPct =
-        _jsRound(((f['utilization'] as double?) ?? 0) * 100).toInt();
-    final capped = utilPct < 999 ? utilPct : 999;
+    // A huge balance over a tiny limit overflows to Infinity. JS survives,
+    // Math.min(Math.round(Infinity), 999) is 999, but Dart toInt() throws
+    // on non-finite, so cap BEFORE converting.
+    final utilRaw = _jsRound(((f['utilization'] as double?) ?? 0) * 100);
+    final capped = utilRaw < 999 ? utilRaw.toInt() : 999;
     lines.add(
         'Credit used: $capped% of ${_m(f['creditLimit'] as double)}');
   }

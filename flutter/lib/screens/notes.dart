@@ -80,11 +80,11 @@ class NotesScreen extends StatelessWidget {
                       ),
                     ),
                   )
-                : ListView(
+                : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 90),
-                    children: [
-                      for (final n in sorted) _noteCard(context, n),
-                    ],
+                    itemCount: sorted.length,
+                    itemBuilder: (context, i) =>
+                        _noteCard(context, sorted[i]),
                   ),
           ),
         );
@@ -111,6 +111,11 @@ class NotesScreen extends StatelessWidget {
     final title = lines.first.trim().isEmpty
         ? 'Untitled note'
         : lines.first.trim();
+    // RN scans past blank lines for the first real preview line.
+    final preview = lines
+        .skip(1)
+        .map((l) => l.trim())
+        .firstWhere((l) => l.isNotEmpty, orElse: () => '');
     final calc = computeCalc(text);
     final hasMath = calc['hasMath'] as bool;
     return Padding(
@@ -136,10 +141,9 @@ class NotesScreen extends StatelessWidget {
                               color: Barako.text,
                               fontSize: 15,
                               fontWeight: FontWeight.w600)),
-                      if (lines.length > 1 &&
-                          lines[1].trim().isNotEmpty) ...[
+                      if (preview.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text(lines[1].trim(),
+                        Text(preview,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -179,6 +183,7 @@ class _NoteEditorState extends State<NoteEditor> {
   late final TextEditingController controller;
   Timer? _debounce;
   String _lastSaved = '';
+  bool _closing = false;
 
   @override
   void initState() {
@@ -217,6 +222,11 @@ class _NoteEditorState extends State<NoteEditor> {
   }
 
   Future<void> _close() async {
+    // A second back tap while the first save is still writing must not pop
+    // twice; that would pop the Notes list too and dump the user on the
+    // Overview.
+    if (_closing) return;
+    _closing = true;
     _debounce?.cancel();
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -230,9 +240,18 @@ class _NoteEditorState extends State<NoteEditor> {
       }
       navigator.pop();
     } catch (e) {
+      _closing = false;
+      // Saving keeps failing (disk full, storage broken). The editor must
+      // never become a trap, so offer a way out that skips the save.
       messenger.showSnackBar(SnackBar(
-          content:
-              Text('Could not save the note, it is still open. $e')));
+          content: Text('Could not save the note, it is still open. $e'),
+          action: SnackBarAction(
+              label: 'Leave anyway',
+              onPressed: () {
+                if (_closing) return;
+                _closing = true;
+                navigator.pop();
+              })));
     }
   }
 
@@ -257,12 +276,14 @@ class _NoteEditorState extends State<NoteEditor> {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true || _closing) return;
+    _closing = true;
     _debounce?.cancel();
     try {
       await widget.store.deleteNote(widget.noteId);
       navigator.pop();
     } catch (e) {
+      _closing = false;
       messenger.showSnackBar(SnackBar(
           content: Text('Could not delete, nothing was changed. $e')));
     }

@@ -72,6 +72,36 @@ void main() {
     }
   });
 
+  test('an overflowing utilization caps at 999% instead of crashing', () {
+    // remaining / creditLimit overflows to Infinity; RN prints 999%, Dart
+    // used to throw on toInt(). Reachable from an imported backup.
+    final soa = buildSOA({
+      'id': 'huge',
+      'name': 'Huge Card',
+      'remaining': 1.7e308,
+      'creditLimit': 0.5,
+      'monthlyRate': 0,
+      'minPayment': 0,
+    }, [], ref);
+    // The real RN engine prints exactly this line for these inputs.
+    expect(soa, contains('Credit used: 999% of ₱1'));
+  });
+
+  test('a date stamp JS rejects accrues zero interest here too', () {
+    // new Date('2026-01-32') is Invalid Date in JS (day outside 01-31),
+    // so RN accrues nothing; Dart tryParse would normalize it to Feb 1
+    // and accrue 42 days. Same for month 13 and day 00.
+    for (final stamp in ['2026-01-32', '2026-13-05', '2026-01-00']) {
+      final r = splitDebtPayment(10000, 3, stamp, 0, '2026-03-15');
+      expect(r['accrued'], 0.0, reason: stamp);
+      expect(r['balance'], 10000.0, reason: stamp);
+    }
+    // Inside the grammar, an overflowing day normalizes in BOTH engines:
+    // the real RN engine accrues 130 on this input, so must we.
+    final feb30 = splitDebtPayment(10000, 3, '2026-02-30', 0, '2026-03-15');
+    expect(feb30['accrued'], 130.0, reason: '2026-02-30');
+  });
+
   test('buildSOA matches the RN text byte for byte', () {
     final cards = (raw['cards'] as Map).cast<String, dynamic>();
     final payments = raw['payments'] as List;
