@@ -63,6 +63,45 @@ DateTime nextPayday(DateTime today, dynamic schedule) {
   return startToday;
 }
 
+/// Whole days from "today" to the next payday (format.js daysUntilPayday
+/// 233-236).
+int daysUntilPayday(DateTime today, dynamic schedule) {
+  final startToday = DateTime(today.year, today.month, today.day);
+  return (nextPayday(today, schedule).difference(startToday).inMilliseconds /
+          86400000)
+      .round();
+}
+
+/// A short human line describing the schedule (format.js scheduleLabel
+/// 240-253), for the payday card and Pan's sweldo answer.
+String scheduleLabel(dynamic schedule) {
+  final sch = normalizeSchedule(schedule);
+  String dayWord(int d) {
+    if (d >= 31) return 'end of month';
+    final suffix = (d == 1 || d == 21)
+        ? 'st'
+        : (d == 2 || d == 22)
+            ? 'nd'
+            : (d == 3 || d == 23)
+                ? 'rd'
+                : 'th';
+    return 'the $d$suffix';
+  }
+
+  if (sch['mode'] == 'weekly') {
+    const names = [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday',
+      'Thursday', 'Friday', 'Saturday',
+    ];
+    return 'every ${names[sch['weekday'] as int]}';
+  }
+  if (sch['mode'] == 'monthly') return dayWord(sch['day'] as int);
+  final days = (sch['days'] as List).cast<int>().toList()..sort();
+  final a = days[0];
+  final b = days[1];
+  return a == b ? dayWord(a) : '${dayWord(a)} and ${dayWord(b)}';
+}
+
 /// The most recent payday on or before "today".
 DateTime prevPayday(DateTime today, dynamic schedule) {
   final sch = normalizeSchedule(schedule);

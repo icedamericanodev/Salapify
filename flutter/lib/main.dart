@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.41 · Debts hardening: ghost ids repaired, huge balances kept exact';
+    'f0.42 · Ask Pan: your offline money assistant learns Flutter';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -63,7 +63,9 @@ class _SalapifyAppState extends State<SalapifyApp> {
               4 => InsightsScreen(
                   store: widget.store,
                   onSwitchTab: (i) => setState(() => tab = i)),
-              _ => OverviewScreen(store: widget.store),
+              _ => OverviewScreen(
+                  store: widget.store,
+                  onSwitchTab: (i) => setState(() => tab = i)),
             },
             bottomNavigationBar: NavigationBar(
               selectedIndex: tab,
