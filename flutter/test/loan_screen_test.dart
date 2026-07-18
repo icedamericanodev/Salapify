@@ -78,6 +78,34 @@ void main() {
     expect(find.text('₱121,800'), findsWidgets); // the real 1-month payment
   });
 
+  testWidgets('a pasted huge term in years mode clamps instead of crashing',
+      (tester) async {
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Tools'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tools'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Loan calculator'));
+    await tester.pumpAndSettle();
+
+    // 2e307 years times 12 overflows a double to Infinity; the screen
+    // must clamp to the cap like RN, never throw on toInt.
+    await tester.tap(find.text('Years'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 100,000'), '100000');
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 12'), '2e307');
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 1.5'), '1');
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Term capped at 1200 months'), findsOneWidget);
+    expect(find.text('MONTHLY PAYMENT'), findsOneWidget);
+  });
+
   testWidgets('incomplete and bad inputs nudge instead of breaking',
       (tester) async {
     final store = SalapifyStore();

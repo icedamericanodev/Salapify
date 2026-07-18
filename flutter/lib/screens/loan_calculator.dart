@@ -82,17 +82,22 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
     final amountNum = _parse(amount.text);
     final termNum = _parse(term.text);
     final rateNum = _parse(rate.text);
-    final rawMonths = (termUnit == 'years'
-            ? (termNum * 12 + 0.5).floorToDouble()
-            : (termNum + 0.5).floorToDouble())
+    // Clamp in DOUBLE space before toInt: a pasted 2e307 in years mode
+    // multiplies to Infinity, and Infinity.toInt() throws where the RN
+    // screen's Math.min clamp survives. Same result, no crash.
+    final rawMonthsD = termUnit == 'years'
+        ? (termNum * 12 + 0.5).floorToDouble()
+        : (termNum + 0.5).floorToDouble();
+    final termClamped = rawMonthsD > maxMonths;
+    final months = (rawMonthsD.isFinite
+            ? rawMonthsD.clamp(0, maxMonths.toDouble())
+            : maxMonths.toDouble())
         .toInt();
-    final months = rawMonths.clamp(0, maxMonths);
-    final termClamped = rawMonths > maxMonths;
 
     final ready = amountNum > 0 && months >= 1 && rateNum >= 0;
     final badInput = amountNum < 0 || termNum < 0 || rateNum < 0;
     final needTerm =
-        !ready && !badInput && amountNum > 0 && rateNum >= 0 && rawMonths < 1;
+        !ready && !badInput && amountNum > 0 && rateNum >= 0 && rawMonthsD < 1;
     final addon = method == 'addon';
 
     final r = ready
@@ -202,6 +207,13 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text('Enter the term and the numbers appear.',
+                    style: TextStyle(color: Barako.muted, fontSize: 13)),
+              )
+            else if (!ready)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                    'Enter the loan amount, term, and interest rate and the numbers appear.',
                     style: TextStyle(color: Barako.muted, fontSize: 13)),
               ),
             if (r != null) ...[
