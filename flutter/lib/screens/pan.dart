@@ -15,6 +15,7 @@ import '../theme.dart';
 import 'debts.dart';
 import 'loan_calculator.dart';
 import 'salary_calculator.dart';
+import 'thirteenth_calculator.dart';
 
 class _Msg {
   final String role; // 'user' or 'pan'
@@ -79,6 +80,9 @@ class _PanScreenState extends State<PanScreen> {
       case '/salary-calculator':
         return () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => const SalaryCalculatorScreen()));
+      case '/thirteenth-calculator':
+        return () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const ThirteenthCalculatorScreen()));
       case '/insights':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
