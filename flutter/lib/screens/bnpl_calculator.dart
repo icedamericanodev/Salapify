@@ -82,9 +82,14 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
     // A real rate above 1,000% a year is arithmetically true on a punishing
     // fee but reads as broken, so cap the display and let the peso extra
     // cost carry it.
-    final rateDisplay = (r['annualRate'] as double) > 10
-        ? 'over 1,000%'
-        : pct(r['annualRate'] as double);
+    final rateCapped = (r['annualRate'] as double) > 10;
+    final rateDisplay =
+        rateCapped ? 'over 1,000%' : pct(r['annualRate'] as double);
+    // The sentence form reads naturally either way; "about over 1,000%" is
+    // broken English (bank officer finding, same defect latent in RN).
+    final rateSentence = rateCapped
+        ? 'more than 1,000% a year'
+        : 'about ${pct(r['annualRate'] as double)} a year';
 
     final badInput = priceNum < 0 ||
         monthlyNum < 0 ||
@@ -190,7 +195,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
                       Text(
-                          'Your payments come to ${_m(r['totalPaid'] as double)}, which is less than the ${_m(r['cash'] as double)} cash price. Double check the monthly amount, the months, and the downpayment.',
+                          'Your payments come to ${_m(r['totalPaid'] as double)}, which is less than the ${_m(r['cash'] as double)} cash price. Double check the monthly amount, the months, and the downpayment. If a trade in, voucher, or discount covers part of the price, add that amount to the downpayment.',
                           style: TextStyle(
                               color: Barako.textSecondary,
                               fontSize: 13,
@@ -307,12 +312,23 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                            'This plan costs you ${_m(r['extraCost'] as double)} more than paying cash, about $rateDisplay a year on the ${_m(r['netCredit'] as double)} of credit you receive. Saving up for ${r['months']} months and paying cash would cost nothing.',
+                            'This plan costs you ${_m(r['extraCost'] as double)} more than paying cash, $rateSentence on the ${_m(r['netCredit'] as double)} of credit you receive. If you can wait, saving up for ${r['months']} months and paying cash costs no interest. The extra ${_m(r['extraCost'] as double)} is the price of getting it today.',
                             style: TextStyle(
                                 color: Barako.muted,
                                 fontSize: 12,
                                 height: 1.4)),
-                      ] else
+                      ] else if ((r['extraCost'] as double) <= 0.005)
+                        // A fee that exactly offsets the installments: the
+                        // total matches cash but part of it was a fee, so
+                        // never print the self-contradicting "costs you ₱0
+                        // more" (bank officer finding).
+                        Text(
+                            'Based on your numbers the total matches the cash price, but part of it is a ${_m(r['fee'] as double)} fee paid upfront, so make sure the installments really are that low.',
+                            style: TextStyle(
+                                color: Barako.muted,
+                                fontSize: 12,
+                                height: 1.4))
+                      else
                         Text(
                             'This plan costs you ${_m(r['extraCost'] as double)} more than paying cash. Paying cash would cost nothing.',
                             style: TextStyle(
