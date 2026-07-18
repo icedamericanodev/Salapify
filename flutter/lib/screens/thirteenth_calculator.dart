@@ -149,7 +149,7 @@ class _ThirteenthCalculatorScreenState
             ),
             const SizedBox(height: 6),
             Text(
-                'Only basic pay counts, not overtime, allowances, or holiday pay. Other bonuses matter only for the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling.',
+                'Only basic pay counts, not overtime, allowances, or holiday pay. Sales commissions that form part of your basic wage do count. Other bonuses matter only for the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.4)),
             if (ready) ...[
@@ -272,7 +272,7 @@ class _ThirteenthCalculatorScreenState
               ),
             const SizedBox(height: 12),
             Text(
-                'Estimate based on $ratesYear rules (PD 851 and the ${_m(thirteenthTaxFreeCeiling)} TRAIN tax-free ceiling). It assumes a steady basic salary and counts basic pay only. Your actual 13th month can differ if your pay changed during the year or your company integrates other pay. Not a substitute for your payslip.',
+                'Estimate based on $ratesYear rules (PD 851 and the ${_m(thirteenthTaxFreeCeiling)} TRAIN tax-free ceiling). It assumes a steady basic salary and counts basic pay only. Months on unpaid leave or SSS maternity benefit count less, because the law divides the basic pay you actually earned by 12. Managerial employees are not covered by PD 851, though many companies pay anyway. If you leave mid-year, you still get the prorated amount with your final pay. Your actual 13th month can differ if your pay changed during the year or your company integrates other pay. Not a substitute for your payslip.',
                 style:
                     TextStyle(color: Barako.faint, fontSize: 11, height: 1.4)),
           ],
