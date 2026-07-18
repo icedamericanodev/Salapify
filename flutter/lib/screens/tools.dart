@@ -9,6 +9,7 @@ import '../theme.dart';
 import 'bnpl_calculator.dart';
 import 'loan_calculator.dart';
 import 'notes.dart';
+import 'salary_calculator.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -48,6 +49,15 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
+              icon: Icons.payments_outlined,
+              title: 'Take-home pay',
+              blurb:
+                  'Gross to net with SSS, PhilHealth, Pag-IBIG, and the BIR table.',
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const SalaryCalculatorScreen())),
+            ),
+            _tool(
+              context,
               icon: Icons.sticky_note_2_outlined,
               title: 'Notes',
               blurb:
@@ -64,7 +74,7 @@ class ToolsScreen extends StatelessWidget {
                     letterSpacing: 2)),
             const SizedBox(height: 6),
             Text(
-                'Take-home pay, 13th month, income tax, SSS PhilHealth Pag-IBIG, currency converter, learn, and mindset are being adapted from the React Salapify one by one.',
+                '13th month, income tax, SSS PhilHealth Pag-IBIG checker, currency converter, learn, and mindset are being adapted from the React Salapify one by one.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.5)),
           ],
