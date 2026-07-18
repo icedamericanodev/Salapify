@@ -250,7 +250,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                     (projection['months'] as int) == 0
-                                        ? 'You are already debt free.'
+                                        ? 'Only centavos left. Log the last payments and you are debt free.'
                                         : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
                                     style: TextStyle(
                                         color: Barako.textSecondary,
@@ -370,8 +370,15 @@ class _DebtsScreenState extends State<DebtsScreen> {
   }
 }
 
-String _rateText(double v) =>
-    v % 1 == 0 ? v.toInt().toString() : v.toString();
+String _rateText(double v) {
+  // toInt() clamps beyond 2^63, which would silently rewrite a pasted huge
+  // balance on a no-op edit (the prefill would save back the clamped
+  // number and reset the interest clock). JS String(n) keeps the value, so
+  // outside the exact-integer range keep Dart's own text, which round
+  // trips through the form parser unchanged.
+  if (v % 1 == 0 && v.abs() < 9.2e18) return v.toInt().toString();
+  return v.toString();
+}
 
 // ---------------------------------------------------------------------------
 // The per-debt sheet: pay, mark paid off, edit, delete.
@@ -442,7 +449,8 @@ class _DebtSheetState extends State<DebtSheet> {
       if (mounted) {
         setState(() {
           busy = false;
-          error = 'Nothing was changed. $e';
+          error =
+              'Nothing was changed. ${e is ArgumentError ? e.message : e}';
         });
       }
     }

@@ -140,6 +140,48 @@ void main() {
     expect(debts.last['graceDays'], 21);
   });
 
+  testWidgets('a no-op edit round trips a huge balance unchanged',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [],
+        'debts': [
+          {
+            'id': 'huge',
+            'name': 'Huge Loan',
+            'type': 'other',
+            'remaining': 1e21,
+            'monthlyRate': 0,
+            'minPayment': 0,
+            'dueDay': 0,
+            'statementDay': 0,
+            'graceDays': 0,
+            'creditLimit': 0,
+            'interestThroughISO': '2026-01-01',
+          },
+        ],
+      })
+    });
+    final store = SalapifyStore();
+    await openDebts(tester, store);
+    await tester.tap(find.text('Huge Loan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save changes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    // The prefill used to clamp 1e21 to 2^63-1, silently rewriting the
+    // balance and resetting the interest clock on a save-without-changes.
+    final debt =
+        (store.data['debts'] as List).cast<Map<String, dynamic>>().single;
+    expect(debt['remaining'], 1e21);
+    expect(debt['interestThroughISO'], '2026-01-01');
+  });
+
   testWidgets('delete keeps the payment history', (tester) async {
     final store = SalapifyStore();
     await openDebts(tester, store);

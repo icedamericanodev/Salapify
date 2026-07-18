@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.40 · The Debts screen: cards, loans, and the payoff plan arrive';
+    'f0.41 · Debts hardening: ghost ids repaired, huge balances kept exact';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
