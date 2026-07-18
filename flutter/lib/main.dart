@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.43 · Pan polish: junk-labeled backups read exactly like the RN app';
+    'f0.47 · Loan tool: negative monsters clamp to zero, cleanly';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
