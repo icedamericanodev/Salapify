@@ -99,9 +99,13 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
         ? loanSummary(amountNum, rateNum, months,
             method: method, rateBasis: rateBasis)
         : null;
+    // The payoff nugget uses the EXACT rate, not the display-rounded
+    // quotedMonthlyRate, or its balance would contradict the schedule row
+    // shown on the same screen (bank officer finding).
+    final exactMonthlyRate =
+        rateBasis == 'annual' ? rateNum / 100 / 12 : rateNum / 100;
     final payoff = r != null
-        ? payoffSaving(
-            amountNum, r['quotedMonthlyRate'], months, months ~/ 2)
+        ? payoffSaving(amountNum, exactMonthlyRate, months, months ~/ 2)
         : null;
 
     return Scaffold(
@@ -308,7 +312,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                       Text(
                           addon
                               ? 'Your ${rateBasis == 'annual' ? '${_pct(r['nominalAnnualRate'] as double)} a year' : '${_pct(r['quotedMonthlyRate'] as double)} a month'} add-on really works out to about ${_pct(r['effectiveAnnualRate'] as double)} a year, once you account for paying interest on money you have already returned.'
-                              : 'For a diminishing loan the quoted rate is close to the real one. The difference you see comes from monthly compounding.',
+                              : 'For a diminishing loan the quoted and effective rates differ only because of monthly compounding. At normal bank rates they stay close.',
                           style: TextStyle(
                               color: Barako.muted,
                               fontSize: 12,
@@ -318,6 +322,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 ),
               ),
               if (payoff != null &&
+                  months >= 2 &&
                   (payoff['interestSaved'] as double) > 0 &&
                   method == 'diminishing') ...[
                 const SizedBox(height: 12),
@@ -325,7 +330,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                        'Pay it all off at month ${months ~/ 2} and you skip about ${_m(payoff['interestSaved'] as double)} of the remaining interest (${_m(payoff['balanceCleared'] as double)} clears the balance).',
+                        'Make your first ${months ~/ 2} payments, then pay the remaining ${_m(payoff['balanceCleared'] as double)} in one go, and you skip about ${_m(payoff['interestSaved'] as double)} of the remaining interest, if there is no pre-termination fee.',
                         style: TextStyle(
                             color: Barako.textSecondary,
                             fontSize: 13,
@@ -385,7 +390,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 ),
               const SizedBox(height: 12),
               Text(
-                  'This is an estimate from the numbers you typed. Real contracts add fees, penalties, and pre-termination charges, so read the disclosure statement before signing.',
+                  'This is an estimate from the numbers you typed, not a loan offer. Real contracts add fees, insurance, and penalties, and a pre-termination charge can reduce the saving from paying early. Read the disclosure statement before signing. If a lender will not tell you the effective interest rate, that is a warning sign.',
                   style: TextStyle(
                       color: Barako.faint, fontSize: 11, height: 1.4)),
             ],

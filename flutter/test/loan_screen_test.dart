@@ -54,6 +54,30 @@ void main() {
     expect(find.text('36.42%'), findsOneWidget); // effective annual, golden
   });
 
+  testWidgets('a one month loan never claims month zero payoff savings',
+      (tester) async {
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Tools'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tools'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Loan calculator'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. 100,000'), '120000');
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 12'), '1');
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 1.5'), '1.5');
+    await tester.pumpAndSettle();
+
+    // The bank officer's must-fix: no "pay off at month 0" false claim.
+    expect(find.textContaining('pre-termination fee'), findsNothing);
+    expect(find.text('₱121,800'), findsWidgets); // the real 1-month payment
+  });
+
   testWidgets('incomplete and bad inputs nudge instead of breaking',
       (tester) async {
     final store = SalapifyStore();

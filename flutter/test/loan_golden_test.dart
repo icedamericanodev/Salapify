@@ -41,6 +41,21 @@ void main() {
     }
   });
 
+  test('payoff at the exact rate agrees with the schedule to the centavo',
+      () {
+    // Bank officer must-fix: the screen passes the EXACT monthly rate, not
+    // the display-rounded quotedMonthlyRate, so the payoff card's balance
+    // equals the schedule row on the same screen. 120k at 10% per year
+    // over 24 months, paying off after month 12.
+    final exactRate = 10 / 100 / 12;
+    final summary =
+        loanSummary(120000, 10, 24, rateBasis: 'annual');
+    final schedule =
+        (summary['schedule'] as List).cast<Map<String, dynamic>>();
+    final payoff = payoffSaving(120000, exactRate, 24, 12);
+    expect(payoff['balanceCleared'], schedule[11]['balance']);
+  });
+
   test('effectiveMonthlyRate matches the RN bisection', () {
     for (final c in (raw['rates'] as List).cast<Map<String, dynamic>>()) {
       final args = c['args'] as List;
