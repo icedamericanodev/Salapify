@@ -184,7 +184,10 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                 'Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.4)),
-            if (nonTaxAllowNum > 12000)
+            // The RN screen warns above 12,000, but the realistic monthly
+            // total of the common de minimis items is 4,000 to 5,000, so
+            // the compensation specialist lowered the trigger here.
+            if (nonTaxAllowNum > 5000)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -264,7 +267,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       const SizedBox(height: 4),
                       Text(
                           period == 'cutoff'
-                              ? 'An estimate for each of the two cutoffs (15th and end of month). Real cutoff withholding can split a little differently.'
+                              ? 'An estimate for each of the two cutoffs (15th and end of month), splitting everything in half. Many employers deduct SSS, PhilHealth, and Pag-IBIG on just one cutoff, so one payout can be noticeably bigger and the other smaller. The two cutoffs together still match the monthly figure.'
                               : 'About ${_m((r['net'] as double) * 12)} a year, before any 13th month.',
                           style: TextStyle(
                               color: Barako.muted,
@@ -329,7 +332,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       Text(
                           marginal == 0
                               ? 'Your taxable pay is within the tax-free ₱250,000 a year, so no income tax is due.'
-                              : 'You are in the $marginal% tax bracket, so each extra ₱100 of taxable pay is taxed about ₱$marginal. A raise is only taxed at the margin, never your whole pay.',
+                              : 'You are in the $marginal% tax bracket, so each extra ₱100 of taxable pay is taxed about ₱$marginal. A raise is only taxed at the margin, never your whole pay. Contributions can also rise a bit with a raise until their ceilings.',
                           style: TextStyle(
                               color: Barako.textSecondary,
                               fontSize: 12,
@@ -363,7 +366,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
               ),
             const SizedBox(height: 12),
             Text(
-                'Estimate based on $ratesYear SSS, PhilHealth, Pag-IBIG, and BIR rates. Contributions are figured on your basic pay, non-taxable allowances are not taxed, and low salaries still pay the minimum contributions. Your real payslip can differ with de minimis limits and your employer\'s rounding. Not a substitute for your official payslip or a BIR filing.',
+                'Estimate based on $ratesYear SSS, PhilHealth, Pag-IBIG, and BIR rates. Contributions are figured on your basic pay, non-taxable allowances are not taxed, and low salaries still pay the minimum contributions. It assumes a full month worked with no absences, and no loan payments (SSS or Pag-IBIG salary loans), HMO share, or other company deductions. Your real payslip can differ with de minimis limits and your employer\'s rounding. Not a substitute for your official payslip or a BIR filing.',
                 style:
                     TextStyle(color: Barako.faint, fontSize: 11, height: 1.4)),
           ],
