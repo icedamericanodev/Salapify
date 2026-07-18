@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 import '../money/ledger.dart' as ledger;
+import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import 'backup.dart';
 
@@ -375,6 +376,65 @@ class SalapifyStore extends ChangeNotifier {
         }
         return r.data;
       });
+
+  /// Save (create or edit) a debt through the golden-verified engine. The
+  /// form map carries the same text fields as the RN screen. Throws
+  /// ArgumentError with the exact RN validation sentence when refused.
+  /// Returns the saved debt's id.
+  Future<String?> saveDebt(Map<String, dynamic> form) async {
+    String? savedId;
+    await _mutate((d) {
+      final r = debts.saveDebt(d, form, today: _todayISO(), genId: _genId);
+      if (r.error.isNotEmpty) throw ArgumentError(r.error);
+      savedId = r.id;
+      return r.data;
+    });
+    return savedId;
+  }
+
+  /// Log a debt payment from the typed amount text ("2,500" works), out of
+  /// the chosen account or from outside the app (null). Returns the engine
+  /// result so the screen can show the logged message and celebrate a debt
+  /// cleared to zero.
+  Future<debts.DebtPayResult> logDebtPayment(
+      String debtId, String amountText, String? payFrom) async {
+    late debts.DebtPayResult result;
+    await _mutate((d) {
+      _requireDebt(d, debtId);
+      result = debts.logDebtPayment(d, {'id': debtId}, payFrom, amountText,
+          today: _todayISO(), genId: _genId);
+      return result.data;
+    });
+    return result;
+  }
+
+  /// The RN screen always pays from a form built off a live debt; the store
+  /// exposes this to any caller, so a debt deleted mid-edit must refuse
+  /// instead of recording a ghost payment row against nothing.
+  void _requireDebt(Map<String, dynamic> d, String debtId) {
+    final list = d['debts'] as List? ?? const [];
+    if (!list.any((x) => x is Map && x['id'] == debtId)) {
+      throw ArgumentError('This debt no longer exists.');
+    }
+  }
+
+  /// Pay off everything still owed on one debt, including interest accrued
+  /// since the last payment, as a real payment through the same path.
+  Future<debts.DebtPayResult> markDebtPaid(
+      String debtId, String? payFrom) async {
+    late debts.DebtPayResult result;
+    await _mutate((d) {
+      _requireDebt(d, debtId);
+      result = debts.markDebtPaid(d, {'id': debtId}, payFrom,
+          today: _todayISO(), genId: _genId);
+      return result.data;
+    });
+    return result;
+  }
+
+  /// Remove a debt. Its payment history and record rows stay on purpose.
+  Future<void> deleteDebt(String debtId) =>
+      _mutate((d) => debts.deleteDebt(d, debtId));
 
   /// Remove an entry through the engine (the linked account gets its money
   /// back), with the same write guard and rollback discipline as addEntry.
