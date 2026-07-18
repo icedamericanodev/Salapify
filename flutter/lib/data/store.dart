@@ -272,6 +272,43 @@ class SalapifyStore extends ChangeNotifier {
         '${now.day.toString().padLeft(2, '0')}';
   }
 
+  String _nowISO() => DateTime.now().toUtc().toIso8601String();
+
+  /// Create an empty note and return its id (the editor opens on it; an
+  /// abandoned empty note is discarded on close, matching the RN screen).
+  Future<String> addNote() async {
+    final id = _genId('notes');
+    await _mutate((d) => {
+          ...d,
+          'notes': [
+            ...(d['notes'] as List? ?? const []),
+            {'text': '', 'updatedAt': _nowISO(), 'id': id},
+          ],
+        });
+    return id;
+  }
+
+  /// Update a note's text, stamping updatedAt like the RN screen does.
+  Future<void> updateNote(String id, String text) => _mutate((d) => {
+        ...d,
+        'notes': [
+          for (final n in (d['notes'] as List? ?? const []))
+            if (n is Map && n['id'] == id)
+              {...n.cast<String, dynamic>(), 'text': text, 'updatedAt': _nowISO()}
+            else
+              n,
+        ],
+      });
+
+  /// Delete a note.
+  Future<void> deleteNote(String id) => _mutate((d) => {
+        ...d,
+        'notes': [
+          for (final n in (d['notes'] as List? ?? const []))
+            if (!(n is Map && n['id'] == id)) n,
+        ],
+      });
+
   /// Remember the mood theme (latte, barako, milktea).
   Future<void> setThemeMood(String mood) => _mutate((d) => {
         ...d,

@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.36 · Debt math engine: interest splits, payoff plans, card forecasts';
+    'f0.37 · Notes with the calculator: your receipt that adds itself up';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
