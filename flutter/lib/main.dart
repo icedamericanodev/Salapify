@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.42 · Ask Pan: your offline money assistant learns Flutter';
+    'f0.43 · Pan polish: junk-labeled backups read exactly like the RN app';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

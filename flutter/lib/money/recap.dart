@@ -14,6 +14,17 @@ const List<String> _monthsLong = [
 String _monthKey(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}';
 
+/// RN String(x || ''): a falsy name or label (0, false, '', null, NaN) is
+/// missing, never the strings "0" or "false", so junk-labeled rows fold
+/// into the same buckets as the live app.
+String _jsStr(dynamic v) => (v == null ||
+        v == false ||
+        v == 0 ||
+        v == '' ||
+        (v is double && v.isNaN))
+    ? ''
+    : v.toString();
+
 double _jsRound(num x) => (x + 0.5).floorToDouble();
 
 Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
@@ -49,8 +60,8 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
       final catName = (catId != null && catId != false && catId != '' && catId != 0)
           ? catNames[catId]
           : null;
-      var name = (catName ?? '').toString().trim();
-      if (name.isEmpty) name = (t['label'] ?? '').toString().trim();
+      var name = _jsStr(catName).trim();
+      if (name.isEmpty) name = _jsStr(t['label']).trim();
       if (name.isEmpty) name = 'Other';
       final k = name.toLowerCase();
       var bucket = byCat[k];

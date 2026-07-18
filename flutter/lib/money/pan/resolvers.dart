@@ -212,8 +212,12 @@ final Map<String, Resolver> resolvers = {
     if (ctx.raw.isNotEmpty) {
       final rawLower = ctx.raw.toLowerCase();
       for (final g in goals) {
-        final name = (g['name'] ?? '').toString().toLowerCase();
-        // RN truthiness: an empty goal name never matches.
+        // RN String(g.name || ''): a falsy name (0, false, '') is missing
+        // and never matches, not the string "0" matching any zero in the
+        // message.
+        final rawName = g['name'];
+        final name =
+            _jsFalsy(rawName) ? '' : rawName.toString().toLowerCase();
         if (name.isNotEmpty && rawLower.contains(name)) {
           named = g;
           break;
