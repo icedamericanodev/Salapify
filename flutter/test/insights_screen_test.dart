@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/analytics.dart' as analytics;
-import 'package:salapify/screens/insights.dart' show runwayLabel;
+import 'package:salapify/screens/insights.dart'
+    show runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -133,6 +134,19 @@ void main() {
     final total = health['total'] as double;
     expect(total.isFinite, isTrue);
     expect((health['parts'] as Map)['debt'], 0);
+  });
+
+  test('fundedOnTime is day-precise, never falsely on time within the month',
+      () {
+    // A day-precise target: a funded date later in the SAME month is late.
+    expect(fundedOnTime('2026-08-20', '2026-08-05'), isFalse);
+    expect(fundedOnTime('2026-08-03', '2026-08-05'), isTrue);
+    expect(fundedOnTime('2026-08-05', '2026-08-05'), isTrue);
+    expect(fundedOnTime('2026-07-01', '2026-08-31'), isTrue);
+    // A month-only target means end of that month, so any same-month funded
+    // date is on time, and the next month is late.
+    expect(fundedOnTime('2026-08-28', '2026-08'), isTrue);
+    expect(fundedOnTime('2026-09-01', '2026-08'), isFalse);
   });
 
   test('runwayLabel drops the .0 on whole months', () {
@@ -276,6 +290,43 @@ void main() {
         findsOneWidget);
     // The rosy zero-interest phrasing must never appear.
     expect(find.textContaining('gone to interest'), findsNothing);
+  });
+
+  testWidgets('the savings simulator forecasts a goal and reacts to the chips',
+      (tester) async {
+    // One goal, no debt, so only the savings card shows. No target date, so
+    // the funded month (which depends on today) is never asserted; the
+    // support sentence, which is date independent, carries the check.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'goals': [
+          {'id': 'g1', 'name': 'New phone', 'target': 15000, 'saved': 5000},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+        find.text('WHAT IF YOU SAVED EACH WEEK'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('New phone'), findsOneWidget);
+    expect(find.textContaining('₱10,000 to go'), findsOneWidget);
+    expect(find.textContaining('Saving ₱500 a week'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('₱1,000 a week'));
+    await tester.tap(find.text('₱1,000 a week'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Saving ₱1,000 a week'), findsOneWidget);
+    expect(find.textContaining('Saving ₱500 a week'), findsNothing);
   });
 
   testWidgets('an empty app shows the calm all-clear', (tester) async {

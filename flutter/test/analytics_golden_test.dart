@@ -142,4 +142,30 @@ void main() {
     check('lp normal', linePoints([10, 40, 20], 300, 120, 8), lp['normal']);
     check('lp empty', linePoints([], 300, 120, 8), lp['empty']);
   });
+
+  test('goalForecast funds a goal at the chosen weekly pace, or refuses', () {
+    // Net-new forward logic (no RN counterpart), so a plain unit test rather
+    // than a golden replay. weeks = ceil(remaining / weekly); the date is ref
+    // plus that many whole weeks.
+    final r = DateTime(2026, 7, 16, 12);
+    String isoOf(int weeks) {
+      final d = DateTime(r.year, r.month, r.day + weeks * 7);
+      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    }
+
+    expect(goalForecast(10000, 500, r), {'weeks': 20, 'date': isoOf(20)});
+    // 33.33 weeks rounds up to a full 34.
+    expect(goalForecast(10000, 300, r), {'weeks': 34, 'date': isoOf(34)});
+    expect(goalForecast(500, 500, r), {'weeks': 1, 'date': isoOf(1)});
+    // A non-positive weekly never funds it.
+    expect(goalForecast(10000, 0, r), isNull);
+    expect(goalForecast(10000, -50, r), isNull);
+    // Nothing left to save.
+    expect(goalForecast(0, 500, r), isNull);
+    expect(goalForecast(-100, 500, r), isNull);
+    // String inputs coerce through amountOf.
+    expect(goalForecast('6000', '500', r), {'weeks': 12, 'date': isoOf(12)});
+    // Absurd remaining past the ten-year cap refuses, never a nonsense date.
+    expect(goalForecast(1000000000, 1, r), isNull);
+  });
 }
