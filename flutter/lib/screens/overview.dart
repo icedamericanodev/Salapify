@@ -11,6 +11,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
 import '../data/store.dart';
+import '../money/coach.dart' as coach;
 import '../money/statements.dart';
 import '../theme.dart';
 import 'debts.dart';
@@ -57,6 +58,14 @@ class OverviewScreen extends StatelessWidget {
     final istmt = incomeStatement(data, DateTime.now());
     final accounts =
         (data['accounts'] as List).cast<Map<String, dynamic>>();
+    // The one thing to do about money right now, seen the moment Home opens.
+    // Reuses the same coach decision layer Insights renders, so the two can
+    // never disagree. Only once there is real data to reason about.
+    final transactions = data['transactions'];
+    final hasStarted = accounts.isNotEmpty ||
+        (transactions is List && transactions.isNotEmpty);
+    final checkIn =
+        hasStarted ? coach.weeklyCheckIn(data, DateTime.now()) : null;
 
     return Scaffold(
       // No Log button until the store loaded cleanly: after a failed read,
@@ -104,6 +113,10 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            if (checkIn != null) ...[
+              _checkInCard(context, checkIn),
+              const SizedBox(height: 12),
+            ],
             _kickerCard(
               'NET WORTH',
               formatMoney(parts['netWorth'] as double),
@@ -437,6 +450,97 @@ class OverviewScreen extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 2));
+
+  // The five bottom tabs, in order, so a check-in action can jump straight to
+  // the right one. Routes the coach uses that are not tabs (/debts, /goals,
+  // /learn) simply are not tappable from here.
+  static const Map<String, int> _routeTabs = {
+    '/': 0,
+    '/budget': 1,
+    '/receivables': 3,
+    '/insights': 4,
+  };
+
+  /// The single most important money decision right now, or a calm all-clear,
+  /// rendered at the top of Home. Mirrors the Insights decision card so the two
+  /// read the same; tapping goes where the action points, a bottom tab or the
+  /// Debts screen.
+  Widget _checkInCard(BuildContext context, Map<String, dynamic> c) {
+    final tone = c['tone'] as String;
+    final action = c['action'];
+    final route = action is Map ? action['route'] as String? : null;
+    final tab = route != null ? _routeTabs[route] : null;
+    VoidCallback? onTap;
+    if (tab != null && onSwitchTab != null) {
+      onTap = () => onSwitchTab!(tab);
+    } else if (route == '/debts') {
+      // Debts is not a bottom tab; a due-soon decision is prio 92, so it must
+      // not be a dead end. Push the screen Home already imports.
+      onTap = () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
+    }
+    final good = tone == 'good';
+    // Same mapping as the Insights decision card: urgent and watch read as
+    // "act", a nudge reads dimmer as "FYI".
+    final titleColor = tone == 'urgent'
+        ? Barako.warning
+        : good
+            ? Barako.primaryText
+            : tone == 'watch'
+                ? Barako.text
+                : Barako.textSecondary;
+    final dotColor = tone == 'urgent'
+        ? Barako.warning
+        : tone == 'nudge'
+            ? Barako.muted
+            : Barako.primary;
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _kicker('MONEY CHECK-IN'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // The all-clear wears a quiet check, not the attention dot,
+                  // so calm reads softer than a real decision.
+                  if (good)
+                    Icon(Icons.check_circle_outline,
+                        color: Barako.primary, size: 16)
+                  else
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                          color: dotColor, shape: BoxShape.circle),
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(c['title'] as String,
+                        style: TextStyle(
+                            color: titleColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  if (onTap != null)
+                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(c['message'] as String,
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _kickerCard(String kicker, String big, {String? sub}) => Card(
         child: Padding(
