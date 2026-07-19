@@ -70,10 +70,12 @@ Reusable workflow skills live in .claude/skills and load on demand when a task
 matches. Three are adapted from obra/superpowers (MIT) and tuned to Salapify:
 brainstorming (design and get agreement before building), systematic-debugging
 (root cause before any fix, stop and rethink after three failed fixes), and
-writing-skills (how to capture a workflow as a new skill). One is ours:
+writing-skills (how to capture a workflow as a new skill). Two are ours:
 porting-money-logic, the golden-vector contract for moving money math from
-mobile/ to flutter/ so every number matches to the centavo. These skills
-assist; they never override this file. Where any external guidance conflicts
+mobile/ to flutter/ so every number matches to the centavo; and
+flutter-ui-polish, Flutter and Barako concrete design-engineering principles
+adapted from jakubkrehel/skills (MIT) for making a screen feel premium. These
+skills assist; they never override this file. Where any external guidance conflicts
 with these rules (merge method, never squash, golden lock, no em or en dashes),
 this file wins.
 
