@@ -256,7 +256,7 @@ class _ContributionCalculatorScreenState
                       Text('GOOD TO KNOW',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),

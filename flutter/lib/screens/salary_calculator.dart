@@ -287,7 +287,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       Text('WHAT COMES OUT, AND WHY',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -318,7 +318,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       Text('YOUR TAX RATE',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),

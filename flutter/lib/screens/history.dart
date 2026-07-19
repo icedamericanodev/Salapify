@@ -216,7 +216,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final row = Card(
       margin: const EdgeInsets.symmetric(vertical: 3),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             Expanded(
@@ -273,9 +273,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
           final removed =
               await widget.store.removeEntry((t['id'] ?? '').toString());
           if (removed == null) return false;
+          // Only claim a balance moved back when the entry was actually
+          // linked to an account that still exists; the engine moves a
+          // balance only under that same condition, so the message never
+          // over-claims.
+          final acctId = removed['accountId'];
+          final wasLinked = acctId is String &&
+              acctId.isNotEmpty &&
+              (widget.store.data['accounts'] as List? ?? const [])
+                  .any((a) => a is Map && a['id'] == acctId);
           messenger.showSnackBar(SnackBar(
-            content: const Text(
-                'Deleted. A linked account got its money back.'),
+            content: Text(wasLinked
+                ? 'Deleted. The linked account got its money back.'
+                : 'Deleted.'),
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Undo',

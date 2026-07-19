@@ -22,6 +22,10 @@ class BarakoPalette {
   final Color surfaceRaised;
   final Color border;
   final Color primary;
+  // A darker roast of the brand orange for SMALL text and links, where the
+  // hero-size primary would fail AA against a light card. On the dark moods
+  // it is the same as primary (which already passes small there).
+  final Color primaryText;
   final Color caramel;
   final Color text;
   final Color textSecondary;
@@ -41,6 +45,7 @@ class BarakoPalette {
     required this.surfaceRaised,
     required this.border,
     required this.primary,
+    required this.primaryText,
     required this.caramel,
     required this.text,
     required this.textSecondary,
@@ -63,11 +68,18 @@ const lattePalette = BarakoPalette(
   surfaceRaised: Color(0xFFFFF6EA),
   border: Color(0xFFE7DACA),
   primary: Color(0xFFC75B12),
+  // A darker roast for small text; the hero orange fails AA at 11-13px on
+  // the light card, this passes (~4.9:1).
+  primaryText: Color(0xFFA8480C),
   caramel: Color(0xFFB98A55),
   text: Color(0xFF2B1A0E),
   textSecondary: Color(0xFF5C4632),
-  muted: Color(0xFF8A7460),
-  faint: Color(0xFFA08468),
+  // Darkened for AA at the 11-13px sizes these are used at (the old
+  // #8A7460 / #A08468 were ~4.1 and ~3.3, below 4.5). faint is the field
+  // hint color and its fill is `background`, so it is tuned to clear 4.5
+  // against #F5EDE2, not just the card.
+  muted: Color(0xFF6E5945),
+  faint: Color(0xFF7C6349),
   warning: Color(0xFFD93A52),
   warningStrong: Color(0xFFC22B42),
   onPrimary: Color(0xFFFFF6EA),
@@ -84,6 +96,7 @@ const barakoPalette = BarakoPalette(
   surfaceRaised: Color(0xFF2C1F16),
   border: Color(0xFF35261B),
   primary: Color(0xFFFF8A3D),
+  primaryText: Color(0xFFFF8A3D),
   caramel: Color(0xFFE9BC8E),
   text: Color(0xFFFBF3E9),
   textSecondary: Color(0xFFE0CEBB),
@@ -105,6 +118,7 @@ const milkTeaPalette = BarakoPalette(
   surfaceRaised: Color(0xFF423429),
   border: Color(0xFF4A3A2E),
   primary: Color(0xFFF2B04E),
+  primaryText: Color(0xFFF2B04E),
   caramel: Color(0xFFD9B98A),
   text: Color(0xFFF7EDDF),
   textSecondary: Color(0xFFE5D5C2),
@@ -139,6 +153,7 @@ class Barako {
   static Color get surfaceRaised => current.surfaceRaised;
   static Color get border => current.border;
   static Color get primary => current.primary;
+  static Color get primaryText => current.primaryText;
   static Color get caramel => current.caramel;
   static Color get text => current.text;
   static Color get textSecondary => current.textSecondary;
@@ -151,6 +166,15 @@ class Barako {
 
   /// The display serif for big peso amounts (Fraunces).
   static const displayFont = 'Fraunces';
+
+  /// The one section-label style for the little uppercase kicker above a
+  /// card's content. Not const: it carries the mood-driven muted color.
+  static TextStyle get kickerStyle => TextStyle(
+        color: current.muted,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 2,
+      );
 }
 
 /// The theme for one mood palette.

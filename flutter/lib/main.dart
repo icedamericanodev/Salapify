@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.57 · Income tax: the tax pro tightened the BIR forms copy';
+    'f0.59 · Polish: contrast completed, honest delete copy, real tap targets';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

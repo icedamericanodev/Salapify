@@ -166,7 +166,7 @@ class _ThirteenthCalculatorScreenState
                             child: Text('YOUR 13TH MONTH PAY',
                                 style: TextStyle(
                                     color: Barako.muted,
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 2)),
                           ),
@@ -181,7 +181,7 @@ class _ThirteenthCalculatorScreenState
                               child: Text('TAX FREE',
                                   style: TextStyle(
                                       color: Barako.onPrimary,
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 1)),
                             ),
@@ -239,7 +239,7 @@ class _ThirteenthCalculatorScreenState
                       Text('GOOD TO KNOW',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),

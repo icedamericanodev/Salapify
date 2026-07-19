@@ -224,7 +224,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       Text('CHECK YOUR NUMBERS',
                           style: TextStyle(
                               color: Barako.warning,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -256,7 +256,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       Text('TOTAL YOU WILL PAY',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 4),
@@ -315,7 +315,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                               color: trulyFree
                                   ? Barako.muted
                                   : Barako.warning,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -323,7 +323,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                         Text(
                             'Based on your numbers, this costs the same as paying cash today. Just make sure you can keep up with the ${_m(r['monthly'] as double)} a month for ${r['months']} months.',
                             style: TextStyle(
-                                color: Barako.primary,
+                                color: Barako.primaryText,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 height: 1.4))

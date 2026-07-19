@@ -74,7 +74,7 @@ class InsightsScreen extends StatelessWidget {
                     children: [
                       Text('You are on track',
                           style: TextStyle(
-                              color: Barako.primary,
+                              color: Barako.primaryText,
                               fontSize: 16,
                               fontWeight: FontWeight.w700)),
                       SizedBox(height: 4),
@@ -96,7 +96,7 @@ class InsightsScreen extends StatelessWidget {
                   Expanded(
                     child: Text(win['text'] as String,
                         style: TextStyle(
-                            color: Barako.primary,
+                            color: Barako.primaryText,
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
                   ),
