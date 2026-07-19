@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.65 · Currency converter, offline first, ported from RN';
+    'f0.66 · Premium press feel on tappable cards (flutter-ui-polish)';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

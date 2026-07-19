@@ -14,6 +14,7 @@ import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
@@ -183,149 +184,39 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => PanScreen(
-                        store: store, onSwitchTab: onSwitchTab))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat_bubble_outline,
-                          color: Barako.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Ask Pan',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700)),
-                            Text(
-                                'Your money questions, answered from your own data. Walang halong AI sa cloud.',
-                                style: TextStyle(
-                                    color: Barako.muted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right,
-                          color: Barako.faint, size: 20),
-                    ],
-                  ),
-                ),
-              ),
+            _navCard(
+              icon: Icons.chat_bubble_outline,
+              title: 'Ask Pan',
+              blurb:
+                  'Your money questions, answered from your own data. Walang halong AI sa cloud.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) =>
+                      PanScreen(store: store, onSwitchTab: onSwitchTab))),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => DebtsScreen(store: store))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.credit_card_outlined,
-                          color: Barako.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Debts',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700)),
-                            Text(
-                                'Cards and loans, payments split into interest and principal.',
-                                style: TextStyle(
-                                    color: Barako.muted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right,
-                          color: Barako.faint, size: 20),
-                    ],
-                  ),
-                ),
-              ),
+            _navCard(
+              icon: Icons.credit_card_outlined,
+              title: 'Debts',
+              blurb:
+                  'Cards and loans, payments split into interest and principal.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => DebtsScreen(store: store))),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => ToolsScreen(store: store))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.handyman_outlined,
-                          color: Barako.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Tools',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700)),
-                            Text(
-                                'Loan calculator and friends, arriving one by one.',
-                                style: TextStyle(
-                                    color: Barako.muted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right,
-                          color: Barako.faint, size: 20),
-                    ],
-                  ),
-                ),
-              ),
+            _navCard(
+              icon: Icons.handyman_outlined,
+              title: 'Tools',
+              blurb: 'Loan calculator and friends, arriving one by one.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ToolsScreen(store: store))),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => NotesScreen(store: store))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.sticky_note_2_outlined,
-                          color: Barako.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Notes',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700)),
-                            Text(
-                                'Lines with amounts add themselves up, like a receipt.',
-                                style: TextStyle(
-                                    color: Barako.muted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right,
-                          color: Barako.faint, size: 20),
-                    ],
-                  ),
-                ),
-              ),
+            _navCard(
+              icon: Icons.sticky_note_2_outlined,
+              title: 'Notes',
+              blurb: 'Lines with amounts add themselves up, like a receipt.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => NotesScreen(store: store))),
             ),
             const SizedBox(height: 12),
             if (store.canWrite)
@@ -444,6 +335,49 @@ class OverviewScreen extends StatelessWidget {
 
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
 
+  /// A Home navigation row (icon, title, blurb, chevron) with the press feel,
+  /// so the four nav cards match the check-in card and the Tools rows.
+  Widget _navCard({
+    required IconData icon,
+    required String title,
+    required String blurb,
+    required VoidCallback onTap,
+  }) {
+    return PressableScale(
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(icon, color: Barako.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                      Text(blurb,
+                          style:
+                              TextStyle(color: Barako.muted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _kicker(String text) => Text(text,
       style: TextStyle(
           color: Barako.muted,
@@ -494,7 +428,7 @@ class OverviewScreen extends StatelessWidget {
         : tone == 'nudge'
             ? Barako.muted
             : Barako.primary;
-    return Card(
+    final Widget card = Card(
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
@@ -540,6 +474,9 @@ class OverviewScreen extends StatelessWidget {
         ),
       ),
     );
+    // Only the tappable states get the press feel; the calm all-clear (no
+    // action) stays still, so press feedback never lies about interactivity.
+    return onTap == null ? card : PressableScale(child: card);
   }
 
   Widget _kickerCard(String kicker, String big, {String? sub}) => Card(
