@@ -32,4 +32,34 @@ void main() {
     // It is a scale wrapper, not a gesture owner.
     expect(find.byType(AnimatedScale), findsOneWidget);
   });
+
+  testWidgets('a drag past touch slop releases the press so it never sticks',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: PressableScale(
+            child: SizedBox(width: 200, height: 80, child: Text('Row')),
+          ),
+        ),
+      ),
+    ));
+
+    double scale() =>
+        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
+
+    final gesture = await tester.startGesture(tester.getCenter(find.text('Row')));
+    await tester.pump();
+    expect(scale(), lessThan(1.0), reason: 'pressed on finger down');
+
+    // Move well past touch slop, as a scroll would; the press must release
+    // even though the finger has not lifted.
+    await gesture.moveBy(const Offset(0, 60));
+    await tester.pump();
+    expect(scale(), 1.0, reason: 'released once it became a drag');
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(scale(), 1.0);
+  });
 }
