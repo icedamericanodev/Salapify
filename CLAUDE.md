@@ -64,6 +64,19 @@ free forever, free during early access, and early users keep Pro free.
    need a full APK rebuild on EAS and a version bump to isolate runtimes.
    Flag these loudly, they are not over the air.
 
+## Skills (.claude/skills)
+
+Reusable workflow skills live in .claude/skills and load on demand when a task
+matches. Three are adapted from obra/superpowers (MIT) and tuned to Salapify:
+brainstorming (design and get agreement before building), systematic-debugging
+(root cause before any fix, stop and rethink after three failed fixes), and
+writing-skills (how to capture a workflow as a new skill). One is ours:
+porting-money-logic, the golden-vector contract for moving money math from
+mobile/ to flutter/ so every number matches to the centavo. These skills
+assist; they never override this file. Where any external guidance conflicts
+with these rules (merge method, never squash, golden lock, no em or en dashes),
+this file wins.
+
 ## Merge rules (set by the founder on 2026-07-03)
 
 Claude reviews and merges every PR itself, for all builds, when ALL of
