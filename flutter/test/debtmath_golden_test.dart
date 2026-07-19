@@ -34,6 +34,57 @@ void main() {
     }
   });
 
+  test('whatIfLadder matches the RN projection at every extra, and the '
+      'months and interest saved are the honest differences', () {
+    final wi = jsonDecode(
+        File('test/goldens/whatif_goldens.json').readAsStringSync())
+        as Map<String, dynamic>;
+    // The golden was generated at new Date(2026, 6, 16, 12); mirror it.
+    final wref = DateTime(2026, 7, 16, 12);
+    final extras = [200, 500, 1000];
+    for (final entry in (wi['cases'] as Map).cast<String, dynamic>().entries) {
+      final name = entry.key;
+      final c = (entry.value as Map).cast<String, dynamic>();
+      final debts = c['debts'] as List;
+      final byExtra = <int, dynamic>{
+        for (final b in (c['byExtra'] as List))
+          (b['extra'] as num).toInt(): b['result'],
+      };
+      final base = byExtra[0]; // {months,totalInterest,date} or null
+      final result = whatIfLadder(debts, extras, wref);
+
+      expect(normalize(result['baseline']), normalize(base),
+          reason: '$name baseline');
+
+      final steps = (result['steps'] as List).cast<Map<String, dynamic>>();
+      expect(steps.length, extras.length, reason: '$name step count');
+      for (var i = 0; i < extras.length; i++) {
+        final e = extras[i];
+        final step = steps[i];
+        final want = byExtra[e]; // RN projection at this extra, or null
+        expect(step['extra'], e, reason: '$name extra $e');
+        expect(normalize(step['projection']), normalize(want),
+            reason: '$name projection $e');
+        // Saved values are the plain differences, or null when either side
+        // has no finite payoff. Compute the expectation from the RN numbers.
+        final expMonthsSaved = (want != null && base != null)
+            ? (base['months'] as num) - (want['months'] as num)
+            : null;
+        final expInterestSaved = (want != null && base != null)
+            ? (base['totalInterest'] as num) - (want['totalInterest'] as num)
+            : null;
+        expect(step['monthsSaved'], expMonthsSaved,
+            reason: '$name monthsSaved $e');
+        expect(
+            step['interestSaved'] == null
+                ? null
+                : (step['interestSaved'] as num).toDouble(),
+            expInterestSaved?.toDouble(),
+            reason: '$name interestSaved $e');
+      }
+    }
+  });
+
   test('splitDebtPayment matches the RN engine on every vector', () {
     for (final v in (raw['splits'] as List)) {
       final a = (v['args'] as Map).cast<String, dynamic>();

@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.60 · Debts interest behind the golden lock, hero overflow guards';
+    'f0.61 · Insights: what if you paid extra debt simulator';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
