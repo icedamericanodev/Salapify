@@ -292,12 +292,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
     );
   }
 
-  Widget _kicker(String text) => Text(text,
-      style: TextStyle(
-          color: Barako.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2));
+  Widget _kicker(String text) => Text(text, style: Barako.kickerStyle);
 
   Widget _line(String label, String value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),

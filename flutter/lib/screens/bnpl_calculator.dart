@@ -323,7 +323,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                         Text(
                             'Based on your numbers, this costs the same as paying cash today. Just make sure you can keep up with the ${_m(r['monthly'] as double)} a month for ${r['months']} months.',
                             style: TextStyle(
-                                color: Barako.primary,
+                                color: Barako.primaryText,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 height: 1.4))

@@ -98,7 +98,7 @@ class BudgetScreen extends StatelessWidget {
                             label: const Text('+ Custom'),
                             backgroundColor: Barako.background,
                             labelStyle: TextStyle(
-                                color: Barako.primary,
+                                color: Barako.primaryText,
                                 fontWeight: FontWeight.w700),
                             side: BorderSide(color: Barako.border),
                             onPressed: () => showLogSheet(context, store),
@@ -165,9 +165,9 @@ class BudgetScreen extends StatelessWidget {
                   InkWell(
                     onTap: () => _editLimit(context),
                     child: Padding(
-                      // A real 44dp-ish tap target, not just the text.
+                      // A real 44dp tap target, not just the text.
                       padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 4),
+                          vertical: 14, horizontal: 4),
                       child: Text(limit > 0 ? 'Change limit' : 'Set a limit',
                           style: TextStyle(
                               color: Barako.primaryText,

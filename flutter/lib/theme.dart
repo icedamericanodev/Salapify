@@ -74,10 +74,12 @@ const lattePalette = BarakoPalette(
   caramel: Color(0xFFB98A55),
   text: Color(0xFF2B1A0E),
   textSecondary: Color(0xFF5C4632),
-  // Darkened for AA at the 11-13px sizes these are used at on the light
-  // card (the old #8A7460 / #A08468 were ~4.1 and ~3.3, below 4.5).
+  // Darkened for AA at the 11-13px sizes these are used at (the old
+  // #8A7460 / #A08468 were ~4.1 and ~3.3, below 4.5). faint is the field
+  // hint color and its fill is `background`, so it is tuned to clear 4.5
+  // against #F5EDE2, not just the card.
   muted: Color(0xFF6E5945),
-  faint: Color(0xFF836A52),
+  faint: Color(0xFF7C6349),
   warning: Color(0xFFD93A52),
   warningStrong: Color(0xFFC22B42),
   onPrimary: Color(0xFFFFF6EA),

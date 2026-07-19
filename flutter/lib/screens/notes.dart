@@ -155,7 +155,7 @@ class NotesScreen extends StatelessWidget {
                 if (hasMath)
                   Text(formatMoney(calc['total'] as double),
                       style: TextStyle(
-                          color: Barako.primary,
+                          color: Barako.primaryText,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           fontFeatures: const [
@@ -407,7 +407,7 @@ class _NoteEditorState extends State<NoteEditor> {
                           ),
                           Text(formatMoney(calc['total'] as double),
                               style: TextStyle(
-                                  color: Barako.primary,
+                                  color: Barako.primaryText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   fontFeatures: const [
