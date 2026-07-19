@@ -254,6 +254,61 @@
       "amount": 1000.4,
       "code": "KRW",
       "out": "₩1,000"
+    },
+    {
+      "amount": 1.005,
+      "code": "USD",
+      "out": "$1.01"
+    },
+    {
+      "amount": 1.255,
+      "code": "USD",
+      "out": "$1.26"
+    },
+    {
+      "amount": 8.575,
+      "code": "USD",
+      "out": "$8.58"
+    },
+    {
+      "amount": 10.075,
+      "code": "USD",
+      "out": "$10.08"
+    },
+    {
+      "amount": 2.675,
+      "code": "USD",
+      "out": "$2.68"
+    },
+    {
+      "amount": 0.005,
+      "code": "USD",
+      "out": "$0.01"
+    },
+    {
+      "amount": -1.255,
+      "code": "USD",
+      "out": "$-1.26"
+    },
+    {
+      "amount": -0.004,
+      "code": "USD",
+      "out": "$-0.00"
+    },
+    {
+      "amount": 123456.785,
+      "code": "USD",
+      "out": "$123,456.79"
+    },
+    {
+      "amount": 999999.995,
+      "code": "USD",
+      "out": "$1,000,000.00"
+    },
+    {
+      "amount": 1.999,
+      "code": "USD",
+      "out": "$2.00"
     }
   ],
   "formatForeign": [
@@ -276,6 +331,16 @@
       "amount": "NaN",
       "code": "USD",
       "out": ""
+    },
+    {
+      "amount": 2.5,
+      "code": "USD",
+      "out": "$3"
+    },
+    {
+      "amount": 1234.5,
+      "code": "PHP",
+      "out": "₱1,235"
     }
   ],
   "currencies": [

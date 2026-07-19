@@ -74,28 +74,57 @@ String formatForeign(dynamic amount, String code) {
 /// round-half-away-from-zero on negatives.
 double _jsRound(num x) => (x + 0.5).floorToDouble();
 
-/// n rendered with exactly dp decimals, comma grouped, mirroring
-/// toLocaleString('en-US', {min/maxFractionDigits: dp}). Uses JS-style
-/// half-up rounding on the last kept digit.
+/// n rendered with exactly dp decimals, comma grouped, mirroring V8
+/// toLocaleString('en-US', {min/maxFractionDigits: dp}). V8 rounds the SHORTEST
+/// decimal representation half up, not the raw binary double, so 1.005 becomes
+/// "1.01"; a naive multiply-then-floor would wrongly give "1.00". So this
+/// rounds the decimal STRING. The sign follows the input (V8 keeps a minus even
+/// on a value that rounds to zero, e.g. "-0.00"), matching the RN app.
 String _fixed(double n, int dp) {
   final neg = n < 0;
-  final v = n.abs();
-  final factor = _pow10(dp);
-  final scaled = _jsRound(v * factor);
-  final rounded = scaled / factor;
-  var whole = rounded.floor();
-  final digits = whole.toString();
-  final grouped = _group(digits);
-  if (dp == 0) return '${neg && whole != 0 ? '-' : ''}$grouped';
-  final fracInt = _jsRound((rounded - whole) * factor).toInt();
-  final frac = fracInt.toString().padLeft(dp, '0');
-  return '${neg && (whole != 0 || fracInt != 0) ? '-' : ''}$grouped.$frac';
+  final mag = n.abs();
+  var s = mag.toString();
+  // Only absurd magnitudes (far past any real money value) print in
+  // exponential form; accept a plain binary-rounded expansion there.
+  if (s.contains('e') || s.contains('E')) s = mag.toStringAsFixed(dp);
+  final dot = s.indexOf('.');
+  var intPart = dot == -1 ? s : s.substring(0, dot);
+  var fracPart = dot == -1 ? '' : s.substring(dot + 1);
+  if (fracPart.length > dp) {
+    final roundUp = fracPart.codeUnitAt(dp) - 48 >= 5;
+    var kept = dp == 0 ? '' : fracPart.substring(0, dp);
+    if (roundUp) {
+      final carried = _incDecimal('$intPart$kept');
+      if (dp == 0) {
+        intPart = carried;
+        kept = '';
+      } else {
+        intPart = carried.substring(0, carried.length - dp);
+        kept = carried.substring(carried.length - dp);
+      }
+    }
+    fracPart = kept;
+  } else {
+    fracPart = fracPart.padRight(dp, '0');
+  }
+  intPart = intPart.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+  final grouped = _group(intPart);
+  final sign = neg ? '-' : '';
+  return dp == 0 ? '$sign$grouped' : '$sign$grouped.$fracPart';
 }
 
-int _pow10(int dp) {
-  var p = 1;
-  for (var i = 0; i < dp; i++) {
-    p *= 10;
+/// Add one to the last digit of a decimal digit string, carrying left.
+String _incDecimal(String digits) {
+  final buf = digits.split('');
+  var carry = true;
+  for (var i = buf.length - 1; i >= 0 && carry; i--) {
+    final d = buf[i].codeUnitAt(0) - 48 + 1;
+    if (d == 10) {
+      buf[i] = '0';
+    } else {
+      buf[i] = String.fromCharCode(48 + d);
+      carry = false;
+    }
   }
-  return p;
+  return carry ? '1${buf.join()}' : buf.join();
 }

@@ -82,13 +82,18 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
         _to = t;
       });
 
+  void _retry() {
+    setState(() => _loading = true);
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final amountNum =
         double.tryParse(_amount.text.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
     final haveRates = _fx != null && _fx!.base == _base;
     final rate = haveRates ? crossRate(_fx!.rates, _from, _to) : null;
-    final converted = rate != null ? amountNum * rate : null;
+    final converted = convertAmount(amountNum, rate);
     final asOf = haveRates ? _asOf(_fx!.fetchedAt) : '';
 
     return Scaffold(
@@ -168,7 +173,10 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
         Text(label, style: Barako.kickerStyle),
         const SizedBox(height: 8),
         SizedBox(
-          height: 40,
+          // At least a 44dp tap target, and it grows with the system text
+          // scale so the pills never clip for large-font users.
+          height:
+              48 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: currencies.length,
@@ -198,7 +206,15 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
       double amountNum, double? converted, double? rate, String asOf) {
     Widget body;
     if (_from == _to) {
-      body = _big(formatConverted(amountNum, _to));
+      body = Column(
+        children: [
+          _big(formatConverted(amountNum, _to)),
+          const SizedBox(height: 8),
+          Text('Same currency, nothing to convert.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Barako.muted, fontSize: 12)),
+        ],
+      );
     } else if (converted != null && rate != null) {
       body = Column(
         children: [
@@ -211,14 +227,33 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
         ],
       );
     } else if (_loading) {
-      body = Text("Getting today's rates…",
+      body = Text("Getting today's rates...",
           style: TextStyle(color: Barako.textSecondary, fontSize: 13));
-    } else {
+    } else if (_fx != null) {
+      // Rates are loaded, this pair just is not covered by the table. Do not
+      // tell an online user to connect.
       body = Text(
-          'No rate for $_from to $_to yet. Connect to the internet once to download today’s rates, then it works offline too.',
+          'No rate for $_from to $_to right now. Try another currency.',
           textAlign: TextAlign.center,
           style: TextStyle(
               color: Barako.textSecondary, fontSize: 13, height: 1.4));
+    } else {
+      body = Column(
+        children: [
+          Text(
+              "No rates yet. Connect to the internet once to download today's rates, then it works offline too.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _retry,
+            child: Text('Try again',
+                style: TextStyle(
+                    color: Barako.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      );
     }
     return Card(
       child: Padding(

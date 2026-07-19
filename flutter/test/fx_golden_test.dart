@@ -78,6 +78,12 @@ void main() {
     }
   });
 
+  test('convertAmount multiplies, or is null with no rate', () {
+    expect(convertAmount(1000, 0.0176), closeTo(17.6, 1e-9));
+    expect(convertAmount(0, 0.0176), 0);
+    expect(convertAmount(1000, null), isNull);
+  });
+
   test('the currency list and constants match the RN app', () {
     final want = (g['currencies'] as List).cast<Map<String, dynamic>>();
     expect(currencies.length, want.length);

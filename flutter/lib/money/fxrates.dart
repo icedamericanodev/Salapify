@@ -60,6 +60,12 @@ double? crossRate(dynamic rates, dynamic from, dynamic to) {
   return t / f;
 }
 
+/// The converted amount: the entered amount times the cross rate, or null when
+/// there is no rate. Kept in the core so no peso-bearing arithmetic lives in a
+/// screen. Matches the RN converter's inline amount * rate.
+double? convertAmount(num amount, double? rate) =>
+    rate == null ? null : amount.toDouble() * rate;
+
 /// Round a rate to four significant figures so the pre filled value is tidy for
 /// both strong (56.34) and weak (0.002315) currencies. Mirrors JS
 /// Number(n.toPrecision(4)); null on a non positive or non finite input.
