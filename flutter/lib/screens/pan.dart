@@ -14,7 +14,9 @@ import '../money/pan/ask.dart';
 import '../theme.dart';
 import 'debts.dart';
 import 'loan_calculator.dart';
+import 'contribution_calculator.dart';
 import 'salary_calculator.dart';
+import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
 
 class _Msg {
@@ -83,6 +85,12 @@ class _PanScreenState extends State<PanScreen> {
       case '/thirteenth-calculator':
         return () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => const ThirteenthCalculatorScreen()));
+      case '/tax-calculator':
+        return () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const TaxCalculatorScreen()));
+      case '/contribution-calculator':
+        return () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const ContributionCalculatorScreen()));
       case '/insights':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
