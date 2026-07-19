@@ -1,0 +1,365 @@
+{
+  "rates": {
+    "PHP": 1,
+    "USD": 0.0176,
+    "EUR": 0.0163,
+    "JPY": 2.62,
+    "KRW": 24.1,
+    "GBP": 0.0139,
+    "SGD": 0.0237,
+    "VND": 447.2,
+    "BAD": 0,
+    "JUNK": "x"
+  },
+  "cross": [
+    {
+      "from": "USD",
+      "to": "PHP",
+      "r": 56.81818181818181
+    },
+    {
+      "from": "PHP",
+      "to": "USD",
+      "r": 0.0176
+    },
+    {
+      "from": "USD",
+      "to": "JPY",
+      "r": 148.86363636363637
+    },
+    {
+      "from": "USD",
+      "to": "USD",
+      "r": 1
+    },
+    {
+      "from": "USD",
+      "to": "ZZZ",
+      "r": null
+    },
+    {
+      "from": "ZZZ",
+      "to": "USD",
+      "r": null
+    },
+    {
+      "from": "USD",
+      "to": "BAD",
+      "r": null
+    },
+    {
+      "from": "JUNK",
+      "to": "USD",
+      "r": null
+    }
+  ],
+  "basePerUnit": [
+    {
+      "code": "USD",
+      "r": 56.81818181818181
+    },
+    {
+      "code": "JPY",
+      "r": 0.38167938931297707
+    },
+    {
+      "code": "ZZZ",
+      "r": null
+    },
+    {
+      "code": "BAD",
+      "r": null
+    },
+    {
+      "code": "JUNK",
+      "r": null
+    }
+  ],
+  "roundRate": [
+    {
+      "in": 56.34,
+      "out": 56.34
+    },
+    {
+      "in": 0.002315,
+      "out": 0.002315
+    },
+    {
+      "in": 1,
+      "out": 1
+    },
+    {
+      "in": 0,
+      "out": null
+    },
+    {
+      "in": -5,
+      "out": null
+    },
+    {
+      "in": 1234.5,
+      "out": 1235
+    },
+    {
+      "in": 2.6199999,
+      "out": 2.62
+    },
+    {
+      "in": 0.017600001,
+      "out": 0.0176
+    },
+    {
+      "in": 447.2,
+      "out": 447.2
+    }
+  ],
+  "parse": [
+    {
+      "in": {
+        "result": "success",
+        "base_code": "PHP",
+        "time_last_update_unix": 1710000000,
+        "rates": {
+          "USD": 0.0176,
+          "JPY": 2.62
+        }
+      },
+      "out": {
+        "base": "PHP",
+        "rates": {
+          "USD": 0.0176,
+          "JPY": 2.62
+        },
+        "fetchedAt": 1710000000000
+      }
+    },
+    {
+      "in": {
+        "result": "error"
+      },
+      "out": null
+    },
+    {
+      "in": {
+        "result": "success",
+        "base_code": "PHP"
+      },
+      "out": null
+    },
+    {
+      "in": {
+        "result": "success",
+        "rates": {
+          "USD": 0.0176
+        }
+      },
+      "out": null
+    },
+    {
+      "in": null,
+      "out": null
+    },
+    {
+      "in": {
+        "result": "success",
+        "base_code": "PHP",
+        "rates": {
+          "USD": 0.0176
+        }
+      },
+      "out": {
+        "base": "PHP",
+        "rates": {
+          "USD": 0.0176
+        },
+        "fetchedAt": null
+      }
+    }
+  ],
+  "isFresh": [
+    {
+      "fetchedAt": 1710000000000,
+      "now": 1710000001000,
+      "out": true
+    },
+    {
+      "fetchedAt": 1710000000000,
+      "now": 1710046800000,
+      "out": false
+    },
+    {
+      "fetchedAt": null,
+      "now": 1710000000000,
+      "out": false
+    }
+  ],
+  "symbol": [
+    {
+      "code": "PHP",
+      "out": "₱"
+    },
+    {
+      "code": "USD",
+      "out": "$"
+    },
+    {
+      "code": "JPY",
+      "out": "¥"
+    },
+    {
+      "code": "ZZZ",
+      "out": "ZZZ"
+    },
+    {
+      "code": "",
+      "out": ""
+    },
+    {
+      "code": null,
+      "out": ""
+    }
+  ],
+  "formatConverted": [
+    {
+      "amount": 12.34,
+      "code": "USD",
+      "out": "$12.34"
+    },
+    {
+      "amount": 1300,
+      "code": "JPY",
+      "out": "¥1,300"
+    },
+    {
+      "amount": 690.5,
+      "code": "PHP",
+      "out": "₱690.50"
+    },
+    {
+      "amount": 1234567.89,
+      "code": "USD",
+      "out": "$1,234,567.89"
+    },
+    {
+      "amount": 0,
+      "code": "PHP",
+      "out": "₱0.00"
+    },
+    {
+      "amount": "NaN",
+      "code": "USD",
+      "out": ""
+    },
+    {
+      "amount": 1000.4,
+      "code": "KRW",
+      "out": "₩1,000"
+    }
+  ],
+  "formatForeign": [
+    {
+      "amount": 1000,
+      "code": "JPY",
+      "out": "¥1,000"
+    },
+    {
+      "amount": 12.7,
+      "code": "USD",
+      "out": "$13"
+    },
+    {
+      "amount": 1500.9,
+      "code": "PHP",
+      "out": "₱1,501"
+    },
+    {
+      "amount": "NaN",
+      "code": "USD",
+      "out": ""
+    }
+  ],
+  "currencies": [
+    {
+      "code": "PHP",
+      "symbol": "₱"
+    },
+    {
+      "code": "USD",
+      "symbol": "$"
+    },
+    {
+      "code": "EUR",
+      "symbol": "€"
+    },
+    {
+      "code": "GBP",
+      "symbol": "£"
+    },
+    {
+      "code": "JPY",
+      "symbol": "¥"
+    },
+    {
+      "code": "CNY",
+      "symbol": "¥"
+    },
+    {
+      "code": "KRW",
+      "symbol": "₩"
+    },
+    {
+      "code": "INR",
+      "symbol": "₹"
+    },
+    {
+      "code": "IDR",
+      "symbol": "Rp"
+    },
+    {
+      "code": "MYR",
+      "symbol": "RM"
+    },
+    {
+      "code": "SGD",
+      "symbol": "S$"
+    },
+    {
+      "code": "THB",
+      "symbol": "฿"
+    },
+    {
+      "code": "VND",
+      "symbol": "₫"
+    },
+    {
+      "code": "HKD",
+      "symbol": "HK$"
+    },
+    {
+      "code": "AUD",
+      "symbol": "A$"
+    },
+    {
+      "code": "CAD",
+      "symbol": "C$"
+    },
+    {
+      "code": "AED",
+      "symbol": "AED"
+    },
+    {
+      "code": "SAR",
+      "symbol": "SAR"
+    },
+    {
+      "code": "CHF",
+      "symbol": "CHF"
+    },
+    {
+      "code": "NZD",
+      "symbol": "NZ$"
+    }
+  ],
+  "maxAgeMs": 43200000,
+  "endpointPHP": "https://open.er-api.com/v6/latest/PHP"
+}
