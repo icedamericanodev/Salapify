@@ -8,6 +8,7 @@ import '../data/store.dart';
 import '../theme.dart';
 import 'bnpl_calculator.dart';
 import 'contribution_calculator.dart';
+import 'currency_converter.dart';
 import 'loan_calculator.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
@@ -88,6 +89,15 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
+              icon: Icons.currency_exchange,
+              title: 'Currency converter',
+              blurb:
+                  'What your money is worth in another currency. Works offline once rates are saved.',
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => CurrencyConverterScreen(store: store))),
+            ),
+            _tool(
+              context,
               icon: Icons.sticky_note_2_outlined,
               title: 'Notes',
               blurb:
@@ -104,7 +114,7 @@ class ToolsScreen extends StatelessWidget {
                     letterSpacing: 2)),
             const SizedBox(height: 6),
             Text(
-                'Currency converter, learn, and mindset are being adapted from the React Salapify one by one.',
+                'Learn and mindset are being adapted from the React Salapify one by one.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.5)),
           ],
