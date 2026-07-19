@@ -182,15 +182,22 @@ class BudgetScreen extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(formatMoney(spent),
-                      style: TextStyle(
-                          fontFamily: Barako.displayFont,
-                          color: over ? Barako.warning : Barako.text,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [
-                            FontFeature.tabularFigures()
-                          ])),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(formatMoney(spent),
+                          maxLines: 1,
+                          style: TextStyle(
+                              fontFamily: Barako.displayFont,
+                              color: over ? Barako.warning : Barako.text,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ])),
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5, left: 6),
                     child: Text('of ${formatMoney(limit)}',
@@ -221,13 +228,18 @@ class BudgetScreen extends StatelessWidget {
                     height: 1.4),
               ),
             ] else ...[
-              Text(formatMoney(spent),
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontFamily: Barako.displayFont,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(formatMoney(spent),
+                    maxLines: 1,
+                    style: TextStyle(
+                        color: Barako.text,
+                        fontFamily: Barako.displayFont,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ),
               const SizedBox(height: 4),
               Text(
                   'Spent so far this month. Set a monthly limit and the bar will keep you honest.',

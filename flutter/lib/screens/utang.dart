@@ -107,13 +107,18 @@ class UtangScreen extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
-                      Text(formatMoney(total),
-                          style: TextStyle(
-                              fontFamily: Barako.displayFont,
-                              color: Barako.primary,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w700,
-                              fontFeatures: [FontFeature.tabularFigures()])),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(formatMoney(total),
+                            maxLines: 1,
+                            style: TextStyle(
+                                fontFamily: Barako.displayFont,
+                                color: Barako.primary,
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                fontFeatures: [FontFeature.tabularFigures()])),
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         overdueCount > 0

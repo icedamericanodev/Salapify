@@ -1,0 +1,81 @@
+{
+ "cases": [
+  {
+   "name": "card 3pct",
+   "debt": {
+    "remaining": 12000,
+    "monthlyRate": 3
+   },
+   "result": 360
+  },
+  {
+   "name": "loan 1.5pct",
+   "debt": {
+    "remaining": 40000,
+    "monthlyRate": 1.5
+   },
+   "result": 600
+  },
+  {
+   "name": "zero rate",
+   "debt": {
+    "remaining": 5000,
+    "monthlyRate": 0
+   },
+   "result": 0
+  },
+  {
+   "name": "zero balance",
+   "debt": {
+    "remaining": 0,
+    "monthlyRate": 3
+   },
+   "result": 0
+  },
+  {
+   "name": "rounds half up",
+   "debt": {
+    "remaining": 10050,
+    "monthlyRate": 1
+   },
+   "result": 101
+  },
+  {
+   "name": "fractional rate",
+   "debt": {
+    "remaining": 250000,
+    "monthlyRate": 0.8
+   },
+   "result": 2000
+  },
+  {
+   "name": "big balance",
+   "debt": {
+    "remaining": 5000000,
+    "monthlyRate": 3
+   },
+   "result": 150000
+  },
+  {
+   "name": "tiny",
+   "debt": {
+    "remaining": 33,
+    "monthlyRate": 3
+   },
+   "result": 1
+  },
+  {
+   "name": "missing fields",
+   "debt": {},
+   "result": 0
+  },
+  {
+   "name": "string amounts",
+   "debt": {
+    "remaining": "12000",
+    "monthlyRate": "3"
+   },
+   "result": 360
+  }
+ ]
+}
