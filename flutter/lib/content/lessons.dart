@@ -1,0 +1,187 @@
+// GENERATED from mobile/lib/lessons.js by scratchpad/gen-lessons.js. Do not
+// hand edit; regenerate so the copy always matches the RN app word for word.
+// The Learn track: short, plain, Philippine-grounded money lessons. Pure
+// content, no network, ships over the air and works offline. Every lesson
+// stays inside personal money management and never recommends a product,
+// investment, loan, or stock. No em or en dashes anywhere.
+
+const List<Map<String, dynamic>> lessons = [
+  {
+    'id': 'emergency-fund',
+    'title': 'Your first shield: the emergency fund',
+    'emoji': '🛟',
+    'minutes': 2,
+    'summary': 'Why a small cash buffer changes everything, and how to start one.',
+    'body': [
+      'An emergency fund is money you set aside for the surprises, a hospital visit, a phone that dies, a sudden trip home to the province. It is not for a sale or a new gadget. Its whole job is to keep one bad week from turning into utang.',
+      'A common target is three to six months of your expenses. That can feel impossible when you are starting, so do not aim there yet. Aim for your first one month of expenses, and before that, your first 10,000. A small buffer already stops most small emergencies from becoming debt.',
+      'Keep it separate from your spending money, ideally in a different account or e-wallet you do not touch daily, so it is not accidentally gastos. In Salapify you can make it a goal and watch it grow.',
+      'The point is not to get rich. It is to sleep better, because the next surprise is already handled.',
+    ],
+  },
+  {
+    'id': 'card-interest',
+    'title': 'The minimum payment trap',
+    'emoji': '💳',
+    'minutes': 2,
+    'summary': 'How paying only the minimum quietly grows what you owe.',
+    'body': [
+      'A credit card gives you a grace period. If you pay the full statement balance by the due date, you pay zero interest. That is the deal working in your favor.',
+      'The trap is the minimum payment. It is usually a small slice, often around 3 to 5 percent of your balance, or a few hundred pesos, whichever is higher. Pay only that and you lose the interest-free grace period, so interest, up to about 3 percent per month (the BSP cap), can apply to your balance including new purchases. Next month you owe interest on the interest. This is how a small balance quietly becomes a big one.',
+      'The rule of thumb: pay in full whenever you can. If a month is tight, pay as much above the minimum as you can, even a little extra shrinks the balance faster than you think.',
+      'Salapify shows your card due date and warns you when only paying the minimum would add interest. Use it to stay in the interest-free zone.',
+    ],
+  },
+  {
+    'id': 'needs-wants',
+    'title': 'Needs, wants, and the 24-hour rule',
+    'emoji': '🧠',
+    'minutes': 1,
+    'summary': 'A simple pause that saves real money on impulse buys.',
+    'body': [
+      'A need keeps your life running: food, rent, transport, load for work. A want is nice but optional. Most money leaks are wants dressed up as needs in the moment.',
+      'The fix is not guilt, it is a pause. For anything that is not urgent, wait 24 hours. If you still want it tomorrow, and it fits your plan, buy it with a clear head. Most of the time the urge is gone by morning.',
+      'Skipping a want is not being kuripot. It is choosing where your money goes on purpose, so more of it lands on what you actually care about.',
+    ],
+  },
+  {
+    'id': 'fifty-thirty-twenty',
+    'title': '50/30/20, Pinoy edition',
+    'emoji': '🍚',
+    'minutes': 2,
+    'summary': 'A starting frame for splitting your sweldo.',
+    'body': [
+      'A simple way to divide your take-home pay: about 50 percent to needs, 30 percent to wants, and 20 percent to savings and paying down debt. It is a starting frame, not a rule carved in stone.',
+      'Needs are rent, food, bills, transport, load. Wants are eating out, subscriptions, shopping, gimik. The last 20 percent is you paying your future self first, ipon and clearing utang.',
+      'If your rent alone eats most of your pay, which is real for many, do not force the numbers. Shrink wants first, protect even a small savings slice, and treat the split as a direction to move toward, not a test you failed.',
+      'Salapify already sets aside your bills before it shows your safe to spend, so your daily number is closer to real life than a flat percentage.',
+    ],
+  },
+  {
+    'id': 'pay-yourself-first',
+    'title': 'Ipon that actually sticks',
+    'emoji': '🐷',
+    'minutes': 2,
+    'summary': 'Why saving first beats saving whatever is left.',
+    'body': [
+      'Most people plan to save whatever is left at the end of the month. The problem is there is rarely anything left. The month always finds a way to spend it.',
+      'Flip it. On payday, before the spending starts, move your savings out first, even a small fixed amount. This is pay yourself first. What is left is what you live on, and it works because you never see the saved money as spendable.',
+      'Make it automatic and boring. Same amount, every sweldo, moved the same day. Willpower runs out, habits do not. Starting small and never skipping beats a big amount you cannot keep up.',
+      'On your payday, Salapify helps you set aside your savings slice first, before it shows what is left to live on.',
+    ],
+  },
+  {
+    'id': 'thirteenth-month',
+    'title': 'Make your 13th month count',
+    'emoji': '🎁',
+    'minutes': 2,
+    'summary': 'A plan for the once-a-year money so it does not vanish.',
+    'body': [
+      'The 13th month pay feels like free money, so it disappears the fastest. A little planning before it lands makes it do real work for you.',
+      'One simple split: a slice to your emergency fund or savings, a slice to clear the highest-interest utang you carry, and a slice, guilt-free, for something you enjoy or for noche buena and gifts. Deciding the split before the money arrives is the whole trick.',
+      'Clearing a high-interest debt with part of it is one of the best returns you can get, because every peso of interest you stop paying is a peso kept.',
+      'When December comes, log it in Salapify and point it at a goal, so future you gets a share too.',
+    ],
+  },
+  {
+    'id': 'bnpl',
+    'title': 'BNPL: convenient, but count the cost',
+    'emoji': '🛒',
+    'minutes': 2,
+    'summary': 'Buy now pay later can help or hurt. Know which.',
+    'body': [
+      'Buy now pay later splits a purchase into installments. Used carefully on something you were already going to buy, and can afford, it can spread a cost without pain.',
+      'The risk is that it makes spending feel smaller than it is. Three or four small installments across different apps add up, and you can lose track of the total you owe. Miss a due date and fees or interest can appear fast.',
+      'Before you tap install: would you still buy this if you had to pay the full price today? If not, the installments are talking you into it. And never let the installments pile up past what one sweldo can comfortably cover.',
+      'Log each BNPL as a debt in Salapify so the real total, and each due date, stays in front of you instead of scattered across apps.',
+    ],
+  },
+  {
+    'id': 'utang-friends',
+    'title': 'Utang without losing the friendship',
+    'emoji': '🤝',
+    'minutes': 2,
+    'summary': 'Lending to people you care about, the healthy way.',
+    'body': [
+      'Lending to family and friends is part of Filipino life. It goes wrong when the amount, and the memory of it, gets fuzzy. Then both the money and the relationship get awkward.',
+      'Two simple habits keep it clean. First, only lend what you can afford to not get back soon, so waiting never puts you in a bind. Second, write it down, the amount and the date, the moment it happens, so nobody has to rely on memory.',
+      'Following up is not being madamot. A calm, friendly reminder is normal and fair, and it actually protects the friendship, because unspoken debt is what breeds resentment.',
+      'Salapify tracks who owes you, how long it has been, and can draft a gentle reminder you can send, so collecting stays kind.',
+    ],
+  },
+  {
+    'id': 'tax-forms',
+    'title': 'Which tax forms do I actually file?',
+    'emoji': '🧾',
+    'minutes': 3,
+    'summary': 'A plain map of BIR returns for employees, freelancers, and the self-employed.',
+    'body': [
+      'If you are an employee with just one job, good news, you usually file nothing yourself. Your employer takes the tax from your sweldo, remits it, and gives you Form 2316 every January. That shortcut is called substituted filing.',
+      'You do need to file your own return, Form 1700, if you had two or more employers during the year, if your tax was not withheld correctly, or if you also run a sideline. A sideline makes you a mixed income earner, and then you file Form 1701 instead.',
+      'If you are a freelancer, online seller, or professional, you register once with Form 1901. There is no more 500 peso yearly registration fee, it was removed in 2024 by the Ease of Paying Taxes law, so ignore old guides that still mention it.',
+      'As self-employed you pay income tax quarterly on Form 1701Q, due May 15, August 15, and November 15, then once a year on Form 1701 or 1701A by April 15. Take note, the first quarter is due in May, not April. A quarter with zero income still means you file, just with nothing to pay.',
+      'Percentage tax is a separate 3 percent tax on your sales, filed each quarter on Form 2551Q. If you chose the 8 percent flat rate, you skip this one, because the 8 percent already covers both your income tax and this. But the 8 percent is not automatic, you must choose it on time and it is locked for the whole year.',
+      'If clients withhold tax from your fees, they hand you Form 2307. Keep every single one. It is tax you already paid, and it lowers your bill at year end. Throwing them away means paying twice.',
+      'Cross 3,000,000 pesos in sales in a year and you move into VAT at 12 percent, filed on Form 2550Q each quarter. That is a bigger topic, so get an accountant before you reach that line.',
+      'This is awareness, not tax advice, and Salapify does not file anything for you. Deadlines can shift when they land on a weekend or holiday, so confirm with the BIR or a licensed accountant before you file.',
+    ],
+  },
+  {
+    'id': 'health-is-wealth',
+    'title': 'Health is wealth, literally',
+    'emoji': '🩺',
+    'minutes': 2,
+    'summary': 'Why taking care of your body protects your money too.',
+    'body': [
+      'The fastest way to lose years of ipon is one serious illness. A hospital stay, a maintenance medicine, an emergency operation, these can wipe out savings that took a long time to build. So looking after your health is not separate from your money, it is part of it.',
+      'The cheapest health peso you will ever spend is the one that prevents a big bill later. A checkup that catches something early, staying active, sleeping enough, eating a little better, these quietly protect your finances by keeping the huge bills away. Think of it as a return on investment you cannot see, the crisis that never happened.',
+      'Two shields work together. The first is your emergency fund, money ready for the surprise. The second is your health itself, which decides how often the surprise comes. Building both is how you stop one bad week from undoing years of work. Salapify tracks the money shield for you on Insights, as your emergency fund runway.',
+      'You already have more cover than you think. PhilHealth, which you pay into every month, shoulders part of a hospital bill. An HMO or health card from your job covers more, so use it if you have one. Beyond those, a small amount set aside for health, a Health fund goal here in the app, covers the rest, so a checkup or a medicine is a planned cost, not a panic.',
+      'Spending on your health is not gastos to feel guilty about. A gym, a doctor, decent food, these are among the smartest money you spend, because they lower the odds of the one bill big enough to hurt.',
+    ],
+  },
+  {
+    'id': 'year-end-refund',
+    'title': 'Getting your year-end tax refund',
+    'emoji': '💵',
+    'minutes': 2,
+    'summary': 'Why many employees get money back in December, and how to make sure you do.',
+    'body': [
+      'Every payday your employer takes a slice of your pay for income tax, based on a guess of what you will earn for the whole year. At year end they add up what you really earned and compare it to what they already took. If they took too much, the extra comes back to you as a refund, usually in your December or January pay.',
+      'Why would they take too much? A few common reasons. You started partway through the year, so the monthly guess assumed twelve months you did not actually work. Your pay changed during the year. Your 13th month and bonuses stayed within the tax free ceiling but a little was still withheld along the way. Any of these can mean money is owed back to you.',
+      'You usually do not file anything for this yourself. If you had one employer for the year and your tax was withheld correctly, your employer settles it for you. This is called substituted filing, and the refund arrives in your pay, not as a separate check you chase.',
+      'Changing jobs is where it gets tricky. If you had two employers this year, even one after the other, you are not on substituted filing, so you file your own annual return, BIR Form 1700, by April 15. Give your new employer the Form 2316 from your old job so they add up your year correctly, and keep both 2316s for that return. Skip these and you can end up under withheld, owing a little plus a penalty instead of getting a refund.',
+      'This is awareness, not tax advice. Not everyone gets money back, some owe a little, and Salapify does not file anything for you. To see roughly where you stand, open Tools and try the Year-end tax check, then confirm with the BIR or your HR.',
+    ],
+  },
+  {
+    'id': 'freelancer-setaside',
+    'title': 'Selling online or freelancing? Set aside for tax',
+    'emoji': '💼',
+    'minutes': 2,
+    'summary': 'The simple habit that keeps a sideline or small business out of tax trouble.',
+    'body': [
+      'When no employer withholds tax for you, the discipline is yours. The freelancers and online sellers who never panic at deadline are the ones who treat a slice of every payment as not theirs. When a client pays, move a small part aside the same day, before it starts to feel like spending money.',
+      'How big a slice? On the flat 8 percent option, which you can use up to 3,000,000 in sales a year, a safe habit is to set aside 8 percent of every peso from the start. Your first 250,000 for the year is tax free, so that early set aside quietly builds a buffer for filing day instead of a surprise. On the graduated option it depends on your income and your real expenses. The Income tax calculator in Tools compares both for your own numbers, tells you which costs less, and shows about how much to set aside each month.',
+      'The rhythm is quarterly, not just once a year. You file income tax every quarter and again at year end, plus percentage tax each quarter unless you are on the 8 percent. Miss a deadline and the BIR adds a surcharge and interest, so the money you set aside is what keeps a missed filing from hurting. The BIR filing dates tool shows your next deadlines so none sneak up on you.',
+      'One timing trap. The 8 percent flat rate is not automatic. You choose it on time, at registration or on your first quarter return, and it is locked for the whole year. This is awareness, not tax advice, and Salapify does not file anything for you. Confirm with the BIR or a licensed accountant.',
+    ],
+  },
+];
+
+/// The lesson to feature today, rotating by day of year so it is stable for a
+/// whole day and cycles over time. Mirrors the RN lessonOfTheDay exactly.
+Map<String, dynamic> lessonOfTheDay(DateTime ref) {
+  final start = DateTime(ref.year, 1, 0);
+  final dayOfYear =
+      (ref.difference(start).inMilliseconds / 86400000).floor();
+  return lessons[dayOfYear % lessons.length];
+}
+
+/// The lesson with this id, or null.
+Map<String, dynamic>? lessonById(String id) {
+  for (final l in lessons) {
+    if (l['id'] == id) return l;
+  }
+  return null;
+}
