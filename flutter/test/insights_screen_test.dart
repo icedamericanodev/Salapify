@@ -242,6 +242,42 @@ void main() {
     expect(find.textContaining('3 months sooner'), findsNothing);
   });
 
+  testWidgets('a debt with no rate saved is caveated, never shown as 0 interest',
+      (tester) async {
+    // remaining but no monthlyRate field: amountOf coerces it to 0, so a
+    // naive card would print "0 interest". The guard must caveat instead.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'debts': [
+          {'id': 'card', 'name': 'Store card', 'type': 'credit card',
+              'remaining': 12000, 'minPayment': 800},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    // The whole card is one ListView child, so scrolling its kicker into view
+    // builds every descendant, including the caveat below it.
+    await tester.scrollUntilVisible(
+        find.text('WHAT IF YOU PAID A LITTLE EXTRA'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(
+        find.text(
+            'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.'),
+        findsOneWidget);
+    // The rosy zero-interest phrasing must never appear.
+    expect(find.textContaining('gone to interest'), findsNothing);
+  });
+
   testWidgets('an empty app shows the calm all-clear', (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
