@@ -94,6 +94,17 @@ Map<String, dynamic>? _pickFocusGoal(dynamic goals, DateTime ref) {
   return active.first.$1;
 }
 
+/// Whether a funded ISO date (YYYY-MM-DD) meets a goal's target. A day
+/// precise target (YYYY-MM-DD) is compared to the exact day, so a funded
+/// date later in the SAME month as the target day is honestly late, not "on
+/// time". A month only target (YYYY-MM) means end of that month, so any
+/// same month funded date still counts as on time. Exposed for testing.
+bool fundedOnTime(String fundedIso, String targetDate) {
+  if (targetDate.length >= 10) return fundedIso.compareTo(targetDate) <= 0;
+  final t = targetDate.length >= 7 ? targetDate.substring(0, 7) : targetDate;
+  return fundedIso.substring(0, 7).compareTo(t) <= 0;
+}
+
 /// "3 months", "2.5 months", "1 month", "12+ months", or the honest
 /// not-enough-history label. Whole doubles drop the ".0" the way the RN
 /// screen prints plain JS numbers.
@@ -810,18 +821,21 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
       supportColor = Barako.warning;
     }
 
-    // How the picked pace lands against the date the user actually set.
+    // How the picked pace lands against the date the user actually set. The
+    // tone drives the color: a reward when on time, a gentle warning when the
+    // target has passed, and a plain continuation of the support line
+    // otherwise, so the good and the miss read differently at a glance.
     var targetText = '';
+    var targetTone = 'plain';
     if (forecast != null && targetDate.isNotEmpty && status != 'no-date') {
-      final fundedYM = (forecast['date'] as String).substring(0, 7);
-      final targetYM =
-          targetDate.length >= 7 ? targetDate.substring(0, 7) : targetDate;
       if (status == 'behind') {
         targetText =
             'Your ${_monthYear(targetDate)} target has already passed. Okay lang, a fresh date keeps the goal alive.';
-      } else if (fundedYM.compareTo(targetYM) <= 0) {
+        targetTone = 'behind';
+      } else if (fundedOnTime(forecast['date'] as String, targetDate)) {
         targetText =
             'That is on time for your ${_monthYear(targetDate)} target. Nice.';
+        targetTone = 'ontime';
       } else if (status == 'active') {
         targetText =
             'That lands after your ${_monthYear(targetDate)} target. To hit the date, aim for about ${_wholePeso(pace['perWeek'] as num)} a week.';
@@ -893,12 +907,18 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
               const SizedBox(height: 6),
               Text(targetText,
                   style: TextStyle(
-                      color: status == 'behind'
+                      color: targetTone == 'behind'
                           ? Barako.warning
-                          : Barako.primaryText,
+                          : targetTone == 'ontime'
+                              ? Barako.primary
+                              : Barako.textSecondary,
                       fontSize: 13,
                       height: 1.4,
-                      fontWeight: FontWeight.w600)),
+                      // Only the reward and the warning carry weight; the
+                      // neutral "aim for X a week" reads as part of support.
+                      fontWeight: targetTone == 'plain'
+                          ? FontWeight.w400
+                          : FontWeight.w600)),
             ],
             const SizedBox(height: 8),
             Text(grounding,

@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/analytics.dart' as analytics;
-import 'package:salapify/screens/insights.dart' show runwayLabel;
+import 'package:salapify/screens/insights.dart'
+    show runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -133,6 +134,19 @@ void main() {
     final total = health['total'] as double;
     expect(total.isFinite, isTrue);
     expect((health['parts'] as Map)['debt'], 0);
+  });
+
+  test('fundedOnTime is day-precise, never falsely on time within the month',
+      () {
+    // A day-precise target: a funded date later in the SAME month is late.
+    expect(fundedOnTime('2026-08-20', '2026-08-05'), isFalse);
+    expect(fundedOnTime('2026-08-03', '2026-08-05'), isTrue);
+    expect(fundedOnTime('2026-08-05', '2026-08-05'), isTrue);
+    expect(fundedOnTime('2026-07-01', '2026-08-31'), isTrue);
+    // A month-only target means end of that month, so any same-month funded
+    // date is on time, and the next month is late.
+    expect(fundedOnTime('2026-08-28', '2026-08'), isTrue);
+    expect(fundedOnTime('2026-09-01', '2026-08'), isFalse);
   });
 
   test('runwayLabel drops the .0 on whole months', () {
