@@ -128,4 +128,94 @@ void main() {
         }, ref)),
         normalize(g['empty']));
   });
+
+  group('paydayProjection', () {
+    final pref = DateTime(2026, 7, 16, 12); // Thu
+    // Seven discretionary expenses of 500 on distinct days in the trailing 14
+    // days = 3500, so the pace is 3500 / 14 = 250 a day. The rest MUST be
+    // excluded: debt interest, a debtId expense, a recurring bill, a transfer,
+    // debt principal, and an expense older than the window.
+    List<Map<String, dynamic>> paceTxs() => [
+          for (final day in [3, 5, 7, 9, 11, 13, 15])
+            {
+              'type': 'expense',
+              'amount': 500,
+              'date': '2026-07-${day.toString().padLeft(2, '0')}',
+            },
+          {'type': 'expense', 'source': 'interest', 'debtId': 'x',
+              'amount': 700, 'date': '2026-07-10'},
+          {'type': 'expense', 'debtId': 'y', 'amount': 900,
+              'date': '2026-07-12'},
+          {'type': 'expense', 'recurringId': 'r', 'amount': 800,
+              'date': '2026-07-14'},
+          {'type': 'transfer', 'amount': 1000, 'date': '2026-07-08'},
+          {'type': 'debt', 'amount': 1200, 'date': '2026-07-06'},
+          {'type': 'expense', 'amount': 5000, 'date': '2026-06-01'},
+        ];
+
+    test('warns with the honest ease-off when the pace outruns the runway', () {
+      final blob = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 2000},
+        ],
+        'debts': [],
+        'recurring': [],
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 30},
+        },
+        'transactions': paceTxs(),
+      };
+      final s = safeToSpend(blob, pref);
+      final available = s['available'] as double;
+      final perDay = s['perDay'] as double;
+      final daysLeft = s['daysLeft'] as int;
+      final pp = paydayProjection(blob, pref)!;
+
+      // Only the seven discretionary expenses count: 3500 / 14 = 250.
+      expect(pp['dailyPace'] as double, closeTo(250, 1e-9));
+      expect(pp['available'], available);
+      expect(pp['daysLeft'], daysLeft);
+      // ~143 a day allowed vs 250 spent, so it must be the at-risk branch.
+      expect(pp['onTrack'], isFalse);
+      final expRunOut = (available / 250).floor();
+      expect(pp['daysShort'], daysLeft - expRunOut);
+      expect(pp['easeOff'] as double, closeTo(250 - perDay, 1e-9));
+      expect(pp['leftover'] as double, closeTo(available - 250 * daysLeft, 1e-9));
+      expect(pp['runOutISO'], iso(DateTime(2026, 7, 16 + expRunOut)));
+    });
+
+    test('stays silent on thin recent logging', () {
+      final blob = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 2000},
+        ],
+        'debts': [],
+        'recurring': [],
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 30},
+        },
+        // Only three days of discretionary spend, below the six-day floor.
+        'transactions': [
+          for (final day in [5, 10, 15])
+            {'type': 'expense', 'amount': 500, 'date': '2026-07-$day'},
+        ],
+      };
+      expect(paydayProjection(blob, pref), isNull);
+    });
+
+    test('stays silent when there is no spendable cash (crunch owns that)', () {
+      final blob = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 0},
+        ],
+        'debts': [],
+        'recurring': [],
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 30},
+        },
+        'transactions': paceTxs(),
+      };
+      expect(paydayProjection(blob, pref), isNull);
+    });
+  });
 }

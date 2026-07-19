@@ -34,6 +34,22 @@ String _m(dynamic n) {
 String _iso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+const List<String> _mos = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// An ISO date as 'Mon D' for coach messages; falls back to the raw string on
+/// anything malformed rather than throwing.
+String _md(String iso) {
+  final p = iso.split('-');
+  if (p.length < 3) return iso;
+  final m = int.tryParse(p[1]);
+  final d = int.tryParse(p[2]);
+  if (m == null || m < 1 || m > 12 || d == null) return iso;
+  return '${_mos[m - 1]} $d';
+}
+
 /// Essentials the coach must never tell someone to cut. Word-based, not
 /// substring, with Filipino/Taglish terms. Over-inclusive is the safe side.
 const Set<String> _essentialWords = {
@@ -159,6 +175,23 @@ List<Map<String, dynamic>> decisionCandidates(
     cands.add(_cand(60, 'forecast', 'watch', 'On track to go over budget',
         "At today's pace you will spend about ${_m(f['projected'])} by month end, over your ${_m(limit)} limit. Trimming a little each day gets you back under.",
         'Check budget', '/budget'));
+  }
+
+  // Will you make it to sweldo? A Flutter-only decision (no RN twin), so it is
+  // additive to the ported ladder and never fires on the RN golden fixtures.
+  // Only speaks when there is spendable cash left (available > 0), which is
+  // exactly the case crunch at prio 100 does NOT cover, so the two can never
+  // fire together. Silent on thin logging.
+  final pp = paydayProjection(d, ref);
+  if (pp != null &&
+      pp['onTrack'] == false &&
+      (pp['daysShort'] as int) >= 1) {
+    final short = pp['daysShort'] as int;
+    final dayWord = short == 1 ? 'day' : 'days';
+    cands.add(_cand(63, 'payday', 'watch',
+        '$short $dayWord short before sweldo',
+        'At about ${_m(pp['dailyPace'])} a day you would run thin around ${_md(pp['runOutISO'] as String)}, $short $dayWord before your ${_md(pp['payday'] as String)} sweldo. Easing about ${_m(pp['easeOff'])} a day gets you all the way there.',
+        'See what is running hot', '/insights'));
   }
 
   final todayStr = _iso(ref);

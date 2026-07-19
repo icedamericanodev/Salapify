@@ -26,6 +26,50 @@ void main() {
     expect(weekKey(ref), raw['weekKey']);
   });
 
+  // The payday-runway candidate is Flutter-only (not in RN), so it is tested
+  // directly here rather than in the RN golden replay above.
+  test('the payday-runway decision surfaces at risk and reaches Home', () {
+    final atRisk = {
+      'accounts': [
+        {'id': 'c', 'kind': 'cash', 'balance': 2000},
+      ],
+      'debts': [],
+      'recurring': [],
+      'settings': {
+        'paydaySchedule': {'mode': 'monthly', 'day': 30},
+      },
+      // Seven discretionary spend days = pace 250 a day, well over the ~143
+      // a day the 2000 runway allows until the 30th.
+      'transactions': [
+        for (final day in [3, 5, 7, 9, 11, 13, 15])
+          {
+            'type': 'expense',
+            'amount': 500,
+            'date': '2026-07-${day.toString().padLeft(2, '0')}',
+          },
+      ],
+    };
+    final cands = decisionCandidates(atRisk, ref);
+    final payday = cands.where((c) => c['kind'] == 'payday').toList();
+    expect(payday, hasLength(1), reason: 'one payday candidate at risk');
+    expect(payday.first['title'], contains('short before sweldo'));
+    expect(payday.first['prio'], 63);
+    expect((payday.first['message'] as String), contains('a day gets you'));
+    // It is not a daily-habit nudge, so the Home check-in surfaces it.
+    expect(weeklyCheckIn(atRisk, ref)['kind'], 'payday');
+
+    // No spendable cash: crunch owns that state, the payday card stays away.
+    final broke = {
+      ...atRisk,
+      'accounts': [
+        {'id': 'c', 'kind': 'cash', 'balance': 0},
+      ],
+    };
+    expect(
+        decisionCandidates(broke, ref).where((c) => c['kind'] == 'payday'),
+        isEmpty);
+  });
+
   for (final entry in (raw['scenarios'] as Map<String, dynamic>).entries) {
     test('coach golden: ${entry.key}', () {
       final s = entry.value as Map<String, dynamic>;
