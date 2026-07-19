@@ -1,0 +1,152 @@
+{
+  "ref": "2026-07-16",
+  "ladder": [
+    0,
+    200,
+    500,
+    1000
+  ],
+  "cases": {
+    "typical": {
+      "debts": [
+        {
+          "id": "card",
+          "name": "Card",
+          "remaining": 18000,
+          "monthlyRate": 3,
+          "minPayment": 900
+        },
+        {
+          "id": "loan",
+          "name": "Loan",
+          "remaining": 45000,
+          "monthlyRate": 1,
+          "minPayment": 2500
+        },
+        {
+          "id": "utang",
+          "name": "Utang",
+          "remaining": 4000,
+          "monthlyRate": 0,
+          "minPayment": 500
+        }
+      ],
+      "byExtra": [
+        {
+          "extra": 0,
+          "result": {
+            "months": 21,
+            "totalInterest": 12124,
+            "date": "2028-04-01"
+          }
+        },
+        {
+          "extra": 200,
+          "result": {
+            "months": 19,
+            "totalInterest": 10785,
+            "date": "2028-02-01"
+          }
+        },
+        {
+          "extra": 500,
+          "result": {
+            "months": 18,
+            "totalInterest": 9351,
+            "date": "2028-01-01"
+          }
+        },
+        {
+          "extra": 1000,
+          "result": {
+            "months": 16,
+            "totalInterest": 7766,
+            "date": "2027-11-01"
+          }
+        }
+      ]
+    },
+    "nullBaseline": {
+      "debts": [
+        {
+          "id": "trap",
+          "name": "Trap card",
+          "remaining": 30000,
+          "monthlyRate": 3,
+          "minPayment": 500
+        }
+      ],
+      "byExtra": [
+        {
+          "extra": 0,
+          "result": null
+        },
+        {
+          "extra": 200,
+          "result": null
+        },
+        {
+          "extra": 500,
+          "result": {
+            "months": 78,
+            "totalInterest": 47900,
+            "date": "2033-01-01"
+          }
+        },
+        {
+          "extra": 1000,
+          "result": {
+            "months": 31,
+            "totalInterest": 16498,
+            "date": "2029-02-01"
+          }
+        }
+      ]
+    },
+    "zeroRate": {
+      "debts": [
+        {
+          "id": "u",
+          "name": "Kaibigan",
+          "remaining": 6000,
+          "monthlyRate": 0,
+          "minPayment": 500
+        }
+      ],
+      "byExtra": [
+        {
+          "extra": 0,
+          "result": {
+            "months": 12,
+            "totalInterest": 0,
+            "date": "2027-07-01"
+          }
+        },
+        {
+          "extra": 200,
+          "result": {
+            "months": 9,
+            "totalInterest": 0,
+            "date": "2027-04-01"
+          }
+        },
+        {
+          "extra": 500,
+          "result": {
+            "months": 6,
+            "totalInterest": 0,
+            "date": "2027-01-01"
+          }
+        },
+        {
+          "extra": 1000,
+          "result": {
+            "months": 4,
+            "totalInterest": 0,
+            "date": "2026-11-01"
+          }
+        }
+      ]
+    }
+  }
+}

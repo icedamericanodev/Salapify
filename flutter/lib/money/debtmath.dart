@@ -165,6 +165,45 @@ Map<String, dynamic>? debtFreeProjection(dynamic debts,
   };
 }
 
+/// The forward-looking "what if I paid a little extra" ladder for the
+/// Insights simulator. For each extra monthly amount it runs the golden
+/// locked avalanche debtFreeProjection and reports the months and interest
+/// SAVED versus paying only the minimums. Pure composition: it invents no
+/// number the projection engine did not already compute, it only subtracts.
+///
+/// Returns { baseline, steps }:
+/// - baseline is the extra-0 projection ({months, totalInterest, date}) or
+///   null when even the minimums lose to the interest so the balance grows.
+/// - steps is one entry per extra: { extra, projection (or null), monthsSaved
+///   (or null), interestSaved (or null) }. Saved values are null whenever
+///   either that step or the baseline has no finite payoff, so the screen
+///   can tell the honest story instead of a made-up date.
+Map<String, dynamic> whatIfLadder(dynamic debts, List<int> extras,
+    [DateTime? ref]) {
+  final refDate = ref ?? DateTime.now();
+  final baseline = debtFreeProjection(debts, 'avalanche', 0, refDate);
+  final baseMonths = baseline == null ? null : baseline['months'] as int;
+  final baseInterest =
+      baseline == null ? null : baseline['totalInterest'] as double;
+  final steps = <Map<String, dynamic>>[];
+  for (final e in extras) {
+    final p = debtFreeProjection(debts, 'avalanche', e.toDouble(), refDate);
+    final pMonths = p == null ? null : p['months'] as int;
+    final pInterest = p == null ? null : p['totalInterest'] as double;
+    steps.add({
+      'extra': e,
+      'projection': p,
+      'monthsSaved': (pMonths != null && baseMonths != null)
+          ? baseMonths - pMonths
+          : null,
+      'interestSaved': (pInterest != null && baseInterest != null)
+          ? baseInterest - pInterest
+          : null,
+    });
+  }
+  return {'baseline': baseline, 'steps': steps};
+}
+
 /// Forecast for one credit card: next statement cut, bank-adjusted due,
 /// forecast balance, minimum due, utilization, and what paying late costs.
 /// Dates cross the API as ISO strings.

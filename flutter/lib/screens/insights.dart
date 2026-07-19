@@ -13,8 +13,34 @@ import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
 import '../money/coach.dart' as coach;
 import '../money/commitments.dart' as commitments;
+import '../money/debtmath.dart' as debtmath;
+import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import 'overview.dart' show formatMoney;
+
+const List<String> _monthsShort = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// An ISO 'YYYY-MM-DD' payoff date as 'Mon YYYY', the way the Debts screen
+/// prints it, so the two screens read the same.
+String _monthYear(String iso) {
+  final p = iso.split('-');
+  if (p.length < 2) return iso;
+  final m = int.tryParse(p[1]);
+  if (m == null || m < 1 || m > 12) return iso;
+  return '${_monthsShort[m - 1]} ${p[0]}';
+}
+
+/// True when at least one debt still has money owed, so the what-if
+/// simulator has something to project. A debt-free user never sees it.
+bool _hasActiveDebt(dynamic debts) {
+  for (final d in (debts is List ? debts : const [])) {
+    if (d is Map && amountOf(d['remaining']) > 0) return true;
+  }
+  return false;
+}
 
 /// "3 months", "2.5 months", "1 month", "12+ months", or the honest
 /// not-enough-history label. Whole doubles drop the ".0" the way the RN
@@ -105,6 +131,10 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
+            if (_hasActiveDebt(data['debts'])) ...[
+              const SizedBox(height: 12),
+              _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
+            ],
             const SizedBox(height: 12),
             _healthCard(health),
             const SizedBox(height: 12),
@@ -461,6 +491,167 @@ class InsightsScreen extends StatelessWidget {
               style: TextStyle(
                   color: Barako.muted, fontSize: 13, height: 1.4),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The forward-looking decision card: drag the extra payment up and watch
+/// the debt free date jump closer and the interest drop. Every number comes
+/// from debtmath.whatIfLadder, which composes the golden locked
+/// debtFreeProjection, so nothing here is invented and it matches the live
+/// app to the peso. Only renders when there is real debt to project.
+class _DebtWhatIfCard extends StatefulWidget {
+  final dynamic debts;
+  final Map<String, dynamic> sts;
+  final DateTime ref;
+  const _DebtWhatIfCard(
+      {required this.debts, required this.sts, required this.ref});
+
+  @override
+  State<_DebtWhatIfCard> createState() => _DebtWhatIfCardState();
+}
+
+class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
+  // A fixed pure ladder, not a free slider, so every offered number is
+  // affordable-sounding and the shown result is deterministic and testable.
+  static const List<int> _ladder = [200, 500, 1000];
+  int _extra = 500;
+
+  /// Whole pesos, comma grouped. The projection amounts are already rounded
+  /// to the peso, and the ladder is round, so centavos would only add noise.
+  String _peso(num v) {
+    final n = v.round();
+    final neg = n < 0;
+    final s = n.abs().toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return '${neg ? '-' : ''}₱$buf';
+  }
+
+  /// The debt the avalanche plan attacks first, highest monthly rate wins,
+  /// so the extra has a name to land on.
+  String _focusDebtName() {
+    Map<String, dynamic>? best;
+    for (final d in (widget.debts is List ? widget.debts as List : const [])) {
+      if (d is! Map) continue;
+      final dm = d.cast<String, dynamic>();
+      if (!(amountOf(dm['remaining']) > 0)) continue;
+      if (best == null ||
+          amountOf(dm['monthlyRate']) > amountOf(best['monthlyRate'])) {
+        best = dm;
+      }
+    }
+    final name = best?['name'];
+    return (name is String && name.trim().isNotEmpty) ? name.trim() : 'your debt';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final result = debtmath.whatIfLadder(widget.debts, _ladder, widget.ref);
+    final baseline = result['baseline'] as Map<String, dynamic>?;
+    final steps = (result['steps'] as List).cast<Map<String, dynamic>>();
+    final step = steps.firstWhere((s) => s['extra'] == _extra);
+    final proj = step['projection'] as Map<String, dynamic>?;
+    final monthsSaved = step['monthsSaved'] as int?;
+    final interestSaved = step['interestSaved'] as double?;
+    final focus = _focusDebtName();
+    final available = widget.sts['available'] as double;
+    final crunch = available <= 0;
+    final extraLabel = _peso(_extra);
+
+    final intro = baseline != null
+        ? 'On your current payments, you are on track to be debt free around ${_monthYear(baseline['date'] as String)}, with about ${_peso(baseline['totalInterest'] as double)} in interest along the way.'
+        : 'Right now your minimum payments are barely keeping up with the interest, so the balances are not really shrinking yet.';
+
+    String delta;
+    Color deltaColor;
+    if (baseline != null && proj != null) {
+      if ((monthsSaved ?? 0) > 0) {
+        final months = monthsSaved!;
+        final monthWord = months == 1 ? 'month' : 'months';
+        final interestClause = (interestSaved != null && interestSaved > 0)
+            ? ', and about ${_peso(interestSaved)} you keep instead of handing to interest'
+            : '';
+        delta =
+            'Add $extraLabel a month to $focus and you could be debt free around ${_monthYear(proj['date'] as String)} instead, $months $monthWord sooner$interestClause.';
+        deltaColor = Barako.primaryText;
+      } else if (interestSaved != null && interestSaved > 0) {
+        delta =
+            'Add $extraLabel a month and you keep about ${_peso(interestSaved)} out of interest, though it is not quite enough to move the debt free month yet. A bit more would.';
+        deltaColor = Barako.primaryText;
+      } else {
+        delta =
+            'Adding $extraLabel a month is not quite enough to move the date yet. Try a bit more.';
+        deltaColor = Barako.textSecondary;
+      }
+    } else if (baseline == null && proj != null) {
+      delta =
+          'Adding $extraLabel a month to $focus is what flips it: the balance starts actually shrinking, on track to be clear around ${_monthYear(proj['date'] as String)}.';
+      deltaColor = Barako.primaryText;
+    } else {
+      delta =
+          'Even $extraLabel more a month is not quite enough to get ahead of the interest yet. A bigger payment, or a lower rate, is what turns this around.';
+      deltaColor = Barako.warning;
+    }
+
+    final grounding = crunch
+        ? 'Your bills use up your spendable cash until sweldo, so this is just a what if for now. Even a small extra after payday makes a real dent.'
+        : 'You have about ${_peso(widget.sts['perDay'] as double)} free to spend a day right now, so $extraLabel a month is roughly ${_peso((_extra / 30).ceil())} a day, if you can spare it.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('WHAT IF YOU PAID A LITTLE EXTRA', style: Barako.kickerStyle),
+            const SizedBox(height: 6),
+            Text(intro,
+                style: TextStyle(
+                    color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final e in _ladder)
+                  ChoiceChip(
+                    label: Text('+${_peso(e)} a month'),
+                    selected: _extra == e,
+                    onSelected: (_) => setState(() => _extra = e),
+                    selectedColor: Barako.primary,
+                    backgroundColor: Barako.background,
+                    labelStyle: TextStyle(
+                        color: _extra == e
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
+                        fontWeight: FontWeight.w600),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(delta,
+                style: TextStyle(
+                    color: deltaColor,
+                    fontSize: 14,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text(grounding,
+                style: TextStyle(
+                    color: crunch ? Barako.warning : Barako.muted,
+                    fontSize: 12,
+                    height: 1.4)),
+            const SizedBox(height: 6),
+            Text(
+                'A projection from your logged balances and rates, assuming you keep it up and add no new charges. A guide, not a promise.',
+                style:
+                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
           ],
         ),
       ),

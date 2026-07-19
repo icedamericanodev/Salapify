@@ -182,6 +182,66 @@ void main() {
     expect(find.text('STILL OUT'), findsOneWidget);
   });
 
+  testWidgets('the what-if simulator projects savings and reacts to the chips',
+      (tester) async {
+    // A liquid cash cushion (so it is not the crunch state) and the exact
+    // three-debt book from the golden. debtFreeProjection's month COUNTS are
+    // ref-independent (only the absolute payoff date shifts with today), so
+    // the savings deltas are stable whatever day the test runs: baseline 21
+    // months, +500 -> 18 (3 sooner), +1000 -> 16 (5 sooner).
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'debts': [
+          {
+            'id': 'card',
+            'name': 'BPI card',
+            'remaining': 18000,
+            'monthlyRate': 3,
+            'minPayment': 900,
+          },
+          {
+            'id': 'loan',
+            'name': 'Loan',
+            'remaining': 45000,
+            'monthlyRate': 1,
+            'minPayment': 2500,
+          },
+          {
+            'id': 'utang',
+            'name': 'Utang',
+            'remaining': 4000,
+            'monthlyRate': 0,
+            'minPayment': 500,
+          },
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+        find.text('WHAT IF YOU PAID A LITTLE EXTRA'), 200,
+        scrollable: find.byType(Scrollable).first);
+    // Default is +500: the avalanche focus is the 3% card, 3 months sooner.
+    expect(find.textContaining('BPI card'), findsOneWidget);
+    expect(find.textContaining('3 months sooner'), findsOneWidget);
+
+    // Tapping the +1,000 chip recomputes to 5 months sooner, live.
+    await tester.ensureVisible(find.text('+₱1,000 a month'));
+    await tester.tap(find.text('+₱1,000 a month'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('5 months sooner'), findsOneWidget);
+    expect(find.textContaining('3 months sooner'), findsNothing);
+  });
+
   testWidgets('an empty app shows the calm all-clear', (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
