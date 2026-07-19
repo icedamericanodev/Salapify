@@ -99,7 +99,7 @@ class ToolsScreen extends StatelessWidget {
             Text('ON THE WAY',
                 style: TextStyle(
                     color: Barako.muted,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2)),
             const SizedBox(height: 6),

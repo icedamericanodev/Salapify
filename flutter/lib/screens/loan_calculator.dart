@@ -227,7 +227,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                       Text('MONTHLY PAYMENT',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 4),
@@ -284,7 +284,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                           style: TextStyle(
                               color:
                                   addon ? Barako.warning : Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),

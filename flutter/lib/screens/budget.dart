@@ -164,11 +164,16 @@ class BudgetScreen extends StatelessWidget {
                 if (store.canWrite)
                   InkWell(
                     onTap: () => _editLimit(context),
-                    child: Text(limit > 0 ? 'Change limit' : 'Set a limit',
-                        style: TextStyle(
-                            color: Barako.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700)),
+                    child: Padding(
+                      // A real 44dp-ish tap target, not just the text.
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 4),
+                      child: Text(limit > 0 ? 'Change limit' : 'Set a limit',
+                          style: TextStyle(
+                              color: Barako.primaryText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ),
                   ),
               ],
             ),
@@ -219,9 +224,10 @@ class BudgetScreen extends StatelessWidget {
               Text(formatMoney(spent),
                   style: TextStyle(
                       color: Barako.text,
+                      fontFamily: Barako.displayFont,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      fontFeatures: [FontFeature.tabularFigures()])),
+                      fontFeatures: const [FontFeature.tabularFigures()])),
               const SizedBox(height: 4),
               Text(
                   'Spent so far this month. Set a monthly limit and the bar will keep you honest.',

@@ -252,7 +252,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                               : 'OUR PICK',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 4),
@@ -357,7 +357,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                       Text('FORMS YOU WILL FILE',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -434,7 +434,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                     child: Text('LOWER',
                         style: TextStyle(
                             color: Barako.onPrimary,
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1)),
                   ),

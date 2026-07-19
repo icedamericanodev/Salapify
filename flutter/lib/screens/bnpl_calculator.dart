@@ -224,7 +224,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       Text('CHECK YOUR NUMBERS',
                           style: TextStyle(
                               color: Barako.warning,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -256,7 +256,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       Text('TOTAL YOU WILL PAY',
                           style: TextStyle(
                               color: Barako.muted,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 4),
@@ -315,7 +315,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                               color: trulyFree
                                   ? Barako.muted
                                   : Barako.warning,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),

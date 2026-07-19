@@ -135,7 +135,10 @@ class OverviewScreen extends StatelessWidget {
                                   style: TextStyle(
                                       color: Barako.textSecondary,
                                       fontSize: 16,
-                                      fontWeight: FontWeight.w600)),
+                                      fontWeight: FontWeight.w600,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures()
+                                      ])),
                             ],
                           ),
                         ),
@@ -448,7 +451,8 @@ class OverviewScreen extends StatelessWidget {
                       fontFamily: Barako.displayFont,
                       color: Barako.primary,
                       fontSize: 34,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
               if (sub != null) ...[
                 const SizedBox(height: 4),
                 Text(sub,
@@ -476,7 +480,8 @@ class OverviewScreen extends StatelessWidget {
                 style: TextStyle(
                     color: color ?? Barako.textSecondary,
                     fontSize: 15,
-                    fontWeight: strong ? FontWeight.w700 : FontWeight.w600)),
+                    fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ],
         ),
       );

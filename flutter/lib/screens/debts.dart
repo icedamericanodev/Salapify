@@ -186,7 +186,10 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                       color: Barako.text,
                                       fontSize: 30,
                                       fontFamily: Barako.displayFont,
-                                      fontWeight: FontWeight.w700)),
+                                      fontWeight: FontWeight.w700,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures()
+                                      ])),
                               const SizedBox(height: 8),
                               _line('Monthly minimums',
                                   formatMoney(totalMin)),
@@ -292,7 +295,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   Widget _kicker(String text) => Text(text,
       style: TextStyle(
           color: Barako.muted,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 2));
 
@@ -651,7 +654,7 @@ class _DebtSheetState extends State<DebtSheet> {
                         Text('THIS CYCLE',
                             style: TextStyle(
                                 color: Barako.muted,
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 2)),
                         const SizedBox(height: 4),
@@ -685,7 +688,7 @@ class _DebtSheetState extends State<DebtSheet> {
                   Text('LOG A PAYMENT',
                       style: TextStyle(
                           color: Barako.muted,
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 2)),
                   const SizedBox(height: 8),
@@ -761,7 +764,7 @@ class _DebtSheetState extends State<DebtSheet> {
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(msg!,
                         style: TextStyle(
-                            color: Barako.primary,
+                            color: Barako.primaryText,
                             fontSize: 12,
                             height: 1.4)),
                   ),

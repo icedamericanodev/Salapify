@@ -393,7 +393,8 @@ class _PersonSheetState extends State<PersonSheet> {
                         ? 'All settled. Salamat, ${widget.name}!'
                         : '${formatMoney(total)} still out',
                     style: TextStyle(
-                        color: items.isEmpty ? Barako.primary : Barako.muted,
+                        color:
+                            items.isEmpty ? Barako.primaryText : Barako.muted,
                         fontSize: 13)),
                 const SizedBox(height: 12),
                 for (final r in items) _utangCard(r),
@@ -473,8 +474,11 @@ class _PersonSheetState extends State<PersonSheet> {
                       ),
                       InkWell(
                         onTap: busy ? null : () => _removePayment(r, p),
-                        child: Padding(
-                          padding: EdgeInsets.all(4),
+                        customBorder: const CircleBorder(),
+                        // A real 44dp tap target around the small icon.
+                        child: SizedBox(
+                          width: 44,
+                          height: 44,
                           child: Icon(Icons.close,
                               color: Barako.faint, size: 14),
                         ),
