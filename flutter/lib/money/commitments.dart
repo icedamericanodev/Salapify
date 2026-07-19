@@ -287,18 +287,30 @@ double _discretionaryDailyPace(
 Map<String, dynamic>? paydayProjection(Map<String, dynamic> data, DateTime ref) {
   final s = safeToSpend(data, ref);
   final available = s['available'] as double;
-  if (!(available > 0)) return null;
+  // A junk backup can smuggle a huge or non-finite balance. floor() throws on
+  // a non-finite double, so refuse anything that is not a real positive amount
+  // before any division, rather than crash the whole coach.
+  if (!(available > 0) || !available.isFinite) return null;
   final daysSeen = <String>{};
   final dailyPace =
       _discretionaryDailyPace(data['transactions'], ref, daysSeen);
   const minLoggedDays = 6;
-  if (daysSeen.length < minLoggedDays || !(dailyPace > 0)) return null;
+  if (daysSeen.length < minLoggedDays ||
+      !(dailyPace > 0) ||
+      !dailyPace.isFinite) {
+    return null;
+  }
 
   final perDay = s['perDay'] as double;
   final daysLeft = s['daysLeft'] as int;
   final onTrack = dailyPace <= perDay;
   final leftover = available - dailyPace * daysLeft;
-  final daysToRunOut = (available / dailyPace).floor();
+  final ratio = available / dailyPace;
+  // A very large available over a tiny pace overflows to Infinity; floor()
+  // would throw. If the runway is effectively unbounded, there is no shortfall
+  // to warn about, so stay silent.
+  if (!ratio.isFinite) return null;
+  final daysToRunOut = ratio.floor();
   final rawShort = daysLeft - daysToRunOut;
   final today = DateTime(ref.year, ref.month, ref.day);
   final runOut = DateTime(today.year, today.month, today.day + daysToRunOut);

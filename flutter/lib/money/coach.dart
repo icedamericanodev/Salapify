@@ -7,7 +7,8 @@
 // can never contradict each other.
 //
 // Priority order (desc): crunch 100 > debtdue 92 > utang 90 > overspend 85
-// > hot 70 > forecast 60 > logtoday 58 > buffer 55 > goal 50 > lesson 45.
+// > hot 70 > payday 63 > forecast 60 > logtoday 58 > buffer 55 > goal 50 >
+// lesson 45. (payday is a Flutter-only candidate, not in the RN twin.)
 
 import 'analytics.dart';
 import 'commitments.dart';

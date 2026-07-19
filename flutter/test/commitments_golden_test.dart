@@ -203,6 +203,47 @@ void main() {
       expect(paydayProjection(blob, pref), isNull);
     });
 
+    test('survives an absurd backup instead of crashing the coach', () {
+      // A junk balance of 1.7e308 makes available/dailyPace overflow to
+      // Infinity; floor() would throw and take down the whole coach. It must
+      // return null instead.
+      final hugeBalance = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 1.7e308},
+        ],
+        'debts': [],
+        'recurring': [],
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 30},
+        },
+        'transactions': [
+          for (final day in [5, 6, 7, 8, 9, 10])
+            {'type': 'expense', 'amount': 1, 'date': '2026-07-0$day'},
+        ],
+      };
+      expect(() => paydayProjection(hugeBalance, pref), returnsNormally);
+      expect(paydayProjection(hugeBalance, pref), isNull);
+
+      // Two absurd expenses make the pace itself Infinity; the isFinite guard
+      // must catch it before any garbage "₱0 a day" message is built.
+      final hugePace = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 2000},
+        ],
+        'debts': [],
+        'recurring': [],
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 30},
+        },
+        'transactions': [
+          for (final day in [5, 6, 7, 8, 9, 10])
+            {'type': 'expense', 'amount': 1.7e308, 'date': '2026-07-0$day'},
+        ],
+      };
+      expect(() => paydayProjection(hugePace, pref), returnsNormally);
+      expect(paydayProjection(hugePace, pref), isNull);
+    });
+
     test('stays silent when there is no spendable cash (crunch owns that)', () {
       final blob = {
         'accounts': [
