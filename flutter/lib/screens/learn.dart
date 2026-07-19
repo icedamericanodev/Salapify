@@ -45,7 +45,12 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   void _open(BuildContext context, Map<String, dynamic> lesson) {
-    widget.store.markLessonRead(lesson['id'] as String);
+    // Reading always works; only record it when writes are allowed, so a
+    // read-only store (after a failed load) never throws from the unawaited
+    // write. Marking read is best effort, never blocks opening the lesson.
+    if (widget.store.canWrite) {
+      widget.store.markLessonRead(lesson['id'] as String);
+    }
     Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => _LessonReader(lesson: lesson)));
   }
@@ -82,7 +87,19 @@ class _LearnScreenState extends State<LearnScreen> {
                                 color: Barako.text,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: lessons.isEmpty
+                                ? 0
+                                : readCount / lessons.length,
+                            minHeight: 8,
+                            backgroundColor: Barako.border,
+                            color: Barako.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Text('Short reads on your money, always free.',
                             style:
                                 TextStyle(color: Barako.muted, fontSize: 13)),
@@ -130,6 +147,12 @@ class _LearnScreenState extends State<LearnScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (featured) ...[
+                        Text('TODAY',
+                            style: Barako.kickerStyle
+                                .copyWith(color: Barako.primaryText)),
+                        const SizedBox(height: 4),
+                      ],
                       Text(l['title'] as String,
                           style: TextStyle(
                               color: Barako.text,
@@ -147,12 +170,16 @@ class _LearnScreenState extends State<LearnScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(
-                    isRead
-                        ? Icons.check_circle
-                        : Icons.chevron_right,
-                    color: isRead ? Barako.primary : Barako.faint,
-                    size: isRead ? 20 : 22),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 150),
+                  transitionBuilder: (child, anim) =>
+                      FadeTransition(opacity: anim, child: child),
+                  child: Icon(
+                      isRead ? Icons.check_circle : Icons.chevron_right,
+                      key: ValueKey<bool>(isRead),
+                      color: isRead ? Barako.primary : Barako.faint,
+                      size: isRead ? 20 : 22),
+                ),
               ],
             ),
           ),
@@ -176,33 +203,40 @@ class _LessonReader extends StatelessWidget {
         foregroundColor: Barako.text,
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-          children: [
-            Text(lesson['emoji'] as String,
-                style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 12),
-            Text(lesson['title'] as String,
-                style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: Barako.text,
-                    fontSize: 26,
-                    height: 1.1,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text('${lesson['minutes']} min read',
-                style: TextStyle(color: Barako.muted, fontSize: 12)),
-            const SizedBox(height: 20),
-            for (final p in body)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(p,
+        // Cap the reading measure so paragraphs never run edge to edge on a
+        // tablet or landscape phone (flutter-ui-polish typography rule).
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+              children: [
+                Text(lesson['emoji'] as String,
+                    style: const TextStyle(fontSize: 40)),
+                const SizedBox(height: 12),
+                Text(lesson['title'] as String,
                     style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 15,
-                        height: 1.55)),
-              ),
-          ],
+                        fontFamily: Barako.displayFont,
+                        color: Barako.text,
+                        fontSize: 26,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Text('${lesson['minutes']} min read',
+                    style: TextStyle(color: Barako.muted, fontSize: 12)),
+                const SizedBox(height: 20),
+                for (final p in body)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(p,
+                        style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 15,
+                            height: 1.55)),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
