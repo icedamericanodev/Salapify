@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.63 · Will you make it to sweldo, payday runway decision';
+    'f0.64 · Home money check-in: the top decision at app open';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
