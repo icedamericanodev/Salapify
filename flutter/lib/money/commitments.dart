@@ -241,3 +241,89 @@ Map<String, dynamic> safeToSpend(Map<String, dynamic> data, DateTime ref) {
     'billCount': (c['bills'] as List).length,
   };
 }
+
+/// Your recent DISCRETIONARY spend per day, averaged over the trailing 14
+/// days. Deliberately excludes anything safeToSpend already sets aside in
+/// `committed`: transfers, debt principal, and adjustments are not expenses;
+/// a debt interest expense (source 'interest') and anything tagged with a
+/// debtId or recurringId is a committed cost, so counting it here would double
+/// count against the runway. `daysSeen` collects the distinct days that had
+/// discretionary spend, so the caller can refuse to read a pace off too few.
+double _discretionaryDailyPace(
+    dynamic transactions, DateTime ref, Set<String> daysSeen) {
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final start = DateTime(today.year, today.month, today.day - 13);
+  var total = 0.0;
+  for (final raw in (transactions is List ? transactions : const [])) {
+    if (raw is! Map) continue;
+    final t = raw.cast<String, dynamic>();
+    if (t['type'] != 'expense') continue;
+    if (t['source'] == 'interest') continue;
+    if (_jsTruthy(t['debtId']) || _jsTruthy(t['recurringId'])) continue;
+    final ds = (t['date'] ?? '').toString();
+    if (ds.length < 10) continue;
+    final p = ds.split('-');
+    final y = int.tryParse(p[0]);
+    final m = p.length > 1 ? int.tryParse(p[1]) : null;
+    final d = p.length > 2 ? int.tryParse(p[2]) : null;
+    if (y == null || m == null || d == null) continue;
+    final when = DateTime(y, m, d);
+    if (when.isBefore(start) || when.isAfter(today)) continue;
+    total += amountOf(t['amount']);
+    daysSeen.add(ds.substring(0, 10));
+  }
+  return total / 14;
+}
+
+/// Cash flow to the next sweldo: compares your recent discretionary daily pace
+/// against the spendable cash safeToSpend already computed, and reports whether
+/// you are on track to reach payday or on pace to run short first, with the
+/// small daily easing that closes the gap. Pure and offline.
+///
+/// Returns null (the card stays silent) when available <= 0 (that is the
+/// crunch case, owned by the coach's crunch decision, so this never stacks a
+/// second scary card), when there is too little recent logging to read a pace
+/// honestly, or when the recent pace is zero. Silence beats a made-up number.
+Map<String, dynamic>? paydayProjection(Map<String, dynamic> data, DateTime ref) {
+  final s = safeToSpend(data, ref);
+  final available = s['available'] as double;
+  // A junk backup can smuggle a huge or non-finite balance. floor() throws on
+  // a non-finite double, so refuse anything that is not a real positive amount
+  // before any division, rather than crash the whole coach.
+  if (!(available > 0) || !available.isFinite) return null;
+  final daysSeen = <String>{};
+  final dailyPace =
+      _discretionaryDailyPace(data['transactions'], ref, daysSeen);
+  const minLoggedDays = 6;
+  if (daysSeen.length < minLoggedDays ||
+      !(dailyPace > 0) ||
+      !dailyPace.isFinite) {
+    return null;
+  }
+
+  final perDay = s['perDay'] as double;
+  final daysLeft = s['daysLeft'] as int;
+  final onTrack = dailyPace <= perDay;
+  final leftover = available - dailyPace * daysLeft;
+  final ratio = available / dailyPace;
+  // A very large available over a tiny pace overflows to Infinity; floor()
+  // would throw. If the runway is effectively unbounded, there is no shortfall
+  // to warn about, so stay silent.
+  if (!ratio.isFinite) return null;
+  final daysToRunOut = ratio.floor();
+  final rawShort = daysLeft - daysToRunOut;
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final runOut = DateTime(today.year, today.month, today.day + daysToRunOut);
+  return {
+    'available': available,
+    'perDay': perDay,
+    'daysLeft': daysLeft,
+    'payday': s['payday'],
+    'dailyPace': dailyPace,
+    'onTrack': onTrack,
+    'leftover': leftover,
+    'daysShort': rawShort > 0 ? rawShort : 0,
+    'easeOff': dailyPace > perDay ? dailyPace - perDay : 0.0,
+    'runOutISO': _iso(runOut),
+  };
+}
