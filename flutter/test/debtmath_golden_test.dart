@@ -23,6 +23,17 @@ void main() {
       as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 16, 12);
 
+  test('monthlyInterest matches the RN arrow on every vector', () {
+    final mi = jsonDecode(
+        File('test/goldens/monthly_interest_goldens.json').readAsStringSync())
+        as Map<String, dynamic>;
+    for (final c in (mi['cases'] as List).cast<Map<String, dynamic>>()) {
+      final debt = (c['debt'] as Map).cast<String, dynamic>();
+      expect(monthlyInterest(debt), (c['result'] as num).toDouble(),
+          reason: c['name'] as String);
+    }
+  });
+
   test('splitDebtPayment matches the RN engine on every vector', () {
     for (final v in (raw['splits'] as List)) {
       final a = (v['args'] as Map).cast<String, dynamic>();

@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/debtmath.dart'
-    show cardForecast, debtFreeProjection, splitDebtPayment;
+    show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import 'log_sheet.dart' show parseAmount;
@@ -37,12 +37,6 @@ const List<String> _shortTermTypes = [
 ];
 
 bool _isShortTerm(dynamic type) => _shortTermTypes.contains(type);
-
-double _jsRound(num x) => (x + 0.5).floorToDouble();
-
-/// RN monthlyInterest: what one month of interest costs at today's balance.
-double monthlyInterestOf(Map<String, dynamic> d) =>
-    _jsRound(amountOf(d['remaining']) * amountOf(d['monthlyRate']) / 100);
 
 String _todayISO() {
   final now = DateTime.now();
@@ -98,7 +92,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
         final totalMin =
             debts.fold(0.0, (t, d) => t + amountOf(d['minPayment']));
         final totalInterest =
-            debts.fold(0.0, (t, d) => t + monthlyInterestOf(d));
+            debts.fold(0.0, (t, d) => t + monthlyInterest(d));
 
         // JS sort is stable; keep the list order as the tiebreak.
         final indexed = List.generate(debts.length, (i) => (debts[i], i));
@@ -181,15 +175,20 @@ class _DebtsScreenState extends State<DebtsScreen> {
                             children: [
                               _kicker('TOTAL DEBT'),
                               const SizedBox(height: 4),
-                              Text(formatMoney(totalDebt),
-                                  style: TextStyle(
-                                      color: Barako.text,
-                                      fontSize: 30,
-                                      fontFamily: Barako.displayFont,
-                                      fontWeight: FontWeight.w700,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures()
-                                      ])),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(formatMoney(totalDebt),
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                        color: Barako.text,
+                                        fontSize: 30,
+                                        fontFamily: Barako.displayFont,
+                                        fontWeight: FontWeight.w700,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures()
+                                        ])),
+                              ),
                               const SizedBox(height: 8),
                               _line('Monthly minimums',
                                   formatMoney(totalMin)),
@@ -629,7 +628,7 @@ class _DebtSheetState extends State<DebtSheet> {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                        'About ${formatMoney(monthlyInterestOf(d))} interest gets added each month it sits.',
+                        'About ${formatMoney(monthlyInterest(d))} interest gets added each month it sits.',
                         style:
                             TextStyle(color: Barako.muted, fontSize: 12)),
                   ),

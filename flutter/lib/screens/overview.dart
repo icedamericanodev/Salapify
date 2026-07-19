@@ -446,13 +446,18 @@ class OverviewScreen extends StatelessWidget {
             children: [
               _kicker(kicker),
               const SizedBox(height: 6),
-              Text(big,
-                  style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      color: Barako.primary,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(big,
+                    maxLines: 1,
+                    style: TextStyle(
+                        fontFamily: Barako.displayFont,
+                        color: Barako.primary,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ),
               if (sub != null) ...[
                 const SizedBox(height: 4),
                 Text(sub,

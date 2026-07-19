@@ -35,6 +35,15 @@ DateTime? _jsDate(String s) {
 String _iso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+/// One month of interest at today's balance, the debts screen's headline
+/// per-debt and total cost. RN debts.js:29,
+/// Math.round(remaining * monthlyRate / 100). Lives here, not in the
+/// screen, so the arithmetic stays behind the golden lock.
+double monthlyInterest(Map<String, dynamic>? debt) {
+  final d = debt ?? const {};
+  return _jsRound(amountOf(d['remaining']) * amountOf(d['monthlyRate']) / 100);
+}
+
 /// Split one debt payment into interest and principal. Returns every part
 /// the caller and reports need: { accrued, balance, applied, interest,
 /// principal, newRemaining, overpay }.

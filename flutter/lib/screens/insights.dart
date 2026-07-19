@@ -201,13 +201,18 @@ class InsightsScreen extends StatelessWidget {
           children: [
             _kicker('SAFE TO SPEND UNTIL SWELDO'),
             const SizedBox(height: 6),
-            Text(formatMoney(available > 0 ? available : 0),
-                style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: tight ? Barako.warning : Barako.primary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(formatMoney(available > 0 ? available : 0),
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontFamily: Barako.displayFont,
+                      color: tight ? Barako.warning : Barako.primary,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
             const SizedBox(height: 4),
             Text(
               tight
