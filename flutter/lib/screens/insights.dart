@@ -803,7 +803,7 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
     if (forecast != null) {
       heroText = _monthYear(forecast['date'] as String);
       supportText =
-          'Saving $weeklyLabel a week funds $name, with ${_wholePeso(remaining)} to go.';
+          'Saving $weeklyLabel a week would fund $name, with ${_wholePeso(remaining)} to go.';
     } else {
       supportText =
           'Even $weeklyLabel a week would take over ten years to fund $name. A longer timeline or a smaller target would fit better.';
