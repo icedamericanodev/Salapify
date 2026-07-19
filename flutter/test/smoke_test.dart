@@ -71,6 +71,38 @@ void main() {
     expect(find.text('STILL OUT'), findsOneWidget);
   });
 
+  testWidgets('a due-soon check-in is not a dead end, it opens Debts',
+      (tester) async {
+    // A card due today (dueDay = today) is a debtdue decision at prio 92, the
+    // top of the check-in here. Its route is /debts, which is not a bottom
+    // tab, so the card must push the Debts screen instead of doing nothing.
+    final dueDay = DateTime.now().day;
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 50000},
+        ],
+        'debts': [
+          {'id': 'd1', 'name': 'BPI card', 'type': 'credit card',
+              'remaining': 12000, 'monthlyRate': 3, 'minPayment': 500,
+              'dueDay': dueDay},
+        ],
+        'settings': <String, dynamic>{},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    expect(find.text('MONEY CHECK-IN'), findsOneWidget);
+    expect(find.textContaining('due soon'), findsOneWidget);
+    await tester.tap(find.textContaining('due soon'));
+    await tester.pumpAndSettle();
+    // The Debts screen pushed over Home shows its payoff-plan section.
+    expect(find.text('PAYOFF PLAN'), findsOneWidget);
+  });
+
   testWidgets('a fresh empty app shows no money check-in yet', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();

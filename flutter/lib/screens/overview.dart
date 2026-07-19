@@ -114,7 +114,7 @@ class OverviewScreen extends StatelessWidget {
                 ),
               ),
             if (checkIn != null) ...[
-              _checkInCard(checkIn),
+              _checkInCard(context, checkIn),
               const SizedBox(height: 12),
             ],
             _kickerCard(
@@ -463,18 +463,32 @@ class OverviewScreen extends StatelessWidget {
 
   /// The single most important money decision right now, or a calm all-clear,
   /// rendered at the top of Home. Mirrors the Insights decision card so the two
-  /// read the same; tapping jumps to the tab the action points at.
-  Widget _checkInCard(Map<String, dynamic> c) {
+  /// read the same; tapping goes where the action points, a bottom tab or the
+  /// Debts screen.
+  Widget _checkInCard(BuildContext context, Map<String, dynamic> c) {
     final tone = c['tone'] as String;
     final action = c['action'];
     final route = action is Map ? action['route'] as String? : null;
     final tab = route != null ? _routeTabs[route] : null;
-    final canJump = tab != null && onSwitchTab != null;
+    VoidCallback? onTap;
+    if (tab != null && onSwitchTab != null) {
+      onTap = () => onSwitchTab!(tab);
+    } else if (route == '/debts') {
+      // Debts is not a bottom tab; a due-soon decision is prio 92, so it must
+      // not be a dead end. Push the screen Home already imports.
+      onTap = () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
+    }
+    final good = tone == 'good';
+    // Same mapping as the Insights decision card: urgent and watch read as
+    // "act", a nudge reads dimmer as "FYI".
     final titleColor = tone == 'urgent'
         ? Barako.warning
-        : tone == 'good'
+        : good
             ? Barako.primaryText
-            : Barako.text;
+            : tone == 'watch'
+                ? Barako.text
+                : Barako.textSecondary;
     final dotColor = tone == 'urgent'
         ? Barako.warning
         : tone == 'nudge'
@@ -482,7 +496,8 @@ class OverviewScreen extends StatelessWidget {
             : Barako.primary;
     return Card(
       child: InkWell(
-        onTap: canJump ? () => onSwitchTab!(tab) : null,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -492,12 +507,18 @@ class OverviewScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration:
-                        BoxDecoration(color: dotColor, shape: BoxShape.circle),
-                  ),
+                  // The all-clear wears a quiet check, not the attention dot,
+                  // so calm reads softer than a real decision.
+                  if (good)
+                    Icon(Icons.check_circle_outline,
+                        color: Barako.primary, size: 16)
+                  else
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                          color: dotColor, shape: BoxShape.circle),
+                    ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(c['title'] as String,
@@ -506,7 +527,7 @@ class OverviewScreen extends StatelessWidget {
                             fontSize: 16,
                             fontWeight: FontWeight.w700)),
                   ),
-                  if (canJump)
+                  if (onTap != null)
                     Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                 ],
               ),
