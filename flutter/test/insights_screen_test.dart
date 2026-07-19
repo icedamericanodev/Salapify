@@ -278,6 +278,43 @@ void main() {
     expect(find.textContaining('gone to interest'), findsNothing);
   });
 
+  testWidgets('the savings simulator forecasts a goal and reacts to the chips',
+      (tester) async {
+    // One goal, no debt, so only the savings card shows. No target date, so
+    // the funded month (which depends on today) is never asserted; the
+    // support sentence, which is date independent, carries the check.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'goals': [
+          {'id': 'g1', 'name': 'New phone', 'target': 15000, 'saved': 5000},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+        find.text('WHAT IF YOU SAVED EACH WEEK'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('New phone'), findsOneWidget);
+    expect(find.textContaining('₱10,000 to go'), findsOneWidget);
+    expect(find.textContaining('Saving ₱500 a week'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('₱1,000 a week'));
+    await tester.tap(find.text('₱1,000 a week'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Saving ₱1,000 a week'), findsOneWidget);
+    expect(find.textContaining('Saving ₱500 a week'), findsNothing);
+  });
+
   testWidgets('an empty app shows the calm all-clear', (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.

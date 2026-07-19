@@ -48,6 +48,52 @@ bool _hasActiveDebt(dynamic debts) {
   return false;
 }
 
+/// Whole pesos, comma grouped, shared by the forward-looking cards. Projection
+/// and goal amounts are already whole, and the ladders are round, so centavos
+/// would only add noise. Guards non-finite the way formatMoney does so an
+/// absurd backup value renders instead of crashing round().
+String _wholePeso(num v) {
+  if (!v.isFinite) return '₱$v';
+  final n = v.round();
+  final neg = n < 0;
+  final s = n.abs().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    buf.write(s[i]);
+  }
+  return '${neg ? '-' : ''}₱$buf';
+}
+
+/// The one goal that most wants a decision, for the savings simulator: still
+/// funded goals only, ranked behind first, then the soonest deadline, then
+/// the biggest remaining. Null when nothing is worth projecting, so a user
+/// with no live goals never sees the card.
+Map<String, dynamic>? _pickFocusGoal(dynamic goals, DateTime ref) {
+  final active = <(Map<String, dynamic>, Map<String, dynamic>)>[];
+  for (final g in (goals is List ? goals : const [])) {
+    if (g is! Map) continue;
+    final gm = g.cast<String, dynamic>();
+    if (!(amountOf(gm['target']) > 0)) continue;
+    final p = analytics.goalPace(gm, ref);
+    if (p['done'] == true || !((p['remaining'] as num) > 0)) continue;
+    active.add((gm, p));
+  }
+  if (active.isEmpty) return null;
+  int rank(String? s) =>
+      s == 'behind' ? 0 : (s == 'due-soon' || s == 'active') ? 1 : 2;
+  active.sort((a, b) {
+    final r = rank(a.$2['status'] as String?)
+        .compareTo(rank(b.$2['status'] as String?));
+    if (r != 0) return r;
+    final da = (a.$2['targetDate'] as String?) ?? '';
+    final db = (b.$2['targetDate'] as String?) ?? '';
+    if (da.isNotEmpty && db.isNotEmpty && da != db) return da.compareTo(db);
+    return (b.$2['remaining'] as num).compareTo(a.$2['remaining'] as num);
+  });
+  return active.first.$1;
+}
+
 /// "3 months", "2.5 months", "1 month", "12+ months", or the honest
 /// not-enough-history label. Whole doubles drop the ".0" the way the RN
 /// screen prints plain JS numbers.
@@ -76,6 +122,7 @@ class InsightsScreen extends StatelessWidget {
     final cats = analytics.categoryVsAverage(data['transactions'], ref, 6, 7);
     final runway = analytics.emergencyRunway(data, ref);
     final forecast = analytics.forecastMonthEnd(data['transactions'], ref);
+    final focusGoal = _pickFocusGoal(data['goals'], ref);
 
     return Scaffold(
       body: SafeArea(
@@ -140,6 +187,10 @@ class InsightsScreen extends StatelessWidget {
             if (_hasActiveDebt(data['debts'])) ...[
               const SizedBox(height: 12),
               _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
+            ],
+            if (focusGoal != null) ...[
+              const SizedBox(height: 12),
+              _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
             ],
             const SizedBox(height: 12),
             _healthCard(health),
@@ -526,22 +577,7 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
   static const List<int> _ladder = [200, 500, 1000];
   int _extra = 500;
 
-  /// Whole pesos, comma grouped. The projection amounts are already rounded
-  /// to the peso, and the ladder is round, so centavos would only add noise.
-  String _peso(num v) {
-    // round() throws on a non-finite double and clamps an absurd finite one
-    // to int64 max, so guard both the way formatMoney does and stay alive.
-    if (!v.isFinite) return '₱$v';
-    final n = v.round();
-    final neg = n < 0;
-    final s = n.abs().toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return '${neg ? '-' : ''}₱$buf';
-  }
+  String _peso(num v) => _wholePeso(v);
 
   /// The debt the avalanche plan attacks first, highest monthly rate wins,
   /// so the extra has a name to land on.
@@ -717,6 +753,162 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
             const SizedBox(height: 8),
             Text(
                 'A projection from your logged balances, assuming you keep it up and add no new charges. A guide, not a promise.',
+                style:
+                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The savings twin of the debt simulator: pick what you can set aside each
+/// week and see when the goal is funded, checked against the goal's own
+/// target date. Uses the golden locked goalPace for the goal's facts and the
+/// pace it would take to hit the date, and goalForecast for the picked pace.
+class _GoalWhatIfCard extends StatefulWidget {
+  final Map<String, dynamic> goal;
+  final Map<String, dynamic> sts;
+  final DateTime ref;
+  const _GoalWhatIfCard(
+      {required this.goal, required this.sts, required this.ref});
+
+  @override
+  State<_GoalWhatIfCard> createState() => _GoalWhatIfCardState();
+}
+
+class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
+  static const List<int> _ladder = [200, 500, 1000];
+  int _weekly = 500;
+
+  @override
+  Widget build(BuildContext context) {
+    final pace = analytics.goalPace(widget.goal, widget.ref);
+    final remaining = (pace['remaining'] as num).toDouble();
+    final rawName = widget.goal['name'];
+    final name = (rawName is String && rawName.trim().isNotEmpty)
+        ? rawName.trim()
+        : 'your goal';
+    final targetDate = (pace['targetDate'] as String?) ?? '';
+    final status = pace['status'] as String;
+    final forecast =
+        analytics.goalForecast(remaining, _weekly, widget.ref);
+    final available = widget.sts['available'] as double;
+    final crunch = available <= 0;
+    final weeklyLabel = _wholePeso(_weekly);
+
+    var heroText = '';
+    var supportText = '';
+    var supportColor = Barako.textSecondary;
+    if (forecast != null) {
+      heroText = _monthYear(forecast['date'] as String);
+      supportText =
+          'Saving $weeklyLabel a week funds $name, with ${_wholePeso(remaining)} to go.';
+    } else {
+      supportText =
+          'Even $weeklyLabel a week would take over ten years to fund $name. A longer timeline or a smaller target would fit better.';
+      supportColor = Barako.warning;
+    }
+
+    // How the picked pace lands against the date the user actually set.
+    var targetText = '';
+    if (forecast != null && targetDate.isNotEmpty && status != 'no-date') {
+      final fundedYM = (forecast['date'] as String).substring(0, 7);
+      final targetYM =
+          targetDate.length >= 7 ? targetDate.substring(0, 7) : targetDate;
+      if (status == 'behind') {
+        targetText =
+            'Your ${_monthYear(targetDate)} target has already passed. Okay lang, a fresh date keeps the goal alive.';
+      } else if (fundedYM.compareTo(targetYM) <= 0) {
+        targetText =
+            'That is on time for your ${_monthYear(targetDate)} target. Nice.';
+      } else if (status == 'active') {
+        targetText =
+            'That lands after your ${_monthYear(targetDate)} target. To hit the date, aim for about ${_wholePeso(pace['perWeek'] as num)} a week.';
+      } else {
+        targetText = 'That lands after your ${_monthYear(targetDate)} target.';
+      }
+    }
+
+    final grounding = crunch
+        ? 'Your bills use up your spendable cash until sweldo, so treat this as a plan for after payday.'
+        : 'You have about ${_wholePeso(widget.sts['perDay'] as double)} a day free right now, so setting a little aside each week is doable if you can spare it.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('WHAT IF YOU SAVED EACH WEEK', style: Barako.kickerStyle),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final e in _ladder)
+                  ChoiceChip(
+                    label: Text('${_wholePeso(e)} a week'),
+                    selected: _weekly == e,
+                    onSelected: (_) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _weekly = e);
+                    },
+                    selectedColor: Barako.primary,
+                    backgroundColor: Barako.background,
+                    labelStyle: TextStyle(
+                        color: _weekly == e
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
+                        fontWeight: FontWeight.w600),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (heroText.isNotEmpty) ...[
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(heroText,
+                    maxLines: 1,
+                    style: TextStyle(
+                        fontFamily: Barako.displayFont,
+                        color: Barako.primary,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ),
+              const SizedBox(height: 4),
+              Text(supportText,
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+            ] else
+              Text(supportText,
+                  style: TextStyle(
+                      color: supportColor,
+                      fontSize: 14,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600)),
+            if (targetText.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(targetText,
+                  style: TextStyle(
+                      color: status == 'behind'
+                          ? Barako.warning
+                          : Barako.primaryText,
+                      fontSize: 13,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600)),
+            ],
+            const SizedBox(height: 8),
+            Text(grounding,
+                style: TextStyle(
+                    color: crunch ? Barako.warning : Barako.muted,
+                    fontSize: 12,
+                    height: 1.4)),
+            const SizedBox(height: 8),
+            Text(
+                'A projection from your target and what you set aside, assuming you keep it up. A guide, not a promise.',
                 style:
                     TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
           ],

@@ -98,6 +98,32 @@ Map<String, dynamic> goalPace(Map<String, dynamic>? goal, DateTime ref) {
   };
 }
 
+/// The forward-looking counterpart to goalPace, for the Insights savings
+/// simulator. goalPace answers "for my target date, how much a week?"; this
+/// answers "for the amount a week I can actually set aside, when is it
+/// funded?". Pure: weeks = ceil(remaining / weekly), fundedDate = ref plus
+/// that many whole weeks. No interest or growth is assumed, a savings goal
+/// just accumulates, so the estimate never flatters itself. Returns null when
+/// weekly is not positive (it would never fund) or nothing is left to save.
+Map<String, dynamic>? goalForecast(
+    dynamic remaining, dynamic weekly, DateTime ref) {
+  final rem = amountOf(remaining);
+  final wk = amountOf(weekly);
+  if (!(rem > 0) || !(wk > 0)) return null;
+  final rawWeeks = rem / wk;
+  if (!rawWeeks.isFinite) return null;
+  // Cap at ten years of weeks so an absurd backup can never build a
+  // nonsense date or spin; past that the answer is "not at this pace".
+  final weeks = rawWeeks.ceil();
+  if (weeks > 520) return null;
+  final date = DateTime(ref.year, ref.month, ref.day + weeks * 7);
+  return {
+    'weeks': weeks,
+    'date':
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+  };
+}
+
 /// Last month's unspent budget, floored at 0; nothing when last month had no
 /// logged expenses (an unknown month must never double this month's budget).
 double previousMonthLeftover(
