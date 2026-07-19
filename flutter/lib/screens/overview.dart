@@ -14,6 +14,7 @@ import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
@@ -494,7 +495,7 @@ class OverviewScreen extends StatelessWidget {
         : tone == 'nudge'
             ? Barako.muted
             : Barako.primary;
-    return Card(
+    final Widget card = Card(
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
@@ -540,6 +541,9 @@ class OverviewScreen extends StatelessWidget {
         ),
       ),
     );
+    // Only the tappable states get the press feel; the calm all-clear (no
+    // action) stays still, so press feedback never lies about interactivity.
+    return onTap == null ? card : PressableScale(child: card);
   }
 
   Widget _kickerCard(String kicker, String big, {String? sub}) => Card(
