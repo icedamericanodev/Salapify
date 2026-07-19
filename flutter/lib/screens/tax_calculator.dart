@@ -116,12 +116,12 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
         eightWins ? eight['total'] as double : grad['total'] as double;
 
     final formsText = !(r['eligible8'] as bool)
-        ? 'Over ${_m(vatThreshold)} a year you register for VAT and file Form 2550Q every quarter. This tool does not compute VAT, so please see an accountant.'
+        ? 'Over ${_m(vatThreshold)} a year you also register for VAT and file Form 2550Q each quarter, on top of your income tax returns (1701Q and 1701 or 1701A). This tool does not compute the 12% VAT, so please see an accountant.'
         : mixedIncome
             ? 'You file for both. Your employer gives you Form 2316 for the job. For your business, register once with Form 1901, file Form 1701Q each quarter (May 15, Aug 15, Nov 15), and file the yearly Form 1701 by April 15. Add Form 2551Q each quarter unless you are on the 8% option. Mixed income uses Form 1701, not 1701A.'
             : eightWins
                 ? 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on Form 1701A (April 15). On the 8% option you skip the percentage tax. Choose the 8% on time and it is locked for the year.'
-                : 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on Form 1701 or 1701A (April 15). Also file percentage tax quarterly on Form 2551Q, 3% of your gross.';
+                : 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on ${useOSD ? 'Form 1701A' : 'Form 1701'} (April 15). Also file percentage tax quarterly on Form 2551Q, 3% of your gross.';
 
     return Scaffold(
       appBar: AppBar(
