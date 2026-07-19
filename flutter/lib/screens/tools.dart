@@ -7,9 +7,11 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../theme.dart';
 import 'bnpl_calculator.dart';
+import 'contribution_calculator.dart';
 import 'loan_calculator.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
+import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
 
 class ToolsScreen extends StatelessWidget {
@@ -68,6 +70,24 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
+              icon: Icons.request_quote_outlined,
+              title: 'Income tax',
+              blurb:
+                  'Freelancers and pros: the flat 8% versus graduated, compared.',
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const TaxCalculatorScreen())),
+            ),
+            _tool(
+              context,
+              icon: Icons.account_balance_outlined,
+              title: 'Contribution checker',
+              blurb:
+                  'Monthly SSS, PhilHealth, and Pag-IBIG for any salary.',
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const ContributionCalculatorScreen())),
+            ),
+            _tool(
+              context,
               icon: Icons.sticky_note_2_outlined,
               title: 'Notes',
               blurb:
@@ -84,7 +104,7 @@ class ToolsScreen extends StatelessWidget {
                     letterSpacing: 2)),
             const SizedBox(height: 6),
             Text(
-                'Income tax, the SSS PhilHealth Pag-IBIG checker, currency converter, learn, and mindset are being adapted from the React Salapify one by one.',
+                'Currency converter, learn, and mindset are being adapted from the React Salapify one by one.',
                 style: TextStyle(
                     color: Barako.muted, fontSize: 12, height: 1.5)),
           ],
