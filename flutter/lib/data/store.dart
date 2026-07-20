@@ -423,6 +423,88 @@ class SalapifyStore extends ChangeNotifier {
         ],
       });
 
+  /// Create a savings goal, matching the RN Goals screen. Values are already
+  /// parsed and clamped by the screen (target and saved never negative). Goals
+  /// is an existing backup collection, so this is additive with no migration.
+  Future<void> addGoal({
+    required String name,
+    required double target,
+    required double saved,
+    required String targetDate,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'goals': [
+              ...(d['goals'] as List? ?? const []),
+              {
+                'name': name,
+                'target': target,
+                'saved': saved,
+                'targetDate': targetDate,
+                'id': _genId('goals'),
+              },
+            ],
+          });
+
+  /// Update a goal's editable fields, preserving any others (unknown keys and
+  /// a legacy shape survive the spread).
+  Future<void> updateGoal(
+    String id, {
+    required String name,
+    required double target,
+    required double saved,
+    required String targetDate,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'goals': [
+              for (final g in (d['goals'] as List? ?? const []))
+                if (g is Map && g['id'] == id)
+                  {
+                    ...g.cast<String, dynamic>(),
+                    'name': name,
+                    'target': target,
+                    'saved': saved,
+                    'targetDate': targetDate,
+                  }
+                else
+                  g,
+            ],
+          });
+
+  /// Add money to a goal's saved total. Adds on top of the STORED saved, never
+  /// the editable form field, and floors at zero, matching the RN applyFunds
+  /// so clearing the field first can never wipe the real saved amount.
+  Future<void> addGoalFunds(String id, double amount) => _mutate((d) => {
+        ...d,
+        'goals': [
+          for (final g in (d['goals'] as List? ?? const []))
+            if (g is Map && g['id'] == id)
+              {
+                ...g.cast<String, dynamic>(),
+                'saved': () {
+                  final cur = g['saved'];
+                  final base = cur is num
+                      ? cur.toDouble()
+                      : (cur is String ? (double.tryParse(cur) ?? 0) : 0);
+                  final next = base + amount;
+                  return next > 0 ? next : 0.0;
+                }(),
+              }
+            else
+              g,
+        ],
+      });
+
+  /// Delete a goal.
+  Future<void> deleteGoal(String id) => _mutate((d) => {
+        ...d,
+        'goals': [
+          for (final g in (d['goals'] as List? ?? const []))
+            if (!(g is Map && g['id'] == id)) g,
+        ],
+      });
+
   /// Add a small win, stamped with today's date, matching the RN Mindset
   /// screen (addItem('wins', { text, date })). Kept in data.wins so the
   /// backup already carries it.
