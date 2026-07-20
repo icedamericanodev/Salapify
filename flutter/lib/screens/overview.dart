@@ -19,6 +19,7 @@ import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
+import 'search.dart';
 import 'pan.dart';
 import 'tools.dart';
 import 'update_card.dart';
@@ -102,6 +103,14 @@ class OverviewScreen extends StatelessWidget {
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 3)),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.search, color: Barako.text),
+                  tooltip: 'Search',
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => SearchScreen(
+                          store: store, onSwitchTab: onSwitchTab))),
+                ),
               ],
             ),
             const SizedBox(height: 20),
