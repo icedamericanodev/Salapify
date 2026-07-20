@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.70 · Mindset gate fixes: AA verdict, 44dp delete, undo, clipping';
+    'f0.71 · Goals: savings goals with progress and honest monthly pace';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

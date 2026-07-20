@@ -16,6 +16,7 @@ import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
+import 'goals.dart';
 import 'log_sheet.dart';
 import 'notes.dart';
 import 'pan.dart';
@@ -217,6 +218,15 @@ class OverviewScreen extends StatelessWidget {
               blurb: 'Lines with amounts add themselves up, like a receipt.',
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => NotesScreen(store: store))),
+            ),
+            const SizedBox(height: 12),
+            _navCard(
+              icon: Icons.savings_outlined,
+              title: 'Goals',
+              blurb:
+                  'Savings goals with progress bars and an honest monthly pace.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => GoalsScreen(store: store))),
             ),
             const SizedBox(height: 12),
             if (store.canWrite)
