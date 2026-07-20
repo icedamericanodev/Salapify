@@ -10,6 +10,7 @@ import '../widgets/pressable_scale.dart';
 import 'bnpl_calculator.dart';
 import 'contribution_calculator.dart';
 import 'currency_converter.dart';
+import 'learn.dart';
 import 'loan_calculator.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
@@ -121,6 +122,16 @@ class ToolsScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => NotesScreen(store: store)),
               ),
             ),
+            _tool(
+              context,
+              icon: Icons.school_outlined,
+              title: 'Money lessons',
+              blurb:
+                  'Short, plain reads on your money and habits. Free, always.',
+              open: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => LearnScreen(store: store)),
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
               'ON THE WAY',
@@ -133,7 +144,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Learn and mindset are being adapted from the React Salapify one by one.',
+              'Mindset is being adapted from the React Salapify one by one.',
               style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.5),
             ),
           ],

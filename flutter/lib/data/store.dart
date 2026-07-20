@@ -432,6 +432,24 @@ class SalapifyStore extends ChangeNotifier {
         },
       });
 
+  /// Mark a Learn lesson read, deduped, kept in settings.lessonsRead. The
+  /// backup preserves unknown settings keys, so this needs no migration.
+  Future<void> markLessonRead(String id) => _mutate((d) {
+        final s =
+            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        final read = <String>{
+          for (final x in (s['lessonsRead'] is List
+              ? s['lessonsRead'] as List
+              : const []))
+            if (x is String) x,
+          id,
+        };
+        return {
+          ...d,
+          'settings': {...s, 'lessonsRead': read.toList()},
+        };
+      });
+
   /// Set (or clear, with 0) the monthly budget limit.
   Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
         ...d,
