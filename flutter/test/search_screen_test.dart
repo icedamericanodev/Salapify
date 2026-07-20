@@ -39,7 +39,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'jollibee');
     await tester.pumpAndSettle();
-    expect(find.text('Entries'), findsOneWidget);
+    expect(find.text('ENTRIES'), findsOneWidget);
     expect(find.text('Jollibee lunch'), findsOneWidget);
 
     // A query that matches nothing shows the no-match state.

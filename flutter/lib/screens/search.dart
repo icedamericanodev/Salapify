@@ -10,7 +10,6 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/search.dart' as search;
 import '../theme.dart';
-import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'notes.dart';
@@ -106,7 +105,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
               child: TextField(
                 controller: _query,
                 autofocus: true,
@@ -120,7 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
-                          icon: Icon(Icons.close, color: Barako.faint, size: 18),
+                          icon: Icon(Icons.close, color: Barako.muted, size: 18),
                           onPressed: () => setState(() => _query.clear()),
                         ),
                   filled: true,
@@ -149,7 +148,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       : ListView(
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                           children: [for (final g in groups) _group(g)],
                         ),
             ),
@@ -220,35 +219,33 @@ class _SearchScreenState extends State<SearchScreen> {
                 Icon(_groupIcon[kind] ?? Icons.search,
                     size: 15, color: Barako.muted),
                 const SizedBox(width: 6),
-                Text(g['title'] as String,
-                    style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1)),
+                Text((g['title'] as String).toUpperCase(),
+                    style: Barako.kickerStyle),
                 const SizedBox(width: 8),
                 Text('${g['count']}',
                     style: TextStyle(color: Barako.faint, fontSize: 12)),
               ],
             ),
           ),
-          PressableScale(
-            child: Card(
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (var i = 0; i < items.length; i++)
-                    _row(items[i], kind, route, i > 0),
-                  if (more > 0)
-                    InkWell(
-                      onTap: () => _openGroup(kind, route),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            border: Border(
-                                top: BorderSide(
-                                    color: Barako.border, width: 0.5))),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+          // Multi-row cards do not use PressableScale (that would scale the
+          // whole block on a single row tap); the per-row InkWell ripple
+          // carries the feedback, matching the Mindset cards.
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  _row(items[i], kind, route, i > 0),
+                if (more > 0)
+                  InkWell(
+                    onTap: () => _openGroup(kind, route),
+                    child: Container(
+                      decoration: BoxDecoration(
+                          border: Border(
+                              top: BorderSide(
+                                  color: Barako.border, width: 0.5))),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                         child: Row(
                           children: [
                             Text('$more more in ${g['title']}',
@@ -266,7 +263,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-          ),
         ],
       ),
     );
