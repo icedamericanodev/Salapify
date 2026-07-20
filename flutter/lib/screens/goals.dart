@@ -10,9 +10,14 @@ import 'package:flutter/services.dart';
 
 import '../money/analytics.dart' as analytics;
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/goals_calc.dart';
 import '../data/store.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+
+// Tabular figures so peso amounts and percents keep a steady width as they
+// change (house rule for money in rows).
+const _tabular = [FontFeature.tabularFigures()];
 
 // The three or four goals Filipinos actually start with, for the empty state.
 const _templates = [
@@ -21,29 +26,6 @@ const _templates = [
   {'icon': '✈️', 'name': 'Travel fund', 'target': 15000.0},
   {'icon': '🩺', 'name': 'Health fund', 'target': 10000.0},
 ];
-
-/// Money fields accept commas: "12,000" means twelve thousand, floored at zero.
-/// Matches the RN toNum so a pasted "12,000" is never read as 0.
-double goalNum(String t) {
-  var cleaned = t.replaceAll(RegExp(r'[, ]'), '');
-  // JS Number tolerates a single trailing dot ("100." parses to 100); Dart's
-  // parser does not, so drop one trailing dot to match RN toNum exactly.
-  if (cleaned.endsWith('.')) {
-    cleaned = cleaned.substring(0, cleaned.length - 1);
-  }
-  final n = double.tryParse(cleaned) ?? 0;
-  return n > 0 ? n : 0;
-}
-
-/// Whole-number percent for the badge, min 100, matching the RN display math
-/// (Math.round((saved / target) * 100), capped). Math.round is floor(x + 0.5).
-int goalPercent(double saved, double target) {
-  if (target > 0) {
-    final p = (saved / target * 100 + 0.5).floor();
-    return p > 100 ? 100 : (p < 0 ? 0 : p);
-  }
-  return saved > 0 ? 100 : 0;
-}
 
 class GoalsScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -182,6 +164,8 @@ class GoalsScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(g['name']?.toString() ?? 'Goal',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 color: Barako.text,
                                 fontSize: 17,
@@ -192,7 +176,8 @@ class GoalsScreen extends StatelessWidget {
                           style: TextStyle(
                               color: Barako.primaryText,
                               fontSize: 15,
-                              fontWeight: FontWeight.w800)),
+                              fontWeight: FontWeight.w800,
+                              fontFeatures: _tabular)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -208,8 +193,11 @@ class GoalsScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     '${formatMoneyText(saved)} of ${formatMoneyText(target)}'
-                    '${targetDate.isNotEmpty ? ' . by $targetDate' : ''}',
-                    style: TextStyle(color: Barako.muted, fontSize: 13),
+                    '${targetDate.isNotEmpty ? ' · by $targetDate' : ''}',
+                    style: TextStyle(
+                        color: Barako.muted,
+                        fontSize: 13,
+                        fontFeatures: _tabular),
                   ),
                   if (isActive && perMonth > 0) ...[
                     const SizedBox(height: 4),
@@ -218,7 +206,8 @@ class GoalsScreen extends StatelessWidget {
                         style: TextStyle(
                             color: Barako.primaryText,
                             fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: _tabular)),
                   ],
                 ],
               ),
@@ -234,6 +223,7 @@ class GoalsScreen extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _GoalSheet(
         store: store,
@@ -318,8 +308,12 @@ class _GoalSheetState extends State<_GoalSheet> {
     final target = goalNum(_target.text);
     final saved = goalNum(_saved.text);
     final date = _date.text.trim();
-    if (_isEdit) {
-      widget.store.updateGoal(widget.goal!['id'] as String,
+    final id = widget.goal?['id'];
+    // Only update when this is a real, id-carrying goal; otherwise add a fresh
+    // one. This matches RN (a falsy form.id falls through to addItem) and never
+    // crashes on a goal that a hand-edited backup left without a string id.
+    if (id is String) {
+      widget.store.updateGoal(id,
           name: name, target: target, saved: saved, targetDate: date);
     } else {
       widget.store
@@ -336,15 +330,31 @@ class _GoalSheetState extends State<_GoalSheet> {
       _offBanner();
       return;
     }
+    // Compute the new total from the STORED saved synchronously (the store
+    // write applies on a later microtask, so reading data back now would see
+    // the stale value and a later Save would overwrite the added funds). This
+    // is the exact protection the RN screen documents.
+    final stored = savedNum(_currentStored(id));
+    final newSaved = (stored + amt) > 0 ? stored + amt : 0.0;
     widget.store.addGoalFunds(id, amt);
-    // Reflect the new stored total in the editable field, matching RN.
+    _saved.text = _numStr(newSaved);
+    _funds.clear();
+    FocusScope.of(context).unfocus();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+          content: Text(
+              'Added ${formatMoneyText(amt)}. Saved is now ${formatMoneyText(newSaved)}.')));
+  }
+
+  /// The goal's currently stored saved value, read before the pending write
+  /// applies (so it is the true "before" number to add onto).
+  dynamic _currentStored(String id) {
     final g = (widget.store.data['goals'] as List? ?? const [])
         .whereType<Map>()
         .cast<Map<String, dynamic>>()
         .firstWhere((x) => x['id'] == id, orElse: () => <String, dynamic>{});
-    if (g.isNotEmpty) _saved.text = _numStr(g['saved']);
-    _funds.clear();
-    FocusScope.of(context).unfocus();
+    return g['saved'];
   }
 
   void _delete() {
@@ -352,9 +362,36 @@ class _GoalSheetState extends State<_GoalSheet> {
       setState(() => _confirmDel = true);
       return;
     }
+    if (!widget.store.canWrite) {
+      _offBanner();
+      return;
+    }
     final id = widget.goal?['id'];
-    if (id is String && widget.store.canWrite) {
+    final name = widget.goal?['name']?.toString();
+    final target = savedNum(widget.goal?['target']);
+    final saved = savedNum(widget.goal?['saved']);
+    final date = widget.goal?['targetDate']?.toString() ?? '';
+    if (id is String) {
       widget.store.deleteGoal(id);
+      // A goal is valuable user data, so offer a one tap undo like the wins
+      // list does, rather than losing it silently on a stray tap.
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: const Text('Goal deleted'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (widget.store.canWrite) {
+                widget.store.addGoal(
+                    name: name == null || name.isEmpty ? 'Goal' : name,
+                    target: target,
+                    saved: saved,
+                    targetDate: date);
+              }
+            },
+          ),
+        ));
     }
     Navigator.of(context).pop();
   }
@@ -379,7 +416,8 @@ class _GoalSheetState extends State<_GoalSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9),
+            maxHeight:
+                (MediaQuery.of(context).size.height - bottomInset) * 0.9),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
           child: Column(
@@ -391,11 +429,14 @@ class _GoalSheetState extends State<_GoalSheet> {
                       color: Barako.text,
                       fontSize: 18,
                       fontWeight: FontWeight.w800)),
-              _field('Name', _name, hint: 'e.g. Emergency fund'),
+              _field('Name', _name,
+                  hint: 'e.g. Emergency fund', action: TextInputAction.next),
               _field('Target amount', _target,
-                  hint: '0', number: true),
-              _field('Saved so far', _saved, hint: '0', number: true),
-              _field('Target date (optional)', _date, hint: 'e.g. 2026-12-31'),
+                  hint: '0', number: true, action: TextInputAction.next),
+              _field('Saved so far', _saved,
+                  hint: '0', number: true, action: TextInputAction.next),
+              _field('Target date (optional)', _date,
+                  hint: 'e.g. 2026-12-31', action: TextInputAction.done),
               if (_isEdit) ...[
                 const SizedBox(height: 18),
                 Divider(color: Barako.border, height: 1),
@@ -431,7 +472,13 @@ class _GoalSheetState extends State<_GoalSheet> {
                   if (_isEdit)
                     TextButton(
                       onPressed: _delete,
-                      child: Text(_confirmDel ? 'Tap to confirm' : 'Delete',
+                      style: _confirmDel
+                          ? TextButton.styleFrom(
+                              backgroundColor:
+                                  Barako.warningStrong.withValues(alpha: 0.12))
+                          : null,
+                      child: Text(
+                          _confirmDel ? 'Tap again to delete' : 'Delete',
                           style: TextStyle(
                               color: Barako.warningStrong,
                               fontWeight: FontWeight.w600)),
@@ -469,25 +516,26 @@ class _GoalSheetState extends State<_GoalSheet> {
   }
 
   Widget _field(String label, TextEditingController c,
-      {String? hint, bool number = false}) {
+      {String? hint, bool number = false, TextInputAction? action}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 14),
         Text(label, style: TextStyle(color: Barako.muted, fontSize: 12)),
         const SizedBox(height: 6),
-        _rawInput(c, hint: hint, number: number),
+        _rawInput(c, hint: hint, number: number, action: action),
       ],
     );
   }
 
   Widget _rawInput(TextEditingController c,
-      {String? hint, bool number = false}) {
+      {String? hint, bool number = false, TextInputAction? action}) {
     return TextField(
       controller: c,
       keyboardType: number
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
+      textInputAction: action,
       inputFormatters: number
           ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))]
           : null,
