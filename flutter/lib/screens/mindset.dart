@@ -39,7 +39,11 @@ class _MindsetScreenState extends State<MindsetScreen> {
   void _addWin() {
     final text = _winText.text.trim();
     if (text.isEmpty) return;
-    if (widget.store.canWrite) widget.store.addWin(text);
+    // If saving is off (a prior load failed), keep the typed win in the box
+    // rather than silently eating it, and never write over data we could not
+    // read.
+    if (!widget.store.canWrite) return;
+    widget.store.addWin(text);
     _winText.clear();
     FocusScope.of(context).unfocus();
   }
@@ -50,6 +54,31 @@ class _MindsetScreenState extends State<MindsetScreen> {
       for (final w in (raw is List ? raw : const []))
         if (w is Map) w.cast<String, dynamic>(),
     ];
+  }
+
+  void _deleteWin(Map<String, dynamic> w) {
+    // A win imported from a hand-edited backup can lack a string id (sanitize
+    // keeps wins verbatim), so read it defensively: the delete no-ops instead
+    // of crashing, matching the RN screen.
+    final id = w['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    final text = w['text'];
+    widget.store.deleteWin(id);
+    // A win is user-typed content, so offer a one tap undo rather than losing
+    // it silently on a stray tap.
+    if (text is String && text.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: const Text('Win removed'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (widget.store.canWrite) widget.store.addWin(text);
+            },
+          ),
+        ));
+    }
   }
 
   @override
@@ -121,12 +150,13 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Impulse check.
                 Text('IMPULSE CHECK', style: Barako.kickerStyle),
                 const SizedBox(height: 8),
                 Card(
+                  clipBehavior: Clip.antiAlias,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
@@ -141,9 +171,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
                               allYes
                                   ? 'Looks like a thoughtful buy. Go for it.'
                                   : 'Maybe wait a bit before buying.',
+                              // Small-text-safe roasts: the hero primary and
+                              // warning fail AA at 13px on the light card, so
+                              // this one buy-or-wait line uses the designated
+                              // strong tokens.
                               style: TextStyle(
-                                  color:
-                                      allYes ? Barako.primary : Barako.warning,
+                                  color: allYes
+                                      ? Barako.primaryText
+                                      : Barako.warningStrong,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -153,7 +188,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Small wins.
                 Text('SMALL WINS', style: Barako.kickerStyle),
@@ -205,6 +240,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
                 ),
                 const SizedBox(height: 12),
                 Card(
+                  clipBehavior: Clip.antiAlias,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: wins.isEmpty
@@ -265,21 +301,18 @@ class _MindsetScreenState extends State<MindsetScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Text('🎉 ${w['text']}',
+            child: Text('🎉 ${w['text'] ?? ''}',
                 style: TextStyle(color: Barako.text, fontSize: 15)),
           ),
           const SizedBox(width: 8),
-          InkWell(
-            onTap: () {
-              if (widget.store.canWrite) {
-                widget.store.deleteWin(w['id'] as String);
-              }
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.close, color: Barako.faint, size: 18),
-            ),
+          IconButton(
+            onPressed: () => _deleteWin(w),
+            iconSize: 18,
+            visualDensity: VisualDensity.standard,
+            constraints:
+                const BoxConstraints(minWidth: 44, minHeight: 44),
+            tooltip: 'Delete win',
+            icon: Icon(Icons.close, color: Barako.faint),
           ),
         ],
       ),
