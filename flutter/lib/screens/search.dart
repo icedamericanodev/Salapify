@@ -35,8 +35,7 @@ class SearchScreen extends StatefulWidget {
   /// in the tab bar rather than as pushed routes). Null when the host has no
   /// tab switcher, in which case those groups just close search.
   final void Function(int)? onSwitchTab;
-  const SearchScreen(
-      {super.key, required this.store, this.onSwitchTab});
+  const SearchScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -63,15 +62,18 @@ class _SearchScreenState extends State<SearchScreen> {
         break;
       case 'debts':
         Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)));
+          MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
+        );
         break;
       case 'goals':
         Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => GoalsScreen(store: widget.store)));
+          MaterialPageRoute(builder: (_) => GoalsScreen(store: widget.store)),
+        );
         break;
       case 'notes':
         Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => NotesScreen(store: widget.store)));
+          MaterialPageRoute(builder: (_) => NotesScreen(store: widget.store)),
+        );
         break;
     }
   }
@@ -79,8 +81,8 @@ class _SearchScreenState extends State<SearchScreen> {
   Color _amountColor(String sign) => sign == '+'
       ? Barako.primaryText
       : sign == '-'
-          ? Barako.text
-          : Barako.muted;
+      ? Barako.text
+      : Barako.muted;
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +100,10 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Search',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Search',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -119,7 +123,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
-                          icon: Icon(Icons.close, color: Barako.muted, size: 18),
+                          icon: Icon(
+                            Icons.close,
+                            color: Barako.muted,
+                            size: 18,
+                          ),
                           onPressed: () => setState(() => _query.clear()),
                         ),
                   filled: true,
@@ -144,13 +152,13 @@ class _SearchScreenState extends State<SearchScreen> {
               child: empty
                   ? _hint()
                   : visibleTotal == 0
-                      ? _noMatches(result['query'] as String)
-                      : ListView(
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                          children: [for (final g in groups) _group(g)],
-                        ),
+                  ? _noMatches(result['query'] as String)
+                  : ListView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                      children: [for (final g in groups) _group(g)],
+                    ),
             ),
           ],
         ),
@@ -159,48 +167,56 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _hint() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Find anything, fast',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              Text(
-                  'Search across your entries, utang, debts, goals, and notes. Try a name, a place, a category, or an amount.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Barako.muted, fontSize: 14, height: 1.5)),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Find anything, fast',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 8),
+          Text(
+            'Search across your entries, utang, debts, goals, and notes. Try a name, a place, a category, or an amount.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Barako.muted, fontSize: 14, height: 1.5),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _noMatches(String q) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🔍', style: TextStyle(fontSize: 40)),
-              const SizedBox(height: 10),
-              Text('No matches',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text('Nothing found for "$q". Try fewer or different words.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Barako.muted, fontSize: 13)),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔍', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 10),
+          Text(
+            'No matches',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 4),
+          Text(
+            'Nothing found for "$q". Try fewer or different words.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Barako.muted, fontSize: 13),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _group(Map<String, dynamic> g) {
     final kind = g['kind'] as String;
@@ -216,14 +232,21 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.only(left: 4, bottom: 6),
             child: Row(
               children: [
-                Icon(_groupIcon[kind] ?? Icons.search,
-                    size: 15, color: Barako.muted),
+                Icon(
+                  _groupIcon[kind] ?? Icons.search,
+                  size: 15,
+                  color: Barako.muted,
+                ),
                 const SizedBox(width: 6),
-                Text((g['title'] as String).toUpperCase(),
-                    style: Barako.kickerStyle),
+                Text(
+                  (g['title'] as String).toUpperCase(),
+                  style: Barako.kickerStyle,
+                ),
                 const SizedBox(width: 8),
-                Text('${g['count']}',
-                    style: TextStyle(color: Barako.faint, fontSize: 12)),
+                Text(
+                  '${g['count']}',
+                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -241,35 +264,48 @@ class _SearchScreenState extends State<SearchScreen> {
                     onTap: () => _openGroup(kind, route),
                     child: Container(
                       decoration: BoxDecoration(
-                          border: Border(
-                              top: BorderSide(
-                                  color: Barako.border, width: 0.5))),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            Text('$more more in ${g['title']}',
-                                style: TextStyle(
-                                    color: Barako.primaryText,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 4),
-                            Icon(Icons.chevron_right,
-                                size: 16, color: Barako.primaryText),
-                          ],
+                        border: Border(
+                          top: BorderSide(color: Barako.border, width: 0.5),
                         ),
                       ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            '$more more in ${g['title']}',
+                            style: TextStyle(
+                              color: Barako.primaryText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 16,
+                            color: Barako.primaryText,
+                          ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
   }
 
   Widget _row(
-      Map<String, dynamic> it, String kind, String route, bool divided) {
+    Map<String, dynamic> it,
+    String kind,
+    String route,
+    bool divided,
+  ) {
     final amount = it['amount'];
     final sign = (it['sign'] ?? '').toString();
     final sub = (it['subtitle'] ?? '').toString();
@@ -278,8 +314,10 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Container(
         decoration: divided
             ? BoxDecoration(
-                border:
-                    Border(top: BorderSide(color: Barako.border, width: 0.5)))
+                border: Border(
+                  top: BorderSide(color: Barako.border, width: 0.5),
+                ),
+              )
             : null,
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -288,19 +326,24 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(it['title']?.toString() ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    it['title']?.toString() ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   if (sub.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(sub,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Barako.muted, fontSize: 12)),
+                    Text(
+                      sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
                   ],
                 ],
               ),
@@ -308,12 +351,14 @@ class _SearchScreenState extends State<SearchScreen> {
             if (amount != null) ...[
               const SizedBox(width: 8),
               Text(
-                  '${sign.isNotEmpty ? '$sign ' : ''}${formatMoneyText((amount as num).toDouble())}',
-                  style: TextStyle(
-                      color: _amountColor(sign),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+                '${sign.isNotEmpty ? '$sign ' : ''}${formatMoneyText((amount as num).toDouble())}',
+                style: TextStyle(
+                  color: _amountColor(sign),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ],
           ],
         ),
