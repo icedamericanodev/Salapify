@@ -423,6 +423,26 @@ class SalapifyStore extends ChangeNotifier {
         ],
       });
 
+  /// Add a small win, stamped with today's date, matching the RN Mindset
+  /// screen (addItem('wins', { text, date })). Kept in data.wins so the
+  /// backup already carries it.
+  Future<void> addWin(String text) => _mutate((d) => {
+        ...d,
+        'wins': [
+          ...(d['wins'] as List? ?? const []),
+          {'text': text, 'date': _todayISO(), 'id': _genId('wins')},
+        ],
+      });
+
+  /// Delete a small win.
+  Future<void> deleteWin(String id) => _mutate((d) => {
+        ...d,
+        'wins': [
+          for (final w in (d['wins'] as List? ?? const []))
+            if (!(w is Map && w['id'] == id)) w,
+        ],
+      });
+
   /// Remember the mood theme (latte, barako, milktea).
   Future<void> setThemeMood(String mood) => _mutate((d) => {
         ...d,

@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.68 · Learn polish: progress bar, TODAY badge, read cross-fade';
+    'f0.70 · Mindset gate fixes: AA verdict, 44dp delete, undo, clipping';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

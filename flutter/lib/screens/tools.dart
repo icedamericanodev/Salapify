@@ -12,6 +12,7 @@ import 'contribution_calculator.dart';
 import 'currency_converter.dart';
 import 'learn.dart';
 import 'loan_calculator.dart';
+import 'mindset.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
@@ -132,20 +133,15 @@ class ToolsScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => LearnScreen(store: store)),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'ON THE WAY',
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
+            _tool(
+              context,
+              icon: Icons.self_improvement_outlined,
+              title: 'Money mindset',
+              blurb:
+                  "Today's lesson, a quick impulse check before you buy, and your small wins.",
+              open: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => MindsetScreen(store: store)),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Mindset is being adapted from the React Salapify one by one.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.5),
             ),
           ],
         ),
