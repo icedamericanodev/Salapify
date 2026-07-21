@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.94 · Look polish: one consistent header across tabs, safer account balances';
+    'f0.95 · Earn your treats: pair a treat with a healthy habit, ported from the RN app';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

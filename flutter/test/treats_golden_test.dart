@@ -1,0 +1,75 @@
+// Replays flutter/test/goldens/treats_goldens.json. The vectors were generated
+// by executing the REAL RN mobile/lib/treats.js, so pruneCheckIns, treatStatus,
+// toggleCheckIn, newTreat, and TREAT_TEMPLATES must match the live app exactly.
+// See scratchpad/gen-treats-goldens.js.
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/money/treats.dart';
+
+// num -> double, and drop null-valued map entries so a Dart null (an absent
+// source key) matches JSON.stringify dropping an undefined property.
+dynamic normalize(dynamic v) {
+  if (v is num) return v.toDouble();
+  if (v is Map) {
+    final out = <String, dynamic>{};
+    v.forEach((k, x) {
+      if (x != null) out[k.toString()] = normalize(x);
+    });
+    return out;
+  }
+  if (v is List) return v.map(normalize).toList();
+  return v;
+}
+
+void main() {
+  final raw = jsonDecode(
+          File('test/goldens/treats_goldens.json').readAsStringSync())
+      as Map<String, dynamic>;
+  final ref = DateTime(2026, 7, 16, 12);
+  final results = raw['results'] as Map<String, dynamic>;
+
+  final pruneCases = raw['pruneCases'] as Map<String, dynamic>;
+  final prune = results['prune'] as Map<String, dynamic>;
+  for (final name in prune.keys) {
+    test('pruneCheckIns matches RN: $name', () {
+      final v = pruneCases[name] as Map;
+      final got = pruneCheckIns(v['checkIns'], v['windowDays'], ref);
+      expect(normalize(got), normalize(prune[name]), reason: name);
+    });
+  }
+
+  final statusCases = raw['statusCases'] as Map<String, dynamic>;
+  final status = results['status'] as Map<String, dynamic>;
+  for (final name in status.keys) {
+    test('treatStatus matches RN: $name', () {
+      final got = treatStatus(statusCases[name], ref);
+      expect(normalize(got), normalize(status[name]), reason: name);
+    });
+  }
+
+  final toggleCases = raw['toggleCases'] as Map<String, dynamic>;
+  final toggle = results['toggle'] as Map<String, dynamic>;
+  for (final name in toggle.keys) {
+    test('toggleCheckIn matches RN: $name', () {
+      final got = toggleCheckIn(toggleCases[name], ref);
+      expect(normalize(got), normalize(toggle[name]), reason: name);
+    });
+  }
+
+  final newCases = raw['newCases'] as Map<String, dynamic>;
+  final created = results['created'] as Map<String, dynamic>;
+  for (final name in created.keys) {
+    test('newTreat matches RN (id stripped): $name', () {
+      final got = newTreat(newCases[name], ref);
+      got.remove('id');
+      expect(normalize(got), normalize(created[name]), reason: name);
+    });
+  }
+
+  test('treatTemplates matches RN TREAT_TEMPLATES', () {
+    expect(normalize(treatTemplates), normalize(results['templates']));
+  });
+}
