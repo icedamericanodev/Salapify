@@ -16,6 +16,7 @@ import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
+import 'goals.dart';
 import 'insights.dart';
 import 'log_sheet.dart';
 import 'search.dart';
@@ -124,8 +125,12 @@ class OverviewScreen extends StatelessWidget {
               _checkInCard(context, checkIn),
               const SizedBox(height: 12),
             ],
-            _netWorthHero(parts),
-            const SizedBox(height: 16),
+            // On a brand-new device the ₱0 hero would just compete with the
+            // welcome card, so the hero only appears once there is data.
+            if (hasStarted) ...[
+              _netWorthHero(parts),
+              const SizedBox(height: 16),
+            ],
             if (!hasStarted)
               _welcomeCard(context)
             else ...[
@@ -234,6 +239,11 @@ class OverviewScreen extends StatelessWidget {
       // not be a dead end. Push the screen Home already imports.
       onTap = () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
+    } else if (route == '/goals') {
+      // Goals is a pushable screen now, so an "open goals" decision is a real
+      // tap instead of an inert card.
+      onTap = () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => GoalsScreen(store: store)));
     } else if (route == '/insights') {
       // Insights moved off the bottom bar into Menu, so a forecast/overspend
       // decision pushes it as a route. It jumps to Utang from inside, so pop
@@ -244,7 +254,7 @@ class OverviewScreen extends StatelessWidget {
               onSwitchTab: onSwitchTab == null
                   ? null
                   : (i) {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).popUntil((r) => r.isFirst);
                       onSwitchTab!(i);
                     })));
     }

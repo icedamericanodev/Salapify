@@ -95,9 +95,18 @@ class _PanScreenState extends State<PanScreen> {
       case '/insights':
         // Insights moved off the bottom bar into Menu, so open it as a pushed
         // screen (like Pan's other CTAs) rather than switching to a tab index.
+        // Pan is itself a pushed route, so Insights sits two levels deep; its
+        // jump-to-Utang must pop back to the home shell (both routes), not once.
+        final onSwitchTab = widget.onSwitchTab;
         return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) =>
-                InsightsScreen(store: widget.store, onSwitchTab: widget.onSwitchTab)));
+            builder: (_) => InsightsScreen(
+                store: widget.store,
+                onSwitchTab: onSwitchTab == null
+                    ? null
+                    : (i) {
+                        Navigator.of(context).popUntil((r) => r.isFirst);
+                        onSwitchTab(i);
+                      })));
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;

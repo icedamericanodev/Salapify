@@ -33,7 +33,9 @@ class MenuScreen extends StatelessWidget {
   void Function(int)? _popThenSwitch(BuildContext context) => onSwitchTab == null
       ? null
       : (i) {
-          Navigator.of(context).pop();
+          // Pop back to the home shell (clears any pushed routes, however deep)
+          // before switching the tab, so the target tab is never left covered.
+          Navigator.of(context).popUntil((r) => r.isFirst);
           onSwitchTab!(i);
         };
 

@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.79 · Dashboard is now a clean status view; a Menu tab holds the rest';
+    'f0.80 · Dashboard restructure gate fixes: Insights back, deep-pop, first run';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

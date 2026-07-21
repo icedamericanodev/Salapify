@@ -24,9 +24,11 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
     expect(find.text('SALAPIFY'), findsOneWidget);
-    expect(find.text('NET WORTH'), findsOneWidget);
-    // The stamp and the import path now live under the Menu tab, off the
-    // decluttered dashboard.
+    // First run (empty store) shows the welcome/import card, not the hero.
+    expect(find.text('WELCOME'), findsOneWidget);
+    expect(find.text('Import my backup'), findsOneWidget);
+    // The stamp and the full import screen now live under the Menu tab, off
+    // the decluttered dashboard.
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Update stamp'), 200,
