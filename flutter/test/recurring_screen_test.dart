@@ -112,7 +112,13 @@ void main() {
     await tester.tap(find.text('+ Add'));
     await tester.pumpAndSettle();
     // The Pro wall opens instead of the add form.
-    expect(find.text('Free keeps 5 recurring items'), findsOneWidget);
+    expect(find.text('Unlimited recurring with Pro'), findsOneWidget);
     expect(find.text('New recurring'), findsNothing);
+
+    // Unlock Pro free: pro is set and the add form opens.
+    await tester.tap(find.text('Unlock Pro free'));
+    await tester.pumpAndSettle();
+    expect((store.data['settings'] as Map)['pro'], true);
+    expect(find.text('New recurring'), findsOneWidget);
   });
 }

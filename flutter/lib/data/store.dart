@@ -265,11 +265,20 @@ class SalapifyStore extends ChangeNotifier {
   /// off. Call on load and whenever the app returns to the foreground.
   Future<void> postDueRecurring() async {
     if (!canWrite) return;
-    final next =
-        recurring.postDueRecurring(data, DateTime.now(), () => _genId('txn'));
-    // The engine returns the SAME map instance when nothing is due.
-    if (identical(next, data)) return;
-    await _mutate((_) => next);
+    // Cheap probe (no ids minted) to skip a redundant write when nothing is
+    // due; the engine returns the SAME map instance in that case.
+    if (identical(
+        recurring.postDueRecurring(data, DateTime.now(), () => ''), data)) {
+      return;
+    }
+    // Compute the real post INSIDE the queue so it folds onto the latest
+    // committed state, never overwriting a concurrent write. Matches RN's
+    // setData(prev => ...). A no-op result keeps the previous map (no churn).
+    await _mutate((prev) {
+      final next =
+          recurring.postDueRecurring(prev, DateTime.now(), () => _genId('txn'));
+      return identical(next, prev) ? prev : next;
+    });
   }
 
   Future<void> _save() async {
@@ -912,6 +921,17 @@ class SalapifyStore extends ChangeNotifier {
   /// rule stops, matching RN.
   Future<void> deleteRecurring(String id) => _mutate((d) =>
       {...d, 'recurring': _recurring(d).where((r) => r['id'] != id).toList()});
+
+  /// Unlock Pro. During early access Pro is free and early users keep it free,
+  /// so this is the honest "unlock" the recurring cap offers. A plain settings
+  /// write, preserved by backup like every other settings key.
+  Future<void> setPro(bool value) => _mutate((d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'pro': value,
+        },
+      });
 
   /// Set (or clear, with 0) the monthly budget limit.
   Future<void> setMonthlyLimit(double limit) => _mutate((d) => {

@@ -343,10 +343,17 @@ Map<String, dynamic> sanitizeData(dynamic raw,
     'notes': _cleanList(src['notes']),
     'recurring': (() {
       var i = 0;
+      final seen = <String>{};
       return _cleanList(src['recurring']).map((r) {
-        final id = (r['id'] is String && (r['id'] as String).isNotEmpty)
-            ? r['id']
+        var id = (r['id'] is String && (r['id'] as String).isNotEmpty)
+            ? r['id'] as String
             : 'recurring_restored_$i';
+        // A hand-edited backup can carry two items with the same id; edit and
+        // delete match by id, so de-dup here the way categories do.
+        while (seen.contains(id)) {
+          id = '${id}_dup';
+        }
+        seen.add(id);
         final amt = _num(r['amount']);
         var day = _num(r['dayOfMonth']).round();
         if (day == 0) day = 1;
