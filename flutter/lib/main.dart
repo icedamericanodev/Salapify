@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.91 · File backup: fix the compileSdk override ordering so the release builds (NEW APK, install once)';
+    'f0.92 · Themes + light/dark/system: 8 themes each in light and dark, System follows your phone';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -32,12 +32,24 @@ class SalapifyApp extends StatefulWidget {
   State<SalapifyApp> createState() => _SalapifyAppState();
 }
 
-class _SalapifyAppState extends State<SalapifyApp> {
+class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.store.load();
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // The OS flipped light/dark (auto at night, or the user toggled it). Repaint
+  // so a 'system' appearance follows along.
+  @override
+  void didChangePlatformBrightness() => setState(() {});
 
   int tab = 0;
 
@@ -46,12 +58,18 @@ class _SalapifyAppState extends State<SalapifyApp> {
     return ListenableBuilder(
       listenable: widget.store,
       builder: (context, _) {
-        // The mood lives in settings so it survives backups. The palette is
-        // set BEFORE anything below reads a Barako color, and the whole tree
-        // rebuilds on every store notify, so a mood switch repaints the app.
+        // The theme and mode live in settings so they survive backups. The
+        // palette is resolved and set BEFORE anything below reads a Barako
+        // color; the store's notify and the OS brightness observer both
+        // rebuild this tree, so a theme/mode switch or a night-mode flip
+        // repaints the whole app.
         final settings = widget.store.data['settings'];
-        Barako.current =
-            paletteForMood(settings is Map ? settings['themeMood'] : null);
+        final (themeKey, mode) = resolveThemeChoice(settings);
+        final os =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        final theme = themeForKey(themeKey);
+        Barako.currentTheme = theme;
+        Barako.current = theme.resolve(effectiveBrightness(mode, os));
         return MaterialApp(
           title: 'Salapify Preview',
           theme: salapifyTheme(Barako.current),

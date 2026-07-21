@@ -1,5 +1,6 @@
-// Mood themes: the picker switches the palette live, persists the mood in
-// settings so it survives a restart, and unknown moods fall back to Latte.
+// Themes and appearance: the picker switches theme and light/dark/system live,
+// persists both in settings so they survive a restart, and the legacy themeMood
+// still maps on for old installs. system follows the phone brightness.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,45 +14,81 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('paletteForMood maps moods and falls back to latte', () {
-    expect(paletteForMood('barako').mood, 'barako');
-    expect(paletteForMood('milktea').mood, 'milktea');
-    expect(paletteForMood('latte').mood, 'latte');
-    expect(paletteForMood(null).mood, 'latte');
-    expect(paletteForMood('disco').mood, 'latte');
-    expect(paletteForMood(42).mood, 'latte');
+  test('themeForKey maps keys and falls back to Barako', () {
+    expect(themeForKey('barako').key, 'barako');
+    expect(themeForKey('tidal').key, 'tidal');
+    expect(themeForKey('mint').key, 'mint');
+    expect(themeForKey('disco').key, 'barako');
+    expect(themeForKey(null).key, 'barako');
+    expect(themeForKey(42).key, 'barako');
   });
 
-  testWidgets('switching the mood repaints the app and persists',
+  test('resolveThemeChoice honors new keys and maps the legacy mood', () {
+    expect(resolveThemeChoice(const {}), ('barako', 'system'));
+    expect(resolveThemeChoice(const {'themeMood': 'latte'}), ('barako', 'light'));
+    expect(resolveThemeChoice(const {'themeMood': 'barako'}), ('barako', 'dark'));
+    expect(
+        resolveThemeChoice(const {'themeMood': 'milktea'}), ('barako', 'dark'));
+    expect(resolveThemeChoice(const {'themeKey': 'tidal', 'themeMode': 'dark'}),
+        ('tidal', 'dark'));
+    expect(resolveThemeChoice(const {'themeKey': 'tidal'}), ('tidal', 'system'));
+    expect(resolveThemeChoice(const {'themeMode': 'light'}), ('barako', 'light'));
+  });
+
+  test('effectiveBrightness resolves the mode against the OS', () {
+    expect(effectiveBrightness('light', Brightness.dark), Brightness.light);
+    expect(effectiveBrightness('dark', Brightness.light), Brightness.dark);
+    expect(effectiveBrightness('system', Brightness.dark), Brightness.dark);
+    expect(effectiveBrightness('system', Brightness.light), Brightness.light);
+  });
+
+  testWidgets('picking a theme and a mode repaints the app and persists',
       (tester) async {
+    // Fresh store: system mode, and the test platform is light, so the app
+    // opens on Barako light.
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    expect(Barako.current.mood, 'latte');
-    final beforeApp =
-        tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(Barako.currentTheme.key, 'barako');
+    expect(Barako.current.brightness, Brightness.light);
+    final beforeApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(beforeApp.theme!.scaffoldBackgroundColor,
-        lattePalette.background);
+        themeForKey('barako').light.background);
 
     await tester.tap(find.text('Menu'));
-
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('🌙 Barako'), 200,
+    // Pick the Tidal theme. scrollUntilVisible can land a chip flush against a
+    // fold, so lift it into view before tapping to keep its center tappable.
+    await tester.scrollUntilVisible(find.text('🌊 Tidal'), 100,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('🌙 Barako'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('🌊 Tidal'));
+    await tester.pumpAndSettle();
+    expect(Barako.currentTheme.key, 'tidal');
+    expect(Barako.current.brightness, Brightness.light);
 
-    expect(Barako.current.mood, 'barako');
+    // Switch appearance to Dark.
+    await tester.scrollUntilVisible(find.text('Dark'), 100,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+    expect(Barako.current.brightness, Brightness.dark);
     final afterApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(afterApp.theme!.scaffoldBackgroundColor,
-        barakoPalette.background);
+        themeForKey('tidal').dark.background);
 
-    // The mood survives a restart through settings.
+    // Both choices survive a restart through settings.
     final fresh = SalapifyStore();
     await fresh.load();
-    expect((fresh.data['settings'] as Map)['themeMood'], 'barako');
+    final s = fresh.data['settings'] as Map;
+    expect(s['themeKey'], 'tidal');
+    expect(s['themeMode'], 'dark');
   });
 }
