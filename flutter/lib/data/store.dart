@@ -15,6 +15,7 @@ import 'dart:math';
 import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
+import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import 'backup.dart';
 
@@ -252,6 +253,23 @@ class SalapifyStore extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+    // Post any recurring bills and income that have come due while the app was
+    // closed. Runs after load so canWrite is settled; a failed read skips it.
+    await postDueRecurring();
+  }
+
+  /// Post recurring items that have come due, into the transactions list and
+  /// their linked accounts, through the golden-locked engine. Idempotent within
+  /// a month via each item's lastPosted marker, so calling it on every open and
+  /// resume can never double post. A no-op when nothing is due or writing is
+  /// off. Call on load and whenever the app returns to the foreground.
+  Future<void> postDueRecurring() async {
+    if (!canWrite) return;
+    final next =
+        recurring.postDueRecurring(data, DateTime.now(), () => _genId('txn'));
+    // The engine returns the SAME map instance when nothing is due.
+    if (identical(next, data)) return;
+    await _mutate((_) => next);
   }
 
   Future<void> _save() async {
@@ -265,6 +283,12 @@ class SalapifyStore extends ChangeNotifier {
   /// replaced and persisted.
   Future<void> importBackupText(String text) => _serialized(() async {
         final parsed = parseBackupObject(jsonDecode(text));
+        // A restore must never invent money: stamp recurring items whose day
+        // this month already passed as posted, so the posting engine does not
+        // re-post a bill the backup already recorded. Items still to come keep
+        // their marker. Must run before the blob is adopted.
+        parsed['recurring'] =
+            recurring.stampRecurringOnRestore(parsed['recurring'], DateTime.now());
         // Snapshot BEFORE anything is replaced, and snapshot the RAW stored
         // blob, not what memory holds: after a failed or refused read
         // (newer version, corrupt bytes) memory is the empty default while
@@ -805,6 +829,89 @@ class SalapifyStore extends ChangeNotifier {
   /// Remove a treat rule.
   Future<void> deleteTreat(String id) => _mutate((d) =>
       _withTreats(d, _settingsTreats(d).where((t) => t['id'] != id).toList()));
+
+  /// Recurring bills and income (top-level collection).
+  List<Map<String, dynamic>> get recurringList {
+    final v = data['recurring'];
+    return [
+      for (final r in (v is List ? v : const []))
+        if (r is Map) r.cast<String, dynamic>(),
+    ];
+  }
+
+  List<Map<String, dynamic>> _recurring(Map<String, dynamic> d) {
+    final v = d['recurring'];
+    return [
+      for (final r in (v is List ? v : const []))
+        if (r is Map) r.cast<String, dynamic>(),
+    ];
+  }
+
+  /// Add a recurring item. lastPosted is stamped through the golden-locked
+  /// engine so a day already past this month waits for next month instead of
+  /// posting a back dated expense.
+  Future<String> addRecurring({
+    required String type,
+    required String label,
+    required double amount,
+    required int dayOfMonth,
+    String accountId = '',
+  }) async {
+    final id = _genId('recurring');
+    await _mutate((d) {
+      final item = {
+        'id': id,
+        'type': type == 'income' ? 'income' : 'expense',
+        'label': label,
+        'amount': amount,
+        'dayOfMonth': dayOfMonth,
+        'accountId': accountId,
+        'lastPosted': recurring.recurringSaveLastPosted(
+            dayOfMonth: dayOfMonth,
+            existingLastPosted: '',
+            now: DateTime.now(),
+            isEdit: false),
+      };
+      return {...d, 'recurring': [..._recurring(d), item]};
+    });
+    return id;
+  }
+
+  /// Edit a recurring item, preserving its lastPosted unless a day that already
+  /// passed newly requires stamping this month (never posts retroactively).
+  Future<void> updateRecurring(
+    String id, {
+    required String type,
+    required String label,
+    required double amount,
+    required int dayOfMonth,
+    String accountId = '',
+  }) =>
+      _mutate((d) {
+        final next = _recurring(d).map((r) {
+          if (r['id'] != id) return r;
+          final kept = r['lastPosted'] is String ? r['lastPosted'] as String : '';
+          return {
+            ...r,
+            'type': type == 'income' ? 'income' : 'expense',
+            'label': label,
+            'amount': amount,
+            'dayOfMonth': dayOfMonth,
+            'accountId': accountId,
+            'lastPosted': recurring.recurringSaveLastPosted(
+                dayOfMonth: dayOfMonth,
+                existingLastPosted: kept,
+                now: DateTime.now(),
+                isEdit: true),
+          };
+        }).toList();
+        return {...d, 'recurring': next};
+      });
+
+  /// Remove a recurring item. Transactions it already posted stay; only the
+  /// rule stops, matching RN.
+  Future<void> deleteRecurring(String id) => _mutate((d) =>
+      {...d, 'recurring': _recurring(d).where((r) => r['id'] != id).toList()});
 
   /// Set (or clear, with 0) the monthly budget limit.
   Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
