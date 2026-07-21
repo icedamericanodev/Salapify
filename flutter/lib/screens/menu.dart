@@ -171,7 +171,10 @@ class MenuScreen extends StatelessWidget {
   };
 
   Widget _appearanceCard(BuildContext context) {
-    final (currentKey, currentMode) = resolveThemeChoice(store.data['settings']);
+    final (rawKey, currentMode) = resolveThemeChoice(store.data['settings']);
+    // Highlight the theme actually in effect: an unknown or future key renders
+    // as Barako (themeForKey falls back), so the chip should show Barako too.
+    final currentKey = themeForKey(rawKey).key;
     Future<void> save(Future<void> Function() action) async {
       final messenger = ScaffoldMessenger.of(context);
       try {
@@ -188,7 +191,7 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('THEME'),
+            _kicker('COLOR THEME'),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -196,6 +199,13 @@ class MenuScreen extends StatelessWidget {
               children: [
                 for (final t in barakoThemes)
                   ChoiceChip(
+                    // A dot in the theme's own brand color (at the current
+                    // brightness) previews each option, so the 8 chips are not
+                    // all identical but for their label.
+                    avatar: CircleAvatar(
+                        radius: 8,
+                        backgroundColor:
+                            t.resolve(Barako.current.brightness).primary),
                     label: Text(t.label),
                     selected: currentKey == t.key,
                     onSelected: (_) => save(() => store.setThemeKey(t.key)),
@@ -210,6 +220,9 @@ class MenuScreen extends StatelessWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 8),
+            Text(themeForKey(currentKey).hint,
+                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
             const SizedBox(height: 16),
             _kicker('APPEARANCE'),
             const SizedBox(height: 10),

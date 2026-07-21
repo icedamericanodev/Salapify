@@ -360,8 +360,11 @@ const _forestLight = BarakoPalette(
   card: Color(0xFFFFFCF5),
   surfaceRaised: Color(0xFFFFFFFF),
   border: Color(0xFFE3DBC9),
-  primary: Color(0xFFB4581E),
-  primaryText: Color(0xFFB4581E),
+  // Darkened from RN's #B4581E, which was 4.28 on this background (below AA)
+  // as small money text. #A85018 clears it (about 4.88 on bg, 5.36 on card).
+  // RN has the same too-light value; tracked as a separate RN follow-up.
+  primary: Color(0xFFA85018),
+  primaryText: Color(0xFFA85018),
   caramel: Color(0xFF7A5A2E),
   text: Color(0xFF221E15),
   textSecondary: Color(0xFF4A443A),

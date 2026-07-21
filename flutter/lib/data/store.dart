@@ -674,7 +674,9 @@ class SalapifyStore extends ChangeNotifier {
   Future<void> setThemeMode(String mode) => _mutate((d) {
         final s =
             ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final key = s['themeKey'] as String? ?? 'barako';
+        // is String, not a hard cast: a hand-edited or future backup could
+        // carry a non-string themeKey, and a cast would throw on tap.
+        final key = s['themeKey'] is String ? s['themeKey'] as String : 'barako';
         return {
           ...d,
           'settings': {
@@ -690,7 +692,8 @@ class SalapifyStore extends ChangeNotifier {
   Future<void> setThemeKey(String key) => _mutate((d) {
         final s =
             ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final mode = s['themeMode'] as String? ?? 'system';
+        final mode =
+            s['themeMode'] is String ? s['themeMode'] as String : 'system';
         return {
           ...d,
           'settings': {

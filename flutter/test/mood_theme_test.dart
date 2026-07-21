@@ -2,6 +2,8 @@
 // persists both in settings so they survive a restart, and the legacy themeMood
 // still maps on for old installs. system follows the phone brightness.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
@@ -40,6 +42,24 @@ void main() {
     expect(effectiveBrightness('dark', Brightness.light), Brightness.dark);
     expect(effectiveBrightness('system', Brightness.dark), Brightness.dark);
     expect(effectiveBrightness('system', Brightness.light), Brightness.light);
+  });
+
+  test('setThemeMode/Key survive junk (non-String) stored theme values', () async {
+    // A hand-edited or future backup could carry numeric theme values. The
+    // writers must not throw a cast, and must leave other settings intact.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'settings': {'themeKey': 42, 'themeMode': true, 'monthlyLimit': 5000},
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+    await store.setThemeMode('dark');
+    await store.setThemeKey('mint');
+    final s = store.data['settings'] as Map;
+    expect(s['themeMode'], 'dark');
+    expect(s['themeKey'], 'mint');
+    expect(s['monthlyLimit'], 5000); // untouched
   });
 
   testWidgets('picking a theme and a mode repaints the app and persists',
