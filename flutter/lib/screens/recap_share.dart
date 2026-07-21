@@ -5,9 +5,13 @@
 // golden-locked monthRecap/recapText engine, so the card can never disagree
 // with the app.
 //
-// Defensive by design: if the image capture ever fails, the user still has
-// Share as text, which cannot fail. The cached PNG is deleted after the share
-// sheet closes, the same hygiene as backups. Ported from the RN RecapShare.
+// The capture source is a fixed 330-wide card rendered off-screen, NOT the
+// scaled on-screen preview, so the exported image is the same size and
+// proportion on every phone (a narrow phone would otherwise clamp the card
+// below 330 and shrink the PNG). Defensive by design: if the image capture
+// ever fails, the user still has Share as text, which cannot fail. The cached
+// PNG is deleted after the share sheet closes, the same hygiene as backups.
+// Ported from the RN RecapShare.
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -47,7 +51,11 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
   bool _hideAmounts = false;
   bool _busy = false;
 
-  Map<String, dynamic> get _recap => monthRecap(widget.store.data, DateTime.now());
+  // Computed once, so the clock is read a single time: the captured image, the
+  // filename, and the text fallback can never describe two different months if
+  // the user crosses midnight with the screen open.
+  late final Map<String, dynamic> _recap =
+      monthRecap(widget.store.data, DateTime.now());
 
   String _money(num n) => _hideAmounts ? '***' : formatMoneyText(n);
 
@@ -100,100 +108,117 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final recap = _recap;
+    final card =
+        _RecapCard(recap: _recap, hideAmounts: _hideAmounts, money: _money);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('${recap['label']} recap',
+        title: Text('${_recap['label']} recap',
             style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Text(
-              'Turn ${recap['label']} into a card you can post or send. You '
-              'choose if peso amounts show.',
-              style: TextStyle(
-                  color: Barako.textSecondary, fontSize: 14, height: 1.45),
-            ),
-            const SizedBox(height: 18),
-            Center(
-              child: RepaintBoundary(
-                key: _cardKey,
-                child: _RecapCard(recap: recap, hideAmounts: _hideAmounts, money: _money),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: Barako.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Barako.border),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Hide peso amounts',
-                            style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text('Show percentages only, keep numbers private.',
-                            style:
-                                TextStyle(color: Barako.faint, fontSize: 12)),
-                      ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: [
+                Text(
+                  'Turn ${_recap['label']} into a card you can post or send. '
+                  'You choose if peso amounts show.',
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 14, height: 1.45),
+                ),
+                const SizedBox(height: 18),
+                // Preview scales down to fit a narrow phone without distorting;
+                // the capture happens off-screen at the true 330 (below).
+                Center(
+                  child: FittedBox(fit: BoxFit.scaleDown, child: card),
+                ),
+                const SizedBox(height: 20),
+                _toggle(),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _busy ? null : _shareImage,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      disabledBackgroundColor:
+                          Barako.primary.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
+                    child: Text(_busy ? 'Preparing...' : 'Share the card',
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
-                  Switch(
-                    value: _hideAmounts,
-                    onChanged: (v) => setState(() => _hideAmounts = v),
-                    activeThumbColor: Barako.onPrimary,
-                    activeTrackColor: Barako.primary,
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _shareText,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Barako.textSecondary,
+                      side: BorderSide(color: Barako.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Share as text',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _busy ? null : _shareImage,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                  disabledBackgroundColor: Barako.primary.withValues(alpha: 0.5),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
-                child: Text(_busy ? 'Preparing...' : 'Share the card',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
+              ],
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _shareText,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Barako.textSecondary,
-                  side: BorderSide(color: Barako.border),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Share as text',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+          ),
+          // The capture source: a genuinely fixed 330-wide card, always laid
+          // out (never culled by the scroll) and off-screen so it is invisible.
+          // toImage still snapshots it. This keeps every exported PNG identical
+          // in size and proportion across devices.
+          Positioned(
+            left: -_cardW * 4,
+            top: 0,
+            child: RepaintBoundary(key: _cardKey, child: card),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _toggle() => Container(
+        decoration: BoxDecoration(
+          color: Barako.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Barako.border),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Hide peso amounts',
+                      style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text('Show percentages only, keep numbers private.',
+                      style: TextStyle(color: Barako.faint, fontSize: 12)),
+                ],
+              ),
+            ),
+            Switch(
+              value: _hideAmounts,
+              onChanged: (v) => setState(() => _hideAmounts = v),
+              activeThumbColor: Barako.onPrimary,
+              activeTrackColor: Barako.primary,
+              inactiveThumbColor: Barako.faint,
+              inactiveTrackColor: Barako.border,
+            ),
+          ],
+        ),
+      );
 }
 
 // The branded card, fixed at 330 wide so the captured PNG is consistent. Uses
@@ -267,7 +292,21 @@ class _RecapCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5)),
               ),
-              const Text('☕', style: TextStyle(fontSize: 34)),
+              // A pure-Dart brand roundel, so the mark is identical on every
+              // device (a system emoji would render differently per phone).
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                    color: _orange, shape: BoxShape.circle),
+                child: const Text('S',
+                    style: TextStyle(
+                        fontFamily: 'Fraunces',
+                        color: _bg,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
           const SizedBox(height: 14),

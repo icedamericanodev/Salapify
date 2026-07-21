@@ -52,8 +52,9 @@ void main() {
     await tester.pumpAndSettle();
     await _openRecap(tester);
 
-    // The card and its footer wordmark render, and both share buttons exist.
-    expect(find.text("Salapify, on your money's side"), findsOneWidget);
+    // The card and its footer wordmark render (twice: the visible preview and
+    // the off-screen fixed-size capture source), and both share buttons exist.
+    expect(find.text("Salapify, on your money's side"), findsWidgets);
     expect(find.text('Share the card'), findsOneWidget);
     expect(find.text('Share as text'), findsOneWidget);
     // Amounts are shown, not hidden.
