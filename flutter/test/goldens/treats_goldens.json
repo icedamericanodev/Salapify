@@ -1,0 +1,408 @@
+{
+  "refISO": "2026-07-16",
+  "pruneCases": {
+    "mixed": {
+      "checkIns": [
+        "2026-07-16",
+        "2026-07-16",
+        "2026-07-10",
+        "2026-07-09",
+        "2026-07-17",
+        "2026-07-13",
+        42,
+        null,
+        ""
+      ],
+      "windowDays": 7
+    },
+    "emptyWindowClampLow": {
+      "checkIns": [
+        "2026-07-16",
+        "2026-07-15"
+      ],
+      "windowDays": 0
+    },
+    "clampHigh": {
+      "checkIns": [
+        "2026-06-20",
+        "2026-07-16"
+      ],
+      "windowDays": 999
+    },
+    "clampNeg": {
+      "checkIns": [
+        "2026-07-16",
+        "2026-07-15"
+      ],
+      "windowDays": -5
+    },
+    "notArray": {
+      "checkIns": "nope",
+      "windowDays": 7
+    },
+    "allOld": {
+      "checkIns": [
+        "2026-01-01",
+        "2026-02-02"
+      ],
+      "windowDays": 7
+    }
+  },
+  "statusCases": {
+    "earned": {
+      "id": "t1",
+      "treat": "Milk tea",
+      "action": "Lakad",
+      "emoji": "🧋",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-14",
+        "2026-07-15",
+        "2026-07-16"
+      ],
+      "lifetime": 12
+    },
+    "notYet": {
+      "id": "t2",
+      "treat": "Burger",
+      "action": "Baon",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-15"
+      ],
+      "lifetime": 4
+    },
+    "doneTodayNotEarned": {
+      "id": "t3",
+      "treat": "Movie",
+      "action": "Tulog",
+      "target": 4,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-16"
+      ],
+      "lifetime": 1
+    },
+    "defaultsAndClamp": {
+      "id": "t4",
+      "treat": "X",
+      "action": "Y",
+      "target": 0,
+      "windowDays": 0,
+      "checkIns": [
+        "2026-01-01",
+        "2026-07-16"
+      ],
+      "lifetime": -5
+    },
+    "targetClampHigh": {
+      "id": "t5",
+      "treat": "Big",
+      "action": "Z",
+      "target": 99,
+      "windowDays": 40,
+      "checkIns": [],
+      "lifetime": 0
+    },
+    "emptyTreat": {},
+    "nullTreat": null
+  },
+  "toggleCases": {
+    "addToday": {
+      "id": "g1",
+      "treat": "A",
+      "action": "B",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-14"
+      ],
+      "lifetime": 2
+    },
+    "undoToday": {
+      "id": "g2",
+      "treat": "A",
+      "action": "B",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-15",
+        "2026-07-16"
+      ],
+      "lifetime": 5
+    },
+    "undoTodayLifetimeFloor": {
+      "id": "g3",
+      "treat": "A",
+      "action": "B",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-07-16"
+      ],
+      "lifetime": 0
+    },
+    "addPrunesStale": {
+      "id": "g4",
+      "treat": "A",
+      "action": "B",
+      "target": 3,
+      "windowDays": 7,
+      "checkIns": [
+        "2026-01-01"
+      ],
+      "lifetime": 1
+    }
+  },
+  "newCases": {
+    "full": {
+      "treat": "  Kape  ",
+      "action": "Lakad",
+      "emoji": "☕",
+      "target": 5,
+      "windowDays": 10
+    },
+    "blanks": {
+      "treat": "   ",
+      "action": "",
+      "emoji": "",
+      "target": 0,
+      "windowDays": 0
+    },
+    "clamp": {
+      "treat": "Big",
+      "action": "Z",
+      "target": 99,
+      "windowDays": 99
+    },
+    "empty": {}
+  },
+  "results": {
+    "prune": {
+      "mixed": [
+        "2026-07-10",
+        "2026-07-13",
+        "2026-07-16"
+      ],
+      "emptyWindowClampLow": [
+        "2026-07-15",
+        "2026-07-16"
+      ],
+      "clampHigh": [
+        "2026-06-20",
+        "2026-07-16"
+      ],
+      "clampNeg": [
+        "2026-07-16"
+      ],
+      "notArray": [],
+      "allOld": []
+    },
+    "status": {
+      "earned": {
+        "id": "t1",
+        "treat": "Milk tea",
+        "action": "Lakad",
+        "emoji": "🧋",
+        "target": 3,
+        "windowDays": 7,
+        "recent": 3,
+        "remaining": 0,
+        "earned": true,
+        "doneToday": true,
+        "lifetime": 12
+      },
+      "notYet": {
+        "id": "t2",
+        "treat": "Burger",
+        "action": "Baon",
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "recent": 1,
+        "remaining": 2,
+        "earned": false,
+        "doneToday": false,
+        "lifetime": 4
+      },
+      "doneTodayNotEarned": {
+        "id": "t3",
+        "treat": "Movie",
+        "action": "Tulog",
+        "emoji": "☕",
+        "target": 4,
+        "windowDays": 7,
+        "recent": 1,
+        "remaining": 3,
+        "earned": false,
+        "doneToday": true,
+        "lifetime": 1
+      },
+      "defaultsAndClamp": {
+        "id": "t4",
+        "treat": "X",
+        "action": "Y",
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "recent": 1,
+        "remaining": 2,
+        "earned": false,
+        "doneToday": true,
+        "lifetime": 0
+      },
+      "targetClampHigh": {
+        "id": "t5",
+        "treat": "Big",
+        "action": "Z",
+        "emoji": "☕",
+        "target": 14,
+        "windowDays": 31,
+        "recent": 0,
+        "remaining": 14,
+        "earned": false,
+        "doneToday": false,
+        "lifetime": 0
+      },
+      "emptyTreat": {
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "recent": 0,
+        "remaining": 3,
+        "earned": false,
+        "doneToday": false,
+        "lifetime": 0
+      },
+      "nullTreat": {
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "recent": 0,
+        "remaining": 3,
+        "earned": false,
+        "doneToday": false,
+        "lifetime": 0
+      }
+    },
+    "toggle": {
+      "addToday": {
+        "id": "g1",
+        "treat": "A",
+        "action": "B",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [
+          "2026-07-14",
+          "2026-07-16"
+        ],
+        "lifetime": 3
+      },
+      "undoToday": {
+        "id": "g2",
+        "treat": "A",
+        "action": "B",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [
+          "2026-07-15"
+        ],
+        "lifetime": 4
+      },
+      "undoTodayLifetimeFloor": {
+        "id": "g3",
+        "treat": "A",
+        "action": "B",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [],
+        "lifetime": 0
+      },
+      "addPrunesStale": {
+        "id": "g4",
+        "treat": "A",
+        "action": "B",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [
+          "2026-07-16"
+        ],
+        "lifetime": 2
+      }
+    },
+    "created": {
+      "full": {
+        "treat": "Kape",
+        "action": "Lakad",
+        "emoji": "☕",
+        "target": 5,
+        "windowDays": 10,
+        "checkIns": [],
+        "lifetime": 0,
+        "createdAt": "2026-07-16"
+      },
+      "blanks": {
+        "treat": "My treat",
+        "action": "My healthy action",
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [],
+        "lifetime": 0,
+        "createdAt": "2026-07-16"
+      },
+      "clamp": {
+        "treat": "Big",
+        "action": "Z",
+        "emoji": "☕",
+        "target": 14,
+        "windowDays": 31,
+        "checkIns": [],
+        "lifetime": 0,
+        "createdAt": "2026-07-16"
+      },
+      "empty": {
+        "treat": "My treat",
+        "action": "My healthy action",
+        "emoji": "☕",
+        "target": 3,
+        "windowDays": 7,
+        "checkIns": [],
+        "lifetime": 0,
+        "createdAt": "2026-07-16"
+      }
+    },
+    "templates": [
+      {
+        "emoji": "☕",
+        "treat": "Milk tea or kape",
+        "action": "30-minutong lakad",
+        "target": 3,
+        "windowDays": 7
+      },
+      {
+        "emoji": "🍟",
+        "treat": "Burger or sisig",
+        "action": "Home-cooked baon",
+        "target": 3,
+        "windowDays": 7
+      },
+      {
+        "emoji": "🎬",
+        "treat": "Movie night",
+        "action": "Maagang tulog",
+        "target": 4,
+        "windowDays": 7
+      },
+      {
+        "emoji": "🛍️",
+        "treat": "One item sa cart",
+        "action": "Tubig, no softdrinks",
+        "target": 5,
+        "windowDays": 7
+      }
+    ]
+  }
+}

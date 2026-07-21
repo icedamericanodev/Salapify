@@ -16,6 +16,7 @@ import 'overview.dart' show ExportScreen, ImportScreen;
 import 'pan.dart';
 import 'search.dart';
 import 'tools.dart';
+import 'treats.dart';
 import 'update_card.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -92,6 +93,15 @@ class MenuScreen extends StatelessWidget {
                     'Loan, tax, and take-home calculators, currency converter, notes, and lessons.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => ToolsScreen(store: store))),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.emoji_events_outlined,
+                title: 'Earn your treats',
+                blurb:
+                    'Pair a treat with a healthy habit and earn it guilt free. No pesos counted.',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => TreatsScreen(store: store))),
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),

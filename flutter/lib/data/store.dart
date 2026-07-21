@@ -15,6 +15,7 @@ import 'dart:math';
 import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
+import '../money/treats.dart' as treats;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -731,6 +732,79 @@ class SalapifyStore extends ChangeNotifier {
           'settings': {...s, 'lessonsRead': read.toList()},
         };
       });
+
+  /// Earn-your-treats rules, kept in settings.treats. Every write goes through
+  /// the golden-locked treats engine so check-in windows and lifetime match the
+  /// RN app. The backup preserves unknown settings keys, so this needs no
+  /// migration.
+  List<Map<String, dynamic>> get treatRules {
+    final s = (data['settings'] as Map?) ?? const {};
+    final list = s['treats'];
+    if (list is! List) return const [];
+    return [
+      for (final t in list)
+        if (t is Map) t.cast<String, dynamic>(),
+    ];
+  }
+
+  List<Map<String, dynamic>> _settingsTreats(Map<String, dynamic> d) {
+    final s = (d['settings'] as Map?) ?? const {};
+    final list = s['treats'];
+    if (list is! List) return [];
+    return [
+      for (final t in list)
+        if (t is Map) t.cast<String, dynamic>(),
+    ];
+  }
+
+  Map<String, dynamic> _withTreats(
+          Map<String, dynamic> d, List<Map<String, dynamic>> next) =>
+      {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'treats': next,
+        },
+      };
+
+  /// Create a treat rule from form fields and return its id.
+  Future<String> addTreat(Map<String, dynamic> fields) async {
+    final id = _genId('treat');
+    await _mutate((d) {
+      final rule = treats.newTreat(fields, DateTime.now(), id: id);
+      return _withTreats(d, [..._settingsTreats(d), rule]);
+    });
+    return id;
+  }
+
+  /// Edit a treat rule's user fields, keeping its check-ins and lifetime. The
+  /// engine renormalizes target/window/emoji.
+  Future<void> updateTreat(String id, Map<String, dynamic> fields) =>
+      _mutate((d) {
+        final next = _settingsTreats(d).map((t) {
+          if (t['id'] != id) return t;
+          final base = treats.newTreat(fields, DateTime.now(), id: id);
+          return {
+            ...base,
+            'checkIns': t['checkIns'] is List ? t['checkIns'] : const [],
+            'lifetime': t['lifetime'],
+            'createdAt': t['createdAt'] ?? base['createdAt'],
+          };
+        }).toList();
+        return _withTreats(d, next);
+      });
+
+  /// Toggle today's check-in on one treat through the golden-locked engine.
+  Future<void> toggleTreatCheckIn(String id) => _mutate((d) {
+        final next = _settingsTreats(d)
+            .map((t) => t['id'] == id ? treats.toggleCheckIn(t, DateTime.now()) : t)
+            .toList();
+        return _withTreats(d, next);
+      });
+
+  /// Remove a treat rule.
+  Future<void> deleteTreat(String id) => _mutate((d) =>
+      _withTreats(d, _settingsTreats(d).where((t) => t['id'] != id).toList()));
 
   /// Set (or clear, with 0) the monthly budget limit.
   Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
