@@ -1,2657 +1,2825 @@
-[
-  {
-    "name": "empty",
-    "q": "",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+{
+  "cases": [
+    {
+      "name": "empty",
+      "q": "",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "",
+        "empty": true,
+        "total": 0,
+        "groups": []
+      }
     },
-    "result": {
-      "query": "",
-      "empty": true,
-      "total": 0,
-      "groups": []
-    }
-  },
-  {
-    "name": "blank-spaces",
-    "q": "   ",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "blank-spaces",
+      "q": "   ",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "",
+        "empty": true,
+        "total": 0,
+        "groups": []
+      }
     },
-    "result": {
-      "query": "",
-      "empty": true,
-      "total": 0,
-      "groups": []
-    }
-  },
-  {
-    "name": "jollibee",
-    "q": "jollibee",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "jollibee",
+      "q": "jollibee",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "jollibee",
+        "empty": false,
+        "total": 3,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 2,
+            "items": [
+              {
+                "id": "t1",
+                "title": "Jollibee lunch",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 150,
+                "sign": "-",
+                "date": "2026-07-03"
+              },
+              {
+                "id": "t7",
+                "title": "Jollibee dinner",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 300,
+                "sign": "-",
+                "date": "2026-07-03"
+              }
+            ],
+            "more": 0
+          },
+          {
+            "kind": "notes",
+            "title": "Notes",
+            "route": "/notes",
+            "count": 1,
+            "items": [
+              {
+                "id": "n2",
+                "title": "Jollibee gift card 500",
+                "subtitle": "",
+                "amount": null,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "jollibee",
-      "empty": false,
-      "total": 3,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 2,
-          "items": [
-            {
-              "id": "t1",
-              "title": "Jollibee lunch",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 150,
-              "sign": "-",
-              "date": "2026-07-03"
-            },
-            {
-              "id": "t7",
-              "title": "Jollibee dinner",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 300,
-              "sign": "-",
-              "date": "2026-07-03"
-            }
-          ],
-          "more": 0
-        },
-        {
-          "kind": "notes",
-          "title": "Notes",
-          "route": "/notes",
-          "count": 1,
-          "items": [
-            {
-              "id": "n2",
-              "title": "Jollibee gift card 500",
-              "subtitle": "",
-              "amount": null,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "jollibee-150",
-    "q": "jollibee 150",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "jollibee-150",
+      "q": "jollibee 150",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "jollibee 150",
+        "empty": false,
+        "total": 1,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 1,
+            "items": [
+              {
+                "id": "t1",
+                "title": "Jollibee lunch",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 150,
+                "sign": "-",
+                "date": "2026-07-03"
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "jollibee 150",
-      "empty": false,
-      "total": 1,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 1,
-          "items": [
-            {
-              "id": "t1",
-              "title": "Jollibee lunch",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 150,
-              "sign": "-",
-              "date": "2026-07-03"
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "amount-2300-raw",
-    "q": "2300",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "amount-2300-raw",
+      "q": "2300",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "2300",
+        "empty": false,
+        "total": 1,
+        "groups": [
+          {
+            "kind": "goals",
+            "title": "Goals",
+            "route": "/goals",
+            "count": 1,
+            "items": [
+              {
+                "id": "g1",
+                "title": "Emergency fund",
+                "subtitle": "₱2,300 of ₱10,000",
+                "amount": 10000,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "2300",
-      "empty": false,
-      "total": 1,
-      "groups": [
-        {
-          "kind": "goals",
-          "title": "Goals",
-          "route": "/goals",
-          "count": 1,
-          "items": [
-            {
-              "id": "g1",
-              "title": "Emergency fund",
-              "subtitle": "₱2,300 of ₱10,000",
-              "amount": 10000,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "amount-2300-comma",
-    "q": "2,300",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "amount-2300-comma",
+      "q": "2,300",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "2,300",
+        "empty": false,
+        "total": 1,
+        "groups": [
+          {
+            "kind": "goals",
+            "title": "Goals",
+            "route": "/goals",
+            "count": 1,
+            "items": [
+              {
+                "id": "g1",
+                "title": "Emergency fund",
+                "subtitle": "₱2,300 of ₱10,000",
+                "amount": 10000,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "2,300",
-      "empty": false,
-      "total": 1,
-      "groups": [
-        {
-          "kind": "goals",
-          "title": "Goals",
-          "route": "/goals",
-          "count": 1,
-          "items": [
-            {
-              "id": "g1",
-              "title": "Emergency fund",
-              "subtitle": "₱2,300 of ₱10,000",
-              "amount": 10000,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "utang",
-    "q": "utang",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "utang",
+      "q": "utang",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "utang",
+        "empty": false,
+        "total": 2,
+        "groups": [
+          {
+            "kind": "utang",
+            "title": "Utang",
+            "route": "/receivables",
+            "count": 2,
+            "items": [
+              {
+                "id": "r1",
+                "title": "Kuya Ben",
+                "subtitle": "lunch",
+                "amount": 300,
+                "sign": ""
+              },
+              {
+                "id": "r2",
+                "title": "Ate Rose",
+                "subtitle": "settled",
+                "amount": 0,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "utang",
-      "empty": false,
-      "total": 2,
-      "groups": [
-        {
-          "kind": "utang",
-          "title": "Utang",
-          "route": "/receivables",
-          "count": 2,
-          "items": [
-            {
-              "id": "r1",
-              "title": "Kuya Ben",
-              "subtitle": "lunch",
-              "amount": 300,
-              "sign": ""
-            },
-            {
-              "id": "r2",
-              "title": "Ate Rose",
-              "subtitle": "settled",
-              "amount": 0,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "kuya",
-    "q": "kuya ben",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "kuya",
+      "q": "kuya ben",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "kuya ben",
+        "empty": false,
+        "total": 1,
+        "groups": [
+          {
+            "kind": "utang",
+            "title": "Utang",
+            "route": "/receivables",
+            "count": 1,
+            "items": [
+              {
+                "id": "r1",
+                "title": "Kuya Ben",
+                "subtitle": "lunch",
+                "amount": 300,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "kuya ben",
-      "empty": false,
-      "total": 1,
-      "groups": [
-        {
-          "kind": "utang",
-          "title": "Utang",
-          "route": "/receivables",
-          "count": 1,
-          "items": [
-            {
-              "id": "r1",
-              "title": "Kuya Ben",
-              "subtitle": "lunch",
-              "amount": 300,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "card",
-    "q": "card",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "card",
+      "q": "card",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "card",
+        "empty": false,
+        "total": 4,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 1,
+            "items": [
+              {
+                "id": "t5",
+                "title": "Card payment",
+                "subtitle": "2026-06-30",
+                "amount": 3000,
+                "sign": "",
+                "date": "2026-06-30"
+              }
+            ],
+            "more": 0
+          },
+          {
+            "kind": "debts",
+            "title": "Debts",
+            "route": "/debts",
+            "count": 2,
+            "items": [
+              {
+                "id": "d1",
+                "title": "BPI Credit Card",
+                "subtitle": "card",
+                "amount": 12000,
+                "sign": ""
+              },
+              {
+                "id": "d2",
+                "title": "SSS Loan",
+                "subtitle": "loan",
+                "amount": 8000,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          },
+          {
+            "kind": "notes",
+            "title": "Notes",
+            "route": "/notes",
+            "count": 1,
+            "items": [
+              {
+                "id": "n2",
+                "title": "Jollibee gift card 500",
+                "subtitle": "",
+                "amount": null,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "card",
-      "empty": false,
-      "total": 4,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 1,
-          "items": [
-            {
-              "id": "t5",
-              "title": "Card payment",
-              "subtitle": "2026-06-30",
-              "amount": 3000,
-              "sign": "",
-              "date": "2026-06-30"
-            }
-          ],
-          "more": 0
-        },
-        {
-          "kind": "debts",
-          "title": "Debts",
-          "route": "/debts",
-          "count": 2,
-          "items": [
-            {
-              "id": "d1",
-              "title": "BPI Credit Card",
-              "subtitle": "card",
-              "amount": 12000,
-              "sign": ""
-            },
-            {
-              "id": "d2",
-              "title": "SSS Loan",
-              "subtitle": "loan",
-              "amount": 8000,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        },
-        {
-          "kind": "notes",
-          "title": "Notes",
-          "route": "/notes",
-          "count": 1,
-          "items": [
-            {
-              "id": "n2",
-              "title": "Jollibee gift card 500",
-              "subtitle": "",
-              "amount": null,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "fund",
-    "q": "fund",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "fund",
+      "q": "fund",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "fund",
+        "empty": false,
+        "total": 2,
+        "groups": [
+          {
+            "kind": "goals",
+            "title": "Goals",
+            "route": "/goals",
+            "count": 2,
+            "items": [
+              {
+                "id": "g1",
+                "title": "Emergency fund",
+                "subtitle": "₱2,300 of ₱10,000",
+                "amount": 10000,
+                "sign": ""
+              },
+              {
+                "id": "g2",
+                "title": "Travel fund",
+                "subtitle": "₱0 of ₱15,000",
+                "amount": 15000,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "fund",
-      "empty": false,
-      "total": 2,
-      "groups": [
-        {
-          "kind": "goals",
-          "title": "Goals",
-          "route": "/goals",
-          "count": 2,
-          "items": [
-            {
-              "id": "g1",
-              "title": "Emergency fund",
-              "subtitle": "₱2,300 of ₱10,000",
-              "amount": 10000,
-              "sign": ""
-            },
-            {
-              "id": "g2",
-              "title": "Travel fund",
-              "subtitle": "₱0 of ₱15,000",
-              "amount": 15000,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "gcash",
-    "q": "gcash",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "gcash",
+      "q": "gcash",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "gcash",
+        "empty": false,
+        "total": 3,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 2,
+            "items": [
+              {
+                "id": "t1",
+                "title": "Jollibee lunch",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 150,
+                "sign": "-",
+                "date": "2026-07-03"
+              },
+              {
+                "id": "t7",
+                "title": "Jollibee dinner",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 300,
+                "sign": "-",
+                "date": "2026-07-03"
+              }
+            ],
+            "more": 0
+          },
+          {
+            "kind": "accounts",
+            "title": "Accounts",
+            "route": "/accounts",
+            "count": 1,
+            "items": [
+              {
+                "id": "a1",
+                "title": "GCash",
+                "subtitle": "ewallet",
+                "amount": 2300,
+                "sign": ""
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "gcash",
-      "empty": false,
-      "total": 3,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 2,
-          "items": [
-            {
-              "id": "t1",
-              "title": "Jollibee lunch",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 150,
-              "sign": "-",
-              "date": "2026-07-03"
-            },
-            {
-              "id": "t7",
-              "title": "Jollibee dinner",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 300,
-              "sign": "-",
-              "date": "2026-07-03"
-            }
-          ],
-          "more": 0
-        },
-        {
-          "kind": "accounts",
-          "title": "Accounts",
-          "route": "/accounts",
-          "count": 1,
-          "items": [
-            {
-              "id": "a1",
-              "title": "GCash",
-              "subtitle": "ewallet",
-              "amount": 2300,
-              "sign": ""
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "transfer",
-    "q": "transfer",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "transfer",
+      "q": "transfer",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "transfer",
+        "empty": false,
+        "total": 1,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 1,
+            "items": [
+              {
+                "id": "t4",
+                "title": "Transfer to BPI",
+                "subtitle": "2026-07-01",
+                "amount": 5000,
+                "sign": "⇄",
+                "date": "2026-07-01"
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "transfer",
-      "empty": false,
-      "total": 1,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 1,
-          "items": [
-            {
-              "id": "t4",
-              "title": "Transfer to BPI",
-              "subtitle": "2026-07-01",
-              "amount": 5000,
-              "sign": "⇄",
-              "date": "2026-07-01"
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "no-match",
-    "q": "zzzznope",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "no-match",
+      "q": "zzzznope",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "zzzznope",
+        "empty": false,
+        "total": 0,
+        "groups": []
+      }
     },
-    "result": {
-      "query": "zzzznope",
-      "empty": false,
-      "total": 0,
-      "groups": []
-    }
-  },
-  {
-    "name": "food-category",
-    "q": "food",
-    "data": {
-      "categories": [
-        {
-          "id": "c1",
-          "name": "Food"
-        },
-        {
-          "id": "c2",
-          "name": "Transport"
-        }
-      ],
-      "accounts": [
-        {
-          "id": "a1",
-          "name": "GCash",
-          "kind": "ewallet",
-          "balance": 2300
-        },
-        {
-          "id": "a2",
-          "name": "BPI Savings",
-          "kind": "bank",
-          "balance": 50000
-        }
-      ],
-      "transactions": [
-        {
-          "id": "t1",
-          "label": "Jollibee lunch",
-          "amount": 150,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        },
-        {
-          "id": "t2",
-          "label": "Grab home",
-          "amount": 220,
-          "type": "expense",
-          "date": "2026-07-02",
-          "categoryId": "c2"
-        },
-        {
-          "id": "t3",
-          "label": "Sweldo",
-          "amount": 25000,
-          "type": "income",
-          "date": "2026-07-01",
-          "accountId": "a2"
-        },
-        {
-          "id": "t4",
-          "label": "Transfer to BPI",
-          "amount": 5000,
-          "type": "transfer",
-          "date": "2026-07-01"
-        },
-        {
-          "id": "t5",
-          "label": "Card payment",
-          "amount": 3000,
-          "type": "debt",
-          "date": "2026-06-30"
-        },
-        {
-          "id": "t6",
-          "label": "Cash found",
-          "amount": 500,
-          "type": "adjustment",
-          "flow": "in",
-          "date": "2026-06-29"
-        },
-        {
-          "id": "t7",
-          "label": "Jollibee dinner",
-          "amount": 300,
-          "type": "expense",
-          "date": "2026-07-03",
-          "categoryId": "c1",
-          "accountId": "a1"
-        }
-      ],
-      "receivables": [
-        {
-          "id": "r1",
-          "person": "Kuya Ben",
-          "note": "lunch",
-          "phone": "0917",
-          "amount": 500,
-          "payments": [
-            {
-              "amount": 200
-            }
-          ]
-        },
-        {
-          "id": "r2",
-          "person": "Ate Rose",
-          "amount": 1000,
-          "payments": [
-            {
-              "amount": 1000
-            }
-          ]
-        }
-      ],
-      "debts": [
-        {
-          "id": "d1",
-          "name": "BPI Credit Card",
-          "type": "card",
-          "remaining": 12000
-        },
-        {
-          "id": "d2",
-          "name": "SSS Loan",
-          "type": "loan",
-          "remaining": 8000
-        }
-      ],
-      "goals": [
-        {
-          "id": "g1",
-          "name": "Emergency fund",
-          "target": 10000,
-          "saved": 2300
-        },
-        {
-          "id": "g2",
-          "name": "Travel fund",
-          "target": 15000,
-          "saved": 0
-        }
-      ],
-      "notes": [
-        {
-          "id": "n1",
-          "text": "Grocery list\nrice\neggs"
-        },
-        {
-          "id": "n2",
-          "text": "Jollibee gift card 500"
-        }
-      ]
+    {
+      "name": "food-category",
+      "q": "food",
+      "data": {
+        "categories": [
+          {
+            "id": "c1",
+            "name": "Food"
+          },
+          {
+            "id": "c2",
+            "name": "Transport"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "a1",
+            "name": "GCash",
+            "kind": "ewallet",
+            "balance": 2300
+          },
+          {
+            "id": "a2",
+            "name": "BPI Savings",
+            "kind": "bank",
+            "balance": 50000
+          }
+        ],
+        "transactions": [
+          {
+            "id": "t1",
+            "label": "Jollibee lunch",
+            "amount": 150,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          },
+          {
+            "id": "t2",
+            "label": "Grab home",
+            "amount": 220,
+            "type": "expense",
+            "date": "2026-07-02",
+            "categoryId": "c2"
+          },
+          {
+            "id": "t3",
+            "label": "Sweldo",
+            "amount": 25000,
+            "type": "income",
+            "date": "2026-07-01",
+            "accountId": "a2"
+          },
+          {
+            "id": "t4",
+            "label": "Transfer to BPI",
+            "amount": 5000,
+            "type": "transfer",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "t5",
+            "label": "Card payment",
+            "amount": 3000,
+            "type": "debt",
+            "date": "2026-06-30"
+          },
+          {
+            "id": "t6",
+            "label": "Cash found",
+            "amount": 500,
+            "type": "adjustment",
+            "flow": "in",
+            "date": "2026-06-29"
+          },
+          {
+            "id": "t7",
+            "label": "Jollibee dinner",
+            "amount": 300,
+            "type": "expense",
+            "date": "2026-07-03",
+            "categoryId": "c1",
+            "accountId": "a1"
+          }
+        ],
+        "receivables": [
+          {
+            "id": "r1",
+            "person": "Kuya Ben",
+            "note": "lunch",
+            "phone": "0917",
+            "amount": 500,
+            "payments": [
+              {
+                "amount": 200
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "person": "Ate Rose",
+            "amount": 1000,
+            "payments": [
+              {
+                "amount": 1000
+              }
+            ]
+          }
+        ],
+        "debts": [
+          {
+            "id": "d1",
+            "name": "BPI Credit Card",
+            "type": "card",
+            "remaining": 12000
+          },
+          {
+            "id": "d2",
+            "name": "SSS Loan",
+            "type": "loan",
+            "remaining": 8000
+          }
+        ],
+        "goals": [
+          {
+            "id": "g1",
+            "name": "Emergency fund",
+            "target": 10000,
+            "saved": 2300
+          },
+          {
+            "id": "g2",
+            "name": "Travel fund",
+            "target": 15000,
+            "saved": 0
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "text": "Grocery list\nrice\neggs"
+          },
+          {
+            "id": "n2",
+            "text": "Jollibee gift card 500"
+          }
+        ]
+      },
+      "result": {
+        "query": "food",
+        "empty": false,
+        "total": 2,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 2,
+            "items": [
+              {
+                "id": "t1",
+                "title": "Jollibee lunch",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 150,
+                "sign": "-",
+                "date": "2026-07-03"
+              },
+              {
+                "id": "t7",
+                "title": "Jollibee dinner",
+                "subtitle": "2026-07-03 · GCash",
+                "amount": 300,
+                "sign": "-",
+                "date": "2026-07-03"
+              }
+            ],
+            "more": 0
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "food",
-      "empty": false,
-      "total": 2,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 2,
-          "items": [
-            {
-              "id": "t1",
-              "title": "Jollibee lunch",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 150,
-              "sign": "-",
-              "date": "2026-07-03"
-            },
-            {
-              "id": "t7",
-              "title": "Jollibee dinner",
-              "subtitle": "2026-07-03 · GCash",
-              "amount": 300,
-              "sign": "-",
-              "date": "2026-07-03"
-            }
-          ],
-          "more": 0
-        }
-      ]
-    }
-  },
-  {
-    "name": "many-jollibee",
-    "q": "jollibee",
-    "data": {
-      "transactions": [
-        {
-          "id": "m0",
-          "label": "Jollibee 0",
-          "amount": 100,
-          "type": "expense",
-          "date": "2026-07-10"
-        },
-        {
-          "id": "m1",
-          "label": "Jollibee 1",
-          "amount": 101,
-          "type": "expense",
-          "date": "2026-07-11"
-        },
-        {
-          "id": "m2",
-          "label": "Jollibee 2",
-          "amount": 102,
-          "type": "expense",
-          "date": "2026-07-12"
-        },
-        {
-          "id": "m3",
-          "label": "Jollibee 3",
-          "amount": 103,
-          "type": "expense",
-          "date": "2026-07-13"
-        },
-        {
-          "id": "m4",
-          "label": "Jollibee 4",
-          "amount": 104,
-          "type": "expense",
-          "date": "2026-07-14"
-        },
-        {
-          "id": "m5",
-          "label": "Jollibee 5",
-          "amount": 105,
-          "type": "expense",
-          "date": "2026-07-15"
-        },
-        {
-          "id": "m6",
-          "label": "Jollibee 6",
-          "amount": 106,
-          "type": "expense",
-          "date": "2026-07-16"
-        },
-        {
-          "id": "m7",
-          "label": "Jollibee 7",
-          "amount": 107,
-          "type": "expense",
-          "date": "2026-07-17"
-        },
-        {
-          "id": "m8",
-          "label": "Jollibee 8",
-          "amount": 108,
-          "type": "expense",
-          "date": "2026-07-18"
-        },
-        {
-          "id": "m9",
-          "label": "Jollibee 9",
-          "amount": 109,
-          "type": "expense",
-          "date": "2026-07-19"
-        }
-      ]
+    {
+      "name": "many-jollibee",
+      "q": "jollibee",
+      "data": {
+        "transactions": [
+          {
+            "id": "m0",
+            "label": "Jollibee 0",
+            "amount": 100,
+            "type": "expense",
+            "date": "2026-07-10"
+          },
+          {
+            "id": "m1",
+            "label": "Jollibee 1",
+            "amount": 101,
+            "type": "expense",
+            "date": "2026-07-11"
+          },
+          {
+            "id": "m2",
+            "label": "Jollibee 2",
+            "amount": 102,
+            "type": "expense",
+            "date": "2026-07-12"
+          },
+          {
+            "id": "m3",
+            "label": "Jollibee 3",
+            "amount": 103,
+            "type": "expense",
+            "date": "2026-07-13"
+          },
+          {
+            "id": "m4",
+            "label": "Jollibee 4",
+            "amount": 104,
+            "type": "expense",
+            "date": "2026-07-14"
+          },
+          {
+            "id": "m5",
+            "label": "Jollibee 5",
+            "amount": 105,
+            "type": "expense",
+            "date": "2026-07-15"
+          },
+          {
+            "id": "m6",
+            "label": "Jollibee 6",
+            "amount": 106,
+            "type": "expense",
+            "date": "2026-07-16"
+          },
+          {
+            "id": "m7",
+            "label": "Jollibee 7",
+            "amount": 107,
+            "type": "expense",
+            "date": "2026-07-17"
+          },
+          {
+            "id": "m8",
+            "label": "Jollibee 8",
+            "amount": 108,
+            "type": "expense",
+            "date": "2026-07-18"
+          },
+          {
+            "id": "m9",
+            "label": "Jollibee 9",
+            "amount": 109,
+            "type": "expense",
+            "date": "2026-07-19"
+          }
+        ]
+      },
+      "result": {
+        "query": "jollibee",
+        "empty": false,
+        "total": 10,
+        "groups": [
+          {
+            "kind": "transactions",
+            "title": "Entries",
+            "route": "/history",
+            "count": 10,
+            "items": [
+              {
+                "id": "m9",
+                "title": "Jollibee 9",
+                "subtitle": "2026-07-19",
+                "amount": 109,
+                "sign": "-",
+                "date": "2026-07-19"
+              },
+              {
+                "id": "m8",
+                "title": "Jollibee 8",
+                "subtitle": "2026-07-18",
+                "amount": 108,
+                "sign": "-",
+                "date": "2026-07-18"
+              },
+              {
+                "id": "m7",
+                "title": "Jollibee 7",
+                "subtitle": "2026-07-17",
+                "amount": 107,
+                "sign": "-",
+                "date": "2026-07-17"
+              },
+              {
+                "id": "m6",
+                "title": "Jollibee 6",
+                "subtitle": "2026-07-16",
+                "amount": 106,
+                "sign": "-",
+                "date": "2026-07-16"
+              },
+              {
+                "id": "m5",
+                "title": "Jollibee 5",
+                "subtitle": "2026-07-15",
+                "amount": 105,
+                "sign": "-",
+                "date": "2026-07-15"
+              },
+              {
+                "id": "m4",
+                "title": "Jollibee 4",
+                "subtitle": "2026-07-14",
+                "amount": 104,
+                "sign": "-",
+                "date": "2026-07-14"
+              },
+              {
+                "id": "m3",
+                "title": "Jollibee 3",
+                "subtitle": "2026-07-13",
+                "amount": 103,
+                "sign": "-",
+                "date": "2026-07-13"
+              },
+              {
+                "id": "m2",
+                "title": "Jollibee 2",
+                "subtitle": "2026-07-12",
+                "amount": 102,
+                "sign": "-",
+                "date": "2026-07-12"
+              }
+            ],
+            "more": 2
+          }
+        ]
+      }
     },
-    "result": {
-      "query": "jollibee",
-      "empty": false,
-      "total": 10,
-      "groups": [
-        {
-          "kind": "transactions",
-          "title": "Entries",
-          "route": "/history",
-          "count": 10,
-          "items": [
-            {
-              "id": "m9",
-              "title": "Jollibee 9",
-              "subtitle": "2026-07-19",
-              "amount": 109,
-              "sign": "-",
-              "date": "2026-07-19"
-            },
-            {
-              "id": "m8",
-              "title": "Jollibee 8",
-              "subtitle": "2026-07-18",
-              "amount": 108,
-              "sign": "-",
-              "date": "2026-07-18"
-            },
-            {
-              "id": "m7",
-              "title": "Jollibee 7",
-              "subtitle": "2026-07-17",
-              "amount": 107,
-              "sign": "-",
-              "date": "2026-07-17"
-            },
-            {
-              "id": "m6",
-              "title": "Jollibee 6",
-              "subtitle": "2026-07-16",
-              "amount": 106,
-              "sign": "-",
-              "date": "2026-07-16"
-            },
-            {
-              "id": "m5",
-              "title": "Jollibee 5",
-              "subtitle": "2026-07-15",
-              "amount": 105,
-              "sign": "-",
-              "date": "2026-07-15"
-            },
-            {
-              "id": "m4",
-              "title": "Jollibee 4",
-              "subtitle": "2026-07-14",
-              "amount": 104,
-              "sign": "-",
-              "date": "2026-07-14"
-            },
-            {
-              "id": "m3",
-              "title": "Jollibee 3",
-              "subtitle": "2026-07-13",
-              "amount": 103,
-              "sign": "-",
-              "date": "2026-07-13"
-            },
-            {
-              "id": "m2",
-              "title": "Jollibee 2",
-              "subtitle": "2026-07-12",
-              "amount": 102,
-              "sign": "-",
-              "date": "2026-07-12"
-            }
-          ],
-          "more": 2
-        }
-      ]
+    {
+      "name": "null-data",
+      "q": "x",
+      "data": null,
+      "result": {
+        "query": "x",
+        "empty": false,
+        "total": 0,
+        "groups": []
+      }
     }
-  },
-  {
-    "name": "null-data",
-    "q": "x",
-    "data": null,
-    "result": {
-      "query": "x",
-      "empty": false,
-      "total": 0,
-      "groups": []
+  ],
+  "txMatches": [
+    {
+      "id": "t1",
+      "q": "",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "jollibee",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "JOLLIBEE",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "jollibee 150",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "food",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "gcash",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "grab",
+      "result": false
+    },
+    {
+      "id": "t2",
+      "q": "transport",
+      "result": true
+    },
+    {
+      "id": "t3",
+      "q": "income",
+      "result": true
+    },
+    {
+      "id": "t3",
+      "q": "sweldo 25000",
+      "result": true
+    },
+    {
+      "id": "t4",
+      "q": "transfer",
+      "result": true
+    },
+    {
+      "id": "t5",
+      "q": "debt payment",
+      "result": true
+    },
+    {
+      "id": "t6",
+      "q": "balance adjustment",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "  ",
+      "result": true
+    },
+    {
+      "id": "t1",
+      "q": "jollibee\tlunch",
+      "result": true
+    },
+    {
+      "id": "t2",
+      "q": "220",
+      "result": true
     }
+  ],
+  "txContext": {
+    "categories": [
+      {
+        "id": "c1",
+        "name": "Food"
+      },
+      {
+        "id": "c2",
+        "name": "Transport"
+      }
+    ],
+    "accounts": [
+      {
+        "id": "a1",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 2300
+      },
+      {
+        "id": "a2",
+        "name": "BPI Savings",
+        "kind": "bank",
+        "balance": 50000
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "label": "Jollibee lunch",
+        "amount": 150,
+        "type": "expense",
+        "date": "2026-07-03",
+        "categoryId": "c1",
+        "accountId": "a1"
+      },
+      {
+        "id": "t2",
+        "label": "Grab home",
+        "amount": 220,
+        "type": "expense",
+        "date": "2026-07-02",
+        "categoryId": "c2"
+      },
+      {
+        "id": "t3",
+        "label": "Sweldo",
+        "amount": 25000,
+        "type": "income",
+        "date": "2026-07-01",
+        "accountId": "a2"
+      },
+      {
+        "id": "t4",
+        "label": "Transfer to BPI",
+        "amount": 5000,
+        "type": "transfer",
+        "date": "2026-07-01"
+      },
+      {
+        "id": "t5",
+        "label": "Card payment",
+        "amount": 3000,
+        "type": "debt",
+        "date": "2026-06-30"
+      },
+      {
+        "id": "t6",
+        "label": "Cash found",
+        "amount": 500,
+        "type": "adjustment",
+        "flow": "in",
+        "date": "2026-06-29"
+      },
+      {
+        "id": "t7",
+        "label": "Jollibee dinner",
+        "amount": 300,
+        "type": "expense",
+        "date": "2026-07-03",
+        "categoryId": "c1",
+        "accountId": "a1"
+      }
+    ]
   }
-]
+}

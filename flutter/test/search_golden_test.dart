@@ -37,15 +37,28 @@ void _expectEq(dynamic a, dynamic b, String path) {
 }
 
 void main() {
-  final cases = (jsonDecode(
-          File('test/goldens/search_goldens.json').readAsStringSync()) as List)
-      .cast<Map<String, dynamic>>();
+  final g = jsonDecode(
+          File('test/goldens/search_goldens.json').readAsStringSync())
+      as Map<String, dynamic>;
+  final cases = (g['cases'] as List).cast<Map<String, dynamic>>();
 
   test('ported search matches the RN module on every query', () {
     for (final c in cases) {
       final name = c['name'] as String;
       final got = search(c.containsKey('data') ? c['data'] : null, c['q'] as String);
       _expectEq(got, c['result'], name);
+    }
+  });
+
+  test('ported txMatches matches the RN module (History live filter)', () {
+    final ctx = g['txContext'] as Map<String, dynamic>;
+    final txData = (ctx['transactions'] as List).cast<Map<String, dynamic>>();
+    final byId = {for (final t in txData) t['id'] as String: t};
+    final maps = transactionNameMaps(ctx);
+    for (final c in (g['txMatches'] as List).cast<Map<String, dynamic>>()) {
+      final t = byId[c['id']]!;
+      expect(txMatches(t, c['q'] as String, maps.cat, maps.acct), c['result'],
+          reason: '${c['id']} / "${c['q']}"');
     }
   });
 }

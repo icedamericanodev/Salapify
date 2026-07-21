@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../money/search.dart' as search;
 import '../theme.dart';
 import 'overview.dart' show formatMoney;
 
@@ -69,7 +70,17 @@ String dateHeader(String iso, DateTime now) {
 
 class HistoryScreen extends StatefulWidget {
   final SalapifyStore store;
-  const HistoryScreen({super.key, required this.store});
+
+  /// Seed the text filter (e.g. from a global search result). When set, the
+  /// screen also shows a back-capable app bar because it was pushed as its own
+  /// route rather than shown as the History tab.
+  final String initialQuery;
+  final bool pushed;
+  const HistoryScreen(
+      {super.key,
+      required this.store,
+      this.initialQuery = '',
+      this.pushed = false});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -77,23 +88,37 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String filter = 'all';
+  late final TextEditingController _query =
+      TextEditingController(text: widget.initialQuery);
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final all = (widget.store.data['transactions'] as List)
         .cast<Map<String, dynamic>>();
     final locked = ledgerLinkedTxnIds(widget.store.data);
+    // Text filter uses the golden-locked txMatches so a row found in global
+    // search stays found here, and category/account names match too.
+    final q = _query.text;
+    final maps = search.transactionNameMaps(widget.store.data);
     // Keep the insertion index as the same-day tie-break (newest log first,
     // matching the RN app). List.sort alone is not stable, so without it rows
     // logged on the same day would shuffle between rebuilds.
     final indexed = <(Map<String, dynamic>, int)>[];
     for (var i = 0; i < all.length; i++) {
       final t = all[i];
-      final keep = filter == 'all' ||
+      final keepType = filter == 'all' ||
           (filter == 'records'
               ? t['type'] != 'income' && t['type'] != 'expense'
               : t['type'] == filter);
-      if (keep) indexed.add((t, i));
+      final keepText =
+          q.trim().isEmpty || search.txMatches(t, q, maps.cat, maps.acct);
+      if (keepType && keepText) indexed.add((t, i));
     }
     indexed.sort((a, b) {
       final byDate = (b.$1['date'] ?? '')
@@ -126,19 +151,66 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return Scaffold(
+      appBar: widget.pushed
+          ? AppBar(
+              backgroundColor: Barako.background,
+              foregroundColor: Barako.text,
+              title: Text('History',
+                  style: TextStyle(
+                      color: Barako.text, fontWeight: FontWeight.w800)),
+            )
+          : null,
       body: SafeArea(
+        top: !widget.pushed,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              Text('HISTORY',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3)),
+              if (!widget.pushed) ...[
+                const SizedBox(height: 20),
+                Text('HISTORY',
+                    style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3)),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _query,
+                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.search,
+                style: TextStyle(color: Barako.text, fontSize: 15),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Filter entries, like jollibee or 1500',
+                  hintStyle: TextStyle(color: Barako.faint),
+                  prefixIcon:
+                      Icon(Icons.search, color: Barako.faint, size: 18),
+                  suffixIcon: _query.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon:
+                              Icon(Icons.close, color: Barako.muted, size: 18),
+                          onPressed: () => setState(() => _query.clear()),
+                        ),
+                  filled: true,
+                  fillColor: Barako.card,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Barako.primary),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -195,7 +267,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             if (!trulyEmpty) ...[
               const SizedBox(height: 10),
               TextButton(
-                onPressed: () => setState(() => filter = 'all'),
+                onPressed: () => setState(() {
+                  filter = 'all';
+                  _query.clear();
+                }),
                 child: Text('Show all',
                     style: TextStyle(color: Barako.primary)),
               ),
