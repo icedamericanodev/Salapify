@@ -505,6 +505,133 @@ class SalapifyStore extends ChangeNotifier {
         ],
       });
 
+  /// Create an account with an opening balance. Accounts is an existing backup
+  /// collection, so this is additive with no migration. Balance changes to an
+  /// existing account go through a recorded adjustment via addEntry, never a
+  /// silent overwrite, so this only sets the opening number on a NEW account.
+  Future<void> addAccount({
+    required String name,
+    required String kind,
+    required String brand,
+    required String icon,
+    required double target,
+    required double balance,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'accounts': [
+              ...(d['accounts'] as List? ?? const []),
+              {
+                'name': name,
+                'kind': kind,
+                'brand': brand,
+                'icon': icon,
+                'target': target,
+                'balance': balance,
+                'id': _genId('acct'),
+              },
+            ],
+          });
+
+  /// Update an account's DETAILS only (never its balance, which moves through a
+  /// recorded adjustment). Unknown keys survive the spread.
+  Future<void> updateAccountDetails(
+    String id, {
+    required String name,
+    required String kind,
+    required String brand,
+    required String icon,
+    required double target,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'accounts': [
+              for (final a in (d['accounts'] as List? ?? const []))
+                if (a is Map && a['id'] == id)
+                  {
+                    ...a.cast<String, dynamic>(),
+                    'name': name,
+                    'kind': kind,
+                    'brand': brand,
+                    'icon': icon,
+                    'target': target,
+                  }
+                else
+                  a,
+            ],
+          });
+
+  /// Delete an account. Entries stay (their accountId simply stops resolving,
+  /// matching the RN screen, so no logged money is ever lost), and settings
+  /// that pointed at it are cleared so they never point at a ghost.
+  Future<void> deleteAccount(String id) => _mutate((d) {
+        final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        final cleared = {
+          ...s,
+          if (s['defaultAccountId'] == id) 'defaultAccountId': '',
+          if (s['salaryAccountId'] == id) 'salaryAccountId': '',
+        };
+        return {
+          ...d,
+          'accounts': [
+            for (final a in (d['accounts'] as List? ?? const []))
+              if (!(a is Map && a['id'] == id)) a,
+          ],
+          'settings': cleared,
+        };
+      });
+
+  /// Create an investment or other asset.
+  Future<void> addAsset({
+    required String name,
+    required String kind,
+    required double value,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'assets': [
+              ...(d['assets'] as List? ?? const []),
+              {
+                'name': name,
+                'kind': kind,
+                'value': value,
+                'id': _genId('asset'),
+              },
+            ],
+          });
+
+  /// Update an asset's fields.
+  Future<void> updateAsset(
+    String id, {
+    required String name,
+    required String kind,
+    required double value,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'assets': [
+              for (final a in (d['assets'] as List? ?? const []))
+                if (a is Map && a['id'] == id)
+                  {
+                    ...a.cast<String, dynamic>(),
+                    'name': name,
+                    'kind': kind,
+                    'value': value,
+                  }
+                else
+                  a,
+            ],
+          });
+
+  /// Delete an asset.
+  Future<void> deleteAsset(String id) => _mutate((d) => {
+        ...d,
+        'assets': [
+          for (final a in (d['assets'] as List? ?? const []))
+            if (!(a is Map && a['id'] == id)) a,
+        ],
+      });
+
   /// Add a small win, stamped with today's date, matching the RN Mindset
   /// screen (addItem('wins', { text, date })). Kept in data.wins so the
   /// backup already carries it.

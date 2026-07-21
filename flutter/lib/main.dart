@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.76 · History gate fix: pushed list rebuilds on delete, field polish';
+    'f0.77 · Accounts: manage wallets, banks, assets, balances, net worth';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
