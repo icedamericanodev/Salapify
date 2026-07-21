@@ -11,7 +11,6 @@ import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
 import 'debts.dart';
 import 'goals.dart';
-import 'insights.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'pan.dart';
 import 'search.dart';
@@ -25,19 +24,6 @@ class MenuScreen extends StatelessWidget {
   /// to Utang, a search result to Utang) pops back to Menu first, then switches.
   final void Function(int)? onSwitchTab;
   const MenuScreen({super.key, required this.store, this.onSwitchTab});
-
-  // Insights is pushed and does NOT pop itself before switching a tab, so it
-  // needs a wrapper that pops back to Menu first. Pan and Search already pop
-  // themselves in their tab-jump CTAs, so they get the raw switcher (wrapping
-  // them would double-pop).
-  void Function(int)? _popThenSwitch(BuildContext context) => onSwitchTab == null
-      ? null
-      : (i) {
-          // Pop back to the home shell (clears any pushed routes, however deep)
-          // before switching the tab, so the target tab is never left covered.
-          Navigator.of(context).popUntil((r) => r.isFirst);
-          onSwitchTab!(i);
-        };
 
   @override
   Widget build(BuildContext context) {
@@ -90,17 +76,6 @@ class MenuScreen extends StatelessWidget {
                     'Savings goals with progress bars and an honest monthly pace.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => GoalsScreen(store: store))),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.insights_outlined,
-                title: 'Insights',
-                blurb:
-                    'The deeper look at your spending, trends, and money decisions.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => InsightsScreen(
-                        store: store,
-                        onSwitchTab: _popThenSwitch(context)))),
               ),
               const SizedBox(height: 20),
               _kicker('HELPERS'),

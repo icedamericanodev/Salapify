@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'data/store.dart';
 import 'screens/budget.dart';
 import 'screens/history.dart';
+import 'screens/insights.dart';
 import 'screens/menu.dart';
 import 'screens/overview.dart';
 import 'screens/utang.dart';
@@ -17,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.80 · Dashboard restructure gate fixes: Insights back, deep-pop, first run';
+    'f0.81 · Keep Insights as a bottom tab (founder call); Menu holds the rest';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -60,7 +61,10 @@ class _SalapifyAppState extends State<SalapifyApp> {
               1 => BudgetScreen(store: widget.store),
               2 => HistoryScreen(store: widget.store),
               3 => UtangScreen(store: widget.store),
-              4 => MenuScreen(
+              4 => InsightsScreen(
+                  store: widget.store,
+                  onSwitchTab: (i) => setState(() => tab = i)),
+              5 => MenuScreen(
                   store: widget.store,
                   onSwitchTab: (i) => setState(() => tab = i)),
               _ => OverviewScreen(
@@ -92,6 +96,11 @@ class _SalapifyAppState extends State<SalapifyApp> {
                     selectedIcon:
                         Icon(Icons.handshake, color: Barako.onPrimary),
                     label: 'Utang'),
+                NavigationDestination(
+                    icon: const Icon(Icons.insights_outlined),
+                    selectedIcon:
+                        Icon(Icons.insights, color: Barako.onPrimary),
+                    label: 'Insights'),
                 NavigationDestination(
                     icon: const Icon(Icons.grid_view_outlined),
                     selectedIcon:

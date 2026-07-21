@@ -13,7 +13,6 @@ import '../data/store.dart';
 import '../money/pan/ask.dart';
 import '../theme.dart';
 import 'debts.dart';
-import 'insights.dart';
 import 'loan_calculator.dart';
 import 'contribution_calculator.dart';
 import 'salary_calculator.dart';
@@ -93,20 +92,12 @@ class _PanScreenState extends State<PanScreen> {
         return () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => const ContributionCalculatorScreen()));
       case '/insights':
-        // Insights moved off the bottom bar into Menu, so open it as a pushed
-        // screen (like Pan's other CTAs) rather than switching to a tab index.
-        // Pan is itself a pushed route, so Insights sits two levels deep; its
-        // jump-to-Utang must pop back to the home shell (both routes), not once.
         final onSwitchTab = widget.onSwitchTab;
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => InsightsScreen(
-                store: widget.store,
-                onSwitchTab: onSwitchTab == null
-                    ? null
-                    : (i) {
-                        Navigator.of(context).popUntil((r) => r.isFirst);
-                        onSwitchTab(i);
-                      })));
+        if (onSwitchTab == null) return null;
+        return () {
+          Navigator.of(context).pop();
+          onSwitchTab(4);
+        };
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;

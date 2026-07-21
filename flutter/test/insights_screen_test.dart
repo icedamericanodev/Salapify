@@ -164,12 +164,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('Insights'), 200, scrollable: find.byType(Scrollable).first);
-
+    
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
@@ -244,10 +239,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Insights'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Insights'));
+        await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -285,10 +277,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Insights'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Insights'));
+        await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
     // The whole card is one ListView child, so scrolling its kicker into view
@@ -324,10 +313,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Insights'), 200, scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Insights'));
+        await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -352,12 +338,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('Insights'), 200, scrollable: find.byType(Scrollable).first);
-
+    
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
     expect(find.text('You are on track'), findsOneWidget);
