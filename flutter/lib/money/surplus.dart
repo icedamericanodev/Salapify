@@ -13,8 +13,24 @@ import 'ledger.dart' show amountOf;
 
 /// Debt types that carry real interest in life. The store fills a missing rate
 /// with 0, so a 0 rate on these almost always means the user never entered it,
-/// not that the debt is free. An informal utang at 0% is left alone.
-const Set<String> _interestBearingTypes = {'credit card', 'bnpl', 'loan'};
+/// not that the debt is free. These are the exact strings the debt editor
+/// stores (kDebtTypes in debts.dart), minus insurance and other where a 0 rate
+/// can be legitimate. An informal utang at 0% is left alone.
+const Set<String> _interestBearingTypes = {
+  'credit card',
+  'bnpl',
+  'personal loan',
+  'mortgage',
+  'auto',
+  'short term',
+  'long term',
+};
+
+/// Only debt above this MONTHLY rate jumps ahead of the fuller fund and goals
+/// and earns the "beats any savings" claim. 1% a month is about 12.7% a year,
+/// safely above any PH savings vehicle (digital banks ~6.5%/yr, MP2 ~7%/yr), so
+/// a low-rate SSS or Pag-IBIG salary loan is never wrongly prioritized.
+const double _highRateMonthly = 1;
 
 /// True when at least one still-funded, not-done goal exists, using the same
 /// filter the Insights goal simulator uses (target > 0, not done, remaining
@@ -65,7 +81,9 @@ Map<String, dynamic> nextPesoPlan(Map<String, dynamic> data, DateTime ref) {
     final remaining = amountOf(d['remaining']);
     if (!(remaining > 0.5)) continue;
     final rate = amountOf(d['monthlyRate']);
-    if (rate > 0) {
+    if (rate >= _highRateMonthly) {
+      // Only genuinely high-rate debt jumps the queue and earns the "beats any
+      // savings" claim. Highest rate wins; a strict > keeps the first tie.
       if (topDebt == null || rate > (topDebt['monthlyRate'] as double)) {
         final nameRaw = d['name'];
         final name = (nameRaw is String && nameRaw.trim().isNotEmpty)
@@ -73,9 +91,11 @@ Map<String, dynamic> nextPesoPlan(Map<String, dynamic> data, DateTime ref) {
             : 'your debt';
         topDebt = {'name': name, 'monthlyRate': rate, 'remaining': remaining};
       }
-    } else if (_interestBearingTypes.contains(d['type'])) {
+    } else if (rate <= 0 && _interestBearingTypes.contains(d['type'])) {
       // An interest-bearing debt with no rate reads as free and would be
-      // wrongly deprioritized; flag it instead of ranking on a fake zero.
+      // wrongly deprioritized; flag it instead of ranking on a fake zero. A
+      // real but low rate (0 < rate < floor) just falls through; it does not
+      // preempt the emergency fund.
       rateUnfilled = true;
     }
   }

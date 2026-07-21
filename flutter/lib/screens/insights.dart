@@ -356,6 +356,9 @@ class InsightsScreen extends StatelessWidget {
     // A cushion this user already has, spoken plainly, so the starter and
     // fuller steps say "you have X, aim for Y" instead of a bare gap.
     final haveCushion = buffer > 0 ? ' You have about ${_wholePeso(buffer)} so far.' : '';
+    // When an unrated debt was left out of the order, do not claim ALL debts
+    // are handled; say "rated" so the copy never contradicts the note below.
+    final rated = rateUnfilled ? 'rated ' : '';
 
     var title = '';
     var support = '';
@@ -380,7 +383,14 @@ class InsightsScreen extends StatelessWidget {
         heroColor = Barako.warningStrong;
         final name = (topDebt?['name'] as String?) ?? 'your debt';
         final rate = (topDebt?['monthlyRate'] as double?) ?? 0;
-        final rateText = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
+        // Whole rates print plain; a fractional rate is capped at two decimals
+        // with trailing zeros trimmed, so a junk 3.333333 never spills.
+        final rateText = rate % 1 == 0
+            ? rate.toInt().toString()
+            : rate
+                .toStringAsFixed(2)
+                .replaceAll(RegExp(r'0+$'), '')
+                .replaceAll(RegExp(r'\.$'), '');
         title = 'Clear your costliest debt';
         support =
             'Your $name costs about $rateText% a month, more than any savings can earn back. Every ₱100 you put here is worth more than ₱100 anywhere else right now.';
@@ -389,7 +399,7 @@ class InsightsScreen extends StatelessWidget {
         activeIndex = 2;
         title = 'Grow your safety net';
         support =
-            'Your debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or an ospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
+            'Your ${rated}debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or an ospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
         break;
       case 'goal':
         activeIndex = 3;
@@ -399,13 +409,13 @@ class InsightsScreen extends StatelessWidget {
             : 'your goal';
         title = 'Now, chase your goal';
         support =
-            'Your cushion and high cost debt are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
+            'Your cushion and ${rateUnfilled ? 'rated debt' : 'high cost debt'} are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
         break;
       default: // 'set'
         activeIndex = 4;
         title = 'You are in a good spot';
         support =
-            'Your cushion and debts are handled and no goal is waiting. Spare pesos are yours to enjoy, or start a new goal when you are ready.';
+            'Your cushion and ${rated}debts are handled and no goal is waiting. Now your money can work for you, think long term saving or investing for your future self, and enjoy some of it guilt free. You earned it.';
     }
 
     final spareLine = crunch
@@ -418,15 +428,15 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('WHERE YOUR NEXT PESO SHOULD GO', style: Barako.kickerStyle),
-            const SizedBox(height: 8),
+            _kicker('WHERE YOUR NEXT PESO SHOULD GO'),
+            const SizedBox(height: 6),
             Text(title,
                 style: TextStyle(
                     fontFamily: Barako.displayFont,
                     color: heroColor,
                     fontSize: 22,
                     fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(support,
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 13, height: 1.45)),
@@ -440,10 +450,12 @@ class InsightsScreen extends StatelessWidget {
                     height: 1.4)),
             if (rateUnfilled) ...[
               const SizedBox(height: 6),
+              // Informational, not a money warning, so it stays in the calm
+              // muted tone (which also clears AA) instead of a third red line.
               Text(
-                  'One debt has no interest rate saved, so I left it out of the order. Add the rate and I can place it properly.',
+                  'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
                   style: TextStyle(
-                      color: Barako.warningStrong, fontSize: 12, height: 1.4)),
+                      color: Barako.muted, fontSize: 12, height: 1.4)),
             ],
             const SizedBox(height: 8),
             Text(
@@ -460,7 +472,9 @@ class InsightsScreen extends StatelessWidget {
   /// where they stand in it, not just the current step. Steps before the
   /// active one read as done, the active one is filled, later ones wait.
   Widget _orderRail(int activeIndex) {
-    const labels = ['Cushion', 'Debt', 'Bigger fund', 'Goals'];
+    // Single words only: a 4-across rail at 320dp with OS large-text scaling
+    // would ellipsize a two-word label ("Bigger fund" to "Bigger...") mid-word.
+    const labels = ['Cushion', 'Debt', 'Buffer', 'Goals'];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

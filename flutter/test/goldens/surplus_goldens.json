@@ -134,7 +134,7 @@
         {
           "id": "d2",
           "name": "Small loan",
-          "type": "loan",
+          "type": "personal loan",
           "remaining": 4000,
           "monthlyRate": 1
         }
@@ -678,6 +678,231 @@
         }
       }
     },
+    "lowRateDebt": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "SSS loan",
+          "type": "personal loan",
+          "remaining": 20000,
+          "monthlyRate": 0.5
+        }
+      ],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "loanNoRate": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Car loan",
+          "type": "auto",
+          "remaining": 30000
+        }
+      ],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
     "crunch": {
       "accounts": [
         {
@@ -902,6 +1127,38 @@
       "activeGoal": false
     },
     "rateUnfilled": {
+      "step": "fuller",
+      "applicable": true,
+      "spare": 8000,
+      "crunch": false,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": null,
+      "rateUnfilled": true,
+      "activeGoal": false
+    },
+    "lowRateDebt": {
+      "step": "fuller",
+      "applicable": true,
+      "spare": 8000,
+      "crunch": false,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "loanNoRate": {
       "step": "fuller",
       "applicable": true,
       "spare": 8000,
