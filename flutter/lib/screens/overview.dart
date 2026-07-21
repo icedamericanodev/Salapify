@@ -154,17 +154,28 @@ class OverviewScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                       a['name'] as String? ?? 'Account',
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                           color: Barako.text, fontSize: 16)),
                                 ),
-                                Text(formatMoney(amount(a['balance'])),
-                                    style: TextStyle(
-                                        color: Barako.textSecondary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures()
-                                        ])),
+                                const SizedBox(width: 8),
+                                // A big balance scales down instead of
+                                // overflowing the row on a narrow phone.
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                        formatMoney(amount(a['balance'])),
+                                        style: TextStyle(
+                                            color: Barako.textSecondary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            fontFeatures: const [
+                                              FontFeature.tabularFigures()
+                                            ])),
+                                  ),
+                                ),
                               ],
                             ),
                           ),

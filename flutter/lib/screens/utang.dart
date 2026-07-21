@@ -12,6 +12,7 @@ import '../data/store.dart';
 import '../money/receivables.dart' as engine;
 import '../money/utang.dart';
 import '../theme.dart';
+import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney;
 
@@ -58,17 +59,8 @@ class UtangScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 12),
-            Text('UTANG',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3)),
-            const SizedBox(height: 4),
-            Text('Money owed to you, oldest first',
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
-            const SizedBox(height: 20),
+            const ScreenHeader('UTANG',
+                subtitle: 'Money owed to you, oldest first'),
             if (people.isEmpty)
               Card(
                 child: Padding(

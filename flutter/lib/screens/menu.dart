@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
 import 'debts.dart';
@@ -34,13 +35,7 @@ class MenuScreen extends StatelessWidget {
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
-              Text('MENU',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3)),
-              const SizedBox(height: 16),
+              const ScreenHeader('MENU'),
               _navRow(
                 icon: Icons.search,
                 title: 'Search',
