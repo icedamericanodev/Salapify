@@ -178,7 +178,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!widget.pushed) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Text('HISTORY',
                     style: TextStyle(
                         color: Barako.text,

@@ -19,6 +19,7 @@ import '../money/debtmath.dart' as debtmath;
 import '../money/ledger.dart' show amountOf;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
+import '../widgets/screen_header.dart';
 import 'overview.dart' show formatMoney;
 
 const List<String> _monthsShort = [
@@ -144,17 +145,8 @@ class InsightsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 12),
-            Text('INSIGHTS',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3)),
-            const SizedBox(height: 4),
-            Text('What your money is telling you, and what to do next',
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
-            SizedBox(height: 20),
+            ScreenHeader('INSIGHTS',
+                subtitle: 'What your money is telling you, and what to do next'),
             if (candidates.isNotEmpty) ...[
               _kicker('DO NEXT'),
               SizedBox(height: 8),

@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.93 · Theme gate fixes: Forest AA, theme swatches, junk-value hardening';
+    'f0.94 · Look polish: one consistent header across tabs, safer account balances';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/budget.dart' as budget;
 import '../theme.dart';
+import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
 import 'overview.dart' show formatMoney;
 
@@ -54,14 +55,7 @@ class BudgetScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 12),
-            Text('BUDGET',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3)),
-            const SizedBox(height: 20),
+            ScreenHeader('BUDGET'),
             _limitCard(context, summary),
             if (store.canWrite) ...[
               const SizedBox(height: 12),
