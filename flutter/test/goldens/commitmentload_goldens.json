@@ -568,6 +568,183 @@
       "debts": [],
       "settings": {}
     },
+    "twoMonths": {
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "i1",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e0",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3000
+        }
+      ],
+      "recurring": [
+        {
+          "id": "r1",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 4000,
+          "dayOfMonth": 1
+        }
+      ],
+      "debts": [],
+      "settings": {}
+    },
+    "lumpMonth": {
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "i1",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "i2",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "13th month",
+          "amount": 60000
+        },
+        {
+          "id": "e0",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3000
+        }
+      ],
+      "recurring": [
+        {
+          "id": "r1",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 6000,
+          "dayOfMonth": 1
+        }
+      ],
+      "debts": [],
+      "settings": {}
+    },
+    "onlyUnfilled": {
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 15000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 3000
+        }
+      ],
+      "recurring": [],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Card",
+          "type": "credit card",
+          "remaining": 9000
+        }
+      ],
+      "settings": {}
+    },
     "empty": {
       "transactions": [],
       "recurring": [],
@@ -585,6 +762,7 @@
       "minimumUnfilled": false,
       "typicalIncome": 15000,
       "hasIncomeBase": true,
+      "incomeMonths": 6,
       "committedShare": 0.4266666666666667,
       "free": 8600,
       "applicable": true
@@ -598,6 +776,7 @@
       "minimumUnfilled": false,
       "typicalIncome": 12000,
       "hasIncomeBase": true,
+      "incomeMonths": 6,
       "committedShare": 1.125,
       "free": -1500,
       "applicable": true
@@ -611,6 +790,7 @@
       "minimumUnfilled": false,
       "typicalIncome": 0,
       "hasIncomeBase": false,
+      "incomeMonths": 0,
       "committedShare": null,
       "free": null,
       "applicable": true
@@ -624,6 +804,7 @@
       "minimumUnfilled": true,
       "typicalIncome": 15000,
       "hasIncomeBase": true,
+      "incomeMonths": 6,
       "committedShare": 0.26666666666666666,
       "free": 11000,
       "applicable": true
@@ -637,6 +818,7 @@
       "minimumUnfilled": false,
       "typicalIncome": 15000,
       "hasIncomeBase": true,
+      "incomeMonths": 6,
       "committedShare": 0.013333333333333334,
       "free": 14800,
       "applicable": true
@@ -650,9 +832,52 @@
       "minimumUnfilled": false,
       "typicalIncome": 15000,
       "hasIncomeBase": true,
+      "incomeMonths": 6,
       "committedShare": 0,
       "free": 15000,
       "applicable": false
+    },
+    "twoMonths": {
+      "monthlyCommitted": 4000,
+      "recurringTotal": 4000,
+      "recurringCount": 1,
+      "minimumsTotal": 0,
+      "minimumsCount": 0,
+      "minimumUnfilled": false,
+      "typicalIncome": 0,
+      "hasIncomeBase": false,
+      "incomeMonths": 2,
+      "committedShare": null,
+      "free": null,
+      "applicable": true
+    },
+    "lumpMonth": {
+      "monthlyCommitted": 6000,
+      "recurringTotal": 6000,
+      "recurringCount": 1,
+      "minimumsTotal": 0,
+      "minimumsCount": 0,
+      "minimumUnfilled": false,
+      "typicalIncome": 20000,
+      "hasIncomeBase": true,
+      "incomeMonths": 3,
+      "committedShare": 0.3,
+      "free": 14000,
+      "applicable": true
+    },
+    "onlyUnfilled": {
+      "monthlyCommitted": 0,
+      "recurringTotal": 0,
+      "recurringCount": 0,
+      "minimumsTotal": 0,
+      "minimumsCount": 0,
+      "minimumUnfilled": true,
+      "typicalIncome": 15000,
+      "hasIncomeBase": true,
+      "incomeMonths": 6,
+      "committedShare": 0,
+      "free": 15000,
+      "applicable": true
     },
     "empty": {
       "monthlyCommitted": 0,
@@ -663,6 +888,7 @@
       "minimumUnfilled": false,
       "typicalIncome": 0,
       "hasIncomeBase": false,
+      "incomeMonths": 0,
       "committedShare": null,
       "free": null,
       "applicable": false

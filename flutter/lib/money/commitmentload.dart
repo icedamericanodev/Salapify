@@ -23,9 +23,11 @@ const Set<String> _interestBearingTypes = {
   'long term',
 };
 
-/// At least this many completed months with income before a share is quoted,
-/// so one lump (a 13th month, a reimbursement) never sets a fake baseline.
-const int _minIncomeMonths = 2;
+/// At least this many completed months with income before a share is quoted.
+/// Three lets the median ignore a single lump (a 13th month, a bonus) as the
+/// middle value, where a two-month median would just average it in and halve
+/// the share.
+const int _minIncomeMonths = 3;
 
 /// The monthly commitment load. Returns the peso total and its parts, the
 /// typical income and the share it eats (null until there are two income
@@ -87,6 +89,10 @@ Map<String, dynamic> commitmentLoad(Map<String, dynamic> data, DateTime ref) {
   final committedShare =
       hasIncomeBase ? monthlyCommitted / typicalIncome : null;
   final free = hasIncomeBase ? typicalIncome - monthlyCommitted : null;
+  // How many of the last 6 completed months actually had income. Fewer than 6
+  // means income is new or irregular, so a lean month spends a bigger share
+  // than this typical figure suggests; the card caveats that.
+  final incomeMonths = incomes.length;
 
   return {
     'monthlyCommitted': monthlyCommitted,
@@ -97,8 +103,12 @@ Map<String, dynamic> commitmentLoad(Map<String, dynamic> data, DateTime ref) {
     'minimumUnfilled': minimumUnfilled,
     'typicalIncome': typicalIncome,
     'hasIncomeBase': hasIncomeBase,
+    'incomeMonths': incomeMonths,
     'committedShare': committedShare,
     'free': free,
-    'applicable': monthlyCommitted > 0,
+    // Show once there is a commitment to speak of, OR when an interest-bearing
+    // debt has no minimum saved: that is exactly when the flag most needs to be
+    // seen, since the missing minimum drags the load to a misleading zero.
+    'applicable': monthlyCommitted > 0 || minimumUnfilled,
   };
 }

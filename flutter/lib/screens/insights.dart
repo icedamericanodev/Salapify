@@ -199,10 +199,6 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
-            if (load['applicable'] == true) ...[
-              const SizedBox(height: 12),
-              _spokenForCard(load),
-            ],
             if (plan['applicable'] == true) ...[
               const SizedBox(height: 12),
               _nextPesoCard(plan, focusGoal),
@@ -214,6 +210,13 @@ class InsightsScreen extends StatelessWidget {
             if (focusGoal != null) ...[
               const SizedBox(height: 12),
               _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
+            ],
+            // Spoken-For is a structural, reflective gauge, so it sits with the
+            // "understand your situation" band, not the do-next cards up top. It
+            // leads the band because commitment load feeds the debt-load health.
+            if (load['applicable'] == true) ...[
+              const SizedBox(height: 12),
+              _spokenForCard(load),
             ],
             const SizedBox(height: 12),
             _healthCard(health),
@@ -349,12 +352,34 @@ class InsightsScreen extends StatelessWidget {
     final committed = load['monthlyCommitted'] as double;
     final income = load['typicalIncome'] as double;
     final hasIncomeBase = load['hasIncomeBase'] as bool;
+    final incomeMonths = load['incomeMonths'] as int;
     final share = load['committedShare'] as double?;
     final free = load['free'] as double?;
     final rc = load['recurringCount'] as int;
     final mc = load['minimumsCount'] as int;
     final minimumUnfilled = load['minimumUnfilled'] as bool;
-    final over = share != null && share > 1;
+
+    // The only way the card is applicable with nothing committed is an
+    // interest-bearing debt with no minimum saved. Show just the nudge; a "0%"
+    // here would misread as "nothing committed" when it is really unknown.
+    if (committed <= 0) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _kicker('SPOKEN FOR EACH MONTH'),
+              const SizedBox(height: 8),
+              Text(
+                  'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your sweldo is.',
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            ],
+          ),
+        ),
+      );
+    }
 
     // "from 3 bills and 2 minimums", built so it never says "0 bills".
     final parts = <String>[
@@ -363,20 +388,40 @@ class InsightsScreen extends StatelessWidget {
     ];
     final fromClause = parts.isEmpty ? '' : ', from ${parts.join(' and ')}';
 
+    // A junk backup can overflow the committed sum or the income median to a
+    // non-finite value; round() throws on those. When any input is not finite
+    // we skip the percent and show the guarded peso total instead, the way
+    // _wholePeso and formatMoney stay alive on absurd data.
+    final finite = committed.isFinite &&
+        income.isFinite &&
+        (share == null || share.isFinite);
+    final showShare = hasIncomeBase && finite && share != null;
+    final over = showShare && share > 1;
+
+    // Cap an absurd but finite percent so a junk backup never spills a 19-digit
+    // number; round() is only ever called on a finite product.
+    String pctText(double s) {
+      final p = s * 100;
+      if (!p.isFinite) return '999+%';
+      final r = p.round();
+      return r > 999 ? '999+%' : '$r%';
+    }
+
     final String hero;
     final String support;
-    if (!hasIncomeBase) {
+    if (!showShare) {
       hero = _wholePeso(committed);
-      support =
-          'About ${_wholePeso(committed)} is committed each month$fromClause. Log your sweldo for a couple of months and I can show this as a share of your income.';
+      support = hasIncomeBase
+          ? 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause.'
+          : 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause. Log your sweldo for a few months and I can show this as a share of your income.';
     } else if (over) {
-      hero = '${(share * 100).round()}%';
+      hero = pctText(share);
       support =
-          'More is committed than your typical ${_wholePeso(income)} sweldo covers$fromClause. One lean month can turn into utang, so trimming a bill or clearing a minimum makes real room.';
+          'More is committed than your typical ${_wholePeso(income)} sweldo covers$fromClause. One lean month can turn into utang, so trimming a bill or paying off one debt makes real room.';
     } else {
-      hero = '${(share! * 100).round()}%';
+      hero = pctText(share);
       support =
-          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} sweldo is committed each month$fromClause, that is ${(share * 100).round()}%. That leaves about ${_wholePeso(free!)} for everything else.';
+          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} sweldo goes to bills and minimums$fromClause. The rest, about ${_wholePeso(free!)}, still has to cover everything else, food, transport, and load, plus whatever you save.';
     }
     final heroColor = over ? Barako.warningStrong : Barako.primaryText;
 
@@ -400,17 +445,21 @@ class InsightsScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       fontFeatures: const [FontFeature.tabularFigures()])),
             ),
-            if (hasIncomeBase) ...[
+            if (showShare) ...[
               const SizedBox(height: 10),
               // Committed vs free as one proportion bar, capped at full so an
-              // over-committed month reads as a full red bar, not overflow.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: share!.clamp(0.0, 1.0),
-                  minHeight: 8,
-                  backgroundColor: Barako.border,
-                  color: over ? Barako.warningStrong : Barako.primary,
+              // over-committed month reads as a full red bar, not overflow. The
+              // label keeps the screen reader in sync with the hero percent.
+              Semantics(
+                label: 'Committed ${pctText(share)} of your income',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: share.clamp(0.0, 1.0),
+                    minHeight: 8,
+                    backgroundColor: Barako.border,
+                    color: over ? Barako.warningStrong : Barako.primary,
+                  ),
                 ),
               ),
             ],
@@ -418,6 +467,13 @@ class InsightsScreen extends StatelessWidget {
             Text(support,
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            if (showShare && incomeMonths < 6) ...[
+              const SizedBox(height: 6),
+              Text(
+                  'This uses your months with income. On a lean or no-income month, a bigger share is spoken for.',
+                  style:
+                      TextStyle(color: Barako.muted, fontSize: 12, height: 1.4)),
+            ],
             if (minimumUnfilled) ...[
               const SizedBox(height: 6),
               Text(
