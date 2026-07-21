@@ -52,6 +52,7 @@ class TreatsScreen extends StatelessWidget {
           listenable: store,
           builder: (context, _) {
             final rules = store.treatRules;
+            final atCap = rules.length >= maxTreats;
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
@@ -64,8 +65,20 @@ class TreatsScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 if (rules.isEmpty)
                   ..._emptyState(context)
-                else
+                else ...[
                   for (final t in rules) _treatCard(context, t),
+                  if (!atCap)
+                    _addAnotherButton(context)
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('3 of 3 treats. Delete one to add another.',
+                          style:
+                              TextStyle(color: Barako.faint, fontSize: 12)),
+                    ),
+                  const SizedBox(height: 20),
+                  _honestNote(),
+                ],
               ],
             );
           },
@@ -73,6 +86,31 @@ class TreatsScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _honestNote() => Text(
+        'This tracks a habit, not your wallet. It never blocks a purchase and '
+        'never counts your pesos.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.4),
+      );
+
+  Widget _addAnotherButton(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _openSheet(context, null),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Barako.primaryText,
+              side: BorderSide(color: Barako.border),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add another treat',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ),
+      );
 
   List<Widget> _emptyState(BuildContext context) => [
         Text('PICK ONE TO START', style: Barako.kickerStyle),
@@ -117,6 +155,22 @@ class TreatsScreen extends StatelessWidget {
               ),
             ),
           ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _openSheet(context, null),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Barako.primaryText,
+              side: BorderSide(color: Barako.border),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Text('Make my own',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _honestNote(),
       ];
 
   Widget _treatCard(BuildContext context, Map<String, dynamic> t) {
@@ -146,8 +200,12 @@ class TreatsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: earned ? Barako.positiveSurface : Barako.card,
           borderRadius: BorderRadius.circular(20),
+          // Earned cards get a celebrate ring so the win reads in every theme
+          // and in dark mode, where the positive surface is only a whisper off
+          // the normal card.
           border: Border.all(
-              color: earned ? Barako.positiveBorder : Barako.border),
+              color: earned ? Barako.celebrate : Barako.border,
+              width: earned ? 1.5 : 1),
         ),
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -250,9 +308,9 @@ class TreatsScreen extends StatelessWidget {
                 TextButton(
                   onPressed: () => _openSheet(context, t),
                   style: TextButton.styleFrom(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: const Size(44, 36)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: const Size(44, 44)),
                   child: Text('Edit',
                       style: TextStyle(
                           color: Barako.primaryText,
@@ -287,8 +345,8 @@ class TreatsScreen extends StatelessWidget {
   }
 }
 
-// The check-in button, its icon cross-fading between the two states rather than
-// popping (polish rule: icon state changes cross-fade).
+// The check-in button. Its fill and border animate together with the icon so
+// the state change reads as one motion, not a snap plus a spin.
 class _CheckInButton extends StatelessWidget {
   final bool doneToday;
   final VoidCallback onTap;
@@ -298,15 +356,18 @@ class _CheckInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PressableScale(
       child: Material(
-        color: doneToday ? Barako.primary : Colors.transparent,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
+              color: doneToday ? Barako.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                   color: doneToday ? Barako.primary : Barako.border),
@@ -328,12 +389,18 @@ class _CheckInButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  doneToday ? 'Done for today, tap to undo' : 'I did it today',
-                  style: TextStyle(
-                      color: doneToday ? Barako.onPrimary : Barako.primaryText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14),
+                Flexible(
+                  child: Text(
+                    doneToday
+                        ? 'Done for today, tap to undo'
+                        : 'I did it today',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color:
+                            doneToday ? Barako.onPrimary : Barako.primaryText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14),
+                  ),
                 ),
               ],
             ),
@@ -363,6 +430,9 @@ class _TreatSheetState extends State<_TreatSheet> {
   late int _target;
   late int _windowDays;
   bool _confirmDel = false;
+  // Guards a double tap on Save from writing the same new treat twice before
+  // the sheet closes, the way the RN screen's saving ref does.
+  bool _saving = false;
 
   bool get _isEdit => widget.treat != null;
 
@@ -377,8 +447,11 @@ class _TreatSheetState extends State<_TreatSheet> {
         text: t?['action']?.toString() ?? tpl?['action']?.toString() ?? '');
     _emoji = TextEditingController(
         text: t?['emoji']?.toString() ?? tpl?['emoji']?.toString() ?? '☕');
-    _target = _asInt(t?['target'] ?? tpl?['target'], 3, 1, 14);
     _windowDays = _asInt(t?['windowDays'] ?? tpl?['windowDays'], 7, 1, 31);
+    // Never let the earn count exceed the window: recent can never reach a
+    // target above the number of days in the window, so the treat would be
+    // impossible to earn. Cap it to the window here and whenever it changes.
+    _target = _asInt(t?['target'] ?? tpl?['target'], 3, 1, _windowDays);
   }
 
   int _asInt(dynamic v, int dflt, int lo, int hi) {
@@ -403,6 +476,7 @@ class _TreatSheetState extends State<_TreatSheet> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     if (!widget.store.canWrite) {
       _offBanner();
       return;
@@ -415,20 +489,28 @@ class _TreatSheetState extends State<_TreatSheet> {
       'target': _target,
       'windowDays': _windowDays,
     };
-    if (id is String) {
-      await widget.store.updateTreat(id, fields);
-    } else {
-      // Enforce the cap at save time too, so a second sheet opened before the
-      // list refreshed cannot slip past three.
-      if (widget.store.treatRules.length >= maxTreats) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-              content: Text(
-                  'You can keep 3 treats at a time. Delete one to add another.')));
-        return;
+    _saving = true;
+    setState(() {});
+    try {
+      if (id is String) {
+        await widget.store.updateTreat(id, fields);
+      } else {
+        // Enforce the cap at save time too, so a second sheet opened before the
+        // list refreshed cannot slip past three.
+        if (widget.store.treatRules.length >= maxTreats) {
+          _saving = false;
+          if (mounted) setState(() {});
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(const SnackBar(
+                content: Text(
+                    'You can keep 3 treats at a time. Delete one to add another.')));
+          return;
+        }
+        await widget.store.addTreat(fields);
       }
-      await widget.store.addTreat(fields);
+    } finally {
+      _saving = false;
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -476,7 +558,9 @@ class _TreatSheetState extends State<_TreatSheet> {
               _label('Healthy action'),
               _input(_action, hint: 'e.g. 30-minutong lakad'),
               _label('Emoji'),
-              SizedBox(width: 90, child: _input(_emoji, hint: '☕', center: true)),
+              SizedBox(
+                  width: 90,
+                  child: _input(_emoji, hint: '☕', center: true, emoji: true)),
               _label('Check-ins to earn it'),
               _stepper(),
               _label('Within'),
@@ -510,10 +594,12 @@ class _TreatSheetState extends State<_TreatSheet> {
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: _save,
+                        onPressed: _saving ? null : _save,
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
+                          disabledBackgroundColor:
+                              Barako.primary.withValues(alpha: 0.5),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 24, vertical: 14),
                         ),
@@ -536,10 +622,24 @@ class _TreatSheetState extends State<_TreatSheet> {
         child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
       );
 
-  Widget _input(TextEditingController c, {String? hint, bool center = false}) {
+  Widget _input(TextEditingController c,
+      {String? hint, bool center = false, bool emoji = false}) {
     return TextField(
       controller: c,
       textAlign: center ? TextAlign.center : TextAlign.start,
+      // Keep the emoji field to a single character, so a pasted word or a run
+      // of emoji can never spill into the card layout.
+      onChanged: emoji
+          ? (v) {
+              final g = v.characters;
+              if (g.length > 1) {
+                final one = g.take(1).toString();
+                c.value = TextEditingValue(
+                    text: one,
+                    selection: TextSelection.collapsed(offset: one.length));
+              }
+            }
+          : null,
       style: TextStyle(color: Barako.text, fontSize: 15),
       decoration: InputDecoration(
         hintText: hint,
@@ -571,41 +671,47 @@ class _TreatSheetState extends State<_TreatSheet> {
             () => setState(() => _target = _target > 1 ? _target - 1 : 1)),
         SizedBox(
           width: 56,
-          child: Text('$_target',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
+          child: Semantics(
+            liveRegion: true,
+            child: Text('$_target',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
+          ),
         ),
-        _stepBtn(Icons.add, 'More check-ins to earn',
-            () => setState(() => _target = _target < 14 ? _target + 1 : 14)),
+        _stepBtn(
+            Icons.add,
+            'More check-ins to earn',
+            () => setState(() =>
+                _target = _target < _windowDays ? _target + 1 : _windowDays)),
       ],
     );
   }
 
   Widget _stepBtn(IconData icon, String label, VoidCallback onTap) {
     return PressableScale(
-      child: Material(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Material(
+          color: Barako.card,
           borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          child: Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Barako.border),
-            ),
-            child: Semantics(
-              label: label,
-              button: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Barako.border),
+              ),
               child: Icon(icon, color: Barako.primaryText, size: 20),
             ),
           ),
@@ -618,27 +724,39 @@ class _TreatSheetState extends State<_TreatSheet> {
     Widget seg(String text, int days) {
       final on = _windowDays == days;
       return Expanded(
-        child: PressableScale(
-          child: Material(
-            color: on ? Barako.primary : Barako.card,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: text,
+          child: PressableScale(
+            child: Material(
+              color: on ? Barako.primary : Barako.card,
               borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _windowDays = days);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: on ? Barako.primary : Barako.border),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _windowDays = days;
+                    // A shorter window can make the current target unreachable;
+                    // pull it down to fit.
+                    if (_target > _windowDays) _target = _windowDays;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        Border.all(color: on ? Barako.primary : Barako.border),
+                  ),
+                  child: Text(text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: on ? Barako.onPrimary : Barako.textSecondary,
+                          fontWeight: FontWeight.w600)),
                 ),
-                child: Text(text,
-                    style: TextStyle(
-                        color: on ? Barako.onPrimary : Barako.textSecondary,
-                        fontWeight: FontWeight.w600)),
               ),
             ),
           ),

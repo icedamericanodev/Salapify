@@ -89,4 +89,48 @@ void main() {
         find.widgetWithText(TextButton, '+ Add'));
     expect(addBtn.onPressed, isNull);
   });
+
+  testWidgets('editing a treat keeps its check-ins and lifetime',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'settings': {
+          'treats': [
+            {
+              'id': 't1',
+              'treat': 'Milk tea',
+              'action': 'Lakad',
+              'emoji': '🧋',
+              'target': 3,
+              'windowDays': 7,
+              'checkIns': ['2020-01-01'],
+              'lifetime': 9,
+              'createdAt': '2020-01-01',
+            },
+          ],
+        },
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openTreats(tester);
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit treat'), findsOneWidget);
+    // Rename the treat, then Save.
+    await tester.enterText(find.byType(TextField).first, 'Kape');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final t = _treats(store).first as Map;
+    expect(t['treat'], 'Kape');
+    // The edit renormalizes user fields but must never wipe progress.
+    expect(t['lifetime'], 9);
+    expect(t['createdAt'], '2020-01-01');
+    expect((t['checkIns'] as List), ['2020-01-01']);
+  });
 }
