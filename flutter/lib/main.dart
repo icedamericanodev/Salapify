@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.81 · Keep Insights as a bottom tab (founder call); Menu holds the rest';
+    'f0.82 · Tighten the 6-tab nav labels so every label fits on small phones';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
