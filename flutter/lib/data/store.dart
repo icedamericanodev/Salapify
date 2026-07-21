@@ -113,6 +113,7 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
   for (final (key, prefix) in const [
     ('accounts', 'acct'),
     ('debts', 'debt'),
+    ('assets', 'asset'),
   ]) {
     final rows = result[key];
     if (rows is! List) continue;
@@ -201,13 +202,14 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
         }
         if (sChanged) result = {...result, 'settings': s};
       }
-    } else {
+    } else if (key == 'debts') {
       result = {
         ...result,
         'payments': followRefs(result['payments'], ['debtId']),
         'transactions': followRefs(result['transactions'], ['debtId']),
       };
     }
+    // assets have no inbound references, so a renamed asset id needs no follow.
   }
   return result;
 }
@@ -332,8 +334,15 @@ class SalapifyStore extends ChangeNotifier {
         if (amount is! num || !amount.isFinite) {
           throw ArgumentError('That amount is not a normal number.');
         }
+        // Every entry needs a stable id, or it cannot be deleted or undone from
+        // History and duplicate null-id rows crash the list. RN's addTransaction
+        // guarantees one; mirror that here so no caller can post an id-less
+        // entry (the balance-adjustment path did).
+        final withId = (tx['id'] is String && (tx['id'] as String).isNotEmpty)
+            ? tx
+            : {...tx, 'id': _genId('txn')};
         final previous = data;
-        data = ledger.addTransaction(data, tx);
+        data = ledger.addTransaction(data, withId);
         try {
           await _save();
         } catch (e) {

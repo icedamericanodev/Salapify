@@ -134,21 +134,28 @@ class AccountsScreen extends StatelessWidget {
             children: [
               Text('NET WORTH', style: Barako.kickerStyle),
               const SizedBox(height: 6),
-              Text(formatMoneyText(parts['netWorth'] as double),
-                  style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      color: Barako.text,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(formatMoneyText(parts['netWorth'] as double),
+                    maxLines: 1,
+                    style: TextStyle(
+                        fontFamily: Barako.displayFont,
+                        color: Barako.text,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ),
               const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _miniStat('Total assets', parts['assets'] as double,
-                      Barako.primaryText),
-                  _miniStat('Total owed', parts['liabilities'] as double,
-                      Barako.warningStrong),
+                  Flexible(
+                      child: _miniStat('Total assets',
+                          parts['assets'] as double, Barako.primaryText)),
+                  const SizedBox(width: 12),
+                  Flexible(
+                      child: _miniStat('Total owed',
+                          parts['liabilities'] as double, Barako.warningStrong)),
                 ],
               ),
             ],
@@ -162,6 +169,8 @@ class AccountsScreen extends StatelessWidget {
           Text(label, style: TextStyle(color: Barako.muted, fontSize: 12)),
           const SizedBox(height: 2),
           Text(formatMoneyText(value),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   color: color,
                   fontSize: 16,
@@ -204,9 +213,14 @@ class AccountsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: Barako.kickerStyle),
+                Expanded(
+                  child: Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Barako.kickerStyle),
+                ),
+                const SizedBox(width: 8),
                 Text(formatMoneyText(subtotal),
                     style: TextStyle(
                         color: subtotalColor ?? Barako.textSecondary,
@@ -329,7 +343,7 @@ class AccountsScreen extends StatelessWidget {
       ),
     );
     if (onTap == null) return body;
-    return InkWell(onTap: onTap, child: body);
+    return PressableScale(child: InkWell(onTap: onTap, child: body));
   }
 
   void _openForm(BuildContext context,
@@ -365,6 +379,7 @@ class _AccountFormState extends State<_AccountForm> {
   late final TextEditingController _icon;
   late String _kind;
   bool _confirmDel = false;
+  bool _saving = false;
   String? _err;
 
   bool get _isEdit => widget.item != null;
@@ -410,6 +425,7 @@ class _AccountFormState extends State<_AccountForm> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     if (!widget.store.canWrite) {
       _offBanner();
       return;
@@ -426,9 +442,13 @@ class _AccountFormState extends State<_AccountForm> {
 
     if (!widget.isAccount) {
       final name = _name.text.trim();
-      if (_isEdit) {
-        await widget.store.updateAsset(widget.item!['id'] as String,
-            name: name, kind: _kind, value: amount);
+      final aid = widget.item?['id'];
+      setState(() => _saving = true);
+      // Only update a real, id-carrying asset; otherwise add a fresh one, so a
+      // hand-edited backup asset without a string id never crashes on the cast.
+      if (aid is String) {
+        await widget.store
+            .updateAsset(aid, name: name, kind: _kind, value: amount);
       } else {
         await widget.store.addAsset(name: name, kind: _kind, value: amount);
       }
@@ -449,6 +469,7 @@ class _AccountFormState extends State<_AccountForm> {
     final brand = _brand.text.trim();
     final icon = _icon.text.trim().isEmpty ? '💵' : _icon.text.trim();
 
+    setState(() => _saving = true);
     final id = widget.item?['id'];
     if (id is String) {
       final oldBal = amountOf(widget.item!['balance']);
@@ -476,6 +497,7 @@ class _AccountFormState extends State<_AccountForm> {
   /// (which counts in spending) or as a plain correction; either lands the
   /// balance on the typed total. Not cancelable, so the change is never lost.
   Future<void> _handleDecrease(String id, double amt) async {
+    if (!mounted) return;
     final asExpense = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -501,6 +523,7 @@ class _AccountFormState extends State<_AccountForm> {
         ],
       ),
     );
+    if (!mounted) return;
     if (asExpense == true) {
       await _post(id, 'expense', null, amt, 'Unlogged expense');
     } else {
@@ -584,7 +607,7 @@ class _AccountFormState extends State<_AccountForm> {
                       fontSize: 18,
                       fontWeight: FontWeight.w800)),
               _label('Name'),
-              _input(_name, hint: 'e.g. GCash'),
+              _input(_name, hint: 'e.g. GCash', action: TextInputAction.next),
               _label('Kind'),
               Wrap(
                 spacing: 8,
@@ -607,14 +630,26 @@ class _AccountFormState extends State<_AccountForm> {
                 ],
               ),
               _label(widget.isAccount ? 'Balance' : 'Value'),
-              _input(_amount, hint: '0', number: true),
+              _input(_amount,
+                  hint: '0',
+                  number: true,
+                  action: widget.isAccount
+                      ? TextInputAction.next
+                      : TextInputAction.done),
+              if (_isEdit && widget.isAccount) ...[
+                const SizedBox(height: 6),
+                Text(
+                    'Set this to the real total in your account. We log the difference so your reports and History stay right.',
+                    style: TextStyle(color: Barako.faint, fontSize: 12)),
+              ],
               if (widget.isAccount) ...[
                 _label('Bank or brand (optional)'),
-                _input(_brand, hint: 'e.g. BPI'),
+                _input(_brand, hint: 'e.g. BPI', action: TextInputAction.next),
                 _label('Icon emoji (optional)'),
-                _input(_icon, hint: '💵'),
+                _input(_icon, hint: '💵', action: TextInputAction.next),
                 _label('Savings target (optional)'),
-                _input(_target, hint: '0', number: true),
+                _input(_target,
+                    hint: '0', number: true, action: TextInputAction.done),
               ],
               if (_err != null) ...[
                 const SizedBox(height: 10),
@@ -651,7 +686,7 @@ class _AccountFormState extends State<_AccountForm> {
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: _save,
+                        onPressed: _saving ? null : _save,
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
@@ -678,16 +713,17 @@ class _AccountFormState extends State<_AccountForm> {
       );
 
   Widget _input(TextEditingController c,
-      {String? hint, bool number = false}) {
+      {String? hint, bool number = false, TextInputAction? action}) {
     return TextField(
       controller: c,
       keyboardType: number
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
+      textInputAction: action,
       inputFormatters: number
           ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]
           : null,
-      style: TextStyle(color: Barako.text, fontSize: 16),
+      style: TextStyle(color: Barako.text, fontSize: 15),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Barako.faint),
@@ -696,15 +732,15 @@ class _AccountFormState extends State<_AccountForm> {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.primary),
         ),
       ),

@@ -3,6 +3,8 @@
 // delete it (entries stay, the account row goes). Money math itself is locked
 // in accounts_golden_test and ledger tests; this covers the screen + writes.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
@@ -66,4 +68,43 @@ void main() {
     // The recorded adjustment entry stays; only the account row is gone.
     expect(_txs(store).isNotEmpty, isTrue);
   });
+
+  testWidgets('an imported asset with a numeric id edits without crashing',
+      (tester) async {
+    // Regression: assets were not covered by the id-hardening, so a numeric id
+    // crashed the edit on the `as String` cast. ensureEntityIds now normalizes
+    // asset ids on load, and the screen guards the cast.
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'assets': [
+          {'id': 42, 'name': 'BTC', 'kind': 'crypto', 'value': 1000.0},
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+    // Load normalized the numeric id to a string.
+    expect((_rowId(store)), isA<String>());
+
+    await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('BTC'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '1500');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final assets = store.data['assets'] as List;
+    expect(assets.length, 1);
+    expect((assets.first as Map)['value'], 1500.0);
+  });
+}
+
+String? _rowId(SalapifyStore s) {
+  final a = (s.data['assets'] as List).first as Map;
+  return a['id'] is String ? a['id'] as String : null;
 }

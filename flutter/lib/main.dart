@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.77 · Accounts: manage wallets, banks, assets, balances, net worth';
+    'f0.78 · Accounts gate fixes: entry ids, asset id safety, no double-post';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
