@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
+import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/statements.dart';
@@ -418,6 +419,20 @@ class _ExportScreenState extends State<ExportScreen> {
   // re-encoding it on every rebuild would jank). The store is never written
   // to from this screen.
   late final String text = widget.store.exportBackupText();
+  bool _sharing = false;
+
+  Future<void> _shareFile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _sharing = true);
+    try {
+      await shareBackupFile(widget.store, DateTime.now());
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('Could not open the share sheet, nothing was lost. $e')));
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +452,7 @@ class _ExportScreenState extends State<ExportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Everything in this app, as one block of text: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Copy it and keep it somewhere safe (notes, email to yourself). The current Salapify app imports it unchanged.',
+                'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
               ),
@@ -470,6 +485,26 @@ class _ExportScreenState extends State<ExportScreen> {
                       backgroundColor: Barako.primary,
                       foregroundColor: Barako.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: _sharing ? null : _shareFile,
+                  icon: _sharing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.ios_share),
+                  label: Text(_sharing ? 'Preparing...' : 'Save or share a file',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.textSecondary,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     await Clipboard.setData(ClipboardData(text: text));
@@ -480,7 +515,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   icon: const Icon(Icons.copy),
                   label: const Text('Copy backup text',
                       style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
+                          fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -504,11 +539,31 @@ class _ImportScreenState extends State<ImportScreen> {
   String? error;
   bool busy = false;
 
-  Future<void> _import() async {
+  /// Pick a backup file from the phone or Drive, load its text into the field,
+  /// then run the same validated import the paste path uses. A cancelled pick
+  /// or an unreadable file is reported, never a silent no-op.
+  Future<void> _pickFile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    String? text;
+    try {
+      text = await pickBackupFileText();
+    } catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Could not read that file. $e')));
+      return;
+    }
+    if (text == null) return; // cancelled
+    controller.text = text;
+    await _runImport(text.trim());
+  }
+
+  Future<void> _import() => _runImport(controller.text.trim());
+
+  Future<void> _runImport(String text) async {
     // Validate BEFORE the scary dialog, like the RN app: garbage should get
     // the JSON error, never a replace-everything confirm.
     try {
-      parseBackupObject(jsonDecode(controller.text.trim()));
+      parseBackupObject(jsonDecode(text));
     } on NewerBackupException catch (e) {
       setState(() => error = e.message);
       return;
@@ -556,7 +611,7 @@ class _ImportScreenState extends State<ImportScreen> {
       error = null;
     });
     try {
-      await widget.store.importBackupText(controller.text.trim());
+      await widget.store.importBackupText(text);
       if (mounted) Navigator.of(context).pop();
     } on NewerBackupException catch (e) {
       setState(() => error = e.message);
@@ -590,11 +645,33 @@ class _ImportScreenState extends State<ImportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Paste the backup text from the current Salapify app (Backup screen, copy button). Importing replaces what is in this preview app only; your current app is untouched.',
+                'Choose a backup file (from your phone, Google Drive, or Files), or paste the backup text. Importing replaces everything currently in this app with the backup.',
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
               ),
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: busy ? null : _pickFile,
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Choose a backup file',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text('Or paste the backup text',
+                  style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1)),
+              const SizedBox(height: 8),
               Expanded(
                 child: TextField(
                   controller: controller,
