@@ -34,6 +34,10 @@ void main() {
     expect(beforeApp.theme!.scaffoldBackgroundColor,
         lattePalette.background);
 
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(find.text('🌙 Barako'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();

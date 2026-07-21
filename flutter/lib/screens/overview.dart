@@ -15,15 +15,10 @@ import '../money/coach.dart' as coach;
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
-import 'accounts.dart';
 import 'debts.dart';
-import 'goals.dart';
+import 'insights.dart';
 import 'log_sheet.dart';
-import 'notes.dart';
 import 'search.dart';
-import 'pan.dart';
-import 'tools.dart';
-import 'update_card.dart';
 
 String formatMoney(num value) {
   // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
@@ -89,7 +84,7 @@ class OverviewScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.all(20),
           children: [
-            SizedBox(height: 12),
+            SizedBox(height: 8),
             Row(
               children: [
                 Text('₱',
@@ -129,233 +124,74 @@ class OverviewScreen extends StatelessWidget {
               _checkInCard(context, checkIn),
               const SizedBox(height: 12),
             ],
-            _kickerCard(
-              'NET WORTH',
-              formatMoney(parts['netWorth'] as double),
-              sub:
-                  'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
-            ),
-            const SizedBox(height: 12),
-            if (accounts.isNotEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _kicker('MY MONEY'),
-                      const SizedBox(height: 6),
-                      for (final a in accounts)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(a['name'] as String? ?? 'Account',
+            _netWorthHero(parts),
+            const SizedBox(height: 16),
+            if (!hasStarted)
+              _welcomeCard(context)
+            else ...[
+              if (accounts.isNotEmpty) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _kicker('MY MONEY'),
+                        const SizedBox(height: 6),
+                        for (final a in accounts)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                      a['name'] as String? ?? 'Account',
+                                      style: TextStyle(
+                                          color: Barako.text, fontSize: 16)),
+                                ),
+                                Text(formatMoney(amount(a['balance'])),
                                     style: TextStyle(
-                                        color: Barako.text, fontSize: 16)),
-                              ),
-                              Text(formatMoney(amount(a['balance'])),
-                                  style: TextStyle(
-                                      color: Barako.textSecondary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures()
-                                      ])),
-                            ],
+                                        color: Barako.textSecondary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures()
+                                        ])),
+                              ],
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            if (accounts.isNotEmpty) const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _kicker('THIS MONTH'),
-                    const SizedBox(height: 6),
-                    _line('Income earned',
-                        formatMoney(istmt['income'] as double)),
-                    _line('Spending', formatMoney(istmt['expenses'] as double)),
-                    const Divider(),
-                    _line('Net income',
-                        formatMoney(istmt['netIncome'] as double),
-                        strong: true,
-                        color: (istmt['netIncome'] as double) >= 0
-                            ? Barako.primary
-                            : Barako.warning),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.chat_bubble_outline,
-              title: 'Ask Pan',
-              blurb:
-                  'Your money questions, answered from your own data. Walang halong AI sa cloud.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) =>
-                      PanScreen(store: store, onSwitchTab: onSwitchTab))),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.credit_card_outlined,
-              title: 'Debts',
-              blurb:
-                  'Cards and loans, payments split into interest and principal.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => DebtsScreen(store: store))),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.handyman_outlined,
-              title: 'Tools',
-              blurb: 'Loan calculator and friends, arriving one by one.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => ToolsScreen(store: store))),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.sticky_note_2_outlined,
-              title: 'Notes',
-              blurb: 'Lines with amounts add themselves up, like a receipt.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => NotesScreen(store: store))),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Accounts',
-              blurb:
-                  'Your wallets, banks, and assets, and your net worth in one place.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => AccountsScreen(store: store))),
-            ),
-            const SizedBox(height: 12),
-            _navCard(
-              icon: Icons.savings_outlined,
-              title: 'Goals',
-              blurb:
-                  'Savings goals with progress bars and an honest monthly pace.',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => GoalsScreen(store: store))),
-            ),
-            const SizedBox(height: 12),
-            if (store.canWrite)
+                const SizedBox(height: 12),
+              ],
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _kicker('MOOD'),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final p in moodPalettes)
-                            ChoiceChip(
-                              label: Text(p.label),
-                              selected: Barako.current.mood == p.mood,
-                              onSelected: (_) async {
-                                final messenger =
-                                    ScaffoldMessenger.of(context);
-                                try {
-                                  await store.setThemeMood(p.mood);
-                                } catch (e) {
-                                  messenger.showSnackBar(SnackBar(
-                                      content: Text(
-                                          'Could not save the mood, nothing was changed. $e')));
-                                }
-                              },
-                              selectedColor: Barako.primary,
-                              backgroundColor: Barako.background,
-                              labelStyle: TextStyle(
-                                  color: Barako.current.mood == p.mood
-                                      ? Barako.onPrimary
-                                      : Barako.textSecondary,
-                                  fontWeight: FontWeight.w600),
-                              side: BorderSide(color: Barako.border),
-                            ),
-                        ],
-                      ),
+                      _kicker('THIS MONTH'),
+                      const SizedBox(height: 6),
+                      _line('Income earned',
+                          formatMoney(istmt['income'] as double)),
+                      _line('Spending',
+                          formatMoney(istmt['expenses'] as double)),
+                      const Divider(),
+                      _line('Net income',
+                          formatMoney(istmt['netIncome'] as double),
+                          strong: true,
+                          color: (istmt['netIncome'] as double) >= 0
+                              ? Barako.primary
+                              : Barako.warning),
                     ],
                   ),
                 ),
               ),
-            if (store.canWrite) const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _kicker(store.hasData ? 'BACKUP' : 'BRING YOUR DATA OVER'),
-                    const SizedBox(height: 8),
-                    Text(
-                      store.hasData
-                          ? 'Your data lives only on this phone. Copy a backup any time; the current Salapify app can import it unchanged, so you always have a way back.'
-                          : 'Open the current Salapify app, go to Backup, copy the backup text, and paste it here. Everything comes over: accounts, entries, utang, goals, settings.',
-                      style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 14,
-                          height: 1.4),
-                    ),
-                    const SizedBox(height: 12),
-                    Builder(builder: (context) {
-                      void openImport() => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => ImportScreen(store: store)),
-                          );
-                      const importLabel = Text('Import backup');
-                      return Row(
-                        children: [
-                          if (store.hasData) ...[
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                  backgroundColor: Barako.primary,
-                                  foregroundColor: Barako.onPrimary),
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        ExportScreen(store: store)),
-                              ),
-                              child: const Text('Export backup'),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                  side:
-                                      BorderSide(color: Barako.border),
-                                  foregroundColor: Barako.textSecondary),
-                              onPressed: openImport,
-                              child: importLabel,
-                            ),
-                          ] else
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                  backgroundColor: Barako.primary,
-                                  foregroundColor: Barako.onPrimary),
-                              onPressed: openImport,
-                              child: importLabel,
-                            ),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const UpdateCard(),
+            ],
           ],
         ),
       ),
@@ -364,49 +200,6 @@ class OverviewScreen extends StatelessWidget {
 
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
 
-  /// A Home navigation row (icon, title, blurb, chevron) with the press feel,
-  /// so the four nav cards match the check-in card and the Tools rows.
-  Widget _navCard({
-    required IconData icon,
-    required String title,
-    required String blurb,
-    required VoidCallback onTap,
-  }) {
-    return PressableScale(
-      child: Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(icon, color: Barako.primary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                      Text(blurb,
-                          style:
-                              TextStyle(color: Barako.muted, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: Barako.faint, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _kicker(String text) => Text(text,
       style: TextStyle(
           color: Barako.muted,
@@ -414,14 +207,14 @@ class OverviewScreen extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 2));
 
-  // The five bottom tabs, in order, so a check-in action can jump straight to
-  // the right one. Routes the coach uses that are not tabs (/debts, /goals,
-  // /learn) simply are not tappable from here.
+  // The bottom tabs a check-in action can jump straight to. Insights is no
+  // longer a tab (it lives under Menu), so its route is handled by a push in
+  // _checkInCard instead. Routes that are neither a tab nor handled there
+  // (/goals, /learn) simply are not tappable from here.
   static const Map<String, int> _routeTabs = {
     '/': 0,
     '/budget': 1,
     '/receivables': 3,
-    '/insights': 4,
   };
 
   /// The single most important money decision right now, or a calm all-clear,
@@ -441,6 +234,19 @@ class OverviewScreen extends StatelessWidget {
       // not be a dead end. Push the screen Home already imports.
       onTap = () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
+    } else if (route == '/insights') {
+      // Insights moved off the bottom bar into Menu, so a forecast/overspend
+      // decision pushes it as a route. It jumps to Utang from inside, so pop
+      // this route first before switching the tab.
+      onTap = () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => InsightsScreen(
+              store: store,
+              onSwitchTab: onSwitchTab == null
+                  ? null
+                  : (i) {
+                      Navigator.of(context).pop();
+                      onSwitchTab!(i);
+                    })));
     }
     final good = tone == 'good';
     // Same mapping as the Insights decision card: urgent and watch read as
@@ -508,32 +314,73 @@ class OverviewScreen extends StatelessWidget {
     return onTap == null ? card : PressableScale(child: card);
   }
 
-  Widget _kickerCard(String kicker, String big, {String? sub}) => Card(
+  /// The dashboard hero. Now that the clutter moved to Menu, net worth is the
+  /// headline: raised surface, bigger figure, and a negative total reads in the
+  /// warning color so the sign lands instantly. Numbers come straight from the
+  /// golden-locked netWorthParts, this only restyles them.
+  Widget _netWorthHero(Map<String, dynamic> parts) {
+    final nw = parts['netWorth'] as double;
+    return Card(
+      color: Barako.surfaceRaised,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('NET WORTH'),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(formatMoney(nw),
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontFamily: Barako.displayFont,
+                      color: nw < 0 ? Barako.warning : Barako.primary,
+                      fontSize: 40,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
+            const SizedBox(height: 4),
+            Text(
+                'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
+                style: TextStyle(color: Barako.muted, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// First-run card, shown in place of MY MONEY and THIS MONTH when there is no
+  /// data yet. Keeps the "bring your data over" path one tap from Home now that
+  /// the backup card lives under Menu.
+  Widget _welcomeCard(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _kicker(kicker),
+              _kicker('WELCOME'),
+              const SizedBox(height: 8),
+              Text('Wala pang laman, and that is okay.',
+                  style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(big,
-                    maxLines: 1,
-                    style: TextStyle(
-                        fontFamily: Barako.displayFont,
-                        color: Barako.primary,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+              Text(
+                  'Tap Log below to add your first entry, or bring everything from your current Salapify app: Menu, then Backup.',
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 14, height: 1.4)),
+              const SizedBox(height: 14),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary),
+                onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => ImportScreen(store: store))),
+                child: const Text('Import my backup'),
               ),
-              if (sub != null) ...[
-                const SizedBox(height: 4),
-                Text(sub,
-                    style: TextStyle(
-                        color: Barako.muted, fontSize: 13)),
-              ],
             ],
           ),
         ),

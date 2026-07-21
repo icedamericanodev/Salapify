@@ -25,7 +25,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('SALAPIFY'), findsOneWidget);
     expect(find.text('NET WORTH'), findsOneWidget);
-    // The stamp card sits at the bottom of the list, so scroll it into build.
+    // The stamp and the import path now live under the Menu tab, off the
+    // decluttered dashboard.
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Update stamp'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Update stamp'), findsOneWidget);

@@ -13,6 +13,7 @@ import '../data/store.dart';
 import '../money/pan/ask.dart';
 import '../theme.dart';
 import 'debts.dart';
+import 'insights.dart';
 import 'loan_calculator.dart';
 import 'contribution_calculator.dart';
 import 'salary_calculator.dart';
@@ -92,12 +93,11 @@ class _PanScreenState extends State<PanScreen> {
         return () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => const ContributionCalculatorScreen()));
       case '/insights':
-        final onSwitchTab = widget.onSwitchTab;
-        if (onSwitchTab == null) return null;
-        return () {
-          Navigator.of(context).pop();
-          onSwitchTab(4);
-        };
+        // Insights moved off the bottom bar into Menu, so open it as a pushed
+        // screen (like Pan's other CTAs) rather than switching to a tab index.
+        return () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) =>
+                InsightsScreen(store: widget.store, onSwitchTab: widget.onSwitchTab)));
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;

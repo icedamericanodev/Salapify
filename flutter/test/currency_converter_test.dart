@@ -27,6 +27,10 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(find.text('Tools'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Tools'));

@@ -139,6 +139,10 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(find.text('Import backup'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
@@ -164,6 +168,10 @@ void main() {
         {storageKey: jsonEncode(sanitizeData(fixture))});
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Menu'));
+
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('Export backup'), 200,

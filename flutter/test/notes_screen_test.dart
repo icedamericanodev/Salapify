@@ -19,6 +19,16 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Tools'), 200, scrollable: find.byType(Scrollable).first);
+
+    await tester.tap(find.text('Tools'));
+
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(find.text('Notes'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
@@ -58,6 +68,16 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Tools'), 200, scrollable: find.byType(Scrollable).first);
+
+    await tester.tap(find.text('Tools'));
+
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(find.text('Notes'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
@@ -75,6 +95,16 @@ void main() {
   testWidgets('deleting a note asks first', (tester) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Menu'));
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Tools'), 200, scrollable: find.byType(Scrollable).first);
+
+    await tester.tap(find.text('Tools'));
+
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('Notes'), 200,
