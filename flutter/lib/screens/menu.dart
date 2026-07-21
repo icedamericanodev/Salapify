@@ -220,8 +220,8 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               store.hasData
-                  ? 'Your data lives only on this phone. Copy a backup any time; the current Salapify app can import it unchanged, so you always have a way back.'
-                  : 'Open the current Salapify app, go to Backup, copy the backup text, and paste it here. Everything comes over: accounts, entries, utang, goals, settings.',
+                  ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
+                  : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, utang, goals, settings.',
               style: TextStyle(
                   color: Barako.textSecondary, fontSize: 14, height: 1.4),
             ),

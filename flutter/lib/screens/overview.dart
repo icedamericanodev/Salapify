@@ -6,10 +6,12 @@
 
 import 'dart:convert' show jsonDecode;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
+import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/statements.dart';
@@ -418,6 +420,20 @@ class _ExportScreenState extends State<ExportScreen> {
   // re-encoding it on every rebuild would jank). The store is never written
   // to from this screen.
   late final String text = widget.store.exportBackupText();
+  bool _sharing = false;
+
+  Future<void> _shareFile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _sharing = true);
+    try {
+      await shareBackupFile(widget.store, DateTime.now());
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('Could not open the share sheet, nothing was lost. $e')));
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +453,7 @@ class _ExportScreenState extends State<ExportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Everything in this app, as one block of text: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Copy it and keep it somewhere safe (notes, email to yourself). The current Salapify app imports it unchanged.',
+                'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
               ),
@@ -463,12 +479,37 @@ class _ExportScreenState extends State<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              // The share sheet and temp file need a native platform; on the
+              // web preview only the copy button works, so hide the file one.
+              if (!kIsWeb) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                        backgroundColor: Barako.primary,
+                        foregroundColor: Barako.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: _sharing ? null : _shareFile,
+                    icon: _sharing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.ios_share),
+                    label: Text(
+                        _sharing ? 'Preparing...' : 'Save or share a file',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.textSecondary,
                       padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
@@ -480,7 +521,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   icon: const Icon(Icons.copy),
                   label: const Text('Copy backup text',
                       style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
+                          fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -504,11 +545,32 @@ class _ImportScreenState extends State<ImportScreen> {
   String? error;
   bool busy = false;
 
-  Future<void> _import() async {
+  /// Pick a backup file from the phone or Drive, then run the same validated
+  /// import the paste path uses. A cancelled pick or an unreadable file is
+  /// reported, never a silent no-op. The file text is NOT mirrored into the
+  /// paste field: a multi-megabyte backup in an editable field would jank.
+  Future<void> _pickFile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    String? text;
+    try {
+      text = await pickBackupFileText();
+    } catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Could not read that file. $e')));
+      return;
+    }
+    if (text == null) return; // cancelled
+    if (!mounted) return;
+    await _runImport(text.trim());
+  }
+
+  Future<void> _import() => _runImport(controller.text.trim());
+
+  Future<void> _runImport(String text) async {
     // Validate BEFORE the scary dialog, like the RN app: garbage should get
     // the JSON error, never a replace-everything confirm.
     try {
-      parseBackupObject(jsonDecode(controller.text.trim()));
+      parseBackupObject(jsonDecode(text));
     } on NewerBackupException catch (e) {
       setState(() => error = e.message);
       return;
@@ -518,6 +580,13 @@ class _ImportScreenState extends State<ImportScreen> {
     } on FormatException {
       setState(() => error =
           'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      return;
+    } catch (e) {
+      // Anything else (a StackOverflowError from a deeply nested file, an
+      // int overflow deep in a migration) must not escape and red-screen the
+      // tab. Fail closed with a friendly message, before any confirm.
+      setState(() => error =
+          'That file could not be read as a Salapify backup. Try exporting a fresh backup.');
       return;
     }
     // Importing over existing data replaces EVERYTHING in one tap, the most
@@ -533,7 +602,7 @@ class _ImportScreenState extends State<ImportScreen> {
               style: TextStyle(color: Barako.text)),
           content: Text(
             'Everything currently in this preview app will be replaced by '
-            'what you pasted. The replaced data is kept on this phone until '
+            'the backup you chose. The replaced data is kept on this phone until '
             'your next import, but there is no undo button.',
             style: TextStyle(color: Barako.textSecondary),
           ),
@@ -551,25 +620,29 @@ class _ImportScreenState extends State<ImportScreen> {
       );
       if (ok != true) return;
     }
+    if (!mounted) return;
     setState(() {
       busy = true;
       error = null;
     });
     try {
-      await widget.store.importBackupText(controller.text.trim());
+      await widget.store.importBackupText(text);
       if (mounted) Navigator.of(context).pop();
     } on NewerBackupException catch (e) {
-      setState(() => error = e.message);
+      if (mounted) setState(() => error = e.message);
     } on NotABackupException catch (e) {
-      setState(() => error = e.message);
+      if (mounted) setState(() => error = e.message);
     } on FormatException {
-      setState(() => error =
-          'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      if (mounted) {
+        setState(() => error =
+            'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      }
     } catch (e) {
       // The snapshot or save failed; the store aborted or rolled back, so
       // nothing was replaced. Say so instead of failing silently.
-      setState(() =>
-          error = 'Could not import, so nothing was changed. $e');
+      if (mounted) {
+        setState(() => error = 'Could not import, so nothing was changed. $e');
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -590,11 +663,33 @@ class _ImportScreenState extends State<ImportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Paste the backup text from the current Salapify app (Backup screen, copy button). Importing replaces what is in this preview app only; your current app is untouched.',
+                'Choose a backup file (from your phone, Google Drive, or Files), or paste the backup text. Importing replaces everything currently in this app with the backup.',
                 style: TextStyle(
                     color: Barako.textSecondary, fontSize: 14, height: 1.4),
               ),
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: busy ? null : _pickFile,
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Choose a backup file',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text('Or paste the backup text',
+                  style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1)),
+              const SizedBox(height: 8),
               Expanded(
                 child: TextField(
                   controller: controller,
