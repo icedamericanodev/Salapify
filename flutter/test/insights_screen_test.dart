@@ -383,6 +383,50 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('spoken-for card shows the committed share of income',
+      (tester) async {
+    // Two months of income plus recurring bills and a debt minimum, so the
+    // card can quote a share. 10000 income, 2000 rent + 500 minimum = 2500
+    // committed, 25%.
+    final now = DateTime.now();
+    String ym(int back) {
+      final d = DateTime(now.year, now.month - back, 15);
+      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-15';
+    }
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        ],
+        'transactions': [
+          {'id': 'i1', 'type': 'income', 'amount': 10000, 'date': ym(1)},
+          {'id': 'i2', 'type': 'income', 'amount': 10000, 'date': ym(2)},
+        ],
+        'recurring': [
+          {'id': 'r1', 'type': 'expense', 'label': 'Rent', 'amount': 2000,
+              'dayOfMonth': 1},
+        ],
+        'debts': [
+          {'id': 'd1', 'name': 'Card', 'type': 'credit card',
+              'remaining': 12000, 'minPayment': 500},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('SPOKEN FOR EACH MONTH'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('25%'), findsOneWidget);
+    expect(find.textContaining('for everything else'), findsOneWidget);
+  });
+
   testWidgets('an empty app shows the calm all-clear', (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.

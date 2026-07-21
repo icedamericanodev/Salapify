@@ -13,6 +13,7 @@ import '../data/store.dart';
 import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
 import '../money/coach.dart' as coach;
+import '../money/commitmentload.dart' as commitmentload;
 import '../money/commitments.dart' as commitments;
 import '../money/debtmath.dart' as debtmath;
 import '../money/ledger.dart' show amountOf;
@@ -136,6 +137,7 @@ class InsightsScreen extends StatelessWidget {
     final forecast = analytics.forecastMonthEnd(data['transactions'], ref);
     final focusGoal = _pickFocusGoal(data['goals'], ref);
     final plan = surplus.nextPesoPlan(data, ref);
+    final load = commitmentload.commitmentLoad(data, ref);
 
     return Scaffold(
       body: SafeArea(
@@ -197,6 +199,10 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
+            if (load['applicable'] == true) ...[
+              const SizedBox(height: 12),
+              _spokenForCard(load),
+            ],
             if (plan['applicable'] == true) ...[
               const SizedBox(height: 12),
               _nextPesoCard(plan, focusGoal),
@@ -328,6 +334,102 @@ class InsightsScreen extends StatelessWidget {
                   fontSize: 13,
                   height: 1.4),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The "Spoken-For Sweldo" card: how much of a typical month's income is
+  /// already committed to bills and debt minimums before anything else. Every
+  /// number comes from commitmentload.commitmentLoad, which composes the golden
+  /// locked monthlySeries, so nothing here is invented. It is the gate that
+  /// helps a user weigh a new subscription or BNPL against the room it eats.
+  Widget _spokenForCard(Map<String, dynamic> load) {
+    final committed = load['monthlyCommitted'] as double;
+    final income = load['typicalIncome'] as double;
+    final hasIncomeBase = load['hasIncomeBase'] as bool;
+    final share = load['committedShare'] as double?;
+    final free = load['free'] as double?;
+    final rc = load['recurringCount'] as int;
+    final mc = load['minimumsCount'] as int;
+    final minimumUnfilled = load['minimumUnfilled'] as bool;
+    final over = share != null && share > 1;
+
+    // "from 3 bills and 2 minimums", built so it never says "0 bills".
+    final parts = <String>[
+      if (rc > 0) '$rc ${rc == 1 ? 'bill' : 'bills'}',
+      if (mc > 0) '$mc ${mc == 1 ? 'minimum' : 'minimums'}',
+    ];
+    final fromClause = parts.isEmpty ? '' : ', from ${parts.join(' and ')}';
+
+    final String hero;
+    final String support;
+    if (!hasIncomeBase) {
+      hero = _wholePeso(committed);
+      support =
+          'About ${_wholePeso(committed)} is committed each month$fromClause. Log your sweldo for a couple of months and I can show this as a share of your income.';
+    } else if (over) {
+      hero = '${(share * 100).round()}%';
+      support =
+          'More is committed than your typical ${_wholePeso(income)} sweldo covers$fromClause. One lean month can turn into utang, so trimming a bill or clearing a minimum makes real room.';
+    } else {
+      hero = '${(share! * 100).round()}%';
+      support =
+          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} sweldo is committed each month$fromClause, that is ${(share * 100).round()}%. That leaves about ${_wholePeso(free!)} for everything else.';
+    }
+    final heroColor = over ? Barako.warningStrong : Barako.primaryText;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('SPOKEN FOR EACH MONTH'),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(hero,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontFamily: Barako.displayFont,
+                      color: heroColor,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
+            if (hasIncomeBase) ...[
+              const SizedBox(height: 10),
+              // Committed vs free as one proportion bar, capped at full so an
+              // over-committed month reads as a full red bar, not overflow.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: share!.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: Barako.border,
+                  color: over ? Barako.warningStrong : Barako.primary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(support,
+                style: TextStyle(
+                    color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            if (minimumUnfilled) ...[
+              const SizedBox(height: 6),
+              Text(
+                  'A debt has no minimum saved, so this may understate. Add its minimum for a truer picture.',
+                  style:
+                      TextStyle(color: Barako.muted, fontSize: 12, height: 1.4)),
+            ],
+            const SizedBox(height: 8),
+            Text(
+                'From the bills and minimums you have logged. The more you log, the truer this gets.',
+                style:
+                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
           ],
         ),
       ),
