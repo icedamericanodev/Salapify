@@ -383,6 +383,95 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('spoken-for card shows the committed share of income',
+      (tester) async {
+    // Two months of income plus recurring bills and a debt minimum, so the
+    // card can quote a share. 10000 income, 2000 rent + 500 minimum = 2500
+    // committed, 25%.
+    final now = DateTime.now();
+    String ym(int back) {
+      final d = DateTime(now.year, now.month - back, 15);
+      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-15';
+    }
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        ],
+        'transactions': [
+          {'id': 'i1', 'type': 'income', 'amount': 10000, 'date': ym(1)},
+          {'id': 'i2', 'type': 'income', 'amount': 10000, 'date': ym(2)},
+          {'id': 'i3', 'type': 'income', 'amount': 10000, 'date': ym(3)},
+        ],
+        'recurring': [
+          {'id': 'r1', 'type': 'expense', 'label': 'Rent', 'amount': 2000,
+              'dayOfMonth': 1},
+        ],
+        'debts': [
+          {'id': 'd1', 'name': 'Card', 'type': 'credit card',
+              'remaining': 12000, 'minPayment': 500},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('SPOKEN FOR EACH MONTH'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('25%'), findsOneWidget);
+    expect(find.textContaining('everything else'), findsOneWidget);
+  });
+
+  testWidgets('spoken-for survives an absurd backup instead of crashing',
+      (tester) async {
+    // Two near-max recurring amounts overflow the committed sum to Infinity;
+    // round() would throw on that. The card must fall back, not kill the tab.
+    final now = DateTime.now();
+    String ym(int back) {
+      final d = DateTime(now.year, now.month - back, 15);
+      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-15';
+    }
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        ],
+        'transactions': [
+          {'id': 'i1', 'type': 'income', 'amount': 15000, 'date': ym(1)},
+          {'id': 'i2', 'type': 'income', 'amount': 15000, 'date': ym(2)},
+          {'id': 'i3', 'type': 'income', 'amount': 15000, 'date': ym(3)},
+        ],
+        'recurring': [
+          {'id': 'r1', 'type': 'expense', 'label': 'A', 'amount': 1.7e308,
+              'dayOfMonth': 1},
+          {'id': 'r2', 'type': 'expense', 'label': 'B', 'amount': 1.7e308,
+              'dayOfMonth': 2},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    // The tab rendered without throwing, and the card fell back to the peso
+    // total rather than a garbage percent.
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('SPOKEN FOR EACH MONTH'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
+  });
+
   testWidgets('an empty app shows the calm all-clear', (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
