@@ -6,6 +6,7 @@
 
 import 'dart:convert' show jsonDecode;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
@@ -478,26 +479,31 @@ class _ExportScreenState extends State<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  onPressed: _sharing ? null : _shareFile,
-                  icon: _sharing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.ios_share),
-                  label: Text(_sharing ? 'Preparing...' : 'Save or share a file',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
+              // The share sheet and temp file need a native platform; on the
+              // web preview only the copy button works, so hide the file one.
+              if (!kIsWeb) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                        backgroundColor: Barako.primary,
+                        foregroundColor: Barako.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: _sharing ? null : _shareFile,
+                    icon: _sharing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.ios_share),
+                    label: Text(
+                        _sharing ? 'Preparing...' : 'Save or share a file',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -539,9 +545,10 @@ class _ImportScreenState extends State<ImportScreen> {
   String? error;
   bool busy = false;
 
-  /// Pick a backup file from the phone or Drive, load its text into the field,
-  /// then run the same validated import the paste path uses. A cancelled pick
-  /// or an unreadable file is reported, never a silent no-op.
+  /// Pick a backup file from the phone or Drive, then run the same validated
+  /// import the paste path uses. A cancelled pick or an unreadable file is
+  /// reported, never a silent no-op. The file text is NOT mirrored into the
+  /// paste field: a multi-megabyte backup in an editable field would jank.
   Future<void> _pickFile() async {
     final messenger = ScaffoldMessenger.of(context);
     String? text;
@@ -553,7 +560,7 @@ class _ImportScreenState extends State<ImportScreen> {
       return;
     }
     if (text == null) return; // cancelled
-    controller.text = text;
+    if (!mounted) return;
     await _runImport(text.trim());
   }
 
@@ -574,6 +581,13 @@ class _ImportScreenState extends State<ImportScreen> {
       setState(() => error =
           'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
       return;
+    } catch (e) {
+      // Anything else (a StackOverflowError from a deeply nested file, an
+      // int overflow deep in a migration) must not escape and red-screen the
+      // tab. Fail closed with a friendly message, before any confirm.
+      setState(() => error =
+          'That file could not be read as a Salapify backup. Try exporting a fresh backup.');
+      return;
     }
     // Importing over existing data replaces EVERYTHING in one tap, the most
     // destructive action in the app, so it confirms first, the same standard
@@ -588,7 +602,7 @@ class _ImportScreenState extends State<ImportScreen> {
               style: TextStyle(color: Barako.text)),
           content: Text(
             'Everything currently in this preview app will be replaced by '
-            'what you pasted. The replaced data is kept on this phone until '
+            'the backup you chose. The replaced data is kept on this phone until '
             'your next import, but there is no undo button.',
             style: TextStyle(color: Barako.textSecondary),
           ),
@@ -606,6 +620,7 @@ class _ImportScreenState extends State<ImportScreen> {
       );
       if (ok != true) return;
     }
+    if (!mounted) return;
     setState(() {
       busy = true;
       error = null;
@@ -614,17 +629,20 @@ class _ImportScreenState extends State<ImportScreen> {
       await widget.store.importBackupText(text);
       if (mounted) Navigator.of(context).pop();
     } on NewerBackupException catch (e) {
-      setState(() => error = e.message);
+      if (mounted) setState(() => error = e.message);
     } on NotABackupException catch (e) {
-      setState(() => error = e.message);
+      if (mounted) setState(() => error = e.message);
     } on FormatException {
-      setState(() => error =
-          'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      if (mounted) {
+        setState(() => error =
+            'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      }
     } catch (e) {
       // The snapshot or save failed; the store aborted or rolled back, so
       // nothing was replaced. Say so instead of failing silently.
-      setState(() =>
-          error = 'Could not import, so nothing was changed. $e');
+      if (mounted) {
+        setState(() => error = 'Could not import, so nothing was changed. $e');
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }

@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -24,18 +25,40 @@ String backupFileName(DateTime now) =>
 
 /// Writes the current backup to a temp file and opens the system share sheet,
 /// so the user can save it to Files or Drive or email it to themselves. The
-/// temp copy is harmless (it only ever holds the same data already on device),
-/// and the OS clears the temp dir. Throws on write or share failure; the caller
-/// surfaces it.
+/// temp file holds the full ledger in plaintext, so it is NOT left behind: any
+/// earlier backup temp files are swept first, and the fresh one is deleted once
+/// the share sheet flow completes (the share is awaited first, so the receiving
+/// app has finished reading the content URI before the file goes). Throws on
+/// write or share failure; the caller surfaces it.
 Future<void> shareBackupFile(SalapifyStore store, DateTime now) async {
   final text = store.exportBackupText();
   final dir = await getTemporaryDirectory();
+  // Sweep any leftover backup temp files (e.g. from a share the OS killed
+  // mid-flow) so a plaintext copy of the finances never lingers in the cache.
+  try {
+    for (final e in dir.listSync()) {
+      final name = e.path.split(Platform.pathSeparator).last;
+      if (e is File &&
+          name.startsWith('salapify-backup-') &&
+          name.endsWith('.json')) {
+        try {
+          e.deleteSync();
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
   final file = File('${dir.path}/${backupFileName(now)}');
   await file.writeAsString(text);
-  await Share.shareXFiles(
-    [XFile(file.path, mimeType: 'application/json')],
-    subject: 'Salapify backup',
-  );
+  try {
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'application/json')],
+      subject: 'Salapify backup',
+    );
+  } finally {
+    try {
+      await file.delete();
+    } catch (_) {}
+  }
 }
 
 /// Opens the system file picker and returns the chosen file's text, or null if
@@ -46,10 +69,19 @@ Future<String?> pickBackupFileText() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['json', 'txt'],
-    withData: true,
+    // On mobile read the path (no second cached copy, no full load into RAM);
+    // the web has no path, so it must hand back the bytes.
+    withData: kIsWeb,
   );
   if (result == null || result.files.isEmpty) return null;
   final f = result.files.first;
+  // A backup is small JSON text; refuse an absurd file before loading it so a
+  // wrong pick can never run the phone out of memory.
+  const maxBytes = 25 * 1024 * 1024;
+  if (f.size > maxBytes) {
+    throw const FormatException(
+        'That file is too large to be a Salapify backup.');
+  }
   final bytes = f.bytes;
   if (bytes != null) return utf8.decode(bytes);
   final path = f.path;
