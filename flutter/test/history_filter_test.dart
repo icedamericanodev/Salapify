@@ -63,4 +63,26 @@ void main() {
     expect(find.text('Jollibee lunch'), findsNothing);
     expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
   });
+
+  testWidgets('swipe delete in pushed History rebuilds the list, no ghost',
+      (tester) async {
+    // Regression: the pushed route is not under main's ListenableBuilder, so
+    // without its own the dismissed row would stay in the tree (assert/ghost).
+    final store = await _seed();
+    await tester.pumpWidget(
+        MaterialApp(home: HistoryScreen(store: store, pushed: true)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jollibee lunch'), findsOneWidget);
+    await tester.drag(
+        find.text('Jollibee lunch'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Jollibee lunch'), findsNothing);
+    expect(
+        (store.data['transactions'] as List)
+            .any((t) => t is Map && t['id'] == 't1'),
+        isFalse);
+  });
 }

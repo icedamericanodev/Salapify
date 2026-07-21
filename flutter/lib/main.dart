@@ -17,7 +17,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.75 · History text filter, and search results open it pre-filtered';
+    'f0.76 · History gate fix: pushed list rebuilds on delete, field polish';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -99,6 +99,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Subscribe to the store so a swipe delete (or any mutation) rebuilds the
+    // list. The History tab is already under main's ListenableBuilder, but the
+    // pushed-from-search route is not, so it needs its own here.
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final all = (widget.store.data['transactions'] as List)
         .cast<Map<String, dynamic>>();
     final locked = ledgerLinkedTxnIds(widget.store.data);
@@ -181,13 +191,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 controller: _query,
                 onChanged: (_) => setState(() {}),
                 textInputAction: TextInputAction.search,
-                style: TextStyle(color: Barako.text, fontSize: 15),
+                style: TextStyle(color: Barako.text, fontSize: 16),
                 decoration: InputDecoration(
-                  isDense: true,
                   hintText: 'Filter entries, like jollibee or 1500',
                   hintStyle: TextStyle(color: Barako.faint),
                   prefixIcon:
-                      Icon(Icons.search, color: Barako.faint, size: 18),
+                      Icon(Icons.search, color: Barako.faint, size: 20),
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
@@ -197,16 +206,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                   filled: true,
                   fillColor: Barako.card,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: Barako.border),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: Barako.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: Barako.primary),
                   ),
                 ),
@@ -262,7 +273,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Text(
                 trulyEmpty
                     ? 'Entries you log will show up here.'
-                    : 'Try a different filter.',
+                    : 'Try a different search or filter.',
                 style: TextStyle(color: Barako.muted, fontSize: 13)),
             if (!trulyEmpty) ...[
               const SizedBox(height: 10),
