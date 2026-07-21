@@ -246,11 +246,18 @@ void main() {
         find.text('WHAT IF YOU PAID A LITTLE EXTRA'), 200,
         scrollable: find.byType(Scrollable).first);
     // Default is +500: the avalanche focus is the 3% card, 3 months sooner.
-    expect(find.textContaining('BPI card'), findsOneWidget);
+    // The next-peso card above also names BPI card (same debt, correctly), so
+    // assert the phrase unique to the what-if support instead of the bare name.
+    expect(find.textContaining('putting the extra on BPI card'), findsOneWidget);
     expect(find.textContaining('3 months sooner'), findsOneWidget);
 
-    // Tapping the +1,000 chip recomputes to 5 months sooner, live.
+    // Tapping the +1,000 chip recomputes to 5 months sooner, live. The
+    // next-peso card above lands the chip flush against the fold, so lift it a
+    // little first to keep its center inside the tappable viewport.
     await tester.ensureVisible(find.text('+₱1,000 a month'));
+    await tester.pumpAndSettle();
+       await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('+₱1,000 a month'));
     await tester.pumpAndSettle();
     expect(find.textContaining('5 months sooner'), findsOneWidget);
@@ -319,15 +326,61 @@ void main() {
     await tester.scrollUntilVisible(
         find.text('WHAT IF YOU SAVED EACH WEEK'), 200,
         scrollable: find.byType(Scrollable).first);
-    expect(find.textContaining('New phone'), findsOneWidget);
+    // The next-peso card above also names New phone (the same goal, correctly),
+    // so assert the phrase unique to the savings what-if support.
+    expect(find.textContaining('fund New phone'), findsOneWidget);
     expect(find.textContaining('₱10,000 to go'), findsOneWidget);
     expect(find.textContaining('Saving ₱500 a week'), findsOneWidget);
 
+    // The next-peso card above lands the chip flush against the fold, so lift
+    // it a little first to keep its center inside the tappable viewport.
     await tester.ensureVisible(find.text('₱1,000 a week'));
+    await tester.pumpAndSettle();
+       await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('₱1,000 a week'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Saving ₱1,000 a week'), findsOneWidget);
     expect(find.textContaining('Saving ₱500 a week'), findsNothing);
+  });
+
+  testWidgets(
+      'next-peso card ranks a costly debt ahead of a tempting goal',
+      (tester) async {
+    // The soundness fix: a user with a one-month cushion, a 3% card, AND a
+    // fundable goal. The old screen made the goal look like the reward; the
+    // order card must send the next peso to the debt instead.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'debts': [
+          {'id': 'card', 'name': 'BPI card', 'type': 'credit card',
+              'remaining': 18000, 'monthlyRate': 3, 'minPayment': 900},
+        ],
+        'goals': [
+          {'id': 'g1', 'name': 'New phone', 'target': 15000, 'saved': 5000},
+        ],
+        'settings': {},
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insights'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+        find.text('WHERE YOUR NEXT PESO SHOULD GO'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Clear your costliest debt'), findsOneWidget);
+    expect(find.textContaining('more than any savings can earn back'),
+        findsOneWidget);
+    // The honesty footer is always present.
+    expect(find.textContaining('not a promise. Your call always wins'),
+        findsOneWidget);
   });
 
   testWidgets('an empty app shows the calm all-clear', (tester) async {

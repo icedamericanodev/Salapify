@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.82 · Tighten the 6-tab nav labels so every label fits on small phones';
+    'f0.84 · Next-peso card gate fixes: high-rate threshold, real debt types, calmer copy';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
