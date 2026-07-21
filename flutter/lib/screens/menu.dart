@@ -35,7 +35,7 @@ class MenuScreen extends StatelessWidget {
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
-              const ScreenHeader('MENU'),
+              ScreenHeader('MENU'),
               _navRow(
                 icon: Icons.search,
                 title: 'Search',

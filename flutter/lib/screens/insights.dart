@@ -145,7 +145,7 @@ class InsightsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const ScreenHeader('INSIGHTS',
+            ScreenHeader('INSIGHTS',
                 subtitle: 'What your money is telling you, and what to do next'),
             if (candidates.isNotEmpty) ...[
               _kicker('DO NEXT'),

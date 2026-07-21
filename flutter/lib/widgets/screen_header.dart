@@ -17,7 +17,13 @@ class ScreenHeader extends StatelessWidget {
   /// 20 gap below so content starts at the same place on every tab.
   final double topGap;
 
-  const ScreenHeader(this.title,
+  // NOT const on purpose: the header reads mutable Barako palette getters in
+  // build(), so a const call site would be canonicalized and freeze its colors
+  // on a theme or light/dark switch. A non-const constructor makes that
+  // mistake impossible. The analyzer wants const on an all-final widget, but
+  // that is exactly the footgun we are avoiding, so we opt out here.
+  // ignore: prefer_const_constructors_in_immutables
+  ScreenHeader(this.title,
       {super.key, this.subtitle, this.trailing, this.topGap = 12});
 
   @override

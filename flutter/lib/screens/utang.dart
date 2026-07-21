@@ -59,7 +59,7 @@ class UtangScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const ScreenHeader('UTANG',
+            ScreenHeader('UTANG',
                 subtitle: 'Money owed to you, oldest first'),
             if (people.isEmpty)
               Card(
