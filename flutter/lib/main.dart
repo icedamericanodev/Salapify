@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.89 · File backup: bump compileSdk to 36 so the new plugins build (NEW APK, install once)';
+    'f0.90 · File backup: force plugin compileSdk 36 so the release builds (NEW APK, install once)';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
