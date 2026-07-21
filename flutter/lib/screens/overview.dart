@@ -15,6 +15,7 @@ import '../money/coach.dart' as coach;
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+import 'accounts.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
@@ -227,6 +228,15 @@ class OverviewScreen extends StatelessWidget {
               blurb: 'Lines with amounts add themselves up, like a receipt.',
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => NotesScreen(store: store))),
+            ),
+            const SizedBox(height: 12),
+            _navCard(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Accounts',
+              blurb:
+                  'Your wallets, banks, and assets, and your net worth in one place.',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => AccountsScreen(store: store))),
             ),
             const SizedBox(height: 12),
             _navCard(

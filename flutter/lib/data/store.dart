@@ -113,6 +113,7 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
   for (final (key, prefix) in const [
     ('accounts', 'acct'),
     ('debts', 'debt'),
+    ('assets', 'asset'),
   ]) {
     final rows = result[key];
     if (rows is! List) continue;
@@ -201,13 +202,14 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
         }
         if (sChanged) result = {...result, 'settings': s};
       }
-    } else {
+    } else if (key == 'debts') {
       result = {
         ...result,
         'payments': followRefs(result['payments'], ['debtId']),
         'transactions': followRefs(result['transactions'], ['debtId']),
       };
     }
+    // assets have no inbound references, so a renamed asset id needs no follow.
   }
   return result;
 }
@@ -332,8 +334,15 @@ class SalapifyStore extends ChangeNotifier {
         if (amount is! num || !amount.isFinite) {
           throw ArgumentError('That amount is not a normal number.');
         }
+        // Every entry needs a stable id, or it cannot be deleted or undone from
+        // History and duplicate null-id rows crash the list. RN's addTransaction
+        // guarantees one; mirror that here so no caller can post an id-less
+        // entry (the balance-adjustment path did).
+        final withId = (tx['id'] is String && (tx['id'] as String).isNotEmpty)
+            ? tx
+            : {...tx, 'id': _genId('txn')};
         final previous = data;
-        data = ledger.addTransaction(data, tx);
+        data = ledger.addTransaction(data, withId);
         try {
           await _save();
         } catch (e) {
@@ -502,6 +511,133 @@ class SalapifyStore extends ChangeNotifier {
         'goals': [
           for (final g in (d['goals'] as List? ?? const []))
             if (!(g is Map && g['id'] == id)) g,
+        ],
+      });
+
+  /// Create an account with an opening balance. Accounts is an existing backup
+  /// collection, so this is additive with no migration. Balance changes to an
+  /// existing account go through a recorded adjustment via addEntry, never a
+  /// silent overwrite, so this only sets the opening number on a NEW account.
+  Future<void> addAccount({
+    required String name,
+    required String kind,
+    required String brand,
+    required String icon,
+    required double target,
+    required double balance,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'accounts': [
+              ...(d['accounts'] as List? ?? const []),
+              {
+                'name': name,
+                'kind': kind,
+                'brand': brand,
+                'icon': icon,
+                'target': target,
+                'balance': balance,
+                'id': _genId('acct'),
+              },
+            ],
+          });
+
+  /// Update an account's DETAILS only (never its balance, which moves through a
+  /// recorded adjustment). Unknown keys survive the spread.
+  Future<void> updateAccountDetails(
+    String id, {
+    required String name,
+    required String kind,
+    required String brand,
+    required String icon,
+    required double target,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'accounts': [
+              for (final a in (d['accounts'] as List? ?? const []))
+                if (a is Map && a['id'] == id)
+                  {
+                    ...a.cast<String, dynamic>(),
+                    'name': name,
+                    'kind': kind,
+                    'brand': brand,
+                    'icon': icon,
+                    'target': target,
+                  }
+                else
+                  a,
+            ],
+          });
+
+  /// Delete an account. Entries stay (their accountId simply stops resolving,
+  /// matching the RN screen, so no logged money is ever lost), and settings
+  /// that pointed at it are cleared so they never point at a ghost.
+  Future<void> deleteAccount(String id) => _mutate((d) {
+        final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        final cleared = {
+          ...s,
+          if (s['defaultAccountId'] == id) 'defaultAccountId': '',
+          if (s['salaryAccountId'] == id) 'salaryAccountId': '',
+        };
+        return {
+          ...d,
+          'accounts': [
+            for (final a in (d['accounts'] as List? ?? const []))
+              if (!(a is Map && a['id'] == id)) a,
+          ],
+          'settings': cleared,
+        };
+      });
+
+  /// Create an investment or other asset.
+  Future<void> addAsset({
+    required String name,
+    required String kind,
+    required double value,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'assets': [
+              ...(d['assets'] as List? ?? const []),
+              {
+                'name': name,
+                'kind': kind,
+                'value': value,
+                'id': _genId('asset'),
+              },
+            ],
+          });
+
+  /// Update an asset's fields.
+  Future<void> updateAsset(
+    String id, {
+    required String name,
+    required String kind,
+    required double value,
+  }) =>
+      _mutate((d) => {
+            ...d,
+            'assets': [
+              for (final a in (d['assets'] as List? ?? const []))
+                if (a is Map && a['id'] == id)
+                  {
+                    ...a.cast<String, dynamic>(),
+                    'name': name,
+                    'kind': kind,
+                    'value': value,
+                  }
+                else
+                  a,
+            ],
+          });
+
+  /// Delete an asset.
+  Future<void> deleteAsset(String id) => _mutate((d) => {
+        ...d,
+        'assets': [
+          for (final a in (d['assets'] as List? ?? const []))
+            if (!(a is Map && a['id'] == id)) a,
         ],
       });
 
