@@ -17,7 +17,6 @@ import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
-import 'insights.dart';
 import 'log_sheet.dart';
 import 'search.dart';
 
@@ -212,14 +211,14 @@ class OverviewScreen extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 2));
 
-  // The bottom tabs a check-in action can jump straight to. Insights is no
-  // longer a tab (it lives under Menu), so its route is handled by a push in
-  // _checkInCard instead. Routes that are neither a tab nor handled there
-  // (/goals, /learn) simply are not tappable from here.
+  // The bottom tabs a check-in action can jump straight to. Routes that are
+  // not tabs (/debts, /goals) are handled by a push in _checkInCard; /learn is
+  // simply not tappable from here.
   static const Map<String, int> _routeTabs = {
     '/': 0,
     '/budget': 1,
     '/receivables': 3,
+    '/insights': 4,
   };
 
   /// The single most important money decision right now, or a calm all-clear,
@@ -244,19 +243,6 @@ class OverviewScreen extends StatelessWidget {
       // tap instead of an inert card.
       onTap = () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => GoalsScreen(store: store)));
-    } else if (route == '/insights') {
-      // Insights moved off the bottom bar into Menu, so a forecast/overspend
-      // decision pushes it as a route. It jumps to Utang from inside, so pop
-      // this route first before switching the tab.
-      onTap = () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => InsightsScreen(
-              store: store,
-              onSwitchTab: onSwitchTab == null
-                  ? null
-                  : (i) {
-                      Navigator.of(context).popUntil((r) => r.isFirst);
-                      onSwitchTab!(i);
-                    })));
     }
     final good = tone == 'good';
     // Same mapping as the Insights decision card: urgent and watch read as

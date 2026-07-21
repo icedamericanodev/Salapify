@@ -136,16 +136,17 @@ class InsightsScreen extends StatelessWidget {
     final focusGoal = _pickFocusGoal(data['goals'], ref);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text('Insights',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
-      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            const SizedBox(height: 12),
+            Text('INSIGHTS',
+                style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 3)),
             const SizedBox(height: 4),
             Text('What your money is telling you, and what to do next',
                 style: TextStyle(color: Barako.muted, fontSize: 13)),

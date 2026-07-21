@@ -221,16 +221,19 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       indicatorColor: p.primary,
+      // Six tabs share the width, so the label type is a touch smaller and
+      // tighter than the old five-tab bar to keep every label (even "Insights"
+      // at w800) on one line down to a 320dp phone.
       height: 68,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
           fontFamily: 'Jakarta',
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: states.contains(WidgetState.selected)
               ? FontWeight.w800
               : FontWeight.w600,
-          letterSpacing: 0.3,
+          letterSpacing: 0.1,
           color: states.contains(WidgetState.selected) ? p.text : p.muted,
         ),
       ),

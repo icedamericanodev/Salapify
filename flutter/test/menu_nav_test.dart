@@ -1,6 +1,7 @@
 // The dashboard restructure: Home is a status view and the Menu tab holds the
-// moved-off destinations. Locks the new information architecture so a future
-// change does not silently drag the clutter back onto the dashboard.
+// moved-off destinations. Insights stays a bottom tab (founder's call). Locks
+// the information architecture so a future change does not silently drag the
+// clutter back onto the dashboard.
 
 import 'dart:convert';
 
@@ -31,19 +32,19 @@ void main() {
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
 
-    // The Menu tab exists (Insights was demoted into it).
+    // Both the Insights and the Menu bottom tabs exist.
     expect(find.text('Menu'), findsOneWidget);
-    expect(find.text('Insights'), findsNothing); // no longer a bottom tab
+    expect(find.text('Insights'), findsOneWidget); // kept as a bottom tab
 
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
 
-    // The hub holds the moved destinations (some are below the fold).
+    // The hub holds the moved destinations (some are below the fold). Insights
+    // is NOT here; it stayed a bottom tab.
     for (final row in const [
       'Accounts',
       'Debts',
       'Goals',
-      'Insights',
       'Ask Pan',
       'Tools',
     ]) {
@@ -53,26 +54,13 @@ void main() {
     }
   });
 
-  testWidgets('Insights opens from Menu with a working back button',
-      (tester) async {
+  testWidgets('the Insights tab opens the Insights screen', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Insights'), 200,
-        scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
-
-    // Pushed Insights must have a back affordance (it used to be a tab).
-    final back = find.byTooltip('Back');
-    expect(back, findsOneWidget);
-    await tester.tap(back);
-    await tester.pumpAndSettle();
-    // Insights is closed (its subtitle is gone) and the Menu hub is showing.
-    expect(find.textContaining('What your money is telling'), findsNothing);
-    expect(find.text('Insights'), findsOneWidget); // the Menu row, not a screen
+    expect(find.textContaining('What your money is telling'), findsOneWidget);
   });
 }
