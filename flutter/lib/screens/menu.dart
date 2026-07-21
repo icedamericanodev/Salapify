@@ -15,6 +15,7 @@ import 'goals.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'pan.dart';
 import 'search.dart';
+import 'recap_share.dart';
 import 'tools.dart';
 import 'treats.dart';
 import 'update_card.dart';
@@ -102,6 +103,15 @@ class MenuScreen extends StatelessWidget {
                     'Pair a treat with a healthy habit and earn it guilt free. No pesos counted.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => TreatsScreen(store: store))),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.ios_share_outlined,
+                title: 'Share your month',
+                blurb:
+                    'Turn this month into a card you can post or send. You choose if amounts show.',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => RecapShareScreen(store: store))),
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
