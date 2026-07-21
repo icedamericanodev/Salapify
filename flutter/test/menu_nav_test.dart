@@ -48,7 +48,7 @@ void main() {
       'Ask Pan',
       'Tools',
     ]) {
-      await tester.scrollUntilVisible(find.text(row), 200,
+      await tester.scrollUntilVisible(find.text(row), 100,
           scrollable: find.byType(Scrollable).first);
       expect(find.text(row), findsOneWidget, reason: 'Menu should hold $row');
     }

@@ -661,7 +661,51 @@ class SalapifyStore extends ChangeNotifier {
         ],
       });
 
-  /// Remember the mood theme (latte, barako, milktea).
+  /// Best-effort collapse of a (themeKey, appearanceMode) choice back to the one
+  /// legacy mood string, so an older build or an old backup reopened elsewhere
+  /// still themes sensibly. Only Barako had a light (latte) and dark (barako)
+  /// mood; everything else maps to the nearest of the three.
+  static String _legacyMood(String key, String mode) =>
+      mode == 'light' ? 'latte' : 'barako';
+
+  /// Remember the appearance mode (system, light, dark). Kept alongside the
+  /// legacy themeMood so a rollback still looks right; unknown settings keys are
+  /// preserved by the backup, so this needs no migration.
+  Future<void> setThemeMode(String mode) => _mutate((d) {
+        final s =
+            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        // is String, not a hard cast: a hand-edited or future backup could
+        // carry a non-string themeKey, and a cast would throw on tap.
+        final key = s['themeKey'] is String ? s['themeKey'] as String : 'barako';
+        return {
+          ...d,
+          'settings': {
+            ...s,
+            'themeMode': mode,
+            'themeMood': _legacyMood(key, mode),
+          },
+        };
+      });
+
+  /// Remember the chosen theme (barako, tidal, ...). Kept alongside the legacy
+  /// themeMood for the same rollback reason.
+  Future<void> setThemeKey(String key) => _mutate((d) {
+        final s =
+            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        final mode =
+            s['themeMode'] is String ? s['themeMode'] as String : 'system';
+        return {
+          ...d,
+          'settings': {
+            ...s,
+            'themeKey': key,
+            'themeMood': _legacyMood(key, mode),
+          },
+        };
+      });
+
+  /// Remember the mood theme (legacy latte/barako/milktea). Kept for the old
+  /// mood card and tests; new UI uses setThemeKey/setThemeMode.
   Future<void> setThemeMood(String mood) => _mutate((d) => {
         ...d,
         'settings': {

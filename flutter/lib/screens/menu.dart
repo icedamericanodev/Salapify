@@ -102,7 +102,7 @@ class MenuScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 _kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
-                _moodCard(context),
+                _appearanceCard(context),
               ],
               const SizedBox(height: 20),
               _kicker('YOUR DATA'),
@@ -164,47 +164,96 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _moodCard(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _kicker('MOOD'),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final p in moodPalettes)
-                    ChoiceChip(
-                      label: Text(p.label),
-                      selected: Barako.current.mood == p.mood,
-                      onSelected: (_) async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        try {
-                          await store.setThemeMood(p.mood);
-                        } catch (e) {
-                          messenger.showSnackBar(SnackBar(
-                              content: Text(
-                                  'Could not save the mood, nothing was changed. $e')));
-                        }
-                      },
-                      selectedColor: Barako.primary,
-                      backgroundColor: Barako.background,
-                      labelStyle: TextStyle(
-                          color: Barako.current.mood == p.mood
-                              ? Barako.onPrimary
-                              : Barako.textSecondary,
-                          fontWeight: FontWeight.w600),
-                      side: BorderSide(color: Barako.border),
-                    ),
-                ],
-              ),
-            ],
-          ),
+  static const _modeLabels = {
+    'system': 'System',
+    'light': 'Light',
+    'dark': 'Dark',
+  };
+
+  Widget _appearanceCard(BuildContext context) {
+    final (rawKey, currentMode) = resolveThemeChoice(store.data['settings']);
+    // Highlight the theme actually in effect: an unknown or future key renders
+    // as Barako (themeForKey falls back), so the chip should show Barako too.
+    final currentKey = themeForKey(rawKey).key;
+    Future<void> save(Future<void> Function() action) async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await action();
+      } catch (e) {
+        messenger.showSnackBar(SnackBar(
+            content: Text('Could not save that, nothing was changed. $e')));
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('COLOR THEME'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final t in barakoThemes)
+                  ChoiceChip(
+                    // A dot in the theme's own brand color (at the current
+                    // brightness) previews each option, so the 8 chips are not
+                    // all identical but for their label.
+                    avatar: CircleAvatar(
+                        radius: 8,
+                        backgroundColor:
+                            t.resolve(Barako.current.brightness).primary),
+                    label: Text(t.label),
+                    selected: currentKey == t.key,
+                    onSelected: (_) => save(() => store.setThemeKey(t.key)),
+                    selectedColor: Barako.primary,
+                    backgroundColor: Barako.background,
+                    labelStyle: TextStyle(
+                        color: currentKey == t.key
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
+                        fontWeight: FontWeight.w600),
+                    side: BorderSide(color: Barako.border),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(themeForKey(currentKey).hint,
+                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+            const SizedBox(height: 16),
+            _kicker('APPEARANCE'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final m in appearanceModes)
+                  ChoiceChip(
+                    label: Text(_modeLabels[m] ?? m),
+                    selected: currentMode == m,
+                    onSelected: (_) => save(() => store.setThemeMode(m)),
+                    selectedColor: Barako.primary,
+                    backgroundColor: Barako.background,
+                    labelStyle: TextStyle(
+                        color: currentMode == m
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
+                        fontWeight: FontWeight.w600),
+                    side: BorderSide(color: Barako.border),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('System follows your phone, going dark at night on its own.',
+                style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3)),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget _backupCard(BuildContext context) {
     void openImport() => Navigator.of(context).push(
