@@ -1,0 +1,969 @@
+{
+  "refISO": "2026-07-16",
+  "fixtures": {
+    "starter": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 2000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Card",
+          "type": "credit card",
+          "remaining": 18000,
+          "monthlyRate": 3
+        }
+      ],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "debtNext": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Card",
+          "type": "credit card",
+          "remaining": 18000,
+          "monthlyRate": 3
+        },
+        {
+          "id": "d2",
+          "name": "Small loan",
+          "type": "loan",
+          "remaining": 4000,
+          "monthlyRate": 1
+        }
+      ],
+      "goals": [
+        {
+          "id": "g1",
+          "name": "Laptop",
+          "target": 40000,
+          "saved": 5000,
+          "targetDate": "2026-12-31"
+        }
+      ],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "fullerNext": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8000
+        }
+      ],
+      "debts": [],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "goalNext": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 20000
+        }
+      ],
+      "debts": [],
+      "goals": [
+        {
+          "id": "g1",
+          "name": "Japan trip",
+          "target": 60000,
+          "saved": 10000,
+          "targetDate": "2026-12-31"
+        }
+      ],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "allSet": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 20000
+        }
+      ],
+      "debts": [],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "rateUnfilled": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Mystery card",
+          "type": "credit card",
+          "remaining": 5000,
+          "monthlyRate": 0
+        }
+      ],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "crunch": {
+      "accounts": [
+        {
+          "id": "s",
+          "name": "Savings",
+          "kind": "savings",
+          "balance": 8000
+        }
+      ],
+      "debts": [],
+      "goals": [],
+      "recurring": [],
+      "transactions": [
+        {
+          "id": "i0",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e0",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i1",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e1",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i2",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e2",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i3",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e3",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i4",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e4",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        },
+        {
+          "id": "i5",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000
+        },
+        {
+          "id": "e5",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Living",
+          "amount": 5000
+        }
+      ],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "noHistory": {
+      "accounts": [
+        {
+          "id": "c",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 3000
+        }
+      ],
+      "debts": [],
+      "goals": [],
+      "recurring": [],
+      "transactions": [],
+      "settings": {
+        "paydaySchedule": {
+          "mode": "monthly",
+          "day": 30
+        }
+      }
+    },
+    "empty": {
+      "accounts": [],
+      "debts": [],
+      "goals": [],
+      "recurring": [],
+      "transactions": [],
+      "settings": {}
+    }
+  },
+  "cases": {
+    "starter": {
+      "step": "starter",
+      "applicable": true,
+      "spare": 2000,
+      "crunch": false,
+      "buffer": 2000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 3000,
+      "fullTarget": 15000,
+      "fullGap": 13000,
+      "topDebt": {
+        "name": "Card",
+        "monthlyRate": 3,
+        "remaining": 18000
+      },
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "debtNext": {
+      "step": "debt",
+      "applicable": true,
+      "spare": 8000,
+      "crunch": false,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": {
+        "name": "Card",
+        "monthlyRate": 3,
+        "remaining": 18000
+      },
+      "rateUnfilled": false,
+      "activeGoal": true
+    },
+    "fullerNext": {
+      "step": "fuller",
+      "applicable": true,
+      "spare": 8000,
+      "crunch": false,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "goalNext": {
+      "step": "goal",
+      "applicable": true,
+      "spare": 20000,
+      "crunch": false,
+      "buffer": 20000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 0,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": true
+    },
+    "allSet": {
+      "step": "set",
+      "applicable": true,
+      "spare": 20000,
+      "crunch": false,
+      "buffer": 20000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 0,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "rateUnfilled": {
+      "step": "fuller",
+      "applicable": true,
+      "spare": 8000,
+      "crunch": false,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": null,
+      "rateUnfilled": true,
+      "activeGoal": false
+    },
+    "crunch": {
+      "step": "fuller",
+      "applicable": true,
+      "spare": 0,
+      "crunch": true,
+      "buffer": 8000,
+      "avgMonthlyExpense": 5000,
+      "hasHistory": true,
+      "starterTarget": 5000,
+      "starterGap": 0,
+      "fullTarget": 15000,
+      "fullGap": 7000,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "noHistory": {
+      "step": "starter",
+      "applicable": true,
+      "spare": 3000,
+      "crunch": false,
+      "buffer": 3000,
+      "avgMonthlyExpense": 0,
+      "hasHistory": false,
+      "starterTarget": 10000,
+      "starterGap": 7000,
+      "fullTarget": 0,
+      "fullGap": 0,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    },
+    "empty": {
+      "step": "starter",
+      "applicable": false,
+      "spare": 0,
+      "crunch": true,
+      "buffer": 0,
+      "avgMonthlyExpense": 0,
+      "hasHistory": false,
+      "starterTarget": 10000,
+      "starterGap": 10000,
+      "fullTarget": 0,
+      "fullGap": 0,
+      "topDebt": null,
+      "rateUnfilled": false,
+      "activeGoal": false
+    }
+  }
+}

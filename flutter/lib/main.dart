@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.82 · Tighten the 6-tab nav labels so every label fits on small phones';
+    'f0.83 · Insights: where your next peso should go, one sound order of moves';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

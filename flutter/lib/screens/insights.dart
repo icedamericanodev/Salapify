@@ -16,6 +16,7 @@ import '../money/coach.dart' as coach;
 import '../money/commitments.dart' as commitments;
 import '../money/debtmath.dart' as debtmath;
 import '../money/ledger.dart' show amountOf;
+import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import 'overview.dart' show formatMoney;
 
@@ -134,6 +135,7 @@ class InsightsScreen extends StatelessWidget {
     final runway = analytics.emergencyRunway(data, ref);
     final forecast = analytics.forecastMonthEnd(data['transactions'], ref);
     final focusGoal = _pickFocusGoal(data['goals'], ref);
+    final plan = surplus.nextPesoPlan(data, ref);
 
     return Scaffold(
       body: SafeArea(
@@ -195,6 +197,10 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
+            if (plan['applicable'] == true) ...[
+              const SizedBox(height: 12),
+              _nextPesoCard(plan, focusGoal),
+            ],
             if (_hasActiveDebt(data['debts'])) ...[
               const SizedBox(height: 12),
               _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
@@ -325,6 +331,176 @@ class InsightsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// The order-of-operations card: where the next spare peso should go. Every
+  /// number comes from surplus.nextPesoPlan, which composes the golden locked
+  /// safeToSpend, emergencyRunway, and goalPace, so nothing here is invented.
+  /// It fixes the quiet trap where finishing a goal looked more rewarding than
+  /// clearing a debt that costs more than any savings can earn back.
+  Widget _nextPesoCard(
+      Map<String, dynamic> plan, Map<String, dynamic>? focusGoal) {
+    final step = plan['step'] as String;
+    final buffer = plan['buffer'] as double;
+    final starterTarget = plan['starterTarget'] as double;
+    final starterGap = plan['starterGap'] as double;
+    final fullTarget = plan['fullTarget'] as double;
+    final fullGap = plan['fullGap'] as double;
+    final hasHistory = plan['hasHistory'] as bool;
+    final crunch = plan['crunch'] as bool;
+    final spare = plan['spare'] as double;
+    final rateUnfilled = plan['rateUnfilled'] as bool;
+    final topDebt = plan['topDebt'] as Map<String, dynamic>?;
+
+    // A cushion this user already has, spoken plainly, so the starter and
+    // fuller steps say "you have X, aim for Y" instead of a bare gap.
+    final haveCushion = buffer > 0 ? ' You have about ${_wholePeso(buffer)} so far.' : '';
+
+    var title = '';
+    var support = '';
+    // Debt is the only step that carries the warning tone; the rest are
+    // forward and calm. warningStrong and primaryText both clear AA at these
+    // small sizes on the light card, unlike the raw hero colors.
+    var heroColor = Barako.primaryText;
+    var activeIndex = 4; // 0 cushion, 1 debt, 2 fuller, 3 goals, 4 all done
+
+    switch (step) {
+      case 'starter':
+        activeIndex = 0;
+        title = 'Build a starter cushion';
+        final desc = hasHistory
+            ? 'a one month cushion (about ${_wholePeso(starterTarget)})'
+            : 'a ${_wholePeso(starterTarget)} starter cushion';
+        support =
+            'About ${_wholePeso(starterGap)} more gets you to $desc, so the next gulat does not turn into utang.$haveCushion';
+        break;
+      case 'debt':
+        activeIndex = 1;
+        heroColor = Barako.warningStrong;
+        final name = (topDebt?['name'] as String?) ?? 'your debt';
+        final rate = (topDebt?['monthlyRate'] as double?) ?? 0;
+        final rateText = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
+        title = 'Clear your costliest debt';
+        support =
+            'Your $name costs about $rateText% a month, more than any savings can earn back. Every ₱100 you put here is worth more than ₱100 anywhere else right now.';
+        break;
+      case 'fuller':
+        activeIndex = 2;
+        title = 'Grow your safety net';
+        support =
+            'Your debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or an ospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
+        break;
+      case 'goal':
+        activeIndex = 3;
+        final gnameRaw = focusGoal?['name'];
+        final gname = (gnameRaw is String && gnameRaw.trim().isNotEmpty)
+            ? gnameRaw.trim()
+            : 'your goal';
+        title = 'Now, chase your goal';
+        support =
+            'Your cushion and high cost debt are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
+        break;
+      default: // 'set'
+        activeIndex = 4;
+        title = 'You are in a good spot';
+        support =
+            'Your cushion and debts are handled and no goal is waiting. Spare pesos are yours to enjoy, or start a new goal when you are ready.';
+    }
+
+    final spareLine = crunch
+        ? 'Your bills use up this sweldo already, so treat this as a plan for after payday.'
+        : 'This cycle you have about ${_wholePeso(spare)} free to move, if you can spare it.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('WHERE YOUR NEXT PESO SHOULD GO', style: Barako.kickerStyle),
+            const SizedBox(height: 8),
+            Text(title,
+                style: TextStyle(
+                    fontFamily: Barako.displayFont,
+                    color: heroColor,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text(support,
+                style: TextStyle(
+                    color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            const SizedBox(height: 14),
+            _orderRail(activeIndex),
+            const SizedBox(height: 12),
+            Text(spareLine,
+                style: TextStyle(
+                    color: crunch ? Barako.warningStrong : Barako.muted,
+                    fontSize: 12,
+                    height: 1.4)),
+            if (rateUnfilled) ...[
+              const SizedBox(height: 6),
+              Text(
+                  'One debt has no interest rate saved, so I left it out of the order. Add the rate and I can place it properly.',
+                  style: TextStyle(
+                      color: Barako.warningStrong, fontSize: 12, height: 1.4)),
+            ],
+            const SizedBox(height: 8),
+            Text(
+                'An order based on the rates and balances you logged, not a promise. Your call always wins.',
+                style:
+                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The four tiers as a compact rail, so the user sees the whole order and
+  /// where they stand in it, not just the current step. Steps before the
+  /// active one read as done, the active one is filled, later ones wait.
+  Widget _orderRail(int activeIndex) {
+    const labels = ['Cushion', 'Debt', 'Bigger fund', 'Goals'];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < labels.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i < labels.length - 1 ? 6 : 0),
+              child: Column(
+                children: [
+                  Container(
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: i < activeIndex
+                          ? Barako.primary.withValues(alpha: 0.45)
+                          : i == activeIndex
+                              ? Barako.primary
+                              : Barako.border,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(labels[i],
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: i == activeIndex
+                              ? Barako.text
+                              : i < activeIndex
+                                  ? Barako.muted
+                                  : Barako.faint,
+                          fontSize: 10,
+                          fontWeight: i == activeIndex
+                              ? FontWeight.w700
+                              : FontWeight.w500)),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
