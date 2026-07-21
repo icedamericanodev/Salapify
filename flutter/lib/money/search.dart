@@ -102,6 +102,27 @@ String txHaystack(
   return _hay([t['label'], cat, acct, _amountHay(t['amount']), kind]);
 }
 
+/// The category and account id -> name maps for a data blob, so History's
+/// filter can find a transaction by its category or account name, not only its
+/// own label. Returns two maps: category names and account names.
+({Map<String, String> cat, Map<String, String> acct}) transactionNameMaps(
+    dynamic data) {
+  final m =
+      _buildNameMaps(data is Map ? data.cast<String, dynamic>() : const {});
+  return (cat: m.cat, acct: m.acct);
+}
+
+/// True when a transaction matches every word in the query (AND). A blank
+/// query matches everything, so History can use this as its live filter.
+/// Ported from the RN txMatches so a result never disappears on drill-in.
+bool txMatches(Map t, String query, Map<String, String> catName,
+    Map<String, String> acctName) {
+  final tokens =
+      query.trim().toLowerCase().split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
+  if (tokens.isEmpty) return true;
+  return _matches(txHaystack(t, catName, acctName), tokens);
+}
+
 const int _perGroup = 8;
 
 /// Search the stored blob for a query, returning grouped results in the same

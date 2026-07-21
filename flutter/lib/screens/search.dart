@@ -12,6 +12,7 @@ import '../money/search.dart' as search;
 import '../theme.dart';
 import 'debts.dart';
 import 'goals.dart';
+import 'history.dart';
 import 'notes.dart';
 
 const _groupIcon = <String, IconData>{
@@ -53,8 +54,11 @@ class _SearchScreenState extends State<SearchScreen> {
   void _openGroup(String kind, String route) {
     switch (kind) {
       case 'transactions':
-        Navigator.of(context).pop();
-        widget.onSwitchTab?.call(2);
+        // Push History pre-filtered to the same words, so tapping a result
+        // actually shows it rather than dumping the user on the full list.
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => HistoryScreen(
+                store: widget.store, initialQuery: _query.text, pushed: true)));
         break;
       case 'utang':
         Navigator.of(context).pop();
