@@ -38,6 +38,8 @@ Map<String, dynamic> blob() => {
 Future<void> openDebts(WidgetTester tester, SalapifyStore store) async {
   await tester.pumpWidget(SalapifyApp(store: store));
   await tester.pumpAndSettle();
+  await tester.tap(find.text('Menu'));
+  await tester.pumpAndSettle();
   await tester.scrollUntilVisible(find.text('Debts'), 200,
       scrollable: find.byType(Scrollable).first);
   await tester.pumpAndSettle();

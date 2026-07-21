@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> openThirteenth(WidgetTester tester) async {
   await tester.pumpAndSettle();
+  await tester.tap(find.text('Menu'));
+  await tester.pumpAndSettle();
   await tester.scrollUntilVisible(find.text('Tools'), 200,
       scrollable: find.byType(Scrollable).first);
   await tester.pumpAndSettle();

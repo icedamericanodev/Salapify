@@ -30,6 +30,8 @@ Map<String, dynamic> blob() => {
 
 Future<void> openPan(WidgetTester tester) async {
   await tester.pumpAndSettle();
+  await tester.tap(find.text('Menu'));
+  await tester.pumpAndSettle();
   await tester.scrollUntilVisible(find.text('Ask Pan'), 200,
       scrollable: find.byType(Scrollable).first);
   await tester.pumpAndSettle();
