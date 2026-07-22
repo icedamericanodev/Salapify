@@ -133,6 +133,14 @@ void main() {
       expect(c.expected, 5000);
     });
 
+    test('a net-negative focus month floors to zero spent', () {
+      // Refunds entered as negative expenses could make the month sum negative;
+      // it should read as zero spent (matching the bar), not a nonsense delta.
+      final c = spendingVsUsual(series([5000, -300]), 1.0);
+      expect(c.current, 0);
+      expect(c.pctVsExpected, -100);
+    });
+
     test('reads string and junk amounts the JS way', () {
       final c = spendingVsUsual([
         {'key': 'a', 'expenses': '4000'},

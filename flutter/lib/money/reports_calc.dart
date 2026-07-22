@@ -69,7 +69,10 @@ class SpendCompare {
 /// current month, or 1.0 for a complete past month.
 SpendCompare spendingVsUsual(List<Map<String, dynamic>> series, double frac) {
   if (series.isEmpty) return const SpendCompare(0, 0, 0, 0);
-  final current = _fin(amountOf(series.last['expenses']));
+  // Floor at 0 so a net-negative month (refunds entered as negative expenses)
+  // reads as zero spent, matching the bar, instead of a nonsensical "below".
+  final raw = _fin(amountOf(series.last['expenses']));
+  final current = raw > 0 ? raw : 0.0;
   var sum = 0.0;
   var active = 0;
   for (var i = 0; i < series.length - 1; i++) {

@@ -335,28 +335,59 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final frac = isCurrent ? (now.day / daysInMonth) : 1.0;
     final cmp = spendingVsUsual(series, frac);
 
-    // The plain read. Honest about a partial month and about thin history.
+    // The plain read. A completed month gets an exact full-to-full percentage.
+    // The current month never does: fixed costs (rent, utang, subscriptions)
+    // land on the 1st, so a paced percentage balloons early in the month. It
+    // states the facts instead, and adds a soft run-rate read only once the
+    // month is well underway.
+    final usualStr = formatMoney(cmp.usual);
     String read;
     Color readColor = Barako.textSecondary;
     if (!cmp.hasHistory) {
       read =
           'Not enough history yet to compare. After a couple of logged months, this tells you whether a month is normal for you.';
       readColor = Barako.muted;
-    } else {
+    } else if (!isCurrent) {
+      // A month you navigated to is complete, so this is a like-for-like read.
       final pct = cmp.pctVsExpected.abs();
-      final soFar = isCurrent ? ' so far' : '';
-      final paceWord = isCurrent ? 'on pace for a' : 'a';
-      if (cmp.pctVsExpected >= 10) {
+      if (cmp.priorMonths == 1) {
         read =
-            'You are spending more than usual$soFar. About $pct% above your typical ${formatMoney(cmp.usual)} month. Worth a look at what moved.';
+            'Going by just the month before, about $usualStr, this month came in ${cmp.pctVsExpected >= 0 ? '$pct% higher' : '$pct% lower'}. One month is only a rough guide.';
+        readColor = Barako.muted;
+      } else if (cmp.pctVsExpected >= 10) {
+        read =
+            'You spent about $pct% more than your usual $usualStr month. Worth a look at what moved.';
         readColor = Barako.warningStrong;
       } else if (cmp.pctVsExpected <= -10) {
-        read =
-            'You are spending less than usual$soFar, about $pct% below your typical ${formatMoney(cmp.usual)} month. A lighter month, keep it up.';
+        read = 'A lighter month, about $pct% below your usual $usualStr.';
         readColor = Barako.primaryText;
       } else {
+        read = 'Right around your usual $usualStr for the month. Steady.';
+      }
+    } else {
+      final soFar = formatMoney(cmp.current);
+      if (cmp.priorMonths == 1) {
         read =
-            'Right around your usual, $paceWord ${formatMoney(cmp.usual)} month. Steady.';
+            'So far this month you have spent $soFar. Going by just last month, your usual is about $usualStr. One month is only a rough guide.';
+        readColor = Barako.muted;
+      } else if (frac < 0.34) {
+        read =
+            'Still early in the month. So far you have spent $soFar, and your usual full month runs about $usualStr. Check back once more of the month has passed.';
+        readColor = Barako.muted;
+      } else {
+        final projected = cmp.current / frac;
+        final projStr = formatMoney(projected);
+        if (projected >= cmp.usual * 1.2) {
+          read =
+              'So far this month: $soFar. At this pace you are heading for about $projStr, above your usual $usualStr. Worth easing off a line or two.';
+          readColor = Barako.warningStrong;
+        } else if (projected <= cmp.usual * 0.8) {
+          read =
+              'So far this month: $soFar. At this pace you are tracking under your usual $usualStr. Just make sure that is real and not entries you have not logged yet.';
+        } else {
+          read =
+              'So far this month: $soFar. At this pace you are tracking close to your usual $usualStr. Steady.';
+        }
       }
     }
 
@@ -374,7 +405,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             _TrendBars(
                 series: series,
                 usual: cmp.hasHistory ? cmp.usual : 0,
-                focusKey: series.isNotEmpty ? series.last['key'] as String : ''),
+                focusKey: series.isNotEmpty ? series.last['key'] as String : '',
+                focusPartial: isCurrent),
             const SizedBox(height: 14),
             Text(read,
                 style: TextStyle(color: readColor, fontSize: 13, height: 1.45)),
@@ -867,10 +899,12 @@ class _TrendBars extends StatelessWidget {
   final List<Map<String, dynamic>> series;
   final double usual;
   final String focusKey;
+  final bool focusPartial;
   const _TrendBars({
     required this.series,
     required this.usual,
     required this.focusKey,
+    this.focusPartial = false,
   });
 
   double _exp(Map<String, dynamic> m) {
@@ -888,7 +922,9 @@ class _TrendBars extends StatelessWidget {
       if (e > peak) peak = e;
     }
     if (!(peak > 0)) peak = 1;
-    final usualH = (usual / peak * areaH).clamp(0.0, areaH);
+    // Keep the line 2px below the top so it stays visible even when the usual
+    // equals the peak (every shown month at or below average).
+    final usualH = (usual / peak * areaH).clamp(0.0, areaH - 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,8 +943,11 @@ class _TrendBars extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.bottomCenter,
                           child: Container(
-                            height:
-                                (_exp(m) / peak * areaH).clamp(2.0, areaH),
+                            // A true no-spend month shows nothing, not a stub,
+                            // so a glance does not read it as a small spend.
+                            height: _exp(m) > 0
+                                ? (_exp(m) / peak * areaH).clamp(2.0, areaH)
+                                : 0.0,
                             decoration: BoxDecoration(
                               color: m['key'] == focusKey
                                   ? Barako.primary
@@ -934,19 +973,32 @@ class _TrendBars extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (final m in series)
               Expanded(
-                child: Text(m['label'] as String,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: m['key'] == focusKey
-                            ? Barako.text
-                            : Barako.faint,
-                        fontSize: 10,
-                        fontWeight: m['key'] == focusKey
-                            ? FontWeight.w700
-                            : FontWeight.w500)),
+                child: Column(
+                  children: [
+                    Text(m['label'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: m['key'] == focusKey
+                                ? Barako.text
+                                : Barako.faint,
+                            fontSize: 10,
+                            fontWeight: m['key'] == focusKey
+                                ? FontWeight.w700
+                                : FontWeight.w500)),
+                    // The current month's bar is only spending so far, not a
+                    // finished month, so it is labeled to avoid a false
+                    // "low month" read against the completed bars beside it.
+                    if (m['key'] == focusKey && focusPartial)
+                      Text('so far',
+                          textAlign: TextAlign.center,
+                          style:
+                              TextStyle(color: Barako.faint, fontSize: 8.5)),
+                  ],
+                ),
               ),
           ],
         ),
