@@ -19,7 +19,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f1.07 · Paluwagan money engine landed (no screen yet): payout date, your standing, and the honest early-loan vs late-savings read';
+    'f1.08 · Kinder first run: pick what to start with, Insights waits for data instead of showing zeros, a negative net worth is no longer alarm red';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

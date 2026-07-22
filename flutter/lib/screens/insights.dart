@@ -124,10 +124,66 @@ class InsightsScreen extends StatelessWidget {
   final void Function(int tab)? onSwitchTab;
   const InsightsScreen({super.key, required this.store, this.onSwitchTab});
 
+  // Shown before there is any data, in place of the full analytics wall.
+  Widget _emptyInsights(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              ScreenHeader('INSIGHTS',
+                  subtitle: 'What your money is telling you, and what to do next'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('📊', style: TextStyle(fontSize: 30)),
+                      const SizedBox(height: 8),
+                      Text('Nothing to read yet, and that is fine',
+                          style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text(
+                          'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
+                          style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 14,
+                              height: 1.45)),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                            backgroundColor: Barako.primary,
+                            foregroundColor: Barako.onPrimary),
+                        onPressed: () => onSwitchTab?.call(0),
+                        child: const Text('Start logging'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final data = store.data;
     final ref = DateTime.now();
+
+    // Before any data, every card here reads zero at once (safe-to-spend 0,
+    // health 0 of 100, empty charts), which is the exact "this app is for
+    // people who already have their life together" wall the Home screen is
+    // careful to avoid. Match Home: show one warm invitation instead.
+    final accts = data['accounts'];
+    final txs = data['transactions'];
+    final hasStarted = (accts is List && accts.isNotEmpty) ||
+        (txs is List && txs.isNotEmpty);
+    if (!hasStarted) return _emptyInsights(context);
+
     final candidates = coach.decisionCandidates(data, ref);
     final win = coach.pickWin(data, ref);
     final sts = commitments.safeToSpend(data, ref);
