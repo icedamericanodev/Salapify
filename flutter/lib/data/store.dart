@@ -391,6 +391,29 @@ class SalapifyStore extends ChangeNotifier {
         notifyListeners();
       });
 
+  /// Append imported transactions in one atomic save. Each gets a fresh id and
+  /// flows through the same golden-verified engine as a manual log, so nothing
+  /// bypasses validation. Additive only: it never removes or replaces existing
+  /// entries, and by default carries no accountId so it does not move an account
+  /// balance (the caller can set one to opt into that). Returns the count added.
+  Future<int> importTransactions(List<Map<String, dynamic>> txns) async {
+    var added = 0;
+    await _mutate((prev) {
+      var d = prev;
+      for (final t in txns) {
+        final amount = t['amount'];
+        // Defense in depth: the importer already stores a positive amount and
+        // drops zero rows, but skip anything non finite or not above zero here
+        // too, so no path can post a garbage or balance moving entry.
+        if (amount is! num || !amount.isFinite || amount <= 0) continue;
+        d = ledger.addTransaction(d, {...t, 'id': _genId('txn')});
+        added += 1;
+      }
+      return d;
+    });
+    return added;
+  }
+
   /// One shared guard-mutate-save-rollback wrapper for engine writes: check
   /// canWrite, apply a pure engine function, persist, roll back and rethrow
   /// if the disk says no. Keeps every receivables write path on exactly the
@@ -419,11 +442,16 @@ class SalapifyStore extends ChangeNotifier {
 
   /// Unique id for engine writes: timestamp plus 48 random bits, the same
   /// recipe as newEntryId, prefixed per collection like the RN genId.
+  int _idSeq = 0;
+
   String _genId(String prefix) {
     final ms = DateTime.now().millisecondsSinceEpoch;
     final a = _rand.nextInt(0x1000000).toRadixString(36);
     final b = _rand.nextInt(0x1000000).toRadixString(36);
-    return '${prefix}_$ms$a$b';
+    // A monotonic counter guarantees uniqueness even inside a tight batch loop
+    // (a bulk CSV import) where every id shares the same millisecond timestamp.
+    final n = (_idSeq++).toRadixString(36);
+    return '${prefix}_$ms$a${b}_$n';
   }
 
   String _todayISO() {
