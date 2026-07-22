@@ -13,6 +13,7 @@ import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
+import 'csv_import.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
@@ -564,6 +565,21 @@ class MenuScreen extends StatelessWidget {
                     child: const Text('Import backup'),
                   ),
               ],
+            ),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    foregroundColor: Barako.textSecondary,
+                    minimumSize: const Size(0, 40),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                icon: const Icon(Icons.table_view_outlined, size: 18),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CsvImportScreen(store: store))),
+                label: const Text('Import from a bank or GCash CSV'),
+              ),
             ),
           ],
         ),

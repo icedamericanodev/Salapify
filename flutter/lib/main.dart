@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.01 · Export your data: entries as CSV or Excel, and this month as a PDF report. Menu, Your data, Export.';
+    'f2.02 · Import a bank or GCash CSV: pick the file, map the columns, preview, then import. Menu, Your data.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
