@@ -19,7 +19,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.98 · App Lock: unlock Salapify with your fingerprint or face (new base APK, install once)';
+    'f0.99 · App Lock: unlock with your fingerprint or face, hidden in the app switcher (new base APK, install once)';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

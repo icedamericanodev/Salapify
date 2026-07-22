@@ -290,15 +290,18 @@ class MenuScreen extends StatelessWidget {
     Future<void> toggle(bool value) async {
       final messenger = ScaffoldMessenger.of(context);
       if (value) {
+        final auth = BiometricAuthenticator();
         // Only turn it on when the phone can actually unlock it, so App lock
         // never strands the owner behind a lock they cannot pass.
-        final can = await BiometricAuthenticator().canLock();
-        if (!can) {
+        if (!await auth.canLock()) {
           messenger.showSnackBar(const SnackBar(
               content: Text(
                   'Set up a fingerprint or face unlock on your phone first, then turn this on.')));
           return;
         }
+        // Confirm the unlock works right now, so nobody enables a lock they
+        // cannot pass. A cancel leaves it off.
+        if (!await auth.authenticate()) return;
       }
       try {
         await store.setAppLock(value);

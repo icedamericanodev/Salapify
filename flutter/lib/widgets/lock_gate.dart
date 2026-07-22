@@ -43,10 +43,13 @@ class BiometricAuthenticator implements LockAuthenticator {
   @override
   Future<bool> authenticate() async {
     try {
+      // biometricOnly: false lets the OS offer the device PIN or pattern as a
+      // backstop, so a wet sensor or a biometric cooldown never strands an
+      // owner who knows their passcode. Matches the RN default.
       return await _auth.authenticate(
         localizedReason: 'Unlock Salapify',
         options: const AuthenticationOptions(
-            biometricOnly: true, stickyAuth: true),
+            biometricOnly: false, stickyAuth: true),
       );
     } catch (_) {
       return false;
@@ -79,9 +82,17 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
   // stretch, so entering the lock prompts exactly once (the user taps Unlock to
   // retry). Reset when we unlock or re-lock.
   bool _promptedForThisLock = false;
+  // Cover the app the moment it goes to the background (when the lock is on),
+  // so the money screens never appear in the app-switcher thumbnail or a
+  // screenshot. This is separate from needing re-auth: a quick hop back within
+  // the grace window just lifts the cover, no fingerprint required.
+  bool _obscure = false;
   DateTime? _awaySince;
 
-  static const _graceMs = 60 * 1000;
+  // A finance app should not stay open to whoever grabs the phone next, so the
+  // no-reprompt window is short. Long enough to copy a GCash number and come
+  // back, short enough that a set-down phone re-locks quickly.
+  static const _graceMs = 30 * 1000;
 
   bool get _native => !kIsWeb;
 
@@ -102,8 +113,8 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Lock again only after over a minute away, so a few seconds in GCash or
-  // Messages does not demand the fingerprint again.
+  // Cover on background immediately; re-require the fingerprint only after the
+  // grace window, so a few seconds in GCash or Messages does not re-prompt.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_lockOn) return;
@@ -111,15 +122,18 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
       _awaySince ??= DateTime.now();
+      if (!_obscure) setState(() => _obscure = true);
     } else if (state == AppLifecycleState.resumed) {
       final away = _awaySince;
-      if (away != null &&
-          DateTime.now().difference(away).inMilliseconds > _graceMs) {
-        setState(() {
+      final beyondGrace = away != null &&
+          DateTime.now().difference(away).inMilliseconds > _graceMs;
+      setState(() {
+        if (beyondGrace) {
           _unlocked = false;
           _promptedForThisLock = false;
-        });
-      }
+        }
+        _obscure = false;
+      });
       _awaySince = null;
     }
   }
@@ -129,9 +143,13 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
     setState(() => _checking = true);
     try {
       // No biometrics enrolled? A lock could only ever lock the owner out, so
-      // turn it off and let them in.
+      // turn it off and let them in. Letting them in must NOT depend on the
+      // disable-write succeeding, or a failed save would strand them behind a
+      // lock they can never pass, so the persist is best-effort.
       if (!await widget.authenticator.canLock()) {
-        if (widget.store.canWrite) await widget.store.setAppLock(false);
+        try {
+          if (widget.store.canWrite) await widget.store.setAppLock(false);
+        } catch (_) {}
         if (mounted) {
           setState(() {
             _unlocked = true;
@@ -163,10 +181,14 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
       return ColoredBox(color: Barako.background, child: const SizedBox.expand());
     }
 
-    final locked = _lockOn && !_unlocked;
+    // Needing auth drives the biometric prompt; the overlay also shows while
+    // merely obscured (backgrounded within the grace window), which hides the
+    // app-switcher thumbnail without demanding a fingerprint on quick return.
+    final needsAuth = _lockOn && !_unlocked;
+    final showOverlay = _lockOn && (!_unlocked || _obscure);
 
-    // Prompt once when entering the locked state.
-    if (locked && !_promptedForThisLock && !_checking) {
+    // Prompt once when entering the locked state (not for a mere cover).
+    if (needsAuth && !_promptedForThisLock && !_checking) {
       _promptedForThisLock = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _unlock();
@@ -176,9 +198,9 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
     return Stack(
       children: [
         // A lock TalkBack can read through is not a lock: hide the content
-        // behind the overlay from screen readers while locked.
-        ExcludeSemantics(excluding: locked, child: widget.child),
-        if (locked)
+        // behind the overlay from screen readers while it is up.
+        ExcludeSemantics(excluding: showOverlay, child: widget.child),
+        if (showOverlay)
           Positioned.fill(
             child: _LockScreen(checking: _checking, onUnlock: _unlock),
           ),
@@ -205,16 +227,26 @@ class _LockScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Barako.card,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Barako.border),
+                // The badge is the obvious "press here", so make it unlock too.
+                Semantics(
+                  button: true,
+                  label: 'Unlock',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(44),
+                    onTap: checking ? null : onUnlock,
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Barako.card,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Barako.border),
+                      ),
+                      child: Icon(Icons.fingerprint,
+                          size: 44, color: Barako.primary),
+                    ),
                   ),
-                  child: Icon(Icons.fingerprint, size: 44, color: Barako.primary),
                 ),
                 const SizedBox(height: 20),
                 Text('Salapify is locked',
@@ -223,7 +255,7 @@ class _LockScreen extends StatelessWidget {
                         fontSize: 22,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
-                Text('Your money stays private.',
+                Text('Private to you on this phone.',
                     style: TextStyle(color: Barako.muted, fontSize: 15)),
                 const SizedBox(height: 28),
                 FilledButton(
@@ -232,12 +264,22 @@ class _LockScreen extends StatelessWidget {
                     backgroundColor: Barako.primary,
                     foregroundColor: Barako.onPrimary,
                     disabledBackgroundColor:
-                        Barako.primary.withValues(alpha: 0.5),
+                        Barako.primary.withValues(alpha: 0.6),
+                    // Keep the label legible while checking (Material's default
+                    // disabled foreground would fade it below AA).
+                    disabledForegroundColor: Barako.onPrimary,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 14),
                   ),
-                  child: Text(checking ? 'Checking...' : 'Unlock',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: checking
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Barako.onPrimary),
+                        )
+                      : const Text('Unlock',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ],
             ),

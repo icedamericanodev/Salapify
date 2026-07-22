@@ -4,7 +4,7 @@ publish_to: 'none'
 # Native change (adds the local_auth plugin for App Lock), so this bumps the
 # version: it forces a fresh base APK the founder installs once. JS/Dart only
 # changes keep the version and patch over the air.
-version: 0.4.0+6
+version: 0.4.1+7
 
 environment:
   sdk: ^3.12.2

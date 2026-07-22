@@ -104,4 +104,27 @@ void main() {
     // App lock stays on (a failure must not disable it).
     expect((store.data['settings'] as Map)['appLock'], true);
   });
+
+  testWidgets('backgrounding covers the app; a quick return does not re-prompt',
+      (tester) async {
+    final store = await _store(appLock: true);
+    final auth = _FakeAuth(can: true, auth: true);
+    await _pump(tester, store, auth);
+    // Unlocked after the initial successful auth, so no overlay.
+    expect(find.text('Salapify is locked'), findsNothing);
+    expect(auth.authCalls, 1);
+
+    // Background: the cover appears so the recents thumbnail hides the money.
+    // (inactive is the valid first step away from resumed; the handler treats
+    // inactive/paused/hidden alike.)
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(find.text('Salapify is locked'), findsOneWidget);
+
+    // Return within the grace window: the cover lifts with no new prompt.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(find.text('Salapify is locked'), findsNothing);
+    expect(auth.authCalls, 1);
+  });
 }
