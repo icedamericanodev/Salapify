@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.00 · Reminders! On-device nudges for logging, payday, bills due, and utang to collect. Turn them on in Menu, Reminders. (New base APK, install once.)';
+    'f2.01 · Export your data: entries as CSV or Excel, and this month as a PDF report. Menu, Your data, Export.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

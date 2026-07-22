@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../data/export_files.dart';
 import '../data/store.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
@@ -154,6 +155,10 @@ class MenuScreen extends StatelessWidget {
               _kicker('YOUR DATA'),
               const SizedBox(height: 8),
               _backupCard(context),
+              if (store.hasData) ...[
+                const SizedBox(height: 12),
+                _exportCard(context),
+              ],
               const SizedBox(height: 16),
               const UpdateCard(),
             ],
@@ -437,6 +442,71 @@ class MenuScreen extends StatelessWidget {
               activeTrackColor: Barako.primary,
               inactiveThumbColor: Barako.faint,
               inactiveTrackColor: Barako.border,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _exportCard(BuildContext context) {
+    Future<void> run(
+        BuildContext context, String label, Future<void> Function() task) async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await task();
+      } catch (e) {
+        messenger.showSnackBar(
+            SnackBar(content: Text('Could not export $label. $e')));
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('EXPORT'),
+            const SizedBox(height: 8),
+            Text(
+                'Save your entries as a spreadsheet, or this month as a PDF report. '
+                'Opens the share sheet, so you can send it to Files, Drive, or email.',
+                style: TextStyle(
+                    color: Barako.textSecondary, fontSize: 14, height: 1.4)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.text),
+                  icon: const Icon(Icons.grid_on, size: 18),
+                  onPressed: () => run(context, 'the CSV',
+                      () => shareTransactionsCsv(store.data, DateTime.now())),
+                  label: const Text('CSV'),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.text),
+                  icon: const Icon(Icons.table_chart_outlined, size: 18),
+                  onPressed: () => run(context, 'the Excel file',
+                      () => shareTransactionsXlsx(store.data, DateTime.now())),
+                  label: const Text('Excel'),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.text),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  onPressed: () => run(context, 'the PDF',
+                      () => shareReportPdf(store.data, DateTime.now())),
+                  label: const Text('PDF report'),
+                ),
+              ],
             ),
           ],
         ),
