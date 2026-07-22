@@ -18,6 +18,7 @@ import 'pan.dart';
 import 'search.dart';
 import 'recap_share.dart';
 import 'recurring.dart';
+import 'reports.dart';
 import 'tools.dart';
 import 'treats.dart';
 import 'update_card.dart';
@@ -84,6 +85,16 @@ class MenuScreen extends StatelessWidget {
                     'Bills and income that log themselves every month, on their day.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => RecurringScreen(store: store))),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.bar_chart_outlined,
+                title: 'Reports',
+                blurb:
+                    'Your net worth, monthly income, and cash flow as three plain statements.',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) =>
+                        ReportsScreen(store: store, onSwitchTab: onSwitchTab))),
               ),
               const SizedBox(height: 20),
               _kicker('HELPERS'),

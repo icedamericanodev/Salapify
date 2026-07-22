@@ -19,7 +19,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f1.00 · Theme polish: clearer Forest, richer light modes, a two-tone theme picker, sharper faint text';
+    'f1.01 · Reports: your net worth, income, and cash flow as three plain-language statements';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
