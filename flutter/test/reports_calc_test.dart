@@ -152,4 +152,57 @@ void main() {
       expect(c.current, 3000);
     });
   });
+
+  group('priorCategoryHistory', () {
+    // ref is mid-current-month; the helper looks at the PRIOR months only.
+    final ref = DateTime(2026, 7, 15);
+    Map<String, dynamic> tx(String date, String label, num amount,
+            [String type = 'expense']) =>
+        {'date': date, 'label': label, 'amount': amount, 'type': type};
+
+    test('counts prior months a category appears in, and active months', () {
+      final txs = [
+        tx('2026-06-05', 'Food', 3000),
+        tx('2026-05-05', 'Food', 3200),
+        tx('2026-04-05', 'Food', 2800),
+        tx('2026-06-01', 'Rent', 7000),
+        // Current month is excluded from the prior-month window.
+        tx('2026-07-05', 'Food', 500),
+      ];
+      final h = priorCategoryHistory(txs, ref);
+      expect(h.monthsSeen['Food'], 3);
+      expect(h.monthsSeen['Rent'], 1);
+      expect(h.activeMonths, 3); // Jun, May, Apr had spending
+    });
+
+    test('regular means present in at least half the active months', () {
+      final txs = [
+        for (final m in ['2026-06', '2026-05', '2026-04', '2026-03'])
+          tx('$m-05', 'Food', 3000),
+        tx('2026-06-10', 'Tuition', 15000), // once in 4 active months
+      ];
+      final h = priorCategoryHistory(txs, ref);
+      expect(h.activeMonths, 4);
+      expect(h.isRegular('Food'), true); // 4 of 4
+      expect(h.isRegular('Tuition'), false); // 1 of 4
+    });
+
+    test('income and transfers are ignored; blank labels fold to Other', () {
+      final txs = [
+        tx('2026-06-15', 'Sweldo', 20000, 'income'),
+        tx('2026-06-16', 'To savings', 2000, 'transfer'),
+        tx('2026-06-17', '   ', 400),
+      ];
+      final h = priorCategoryHistory(txs, ref);
+      expect(h.monthsSeen.containsKey('Sweldo'), false);
+      expect(h.monthsSeen['Other'], 1);
+      expect(h.activeMonths, 1);
+    });
+
+    test('junk rows and no history are safe', () {
+      final h = priorCategoryHistory([null, 42, 'x'], ref);
+      expect(h.activeMonths, 0);
+      expect(h.isRegular('Food'), false);
+    });
+  });
 }

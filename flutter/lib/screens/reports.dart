@@ -430,9 +430,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (rows.isEmpty) return const SizedBox.shrink();
 
     final daysInMonth = DateTime(catRef.year, catRef.month + 1, 0).day;
-    final frac = isCurrent ? (catRef.day / daysInMonth) : 1.0;
     // Early in a month, categories are still filling in, so hold the flags.
-    final canFlag = !isCurrent || frac >= 0.34;
+    final canFlag = !isCurrent || (catRef.day / daysInMonth) >= 0.34;
+    // Which categories are regular enough to be judged (rent-once and
+    // tuition-occasionally are ranked but never flagged).
+    final history = priorCategoryHistory(_data['transactions'], catRef);
 
     var maxNow = 0.0;
     for (final r in rows) {
@@ -456,7 +458,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 style: TextStyle(color: Barako.muted, fontSize: 12)),
             const SizedBox(height: 14),
             for (var i = 0; i < rows.length; i++) ...[
-              _moverRow(rows[i], scale, i == 0, canFlag, isCurrent),
+              _moverRow(rows[i], scale, i == 0, canFlag, history),
               if (i < rows.length - 1) const SizedBox(height: 12),
             ],
           ],
@@ -466,13 +468,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _moverRow(Map<String, dynamic> r, double scale, bool biggest,
-      bool canFlag, bool isCurrent) {
+      bool canFlag, CategoryHistory history) {
     final label = r['label'] as String;
     final spent = amountOf(r['now']);
-    // For the current month compare against the pace-adjusted expected; for a
-    // completed month, against the full-month average.
-    final basis = isCurrent ? amountOf(r['expected']) : amountOf(r['avg']);
-    final over = canFlag && basis > 0 && spent > basis * 1.3;
+    // Flag against the FULL-month average, not a paced figure, so a category
+    // paid once (rent) can never cross it by simply posting. Only regular
+    // categories are eligible, and the gap must be both proportionally and
+    // absolutely meaningful, so a small line does not raise an alarm.
+    final avg = amountOf(r['avg']);
+    final over = canFlag &&
+        history.isRegular(label) &&
+        avg > 0 &&
+        spent > avg * 1.3 &&
+        (spent - avg) >= 500;
     final fill = (spent / scale).clamp(0.0, 1.0);
     final barColor = over
         ? Barako.warningStrong
@@ -493,24 +501,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       fontWeight:
                           biggest ? FontWeight.w700 : FontWeight.w600)),
             ),
-            if (over) ...[
-              Icon(Icons.trending_up, size: 14, color: Barako.warningStrong),
-              const SizedBox(width: 3),
-              Text('more than usual',
+            const SizedBox(width: 8),
+            // Flexible so an outsized amount yields instead of overflowing the
+            // row next to a long label.
+            Flexible(
+              child: Text(formatMoney(spent),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
                   style: TextStyle(
-                      color: Barako.warningStrong,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
-            ],
-            Text(formatMoney(spent),
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
           ],
         ),
+        // The flag rides on its own line with the actual overage, the number a
+        // user would act on, not a bare "more than usual".
+        if (over) ...[
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              Icon(Icons.trending_up, size: 13, color: Barako.warningStrong),
+              const SizedBox(width: 3),
+              Expanded(
+                child: Text('${formatMoney(spent - avg)} over your usual',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: Barako.warningStrong,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 6),
         LayoutBuilder(
           builder: (context, c) {

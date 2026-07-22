@@ -64,6 +64,63 @@ class SpendCompare {
   }
 }
 
+/// How regular each spending category is across the prior months, so the
+/// "Where it went" flag only judges categories you spend on most months. This
+/// counts month presence, never pesos, so it stays out of the golden-locked
+/// engine: a lump-sum category paid once (rent) or an irregular one (tuition,
+/// hospital) is not accused of being "over usual" on the month it naturally
+/// lands. Mirrors categoryVsAverage's month window (prior months 1..months),
+/// its expense filter, and its label normalization, so the two agree on which
+/// label is which.
+class CategoryHistory {
+  /// label -> how many of the prior months had any spend under it.
+  final Map<String, int> monthsSeen;
+
+  /// How many of the prior months had any spending at all (the denominator
+  /// categoryVsAverage divides its average by).
+  final int activeMonths;
+
+  const CategoryHistory(this.monthsSeen, this.activeMonths);
+
+  /// A category counts as regular when it shows up in at least half the months
+  /// that had any activity.
+  bool isRegular(String label) {
+    if (activeMonths <= 0) return false;
+    return (monthsSeen[label] ?? 0) * 2 >= activeMonths;
+  }
+}
+
+String _monthKeyOf(int year, int month) {
+  final d = DateTime(year, month, 1);
+  return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
+}
+
+CategoryHistory priorCategoryHistory(dynamic transactions, DateTime ref,
+    [int months = 6]) {
+  final txs = transactions is List ? transactions : const [];
+  final monthsSeen = <String, int>{};
+  var activeMonths = 0;
+  for (var i = 1; i <= months; i++) {
+    final key = _monthKeyOf(ref.year, ref.month - i);
+    final seen = <String>{};
+    for (final t in txs) {
+      if (t is! Map) continue;
+      if (t['type'] != 'expense') continue;
+      final date = (t['date'] ?? '').toString();
+      if (date.length < 7 || date.substring(0, 7) != key) continue;
+      final raw = t['label'];
+      final label =
+          (raw is String && raw.trim().isNotEmpty) ? raw.trim() : 'Other';
+      seen.add(label);
+    }
+    if (seen.isNotEmpty) activeMonths += 1;
+    for (final l in seen) {
+      monthsSeen[l] = (monthsSeen[l] ?? 0) + 1;
+    }
+  }
+  return CategoryHistory(monthsSeen, activeMonths);
+}
+
 /// [series] is monthlySeries output (oldest first, last = focus month). [frac]
 /// is how far into the focus month we are: pass the day fraction for the
 /// current month, or 1.0 for a complete past month.
