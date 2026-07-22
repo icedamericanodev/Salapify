@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
+import '../money/analytics.dart' show monthlySeries;
 import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
@@ -93,9 +94,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _monthStepper(),
                     const SizedBox(height: 12),
                   ],
-                  if (_tab == 0)
-                    _incomeCard()
-                  else if (_tab == 1)
+                  if (_tab == 0) ...[
+                    _incomeCard(),
+                    const SizedBox(height: 14),
+                    _trendSection(),
+                  ] else if (_tab == 1)
                     _cashFlowCard()
                   else
                     _positionCard(),
@@ -318,6 +321,66 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     TextStyle(color: Barako.faint, fontSize: 12, height: 1.35)),
           ),
       ],
+    );
+  }
+
+  // ---- Spending trend: this month vs your usual ----
+  Widget _trendSection() {
+    final series = monthlySeries(_data['transactions'], 6, _ref);
+    // For the current month, pace the "usual" to how far in we are; a past
+    // month you navigated to is complete, so compare against the full usual.
+    final now = DateTime.now();
+    final isCurrent = _monthOffset == 0;
+    final daysInMonth = DateTime(_ref.year, _ref.month + 1, 0).day;
+    final frac = isCurrent ? (now.day / daysInMonth) : 1.0;
+    final cmp = spendingVsUsual(series, frac);
+
+    // The plain read. Honest about a partial month and about thin history.
+    String read;
+    Color readColor = Barako.textSecondary;
+    if (!cmp.hasHistory) {
+      read =
+          'Not enough history yet to compare. After a couple of logged months, this tells you whether a month is normal for you.';
+      readColor = Barako.muted;
+    } else {
+      final pct = cmp.pctVsExpected.abs();
+      final soFar = isCurrent ? ' so far' : '';
+      final paceWord = isCurrent ? 'on pace for a' : 'a';
+      if (cmp.pctVsExpected >= 10) {
+        read =
+            'You are spending more than usual$soFar. About $pct% above your typical ${formatMoney(cmp.usual)} month. Worth a look at what moved.';
+        readColor = Barako.warningStrong;
+      } else if (cmp.pctVsExpected <= -10) {
+        read =
+            'You are spending less than usual$soFar, about $pct% below your typical ${formatMoney(cmp.usual)} month. A lighter month, keep it up.';
+        readColor = Barako.primaryText;
+      } else {
+        read =
+            'Right around your usual, $paceWord ${formatMoney(cmp.usual)} month. Steady.';
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('SPENDING TREND', style: Barako.kickerStyle),
+            const SizedBox(height: 4),
+            Text('Last 6 months, spending per month',
+                style: TextStyle(color: Barako.muted, fontSize: 12)),
+            const SizedBox(height: 14),
+            _TrendBars(
+                series: series,
+                usual: cmp.hasHistory ? cmp.usual : 0,
+                focusKey: series.isNotEmpty ? series.last['key'] as String : ''),
+            const SizedBox(height: 14),
+            Text(read,
+                style: TextStyle(color: readColor, fontSize: 13, height: 1.45)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -792,6 +855,139 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Six monthly spending bars with a dashed "usual" reference line, so a glance
+// answers "is this month normal for me". The focus month is emphasized; the
+// others recede. Pure Dart, no painter. Heights come from the golden-locked
+// monthlySeries, so the bars never disagree with the statement above them.
+class _TrendBars extends StatelessWidget {
+  final List<Map<String, dynamic>> series;
+  final double usual;
+  final String focusKey;
+  const _TrendBars({
+    required this.series,
+    required this.usual,
+    required this.focusKey,
+  });
+
+  double _exp(Map<String, dynamic> m) {
+    final e = amountOf(m['expenses']);
+    return e.isFinite && e > 0 ? e : 0.0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const areaH = 76.0;
+    // The tallest bar (or the usual line) sets the scale.
+    var peak = usual.isFinite ? usual : 0.0;
+    for (final m in series) {
+      final e = _exp(m);
+      if (e > peak) peak = e;
+    }
+    if (!(peak > 0)) peak = 1;
+    final usualH = (usual / peak * areaH).clamp(0.0, areaH);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: areaH,
+          child: Stack(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (final m in series)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height:
+                                (_exp(m) / peak * areaH).clamp(2.0, areaH),
+                            decoration: BoxDecoration(
+                              color: m['key'] == focusKey
+                                  ? Barako.primary
+                                  : Barako.primary.withValues(alpha: 0.26),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              if (usual > 0)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: usualH,
+                  child: const _DashedLine(),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (final m in series)
+              Expanded(
+                child: Text(m['label'] as String,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: m['key'] == focusKey
+                            ? Barako.text
+                            : Barako.faint,
+                        fontSize: 10,
+                        fontWeight: m['key'] == focusKey
+                            ? FontWeight.w700
+                            : FontWeight.w500)),
+              ),
+          ],
+        ),
+        if (usual > 0) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                  width: 16, child: Divider(color: Barako.faint, height: 1)),
+              const SizedBox(width: 6),
+              Text('Your usual ${formatMoney(usual)} a month',
+                  style: TextStyle(color: Barako.muted, fontSize: 11)),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// A thin dashed rule for the "usual" reference line. Pure Dart, laid out from
+// the available width so it never overflows.
+class _DashedLine extends StatelessWidget {
+  const _DashedLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const dash = 5.0;
+        const gap = 4.0;
+        final count = (constraints.maxWidth / (dash + gap)).floor().clamp(1, 400);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var i = 0; i < count; i++)
+              Container(width: dash, height: 1.5, color: Barako.faint),
+          ],
+        );
+      },
     );
   }
 }

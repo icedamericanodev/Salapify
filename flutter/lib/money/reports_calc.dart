@@ -30,3 +30,56 @@ double liquidGap(Map<String, dynamic> bs) =>
 /// order (snowball minus avalanche) so the two apps never disagree.
 double interestSaved(num snowballInterest, num avalancheInterest) =>
     _fin(snowballInterest.toDouble() - avalancheInterest.toDouble());
+
+/// This month's spending measured against the user's usual month. Built on the
+/// golden-locked monthlySeries (oldest-first, the last entry is the focus
+/// month). "usual" averages expenses over the PRIOR months that actually had
+/// spending, so one month of history is not diluted into a fake "below usual"
+/// verdict. "expected" paces that usual to how far into the month we are, so a
+/// partial current month is compared fairly. Net-new presentation math with no
+/// RN counterpart, covered by unit tests and non-finite guarded.
+class SpendCompare {
+  /// Expenses logged in the focus month so far.
+  final double current;
+
+  /// Average full-month expenses of the prior active months.
+  final double usual;
+
+  /// usual scaled by how far into the month we are (1.0 for a complete month).
+  final double expected;
+
+  /// How many prior months fed the average. Zero means no basis to compare.
+  final int priorMonths;
+
+  const SpendCompare(this.current, this.usual, this.expected, this.priorMonths);
+
+  bool get hasHistory => priorMonths > 0;
+
+  /// Percent above (positive) or below (negative) the pace-adjusted expected
+  /// spend. Zero when there is nothing to compare against.
+  int get pctVsExpected {
+    if (!(expected > 0)) return 0;
+    final r = (current / expected - 1) * 100;
+    return r.isFinite ? r.round() : 0;
+  }
+}
+
+/// [series] is monthlySeries output (oldest first, last = focus month). [frac]
+/// is how far into the focus month we are: pass the day fraction for the
+/// current month, or 1.0 for a complete past month.
+SpendCompare spendingVsUsual(List<Map<String, dynamic>> series, double frac) {
+  if (series.isEmpty) return const SpendCompare(0, 0, 0, 0);
+  final current = _fin(amountOf(series.last['expenses']));
+  var sum = 0.0;
+  var active = 0;
+  for (var i = 0; i < series.length - 1; i++) {
+    final e = _fin(amountOf(series[i]['expenses']));
+    if (e > 0) {
+      sum += e;
+      active += 1;
+    }
+  }
+  final usual = active > 0 ? sum / active : 0.0;
+  final f = frac.isFinite ? frac.clamp(0.0, 1.0) : 1.0;
+  return SpendCompare(current, usual, usual * f, active);
+}
