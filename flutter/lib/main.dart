@@ -14,11 +14,12 @@ import 'screens/menu.dart';
 import 'screens/overview.dart';
 import 'screens/utang.dart';
 import 'theme.dart';
+import 'widgets/lock_gate.dart';
 
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.97 · Recurring bills and income: set it once, it logs itself every month, ported from the RN app';
+    'f0.99 · App Lock: unlock with your fingerprint or face, hidden in the app switcher (new base APK, install once)';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -84,6 +85,10 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
           title: 'Salapify Preview',
           theme: salapifyTheme(Barako.current),
           debugShowCheckedModeBanner: false,
+          // LockGate wraps the whole navigator (via builder), so the lock
+          // overlay covers pushed screens too, not just the home tab.
+          builder: (context, child) =>
+              LockGate(store: widget.store, child: child ?? const SizedBox()),
           home: Scaffold(
             body: switch (tab) {
               1 => BudgetScreen(store: widget.store),

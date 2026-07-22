@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
@@ -128,6 +129,10 @@ class MenuScreen extends StatelessWidget {
                 _kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceCard(context),
+                const SizedBox(height: 20),
+                _kicker('SECURITY'),
+                const SizedBox(height: 8),
+                _appLockCard(context),
               ],
               const SizedBox(height: 20),
               _kicker('YOUR DATA'),
@@ -274,6 +279,72 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text('System follows your phone, going dark at night on its own.',
                 style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _appLockCard(BuildContext context) {
+    final on = (store.data['settings'] as Map?)?['appLock'] == true;
+    Future<void> toggle(bool value) async {
+      final messenger = ScaffoldMessenger.of(context);
+      if (value) {
+        final auth = BiometricAuthenticator();
+        // Only turn it on when the phone can actually unlock it, so App lock
+        // never strands the owner behind a lock they cannot pass.
+        if (!await auth.canLock()) {
+          messenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Set up a fingerprint or face unlock on your phone first, then turn this on.')));
+          return;
+        }
+        // Confirm the unlock works right now, so nobody enables a lock they
+        // cannot pass. A cancel leaves it off.
+        if (!await auth.authenticate()) return;
+      }
+      try {
+        await store.setAppLock(value);
+      } catch (e) {
+        messenger.showSnackBar(
+            SnackBar(content: Text('Could not save that, nothing changed. $e')));
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.fingerprint, color: Barako.primary, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('App lock',
+                      style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(
+                      'Ask for your fingerprint or face to open Salapify. Your '
+                      'money stays private if someone else picks up your phone.',
+                      style: TextStyle(
+                          color: Barako.muted, fontSize: 12, height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: on,
+              onChanged: toggle,
+              activeThumbColor: Barako.onPrimary,
+              activeTrackColor: Barako.primary,
+              inactiveThumbColor: Barako.faint,
+              inactiveTrackColor: Barako.border,
+            ),
           ],
         ),
       ),

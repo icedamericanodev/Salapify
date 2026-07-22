@@ -66,6 +66,8 @@ void main() {
     expect(find.text('🎉 Packed lunch all week'), findsOneWidget);
     expect((store.data['wins'] as List).length, 1);
 
+    await tester.ensureVisible(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
@@ -91,6 +93,8 @@ void main() {
     await _openMindset(tester);
 
     expect(find.text('🎉 Legacy win'), findsOneWidget);
+    await tester.ensureVisible(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 

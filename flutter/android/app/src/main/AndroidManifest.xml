@@ -3,6 +3,10 @@
          The app's own money data never leaves the device; this permission
          exists for update delivery, the same trust posture as the RN app. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- App Lock: unlock with the phone's own fingerprint or face through
+         local_auth. No biometric data ever leaves the device; Android brokers
+         the check and only returns success or failure. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="Salapify Preview"
         android:name="${applicationName}"
