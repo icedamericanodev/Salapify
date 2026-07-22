@@ -229,13 +229,11 @@ class MenuScreen extends StatelessWidget {
               children: [
                 for (final t in barakoThemes)
                   ChoiceChip(
-                    // A dot in the theme's own brand color (at the current
-                    // brightness) previews each option, so the 8 chips are not
-                    // all identical but for their label.
-                    avatar: CircleAvatar(
-                        radius: 8,
-                        backgroundColor:
-                            t.resolve(Barako.current.brightness).primary),
+                    // A two-tone swatch previews each theme: its own background
+                    // field with its brand color inside. This separates the
+                    // warm trio (Barako brown, Ember charcoal, Forest green
+                    // fields) that all shared a near-identical orange dot.
+                    avatar: _ThemeSwatch(t.resolve(Barako.current.brightness)),
                     label: Text(t.label),
                     selected: currentKey == t.key,
                     onSelected: (_) => save(() => store.setThemeKey(t.key)),
@@ -403,6 +401,35 @@ class MenuScreen extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// The theme picker swatch: the theme's own background field with its brand
+// color inside, so each of the 8 chips reads as its own little app. Takes a
+// resolved palette (passed in, not a live getter), so a const swatch is safe.
+class _ThemeSwatch extends StatelessWidget {
+  final BarakoPalette palette;
+  const _ThemeSwatch(this.palette);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: palette.border),
+      ),
+      child: Center(
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration:
+              BoxDecoration(color: palette.primary, shape: BoxShape.circle),
         ),
       ),
     );

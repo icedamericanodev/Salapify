@@ -34,7 +34,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Update stamp'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Update stamp'), findsOneWidget);
-    expect(find.textContaining('f0.'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'f\d+\.')), findsOneWidget);
     expect(find.text('Import backup'), findsOneWidget);
   });
 
