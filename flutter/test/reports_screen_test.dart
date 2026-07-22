@@ -66,6 +66,8 @@ void main() {
     // Income is the default tab; net income is positive, so the headline reads
     // "... kept".
     expect(find.textContaining('kept'), findsWidgets);
+    // The spending trend section rides under the income statement.
+    expect(find.text('SPENDING TREND'), findsOneWidget);
 
     // Switch to Position: net worth is positive, so "to your name".
     await tester.tap(find.text('Position'));

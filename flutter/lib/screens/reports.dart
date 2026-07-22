@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
+import '../money/analytics.dart' show monthlySeries;
 import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
@@ -93,9 +94,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _monthStepper(),
                     const SizedBox(height: 12),
                   ],
-                  if (_tab == 0)
-                    _incomeCard()
-                  else if (_tab == 1)
+                  if (_tab == 0) ...[
+                    _incomeCard(),
+                    const SizedBox(height: 14),
+                    _trendSection(),
+                  ] else if (_tab == 1)
                     _cashFlowCard()
                   else
                     _positionCard(),
@@ -318,6 +321,98 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     TextStyle(color: Barako.faint, fontSize: 12, height: 1.35)),
           ),
       ],
+    );
+  }
+
+  // ---- Spending trend: this month vs your usual ----
+  Widget _trendSection() {
+    final series = monthlySeries(_data['transactions'], 6, _ref);
+    // For the current month, pace the "usual" to how far in we are; a past
+    // month you navigated to is complete, so compare against the full usual.
+    final now = DateTime.now();
+    final isCurrent = _monthOffset == 0;
+    final daysInMonth = DateTime(_ref.year, _ref.month + 1, 0).day;
+    final frac = isCurrent ? (now.day / daysInMonth) : 1.0;
+    final cmp = spendingVsUsual(series, frac);
+
+    // The plain read. A completed month gets an exact full-to-full percentage.
+    // The current month never does: fixed costs (rent, utang, subscriptions)
+    // land on the 1st, so a paced percentage balloons early in the month. It
+    // states the facts instead, and adds a soft run-rate read only once the
+    // month is well underway.
+    final usualStr = formatMoney(cmp.usual);
+    String read;
+    Color readColor = Barako.textSecondary;
+    if (!cmp.hasHistory) {
+      read =
+          'Not enough history yet to compare. After a couple of logged months, this tells you whether a month is normal for you.';
+      readColor = Barako.muted;
+    } else if (!isCurrent) {
+      // A month you navigated to is complete, so this is a like-for-like read.
+      final pct = cmp.pctVsExpected.abs();
+      if (cmp.priorMonths == 1) {
+        read =
+            'Going by just the month before, about $usualStr, this month came in ${cmp.pctVsExpected >= 0 ? '$pct% higher' : '$pct% lower'}. One month is only a rough guide.';
+        readColor = Barako.muted;
+      } else if (cmp.pctVsExpected >= 10) {
+        read =
+            'You spent about $pct% more than your usual $usualStr month. Worth a look at what moved.';
+        readColor = Barako.warningStrong;
+      } else if (cmp.pctVsExpected <= -10) {
+        read = 'A lighter month, about $pct% below your usual $usualStr.';
+        readColor = Barako.primaryText;
+      } else {
+        read = 'Right around your usual $usualStr for the month. Steady.';
+      }
+    } else {
+      final soFar = formatMoney(cmp.current);
+      if (cmp.priorMonths == 1) {
+        read =
+            'So far this month you have spent $soFar. Going by just last month, your usual is about $usualStr. One month is only a rough guide.';
+        readColor = Barako.muted;
+      } else if (frac < 0.34) {
+        read =
+            'Still early in the month. So far you have spent $soFar, and your usual full month runs about $usualStr. Check back once more of the month has passed.';
+        readColor = Barako.muted;
+      } else {
+        final projected = cmp.current / frac;
+        final projStr = formatMoney(projected);
+        if (projected >= cmp.usual * 1.2) {
+          read =
+              'So far this month: $soFar. At this pace you are heading for about $projStr, above your usual $usualStr. Worth easing off a line or two.';
+          readColor = Barako.warningStrong;
+        } else if (projected <= cmp.usual * 0.8) {
+          read =
+              'So far this month: $soFar. At this pace you are tracking under your usual $usualStr. Just make sure that is real and not entries you have not logged yet.';
+        } else {
+          read =
+              'So far this month: $soFar. At this pace you are tracking close to your usual $usualStr. Steady.';
+        }
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('SPENDING TREND', style: Barako.kickerStyle),
+            const SizedBox(height: 4),
+            Text('Last 6 months, spending per month',
+                style: TextStyle(color: Barako.muted, fontSize: 12)),
+            const SizedBox(height: 14),
+            _TrendBars(
+                series: series,
+                usual: cmp.hasHistory ? cmp.usual : 0,
+                focusKey: series.isNotEmpty ? series.last['key'] as String : '',
+                focusPartial: isCurrent),
+            const SizedBox(height: 14),
+            Text(read,
+                style: TextStyle(color: readColor, fontSize: 13, height: 1.45)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -792,6 +887,159 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Six monthly spending bars with a dashed "usual" reference line, so a glance
+// answers "is this month normal for me". The focus month is emphasized; the
+// others recede. Pure Dart, no painter. Heights come from the golden-locked
+// monthlySeries, so the bars never disagree with the statement above them.
+class _TrendBars extends StatelessWidget {
+  final List<Map<String, dynamic>> series;
+  final double usual;
+  final String focusKey;
+  final bool focusPartial;
+  const _TrendBars({
+    required this.series,
+    required this.usual,
+    required this.focusKey,
+    this.focusPartial = false,
+  });
+
+  double _exp(Map<String, dynamic> m) {
+    final e = amountOf(m['expenses']);
+    return e.isFinite && e > 0 ? e : 0.0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const areaH = 76.0;
+    // The tallest bar (or the usual line) sets the scale.
+    var peak = usual.isFinite ? usual : 0.0;
+    for (final m in series) {
+      final e = _exp(m);
+      if (e > peak) peak = e;
+    }
+    if (!(peak > 0)) peak = 1;
+    // Keep the line 2px below the top so it stays visible even when the usual
+    // equals the peak (every shown month at or below average).
+    final usualH = (usual / peak * areaH).clamp(0.0, areaH - 2);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: areaH,
+          child: Stack(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (final m in series)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            // A true no-spend month shows nothing, not a stub,
+                            // so a glance does not read it as a small spend.
+                            height: _exp(m) > 0
+                                ? (_exp(m) / peak * areaH).clamp(2.0, areaH)
+                                : 0.0,
+                            decoration: BoxDecoration(
+                              color: m['key'] == focusKey
+                                  ? Barako.primary
+                                  : Barako.primary.withValues(alpha: 0.26),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              if (usual > 0)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: usualH,
+                  child: const _DashedLine(),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final m in series)
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(m['label'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: m['key'] == focusKey
+                                ? Barako.text
+                                : Barako.faint,
+                            fontSize: 10,
+                            fontWeight: m['key'] == focusKey
+                                ? FontWeight.w700
+                                : FontWeight.w500)),
+                    // The current month's bar is only spending so far, not a
+                    // finished month, so it is labeled to avoid a false
+                    // "low month" read against the completed bars beside it.
+                    if (m['key'] == focusKey && focusPartial)
+                      Text('so far',
+                          textAlign: TextAlign.center,
+                          style:
+                              TextStyle(color: Barako.faint, fontSize: 8.5)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        if (usual > 0) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                  width: 16, child: Divider(color: Barako.faint, height: 1)),
+              const SizedBox(width: 6),
+              Text('Your usual ${formatMoney(usual)} a month',
+                  style: TextStyle(color: Barako.muted, fontSize: 11)),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// A thin dashed rule for the "usual" reference line. Pure Dart, laid out from
+// the available width so it never overflows.
+class _DashedLine extends StatelessWidget {
+  const _DashedLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const dash = 5.0;
+        const gap = 4.0;
+        final count = (constraints.maxWidth / (dash + gap)).floor().clamp(1, 400);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var i = 0; i < count; i++)
+              Container(width: dash, height: 1.5, color: Barako.faint),
+          ],
+        );
+      },
     );
   }
 }

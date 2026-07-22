@@ -83,4 +83,73 @@ void main() {
       expect(interestSaved(double.infinity, 3000), 0);
     });
   });
+
+  group('spendingVsUsual', () {
+    // monthlySeries is oldest-first; the last entry is the focus month.
+    List<Map<String, dynamic>> series(List<double> expenses) => [
+          for (var i = 0; i < expenses.length; i++)
+            {'key': 'm$i', 'expenses': expenses[i]},
+        ];
+
+    test('usual averages only the prior months that had spending', () {
+      // Three prior months: 4000, 0, 6000. The zero month is skipped, so
+      // usual = (4000 + 6000) / 2 = 5000, not /3.
+      final c = spendingVsUsual(series([4000, 0, 6000, 5200]), 1.0);
+      expect(c.usual, 5000);
+      expect(c.current, 5200);
+      expect(c.priorMonths, 2);
+      expect(c.hasHistory, true);
+    });
+
+    test('a complete month compares against the full usual', () {
+      final c = spendingVsUsual(series([5000, 5000, 6000]), 1.0);
+      // usual 5000, current 6000, expected 5000 -> +20%.
+      expect(c.pctVsExpected, 20);
+    });
+
+    test('a partial month paces the usual down so it is judged fairly', () {
+      // Halfway through the month, current 2600 against a 5000 usual. Expected
+      // 2500, so +4%, not the -48% a full-month comparison would wrongly show.
+      final c = spendingVsUsual(series([5000, 2600]), 0.5);
+      expect(c.expected, 2500);
+      expect(c.pctVsExpected, 4);
+    });
+
+    test('no prior spending means no basis to compare', () {
+      final c = spendingVsUsual(series([0, 0, 3000]), 1.0);
+      expect(c.hasHistory, false);
+      expect(c.usual, 0);
+      expect(c.pctVsExpected, 0);
+    });
+
+    test('empty series is safe', () {
+      final c = spendingVsUsual(const [], 1.0);
+      expect(c.hasHistory, false);
+      expect(c.current, 0);
+    });
+
+    test('non-finite frac falls back to a full month', () {
+      final c = spendingVsUsual(series([5000, 5000]), double.infinity);
+      expect(c.expected, 5000);
+    });
+
+    test('a net-negative focus month floors to zero spent', () {
+      // Refunds entered as negative expenses could make the month sum negative;
+      // it should read as zero spent (matching the bar), not a nonsense delta.
+      final c = spendingVsUsual(series([5000, -300]), 1.0);
+      expect(c.current, 0);
+      expect(c.pctVsExpected, -100);
+    });
+
+    test('reads string and junk amounts the JS way', () {
+      final c = spendingVsUsual([
+        {'key': 'a', 'expenses': '4000'},
+        {'key': 'b', 'expenses': null},
+        {'key': 'c', 'expenses': '6000'},
+        {'key': 'd', 'expenses': 3000},
+      ], 1.0);
+      expect(c.usual, 5000);
+      expect(c.current, 3000);
+    });
+  });
 }
