@@ -742,6 +742,32 @@ class SalapifyStore extends ChangeNotifier {
         };
       });
 
+  /// Whether a reminder kind (daily, payday, bills, collect) is switched on.
+  bool notifOn(String key) {
+    final s = data['settings'];
+    final n = s is Map ? s['notifications'] : null;
+    return n is Map && n[key] == true;
+  }
+
+  /// Turn a reminder kind on or off, stored in settings.notifications. The
+  /// backup preserves unknown settings keys, so this needs no migration. The
+  /// screen reschedules the OS notifications after; the store stays free of any
+  /// platform dependency so it remains unit testable.
+  Future<void> setNotifPref(String key, bool value) => _mutate((d) {
+        final s =
+            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+        final notifs = (s['notifications'] is Map)
+            ? (s['notifications'] as Map).cast<String, dynamic>()
+            : <String, dynamic>{};
+        return {
+          ...d,
+          'settings': {
+            ...s,
+            'notifications': {...notifs, key: value},
+          },
+        };
+      });
+
   /// Remember the mood theme (legacy latte/barako/milktea). Kept for the old
   /// mood card and tests; new UI uses setThemeKey/setThemeMode.
   Future<void> setThemeMood(String mood) => _mutate((d) => {

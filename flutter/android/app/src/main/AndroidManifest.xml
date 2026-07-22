@@ -7,6 +7,13 @@
          local_auth. No biometric data ever leaves the device; Android brokers
          the check and only returns success or failure. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Reminders: on-device local notifications only (log nudge, payday,
+         bills, utang). Nothing is sent anywhere. POST_NOTIFICATIONS is the
+         Android 13+ runtime permission; RECEIVE_BOOT_COMPLETED lets the
+         scheduled reminders survive a reboot. We use INEXACT alarms, so the
+         exact-alarm permissions are deliberately NOT requested. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="Salapify Preview"
         android:name="${applicationName}"
@@ -33,6 +40,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- flutter_local_notifications: deliver a scheduled reminder and
+             re-register the schedule after a reboot. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
