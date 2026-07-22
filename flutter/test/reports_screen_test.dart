@@ -82,5 +82,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.textContaining('cash'), findsWidgets);
+
+    // Back to Income, then tap a category: it opens History filtered to it.
+    await tester.tap(find.text('Income'));
+    await tester.pumpAndSettle();
+    final foodRow = find
+        .ancestor(of: find.text('Food').last, matching: find.byType(InkWell))
+        .first;
+    await tester.ensureVisible(foodRow);
+    await tester.pumpAndSettle();
+    await tester.tap(foodRow);
+    await tester.pumpAndSettle();
+    // The pushed History route shows its back-capable app bar and pre-fills
+    // the filter with the category name.
+    expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
   });
 }

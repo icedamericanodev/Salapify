@@ -17,6 +17,7 @@ import '../money/reports_calc.dart';
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/screen_header.dart';
+import 'history.dart';
 import 'overview.dart' show formatMoney;
 
 const _months = [
@@ -458,17 +459,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 style: TextStyle(color: Barako.muted, fontSize: 12)),
             const SizedBox(height: 14),
             for (var i = 0; i < rows.length; i++) ...[
-              _moverRow(rows[i], scale, i == 0, canFlag, history),
+              _moverRow(context, rows[i], scale, i == 0, canFlag, history),
               if (i < rows.length - 1) const SizedBox(height: 12),
             ],
+            const SizedBox(height: 12),
+            Text('Tap a line to see those entries.',
+                style: TextStyle(color: Barako.faint, fontSize: 11)),
           ],
         ),
       ),
     );
   }
 
-  Widget _moverRow(Map<String, dynamic> r, double scale, bool biggest,
-      bool canFlag, CategoryHistory history) {
+  void _openCategory(BuildContext context, String label) {
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) =>
+          HistoryScreen(store: widget.store, initialQuery: label, pushed: true),
+    ));
+  }
+
+  Widget _moverRow(BuildContext context, Map<String, dynamic> r, double scale,
+      bool biggest, bool canFlag, CategoryHistory history) {
     final label = r['label'] as String;
     final spent = amountOf(r['now']);
     // Flag against the FULL-month average, not a paced figure, so a category
@@ -486,13 +498,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? Barako.warningStrong
         : (biggest ? Barako.primary : Barako.primary.withValues(alpha: 0.32));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return InkWell(
+      onTap: () => _openCategory(context, label),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(label,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -515,6 +532,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       fontWeight: FontWeight.w700,
                       fontFeatures: const [FontFeature.tabularFigures()])),
             ),
+            const SizedBox(width: 2),
+            Icon(Icons.chevron_right, size: 16, color: Barako.faint),
           ],
         ),
         // The flag rides on its own line with the actual overage, the number a
@@ -557,7 +576,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             );
           },
         ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 
