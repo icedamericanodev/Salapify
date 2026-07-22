@@ -68,6 +68,9 @@ void main() {
     expect(find.textContaining('kept'), findsWidgets);
     // The spending trend section rides under the income statement.
     expect(find.text('SPENDING TREND'), findsOneWidget);
+    // The category drilldown lists the month's biggest spend (Food here).
+    expect(find.text('WHERE IT WENT'), findsOneWidget);
+    expect(find.text('Food'), findsWidgets);
 
     // Switch to Position: net worth is positive, so "to your name".
     await tester.tap(find.text('Position'));
