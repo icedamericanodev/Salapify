@@ -39,9 +39,13 @@ class _AffordCardState extends State<AffordCard> {
 
   double get _amount {
     // Strip anything that is not a digit or a dot, so "1,200" or "₱1200" still
-    // read. The engine guards junk anyway; this just keeps typing forgiving.
-    final cleaned =
-        _controller.text.replaceAll(RegExp(r'[^0-9.]'), '');
+    // read (commas are thousands separators here). If more than one dot is left,
+    // they are thousands separators too ("1.200.000"), so drop them; a single
+    // dot stays a decimal point. The engine guards junk anyway.
+    var cleaned = _controller.text.replaceAll(RegExp(r'[^0-9.]'), '');
+    if ('.'.allMatches(cleaned).length > 1) {
+      cleaned = cleaned.replaceAll('.', '');
+    }
     return double.tryParse(cleaned) ?? 0;
   }
 
@@ -93,13 +97,24 @@ class _AffordCardState extends State<AffordCard> {
     );
   }
 
+  void _setMode(AffordMode m) {
+    if (_mode == m) return;
+    // Clear the amount: the same number means a one-time PRICE in one mode and a
+    // MONTHLY payment in the other, so carrying it over would silently reinterpret
+    // it and flash an alarming verdict. A fresh field makes the mode switch honest.
+    setState(() {
+      _mode = m;
+      _controller.clear();
+    });
+  }
+
   Widget _modeChips() => Wrap(
         spacing: 8,
         children: [
           _choice('Pay in full', _mode == AffordMode.oneTime,
-              () => setState(() => _mode = AffordMode.oneTime)),
+              () => _setMode(AffordMode.oneTime)),
           _choice('Pay monthly', _mode == AffordMode.installment,
-              () => setState(() => _mode = AffordMode.installment)),
+              () => _setMode(AffordMode.installment)),
         ],
       );
 
@@ -139,22 +154,23 @@ class _AffordCardState extends State<AffordCard> {
               fontSize: 18,
               fontWeight: FontWeight.w700),
           hintText: _mode == AffordMode.installment ? 'Monthly amount' : 'Price',
-          hintStyle: TextStyle(color: Barako.muted, fontSize: 16),
+          hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
           filled: true,
           fillColor: Barako.background,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          // Match the app's other input fields (14 radius, 1.4 focus ring).
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: Barako.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: Barako.border),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Barako.primary, width: 2),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Barako.primary, width: 1.4),
           ),
         ),
       );
@@ -162,45 +178,82 @@ class _AffordCardState extends State<AffordCard> {
   // The verdict word, its color, and the honest lines behind it.
   Widget _verdict(Map<String, dynamic> r) {
     final verdict = r['verdict'] as String;
-    final (word, color) = _verdictHead(verdict);
+    final (word, color, icon) = _verdictHead(verdict);
     final lines = _mode == AffordMode.installment
         ? _installmentLines(r)
         : _oneTimeLines(r);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(word,
-              maxLines: 1,
-              style: TextStyle(
-                  fontFamily: Barako.displayFont,
-                  color: color,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 8),
-        for (final line in lines) ...[
-          Text(line.$1,
-              style: TextStyle(
-                  color: line.$2 ? color : Barako.text,
-                  fontSize: 13.5,
-                  height: 1.45,
-                  fontWeight: line.$2 ? FontWeight.w700 : FontWeight.w500)),
-          const SizedBox(height: 6),
+    // liveRegion so a screen reader announces the new verdict as the user types,
+    // since it changes on keystroke, not on a self-announcing tap.
+    return Semantics(
+      liveRegion: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // The palette only offers three caution steps, so heavy and no-fit
+          // share a red. A leading icon separates all four states without
+          // relying on colour alone (accessibility, and clarity at a glance).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(word,
+                      maxLines: 1,
+                      style: TextStyle(
+                          fontFamily: Barako.displayFont,
+                          color: color,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final line in lines) ...[
+            Text(line.$1,
+                style: TextStyle(
+                    color: line.$2 ? color : Barako.text,
+                    fontSize: 13.5,
+                    height: 1.45,
+                    fontWeight: line.$2 ? FontWeight.w700 : FontWeight.w500)),
+            const SizedBox(height: 6),
+          ],
         ],
-      ],
+      ),
     );
   }
 
-  (String, Color) _verdictHead(String verdict) => switch (verdict) {
-        'comfortable' => ('Kaya mo ito', Barako.primary),
-        'tight' => ('Kaya, pero masikip', Barako.warning),
-        'heavy' => ('Mabigat sa budget', Barako.warningStrong),
-        'no-fit' => ('Hindi pa kaya', Barako.warningStrong),
-        _ => ('Kulang pa ang datos', Barako.muted),
+  // The verdict word, its colour, and a non-chromatic severity icon. The
+  // 'comfortable' word depends on mode: for a one-time buy you literally hold
+  // the cash, so "Kaya mo ito" is honest; for a plan it only means there is room
+  // in the budget, never "go take on the debt", so it stays a room statement.
+  (String, Color, IconData) _verdictHead(String verdict) => switch (verdict) {
+        'comfortable' => (
+            _mode == AffordMode.installment ? 'May puwang pa' : 'Kaya mo ito',
+            Barako.primary,
+            Icons.check_circle_outline
+          ),
+        'tight' => (
+            'Kaya, pero masikip',
+            Barako.warning,
+            Icons.balance
+          ),
+        'heavy' => (
+            'Mabigat sa budget',
+            Barako.warningStrong,
+            Icons.warning_amber_rounded
+          ),
+        'no-fit' => (
+            'Hindi pa kaya',
+            Barako.warningStrong,
+            Icons.block
+          ),
+        _ => ('Kulang pa ang datos', Barako.muted, Icons.help_outline),
       };
 
   // Each line: (text, isEmphasised). Emphasised lines take the verdict color.
@@ -220,8 +273,8 @@ class _AffordCardState extends State<AffordCard> {
       final wipes = r['wipesCushion'] == true;
       lines.add((
         wipes
-            ? 'This is more than your spendable cash and would wipe out your ${_peso((r['buffer'] as num).toDouble())} emergency cushion.'
-            : 'This goes past your spendable cash and dips ${_peso(overflow)} into your emergency cushion, leaving ${_peso(cushionAfter)}.',
+            ? 'This is more than all the money in your accounts (${_peso((r['buffer'] as num).toDouble())}), so it does not fit right now.'
+            : 'This is past your ${_peso(available)} spendable cash until sweldo. ${_peso(overflow)} would come from savings or money set aside for bills, leaving ${_peso(cushionAfter)} across your accounts.',
         true
       ));
     }
@@ -260,15 +313,26 @@ class _AffordCardState extends State<AffordCard> {
       ));
     }
     final leanShare = r['newLeanShare'];
-    if (leanShare is num && leanShare.isFinite) {
+    final leanIsDistinct = r['leanIsDistinct'] == true;
+    if (leanIsDistinct && leanShare is num && leanShare.isFinite) {
+      // Only speak of a lean month when the user has actually HAD one leaner
+      // than usual, so we never manufacture a downturn stress test the data
+      // cannot support.
       final fitsLean = r['fitsLean'] == true;
       lines.add((
         leanShare > 1
-            ? 'On a lean month it would not even fit, taking ${_pct(leanShare.toDouble())} of what came in.'
+            ? 'On your leaner months it would not even fit, taking ${_pct(leanShare.toDouble())} of what came in.'
             : fitsLean
-                ? 'Even on a lean month it stays manageable at ${_pct(leanShare.toDouble())}.'
-                : 'On a lean month it gets tight, taking ${_pct(leanShare.toDouble())} of what came in.',
+                ? 'Even on your leaner months it stays manageable at ${_pct(leanShare.toDouble())}.'
+                : 'On your leaner months it gets tight, taking ${_pct(leanShare.toDouble())} of what came in.',
         !fitsLean
+      ));
+    } else {
+      // Flat or too-little income history: say so plainly instead of implying a
+      // resilience we have not seen.
+      lines.add((
+        'This assumes every sweldo is like your usual. You have not logged a leaner month yet.',
+        false
       ));
     }
     if ((r['shortNow'] as num) > 0) {
@@ -284,8 +348,16 @@ class _AffordCardState extends State<AffordCard> {
     return lines;
   }
 
+  // A peso ceiling past which real amounts stop meaning anything (a trillion).
+  // Above it we say "more than your money can cover" rather than let an absurd
+  // pasted amount saturate int64 into garbage like -₱9,223,372,036,854,775,808.
+  static const double _pesoCeiling = 1e12;
+
   String _peso(double v) {
-    if (!v.isFinite) return '₱$v';
+    if (!v.isFinite) return '₱--';
+    if (v.abs() > _pesoCeiling) {
+      return v < 0 ? '-₱1,000,000,000,000+' : '₱1,000,000,000,000+';
+    }
     final n = v.round();
     final neg = n < 0;
     final s = n.abs().toString();
@@ -298,15 +370,22 @@ class _AffordCardState extends State<AffordCard> {
   }
 
   String _pct(double share) {
-    if (!share.isFinite) return '--';
-    final p = (share * 100).round();
-    return '$p%';
+    // Guard the PRODUCT, not just the input: a finite share can still overflow
+    // to Infinity when multiplied, and round() on Infinity throws and would take
+    // down the whole Insights tab.
+    final p = share * 100;
+    if (!p.isFinite) return '--';
+    if (p > 100000) return '999%+';
+    return '${p.round()}%';
   }
 
   String _months(double m) {
-    if (!m.isFinite) return '--';
+    // Same product guard as _pct: m is finite but m*10 can overflow.
+    final scaled = m * 10;
+    if (!scaled.isFinite) return 'many months';
+    if (m > 1200) return 'over 1,000 months';
     // One decimal unless it is whole, so "0.5 months" and "2 months" both read.
-    final rounded = (m * 10).round() / 10;
+    final rounded = scaled.round() / 10;
     final text = rounded % 1 == 0 ? rounded.toInt().toString() : rounded.toString();
     return '$text ${rounded == 1 ? 'month' : 'months'}';
   }

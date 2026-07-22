@@ -101,20 +101,31 @@ void main() {
       expect(r['eatsCushion'], false);
     });
 
-    test('a buy that overflows spendable cash into the cushion is heavy', () {
-      final r = affordCheck(baseData(), ref,
-          mode: AffordMode.oneTime, amount: 25000);
+    test('a buy past spendable cash but within total money dips the cushion',
+        () {
+      // buffer (all accounts) must exceed available (liquid minus bills) for a
+      // "heavy" band to exist, so give this fixture a savings account too.
+      final data = baseData();
+      data['accounts'] = [
+        {'id': 'a1', 'kind': 'cash', 'balance': 20000},
+        {'id': 'a2', 'kind': 'savings', 'balance': 30000},
+      ];
+      // available stays 20,000 (savings is not liquid); buffer is now 50,000.
+      final r =
+          affordCheck(data, ref, mode: AffordMode.oneTime, amount: 35000);
       expect(r['verdict'], 'heavy');
-      expect(r['fitsNow'], false);
       expect(r['eatsCushion'], true);
-      expect(r['overflow'], 5000);
+      expect(r['overflow'], 15000); // 35,000 - 20,000 spendable
       expect(r['wipesCushion'], false);
-      expect(r['cushionAfter'], 15000);
+      expect(r['cushionAfter'], 15000); // 50,000 - 35,000
     });
 
-    test('a buy that wipes the whole cushion does not fit', () {
+    test('a buy larger than ALL your money does not fit (single pot)', () {
+      // The base fixture has one 20,000 account, so available == buffer. A
+      // 25,000 buy is more than every peso you have: no-fit, nothing left. This
+      // is the case the old cushion-on-top model wrongly called merely "heavy".
       final r = affordCheck(baseData(), ref,
-          mode: AffordMode.oneTime, amount: 50000);
+          mode: AffordMode.oneTime, amount: 25000);
       expect(r['verdict'], 'no-fit');
       expect(r['wipesCushion'], true);
       expect(r['cushionAfter'], 0);
@@ -196,6 +207,50 @@ void main() {
           mode: AffordMode.oneTime, amount: 5000);
       // No income needed to judge a cash purchase against spendable cash.
       expect(r['verdict'], 'comfortable');
+    });
+
+    test('flat income means no distinct lean month, so it is not claimed', () {
+      // The base fixture has three identical 30,000 months: the lean month IS
+      // the typical month, so the card must not imply downturn resilience.
+      final r = affordCheck(baseData(), ref,
+          mode: AffordMode.installment, amount: 5000, termMonths: 6);
+      expect(r['leanIsDistinct'], false);
+      expect(r['leanIncome'], 30000);
+    });
+
+    test('a genuinely leaner month is detected and used', () {
+      final data = baseData();
+      data['transactions'] = [
+        _tx('2026-04-15', 'income', 30000),
+        _tx('2026-05-15', 'income', 30000),
+        _tx('2026-06-15', 'income', 12000), // a lean sweldo
+        _tx('2026-05-20', 'expense', 10000),
+        _tx('2026-06-20', 'expense', 10000),
+      ];
+      final r = affordCheck(data, ref,
+          mode: AffordMode.installment, amount: 5000, termMonths: 6);
+      expect(r['leanIncome'], 12000);
+      expect(r['leanIsDistinct'], true);
+      // typicalIncome is still the 30,000 median (a lean month does not drag it).
+      expect(r['typicalIncome'], 30000);
+    });
+
+    test('a single freak-low month is trimmed with enough history', () {
+      final data = baseData();
+      data['transactions'] = [
+        _tx('2026-03-15', 'income', 2000), // freak low, e.g. between jobs
+        _tx('2026-04-15', 'income', 30000),
+        _tx('2026-05-15', 'income', 30000),
+        _tx('2026-06-15', 'income', 30000),
+        _tx('2026-05-20', 'expense', 10000),
+        _tx('2026-06-20', 'expense', 10000),
+      ];
+      final r = affordCheck(data, ref,
+          mode: AffordMode.installment, amount: 5000, termMonths: 6);
+      // Four income months, so the single 2,000 outlier is dropped and the lean
+      // month becomes the next-lowest 30,000, avoiding a false alarm.
+      expect(r['leanIncome'], 30000);
+      expect(r['leanIsDistinct'], false);
     });
 
     test('the first payment not fitting spendable cash bumps up the verdict',

@@ -54,15 +54,18 @@ double _num(dynamic v) {
 /// there is not one yet. monthlySeries is golden-locked, so this stays
 /// consistent with every other income figure to the peso. Utang collected is
 /// already excluded upstream (source 'receivable' is not income).
+///
+/// With four or more income months the single lowest is dropped as a possible
+/// freak month (a between-jobs gap, a commission dry spell), so one outlier does
+/// not false-alarm every commitment; with fewer, the plain minimum is used.
 double? _leanIncome(Map<String, dynamic> data, DateTime ref) {
   final series = monthlySeries(data['transactions'], 7, ref);
-  double? lean;
-  for (final m in series.take(6)) {
-    final inc = _num(m['income']);
-    if (inc <= 0) continue;
-    if (lean == null || inc < lean) lean = inc;
-  }
-  return lean;
+  final incomes = <double>[
+    for (final m in series.take(6))
+      if (_num(m['income']) > 0) _num(m['income']),
+  ]..sort();
+  if (incomes.isEmpty) return null;
+  return incomes.length >= 4 ? incomes[1] : incomes.first;
 }
 
 /// Weigh a hypothetical purchase against the user's real money. Pure and
@@ -141,6 +144,13 @@ Map<String, dynamic> affordCheck(
         : null;
     final bool? fitsLean =
         newLeanShare == null ? null : newLeanShare <= _leanFitShare;
+    // A "lean month" is only a real stress test if the user has actually had a
+    // leaner sweldo than usual. With flat income the lean month IS the typical
+    // month, so the card must not imply a downturn resilience the data cannot
+    // show. 0.9: at least ~10% below typical to count as genuinely lean.
+    final leanIsDistinct = leanIncome != null &&
+        typicalIncome > 0 &&
+        leanIncome < typicalIncome * 0.9;
 
     String verdict;
     if (!hasIncomeBase || newShare == null) {
@@ -172,16 +182,21 @@ Map<String, dynamic> affordCheck(
       'newShare': newShare,
       'newLeanShare': newLeanShare,
       'fitsLean': fitsLean,
+      'leanIsDistinct': leanIsDistinct,
       'verdict': verdict,
     };
   }
 
-  // One-time buy. The price comes out of spendable cash first; any overflow eats
-  // the emergency cushion, which is the real cost the audience overlooks.
+  // One-time buy. Your accounts are ONE pot: emergencyRunway.buffer already
+  // sums every account, so the spendable cash in `available` is money that is
+  // ALSO inside `buffer`, not a separate layer on top of it. So the honest test
+  // is the whole price against the whole pot, never the cushion stacked above
+  // spendable cash. `overflow` (price past spendable-till-sweldo) stays as the
+  // informational "this dips past your day to day cash" figure.
   final overflow = shortNow;
   final eatsCushion = overflow > 0;
-  final cushionAfter = buffer - overflow > 0 ? buffer - overflow : 0.0;
-  final wipesCushion = eatsCushion && overflow >= buffer;
+  final cushionAfter = buffer - amt > 0 ? buffer - amt : 0.0;
+  final wipesCushion = amt > buffer; // more than all the money in your accounts
   final cushionMonthsLost =
       (avg > 0 && amt.isFinite) ? amt / avg : null;
   final runwayMonthsAfter = avg > 0 ? cushionAfter / avg : null;
