@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 
 import '../data/store.dart';
 import '../money/debtmath.dart' show debtFreeProjection;
+import '../money/ledger.dart' show amountOf;
+import '../money/reports_calc.dart';
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/screen_header.dart';
@@ -85,12 +87,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   const SizedBox(height: 14),
                   _segmented(),
                   const SizedBox(height: 12),
-                  if (_tab == 2)
-                    Text('As of today',
-                        style: TextStyle(color: Barako.muted, fontSize: 13))
-                  else
+                  // Position is always "as of today" and the card already says
+                  // so in its kicker, so only Income and Cash flow get a stepper.
+                  if (_tab != 2) ...[
                     _monthStepper(),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                  ],
                   if (_tab == 0)
                     _incomeCard()
                   else if (_tab == 1)
@@ -130,7 +132,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -144,10 +146,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 bValue: liab,
                 bColor: Barako.warningStrong),
             const SizedBox(height: 8),
-            Row(
+            Wrap(
+              spacing: 14,
+              runSpacing: 6,
               children: [
                 _legendDot(Barako.primary, 'Own ${formatMoney(assets)}'),
-                const SizedBox(width: 14),
                 _legendDot(Barako.warningStrong, 'Owe ${formatMoney(liab)}'),
               ],
             ),
@@ -158,7 +161,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             if (receivableHeavy) ...[
               const SizedBox(height: 6),
               Text(
-                  'A big part of this is utang owed to you. Your real, spendable position is closer to ${formatMoney(assets - receivables - liab)} until it lands.',
+                  'A big part of this is utang owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
                   style: TextStyle(
                       color: Barako.faint, fontSize: 12, height: 1.35)),
             ],
@@ -183,15 +186,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
               setState(() => _tab = i);
             },
             child: Container(
-              height: 40,
+              height: 44,
               alignment: Alignment.center,
-              child: Text(label,
-                  maxLines: 1,
-                  style: TextStyle(
-                      color: on ? Barako.onPrimary : Barako.textSecondary,
-                      fontSize: 13,
-                      fontWeight:
-                          on ? FontWeight.w700 : FontWeight.w600)),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: on ? Barako.onPrimary : Barako.textSecondary,
+                        fontSize: 13,
+                        fontWeight:
+                            on ? FontWeight.w700 : FontWeight.w600)),
+              ),
             ),
           ),
         ),
@@ -200,7 +208,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Barako.background,
+        color: Barako.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Barako.border),
       ),
@@ -250,15 +258,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     String head;
     String interp;
-    if (income == 0 && expenses > 0) {
+    Color? headColor;
+    if (income == 0 && expenses == 0) {
+      head = 'Nothing logged yet';
+      headColor = Barako.muted;
+      interp =
+          'No income or spending logged for this month, so there is nothing to weigh up yet. Log a few entries and this fills in on its own.';
+    } else if (income == 0 && expenses > 0) {
       head = 'No sweldo logged yet';
+      headColor = Barako.muted;
       interp =
           'No income logged for this month yet, so this only counts what you have spent so far. It is not a final shortfall.';
-    } else if (net >= 0) {
+    } else if (net > 0) {
       head = '${formatMoney(net)} kept';
-      final rate = income > 0 ? (net / income * 100).round() : 0;
+      final rate = savingsRatePct(net, income);
       interp =
           'You earned more than you spent this month. About $rate% of your income stayed with you. The move now is to send some to savings before it drifts away.';
+    } else if (net == 0) {
+      head = 'Broke even';
+      interp =
+          'You spent exactly what you earned this month. Nothing lost, but nothing set aside either. Trimming one line frees up the first bit of savings.';
     } else {
       head = '${formatMoney(-net)} short';
       interp =
@@ -268,6 +287,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return _statementCard(
       forLabel: 'For ${_months[_ref.month - 1]} ${_ref.year}',
       headline: head,
+      headlineColor: headColor,
       headlineValue: net,
       interp: interp,
       visual: _SplitBar(
@@ -311,17 +331,30 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final reconciles = s['reconciles'] == true;
 
     // The load-bearing honesty read: cash can rise only because you borrowed.
+    String head;
+    Color? headColor;
     String interp;
-    if (op >= 0 && netChange >= 0) {
+    if (op == 0 && inv == 0 && fin == 0) {
+      head = 'Nothing moved yet';
+      headColor = Barako.muted;
+      interp =
+          'No cash moved through a linked account this month, so there is nothing to trace yet. Link an account to a few entries and the money flow shows up here.';
+    } else if (op >= 0 && netChange >= 0) {
+      head = '${formatMoney(netChange)} more cash';
       interp = fin < 0
-          ? 'Your normal life paid for itself and you put ${formatMoney(-fin)} toward debt or savings. A good month.'
+          ? 'Your normal life paid for itself and you put ${formatMoney(-fin)} toward paying down what you owe. A good month.'
           : 'Your normal life paid for itself this month, with cash to spare. That is the engine everything else runs on.';
     } else if (op < 0 && netChange >= 0) {
       interp =
-          'Your cash went up, but only because of borrowing or collecting utang. Your day-to-day spending actually ran ${formatMoney(-op)} short. Watch this one, borrowed cash has to be paid back.';
+          'Your cash went up, but only because you borrowed, collected utang, or sold something. Your day-to-day spending actually ran ${formatMoney(-op)} short.';
+      if (fin > 0) {
+        interp += ' Watch this one, borrowed cash has to be paid back.';
+      }
+      head = '${formatMoney(netChange)} more cash';
     } else {
+      head = '${formatMoney(-netChange)} less cash';
       interp =
-          'Less cash moved out than came in this month. If your day-to-day keeps running short, the gap is coming from somewhere, usually savings or new utang.';
+          'More cash moved out than came in this month. If your day-to-day keeps running short, the gap is coming from somewhere, usually savings or new utang.';
     }
 
     List<Widget> bucket(String name, Map m) {
@@ -340,9 +373,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return _statementCard(
       forLabel: 'For ${_months[_ref.month - 1]} ${_ref.year}',
-      headline: netChange >= 0
-          ? '${formatMoney(netChange)} more cash'
-          : '${formatMoney(-netChange)} less cash',
+      headline: head,
+      headlineColor: headColor,
       headlineValue: netChange,
       interp: interp,
       lines: [
@@ -353,12 +385,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _line('Net change in cash', netChange,
             total: true,
             color: netChange >= 0 ? Barako.primary : Barako.warningStrong),
-        if (inv == 0 && op == 0 && fin == 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text('No cash moved through a linked account this month.',
-                style: TextStyle(color: Barako.faint, fontSize: 12)),
-          ),
         if (!reconciles)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -384,14 +410,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final payables = (s['payables'] as num).toDouble();
     final totalLiab = (s['totalLiabilities'] as num).toDouble();
     final equity = (s['equity'] as num).toDouble();
-    final currentAssets = (s['currentAssets'] as num).toDouble();
-    final currentLiab = (s['currentLiabilities'] as num).toDouble();
     final balances = s['balances'] == true;
 
-    final liquidGap = currentAssets - currentLiab;
-    final interp = liquidGap >= 0
-        ? 'If every short-term debt came due today, your cash and near-cash would cover it, with ${formatMoney(liquidGap)} to spare.'
-        : 'If every short-term debt came due today, you would be ${formatMoney(-liquidGap)} short on cash. A small buffer you do not touch is the fix.';
+    final gap = liquidGap(s);
+    final interp = gap >= 0
+        ? 'If every short-term debt came due today, your cash, e-wallets, and utang owed to you would cover it, with ${formatMoney(gap)} to spare.'
+        : 'If every short-term debt came due today, your cash, e-wallets, and utang owed to you would fall ${formatMoney(-gap)} short. A small buffer you do not touch is the fix.';
 
     return _statementCard(
       forLabel: 'As of today',
@@ -435,7 +459,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final pro = (_data['settings'] as Map?)?['pro'] == true;
     final debts = _data['debts'];
     final hasDebt = debts is List &&
-        debts.any((d) => d is Map && (d['remaining'] as num? ?? 0) > 0);
+        debts.any((d) => d is Map && amountOf(d['remaining']) > 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,7 +470,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(width: 8),
             Text('PRO',
                 style: TextStyle(
-                    color: Barako.celebrate,
+                    color: Barako.caramel,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1)),
@@ -455,7 +479,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 10),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: !pro
                 ? _debtLocked()
                 : !hasDebt
@@ -522,7 +546,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             prefixText: '₱ ',
             prefixStyle: TextStyle(color: Barako.muted),
             filled: true,
-            fillColor: Barako.card,
+            fillColor: Barako.background,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
@@ -555,7 +579,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _debtNoExtra(Map<String, dynamic>? avalanche) {
     if (avalanche == null) {
       return Text(
-          'At your current payments the interest still grows faster than you pay it down, so there is no freedom date yet. Even a small extra aimed at your highest-rate debt turns this around.',
+          'At your current payments the interest still grows faster than you pay it down, so there is no freedom date yet. Even a small extra aimed at your highest-rate debt can start to turn this around.',
           style: TextStyle(
               color: Barako.warningStrong, fontSize: 13, height: 1.4));
     }
@@ -583,7 +607,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     final avaInt = (avalanche['totalInterest'] as num).toDouble();
     final snowInt = (snowball['totalInterest'] as num).toDouble();
-    final saved = snowInt - avaInt; // mirror RN operand order exactly
+    final saved = interestSaved(snowInt, avaInt); // mirror RN operand order
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,6 +642,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String forLabel,
     required String headline,
     required double headlineValue,
+    Color? headlineColor,
     required String interp,
     Widget? visual,
     List<Widget>? legend,
@@ -631,7 +656,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text(forLabel.toUpperCase(), style: Barako.kickerStyle),
             const SizedBox(height: 8),
-            _heroAmount(headlineValue, 27, labelOverride: headline),
+            _heroAmount(headlineValue, 27,
+                labelOverride: headline, colorOverride: headlineColor),
             const SizedBox(height: 8),
             Text(interp,
                 style: TextStyle(
@@ -653,7 +679,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   // The big Fraunces figure, colored by sign, scaled down so seven digits fit.
-  Widget _heroAmount(double value, double size, {String? labelOverride}) {
+  // colorOverride wins when a headline is neutral (nothing logged, break even),
+  // so a zero-activity month is not painted red like a real shortfall.
+  Widget _heroAmount(double value, double size,
+      {String? labelOverride, Color? colorOverride}) {
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
@@ -661,8 +690,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           maxLines: 1,
           style: TextStyle(
               fontFamily: 'Fraunces',
-              color: value >= 0 ? Barako.primary : Barako.warningStrong,
+              color: colorOverride ??
+                  (value >= 0 ? Barako.primary : Barako.warningStrong),
               fontSize: size,
+              height: 1.05,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()])),
     );
@@ -784,9 +815,12 @@ class _SplitBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = aValue.abs();
     final b = bValue.abs();
-    // Clamp each to at least 1 so a zero side still shows a sliver.
-    final af = (a * 1000).round().clamp(1, 1 << 30);
-    final bf = (b * 1000).round().clamp(1, 1 << 30);
+    // Clamp each to at least 1 so a zero side still shows a sliver. round()
+    // throws on a non-finite value, so guard it: an Infinity or NaN side takes
+    // the full flex rather than crashing the whole screen (the formatMoney
+    // "stay alive" contract).
+    final af = a.isFinite ? (a * 1000).round().clamp(1, 1 << 30) : (1 << 30);
+    final bf = b.isFinite ? (b * 1000).round().clamp(1, 1 << 30) : (1 << 30);
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: Row(

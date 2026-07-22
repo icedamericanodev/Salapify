@@ -19,7 +19,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f1.01 · Reports: your net worth, income, and cash flow as three plain-language statements';
+    'f1.02 · Reports polish: clearer cash-flow and income wording, neutral zero-activity months, steadier layout';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
