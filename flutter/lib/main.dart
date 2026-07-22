@@ -19,7 +19,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f1.04 · Reports trend: honest current-month read (run rate, not a paced percentage), clearer bars and thin-history wording';
+    'f1.05 · Reports: Where it went, the biggest spending categories behind your month with a flag on the real movers';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

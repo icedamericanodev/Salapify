@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
-import '../money/analytics.dart' show monthlySeries;
+import '../money/analytics.dart' show categoryVsAverage, monthlySeries;
 import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
@@ -98,6 +98,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _incomeCard(),
                     const SizedBox(height: 14),
                     _trendSection(),
+                    const SizedBox(height: 14),
+                    _whatMovedSection(),
                   ] else if (_tab == 1)
                     _cashFlowCard()
                   else
@@ -413,6 +415,149 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // ---- Where it went: the categories behind the month ----
+  Widget _whatMovedSection() {
+    final now = DateTime.now();
+    final isCurrent = _monthOffset == 0;
+    // The current month uses the real date so the "more than usual" flag paces
+    // against how far in we are; a navigated past month is complete.
+    final catRef = isCurrent ? now : _ref;
+    final all = categoryVsAverage(_data['transactions'], catRef, 6, 5);
+    final rows = all.where((r) => amountOf(r['now']) > 0).toList();
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    final daysInMonth = DateTime(catRef.year, catRef.month + 1, 0).day;
+    // Early in a month, categories are still filling in, so hold the flags.
+    final canFlag = !isCurrent || (catRef.day / daysInMonth) >= 0.34;
+    // Which categories are regular enough to be judged (rent-once and
+    // tuition-occasionally are ranked but never flagged).
+    final history = priorCategoryHistory(_data['transactions'], catRef);
+
+    var maxNow = 0.0;
+    for (final r in rows) {
+      final v = amountOf(r['now']);
+      if (v > maxNow) maxNow = v;
+    }
+    final scale = maxNow > 0 ? maxNow : 1.0;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('WHERE IT WENT', style: Barako.kickerStyle),
+            const SizedBox(height: 4),
+            Text(
+                isCurrent
+                    ? 'Your biggest spending so far this month'
+                    : 'Your biggest spending this month',
+                style: TextStyle(color: Barako.muted, fontSize: 12)),
+            const SizedBox(height: 14),
+            for (var i = 0; i < rows.length; i++) ...[
+              _moverRow(rows[i], scale, i == 0, canFlag, history),
+              if (i < rows.length - 1) const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _moverRow(Map<String, dynamic> r, double scale, bool biggest,
+      bool canFlag, CategoryHistory history) {
+    final label = r['label'] as String;
+    final spent = amountOf(r['now']);
+    // Flag against the FULL-month average, not a paced figure, so a category
+    // paid once (rent) can never cross it by simply posting. Only regular
+    // categories are eligible, and the gap must be both proportionally and
+    // absolutely meaningful, so a small line does not raise an alarm.
+    final avg = amountOf(r['avg']);
+    final over = canFlag &&
+        history.isRegular(label) &&
+        avg > 0 &&
+        spent > avg * 1.3 &&
+        (spent - avg) >= 500;
+    final fill = (spent / scale).clamp(0.0, 1.0);
+    final barColor = over
+        ? Barako.warningStrong
+        : (biggest ? Barako.primary : Barako.primary.withValues(alpha: 0.32));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight:
+                          biggest ? FontWeight.w700 : FontWeight.w600)),
+            ),
+            const SizedBox(width: 8),
+            // Flexible so an outsized amount yields instead of overflowing the
+            // row next to a long label.
+            Flexible(
+              child: Text(formatMoney(spent),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
+          ],
+        ),
+        // The flag rides on its own line with the actual overage, the number a
+        // user would act on, not a bare "more than usual".
+        if (over) ...[
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              Icon(Icons.trending_up, size: 13, color: Barako.warningStrong),
+              const SizedBox(width: 3),
+              Expanded(
+                child: Text('${formatMoney(spent - avg)} over your usual',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: Barako.warningStrong,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 6),
+        LayoutBuilder(
+          builder: (context, c) {
+            return Stack(
+              children: [
+                Container(
+                    height: 7,
+                    decoration: BoxDecoration(
+                        color: Barako.background,
+                        borderRadius: BorderRadius.circular(4))),
+                Container(
+                    height: 7,
+                    width: c.maxWidth * fill,
+                    decoration: BoxDecoration(
+                        color: barColor,
+                        borderRadius: BorderRadius.circular(4))),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
