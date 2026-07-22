@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../services/notifications.dart';
 import '../theme.dart';
 import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/screen_header.dart';
@@ -140,6 +141,10 @@ class MenuScreen extends StatelessWidget {
                 _kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceCard(context),
+                const SizedBox(height: 20),
+                _kicker('REMINDERS'),
+                const SizedBox(height: 8),
+                _remindersCard(context),
                 const SizedBox(height: 20),
                 _kicker('SECURITY'),
                 const SizedBox(height: 8),
@@ -288,6 +293,85 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text('System follows your phone, going dark at night on its own.',
                 style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _remindersCard(BuildContext context) {
+    Future<void> toggle(String key, bool value) async {
+      final messenger = ScaffoldMessenger.of(context);
+      // Turning a reminder on needs the phone's notification permission. If it
+      // is refused, leave the switch off and point at settings.
+      if (value && !await Reminders.requestPermission()) {
+        messenger.showSnackBar(const SnackBar(
+            content: Text(
+                'Allow notifications for Salapify in your phone settings, then try again.')));
+        return;
+      }
+      try {
+        await store.setNotifPref(key, value);
+        await Reminders.reschedule(store.data, DateTime.now());
+      } catch (e) {
+        messenger.showSnackBar(SnackBar(
+            content: Text('Could not save that, nothing changed. $e')));
+      }
+    }
+
+    Widget row(String key, IconData icon, String title, String subtitle) => Row(
+          children: [
+            Icon(icon, color: Barako.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(
+                          color: Barako.muted, fontSize: 12, height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: store.notifOn(key),
+              onChanged: (v) => toggle(key, v),
+              activeThumbColor: Barako.onPrimary,
+              activeTrackColor: Barako.primary,
+              inactiveThumbColor: Barako.faint,
+              inactiveTrackColor: Barako.border,
+            ),
+          ],
+        );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Gentle nudges on your phone, nothing sent anywhere. Pick the ones that help.',
+                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+            const SizedBox(height: 14),
+            row('daily', Icons.edit_calendar_outlined, 'Log reminder',
+                'An evening nudge to log, skipped once you already did.'),
+            const Divider(height: 24),
+            row('payday', Icons.payments_outlined, 'Sweldo day',
+                'A morning ping on payday to plan the money before it goes.'),
+            const Divider(height: 24),
+            row('bills', Icons.credit_card_outlined, 'Bills due',
+                'A heads up before a card or loan is due, so no late fees.'),
+            const Divider(height: 24),
+            row('collect', Icons.handshake_outlined, 'Utang to collect',
+                'A reminder when someone owes you and it is due.'),
           ],
         ),
       ),

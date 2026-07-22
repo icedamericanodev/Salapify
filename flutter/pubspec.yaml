@@ -1,10 +1,11 @@
 name: salapify
 description: "A new Flutter project."
 publish_to: 'none'
-# Native change (adds the local_auth plugin for App Lock), so this bumps the
-# version: it forces a fresh base APK the founder installs once. JS/Dart only
-# changes keep the version and patch over the air.
-version: 0.4.1+7
+# Native change (adds flutter_local_notifications + timezone for on-device
+# reminders, on top of local_auth for App Lock), so this bumps the version: it
+# forces a fresh base APK the founder installs once. JS/Dart only changes keep
+# the version and patch over the air.
+version: 0.5.0+8
 
 environment:
   sdk: ^3.12.2
@@ -13,11 +14,13 @@ dependencies:
   file_picker: ^8.1.2
   flutter:
     sdk: flutter
+  flutter_local_notifications: ^18.0.1
   local_auth: ^2.3.0
   path_provider: ^2.1.6
   share_plus: ^10.1.4
   shared_preferences: ^2.5.5
   shorebird_code_push: ^2.0.7
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:

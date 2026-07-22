@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
+import 'services/notifications.dart';
 import 'screens/budget.dart';
 import 'screens/history.dart';
 import 'screens/insights.dart';
@@ -19,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f1.08 · Kinder first run: pick what to start with, Insights waits for data instead of showing zeros, a negative net worth is no longer alarm red';
+    'f2.00 · Reminders! On-device nudges for logging, payday, bills due, and utang to collect. Turn them on in Menu, Reminders. (New base APK, install once.)';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -38,7 +39,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.store.load();
+    // Load, then refresh the reminder schedule from the loaded data. Both are
+    // safe no-ops off a real phone (web, tests), so this never blocks startup.
+    widget.store.load().then((_) {
+      Reminders.reschedule(widget.store.data, DateTime.now());
+    });
   }
 
   @override
@@ -59,6 +64,9 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       widget.store.postDueRecurring();
+      // Refill the schedule on every foreground, so tonight's log nudge is
+      // dropped once you have logged, and new bills/utang are picked up.
+      Reminders.reschedule(widget.store.data, DateTime.now());
     }
   }
 
