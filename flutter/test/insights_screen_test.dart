@@ -472,7 +472,8 @@ void main() {
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
   });
 
-  testWidgets('an empty app shows the calm all-clear', (tester) async {
+  testWidgets('an empty app invites logging instead of a wall of zeros',
+      (tester) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
     SharedPreferences.setMockInitialValues({});
@@ -480,12 +481,13 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
-    expect(find.text('You are on track'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Not enough history yet'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.text('Not enough history yet'), findsOneWidget);
+    // Before any data, Insights shows one warm invitation, not the analytics
+    // wall of safe-to-spend 0, health 0 of 100, and empty charts.
+    expect(find.text('Nothing to read yet, and that is fine'), findsOneWidget);
+    expect(find.text('Start logging'), findsOneWidget);
+    expect(find.text('MONEY HEALTH'), findsNothing);
+    expect(find.textContaining('Not enough history yet'), findsNothing);
   });
 }

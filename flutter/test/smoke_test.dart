@@ -24,9 +24,11 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
     expect(find.text('SALAPIFY'), findsOneWidget);
-    // First run (empty store) shows the welcome/import card, not the hero.
+    // First run (empty store) shows the welcome card with the lane picker, and
+    // the backup import as a quiet link for a migrating tester.
     expect(find.text('WELCOME'), findsOneWidget);
-    expect(find.text('Import my backup'), findsOneWidget);
+    expect(find.text('Track my spending'), findsOneWidget);
+    expect(find.text('Coming from the old app? Import a backup'), findsOneWidget);
     // The stamp and the full import screen now live under the Menu tab, off
     // the decluttered dashboard.
     await tester.tap(find.text('Menu'));

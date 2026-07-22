@@ -132,9 +132,13 @@ class OverviewScreen extends StatelessWidget {
               _netWorthHero(parts),
               const SizedBox(height: 16),
             ],
-            if (!hasStarted)
-              _welcomeCard(context)
-            else ...[
+            // Only invite a fresh start when the store really is empty. After a
+            // failed read the data looks empty but is not, writes are blocked,
+            // and the error banner above already explains it, so the welcome
+            // lanes (which would be dead or misleading) are suppressed.
+            if (!hasStarted) ...[
+              if (store.loadError == null) _welcomeCard(context),
+            ] else ...[
               if (accounts.isNotEmpty) ...[
                 Card(
                   child: Padding(
@@ -345,7 +349,12 @@ class OverviewScreen extends StatelessWidget {
                   maxLines: 1,
                   style: TextStyle(
                       fontFamily: Barako.displayFont,
-                      color: nw < 0 ? Barako.warning : Barako.primary,
+                      // A negative net worth is honest, not an emergency. It
+                      // stays in plain ink, not alarm red, so a user who owes
+                      // more than they hold is not shamed by the biggest number
+                      // on the screen. Red is reserved for urgent, time-bound
+                      // things like an overdue utang.
+                      color: nw < 0 ? Barako.text : Barako.primary,
                       fontSize: 40,
                       fontWeight: FontWeight.w700,
                       fontFeatures: const [FontFeature.tabularFigures()])),
@@ -354,6 +363,13 @@ class OverviewScreen extends StatelessWidget {
             Text(
                 'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
                 style: TextStyle(color: Barako.muted, fontSize: 13)),
+            if (nw < 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                  'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
+                  style: TextStyle(
+                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+            ],
           ],
         ),
       ),
@@ -361,8 +377,10 @@ class OverviewScreen extends StatelessWidget {
   }
 
   /// First-run card, shown in place of MY MONEY and THIS MONTH when there is no
-  /// data yet. Keeps the "bring your data over" path one tap from Home now that
-  /// the backup card lives under Menu.
+  /// data yet. It leads with a real first action for a brand-new user (log, or
+  /// jump to the one thing they came for), and keeps the "bring your data over"
+  /// path as a quiet link for the tester migrating from the old app, rather
+  /// than as the loud primary button a new user cannot use.
   Widget _welcomeCard(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -377,20 +395,84 @@ class OverviewScreen extends StatelessWidget {
                       fontSize: 18,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              Text(
-                  'Tap Log below to add your first entry, or bring everything from your current Salapify app: Menu, then Backup.',
+              Text('What do you want to start with?',
                   style: TextStyle(
                       color: Barako.textSecondary, fontSize: 14, height: 1.4)),
               const SizedBox(height: 14),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary),
-                onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => ImportScreen(store: store))),
-                child: const Text('Import my backup'),
+              _lane(context, Icons.receipt_long_outlined, 'Track my spending',
+                  'Log what you spend and see where it goes', () {
+                if (store.canWrite) showLogSheet(context, store);
+              }),
+              const SizedBox(height: 10),
+              _lane(context, Icons.handshake_outlined, 'See who owes me',
+                  'Keep an utang list that adds itself up',
+                  () => onSwitchTab?.call(3)),
+              const SizedBox(height: 10),
+              _lane(context, Icons.trending_down, 'Pay off a debt or utang',
+                  'A payoff date and the cheapest way there',
+                  () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => DebtsScreen(store: store)))),
+              const SizedBox(height: 16),
+              // Quiet migration path for a tester bringing data from the old app.
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      foregroundColor: Barako.muted,
+                      minimumSize: const Size(0, 36),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ImportScreen(store: store))),
+                  child: const Text('Coming from the old app? Import a backup'),
+                ),
               ),
             ],
+          ),
+        ),
+      );
+
+  // A tappable first-run lane: an icon, a title, and a one-line why, routing to
+  // the screen that user came for.
+  Widget _lane(BuildContext context, IconData icon, String title,
+          String subtitle, VoidCallback onTap) =>
+      PressableScale(
+        child: Material(
+          color: Barako.background,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Barako.border),
+              ),
+              child: Row(
+            children: [
+              Icon(icon, color: Barako.primary, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: Barako.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style:
+                            TextStyle(color: Barako.muted, fontSize: 12.5)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+            ],
+              ),
+            ),
           ),
         ),
       );
