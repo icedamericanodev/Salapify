@@ -16,6 +16,7 @@ import 'overview.dart' show ExportScreen, ImportScreen;
 import 'pan.dart';
 import 'search.dart';
 import 'recap_share.dart';
+import 'recurring.dart';
 import 'tools.dart';
 import 'treats.dart';
 import 'update_card.dart';
@@ -73,6 +74,15 @@ class MenuScreen extends StatelessWidget {
                     'Savings goals with progress bars and an honest monthly pace.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => GoalsScreen(store: store))),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.event_repeat_outlined,
+                title: 'Recurring',
+                blurb:
+                    'Bills and income that log themselves every month, on their day.',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => RecurringScreen(store: store))),
               ),
               const SizedBox(height: 20),
               _kicker('HELPERS'),

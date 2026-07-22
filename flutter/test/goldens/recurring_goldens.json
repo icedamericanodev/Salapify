@@ -1,0 +1,772 @@
+{
+  "postCases": {
+    "dueExpenseWithAccount": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 3000,
+            "dayOfMonth": 15,
+            "accountId": "cash",
+            "id": "r1"
+          }
+        ]
+      }
+    },
+    "dueIncomeNoAccount": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "dayOfMonth": 5,
+            "accountId": "",
+            "id": "r1"
+          }
+        ]
+      }
+    },
+    "notYetDue": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 3000,
+            "dayOfMonth": 25,
+            "accountId": "cash",
+            "id": "r1"
+          }
+        ]
+      }
+    },
+    "alreadyPostedThisMonth": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 3000,
+            "dayOfMonth": 15,
+            "accountId": "cash",
+            "id": "r1",
+            "lastPosted": "2026-07"
+          }
+        ]
+      }
+    },
+    "clockRewoundLastPostedFuture": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 3000,
+            "dayOfMonth": 15,
+            "accountId": "cash",
+            "id": "r1",
+            "lastPosted": "2026-08"
+          }
+        ]
+      }
+    },
+    "dayClampedToMonthEnd": {
+      "ref": [
+        2026,
+        1,
+        28
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 3000,
+            "dayOfMonth": 31,
+            "accountId": "cash",
+            "id": "r1"
+          }
+        ]
+      }
+    },
+    "missingAccountId": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "expense",
+            "label": "Ghost",
+            "amount": 500,
+            "dayOfMonth": 1,
+            "accountId": "gone",
+            "id": "r1"
+          }
+        ]
+      }
+    },
+    "mixedThreeItems": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [
+          {
+            "id": "t0",
+            "type": "expense",
+            "label": "old",
+            "amount": 100,
+            "date": "2026-07-01"
+          }
+        ],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 10000
+          },
+          {
+            "id": "bank",
+            "name": "bank",
+            "kind": "cash",
+            "balance": 50000
+          }
+        ],
+        "recurring": [
+          {
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "dayOfMonth": 5,
+            "accountId": "bank",
+            "id": "r1"
+          },
+          {
+            "type": "expense",
+            "label": "Rent",
+            "amount": 8000,
+            "dayOfMonth": 10,
+            "accountId": "cash",
+            "id": "r2"
+          },
+          {
+            "type": "expense",
+            "label": "Later",
+            "amount": 500,
+            "dayOfMonth": 28,
+            "accountId": "cash",
+            "id": "r3"
+          }
+        ]
+      }
+    },
+    "emptyRecurring": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "data": {
+        "transactions": [],
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "cash",
+            "kind": "cash",
+            "balance": 5000
+          }
+        ],
+        "recurring": []
+      }
+    }
+  },
+  "restoreCases": {
+    "dayPassedNoLastPosted": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "",
+          "amount": 0,
+          "dayOfMonth": 15,
+          "accountId": "",
+          "id": "r1"
+        }
+      ]
+    },
+    "dayPassedWithFutureLastPosted": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "",
+          "amount": 0,
+          "dayOfMonth": 15,
+          "accountId": "",
+          "id": "r1",
+          "lastPosted": "2026-09"
+        }
+      ]
+    },
+    "dayNotArrived": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "",
+          "amount": 0,
+          "dayOfMonth": 25,
+          "accountId": "",
+          "id": "r1",
+          "lastPosted": "2026-03"
+        }
+      ]
+    },
+    "dayPassedWithPastLastPosted": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "",
+          "amount": 0,
+          "dayOfMonth": 15,
+          "accountId": "",
+          "id": "r1",
+          "lastPosted": "2026-03"
+        }
+      ]
+    },
+    "dayEqualsToday": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "",
+          "amount": 0,
+          "dayOfMonth": 20,
+          "accountId": "",
+          "id": "r1"
+        }
+      ]
+    }
+  },
+  "saveCases": {
+    "addSkip": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "day": 10,
+      "existing": "",
+      "isEdit": false
+    },
+    "addFuture": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "day": 25,
+      "existing": "",
+      "isEdit": false
+    },
+    "addClampSkip": {
+      "ref": [
+        2026,
+        1,
+        28
+      ],
+      "day": 31,
+      "existing": "",
+      "isEdit": false
+    },
+    "editSkipKeptPast": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "day": 10,
+      "existing": "2026-03",
+      "isEdit": true
+    },
+    "editSkipKeptFuture": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "day": 10,
+      "existing": "2026-09",
+      "isEdit": true
+    },
+    "editFuture": {
+      "ref": [
+        2026,
+        6,
+        20
+      ],
+      "day": 25,
+      "existing": "2026-03",
+      "isEdit": true
+    }
+  },
+  "postResults": {
+    "dueExpenseWithAccount": {
+      "transactions": [
+        {
+          "id": "tx_0",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "date": "2026-07-15",
+          "recurringId": "r1",
+          "accountId": "cash"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 2000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "dayOfMonth": 15,
+          "accountId": "cash",
+          "id": "r1",
+          "lastPosted": "2026-07"
+        }
+      ]
+    },
+    "dueIncomeNoAccount": {
+      "transactions": [
+        {
+          "id": "tx_0",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000,
+          "date": "2026-07-05",
+          "recurringId": "r1"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000,
+          "dayOfMonth": 5,
+          "accountId": "",
+          "id": "r1",
+          "lastPosted": "2026-07"
+        }
+      ]
+    },
+    "notYetDue": {
+      "transactions": [],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "dayOfMonth": 25,
+          "accountId": "cash",
+          "id": "r1"
+        }
+      ]
+    },
+    "alreadyPostedThisMonth": {
+      "transactions": [],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "dayOfMonth": 15,
+          "accountId": "cash",
+          "id": "r1",
+          "lastPosted": "2026-07"
+        }
+      ]
+    },
+    "clockRewoundLastPostedFuture": {
+      "transactions": [],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "dayOfMonth": 15,
+          "accountId": "cash",
+          "id": "r1",
+          "lastPosted": "2026-08"
+        }
+      ]
+    },
+    "dayClampedToMonthEnd": {
+      "transactions": [
+        {
+          "id": "tx_0",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "date": "2026-02-28",
+          "recurringId": "r1",
+          "accountId": "cash"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 2000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 3000,
+          "dayOfMonth": 31,
+          "accountId": "cash",
+          "id": "r1",
+          "lastPosted": "2026-02"
+        }
+      ]
+    },
+    "missingAccountId": {
+      "transactions": [
+        {
+          "id": "tx_0",
+          "type": "expense",
+          "label": "Ghost",
+          "amount": 500,
+          "date": "2026-07-01",
+          "recurringId": "r1"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "expense",
+          "label": "Ghost",
+          "amount": 500,
+          "dayOfMonth": 1,
+          "accountId": "gone",
+          "id": "r1",
+          "lastPosted": "2026-07"
+        }
+      ]
+    },
+    "mixedThreeItems": {
+      "transactions": [
+        {
+          "id": "t0",
+          "type": "expense",
+          "label": "old",
+          "amount": 100,
+          "date": "2026-07-01"
+        },
+        {
+          "id": "tx_0",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000,
+          "date": "2026-07-05",
+          "recurringId": "r1",
+          "accountId": "bank"
+        },
+        {
+          "id": "tx_1",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 8000,
+          "date": "2026-07-10",
+          "recurringId": "r2",
+          "accountId": "cash"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 2000
+        },
+        {
+          "id": "bank",
+          "name": "bank",
+          "kind": "cash",
+          "balance": 70000
+        }
+      ],
+      "recurring": [
+        {
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 20000,
+          "dayOfMonth": 5,
+          "accountId": "bank",
+          "id": "r1",
+          "lastPosted": "2026-07"
+        },
+        {
+          "type": "expense",
+          "label": "Rent",
+          "amount": 8000,
+          "dayOfMonth": 10,
+          "accountId": "cash",
+          "id": "r2",
+          "lastPosted": "2026-07"
+        },
+        {
+          "type": "expense",
+          "label": "Later",
+          "amount": 500,
+          "dayOfMonth": 28,
+          "accountId": "cash",
+          "id": "r3"
+        }
+      ]
+    },
+    "emptyRecurring": {
+      "transactions": [],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "cash",
+          "kind": "cash",
+          "balance": 5000
+        }
+      ],
+      "recurring": []
+    }
+  },
+  "restoreResults": {
+    "dayPassedNoLastPosted": [
+      {
+        "type": "expense",
+        "label": "",
+        "amount": 0,
+        "dayOfMonth": 15,
+        "accountId": "",
+        "id": "r1",
+        "lastPosted": "2026-07"
+      }
+    ],
+    "dayPassedWithFutureLastPosted": [
+      {
+        "type": "expense",
+        "label": "",
+        "amount": 0,
+        "dayOfMonth": 15,
+        "accountId": "",
+        "id": "r1",
+        "lastPosted": "2026-09"
+      }
+    ],
+    "dayNotArrived": [
+      {
+        "type": "expense",
+        "label": "",
+        "amount": 0,
+        "dayOfMonth": 25,
+        "accountId": "",
+        "id": "r1",
+        "lastPosted": "2026-03"
+      }
+    ],
+    "dayPassedWithPastLastPosted": [
+      {
+        "type": "expense",
+        "label": "",
+        "amount": 0,
+        "dayOfMonth": 15,
+        "accountId": "",
+        "id": "r1",
+        "lastPosted": "2026-07"
+      }
+    ],
+    "dayEqualsToday": [
+      {
+        "type": "expense",
+        "label": "",
+        "amount": 0,
+        "dayOfMonth": 20,
+        "accountId": "",
+        "id": "r1",
+        "lastPosted": "2026-07"
+      }
+    ]
+  },
+  "saveResults": {
+    "addSkip": "2026-07",
+    "addFuture": "",
+    "addClampSkip": "2026-02",
+    "editSkipKeptPast": "2026-07",
+    "editSkipKeptFuture": "2026-09",
+    "editFuture": "2026-03"
+  }
+}

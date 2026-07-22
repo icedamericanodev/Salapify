@@ -18,7 +18,7 @@ import 'theme.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f0.96 · Share your month: a monthly recap card you can post or send, ported from the RN app';
+    'f0.97 · Recurring bills and income: set it once, it logs itself every month, ported from the RN app';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -50,6 +50,16 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   // so a 'system' appearance follows along.
   @override
   void didChangePlatformBrightness() => setState(() {});
+
+  // Back to the foreground: post any recurring bills and income that came due
+  // while the app was backgrounded (people keep apps open for weeks). The
+  // lastPosted marker makes this idempotent, so an extra call is always safe.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget.store.postDueRecurring();
+    }
+  }
 
   int tab = 0;
 
