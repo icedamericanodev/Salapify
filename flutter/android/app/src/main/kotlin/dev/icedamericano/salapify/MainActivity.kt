@@ -1,5 +1,7 @@
 package dev.icedamericano.salapify
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity (not FlutterActivity) is required by local_auth on
+// Android: the biometric prompt is a fragment and needs a FragmentActivity host.
+class MainActivity : FlutterFragmentActivity()

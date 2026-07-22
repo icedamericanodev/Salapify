@@ -244,7 +244,11 @@ class SalapifyStore extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(storageKey);
       if (raw != null && raw.isNotEmpty) {
-        data = ensureEntityIds(ensureUniqueTxnIds(sanitizeData(jsonDecode(raw))));
+        // keepAppLock: true on a normal load so App lock survives a restart.
+        // The import/restore path keeps the default (false), forcing the lock
+        // off when a backup lands on a phone whose biometrics differ.
+        data = ensureEntityIds(
+            ensureUniqueTxnIds(sanitizeData(jsonDecode(raw), keepAppLock: true)));
       }
       loadError = null;
     } catch (e) {
@@ -921,6 +925,17 @@ class SalapifyStore extends ChangeNotifier {
   /// rule stops, matching RN.
   Future<void> deleteRecurring(String id) => _mutate((d) =>
       {...d, 'recurring': _recurring(d).where((r) => r['id'] != id).toList()});
+
+  /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
+  /// disables it automatically if the phone has no biometrics enrolled, so this
+  /// can never lock the owner out.
+  Future<void> setAppLock(bool value) => _mutate((d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'appLock': value,
+        },
+      });
 
   /// Unlock Pro. During early access Pro is free and early users keep it free,
   /// so this is the honest "unlock" the recurring cap offers. A plain settings
