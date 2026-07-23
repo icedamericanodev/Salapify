@@ -13,6 +13,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../money/quickadd.dart';
 import '../theme.dart';
 
 final Random _rand = Random();
@@ -21,7 +22,8 @@ final Random _rand = Random();
 /// the same millisecond still get distinct ids (a duplicated id would let one
 /// delete remove both copies but reverse only one balance move). Two draws
 /// keep the collision odds far below anything a test suite could flake on.
-String newEntryId(DateTime now) => 't${now.millisecondsSinceEpoch}'
+String newEntryId(DateTime now) =>
+    't${now.millisecondsSinceEpoch}'
     '${_rand.nextInt(0x1000000).toRadixString(36)}'
     '${_rand.nextInt(0x1000000).toRadixString(36)}';
 
@@ -52,7 +54,8 @@ Future<void> showLogSheet(BuildContext context, SalapifyStore store) {
     builder: (sheetContext) => Padding(
       // Lift the sheet above the keyboard.
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: LogSheet(store: store),
     ),
   );
@@ -75,6 +78,20 @@ class _LogSheetState extends State<LogSheet> {
   bool saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Preselect the account you last logged from, so a repeat log is one less
+    // tap. Derived from your transactions, so it needs no stored setting and
+    // falls back to no account when the remembered one was deleted.
+    final validIds = <String>{
+      for (final a in (widget.store.data['accounts'] as List? ?? const []))
+        if (a is Map && a['id'] is String && (a['id'] as String).isNotEmpty)
+          a['id'] as String,
+    };
+    accountId = lastUsedAccountId(widget.store.data['transactions'], validIds);
+  }
+
+  @override
   void dispose() {
     amountController.dispose();
     labelController.dispose();
@@ -86,9 +103,11 @@ class _LogSheetState extends State<LogSheet> {
     setState(() => error = null);
     final amount = parseAmount(amountController.text);
     if (amount == null) {
-      setState(() => error = amountController.text.contains(',')
-          ? 'Use a period for centavos, like 2.50. Commas only group thousands.'
-          : 'Enter a plain amount above zero, like 250 or 99.50.');
+      setState(
+        () => error = amountController.text.contains(',')
+            ? 'Use a period for centavos, like 2.50. Commas only group thousands.'
+            : 'Enter a plain amount above zero, like 250 or 99.50.',
+      );
       return;
     }
     setState(() => saving = true);
@@ -97,7 +116,9 @@ class _LogSheetState extends State<LogSheet> {
     final tx = <String, dynamic>{
       'id': newEntryId(now),
       'type': type,
-      'label': label.isEmpty ? (type == 'income' ? 'Income' : 'Expense') : label,
+      'label': label.isEmpty
+          ? (type == 'income' ? 'Income' : 'Expense')
+          : label,
       'amount': amount,
       'date': now.toIso8601String().substring(0, 10),
       if (accountId != null) 'accountId': accountId,
@@ -125,6 +146,10 @@ class _LogSheetState extends State<LogSheet> {
         .cast<Map<String, dynamic>>()
         .where((a) => a['id'] is String && (a['id'] as String).isNotEmpty)
         .toList();
+
+    // Names you have used before for this kind of entry, so a repeat log is a
+    // tap on a chip, not retyping. Recomputes when the type toggles.
+    final recents = recentLabels(widget.store.data['transactions'], type);
 
     return SingleChildScrollView(
       child: Padding(
@@ -155,29 +180,43 @@ class _LogSheetState extends State<LogSheet> {
             TextField(
               controller: amountController,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700),
+                color: Barako.text,
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+              ),
               decoration: _decor('0.00', prefix: '₱ '),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: labelController,
               style: TextStyle(color: Barako.text, fontSize: 16),
-              decoration:
-                  _decor(type == 'income' ? 'e.g. Sweldo' : 'e.g. Groceries'),
+              decoration: _decor(
+                type == 'income' ? 'e.g. Sweldo' : 'e.g. Groceries',
+              ),
             ),
+            if (recents.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [for (final label in recents) _recentChip(label)],
+              ),
+            ],
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text('FROM WHICH ACCOUNT',
-                  style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2)),
+              Text(
+                'FROM WHICH ACCOUNT',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -186,28 +225,36 @@ class _LogSheetState extends State<LogSheet> {
                   _accountChip('No account', null),
                   for (final a in accounts)
                     _accountChip(
-                        a['name']?.toString() ?? 'Account', a['id'] as String),
+                      a['name']?.toString() ?? 'Account',
+                      a['id'] as String,
+                    ),
                 ],
               ),
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(error!,
-                  style:
-                      TextStyle(color: Barako.warning, fontSize: 13)),
+              Text(
+                error!,
+                style: TextStyle(color: Barako.warning, fontSize: 13),
+              ),
             ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: saving ? null : _save,
-                child: Text(saving ? 'Saving...' : 'Save entry',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                child: Text(
+                  saving ? 'Saving...' : 'Save entry',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ],
@@ -217,18 +264,42 @@ class _LogSheetState extends State<LogSheet> {
   }
 
   InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Barako.faint),
-        prefixText: prefix,
-        prefixStyle: TextStyle(
-            color: Barako.muted, fontSize: 28, fontWeight: FontWeight.w700),
-        filled: true,
-        fillColor: Barako.card,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-      );
+    hintText: hint,
+    hintStyle: TextStyle(color: Barako.faint),
+    prefixText: prefix,
+    prefixStyle: TextStyle(
+      color: Barako.muted,
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+    ),
+    filled: true,
+    fillColor: Barako.card,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Barako.border),
+    ),
+  );
+
+  Widget _recentChip(String label) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () {
+        setState(() {
+          labelController.text = label;
+          labelController.selection = TextSelection.collapsed(
+            offset: label.length,
+          );
+        });
+      },
+      backgroundColor: Barako.card,
+      labelStyle: TextStyle(
+        color: Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+      side: BorderSide(color: Barako.border),
+      visualDensity: VisualDensity.compact,
+    );
+  }
 
   Widget _typeChip(String label, String value) {
     final on = type == value;
@@ -239,8 +310,9 @@ class _LogSheetState extends State<LogSheet> {
       selectedColor: Barako.primary,
       backgroundColor: Barako.card,
       labelStyle: TextStyle(
-          color: on ? Barako.onPrimary : Barako.textSecondary,
-          fontWeight: FontWeight.w600),
+        color: on ? Barako.onPrimary : Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
       side: BorderSide(color: Barako.border),
     );
   }
@@ -254,8 +326,9 @@ class _LogSheetState extends State<LogSheet> {
       selectedColor: Barako.primary,
       backgroundColor: Barako.card,
       labelStyle: TextStyle(
-          color: on ? Barako.onPrimary : Barako.textSecondary,
-          fontWeight: FontWeight.w600),
+        color: on ? Barako.onPrimary : Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
       side: BorderSide(color: Barako.border),
     );
   }

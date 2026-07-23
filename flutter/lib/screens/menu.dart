@@ -49,9 +49,12 @@ class MenuScreen extends StatelessWidget {
                 icon: Icons.search,
                 title: 'Search',
                 blurb: 'Find any entry, account, or utang by name or amount.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
                     builder: (_) =>
-                        SearchScreen(store: store, onSwitchTab: onSwitchTab))),
+                        SearchScreen(store: store, onSwitchTab: onSwitchTab),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               _kicker('MONEY'),
@@ -60,8 +63,11 @@ class MenuScreen extends StatelessWidget {
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'Accounts',
                 blurb: 'Your wallets, banks, and assets, all in one place.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => AccountsScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AccountsScreen(store: store),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -69,8 +75,9 @@ class MenuScreen extends StatelessWidget {
                 title: 'Debts',
                 blurb:
                     'Cards and loans, payments split into interest and principal.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => DebtsScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -78,8 +85,9 @@ class MenuScreen extends StatelessWidget {
                 title: 'Goals',
                 blurb:
                     'Savings goals with progress bars and an honest monthly pace.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => GoalsScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => GoalsScreen(store: store)),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -87,8 +95,11 @@ class MenuScreen extends StatelessWidget {
                 title: 'Paluwagan',
                 blurb:
                     'Your rotating savings groups, with your payout date and an honest read on your turn.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => PaluwaganScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PaluwaganScreen(store: store),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -96,8 +107,11 @@ class MenuScreen extends StatelessWidget {
                 title: 'Recurring',
                 blurb:
                     'Bills and income that log themselves every month, on their day.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => RecurringScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RecurringScreen(store: store),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -105,9 +119,12 @@ class MenuScreen extends StatelessWidget {
                 title: 'Reports',
                 blurb:
                     'Your net worth, monthly income, and cash flow as three plain statements.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
                     builder: (_) =>
-                        ReportsScreen(store: store, onSwitchTab: onSwitchTab))),
+                        ReportsScreen(store: store, onSwitchTab: onSwitchTab),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               _kicker('HELPERS'),
@@ -117,9 +134,12 @@ class MenuScreen extends StatelessWidget {
                 title: 'Ask Pan',
                 blurb:
                     'Your money questions, answered from your own data. Walang halong AI sa cloud.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
                     builder: (_) =>
-                        PanScreen(store: store, onSwitchTab: onSwitchTab))),
+                        PanScreen(store: store, onSwitchTab: onSwitchTab),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -127,8 +147,9 @@ class MenuScreen extends StatelessWidget {
                 title: 'Tools',
                 blurb:
                     'Loan, tax, and take-home calculators, currency converter, notes, and lessons.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => ToolsScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => ToolsScreen(store: store)),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -136,8 +157,9 @@ class MenuScreen extends StatelessWidget {
                 title: 'Earn your treats',
                 blurb:
                     'Pair a treat with a healthy habit and earn it guilt free. No pesos counted.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => TreatsScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => TreatsScreen(store: store)),
+                ),
               ),
               const SizedBox(height: 10),
               _navRow(
@@ -145,8 +167,11 @@ class MenuScreen extends StatelessWidget {
                 title: 'Share your month',
                 blurb:
                     'Turn this month into a card you can post or send. You choose if amounts show.',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => RecapShareScreen(store: store))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RecapShareScreen(store: store),
+                  ),
+                ),
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
@@ -179,12 +204,15 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _kicker(String text) => Text(text,
-      style: TextStyle(
-          color: Barako.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2));
+  Widget _kicker(String text) => Text(
+    text,
+    style: TextStyle(
+      color: Barako.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 2,
+    ),
+  );
 
   Widget _navRow({
     required IconData icon,
@@ -207,13 +235,18 @@ class MenuScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title,
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                      Text(blurb,
-                          style: TextStyle(color: Barako.muted, fontSize: 12)),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        blurb,
+                        style: TextStyle(color: Barako.muted, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -242,8 +275,11 @@ class MenuScreen extends StatelessWidget {
       try {
         await action();
       } catch (e) {
-        messenger.showSnackBar(SnackBar(
-            content: Text('Could not save that, nothing was changed. $e')));
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Could not save that, nothing was changed. $e'),
+          ),
+        );
       }
     }
 
@@ -272,17 +308,20 @@ class MenuScreen extends StatelessWidget {
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.background,
                     labelStyle: TextStyle(
-                        color: currentKey == t.key
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600),
+                      color: currentKey == t.key
+                          ? Barako.onPrimary
+                          : Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     side: BorderSide(color: Barako.border),
                   ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(themeForKey(currentKey).hint,
-                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+            Text(
+              themeForKey(currentKey).hint,
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+            ),
             const SizedBox(height: 16),
             _kicker('APPEARANCE'),
             const SizedBox(height: 10),
@@ -298,17 +337,20 @@ class MenuScreen extends StatelessWidget {
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.background,
                     labelStyle: TextStyle(
-                        color: currentMode == m
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600),
+                      color: currentMode == m
+                          ? Barako.onPrimary
+                          : Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     side: BorderSide(color: Barako.border),
                   ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('System follows your phone, going dark at night on its own.',
-                style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3)),
+            Text(
+              'System follows your phone, going dark at night on its own.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3),
+            ),
           ],
         ),
       ),
@@ -321,51 +363,64 @@ class MenuScreen extends StatelessWidget {
       // Turning a reminder on needs the phone's notification permission. If it
       // is refused, leave the switch off and point at settings.
       if (value && !await Reminders.requestPermission()) {
-        messenger.showSnackBar(const SnackBar(
+        messenger.showSnackBar(
+          const SnackBar(
             content: Text(
-                'Allow notifications for Salapify in your phone settings, then try again.')));
+              'Allow notifications for Salapify in your phone settings, then try again.',
+            ),
+          ),
+        );
         return;
       }
       try {
         await store.setNotifPref(key, value);
         await Reminders.reschedule(store.data, DateTime.now());
       } catch (e) {
-        messenger.showSnackBar(SnackBar(
-            content: Text('Could not save that, nothing changed. $e')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Could not save that, nothing changed. $e')),
+        );
       }
     }
 
     Widget row(String key, IconData icon, String title, String subtitle) => Row(
-          children: [
-            Icon(icon, color: Barako.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: TextStyle(
-                          color: Barako.muted, fontSize: 12, height: 1.3)),
-                ],
+      children: [
+        Icon(icon, color: Barako.primary, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Switch(
-              value: store.notifOn(key),
-              onChanged: (v) => toggle(key, v),
-              activeThumbColor: Barako.onPrimary,
-              activeTrackColor: Barako.primary,
-              inactiveThumbColor: Barako.faint,
-              inactiveTrackColor: Barako.border,
-            ),
-          ],
-        );
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 12,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Switch(
+          value: store.notifOn(key),
+          onChanged: (v) => toggle(key, v),
+          activeThumbColor: Barako.onPrimary,
+          activeTrackColor: Barako.primary,
+          inactiveThumbColor: Barako.faint,
+          inactiveTrackColor: Barako.border,
+        ),
+      ],
+    );
 
     return Card(
       child: Padding(
@@ -374,20 +429,37 @@ class MenuScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-                'Gentle nudges on your phone, nothing sent anywhere. Pick the ones that help.',
-                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+              'Gentle nudges on your phone, nothing sent anywhere. Pick the ones that help.',
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+            ),
             const SizedBox(height: 14),
-            row('daily', Icons.edit_calendar_outlined, 'Log reminder',
-                'An evening nudge to log, skipped once you already did.'),
+            row(
+              'daily',
+              Icons.edit_calendar_outlined,
+              'Log reminder',
+              'An evening nudge to log, skipped once you already did.',
+            ),
             const Divider(height: 24),
-            row('payday', Icons.payments_outlined, 'Sweldo day',
-                'A morning ping on payday to plan the money before it goes.'),
+            row(
+              'payday',
+              Icons.payments_outlined,
+              'Sweldo day',
+              'A morning ping on payday to plan the money before it goes.',
+            ),
             const Divider(height: 24),
-            row('bills', Icons.credit_card_outlined, 'Bills due',
-                'A heads up before a card or loan is due, so no late fees.'),
+            row(
+              'bills',
+              Icons.credit_card_outlined,
+              'Bills due',
+              'A heads up before a card or loan is due, so no late fees.',
+            ),
             const Divider(height: 24),
-            row('collect', Icons.handshake_outlined, 'Utang to collect',
-                'A reminder when someone owes you and it is due.'),
+            row(
+              'collect',
+              Icons.handshake_outlined,
+              'Utang to collect',
+              'A reminder when someone owes you and it is due.',
+            ),
           ],
         ),
       ),
@@ -403,9 +475,13 @@ class MenuScreen extends StatelessWidget {
         // Only turn it on when the phone can actually unlock it, so App lock
         // never strands the owner behind a lock they cannot pass.
         if (!await auth.canLock()) {
-          messenger.showSnackBar(const SnackBar(
+          messenger.showSnackBar(
+            const SnackBar(
               content: Text(
-                  'Set up a fingerprint or face unlock on your phone first, then turn this on.')));
+                'Set up a fingerprint or face unlock on your phone first, then turn this on.',
+              ),
+            ),
+          );
           return;
         }
         // Confirm the unlock works right now, so nobody enables a lock they
@@ -416,7 +492,8 @@ class MenuScreen extends StatelessWidget {
         await store.setAppLock(value);
       } catch (e) {
         messenger.showSnackBar(
-            SnackBar(content: Text('Could not save that, nothing changed. $e')));
+          SnackBar(content: Text('Could not save that, nothing changed. $e')),
+        );
       }
     }
 
@@ -431,17 +508,24 @@ class MenuScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('App lock',
-                      style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    'App lock',
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
-                      'Ask for your fingerprint or face to open Salapify. Your '
-                      'money stays private if someone else picks up your phone.',
-                      style: TextStyle(
-                          color: Barako.muted, fontSize: 12, height: 1.3)),
+                    'Ask for your fingerprint or face to open Salapify. Your '
+                    'money stays private if someone else picks up your phone.',
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -462,13 +546,17 @@ class MenuScreen extends StatelessWidget {
 
   Widget _exportCard(BuildContext context) {
     Future<void> run(
-        BuildContext context, String label, Future<void> Function() task) async {
+      BuildContext context,
+      String label,
+      Future<void> Function() task,
+    ) async {
       final messenger = ScaffoldMessenger.of(context);
       try {
         await task();
       } catch (e) {
         messenger.showSnackBar(
-            SnackBar(content: Text('Could not export $label. $e')));
+          SnackBar(content: Text('Could not export $label. $e')),
+        );
       }
     }
 
@@ -481,10 +569,14 @@ class MenuScreen extends StatelessWidget {
             _kicker('EXPORT'),
             const SizedBox(height: 8),
             Text(
-                'Save your entries as a spreadsheet, or this month as a PDF report. '
-                'Opens the share sheet, so you can send it to Files, Drive, or email.',
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 14, height: 1.4)),
+              'Save your entries as a spreadsheet, or this month as a PDF report. '
+              'Opens the share sheet, so you can send it to Files, Drive, or email.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -492,29 +584,41 @@ class MenuScreen extends StatelessWidget {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.text),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.text,
+                  ),
                   icon: const Icon(Icons.grid_on, size: 18),
-                  onPressed: () => run(context, 'the CSV',
-                      () => shareTransactionsCsv(store.data, DateTime.now())),
+                  onPressed: () => run(
+                    context,
+                    'the CSV',
+                    () => shareTransactionsCsv(store.data, DateTime.now()),
+                  ),
                   label: const Text('CSV'),
                 ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.text),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.text,
+                  ),
                   icon: const Icon(Icons.table_chart_outlined, size: 18),
-                  onPressed: () => run(context, 'the Excel file',
-                      () => shareTransactionsXlsx(store.data, DateTime.now())),
+                  onPressed: () => run(
+                    context,
+                    'the Excel file',
+                    () => shareTransactionsXlsx(store.data, DateTime.now()),
+                  ),
                   label: const Text('Excel'),
                 ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.text),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.text,
+                  ),
                   icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                  onPressed: () => run(context, 'the PDF',
-                      () => shareReportPdf(store.data, DateTime.now())),
+                  onPressed: () => run(
+                    context,
+                    'the PDF',
+                    () => shareReportPdf(store.data, DateTime.now()),
+                  ),
                   label: const Text('PDF report'),
                 ),
               ],
@@ -526,9 +630,9 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _backupCard(BuildContext context) {
-    void openImport() => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ImportScreen(store: store)),
-        );
+    void openImport() => Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ImportScreen(store: store)));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -542,35 +646,46 @@ class MenuScreen extends StatelessWidget {
                   ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
                   : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, utang, goals, settings.',
               style: TextStyle(
-                  color: Barako.textSecondary, fontSize: 14, height: 1.4),
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 12),
-            Row(
+            // Wrap, not Row: on a narrow phone or with a large system font, the
+            // second button drops to its own line instead of overflowing the
+            // edge (the striped overflow bug on ~360px budget phones).
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 if (store.hasData) ...[
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: Barako.primary,
-                        foregroundColor: Barako.onPrimary),
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                    ),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (_) => ExportScreen(store: store)),
+                        builder: (_) => ExportScreen(store: store),
+                      ),
                     ),
                     child: const Text('Export backup'),
                   ),
-                  const SizedBox(width: 8),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Barako.border),
-                        foregroundColor: Barako.textSecondary),
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.textSecondary,
+                    ),
                     onPressed: openImport,
                     child: const Text('Import backup'),
                   ),
                 ] else
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: Barako.primary,
-                        foregroundColor: Barako.onPrimary),
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                    ),
                     onPressed: openImport,
                     child: const Text('Import backup'),
                   ),
@@ -581,13 +696,17 @@ class MenuScreen extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    foregroundColor: Barako.textSecondary,
-                    minimumSize: const Size(0, 40),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  padding: EdgeInsets.zero,
+                  foregroundColor: Barako.textSecondary,
+                  minimumSize: const Size(0, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 icon: const Icon(Icons.table_view_outlined, size: 18),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => CsvImportScreen(store: store))),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CsvImportScreen(store: store),
+                  ),
+                ),
                 label: const Text('Import from a bank or GCash CSV'),
               ),
             ),
@@ -619,8 +738,10 @@ class _ThemeSwatch extends StatelessWidget {
         child: Container(
           width: 10,
           height: 10,
-          decoration:
-              BoxDecoration(color: palette.primary, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: palette.primary,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );
