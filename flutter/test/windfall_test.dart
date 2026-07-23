@@ -56,19 +56,50 @@ void main() {
       expect(slices[2]['amount'], 10000); // capped by the remaining pool
       expect(r['leftover'], 0);
       expect(r['allocated'], 35000);
-      expect(r['rateUnfilled'], true); // the rate-less BNPL is flagged
+      // The 0% BNPL is a real 0% installment, not a forgotten rate, so it is not
+      // flagged; the pool is exhausted before its clear-it tier here.
+      expect(r['rateUnfilled'], false);
     });
 
-    test('a big windfall reaches the fuller fund, the goal, then leftover', () {
+    test('a big windfall clears BNPL, fills the fuller fund, the goal, leftover',
+        () {
       final r = splitWindfall(baseData(), ref, amount: 200000);
       final slices = (r['slices'] as List).cast<Map<String, dynamic>>();
-      // starter 5k, CC 20k, personal 50k, fuller 20k (to 3 months), goal 5k.
+      // starter 5k, CC 20k, personal 50k, BNPL 3k, fuller 20k, goal 5k.
       expect(slices.map((s) => s['key']).toList(),
-          ['starter', 'debt', 'debt', 'fuller', 'goal']);
+          ['starter', 'debt', 'debt', 'bnpl', 'fuller', 'goal']);
+      expect(slices.firstWhere((s) => s['key'] == 'bnpl')['amount'], 3000);
       expect(slices.firstWhere((s) => s['key'] == 'fuller')['amount'], 20000);
       expect(slices.firstWhere((s) => s['key'] == 'goal')['amount'], 5000);
-      expect(r['leftover'], 100000);
-      expect(r['allocated'], 100000);
+      expect(r['leftover'], 97000);
+      expect(r['allocated'], 103000);
+    });
+
+    test('a 0% BNPL is offered as a clear-it slice, not flagged as rate-less',
+        () {
+      final data = baseData();
+      data['debts'] = [
+        {'id': 'b', 'name': 'Shopee hulog', 'type': 'bnpl', 'remaining': 4000, 'monthlyRate': 0},
+      ];
+      data['goals'] = [];
+      final r = splitWindfall(data, ref, amount: 100000);
+      final slices = (r['slices'] as List).cast<Map<String, dynamic>>();
+      final bnpl = slices.firstWhere((s) => s['key'] == 'bnpl');
+      expect(bnpl['label'], 'Clear Shopee hulog');
+      expect(bnpl['amount'], 4000);
+      expect(r['rateUnfilled'], false);
+    });
+
+    test('a rate-less card or loan IS flagged, since it should have interest',
+        () {
+      final data = baseData();
+      data['debts'] = [
+        {'id': 'c', 'name': 'Card', 'type': 'credit card', 'remaining': 8000, 'monthlyRate': 0},
+      ];
+      data['goals'] = [];
+      final r = splitWindfall(data, ref, amount: 100000);
+      expect(r['rateUnfilled'], true);
+      expect((r['slices'] as List).any((s) => s['key'] == 'bnpl'), false);
     });
 
     test('the 0.5%/mo SSS loan is below the line and never allocated', () {

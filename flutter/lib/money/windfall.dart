@@ -86,7 +86,13 @@ Map<String, dynamic> splitWindfall(
   }
 
   // 2. High-rate debts, costliest first, each capped at what is still owed.
+  //    A 0-rate BNPL is NOT a forgotten rate: PH BNPL (SPayLater, Home Credit,
+  //    Billease) is often genuinely 0% but with fixed due dates and steep late
+  //    penalties, so it gets its own "clear it" tier below. A 0 rate on any
+  //    OTHER interest-bearing debt (a card, a loan) almost always means the rate
+  //    was never entered, so that stays a flag, never ranked on a fake zero.
   final debts = <Map<String, dynamic>>[];
+  final bnplZero = <Map<String, dynamic>>[];
   var rateUnfilled = false;
   for (final raw in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
@@ -95,15 +101,30 @@ Map<String, dynamic> splitWindfall(
     if (!(remaining > 0.5)) continue;
     final rate = _num(d['monthlyRate']);
     if (rate >= _highRateMonthly) {
-      debts.add({'name': _debtName(d['name']), 'rate': rate, 'remaining': remaining});
+      debts.add({
+        'name': _debtName(d['name']),
+        'rate': rate,
+        'remaining': remaining,
+        'i': debts.length,
+      });
+    } else if (rate <= 0 && d['type'] == 'bnpl') {
+      bnplZero.add({
+        'name': _debtName(d['name']),
+        'remaining': remaining,
+        'i': bnplZero.length,
+      });
     } else if (rate <= 0 && _interestBearingTypes.contains(d['type'])) {
-      // Reads as free on a fake 0 rate; flag it rather than deprioritize it.
       rateUnfilled = true;
     }
   }
+  // Stable order: Dart's sort is not stable, so an insertion-index tiebreak
+  // keeps exact ties in listed order, matching analytics._stableSorted.
   debts.sort((a, b) {
     final c = (b['rate'] as double).compareTo(a['rate'] as double);
-    return c != 0 ? c : (b['remaining'] as double).compareTo(a['remaining'] as double);
+    if (c != 0) return c;
+    final r =
+        (b['remaining'] as double).compareTo(a['remaining'] as double);
+    return r != 0 ? r : (a['i'] as int).compareTo(b['i'] as int);
   });
   for (final d in debts) {
     if (pool <= 0) break;
@@ -116,6 +137,29 @@ Map<String, dynamic> splitWindfall(
       'amount': give,
       'detail':
           'At ${_ratePct(d['rate'] as double)} a month, paying this beats any savings return. Costliest debt first.',
+    });
+  }
+
+  // 2b. Clear 0% BNPL installments. Even at no interest, a windfall is the best
+  //     moment to wipe a fixed-date, penalty-bearing hulog: it frees the monthly
+  //     payment and removes the late-fee risk. Smallest first, so whole
+  //     installments are cleared and monthly obligations actually disappear.
+  bnplZero.sort((a, b) {
+    final c =
+        (a['remaining'] as double).compareTo(b['remaining'] as double);
+    return c != 0 ? c : (a['i'] as int).compareTo(b['i'] as int);
+  });
+  for (final b in bnplZero) {
+    if (pool <= 0) break;
+    final owed = b['remaining'] as double;
+    final give = pool < owed ? pool : owed;
+    pool -= give;
+    slices.add({
+      'key': 'bnpl',
+      'label': 'Clear ${b['name']}',
+      'amount': give,
+      'detail':
+          'A 0% installment still has fixed due dates and late penalties. Clearing it now frees your monthly cash and drops that risk.',
     });
   }
 
@@ -184,23 +228,32 @@ List<Map<String, dynamic>> _activeGoals(dynamic goals, DateTime ref) {
   }
   int rank(String? s) =>
       s == 'behind' ? 0 : (s == 'due-soon' || s == 'active') ? 1 : 2;
-  out.sort((a, b) {
-    final r =
-        rank(a.$2['status'] as String?).compareTo(rank(b.$2['status'] as String?));
+  final indexed = List.generate(out.length, (i) => (out[i], i));
+  indexed.sort((a, b) {
+    final r = rank(a.$1.$2['status'] as String?)
+        .compareTo(rank(b.$1.$2['status'] as String?));
     if (r != 0) return r;
-    final da = (a.$2['targetDate'] as String?) ?? '';
-    final db = (b.$2['targetDate'] as String?) ?? '';
+    final da = (a.$1.$2['targetDate'] as String?) ?? '';
+    final db = (b.$1.$2['targetDate'] as String?) ?? '';
     if (da.isNotEmpty && db.isNotEmpty && da != db) return da.compareTo(db);
-    return (b.$2['remaining'] as num).compareTo(a.$2['remaining'] as num);
+    final rem =
+        (b.$1.$2['remaining'] as num).compareTo(a.$1.$2['remaining'] as num);
+    // Insertion-index tiebreak so exact ties keep listed order (stable).
+    return rem != 0 ? rem : a.$2.compareTo(b.$2);
   });
   return [
-    for (final e in out)
-      {'name': _debtName(e.$1['name']), 'remaining': _num(e.$2['remaining'])},
+    for (final e in indexed)
+      {'name': _debtName(e.$1.$1['name']), 'remaining': _num(e.$1.$2['remaining'])},
   ];
 }
 
 String _whole(double v) {
   if (!v.isFinite) return '₱--';
+  // Same trillion ceiling the card's peso formatter uses, so corrupt huge data
+  // never prints int64-saturation garbage.
+  if (v.abs() > 1e12) {
+    return v < 0 ? '-₱1,000,000,000,000+' : '₱1,000,000,000,000+';
+  }
   final n = v.round();
   final s = n.abs().toString();
   final buf = StringBuffer();
@@ -213,6 +266,7 @@ String _whole(double v) {
 
 String _ratePct(double rate) {
   if (!rate.isFinite) return '--';
+  if (rate.abs() > 999) return '999%+'; // corrupt rate, never int64 garbage
   final r = rate % 1 == 0 ? rate.toInt().toString() : rate.toStringAsFixed(1);
   return '$r%';
 }

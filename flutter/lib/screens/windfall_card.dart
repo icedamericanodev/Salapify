@@ -60,7 +60,8 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 10),
             Text('Set aside first, optional', style: Barako.kickerStyle),
             const SizedBox(height: 4),
-            Text('Money you already need soon: gifts, tuition, premiums.',
+            Text(
+                'Money you already need soon: gifts, tuition, premiums, a paluwagan turn, or ongoing hulog.',
                 style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
             const SizedBox(height: 6),
             _field(_setAside, 'Amount to keep aside'),
@@ -139,7 +140,9 @@ class _WindfallCardState extends State<WindfallCard> {
           ],
           Divider(color: Barako.border, height: 16),
           _row(
-              leftover > 0 ? 'Yours to enjoy or invest long term' : 'Nothing left over',
+              leftover > 0
+                  ? 'Keep for long-term goals or investing'
+                  : 'Nothing left over',
               leftover,
               color: leftover > 0 ? Barako.primaryText : Barako.muted,
               bold: true),
