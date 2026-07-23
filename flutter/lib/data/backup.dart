@@ -463,12 +463,60 @@ Map<String, dynamic> sanitizeData(dynamic raw,
           }).toList();
         })(),
       };
+      // Paluwagan is a Flutter-era collection with no RN counterpart, so it
+      // lives under settings like treats and quickAdds. It is a CONDITIONAL
+      // key: emitted only when the stored blob actually carries a list, and
+      // removed otherwise. That keeps the golden key-set contract intact,
+      // because the RN-generated fixtures never carry paluwagans and so must
+      // not gain the key here either.
+      final pal = settings['paluwagans'];
+      if (pal is List) {
+        s['paluwagans'] = _paluwaganList(pal);
+      } else {
+        s.remove('paluwagans');
+      }
       final cur = s['currency'];
       if (cur is! String || cur.isEmpty) s.remove('currency');
       if (s['currencyCode'] is! String) s.remove('currencyCode');
       return s;
     })(),
   };
+}
+
+/// Valid paluwagan cadence keys, kept in step with money/paluwagan.dart.
+const List<String> _paluwaganCadenceKeys = ['weekly', 'kinsenas', 'monthly'];
+
+/// Normalize a stored paluwagan list to the safe shape the engine expects:
+/// members and turn clamped to a real group, a known cadence, a non-negative
+/// amount, and a stable id. The engine also guards junk at read time, so this
+/// is defense in depth plus a clean, comparable backup, mirroring _utangList.
+List<Map<String, dynamic>> _paluwaganList(dynamic list) {
+  var i = 0;
+  return _cleanList(list).map((r) {
+    final id = _str(r['id']);
+    final members = _num(r['members']).round().clamp(2, 60);
+    final amt = _num(r['amount']);
+    final rawNote = r['note'];
+    final note = rawNote is String
+        ? (rawNote.length > 200 ? rawNote.substring(0, 200) : rawNote)
+        : '';
+    final out = {
+      ...r,
+      'id': id.isNotEmpty ? id : 'paluwagan_restored_$i',
+      'name': _str(r['name'], 'Paluwagan'),
+      'amount': amt < 0 ? 0.0 : amt,
+      'members': members,
+      'cadence': _paluwaganCadenceKeys.contains(r['cadence'])
+          ? r['cadence']
+          : 'monthly',
+      'startDate': _str(r['startDate']),
+      'myTurn': _num(r['myTurn']).round().clamp(1, members),
+      'paidCycles': _num(r['paidCycles']).round().clamp(0, members),
+      'note': note,
+    };
+    i++;
+    return out;
+  }).toList();
 }
 
 List<Map<String, dynamic>> _utangList(

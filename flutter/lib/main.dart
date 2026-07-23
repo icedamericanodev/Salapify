@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.05 · Meet Pan: a coffee-cup mascot on Home and in Ask Pan that reacts to your money mood. Placeholder art for now, real Pan art later.';
+    'f2.06 · Paluwagan tracker: add your office or barkada paluwagan and see your payout date, where you stand, and an honest read on your turn (early turn is a 0% loan, late turn is 0% forced savings).';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

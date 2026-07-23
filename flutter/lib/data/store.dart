@@ -17,6 +17,7 @@ import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
+import '../money/paluwagan.dart' as paluwagan;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -896,6 +897,58 @@ class SalapifyStore extends ChangeNotifier {
   /// Remove a treat rule.
   Future<void> deleteTreat(String id) => _mutate((d) =>
       _withTreats(d, _settingsTreats(d).where((t) => t['id'] != id).toList()));
+
+  /// The user's paluwagan groups. Like treats, this is a Flutter-era
+  /// collection nested under settings, not a top-level RN backup key, so it is
+  /// additive and never breaks the golden backup contract.
+  List<Map<String, dynamic>> get paluwagans => _settingsPaluwagans(data);
+
+  List<Map<String, dynamic>> _settingsPaluwagans(Map<String, dynamic> d) {
+    final s = (d['settings'] as Map?) ?? const {};
+    final list = s['paluwagans'];
+    if (list is! List) return [];
+    return [
+      for (final p in list)
+        if (p is Map) p.cast<String, dynamic>(),
+    ];
+  }
+
+  Map<String, dynamic> _withPaluwagans(
+          Map<String, dynamic> d, List<Map<String, dynamic>> next) =>
+      {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'paluwagans': next,
+        },
+      };
+
+  /// Create a paluwagan from raw form fields through the engine, which clamps
+  /// members and turn, reads the amount the JS way, and mints a stable id.
+  /// Returns the new id so the screen can open straight onto it.
+  Future<String> addPaluwagan(Map<String, dynamic> fields) async {
+    final id = _genId('paluwagan');
+    await _mutate((d) {
+      final p = paluwagan.newPaluwagan({...fields, 'id': id}, DateTime.now());
+      return _withPaluwagans(d, [..._settingsPaluwagans(d), p]);
+    });
+    return id;
+  }
+
+  /// Edit a paluwagan's fields, keeping its id. The engine renormalizes every
+  /// value, so a bad members count can never desync myTurn or paidCycles.
+  Future<void> updatePaluwagan(String id, Map<String, dynamic> fields) =>
+      _mutate((d) {
+        final next = _settingsPaluwagans(d).map((p) {
+          if (p['id'] != id) return p;
+          return paluwagan.newPaluwagan({...fields, 'id': id}, DateTime.now());
+        }).toList();
+        return _withPaluwagans(d, next);
+      });
+
+  /// Remove a paluwagan group.
+  Future<void> deletePaluwagan(String id) => _mutate((d) => _withPaluwagans(
+      d, _settingsPaluwagans(d).where((p) => p['id'] != id).toList()));
 
   /// Recurring bills and income (top-level collection).
   List<Map<String, dynamic>> get recurringList {

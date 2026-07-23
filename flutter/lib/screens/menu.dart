@@ -17,6 +17,7 @@ import 'csv_import.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
+import 'paluwagan.dart';
 import 'pan.dart';
 import 'search.dart';
 import 'recap_share.dart';
@@ -79,6 +80,15 @@ class MenuScreen extends StatelessWidget {
                     'Savings goals with progress bars and an honest monthly pace.',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => GoalsScreen(store: store))),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.groups_outlined,
+                title: 'Paluwagan',
+                blurb:
+                    'Your rotating savings groups, with your payout date and an honest read on your turn.',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => PaluwaganScreen(store: store))),
               ),
               const SizedBox(height: 10),
               _navRow(
