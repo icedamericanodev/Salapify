@@ -21,7 +21,7 @@
 <body>
 <main>
   <h1>Salapify <span class="accent">Privacy Policy</span></h1>
-  <p class="updated">Last updated: July 9, 2026</p>
+  <p class="updated">Last updated: July 23, 2026</p>
 
   <div class="card">
     <p><strong>The short version:</strong> your financial data stays on your device. Salapify has no servers, no accounts, no analytics, no trackers, and no ads. We cannot see your data even if we wanted to. The only copies of your financial data that ever leave your phone are the backups and exports you set up yourself, to a place you choose. The app also asks a public exchange rate service for daily rates when you use a currency feature (logging an expense in a foreign currency, or the currency converter tool), sending only your main currency code, never your data (see Live exchange rates below).</p>
@@ -29,7 +29,6 @@
 
   <h2>What data Salapify handles</h2>
   <p>Everything you enter in Salapify (accounts, balances, transactions, debts, people who owe you, people you owe, goals, notes, recurring items, and settings) is stored only in the app's private storage on your own device. The app itself never sends your data to us or to any server of ours. The only copies that ever leave the app's private storage are the backups and exports you set up yourself, to a place you choose (see Backups below).</p>
-  <p>Receipt photos you attach to entries are saved as image files inside the app's own private folder on your phone. They never leave the device, they are not included in backup files, and they are deleted when you delete the entry they belong to or erase your data.</p>
 
   <h2>What we collect</h2>
   <p>Nothing. Salapify has no user accounts, no sign in, no analytics libraries, no crash reporters, and no advertising identifiers. We do not collect personal information of any kind.</p>
@@ -38,18 +37,16 @@
   <ul>
     <li><strong>Notifications:</strong> only if you turn on reminders (payday, bill due dates, collecting money owed to you, or the daily logging nudge). All reminders are scheduled locally on your phone.</li>
     <li><strong>Biometrics (fingerprint or face):</strong> only if you turn on App lock. Authentication happens entirely through your phone's own system. Salapify never sees, stores, or has access to your biometric data.</li>
-    <li><strong>Camera:</strong> only if you choose to photograph a receipt for an entry. The photo goes straight into the app's private folder on your phone and nowhere else.</li>
-    <li><strong>Photos:</strong> only if you choose to attach an existing picture as a receipt. Salapify opens the system picker, copies the one photo you chose, and never browses your gallery.</li>
-    <li><strong>Storage access via the system file picker:</strong> only when you choose to back up, export, or restore your data. Files are written where you point the picker. If you turn on automatic backups (a Pro feature, Android only), you grant access to one folder once, and after that the app saves a dated backup into that same folder by itself when you open the app, at most once a day. It never touches any other folder.</li>
+    <li><strong>Internet:</strong> used for two things only, both described below: downloading app updates, and fetching today's exchange rates when you use a currency feature. Your financial data is never part of either request.</li>
+    <li><strong>Storage access via the system file picker:</strong> only when you choose to back up, export, restore, or import your data (including CSV import). You pick the file or destination, and Salapify reads or writes only that one file. It never browses your device on its own.</li>
   </ul>
 
   <h2>Backups are in your hands</h2>
-  <p>When you create a backup or CSV export, that file is yours: you choose where it goes (your Downloads folder, your own cloud drive, a chat to yourself). Treat backup files with care, since they contain your financial records in readable form, including names and phone numbers you saved for people who owe you or people you owe.</p>
-  <p><strong>Automatic backups (Pro, Android):</strong> if you turn this on, you pick a folder once, and Salapify writes a dated backup file into it on its own when you open the app (about once a day), keeping the most recent few and deleting only its own older ones. This runs only while you have the app open (when you open or return to it), never in the background. If you pick a folder that syncs to your own cloud (Google Drive, Dropbox), those copies ride your cloud with no account linking and no servers of ours involved; once a file is in that folder, your cloud provider handles it under their own privacy terms. These files are readable financial records, the same as a manual backup and still without your receipt photos, just saved for you automatically. You can turn it off any time, and it never runs unless you enabled it and chose a folder.</p>
-  <p>When you restore or import a file, the app keeps one temporary copy of your previous data on the device as a safety net against a bad restore. Using Start fresh (erase everything) deletes that safety copy too. Android's own system level auto backup is switched off for Salapify, so the system never uploads the app's data anywhere on its own.</p>
+  <p>Backups and exports are always something you start yourself. When you create a backup or a CSV export, that file is yours: you choose where it goes (your Downloads folder, your own cloud drive, a chat to yourself). Salapify has no automatic or background backup, so a copy of your data leaves the app only at the moment you make one. Treat backup files with care, since they contain your financial records in readable form, including names and phone numbers you saved for people who owe you or people you owe.</p>
+  <p>When you restore or import a file, the app keeps one temporary copy of your previous data on the device as a safety net against a bad restore, so a mistaken import can be undone. That copy also stays only on your device.</p>
 
   <h2>Update delivery</h2>
-  <p>The app checks Expo's update service (expo.dev) to download improvements to the app's own code. This is a standard, anonymous app update mechanism: your financial data is never part of these requests.</p>
+  <p>The app checks Shorebird's update service to download improvements to the app's own code. This is a standard, anonymous code update mechanism, the same kind used by many Flutter and React Native apps: it fetches only the app's own updated code, and your financial data is never part of these requests.</p>
 
   <h2>Live exchange rates</h2>
   <p>When, and only when, you use a currency feature (logging an expense in a currency other than your main one, or the currency converter tool), Salapify asks a public exchange rate service (open.er-api.com) for today's rates so it can convert for you. The only thing sent is the three letter code of your main currency, for example PHP. No account, no transaction, no balance, no name, and no personal information is ever part of this request. As with any app that connects to the internet, the rate service can see your device's internet (IP) address, which it needs to answer the request; it does not receive anything that identifies you or your finances. Rates are provided by Exchange Rate API (exchangerate-api.com). If you are offline or the service cannot be reached, you simply type the rate yourself, exactly as before. The rates that come back are stored only on your device so the app does not need to ask again for several hours, and they are not part of your backups.</p>
