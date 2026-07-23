@@ -40,13 +40,16 @@ class Reminders {
       // If the zone database somehow lacks Manila, tz.local stays as-is; a
       // reminder only shifts by the offset, it never crashes.
     }
-    await _plugin.initialize(const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(
+    await _plugin.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,
-          requestSoundPermission: false),
-    ));
+          requestSoundPermission: false,
+        ),
+      ),
+    );
     _ready = true;
   }
 
@@ -56,14 +59,21 @@ class Reminders {
     try {
       await _init();
       if (Platform.isAndroid) {
-        final android = _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
         return (await android?.requestNotificationsPermission()) ?? true;
       }
-      final ios = _plugin.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       return (await ios?.requestPermissions(
-              alert: true, badge: false, sound: false)) ??
+            alert: true,
+            badge: false,
+            sound: false,
+          )) ??
           false;
     } catch (_) {
       return false;
@@ -117,9 +127,13 @@ class Reminders {
     }
   }
 
-  /// Cancel everything, e.g. when the user turns all reminders off.
+  /// Cancel everything, e.g. when the user turns all reminders off or erases
+  /// their data with Start fresh. Claiming the token invalidates any reschedule
+  /// still mid-flight, so a run started from the old data cannot keep adding
+  /// reminders after this wipe (ghost "utang due" pings about erased data).
   static Future<void> cancelAll() async {
     if (!_supported) return;
+    _runToken++;
     try {
       await _init();
       await _plugin.cancelAll();

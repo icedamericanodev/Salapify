@@ -55,7 +55,9 @@ double _num(dynamic x) {
 String _str(dynamic x, [String fallback = '']) => x is String ? x : fallback;
 
 bool _truthy(dynamic v) =>
-    v == true || (v is num && v != 0 && !v.isNaN) || (v is String && v.isNotEmpty);
+    v == true ||
+    (v is num && v != 0 && !v.isNaN) ||
+    (v is String && v.isNotEmpty);
 
 Map<String, dynamic>? _asObj(dynamic x) =>
     (x is Map && x is! List) ? x.cast<String, dynamic>() : null;
@@ -84,7 +86,8 @@ final _personM3 = RegExp(r'^person_m3_(\d+)$');
 // Keep the tree at most two levels: self parents, orphans, third levels, and
 // cycles all drop to top level by removing parentId.
 List<Map<String, dynamic>> normalizeCategoryTree(
-    List<Map<String, dynamic>> categories) {
+  List<Map<String, dynamic>> categories,
+) {
   final byId = <dynamic, Map<String, dynamic>>{
     for (final c in categories)
       if (_truthy(c['id'])) c['id']: c,
@@ -102,7 +105,8 @@ List<Map<String, dynamic>> normalizeCategoryTree(
     final parent = byId[p];
     if (parent == null) return strip(c);
     final gp = parent['parentId'];
-    final parentHasRealParent = gp is String &&
+    final parentHasRealParent =
+        gp is String &&
         gp.isNotEmpty &&
         gp != parent['id'] &&
         byId.containsKey(gp);
@@ -120,7 +124,8 @@ Map<String, dynamic> _migration3(Map<String, dynamic> d) {
   var people = (d['people'] is List)
       ? List<dynamic>.from(d['people'] as List)
       : <dynamic>[];
-  String keyOf(dynamic name) => (name == null ? '' : name.toString()).trim().toLowerCase();
+  String keyOf(dynamic name) =>
+      (name == null ? '' : name.toString()).trim().toLowerCase();
   final byKey = <String, Map<String, dynamic>>{};
   for (final p in people) {
     if (p is Map) byKey[keyOf(p['name'])] = p.cast<String, dynamic>();
@@ -181,7 +186,8 @@ Map<String, dynamic> _migrate(Map<String, dynamic> raw) {
   // JS clamps non-finite to 2 as well; _num already coerced those to 0.
   if (v > schemaVersion) {
     throw NewerBackupException(
-        'This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed.');
+      'This data comes from a newer version of Salapify. Update the app first, then try again. Nothing was changed.',
+    );
   }
   while (v < schemaVersion) {
     v += 1;
@@ -194,20 +200,21 @@ Map<String, dynamic> _migrate(Map<String, dynamic> raw) {
 
 // ---- sanitizeData ----
 
-Map<String, dynamic> sanitizeData(dynamic raw,
-    {bool keepAppLock = false, DateTime? now}) {
+Map<String, dynamic> sanitizeData(
+  dynamic raw, {
+  bool keepAppLock = false,
+  DateTime? now,
+}) {
   final src = _migrate(_asObj(raw) ?? {});
   final stampDate = _legacyDate(now ?? DateTime.now());
 
-  List<Map<String, dynamic>> dated(dynamic list) =>
-      _cleanList(list).map((it) {
-        var date =
-            (it['date'] is String && (it['date'] as String).isNotEmpty)
-                ? it['date'] as String
-                : stampDate;
-        if (_isoDateTime.hasMatch(date)) date = date.substring(0, 10);
-        return {...it, 'date': date};
-      }).toList();
+  List<Map<String, dynamic>> dated(dynamic list) => _cleanList(list).map((it) {
+    var date = (it['date'] is String && (it['date'] as String).isNotEmpty)
+        ? it['date'] as String
+        : stampDate;
+    if (_isoDateTime.hasMatch(date)) date = date.substring(0, 10);
+    return {...it, 'date': date};
+  }).toList();
 
   final settings = _asObj(src['settings']) ?? {};
 
@@ -219,17 +226,17 @@ Map<String, dynamic> sanitizeData(dynamic raw,
         'name': _str(a['name'], 'Account'),
         'brand': _str(a['brand']),
         'icon': _str(a['icon']),
-        'kind': const ['cash', 'savings', 'checking', 'ewallet']
-                .contains(a['kind'])
+        'kind':
+            const ['cash', 'savings', 'checking', 'ewallet'].contains(a['kind'])
             ? a['kind']
             : 'cash',
         'balance': _num(a['balance']),
         'target': _num(a['target']),
       };
     }).toList(),
-    'assets': _cleanList(src['assets'])
-        .map((a) => {...a, 'value': _num(a['value'])})
-        .toList(),
+    'assets': _cleanList(
+      src['assets'],
+    ).map((a) => {...a, 'value': _num(a['value'])}).toList(),
     'debts': _cleanList(src['debts']).map((d) {
       final out = {
         ...d,
@@ -280,8 +287,13 @@ Map<String, dynamic> sanitizeData(dynamic raw,
       final out = {
         ...t,
         'amount': amt < 0 ? 0.0 : amt,
-        'type': const ['income', 'transfer', 'debt', 'adjustment']
-                .contains(t['type'])
+        'type':
+            const [
+              'income',
+              'transfer',
+              'debt',
+              'adjustment',
+            ].contains(t['type'])
             ? t['type']
             : 'expense',
         'label': (t['label'] is String && (t['label'] as String).isNotEmpty)
@@ -331,13 +343,15 @@ Map<String, dynamic> sanitizeData(dynamic raw,
       return out;
     }).toList(),
     'goals': _cleanList(src['goals'])
-        .map((g) => {
-              ...g,
-              'name': _str(g['name'], 'Goal'),
-              'targetDate': _str(g['targetDate']),
-              'target': _num(g['target']),
-              'saved': _num(g['saved']),
-            })
+        .map(
+          (g) => {
+            ...g,
+            'name': _str(g['name'], 'Goal'),
+            'targetDate': _str(g['targetDate']),
+            'target': _num(g['target']),
+            'saved': _num(g['saved']),
+          },
+        )
         .toList(),
     'wins': _cleanList(src['wins']),
     'notes': _cleanList(src['notes']),
@@ -404,12 +418,14 @@ Map<String, dynamic> sanitizeData(dynamic raw,
       return normalizeCategoryTree(cleaned);
     })(),
     'people': _cleanList(src['people'])
-        .map((p) => {
-              ...p,
-              'name': _str(p['name'], 'Someone'),
-              'phone': _str(p['phone']),
-              'note': _str(p['note']),
-            })
+        .map(
+          (p) => {
+            ...p,
+            'name': _str(p['name'], 'Someone'),
+            'phone': _str(p['phone']),
+            'note': _str(p['note']),
+          },
+        )
         .toList(),
     'receivables': _utangList(src['receivables'], 'rpay_restored_', stampDate),
     'payables': _utangList(src['payables'], 'ppay_restored_', stampDate),
@@ -520,7 +536,10 @@ List<Map<String, dynamic>> _paluwaganList(dynamic list) {
 }
 
 List<Map<String, dynamic>> _utangList(
-    dynamic list, String payPrefix, String stampDate) {
+  dynamic list,
+  String payPrefix,
+  String stampDate,
+) {
   return _cleanList(list).map((r) {
     var i = 0;
     return {
@@ -559,7 +578,10 @@ List<Map<String, dynamic>> _utangList(
 /// whole data map, pretty printed with two spaces. The RN app's parseBackup
 /// reads it back with JSON.parse plus sanitizeData, so any JSON-equal text
 /// round-trips; number spelling differences (250 vs 250.0) vanish at parse.
-String buildBackupText(Map<String, dynamic> data, {required String exportedAt}) {
+String buildBackupText(
+  Map<String, dynamic> data, {
+  required String exportedAt,
+}) {
   return const JsonEncoder.withIndent('  ').convert({
     'app': 'salapify',
     'version': 2,
@@ -574,7 +596,8 @@ Map<String, dynamic> parseBackupObject(dynamic obj, {DateTime? now}) {
   // JS: obj && obj.data ? obj.data : obj. Any object or non-empty primitive
   // counts as truthy there; maps and lists are always truthy.
   final dataField = (obj is Map) ? obj['data'] : null;
-  final dataTruthy = dataField is Map || dataField is List || _truthy(dataField);
+  final dataTruthy =
+      dataField is Map || dataField is List || _truthy(dataField);
   final data = (obj is Map && dataTruthy) ? dataField : obj;
   final asMap = _asObj(data);
   if (asMap == null || asMap['accounts'] is! List) {

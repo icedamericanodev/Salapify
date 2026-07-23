@@ -21,6 +21,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../money/ledger.dart' show amountOf;
 import '../money/statements.dart';
+import 'save_to_device.dart';
 
 const List<String> _headers = [
   'Date',
@@ -73,8 +74,10 @@ Map<String, String> _accountNames(Map data) {
 List<List<dynamic>> transactionRows(Map data) {
   final names = _accountNames(data);
   final txns = _txns(data);
-  txns.sort((a, b) =>
-      (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()));
+  txns.sort(
+    (a, b) =>
+        (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()),
+  );
   final rows = <List<dynamic>>[List<dynamic>.from(_headers)];
   for (final t in txns) {
     rows.add([
@@ -125,85 +128,106 @@ Future<Uint8List> reportPdf(Map data, DateTime ref) async {
   // built-in font; the PDF still generates.
   pw.ThemeData? theme;
   try {
-    final base =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/PlusJakartaSans-Regular.ttf'));
-    final bold =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/PlusJakartaSans-Bold.ttf'));
+    final base = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/PlusJakartaSans-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/PlusJakartaSans-Bold.ttf'),
+    );
     theme = pw.ThemeData.withFont(base: base, bold: bold);
   } catch (_) {}
   final doc = pw.Document(theme: theme);
   final typed = data.cast<String, dynamic>();
   final nw = netWorthParts(typed);
   final inc = incomeStatement(typed, ref);
-  final monthKey = '${ref.year.toString().padLeft(4, '0')}-'
+  final monthKey =
+      '${ref.year.toString().padLeft(4, '0')}-'
       '${ref.month.toString().padLeft(2, '0')}';
-  final monthTxns = _txns(data)
-      .where((t) => (t['date'] ?? '').toString().startsWith(monthKey))
-      .toList()
-    ..sort((a, b) =>
-        (a['date'] ?? '').toString().compareTo((b['date'] ?? '').toString()));
+  final monthTxns =
+      _txns(data)
+          .where((t) => (t['date'] ?? '').toString().startsWith(monthKey))
+          .toList()
+        ..sort(
+          (a, b) => (a['date'] ?? '').toString().compareTo(
+            (b['date'] ?? '').toString(),
+          ),
+        );
   final names = _accountNames(data);
 
   pw.Widget line(String label, num value) => pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 2),
-        child: pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(label),
-            pw.Text(_peso(value)),
-          ],
-        ),
-      );
+    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+    child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [pw.Text(label), pw.Text(_peso(value))],
+    ),
+  );
 
-  doc.addPage(pw.MultiPage(
-    pageFormat: PdfPageFormat.a4,
-    build: (context) => [
-      pw.Header(
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) => [
+        pw.Header(
           level: 0,
-          child: pw.Text('Salapify report',
-              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold))),
-      pw.Text('As of ${ref.year}-${ref.month.toString().padLeft(2, '0')}-'
-          '${ref.day.toString().padLeft(2, '0')}'),
-      pw.SizedBox(height: 16),
-      pw.Text('Net worth',
-          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-      line('What you own', amountOf(nw['assets'])),
-      line('What you owe', amountOf(nw['liabilities'])),
-      line('Net worth', amountOf(nw['netWorth'])),
-      pw.SizedBox(height: 16),
-      pw.Text('This month',
-          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-      line('Income earned', amountOf(inc['income'])),
-      line('Spending', amountOf(inc['expenses'])),
-      line('Net income', amountOf(inc['netIncome'])),
-      pw.SizedBox(height: 16),
-      pw.Text('Transactions this month',
-          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-      pw.SizedBox(height: 6),
-      if (monthTxns.isEmpty)
-        pw.Text('No transactions logged this month.')
-      else
-        pw.TableHelper.fromTextArray(
-          headers: const ['Date', 'Type', 'Label', 'Amount', 'Account'],
-          cellStyle: const pw.TextStyle(fontSize: 9),
-          headerStyle:
-              pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-          data: [
-            for (final t in monthTxns)
-              [
-                (t['date'] ?? '').toString(),
-                (t['type'] ?? '').toString(),
-                (t['label'] ?? '').toString(),
-                _peso(amountOf(t['amount'])),
-                names[t['accountId']] ?? '',
-              ],
-          ],
+          child: pw.Text(
+            'Salapify report',
+            style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+          ),
         ),
-      pw.SizedBox(height: 20),
-      pw.Text('Made with Salapify. Numbers are from your own logged data.',
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-    ],
-  ));
+        pw.Text(
+          'As of ${ref.year}-${ref.month.toString().padLeft(2, '0')}-'
+          '${ref.day.toString().padLeft(2, '0')}',
+        ),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          'Net worth',
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+        ),
+        line('What you own', amountOf(nw['assets'])),
+        line('What you owe', amountOf(nw['liabilities'])),
+        line('Net worth', amountOf(nw['netWorth'])),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          'This month',
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+        ),
+        line('Income earned', amountOf(inc['income'])),
+        line('Spending', amountOf(inc['expenses'])),
+        line('Net income', amountOf(inc['netIncome'])),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          'Transactions this month',
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        if (monthTxns.isEmpty)
+          pw.Text('No transactions logged this month.')
+        else
+          pw.TableHelper.fromTextArray(
+            headers: const ['Date', 'Type', 'Label', 'Amount', 'Account'],
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+            ),
+            data: [
+              for (final t in monthTxns)
+                [
+                  (t['date'] ?? '').toString(),
+                  (t['type'] ?? '').toString(),
+                  (t['label'] ?? '').toString(),
+                  _peso(amountOf(t['amount'])),
+                  names[t['accountId']] ?? '',
+                ],
+            ],
+          ),
+        pw.SizedBox(height: 20),
+        pw.Text(
+          'Made with Salapify. Numbers are from your own logged data.',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+        ),
+      ],
+    ),
+  );
   return doc.save();
 }
 
@@ -229,7 +253,11 @@ Future<void> _guard(Future<void> Function() task) async {
 const String _exportPrefix = 'salapify-export-';
 
 Future<void> _shareBytes(
-    List<int> bytes, String filename, String mime, String subject) async {
+  List<int> bytes,
+  String filename,
+  String mime,
+  String subject,
+) async {
   final dir = await getTemporaryDirectory();
   // Sweep only leftover EXPORT temp files (never a backup) so a copy of the
   // finances never lingers in the cache after a share the OS killed mid-flow.
@@ -246,7 +274,9 @@ Future<void> _shareBytes(
   final file = File('${dir.path}/$filename');
   await file.writeAsBytes(bytes);
   try {
-    await Share.shareXFiles([XFile(file.path, mimeType: mime)], subject: subject);
+    await Share.shareXFiles([
+      XFile(file.path, mimeType: mime),
+    ], subject: subject);
   } finally {
     try {
       await file.delete();
@@ -259,33 +289,73 @@ String _stamp(DateTime now) =>
     '${now.month.toString().padLeft(2, '0')}-'
     '${now.day.toString().padLeft(2, '0')}';
 
-Future<void> shareTransactionsCsv(Map data, DateTime now) => _guard(() => _shareBytes(
+// Direct-save filenames are user facing (they land in the user's folder), so
+// they carry a clean salapify- name, never the internal temp prefix, and they
+// include the time so every save lands as a NEW file. Overwriting an existing
+// file through a cloud folder (Google Drive via the system dialog) does not
+// truncate it, so a smaller file written over a bigger one would be corrupt;
+// a never-colliding suggested name keeps the user off that path entirely.
+// The platform care (Android writes through the dialog, desktop needs the
+// explicit write, one save at a time) lives in saveBytesToDevice.
+
+String _saveStamp(DateTime now) =>
+    '${_stamp(now)}-'
+    '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+
+Future<bool> saveTransactionsCsvToDevice(Map data, DateTime now) =>
+    saveBytesToDevice(
+      utf8CsvBytes(transactionsCsv(data)),
+      'salapify-transactions-${_saveStamp(now)}.csv',
+    );
+
+Future<bool> saveTransactionsXlsxToDevice(Map data, DateTime now) {
+  final bytes = transactionsXlsx(data);
+  if (bytes.isEmpty) {
+    throw const FormatException('The Excel file came back empty.');
+  }
+  return saveBytesToDevice(
+    bytes,
+    'salapify-transactions-${_saveStamp(now)}.xlsx',
+  );
+}
+
+Future<bool> saveReportPdfToDevice(Map data, DateTime ref) async {
+  final bytes = await reportPdf(data, ref);
+  return saveBytesToDevice(bytes, 'salapify-report-${_saveStamp(ref)}.pdf');
+}
+
+Future<void> shareTransactionsCsv(Map data, DateTime now) => _guard(
+  () => _shareBytes(
     utf8CsvBytes(transactionsCsv(data)),
     '${_exportPrefix}transactions-${_stamp(now)}.csv',
     'text/csv',
-    'Salapify transactions'));
+    'Salapify transactions',
+  ),
+);
 
 Future<void> shareTransactionsXlsx(Map data, DateTime now) => _guard(() {
-      final bytes = transactionsXlsx(data);
-      if (bytes.isEmpty) {
-        throw const FormatException('The Excel file came back empty.');
-      }
-      return _shareBytes(
-          bytes,
-          '${_exportPrefix}transactions-${_stamp(now)}.xlsx',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Salapify transactions');
-    });
+  final bytes = transactionsXlsx(data);
+  if (bytes.isEmpty) {
+    throw const FormatException('The Excel file came back empty.');
+  }
+  return _shareBytes(
+    bytes,
+    '${_exportPrefix}transactions-${_stamp(now)}.xlsx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Salapify transactions',
+  );
+});
 
 Future<void> shareReportPdf(Map data, DateTime ref) => _guard(() async {
-      final bytes = await reportPdf(data, ref);
-      await _shareBytes(
-          bytes,
-          '${_exportPrefix}report-${ref.year.toString().padLeft(4, '0')}-'
-              '${ref.month.toString().padLeft(2, '0')}.pdf',
-          'application/pdf',
-          'Salapify report');
-    });
+  final bytes = await reportPdf(data, ref);
+  await _shareBytes(
+    bytes,
+    '${_exportPrefix}report-${ref.year.toString().padLeft(4, '0')}-'
+        '${ref.month.toString().padLeft(2, '0')}.pdf',
+    'application/pdf',
+    'Salapify report',
+  );
+});
 
 // UTF-8 bytes with a BOM, so Excel opens a peso or Tagalog label without
 // mojibake.
