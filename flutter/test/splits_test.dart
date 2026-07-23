@@ -17,8 +17,11 @@ void main() {
     for (final s in r['shares'] as List) {
       sum += (s['share'] as num).toDouble();
     }
-    expect((sum * 100).round(), (total * 100).round(),
-        reason: 'shares must sum to the total to the centavo');
+    expect(
+      (sum * 100).round(),
+      (total * 100).round(),
+      reason: 'shares must sum to the total to the centavo',
+    );
     // yourShare + toCollect is the same identity, from the other direction.
     final your = (r['yourShare'] as num).toDouble();
     final collect = (r['toCollect'] as num).toDouble();
@@ -118,8 +121,9 @@ void main() {
     });
     test('you and Maria split the remaining 600', () {
       expect(r['yourShare'], 300);
-      final maria =
-          (r['shares'] as List).firstWhere((s) => s['name'] == 'Maria');
+      final maria = (r['shares'] as List).firstWhere(
+        (s) => s['name'] == 'Maria',
+      );
       expect(maria['share'], 300);
     });
     test('sums to total', () => expectSumsToTotal(r));
@@ -182,9 +186,68 @@ void main() {
     });
   });
 
+  group('activitySummaries folds split receivables by activity', () {
+    final recs = [
+      {
+        'activityId': 'act1',
+        'activityLabel': 'Baler trip',
+        'person': 'Juan',
+        'amount': 1000,
+        'payments': [],
+      },
+      {
+        'activityId': 'act1',
+        'activityLabel': 'Baler trip',
+        'person': 'Maria',
+        'amount': 1000,
+        'payments': [
+          {'amount': 400},
+        ],
+      },
+      {
+        'activityId': 'act2',
+        'activityLabel': 'Grab',
+        'person': 'Ana',
+        'amount': 300,
+        'payments': [],
+      },
+      // A fully settled split drops out entirely.
+      {
+        'activityId': 'act3',
+        'activityLabel': 'Coffee',
+        'person': 'Ben',
+        'amount': 200,
+        'payments': [
+          {'amount': 200},
+        ],
+      },
+      // A plain (non-split) receivable is ignored.
+      {'person': 'Cy', 'amount': 500, 'payments': []},
+    ];
+    final out = activitySummaries(recs);
+    test('one entry per open activity, settled dropped', () {
+      expect(out.length, 2);
+      expect(out[0]['label'], 'Baler trip');
+      expect(out[1]['label'], 'Grab');
+    });
+    test('still out is amount minus payments', () {
+      expect(out[0]['stillOut'], 1600); // 1000 + (1000 - 400)
+      expect(out[0]['people'], 2);
+      expect(out[1]['stillOut'], 300);
+      expect(out[1]['people'], 1);
+    });
+    test('junk is safe', () {
+      expect(activitySummaries(null), isEmpty);
+      expect(activitySummaries([42, 'x', {}]), isEmpty);
+    });
+  });
+
   group('equalShare preview is centavo safe', () {
     test('even', () => expect(equalShare(900, 3), 300));
-    test('uneven rounds the first person up', () => expect(equalShare(1000, 3), 333.34));
+    test(
+      'uneven rounds the first person up',
+      () => expect(equalShare(1000, 3), 333.34),
+    );
     test('bad count is zero', () => expect(equalShare(1000, 0), 0));
     test('bad total is zero', () => expect(equalShare(-1, 3), 0));
   });

@@ -105,7 +105,11 @@ class _SplitSheetState extends State<_SplitSheet> {
         'name': p.name,
         'isYou': p.isYou,
         'included': p.included,
-        if (p.custom.text.trim().isNotEmpty) 'amount': p.custom.text.trim(),
+        // Strip the thousands commas and spaces a Filipino user naturally types
+        // (1,500 or 1 500) before the engine parses, or the amount would be
+        // silently ignored and that person wrongly dropped into the even split.
+        if (p.custom.text.trim().isNotEmpty)
+          'amount': p.custom.text.replaceAll(RegExp(r'[, ]'), ''),
       },
   ];
 
@@ -139,11 +143,7 @@ class _SplitSheetState extends State<_SplitSheet> {
   Future<void> _confirm() async {
     if (_saving) return;
     final plan = _plan;
-    if (plan['ok'] != true) return;
-    if ((plan['collectFrom'] as int) == 0) {
-      setState(() {}); // nothing to collect; the button is already disabled
-      return;
-    }
+    if (plan['ok'] != true || (plan['collectFrom'] as int) == 0) return;
     if (!widget.store.canWrite) return;
     _saving = true;
     setState(() {});
@@ -205,6 +205,16 @@ class _SplitSheetState extends State<_SplitSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
+                'HATIAN',
+                style: TextStyle(
+                  color: Barako.primaryText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
                 'Split this bill',
                 style: TextStyle(
                   color: Barako.text,
@@ -225,6 +235,13 @@ class _SplitSheetState extends State<_SplitSheet> {
               _label('What was this for?'),
               _input(_activity, hint: 'e.g. Baler trip, Grab, dinner'),
               _label('Sino kasama?'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'Leave a box blank to split evenly, or type an exact ambag.',
+                  style: TextStyle(color: Barako.faint, fontSize: 11),
+                ),
+              ),
               for (final p in _people) _personRow(p),
               const SizedBox(height: 10),
               _addRow(),
@@ -235,6 +252,13 @@ class _SplitSheetState extends State<_SplitSheet> {
                 Text(
                   err,
                   style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                ),
+              ] else if (collectFrom == 0) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Add the people who shared this bill so each one owes you '
+                  'their part.',
+                  style: TextStyle(color: Barako.muted, fontSize: 13),
                 ),
               ],
               const SizedBox(height: 20),
@@ -282,65 +306,93 @@ class _SplitSheetState extends State<_SplitSheet> {
 
   Widget _personRow(_Participant p) {
     final share = _shareFor(p.name);
+    final label = p.isYou ? 'You' : p.name;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          _includeBox(p),
-          const SizedBox(width: 10),
+          // The whole name area toggles inclusion, so the tap target clears
+          // 44dp instead of the 26dp box alone. Announced as a checkbox.
           Expanded(
-            child: Text(
-              p.isYou ? 'You' : p.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: p.included ? Barako.text : Barako.faint,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+            child: Semantics(
+              checked: p.included,
+              label: label,
+              child: PressableScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => p.included = !p.included);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    child: Row(
+                      children: [
+                        _checkVisual(p),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: p.included ? Barako.text : Barako.faint,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
+          const SizedBox(width: 8),
           SizedBox(
             width: 92,
-            child: TextField(
-              controller: p.custom,
-              enabled: p.included,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-              ],
-              onChanged: (_) => setState(() {}),
-              textAlign: TextAlign.right,
-              style: TextStyle(color: Barako.text, fontSize: 14),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: p.included ? formatMoneyText(share) : '',
-                hintStyle: TextStyle(color: Barako.faint, fontSize: 13),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
+            child: Semantics(
+              label: '$label exact amount, leave blank to split evenly',
+              child: TextField(
+                controller: p.custom,
+                enabled: p.included,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Barako.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Barako.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Barako.primary),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
+                ],
+                onChanged: (_) => setState(() {}),
+                textAlign: TextAlign.right,
+                style: TextStyle(color: Barako.text, fontSize: 14),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: p.included ? formatMoneyText(share) : '',
+                  hintStyle: TextStyle(color: Barako.faint, fontSize: 13),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Barako.primary),
+                  ),
                 ),
               ),
             ),
           ),
           if (!p.isYou)
             IconButton(
-              icon: Icon(Icons.close, size: 18, color: Barako.faint),
-              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.close, size: 20, color: Barako.faint),
               tooltip: 'Remove ${p.name}',
               onPressed: () => setState(() {
                 p.custom.dispose();
@@ -348,44 +400,27 @@ class _SplitSheetState extends State<_SplitSheet> {
               }),
             )
           else
-            const SizedBox(width: 40),
+            const SizedBox(width: 48),
         ],
       ),
     );
   }
 
-  Widget _includeBox(_Participant p) {
-    return Semantics(
-      button: true,
-      selected: p.included,
-      label:
-          '${p.isYou ? 'You' : p.name}, ${p.included ? 'included' : 'not in'}',
-      child: PressableScale(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() => p.included = !p.included);
-          },
-          child: Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              color: p.included ? Barako.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: p.included ? Barako.primary : Barako.border,
-                width: 1.5,
-              ),
-            ),
-            child: p.included
-                ? Icon(Icons.check, size: 16, color: Barako.onPrimary)
-                : null,
-          ),
-        ),
+  Widget _checkVisual(_Participant p) => Container(
+    width: 26,
+    height: 26,
+    decoration: BoxDecoration(
+      color: p.included ? Barako.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: p.included ? Barako.primary : Barako.border,
+        width: 1.5,
       ),
-    );
-  }
+    ),
+    child: p.included
+        ? Icon(Icons.check, size: 16, color: Barako.onPrimary)
+        : null,
+  );
 
   Widget _addRow() {
     final names = _existingNames;
@@ -461,11 +496,7 @@ class _SplitSheetState extends State<_SplitSheet> {
         children: [
           _summaryRow('You fronted', _total, Barako.text),
           const SizedBox(height: 6),
-          _summaryRow(
-            'Your share (stays your expense)',
-            yourShare,
-            Barako.textSecondary,
-          ),
+          _summaryRow('Your share', yourShare, Barako.textSecondary),
           const SizedBox(height: 6),
           Divider(color: Barako.border, height: 12),
           const SizedBox(height: 6),
@@ -476,6 +507,11 @@ class _SplitSheetState extends State<_SplitSheet> {
             toCollect,
             Barako.primaryText,
             bold: true,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your share stays a normal expense. Only the rest becomes utang.',
+            style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
           ),
         ],
       ),

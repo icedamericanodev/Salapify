@@ -17,7 +17,8 @@ Future<SalapifyStore> _seed(Map<String, dynamic> data) async {
   final store = SalapifyStore();
   await store.load();
   await store.importBackupText(
-      jsonEncode({'app': 'salapify', 'version': 2, 'data': data}));
+    jsonEncode({'app': 'salapify', 'version': 2, 'data': data}),
+  );
   return store;
 }
 
@@ -29,28 +30,28 @@ double _balance(SalapifyStore s, String acctId) {
 }
 
 List<Map<String, dynamic>> _receivables(SalapifyStore s) => [
-      for (final r in (s.data['receivables'] as List? ?? const []))
-        if (r is Map) r.cast<String, dynamic>(),
-    ];
+  for (final r in (s.data['receivables'] as List? ?? const []))
+    if (r is Map) r.cast<String, dynamic>(),
+];
 
 void main() {
   // A GCash account holding 5000 after a 3000 dinner already posted, and that
   // dinner as an expense of 3000 out of GCash.
   Map<String, dynamic> baseData() => {
-        'accounts': [
-          {'id': 'a1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 5000},
-        ],
-        'transactions': [
-          {
-            'id': 't1',
-            'type': 'expense',
-            'label': 'Dinner',
-            'amount': 3000,
-            'date': '2026-07-01',
-            'accountId': 'a1',
-          },
-        ],
-      };
+    'accounts': [
+      {'id': 'a1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 5000},
+    ],
+    'transactions': [
+      {
+        'id': 't1',
+        'type': 'expense',
+        'label': 'Dinner',
+        'amount': 3000,
+        'date': '2026-07-01',
+        'accountId': 'a1',
+      },
+    ],
+  };
 
   test('splitting a fronted expense keeps the account outflow exact', () async {
     final store = await _seed(baseData());
@@ -67,8 +68,9 @@ void main() {
     expect(created, 2);
 
     // The source expense shrank to your own 1000 share.
-    final t1 = (store.data['transactions'] as List)
-        .firstWhere((t) => t['id'] == 't1');
+    final t1 = (store.data['transactions'] as List).firstWhere(
+      (t) => t['id'] == 't1',
+    );
     expect((t1['amount'] as num).toDouble(), 1000);
     expect(t1['splitActivityId'], isNotNull);
 
@@ -117,18 +119,23 @@ void main() {
         },
       ],
     });
-    await store.splitExpense(txnId: 't1', participants: [
-      {'name': 'You', 'isYou': true},
-      {'name': 'Juan'},
-      {'name': 'Maria'},
-    ]);
+    await store.splitExpense(
+      txnId: 't1',
+      participants: [
+        {'name': 'You', 'isYou': true},
+        {'name': 'Juan'},
+        {'name': 'Maria'},
+      ],
+    );
     // 1000 / 3 = 333.34 (you) + 333.33 + 333.33; account outflow still 1000.
-    final t1 = (store.data['transactions'] as List)
-        .firstWhere((t) => t['id'] == 't1');
+    final t1 = (store.data['transactions'] as List).firstWhere(
+      (t) => t['id'] == 't1',
+    );
     expect((t1['amount'] as num).toDouble(), 333.34);
     expect(_balance(store, 'a1'), closeTo(5000, 1e-9));
-    final total = _receivables(store)
-        .fold<double>(0, (s, r) => s + (r['amount'] as num).toDouble());
+    final total = _receivables(
+      store,
+    ).fold<double>(0, (s, r) => s + (r['amount'] as num).toDouble());
     expect(total, closeTo(666.66, 1e-9));
   });
 
@@ -145,27 +152,115 @@ void main() {
         },
       ],
     });
-    await store.splitExpense(txnId: 't1', participants: [
-      {'name': 'You', 'isYou': true},
-      {'name': 'Juan'},
-      {'name': 'Maria'},
-    ]);
+    await store.splitExpense(
+      txnId: 't1',
+      participants: [
+        {'name': 'You', 'isYou': true},
+        {'name': 'Juan'},
+        {'name': 'Maria'},
+      ],
+    );
     final recs = _receivables(store);
     expect(recs.length, 2);
     for (final r in recs) {
       expect(r['amount'], 200);
-      expect(r['cashLeg'] == true, isFalse,
-          reason: 'no account means a legacy receivable, not a cash leg');
+      expect(
+        r['cashLeg'] == true,
+        isFalse,
+        reason: 'no account means a legacy receivable, not a cash leg',
+      );
     }
   });
 
   test('a missing source transaction is a safe no-op', () async {
     final store = await _seed(baseData());
-    final created = await store.splitExpense(txnId: 'nope', participants: [
-      {'name': 'You', 'isYou': true},
-      {'name': 'Juan'},
-    ]);
+    final created = await store.splitExpense(
+      txnId: 'nope',
+      participants: [
+        {'name': 'You', 'isYou': true},
+        {'name': 'Juan'},
+      ],
+    );
     expect(created, 0);
     expect(_receivables(store), isEmpty);
+  });
+
+  test('a debt-interest expense (source stamp) refuses to split', () async {
+    final store = await _seed({
+      'accounts': [
+        {'id': 'a1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 5000},
+      ],
+      'transactions': [
+        {
+          'id': 'ti',
+          'type': 'expense',
+          'label': 'Card interest',
+          'amount': 300,
+          'date': '2026-07-01',
+          'accountId': 'a1',
+          'source': 'interest',
+          'debtId': 'd1',
+        },
+      ],
+    });
+    final created = await store.splitExpense(
+      txnId: 'ti',
+      participants: [
+        {'name': 'You', 'isYou': true},
+        {'name': 'Juan'},
+      ],
+    );
+    expect(
+      created,
+      0,
+      reason: 'a sourced/debt-linked expense is not splittable',
+    );
+    expect(_receivables(store), isEmpty);
+    final ti = (store.data['transactions'] as List).firstWhere(
+      (t) => t['id'] == 'ti',
+    );
+    expect((ti['amount'] as num).toDouble(), 300, reason: 'source untouched');
+  });
+
+  test('an expense a payable payment points at refuses to split', () async {
+    final store = await _seed({
+      'accounts': [
+        {'id': 'a1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 5000},
+      ],
+      'transactions': [
+        {
+          'id': 'tp',
+          'type': 'expense',
+          'label': 'Paid Store',
+          'amount': 1000,
+          'date': '2026-07-01',
+          'accountId': 'a1',
+        },
+      ],
+      'payables': [
+        {
+          'id': 'pay1',
+          'person': 'Store',
+          'amount': 1000,
+          'paid': true,
+          'payments': [
+            {'id': 'pp1', 'amount': 1000, 'date': '2026-07-01', 'txnId': 'tp'},
+          ],
+        },
+      ],
+    });
+    final created = await store.splitExpense(
+      txnId: 'tp',
+      participants: [
+        {'name': 'You', 'isYou': true},
+        {'name': 'Juan'},
+      ],
+    );
+    expect(created, 0, reason: 'a ledger-linked expense is not splittable');
+    expect(_receivables(store), isEmpty);
+    final tp = (store.data['transactions'] as List).firstWhere(
+      (t) => t['id'] == 'tp',
+    );
+    expect((tp['amount'] as num).toDouble(), 1000, reason: 'source untouched');
   });
 }

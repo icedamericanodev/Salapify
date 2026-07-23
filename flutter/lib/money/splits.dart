@@ -141,6 +141,49 @@ Map<String, dynamic> splitExpense(dynamic total, dynamic participants) {
   };
 }
 
+/// Fold split receivables into per-activity summaries for the utang screen:
+/// one entry per activityId, in first-seen order, with its label, the total
+/// still out (unpaid), and how many distinct people still owe you. Pure
+/// aggregation, so the totals are covered by a vector instead of summed inside
+/// a widget. "Still out" is amount minus payments floored at zero, matching
+/// remainingOf; a fully settled activity drops out.
+List<Map<String, dynamic>> activitySummaries(dynamic receivables) {
+  final byId = <String, Map<String, dynamic>>{};
+  final order = <String>[];
+  for (final r in (receivables is List ? receivables : const [])) {
+    if (r is! Map) continue;
+    final aid = r['activityId'];
+    if (aid is! String || aid.isEmpty) continue;
+    final paid = (r['payments'] is List)
+        ? (r['payments'] as List).fold<double>(
+            0,
+            (t, p) => t + (p is Map ? amountOf(p['amount']) : 0),
+          )
+        : 0.0;
+    final rem = amountOf(r['amount']) - paid;
+    if (rem <= 0) continue;
+    final label =
+        (r['activityLabel'] is String &&
+            (r['activityLabel'] as String).trim().isNotEmpty)
+        ? (r['activityLabel'] as String).trim()
+        : 'Split';
+    final g = byId.putIfAbsent(aid, () {
+      order.add(aid);
+      return {'label': label, 'stillOut': 0.0, 'names': <String>{}};
+    });
+    g['stillOut'] = (g['stillOut'] as double) + rem;
+    (g['names'] as Set<String>).add((r['person'] ?? '').toString());
+  }
+  return [
+    for (final id in order)
+      {
+        'label': byId[id]!['label'],
+        'stillOut': byId[id]!['stillOut'],
+        'people': (byId[id]!['names'] as Set).length,
+      },
+  ];
+}
+
 /// The plain equal share of a total among `count` people, for a live preview as
 /// the user toggles people in and out. Centavo exact for the first person, so
 /// the preview never shows a figure the real split cannot hit. Returns 0 for a

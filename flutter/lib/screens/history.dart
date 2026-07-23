@@ -324,10 +324,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ? (record ? type : (isIncome ? 'Income' : 'Expense'))
         : (t['label']).toString();
 
-    // A plain expense you fronted can be split with friends. Already-split
-    // expenses (shrunk to your share) can be split again on the remainder, so
-    // the only gate is a real expense with money in it.
-    final splittable = !record && !isIncome && amount > 0;
+    // A plain expense you fronted can be split with friends. It must clear the
+    // SAME safety gate as delete (isDeletable): a real, unlocked expense with
+    // no flow leg, no source stamp, and nothing a payable or receivable payment
+    // points at, plus no debt link. Splitting a ledger-linked or debt-interest
+    // expense would desync the payable/debt to ledger contract and invent money
+    // (a linked payment would later reverse a now-smaller txn). Already-split
+    // expenses (shrunk to your share) can be split again on the remainder.
+    final splittable =
+        isDeletable(t, lockedIds: locked) &&
+        t['type'] == 'expense' &&
+        amount > 0 &&
+        t['debtId'] == null;
+    // Advertise the split affordance only on rows not yet split; an already
+    // split expense stays tappable (to split the remainder) but without the
+    // loud hint, so the list does not repeat the CTA on every single row.
+    final alreadySplit = t['splitActivityId'] != null;
+    final showSplitHint = splittable && !alreadySplit;
 
     final rowContent = Padding(
       padding: const EdgeInsets.all(14),
@@ -343,16 +356,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     'Record of a money move, read-only here',
                     style: TextStyle(color: Barako.faint, fontSize: 11),
                   )
-                else if (splittable)
+                else if (showSplitHint)
                   Text(
                     'Tap to split with friends',
-                    style: TextStyle(color: Barako.faint, fontSize: 11),
+                    style: TextStyle(color: Barako.muted, fontSize: 11),
                   ),
               ],
             ),
           ),
-          if (splittable) ...[
-            Icon(Icons.call_split, size: 16, color: Barako.faint),
+          if (showSplitHint) ...[
+            ExcludeSemantics(
+              child: Icon(Icons.call_split, size: 16, color: Barako.muted),
+            ),
             const SizedBox(width: 10),
           ],
           Text(
@@ -379,10 +394,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final row = Card(
       margin: const EdgeInsets.symmetric(vertical: 3),
       child: splittable
-          ? InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => showSplitSheet(context, widget.store, t),
-              child: rowContent,
+          ? Semantics(
+              button: true,
+              label: 'Split $label',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => showSplitSheet(context, widget.store, t),
+                child: rowContent,
+              ),
             )
           : rowContent,
     );

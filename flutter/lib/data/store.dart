@@ -1193,6 +1193,31 @@ class SalapifyStore extends ChangeNotifier {
       }
       if (src == null) return d;
 
+      // Only a plain, unlinked expense may be split. A flow leg, a source
+      // stamp, a debt link, or a payable/receivable payment pointing at this
+      // txn all mean shrinking it would desync a locked contract or invent
+      // money (a linked payment would later reverse a now-smaller txn). This
+      // enforces at the store the same gate the History affordance uses, so the
+      // money invariant holds no matter who calls this.
+      if (src['type'] != 'expense' ||
+          src['flow'] != null ||
+          src['source'] != null ||
+          src['debtId'] != null) {
+        return d;
+      }
+      for (final key in const ['payables', 'receivables']) {
+        final list = d[key];
+        if (list is! List) continue;
+        for (final item in list) {
+          if (item is! Map) continue;
+          final pays = item['payments'];
+          if (pays is! List) continue;
+          for (final p in pays) {
+            if (p is Map && p['txnId'] == txnId) return d;
+          }
+        }
+      }
+
       final total = ledger.amountOf(src['amount']);
       final plan = splits.splitExpense(total, participants);
       if (plan['ok'] != true) return d;
@@ -1232,7 +1257,14 @@ class SalapifyStore extends ChangeNotifier {
           today: _todayISO(),
           genId: _genId,
         );
-        if (res.error != null || res.id == null) continue;
+        // All or nothing: the source expense is already reduced, so a share
+        // that failed to become a receivable would leave money that left the
+        // account with nothing recording it. Abort the whole split instead;
+        // _mutate discards this and the store is untouched.
+        if (res.error != null || res.id == null) {
+          created = 0;
+          return d;
+        }
         final newId = res.id;
         next = {
           ...res.data,

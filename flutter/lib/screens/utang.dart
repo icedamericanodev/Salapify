@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/receivables.dart' as engine;
+import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
 import '../widgets/screen_header.dart';
@@ -176,35 +177,11 @@ class UtangScreen extends StatelessWidget {
     );
   }
 
-  /// Open receivables that came from a bill split, folded by activity. Reads
-  /// receivables directly (not the golden aging fold), so it is a pure display
-  /// layer that never touches the locked utang math. Each person's share still
-  /// appears in the per-person list below; this is just the activity lens.
-  List<Map<String, dynamic>> _activityGroups() {
-    final byId = <String, Map<String, dynamic>>{};
-    for (final r in (store.data['receivables'] as List? ?? const [])) {
-      if (r is! Map) continue;
-      final aid = r['activityId'];
-      if (aid is! String || aid.isEmpty) continue;
-      final rem = engine.remainingOf(r.cast<String, dynamic>());
-      if (rem <= 0) continue;
-      final label =
-          (r['activityLabel'] is String &&
-              (r['activityLabel'] as String).trim().isNotEmpty)
-          ? (r['activityLabel'] as String).trim()
-          : 'Split';
-      final g = byId.putIfAbsent(
-        aid,
-        () => {'label': label, 'stillOut': 0.0, 'people': <String>{}},
-      );
-      g['stillOut'] = (g['stillOut'] as double) + rem;
-      (g['people'] as Set<String>).add((r['person'] ?? '').toString());
-    }
-    return byId.values.toList();
-  }
-
   Widget _splitsSection() {
-    final groups = _activityGroups();
+    // The per-activity fold lives in the tested splits engine, not here, so the
+    // totals are covered by a vector. This is a pure display lens; each share
+    // still appears in the golden-locked per-person aging below.
+    final groups = splits.activitySummaries(store.data['receivables']);
     if (groups.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +219,7 @@ class UtangScreen extends StatelessWidget {
   Widget _activityRow(Map<String, dynamic> g) {
     final label = g['label'] as String;
     final stillOut = g['stillOut'] as double;
-    final count = (g['people'] as Set).length;
+    final count = g['people'] as int;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
