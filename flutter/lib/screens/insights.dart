@@ -20,6 +20,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import '../widgets/screen_header.dart';
+import 'afford_card.dart';
 import 'overview.dart' show formatMoney;
 
 const List<String> _monthsShort = [
@@ -251,6 +252,11 @@ class InsightsScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _nextPesoCard(plan, focusGoal),
             ],
+            // "Kaya mo ba ito?" always shows: it is a tool anyone can reach for
+            // before a purchase, not a reflection of the current month, so it
+            // does not gate on having debt or a goal.
+            const SizedBox(height: 12),
+            AffordCard(data: data, ref: ref),
             if (_hasActiveDebt(data['debts'])) ...[
               const SizedBox(height: 12),
               _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
