@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.04 · Windfall planner in Insights: got a 13th month or bonus? See a sound way to split it across cushion, debt, and goals.';
+    'f2.05 · Meet Pan: a coffee-cup mascot on Home and in Ask Pan that reacts to your money mood. Placeholder art for now, real Pan art later.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -11,7 +11,9 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/store.dart';
 import '../money/pan/ask.dart';
+import '../money/pan_mood.dart';
 import '../theme.dart';
+import '../widgets/pan_mascot.dart';
 import 'debts.dart';
 import 'loan_calculator.dart';
 import 'contribution_calculator.dart';
@@ -110,9 +112,6 @@ class _PanScreenState extends State<PanScreen> {
     }
   }
 
-  String get _face =>
-      mood == 'happy' ? '😄' : mood == 'worried' ? '😟' : '☕';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,11 +120,9 @@ class _PanScreenState extends State<PanScreen> {
         foregroundColor: Barako.text,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Barako.primary,
-              child: Text(_face, style: const TextStyle(fontSize: 16)),
-            ),
+            // The mascot cup reacts to the latest reply's mood, the same widget
+            // and mood engine the Home check-in uses.
+            PanMascot(mood: panMoodForReplyMood(mood), size: 36),
             const SizedBox(width: 10),
             Text('Pan',
                 style: TextStyle(

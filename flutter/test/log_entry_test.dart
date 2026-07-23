@@ -22,6 +22,13 @@ Map<String, dynamic> seedBlob() => {
 void main() {
   testWidgets('logging an expense moves the account and this month',
       (tester) async {
+    // Tall viewport so the whole Home column (net worth, accounts, and the this
+    // month income statement) renders; the lazy ListView would otherwise skip
+    // building rows below the fold. Same pattern as reports_screen_test.
+    tester.view.physicalSize = const Size(1200, 3600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     SharedPreferences.setMockInitialValues(
         {storageKey: jsonEncode(seedBlob())});
     final store = SalapifyStore();

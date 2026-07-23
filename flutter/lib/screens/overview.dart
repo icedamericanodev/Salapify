@@ -14,8 +14,10 @@ import '../data/backup.dart';
 import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
+import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/pan_mascot.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
@@ -285,7 +287,24 @@ class OverviewScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _kicker('MONEY CHECK-IN'),
+              // Pan sits with the check-in, reflecting its mood, so the same cup
+              // face reacts to the top coach item here and to chat replies in
+              // Ask Pan. Same widget, same mood engine.
+              Row(
+                children: [
+                  _kicker('MONEY CHECK-IN'),
+                  const Spacer(),
+                  // Decorative here: the check-in card already announces the
+                  // situation, so keep Pan out of the screen reader on Home (his
+                  // descriptive label stays on the Ask Pan header, where it adds
+                  // information).
+                  ExcludeSemantics(
+                    child: PanMascot(
+                        mood: panMoodForCoachKind(c['kind'] as String?),
+                        size: 44),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
