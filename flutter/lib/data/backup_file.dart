@@ -50,15 +50,44 @@ Future<void> shareBackupFile(SalapifyStore store, DateTime now) async {
   final file = File('${dir.path}/${backupFileName(now)}');
   await file.writeAsString(text);
   try {
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
-      subject: 'Salapify backup',
-    );
+    await Share.shareXFiles([
+      XFile(file.path, mimeType: 'application/json'),
+    ], subject: 'Salapify backup');
   } finally {
     try {
       await file.delete();
     } catch (_) {}
   }
+}
+
+/// Saves the current backup straight to the device through the system save
+/// dialog (the user picks Downloads or any folder; on Android this is the
+/// storage access framework, so no storage permission is needed and it matches
+/// the privacy policy's "system file picker" wording). The plugin writes the
+/// bytes itself on mobile; on a desktop build the dialog only returns a path,
+/// so the guarded write below covers that case too. Returns true when saved,
+/// false when the user cancelled.
+Future<bool> saveBackupFileToDevice(SalapifyStore store, DateTime now) async {
+  final text = store.exportBackupText();
+  final bytes = utf8.encode(text);
+  final path = await FilePicker.platform.saveFile(
+    dialogTitle: 'Save Salapify backup',
+    fileName: backupFileName(now),
+    bytes: bytes,
+  );
+  if (path == null) return false;
+  // Mobile already wrote the bytes; a desktop path comes back unwritten. Only
+  // touch a real filesystem path, and never throw the save into failure if the
+  // platform handed back a content URI a File cannot open.
+  if (!kIsWeb && !path.startsWith('content://')) {
+    try {
+      final f = File(path);
+      if (!await f.exists() || await f.length() == 0) {
+        await f.writeAsBytes(bytes);
+      }
+    } catch (_) {}
+  }
+  return true;
 }
 
 /// Opens the system file picker and returns the chosen file's text, or null if
@@ -80,7 +109,8 @@ Future<String?> pickBackupFileText() async {
   const maxBytes = 25 * 1024 * 1024;
   if (f.size > maxBytes) {
     throw const FormatException(
-        'That file is too large to be a Salapify backup.');
+      'That file is too large to be a Salapify backup.',
+    );
   }
   final bytes = f.bytes;
   if (bytes != null) return utf8.decode(bytes);

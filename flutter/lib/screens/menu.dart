@@ -208,6 +208,8 @@ class MenuScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _exportCard(context),
               ],
+              const SizedBox(height: 12),
+              _startFreshCard(context),
               const SizedBox(height: 16),
               const UpdateCard(),
             ],
@@ -558,14 +560,73 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _exportCard(BuildContext context) {
+    // Each export offers the two honest destinations: straight to the phone
+    // (the system save dialog, Downloads or any folder) or the share sheet.
     Future<void> run(
       BuildContext context,
       String label,
-      Future<void> Function() task,
+      Future<bool> Function() saveTask,
+      Future<void> Function() shareTask,
     ) async {
       final messenger = ScaffoldMessenger.of(context);
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          backgroundColor: Barako.background,
+          title: Text(
+            'Export $label',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop('save'),
+              child: Row(
+                children: [
+                  Icon(Icons.download, size: 20, color: Barako.primaryText),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Save to this phone',
+                    style: TextStyle(color: Barako.text, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop('share'),
+              child: Row(
+                children: [
+                  Icon(Icons.ios_share, size: 20, color: Barako.primaryText),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Share (Drive, email, chat)',
+                    style: TextStyle(color: Barako.text, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      if (choice == null) return;
       try {
-        await task();
+        if (choice == 'save') {
+          final saved = await saveTask();
+          if (saved) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Saved. Check your Downloads or the folder you picked.',
+                ),
+              ),
+            );
+          }
+        } else {
+          await shareTask();
+        }
       } catch (e) {
         messenger.showSnackBar(
           SnackBar(content: Text('Could not export $label. $e')),
@@ -583,7 +644,7 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Save your entries as a spreadsheet, or this month as a PDF report. '
-              'Opens the share sheet, so you can send it to Files, Drive, or email.',
+              'Save straight to this phone, or share it to Files, Drive, or email.',
               style: TextStyle(
                 color: Barako.textSecondary,
                 fontSize: 14,
@@ -604,6 +665,8 @@ class MenuScreen extends StatelessWidget {
                   onPressed: () => run(
                     context,
                     'the CSV',
+                    () =>
+                        saveTransactionsCsvToDevice(store.data, DateTime.now()),
                     () => shareTransactionsCsv(store.data, DateTime.now()),
                   ),
                   label: const Text('CSV'),
@@ -617,6 +680,10 @@ class MenuScreen extends StatelessWidget {
                   onPressed: () => run(
                     context,
                     'the Excel file',
+                    () => saveTransactionsXlsxToDevice(
+                      store.data,
+                      DateTime.now(),
+                    ),
                     () => shareTransactionsXlsx(store.data, DateTime.now()),
                   ),
                   label: const Text('Excel'),
@@ -630,11 +697,177 @@ class MenuScreen extends StatelessWidget {
                   onPressed: () => run(
                     context,
                     'the PDF',
+                    () => saveReportPdfToDevice(store.data, DateTime.now()),
                     () => shareReportPdf(store.data, DateTime.now()),
                   ),
                   label: const Text('PDF report'),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // The most destructive action in the app, founder approved before it was
+  // built. Two explicit confirmations, an offered backup first, and honest
+  // copy about the safety net going too. Also the documented recovery path
+  // when the stored data cannot be read.
+  Widget _startFreshCard(BuildContext context) {
+    Future<void> onStartFresh() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      final first = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Barako.background,
+          title: Text(
+            'Erase everything?',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Text(
+            'Start fresh deletes every account, entry, utang, goal, debt, and '
+            'setting Salapify keeps on this phone, including the safety copy '
+            'kept from your last import. There is no undo. If you might ever '
+            'want this data back, save a backup first.',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Barako.textSecondary),
+              ),
+            ),
+            if (store.hasData)
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop('backup'),
+                child: Text(
+                  'Save a backup first',
+                  style: TextStyle(
+                    color: Barako.primaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop('erase'),
+              child: Text(
+                'Continue',
+                style: TextStyle(
+                  color: Barako.warningStrong,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (first == 'backup') {
+        navigator.push(
+          MaterialPageRoute(builder: (_) => ExportScreen(store: store)),
+        );
+        return;
+      }
+      if (first != 'erase') return;
+      if (!context.mounted) return;
+      final sure = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Barako.background,
+          title: Text(
+            'Last check',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Text(
+            'This permanently erases all Salapify data on this phone and '
+            'cancels your reminders. Are you sure?',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Barako.textSecondary),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Barako.warningStrong,
+                foregroundColor: Barako.onPrimary,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text(
+                'Yes, erase it all',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (sure != true) return;
+      try {
+        await store.startFresh();
+        await Reminders.cancelAll();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Everything erased. Fresh start.')),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Could not erase everything. $e')),
+        );
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('START FRESH'),
+            const SizedBox(height: 8),
+            Text(
+              'Erase everything Salapify keeps on this phone and begin again '
+              'from zero. This is also the way out if your stored data can no '
+              'longer be read.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Barako.warningStrong),
+                foregroundColor: Barako.warningStrong,
+              ),
+              onPressed: onStartFresh,
+              icon: const Icon(Icons.delete_forever_outlined, size: 18),
+              label: const Text(
+                'Start fresh (erase everything)',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),

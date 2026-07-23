@@ -59,16 +59,17 @@ class OverviewScreen extends StatelessWidget {
     final data = store.data;
     final parts = netWorthParts(data);
     final istmt = incomeStatement(data, DateTime.now());
-    final accounts =
-        (data['accounts'] as List).cast<Map<String, dynamic>>();
+    final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
     // The one thing to do about money right now, seen the moment Home opens.
     // Reuses the same coach decision layer Insights renders, so the two can
     // never disagree. Only once there is real data to reason about.
     final transactions = data['transactions'];
-    final hasStarted = accounts.isNotEmpty ||
+    final hasStarted =
+        accounts.isNotEmpty ||
         (transactions is List && transactions.isNotEmpty);
-    final checkIn =
-        hasStarted ? coach.weeklyCheckIn(data, DateTime.now()) : null;
+    final checkIn = hasStarted
+        ? coach.weeklyCheckIn(data, DateTime.now())
+        : null;
 
     return Scaffold(
       // No Log button until the store loaded cleanly: after a failed read,
@@ -80,8 +81,7 @@ class OverviewScreen extends StatelessWidget {
               foregroundColor: Barako.onPrimary,
               onPressed: () => showLogSheet(context, store),
               icon: const Icon(Icons.add),
-              label: Text('Log',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              label: Text('Log', style: TextStyle(fontWeight: FontWeight.w700)),
             )
           : null,
       body: SafeArea(
@@ -91,25 +91,34 @@ class OverviewScreen extends StatelessWidget {
             SizedBox(height: 8),
             Row(
               children: [
-                Text('₱',
-                    style: TextStyle(
-                        color: Barako.primary,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800)),
+                Text(
+                  '₱',
+                  style: TextStyle(
+                    color: Barako.primary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 SizedBox(width: 10),
-                Text('SALAPIFY',
-                    style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3)),
+                Text(
+                  'SALAPIFY',
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 3,
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: Icon(Icons.search, color: Barako.text),
                   tooltip: 'Search',
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => SearchScreen(
-                          store: store, onSwitchTab: onSwitchTab))),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          SearchScreen(store: store, onSwitchTab: onSwitchTab),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -154,15 +163,17 @@ class OverviewScreen extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
                                   child: Text(
-                                      a['name'] as String? ?? 'Account',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: Barako.text, fontSize: 16)),
+                                    a['name'] as String? ?? 'Account',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Barako.text,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 // A big balance scales down instead of
@@ -172,14 +183,16 @@ class OverviewScreen extends StatelessWidget {
                                     fit: BoxFit.scaleDown,
                                     alignment: Alignment.centerRight,
                                     child: Text(
-                                        formatMoney(amount(a['balance'])),
-                                        style: TextStyle(
-                                            color: Barako.textSecondary,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            fontFeatures: const [
-                                              FontFeature.tabularFigures()
-                                            ])),
+                                      formatMoney(amount(a['balance'])),
+                                      style: TextStyle(
+                                        color: Barako.textSecondary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -199,17 +212,23 @@ class OverviewScreen extends StatelessWidget {
                     children: [
                       _kicker('THIS MONTH'),
                       const SizedBox(height: 6),
-                      _line('Income earned',
-                          formatMoney(istmt['income'] as double)),
-                      _line('Spending',
-                          formatMoney(istmt['expenses'] as double)),
+                      _line(
+                        'Income earned',
+                        formatMoney(istmt['income'] as double),
+                      ),
+                      _line(
+                        'Spending',
+                        formatMoney(istmt['expenses'] as double),
+                      ),
                       const Divider(),
-                      _line('Net income',
-                          formatMoney(istmt['netIncome'] as double),
-                          strong: true,
-                          color: (istmt['netIncome'] as double) >= 0
-                              ? Barako.primary
-                              : Barako.warning),
+                      _line(
+                        'Net income',
+                        formatMoney(istmt['netIncome'] as double),
+                        strong: true,
+                        color: (istmt['netIncome'] as double) >= 0
+                            ? Barako.primary
+                            : Barako.warning,
+                      ),
                     ],
                   ),
                 ),
@@ -223,12 +242,15 @@ class OverviewScreen extends StatelessWidget {
 
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
 
-  Widget _kicker(String text) => Text(text,
-      style: TextStyle(
-          color: Barako.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2));
+  Widget _kicker(String text) => Text(
+    text,
+    style: TextStyle(
+      color: Barako.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 2,
+    ),
+  );
 
   // The bottom tabs a check-in action can jump straight to. Routes that are
   // not tabs (/debts, /goals) are handled by a push in _checkInCard; /learn is
@@ -255,13 +277,15 @@ class OverviewScreen extends StatelessWidget {
     } else if (route == '/debts') {
       // Debts is not a bottom tab; a due-soon decision is prio 92, so it must
       // not be a dead end. Push the screen Home already imports.
-      onTap = () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
+      onTap = () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));
     } else if (route == '/goals') {
       // Goals is a pushable screen now, so an "open goals" decision is a real
       // tap instead of an inert card.
-      onTap = () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => GoalsScreen(store: store)));
+      onTap = () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => GoalsScreen(store: store)));
     }
     final good = tone == 'good';
     // Same mapping as the Insights decision card: urgent and watch read as
@@ -269,15 +293,15 @@ class OverviewScreen extends StatelessWidget {
     final titleColor = tone == 'urgent'
         ? Barako.warning
         : good
-            ? Barako.primaryText
-            : tone == 'watch'
-                ? Barako.text
-                : Barako.textSecondary;
+        ? Barako.primaryText
+        : tone == 'watch'
+        ? Barako.text
+        : Barako.textSecondary;
     final dotColor = tone == 'urgent'
         ? Barako.warning
         : tone == 'nudge'
-            ? Barako.muted
-            : Barako.primary;
+        ? Barako.muted
+        : Barako.primary;
     final Widget card = Card(
       child: InkWell(
         onTap: onTap,
@@ -300,8 +324,9 @@ class OverviewScreen extends StatelessWidget {
                   // information).
                   ExcludeSemantics(
                     child: PanMascot(
-                        mood: panMoodForCoachKind(c['kind'] as String?),
-                        size: 44),
+                      mood: panMoodForCoachKind(c['kind'] as String?),
+                      size: 44,
+                    ),
                   ),
                 ],
               ),
@@ -311,31 +336,44 @@ class OverviewScreen extends StatelessWidget {
                   // The all-clear wears a quiet check, not the attention dot,
                   // so calm reads softer than a real decision.
                   if (good)
-                    Icon(Icons.check_circle_outline,
-                        color: Barako.primary, size: 16)
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Barako.primary,
+                      size: 16,
+                    )
                   else
                     Container(
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                          color: dotColor, shape: BoxShape.circle),
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(c['title'] as String,
-                        style: TextStyle(
-                            color: titleColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      c['title'] as String,
+                      style: TextStyle(
+                        color: titleColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   if (onTap != null)
                     Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(c['message'] as String,
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+              Text(
+                c['message'] as String,
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
             ],
           ),
         ),
@@ -364,30 +402,38 @@ class OverviewScreen extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(formatMoney(nw),
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      // A negative net worth is honest, not an emergency. It
-                      // stays in plain ink, not alarm red, so a user who owes
-                      // more than they hold is not shamed by the biggest number
-                      // on the screen. Red is reserved for urgent, time-bound
-                      // things like an overdue utang.
-                      color: nw < 0 ? Barako.text : Barako.primary,
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              child: Text(
+                formatMoney(nw),
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: Barako.displayFont,
+                  // A negative net worth is honest, not an emergency. It
+                  // stays in plain ink, not alarm red, so a user who owes
+                  // more than they hold is not shamed by the biggest number
+                  // on the screen. Red is reserved for urgent, time-bound
+                  // things like an overdue utang.
+                  color: nw < 0 ? Barako.text : Barako.primary,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-                'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
+              'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
+              style: TextStyle(color: Barako.muted, fontSize: 13),
+            ),
             if (nw < 0) ...[
               const SizedBox(height: 8),
               Text(
-                  'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+                'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
             ],
           ],
         ),
@@ -401,74 +447,102 @@ class OverviewScreen extends StatelessWidget {
   /// path as a quiet link for the tester migrating from the old app, rather
   /// than as the loud primary button a new user cannot use.
   Widget _welcomeCard(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _kicker('WELCOME'),
-              const SizedBox(height: 8),
-              Text('Wala pang laman, and that is okay.',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text('What do you want to start with?',
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 14, height: 1.4)),
-              const SizedBox(height: 14),
-              _lane(context, Icons.receipt_long_outlined, 'Track my spending',
-                  'Log what you spend and see where it goes', () {
-                if (store.canWrite) showLogSheet(context, store);
-              }),
-              const SizedBox(height: 10),
-              _lane(context, Icons.handshake_outlined, 'See who owes me',
-                  'Keep an utang list that adds itself up',
-                  () => onSwitchTab?.call(3)),
-              const SizedBox(height: 10),
-              _lane(context, Icons.trending_down, 'Pay off a debt or utang',
-                  'A payoff date and the cheapest way there',
-                  () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => DebtsScreen(store: store)))),
-              const SizedBox(height: 16),
-              // Quiet migration path for a tester bringing data from the old app.
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      foregroundColor: Barako.muted,
-                      minimumSize: const Size(0, 36),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => ImportScreen(store: store))),
-                  child: const Text('Coming from the old app? Import a backup'),
-                ),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _kicker('WELCOME'),
+          const SizedBox(height: 8),
+          Text(
+            'Wala pang laman, and that is okay.',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 6),
+          Text(
+            'What do you want to start with?',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _lane(
+            context,
+            Icons.receipt_long_outlined,
+            'Track my spending',
+            'Log what you spend and see where it goes',
+            () {
+              if (store.canWrite) showLogSheet(context, store);
+            },
+          ),
+          const SizedBox(height: 10),
+          _lane(
+            context,
+            Icons.handshake_outlined,
+            'See who owes me',
+            'Keep an utang list that adds itself up',
+            () => onSwitchTab?.call(3),
+          ),
+          const SizedBox(height: 10),
+          _lane(
+            context,
+            Icons.trending_down,
+            'Pay off a debt or utang',
+            'A payoff date and the cheapest way there',
+            () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Quiet migration path for a tester bringing data from the old app.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                foregroundColor: Barako.muted,
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ImportScreen(store: store)),
+              ),
+              child: const Text('Coming from the old app? Import a backup'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   // A tappable first-run lane: an icon, a title, and a one-line why, routing to
   // the screen that user came for.
-  Widget _lane(BuildContext context, IconData icon, String title,
-          String subtitle, VoidCallback onTap) =>
-      PressableScale(
-        child: Material(
-          color: Barako.background,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
+  Widget _lane(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) => PressableScale(
+    child: Material(
+      color: Barako.background,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Barako.border),
-              ),
-              child: Row(
+            border: Border.all(color: Barako.border),
+          ),
+          child: Row(
             children: [
               Icon(icon, color: Barako.primary, size: 22),
               const SizedBox(width: 12),
@@ -476,47 +550,60 @@ class OverviewScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style:
-                            TextStyle(color: Barako.muted, fontSize: 12.5)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                    ),
                   ],
                 ),
               ),
               Icon(Icons.chevron_right, color: Barako.faint, size: 18),
             ],
-              ),
-            ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
-  Widget _line(String label, String value,
-          {bool strong = false, Color? color}) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label,
-                style: TextStyle(
-                    color: strong ? Barako.text : Barako.muted,
-                    fontSize: 15,
-                    fontWeight: strong ? FontWeight.w700 : FontWeight.w400)),
-            Text(value,
-                style: TextStyle(
-                    color: color ?? Barako.textSecondary,
-                    fontSize: 15,
-                    fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
-          ],
+  Widget _line(
+    String label,
+    String value, {
+    bool strong = false,
+    Color? color,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: strong ? Barako.text : Barako.muted,
+            fontSize: 15,
+            fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+          ),
         ),
-      );
+        Text(
+          value,
+          style: TextStyle(
+            color: color ?? Barako.textSecondary,
+            fontSize: 15,
+            fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class ExportScreen extends StatefulWidget {
@@ -533,6 +620,7 @@ class _ExportScreenState extends State<ExportScreen> {
   // to from this screen.
   late final String text = widget.store.exportBackupText();
   bool _sharing = false;
+  bool _saving = false;
 
   Future<void> _shareFile() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -540,10 +628,38 @@ class _ExportScreenState extends State<ExportScreen> {
     try {
       await shareBackupFile(widget.store, DateTime.now());
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text('Could not open the share sheet, nothing was lost. $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not open the share sheet, nothing was lost. $e'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  Future<void> _saveToPhone() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _saving = true);
+    try {
+      final saved = await saveBackupFileToDevice(widget.store, DateTime.now());
+      if (saved) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Backup saved. Check your Downloads or the folder you picked.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not save the file, nothing was lost. $e'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -567,7 +683,10 @@ class _ExportScreenState extends State<ExportScreen> {
               Text(
                 'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
                 style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 14, height: 1.4),
+                  color: Barako.textSecondary,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -583,35 +702,67 @@ class _ExportScreenState extends State<ExportScreen> {
                     child: SelectableText(
                       text,
                       style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 11,
-                          fontFamily: 'monospace'),
+                        color: Barako.textSecondary,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              // The share sheet and temp file need a native platform; on the
-              // web preview only the copy button works, so hide the file one.
+              // The save dialog, share sheet, and temp file need a native
+              // platform; on the web preview only the copy button works.
               if (!kIsWeb) ...[
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                        backgroundColor: Barako.primary,
-                        foregroundColor: Barako.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: _saving ? null : _saveToPhone,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download),
+                    label: Text(
+                      _saving ? 'Saving...' : 'Save to this phone',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.textSecondary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     onPressed: _sharing ? null : _shareFile,
                     icon: _sharing
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.ios_share),
                     label: Text(
-                        _sharing ? 'Preparing...' : 'Save or share a file',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                      _sharing ? 'Preparing...' : 'Share a file',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -620,20 +771,26 @@ class _ExportScreenState extends State<ExportScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.textSecondary,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     await Clipboard.setData(ClipboardData(text: text));
-                    messenger.showSnackBar(const SnackBar(
+                    messenger.showSnackBar(
+                      const SnackBar(
                         content: Text(
-                            'Copied. Paste it somewhere safe, like a note or an email to yourself.')));
+                          'Copied. Paste it somewhere safe, like a note or an email to yourself.',
+                        ),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.copy),
-                  label: const Text('Copy backup text',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Copy backup text',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -668,7 +825,8 @@ class _ImportScreenState extends State<ImportScreen> {
       text = await pickBackupFileText();
     } catch (e) {
       messenger.showSnackBar(
-          SnackBar(content: Text('Could not read that file. $e')));
+        SnackBar(content: Text('Could not read that file. $e')),
+      );
       return;
     }
     if (text == null) return; // cancelled
@@ -690,15 +848,19 @@ class _ImportScreenState extends State<ImportScreen> {
       setState(() => error = e.message);
       return;
     } on FormatException {
-      setState(() => error =
-          'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+      setState(
+        () => error =
+            'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.',
+      );
       return;
     } catch (e) {
       // Anything else (a StackOverflowError from a deeply nested file, an
       // int overflow deep in a migration) must not escape and red-screen the
       // tab. Fail closed with a friendly message, before any confirm.
-      setState(() => error =
-          'That file could not be read as a Salapify backup. Try exporting a fresh backup.');
+      setState(
+        () => error =
+            'That file could not be read as a Salapify backup. Try exporting a fresh backup.',
+      );
       return;
     }
     // Importing over existing data replaces EVERYTHING in one tap, the most
@@ -710,8 +872,10 @@ class _ImportScreenState extends State<ImportScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: Barako.card,
-          title: Text('Replace everything?',
-              style: TextStyle(color: Barako.text)),
+          title: Text(
+            'Replace everything?',
+            style: TextStyle(color: Barako.text),
+          ),
           content: Text(
             'Everything currently in this preview app will be replaced by '
             'the backup you chose. The replaced data is kept on this phone until '
@@ -720,13 +884,13 @@ class _ImportScreenState extends State<ImportScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text('Cancel',
-                    style: TextStyle(color: Barako.muted))),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+            ),
             TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text('Replace',
-                    style: TextStyle(color: Barako.warning))),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text('Replace', style: TextStyle(color: Barako.warning)),
+            ),
           ],
         ),
       );
@@ -746,8 +910,10 @@ class _ImportScreenState extends State<ImportScreen> {
       if (mounted) setState(() => error = e.message);
     } on FormatException {
       if (mounted) {
-        setState(() => error =
-            'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.');
+        setState(
+          () => error =
+              'That text is not valid JSON. Copy the whole backup from the Backup screen and paste it unchanged.',
+        );
       }
     } catch (e) {
       // The snapshot or save failed; the store aborted or rolled back, so
@@ -777,30 +943,38 @@ class _ImportScreenState extends State<ImportScreen> {
               Text(
                 'Choose a backup file (from your phone, Google Drive, or Files), or paste the backup text. Importing replaces everything currently in this app with the backup.',
                 style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 14, height: 1.4),
+                  color: Barako.textSecondary,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                   onPressed: busy ? null : _pickFile,
                   icon: const Icon(Icons.folder_open),
-                  label: const Text('Choose a backup file',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Choose a backup file',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Or paste the backup text',
-                  style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1)),
+              Text(
+                'Or paste the backup text',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
+              ),
               const SizedBox(height: 8),
               Expanded(
                 child: TextField(
@@ -809,7 +983,10 @@ class _ImportScreenState extends State<ImportScreen> {
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
                   style: TextStyle(
-                      color: Barako.text, fontSize: 12, fontFamily: 'monospace'),
+                    color: Barako.text,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
                   decoration: InputDecoration(
                     hintText: '{"app":"salapify", ...}',
                     hintStyle: TextStyle(color: Barako.faint),
@@ -824,17 +1001,19 @@ class _ImportScreenState extends State<ImportScreen> {
               ),
               if (error != null) ...[
                 const SizedBox(height: 10),
-                Text(error!,
-                    style:
-                        TextStyle(color: Barako.warning, fontSize: 13)),
+                Text(
+                  error!,
+                  style: TextStyle(color: Barako.warning, fontSize: 13),
+                ),
               ],
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary),
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                  ),
                   onPressed: busy ? null : _import,
                   child: Text(busy ? 'Importing...' : 'Import'),
                 ),

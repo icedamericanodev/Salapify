@@ -20,6 +20,7 @@ import '../money/treats.dart' as treats;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
+import 'fx_service.dart' show FxService;
 
 const String storageKey = 'salapify_data_v2';
 
@@ -338,6 +339,28 @@ class SalapifyStore extends ChangeNotifier {
     // promises: disk now equals memory and both are readable, so writing
     // is safe again and the stale read error must not keep the app
     // locked read-only.
+    loadError = null;
+    loaded = true;
+    notifyListeners();
+  });
+
+  /// Start fresh: erase EVERYTHING Salapify keeps on this phone. The stored
+  /// data, the previous-import safety copy, and the cached exchange rates all
+  /// go; the in-memory store resets to the empty default. This is the most
+  /// destructive action in the app and it was founder approved before being
+  /// built; the screen gates it behind an explicit double confirmation and
+  /// offers an export first.
+  ///
+  /// Deliberately allowed even after a failed read (like importBackupText):
+  /// wiping unreadable data is the other documented recovery action, so it
+  /// also clears loadError and restores writability. Runs on the serialized
+  /// write queue so it can never interleave with an in-flight save.
+  Future<void> startFresh() => _serialized(() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(storageKey);
+    await prefs.remove(previousBackupKey);
+    await prefs.remove(FxService.cacheKey);
+    data = sanitizeData({});
     loadError = null;
     loaded = true;
     notifyListeners();
