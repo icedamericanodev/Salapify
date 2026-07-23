@@ -3,6 +3,7 @@
 // Goals, the deeper Insights), the helpers (Ask Pan, Tools), personalize
 // (mood), and your data (backup, build stamp). Reached as the last bottom tab.
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/export_files.dart';
@@ -204,7 +205,9 @@ class MenuScreen extends StatelessWidget {
               _kicker('YOUR DATA'),
               const SizedBox(height: 8),
               _backupCard(context),
-              if (store.hasData) ...[
+              // The save dialog and share sheet are native-only; on the web
+              // preview both would fail, so the export card hides there.
+              if (store.hasData && !kIsWeb) ...[
                 const SizedBox(height: 12),
                 _exportCard(context),
               ],

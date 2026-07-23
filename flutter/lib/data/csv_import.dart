@@ -18,8 +18,7 @@ class ParsedCsv {
   final List<List<String>> rows; // every row as trimmed strings
   const ParsedCsv(this.rows);
 
-  int get columnCount =>
-      rows.fold(0, (m, r) => r.length > m ? r.length : m);
+  int get columnCount => rows.fold(0, (m, r) => r.length > m ? r.length : m);
 }
 
 /// Parse CSV text into string rows. Tolerant of quoting and of ragged rows.
@@ -144,8 +143,11 @@ bool _typeIsIncome(String raw) {
 /// Build candidate transactions from data rows (header already removed by the
 /// caller) and the user's column mapping. Rows missing a readable date or
 /// amount are skipped and counted.
-ImportResult buildImport(List<List<String>> dataRows, ColumnMap map,
-    {String? defaultAccountId}) {
+ImportResult buildImport(
+  List<List<String>> dataRows,
+  ColumnMap map, {
+  String? defaultAccountId,
+}) {
   final out = <Map<String, dynamic>>[];
   var skipped = 0;
   for (final row in dataRows) {
@@ -162,9 +164,7 @@ ImportResult buildImport(List<List<String>> dataRows, ColumnMap map,
       final isExpense = map.negativeIsExpense ? amt < 0 : amt > 0;
       type = isExpense ? 'expense' : 'income';
     }
-    final label = map.description != null
-        ? _cell(row, map.description!)
-        : '';
+    final label = map.description != null ? _cell(row, map.description!) : '';
     final tx = <String, dynamic>{
       'date': iso,
       'type': type,

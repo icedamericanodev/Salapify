@@ -13,15 +13,22 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'save_to_device.dart';
 import 'store.dart';
 
-/// A dated, human-readable backup filename, so a folder of backups sorts and
-/// reads well. One a day is plenty for a manual backup, and a time with colons
-/// breaks some filesystems, so the date alone is the name.
+/// A dated, human-readable backup filename that sorts well in a folder. The
+/// time is part of the name ON PURPOSE: it makes every save land as a NEW file
+/// instead of suggesting an overwrite of yesterday's backup. Overwriting
+/// matters because cloud folders (Google Drive through the system dialog) do
+/// not truncate an overwritten file, so writing a smaller backup over a bigger
+/// one would leave the old file's tail behind and corrupt the JSON, discovered
+/// only at restore time. No colons (they break some filesystems); hour and
+/// minute only.
 String backupFileName(DateTime now) =>
     'salapify-backup-${now.year.toString().padLeft(4, '0')}-'
     '${now.month.toString().padLeft(2, '0')}-'
-    '${now.day.toString().padLeft(2, '0')}.json';
+    '${now.day.toString().padLeft(2, '0')}-'
+    '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}.json';
 
 /// Writes the current backup to a temp file and opens the system share sheet,
 /// so the user can save it to Files or Drive or email it to themselves. The
@@ -61,34 +68,15 @@ Future<void> shareBackupFile(SalapifyStore store, DateTime now) async {
 }
 
 /// Saves the current backup straight to the device through the system save
-/// dialog (the user picks Downloads or any folder; on Android this is the
-/// storage access framework, so no storage permission is needed and it matches
-/// the privacy policy's "system file picker" wording). The plugin writes the
-/// bytes itself on mobile; on a desktop build the dialog only returns a path,
-/// so the guarded write below covers that case too. Returns true when saved,
-/// false when the user cancelled.
-Future<bool> saveBackupFileToDevice(SalapifyStore store, DateTime now) async {
-  final text = store.exportBackupText();
-  final bytes = utf8.encode(text);
-  final path = await FilePicker.platform.saveFile(
-    dialogTitle: 'Save Salapify backup',
-    fileName: backupFileName(now),
-    bytes: bytes,
-  );
-  if (path == null) return false;
-  // Mobile already wrote the bytes; a desktop path comes back unwritten. Only
-  // touch a real filesystem path, and never throw the save into failure if the
-  // platform handed back a content URI a File cannot open.
-  if (!kIsWeb && !path.startsWith('content://')) {
-    try {
-      final f = File(path);
-      if (!await f.exists() || await f.length() == 0) {
-        await f.writeAsBytes(bytes);
-      }
-    } catch (_) {}
-  }
-  return true;
-}
+/// dialog (the user picks Downloads or any folder). All the platform care
+/// (Android writes through the dialog, desktop needs the explicit write, one
+/// save at a time) lives in saveBytesToDevice. Returns true when saved, false
+/// when the user cancelled.
+Future<bool> saveBackupFileToDevice(SalapifyStore store, DateTime now) =>
+    saveBytesToDevice(
+      utf8.encode(store.exportBackupText()),
+      backupFileName(now),
+    );
 
 /// Opens the system file picker and returns the chosen file's text, or null if
 /// the user cancelled. Reads the in-memory bytes when the platform provides

@@ -13,8 +13,6 @@ import 'dart:typed_data';
 
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart' as xl;
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -23,6 +21,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../money/ledger.dart' show amountOf;
 import '../money/statements.dart';
+import 'save_to_device.dart';
 
 const List<String> _headers = [
   'Date',
@@ -290,36 +289,23 @@ String _stamp(DateTime now) =>
     '${now.month.toString().padLeft(2, '0')}-'
     '${now.day.toString().padLeft(2, '0')}';
 
-/// Save bytes straight to the device through the system save dialog. The user
-/// picks Downloads or any folder; on Android this is the storage access
-/// framework, so no storage permission is needed. The plugin writes the bytes
-/// itself on mobile; the guarded write covers a desktop dialog that only
-/// returns a path. Returns true when saved, false when the user cancelled.
-Future<bool> _saveBytesToDevice(List<int> bytes, String filename) async {
-  final path = await FilePicker.platform.saveFile(
-    dialogTitle: 'Save $filename',
-    fileName: filename,
-    bytes: Uint8List.fromList(bytes),
-  );
-  if (path == null) return false;
-  if (!kIsWeb && !path.startsWith('content://')) {
-    try {
-      final f = File(path);
-      if (!await f.exists() || await f.length() == 0) {
-        await f.writeAsBytes(bytes);
-      }
-    } catch (_) {}
-  }
-  return true;
-}
-
 // Direct-save filenames are user facing (they land in the user's folder), so
-// they carry a clean salapify- name, never the internal temp prefix.
+// they carry a clean salapify- name, never the internal temp prefix, and they
+// include the time so every save lands as a NEW file. Overwriting an existing
+// file through a cloud folder (Google Drive via the system dialog) does not
+// truncate it, so a smaller file written over a bigger one would be corrupt;
+// a never-colliding suggested name keeps the user off that path entirely.
+// The platform care (Android writes through the dialog, desktop needs the
+// explicit write, one save at a time) lives in saveBytesToDevice.
+
+String _saveStamp(DateTime now) =>
+    '${_stamp(now)}-'
+    '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
 
 Future<bool> saveTransactionsCsvToDevice(Map data, DateTime now) =>
-    _saveBytesToDevice(
+    saveBytesToDevice(
       utf8CsvBytes(transactionsCsv(data)),
-      'salapify-transactions-${_stamp(now)}.csv',
+      'salapify-transactions-${_saveStamp(now)}.csv',
     );
 
 Future<bool> saveTransactionsXlsxToDevice(Map data, DateTime now) {
@@ -327,16 +313,15 @@ Future<bool> saveTransactionsXlsxToDevice(Map data, DateTime now) {
   if (bytes.isEmpty) {
     throw const FormatException('The Excel file came back empty.');
   }
-  return _saveBytesToDevice(bytes, 'salapify-transactions-${_stamp(now)}.xlsx');
+  return saveBytesToDevice(
+    bytes,
+    'salapify-transactions-${_saveStamp(now)}.xlsx',
+  );
 }
 
 Future<bool> saveReportPdfToDevice(Map data, DateTime ref) async {
   final bytes = await reportPdf(data, ref);
-  return _saveBytesToDevice(
-    bytes,
-    'salapify-report-${ref.year.toString().padLeft(4, '0')}-'
-    '${ref.month.toString().padLeft(2, '0')}.pdf',
-  );
+  return saveBytesToDevice(bytes, 'salapify-report-${_saveStamp(ref)}.pdf');
 }
 
 Future<void> shareTransactionsCsv(Map data, DateTime now) => _guard(

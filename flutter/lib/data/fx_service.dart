@@ -52,12 +52,12 @@ class FxService {
     HttpClient? client;
     try {
       client = HttpClient()..connectionTimeout = timeout;
-      final req =
-          await client.getUrl(Uri.parse(fxEndpoint(base))).timeout(timeout);
+      final req = await client
+          .getUrl(Uri.parse(fxEndpoint(base)))
+          .timeout(timeout);
       final res = await req.close().timeout(timeout);
       if (res.statusCode != 200) return null;
-      final body =
-          await res.transform(utf8.decoder).join().timeout(timeout);
+      final body = await res.transform(utf8.decoder).join().timeout(timeout);
       final parsed = parseRatesResponse(jsonDecode(body));
       if (parsed == null || parsed['rates'] is! Map) return null;
       final stamp = parsed['fetchedAt'] is num
@@ -66,8 +66,10 @@ class FxService {
       final rates = (parsed['rates'] as Map).cast<String, dynamic>();
       try {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(cacheKey,
-            jsonEncode({'base': base, 'rates': rates, 'fetchedAt': stamp}));
+        await prefs.setString(
+          cacheKey,
+          jsonEncode({'base': base, 'rates': rates, 'fetchedAt': stamp}),
+        );
       } catch (_) {
         // A full disk must not crash the converter; the rates still show.
       }
