@@ -22,6 +22,7 @@ import '../theme.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
 import 'overview.dart' show formatMoney;
+import 'windfall_card.dart';
 
 const List<String> _monthsShort = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -257,6 +258,10 @@ class InsightsScreen extends StatelessWidget {
             // does not gate on having debt or a goal.
             const SizedBox(height: 12),
             AffordCard(data: data, ref: ref),
+            // The windfall planner is the same kind of always-available tool,
+            // for the other side of a big money moment: a lump landing at once.
+            const SizedBox(height: 12),
+            WindfallCard(data: data, ref: ref),
             if (_hasActiveDebt(data['debts'])) ...[
               const SizedBox(height: 12),
               _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
