@@ -11,9 +11,11 @@ double _fin(double v) => v.isFinite ? v : 0;
 
 /// Spendable position: what you own minus utang owed to you minus what you owe.
 /// The conservative net worth if every receivable never lands.
-double spendablePosition(Map<String, dynamic> parts) => _fin(amountOf(parts['assets']) -
-    amountOf(parts['receivables']) -
-    amountOf(parts['liabilities']));
+double spendablePosition(Map<String, dynamic> parts) => _fin(
+  amountOf(parts['assets']) -
+      amountOf(parts['receivables']) -
+      amountOf(parts['liabilities']),
+);
 
 /// Percent of income kept this month. Zero when there is no income to divide by.
 int savingsRatePct(double netIncome, double income) {
@@ -95,8 +97,11 @@ String _monthKeyOf(int year, int month) {
   return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
 }
 
-CategoryHistory priorCategoryHistory(dynamic transactions, DateTime ref,
-    [int months = 6]) {
+CategoryHistory priorCategoryHistory(
+  dynamic transactions,
+  DateTime ref, [
+  int months = 6,
+]) {
   final txs = transactions is List ? transactions : const [];
   final monthsSeen = <String, int>{};
   var activeMonths = 0;
@@ -109,8 +114,9 @@ CategoryHistory priorCategoryHistory(dynamic transactions, DateTime ref,
       final date = (t['date'] ?? '').toString();
       if (date.length < 7 || date.substring(0, 7) != key) continue;
       final raw = t['label'];
-      final label =
-          (raw is String && raw.trim().isNotEmpty) ? raw.trim() : 'Other';
+      final label = (raw is String && raw.trim().isNotEmpty)
+          ? raw.trim()
+          : 'Other';
       seen.add(label);
     }
     if (seen.isNotEmpty) activeMonths += 1;
@@ -119,6 +125,112 @@ CategoryHistory priorCategoryHistory(dynamic transactions, DateTime ref,
     }
   }
   return CategoryHistory(monthsSeen, activeMonths);
+}
+
+/// The month-by-month "are you saving or bleeding" read, built on the
+/// golden-locked monthlySeries (each entry carries income, expenses, and net).
+/// This is polarity over time: how many months you ended ahead, the running
+/// total, and the largest swing (so the diverging bars share one scale). Pure
+/// presentation math, non-finite guarded.
+class NetFlowSummary {
+  /// Months that ended net positive (kept more than you spent).
+  final int saverMonths;
+
+  /// Months with any income or expense at all (the honest denominator).
+  final int activeMonths;
+
+  /// Sum of net across the window: positive means you built up, negative means
+  /// you drew down.
+  final double totalNet;
+
+  /// Largest absolute monthly net, so every bar scales to the same axis.
+  final double maxAbs;
+
+  const NetFlowSummary(
+    this.saverMonths,
+    this.activeMonths,
+    this.totalNet,
+    this.maxAbs,
+  );
+}
+
+NetFlowSummary netFlowSummary(List<Map<String, dynamic>> series) {
+  var saver = 0;
+  var active = 0;
+  var total = 0.0;
+  var maxAbs = 0.0;
+  for (final m in series) {
+    final income = _fin(amountOf(m['income']));
+    final expenses = _fin(amountOf(m['expenses']));
+    final net = _fin(amountOf(m['net']));
+    if (income > 0 || expenses > 0) active += 1;
+    if (net > 0) saver += 1;
+    total += net;
+    final a = net.abs();
+    if (a > maxAbs) maxAbs = a;
+  }
+  return NetFlowSummary(saver, active, _fin(total), maxAbs);
+}
+
+/// The busiest and quietest spending weekday, from the golden-locked
+/// weekdayPattern (a list of {day: 0=Sun..6=Sat, avg}). Names the peak day so
+/// the card gives a decision ("ease up on Fridays"), and the lightest only when
+/// at least two days actually carry spend, so a single active day is never
+/// dressed up as a pattern. maxAvg scales the bars. Non-finite guarded.
+class WeekdayPeak {
+  /// 0=Sun..6=Sat for the highest-average day, or -1 when nothing was spent.
+  final int peakDay;
+  final double peakAvg;
+
+  /// The lightest active day, or -1 when fewer than two days had any spend.
+  final int lightDay;
+  final double lightAvg;
+
+  /// Largest daily average, so every bar scales to one axis.
+  final double maxAvg;
+
+  /// How many weekdays carried any spend at all.
+  final int activeDays;
+
+  const WeekdayPeak(
+    this.peakDay,
+    this.peakAvg,
+    this.lightDay,
+    this.lightAvg,
+    this.maxAvg,
+    this.activeDays,
+  );
+}
+
+WeekdayPeak weekdayPeak(List<Map<String, dynamic>> pattern) {
+  var peakDay = -1;
+  var peakAvg = 0.0;
+  var maxAvg = 0.0;
+  var lightDay = -1;
+  var lightAvg = double.infinity;
+  var active = 0;
+  for (final p in pattern) {
+    final day = (p['day'] as num?)?.toInt() ?? -1;
+    final avg = _fin(amountOf(p['avg']));
+    if (avg > maxAvg) maxAvg = avg;
+    if (avg > 0) {
+      active += 1;
+      if (avg > peakAvg) {
+        peakAvg = avg;
+        peakDay = day;
+      }
+      if (avg < lightAvg) {
+        lightAvg = avg;
+        lightDay = day;
+      }
+    }
+  }
+  // A lightest day is only meaningful with something to contrast against.
+  if (active < 2) {
+    lightDay = -1;
+    lightAvg = 0.0;
+  }
+  return WeekdayPeak(peakDay, peakAvg, lightDay, lightAvg, maxAvg, active);
 }
 
 /// [series] is monthlySeries output (oldest first, last = focus month). [frac]

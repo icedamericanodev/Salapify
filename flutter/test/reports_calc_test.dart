@@ -205,4 +205,76 @@ void main() {
       expect(h.isRegular('Food'), false);
     });
   });
+
+  group('netFlowSummary', () {
+    List<Map<String, dynamic>> mk(List<List<num>> ie) => [
+          for (final row in ie)
+            {'income': row[0], 'expenses': row[1], 'net': row[0] - row[1]},
+        ];
+
+    test('counts saver months, total, and the largest swing', () {
+      // +2000, -500, +1000, 0-activity month
+      final s = mk([
+        [5000, 3000],
+        [4000, 4500],
+        [6000, 5000],
+        [0, 0],
+      ]);
+      final r = netFlowSummary(s);
+      expect(r.saverMonths, 2);
+      expect(r.activeMonths, 3);
+      expect(r.totalNet, 2500); // 2000 - 500 + 1000
+      expect(r.maxAbs, 2000);
+    });
+
+    test('an all-empty window is safe', () {
+      final r = netFlowSummary(mk([
+        [0, 0],
+        [0, 0],
+      ]));
+      expect(r.saverMonths, 0);
+      expect(r.activeMonths, 0);
+      expect(r.totalNet, 0);
+      expect(r.maxAbs, 0);
+    });
+
+    test('a non-finite net does not poison the total', () {
+      final s = [
+        {'income': double.infinity, 'expenses': 0, 'net': double.infinity},
+        {'income': 1000, 'expenses': 400, 'net': 600},
+      ];
+      final r = netFlowSummary(s);
+      expect(r.totalNet, 600); // the infinite net reads as 0
+    });
+  });
+
+  group('weekdayPeak', () {
+    List<Map<String, dynamic>> mk(List<num> avgByDay) =>
+        [for (var i = 0; i < avgByDay.length; i++) {'day': i, 'avg': avgByDay[i]}];
+
+    test('names the busiest and quietest active day', () {
+      // Sun..Sat; Fri (5) highest, Mon (1) lowest active.
+      final r = weekdayPeak(mk([0, 100, 300, 0, 250, 900, 400]));
+      expect(r.peakDay, 5);
+      expect(r.peakAvg, 900);
+      expect(r.lightDay, 1);
+      expect(r.lightAvg, 100);
+      expect(r.maxAvg, 900);
+      expect(r.activeDays, 5);
+    });
+
+    test('a single active day names no lightest', () {
+      final r = weekdayPeak(mk([0, 0, 0, 500, 0, 0, 0]));
+      expect(r.peakDay, 3);
+      expect(r.lightDay, -1);
+      expect(r.activeDays, 1);
+    });
+
+    test('no spend at all is safe', () {
+      final r = weekdayPeak(mk([0, 0, 0, 0, 0, 0, 0]));
+      expect(r.peakDay, -1);
+      expect(r.lightDay, -1);
+      expect(r.maxAvg, 0);
+    });
+  });
 }

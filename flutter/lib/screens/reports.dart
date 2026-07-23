@@ -10,7 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
-import '../money/analytics.dart' show categoryVsAverage, monthlySeries;
+import '../money/analytics.dart'
+    show categoryVsAverage, monthlySeries, weekdayPattern;
 import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
@@ -21,8 +22,18 @@ import 'history.dart';
 import 'overview.dart' show formatMoney;
 
 const _months = [
-  'January', 'February', 'March', 'April', 'May', 'June', 'July',
-  'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 String _monthYear(String iso) {
@@ -55,8 +66,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     super.dispose();
   }
 
-  Map<String, dynamic> get _data =>
-      (widget.store.data).cast<String, dynamic>();
+  Map<String, dynamic> get _data => (widget.store.data).cast<String, dynamic>();
 
   DateTime get _ref {
     final now = DateTime.now();
@@ -80,8 +90,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               children: [
-                ScreenHeader('REPORTS',
-                    subtitle: 'Your money as three simple statements'),
+                ScreenHeader(
+                  'REPORTS',
+                  subtitle: 'Your money as three simple statements',
+                ),
                 if (_isEmpty)
                   _emptyState(context)
                 else ...[
@@ -101,9 +113,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _trendSection(),
                     const SizedBox(height: 14),
                     _whatMovedSection(),
-                  ] else if (_tab == 1)
-                    _cashFlowCard()
-                  else
+                    _weekdaySection(),
+                  ] else if (_tab == 1) ...[
+                    _cashFlowTrendSection(),
+                    _cashFlowCard(),
+                  ] else
                     _positionCard(),
                   const SizedBox(height: 22),
                   _debtPlanSection(),
@@ -147,10 +161,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
             _heroAmount(net, 34),
             const SizedBox(height: 12),
             _SplitBar(
-                aValue: assets,
-                aColor: Barako.primary,
-                bValue: liab,
-                bColor: Barako.warningStrong),
+              aValue: assets,
+              aColor: Barako.primary,
+              bValue: liab,
+              bColor: Barako.warningStrong,
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 14,
@@ -161,15 +176,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            Text(support,
-                style: TextStyle(
-                    color: Barako.muted, fontSize: 13, height: 1.4)),
+            Text(
+              support,
+              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+            ),
             if (receivableHeavy) ...[
               const SizedBox(height: 6),
               Text(
-                  'A big part of this is utang owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
-                  style: TextStyle(
-                      color: Barako.faint, fontSize: 12, height: 1.35)),
+                'A big part of this is utang owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
+                style: TextStyle(
+                  color: Barako.faint,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
             ],
           ],
         ),
@@ -197,14 +217,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: on ? Barako.onPrimary : Barako.textSecondary,
-                        fontSize: 13,
-                        fontWeight:
-                            on ? FontWeight.w700 : FontWeight.w600)),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: on ? Barako.onPrimary : Barako.textSecondary,
+                    fontSize: 13,
+                    fontWeight: on ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -219,11 +241,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         border: Border.all(color: Barako.border),
       ),
       padding: const EdgeInsets.all(4),
-      child: Row(children: [
-        seg('Income', 0),
-        seg('Cash flow', 1),
-        seg('Position', 2),
-      ]),
+      child: Row(
+        children: [seg('Income', 0), seg('Cash flow', 1), seg('Position', 2)],
+      ),
     );
   }
 
@@ -235,18 +255,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
         IconButton(
           icon: const Icon(Icons.chevron_left),
           color: _monthOffset < 12 ? Barako.primaryText : Barako.faint,
-          onPressed:
-              _monthOffset < 12 ? () => setState(() => _monthOffset++) : null,
+          onPressed: _monthOffset < 12
+              ? () => setState(() => _monthOffset++)
+              : null,
           tooltip: 'Earlier month',
         ),
-        Text(label,
-            style: TextStyle(
-                color: Barako.text, fontSize: 15, fontWeight: FontWeight.w700)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         IconButton(
           icon: const Icon(Icons.chevron_right),
           color: _monthOffset > 0 ? Barako.primaryText : Barako.faint,
-          onPressed:
-              _monthOffset > 0 ? () => setState(() => _monthOffset--) : null,
+          onPressed: _monthOffset > 0
+              ? () => setState(() => _monthOffset--)
+              : null,
           tooltip: 'Later month',
         ),
       ],
@@ -297,10 +324,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
       headlineValue: net,
       interp: interp,
       visual: _SplitBar(
-          aValue: income,
-          aColor: Barako.primary,
-          bValue: expenses,
-          bColor: Barako.warningStrong),
+        aValue: income,
+        aColor: Barako.primary,
+        bValue: expenses,
+        bColor: Barako.warningStrong,
+      ),
       legend: [
         _legendDot(Barako.primary, 'Earned ${formatMoney(income)}'),
         _legendDot(Barako.warningStrong, 'Spent ${formatMoney(expenses)}'),
@@ -309,19 +337,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _line('Income earned', income),
         _line('Spending', spending, sub: true),
         if (interest > 0)
-          _line('Debt interest', interest,
-              sub: true, color: Barako.warningStrong),
+          _line(
+            'Debt interest',
+            interest,
+            sub: true,
+            color: Barako.warningStrong,
+          ),
         _divider(),
-        _line('Net income', net,
-            total: true,
-            color: net >= 0 ? Barako.primary : Barako.warningStrong),
+        _line(
+          'Net income',
+          net,
+          total: true,
+          color: net >= 0 ? Barako.primary : Barako.warningStrong,
+        ),
         if (interest > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-                '${formatMoney(interest)} of that was pure interest, money that bought you nothing. That is the number the debt plan below is built to shrink.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 12, height: 1.35)),
+              '${formatMoney(interest)} of that was pure interest, money that bought you nothing. That is the number the debt plan below is built to shrink.',
+              style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35),
+            ),
           ),
       ],
     );
@@ -402,17 +437,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text('SPENDING TREND', style: Barako.kickerStyle),
             const SizedBox(height: 4),
-            Text('Last 6 months, spending per month',
-                style: TextStyle(color: Barako.muted, fontSize: 12)),
+            Text(
+              'Last 6 months, spending per month',
+              style: TextStyle(color: Barako.muted, fontSize: 12),
+            ),
             const SizedBox(height: 14),
             _TrendBars(
-                series: series,
-                usual: cmp.hasHistory ? cmp.usual : 0,
-                focusKey: series.isNotEmpty ? series.last['key'] as String : '',
-                focusPartial: isCurrent),
+              series: series,
+              usual: cmp.hasHistory ? cmp.usual : 0,
+              focusKey: series.isNotEmpty ? series.last['key'] as String : '',
+              focusPartial: isCurrent,
+            ),
             const SizedBox(height: 14),
-            Text(read,
-                style: TextStyle(color: readColor, fontSize: 13, height: 1.45)),
+            Text(
+              read,
+              style: TextStyle(color: readColor, fontSize: 13, height: 1.45),
+            ),
           ],
         ),
       ),
@@ -453,18 +493,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Text('WHERE IT WENT', style: Barako.kickerStyle),
             const SizedBox(height: 4),
             Text(
-                isCurrent
-                    ? 'Your biggest spending so far this month'
-                    : 'Your biggest spending this month',
-                style: TextStyle(color: Barako.muted, fontSize: 12)),
+              isCurrent
+                  ? 'Your biggest spending so far this month'
+                  : 'Your biggest spending this month',
+              style: TextStyle(color: Barako.muted, fontSize: 12),
+            ),
             const SizedBox(height: 14),
             for (var i = 0; i < rows.length; i++) ...[
               _moverRow(context, rows[i], scale, i == 0, canFlag, history),
               if (i < rows.length - 1) const SizedBox(height: 12),
             ],
             const SizedBox(height: 12),
-            Text('Tap a line to see those entries.',
-                style: TextStyle(color: Barako.faint, fontSize: 11)),
+            Text(
+              'Tap a line to see those entries.',
+              style: TextStyle(color: Barako.faint, fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -473,14 +516,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   void _openCategory(BuildContext context, String label) {
     HapticFeedback.selectionClick();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) =>
-          HistoryScreen(store: widget.store, initialQuery: label, pushed: true),
-    ));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HistoryScreen(
+          store: widget.store,
+          initialQuery: label,
+          pushed: true,
+        ),
+      ),
+    );
   }
 
-  Widget _moverRow(BuildContext context, Map<String, dynamic> r, double scale,
-      bool biggest, bool canFlag, CategoryHistory history) {
+  Widget _moverRow(
+    BuildContext context,
+    Map<String, dynamic> r,
+    double scale,
+    bool biggest,
+    bool canFlag,
+    CategoryHistory history,
+  ) {
     final label = r['label'] as String;
     final spent = amountOf(r['now']);
     // Flag against the FULL-month average, not a paced figure, so a category
@@ -488,7 +542,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     // categories are eligible, and the gap must be both proportionally and
     // absolutely meaningful, so a small line does not raise an alarm.
     final avg = amountOf(r['avg']);
-    final over = canFlag &&
+    final over =
+        canFlag &&
         history.isRegular(label) &&
         avg > 0 &&
         spent > avg * 1.3 &&
@@ -509,73 +564,89 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight:
-                          biggest ? FontWeight.w700 : FontWeight.w600)),
-            ),
-            const SizedBox(width: 8),
-            // Flexible so an outsized amount yields instead of overflowing the
-            // row next to a long label.
-            Flexible(
-              child: Text(formatMoney(spent),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
-            ),
-            const SizedBox(width: 2),
-            Icon(Icons.chevron_right, size: 16, color: Barako.faint),
-          ],
-        ),
-        // The flag rides on its own line with the actual overage, the number a
-        // user would act on, not a bare "more than usual".
-        if (over) ...[
-          const SizedBox(height: 3),
-          Row(
-            children: [
-              Icon(Icons.trending_up, size: 13, color: Barako.warningStrong),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text('${formatMoney(spent - avg)} over your usual',
+                  child: Text(
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight: biggest ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Flexible so an outsized amount yields instead of overflowing the
+                // row next to a long label.
+                Flexible(
+                  child: Text(
+                    formatMoney(spent),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(Icons.chevron_right, size: 16, color: Barako.faint),
+              ],
+            ),
+            // The flag rides on its own line with the actual overage, the number a
+            // user would act on, not a bare "more than usual".
+            if (over) ...[
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Icon(
+                    Icons.trending_up,
+                    size: 13,
+                    color: Barako.warningStrong,
+                  ),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Text(
+                      '${formatMoney(spent - avg)} over your usual',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: Barako.warningStrong,
                         fontSize: 11,
-                        fontWeight: FontWeight.w600)),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
-        ],
-        const SizedBox(height: 6),
-        LayoutBuilder(
-          builder: (context, c) {
-            return Stack(
-              children: [
-                Container(
-                    height: 7,
-                    decoration: BoxDecoration(
+            const SizedBox(height: 6),
+            LayoutBuilder(
+              builder: (context, c) {
+                return Stack(
+                  children: [
+                    Container(
+                      height: 7,
+                      decoration: BoxDecoration(
                         color: Barako.background,
-                        borderRadius: BorderRadius.circular(4))),
-                Container(
-                    height: 7,
-                    width: c.maxWidth * fill,
-                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    Container(
+                      height: 7,
+                      width: c.maxWidth * fill,
+                      decoration: BoxDecoration(
                         color: barColor,
-                        borderRadius: BorderRadius.circular(4))),
-              ],
-            );
-          },
-        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -583,6 +654,129 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   // ---- Cash flow ----
+  // ---- When you spend: the weekday pattern ----
+  static const _dayLong = [
+    'Sundays',
+    'Mondays',
+    'Tuesdays',
+    'Wednesdays',
+    'Thursdays',
+    'Fridays',
+    'Saturdays',
+  ];
+
+  Widget _weekdaySection() {
+    final ref = _monthOffset == 0 ? DateTime.now() : _ref;
+    final pattern = weekdayPattern(_data['transactions'], ref);
+    final peak = weekdayPeak(pattern);
+    // Under three active days there is no pattern worth a claim, only noise.
+    if (peak.activeDays < 3 || peak.peakDay < 0) return const SizedBox.shrink();
+
+    String read;
+    if (peak.lightDay >= 0) {
+      read =
+          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoney(peak.peakAvg)} a day. ${_dayLong[peak.lightDay]} are your lightest, about ${formatMoney(peak.lightAvg)}. Line up the big buys for a quieter day.';
+    } else {
+      read =
+          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoney(peak.peakAvg)} a day.';
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 14),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WHEN YOU SPEND', style: Barako.kickerStyle),
+                const SizedBox(height: 4),
+                Text(
+                  'Average per weekday, last 8 weeks',
+                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+                _WeekdayBars(pattern: pattern, peak: peak),
+                const SizedBox(height: 14),
+                Text(
+                  read,
+                  style: TextStyle(
+                    color: Barako.textSecondary,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---- Saved or spent: net cash flow month by month ----
+  Widget _cashFlowTrendSection() {
+    final series = monthlySeries(_data['transactions'], 6, _ref);
+    final sum = netFlowSummary(series);
+    if (sum.activeMonths == 0) return const SizedBox.shrink();
+
+    String read;
+    Color readColor;
+    if (sum.totalNet > 0) {
+      read =
+          'You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months, and kept ${formatMoney(sum.totalNet)} over the stretch. That is money building up. Keep the green months coming.';
+      readColor = Barako.primaryText;
+    } else if (sum.totalNet < 0) {
+      read =
+          'Across these months you spent ${formatMoney(-sum.totalNet)} more than you earned. Look at a green month and ask what made it work, then repeat it.';
+      readColor = Barako.warningStrong;
+    } else {
+      read =
+          'You broke even across these months. Steady. Now aim to end a few of them clearly ahead.';
+      readColor = Barako.muted;
+    }
+
+    return Column(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('SAVED OR SPENT', style: Barako.kickerStyle),
+                const SizedBox(height: 4),
+                Text(
+                  'Income minus spending, last 6 months',
+                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                _DivergingBars(
+                  series: series,
+                  maxAbs: sum.maxAbs,
+                  focusKey: series.isNotEmpty
+                      ? series.last['key'] as String
+                      : '',
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  read,
+                  style: TextStyle(
+                    color: readColor,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
+    );
+  }
+
   Widget _cashFlowCard() {
     final s = cashFlowStatement(_data, _ref);
     final op = (s['operating'] as Map)['net'] as num;
@@ -624,9 +818,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final bnet = (m['net'] as num).toDouble();
       if (bin == 0 && bout == 0) return const [];
       return [
-        _line(name, bnet,
-            total: true,
-            color: bnet >= 0 ? Barako.primary : Barako.warningStrong),
+        _line(
+          name,
+          bnet,
+          total: true,
+          color: bnet >= 0 ? Barako.primary : Barako.warningStrong,
+        ),
         if (bin > 0) _line('Cash in', bin, sub: true),
         if (bout > 0) _line('Cash out', bout, sub: true),
       ];
@@ -643,16 +840,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ...bucket('Buying or selling', s['investing'] as Map),
         ...bucket('Utang and loans', s['financing'] as Map),
         _divider(),
-        _line('Net change in cash', netChange,
-            total: true,
-            color: netChange >= 0 ? Barako.primary : Barako.warningStrong),
+        _line(
+          'Net change in cash',
+          netChange,
+          total: true,
+          color: netChange >= 0 ? Barako.primary : Barako.warningStrong,
+        ),
         if (!reconciles)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-                'A saved payment did not split cleanly into principal and interest, so a small amount could not be sorted. Your other totals are still correct.',
-                style: TextStyle(
-                    color: Barako.warningStrong, fontSize: 12, height: 1.35)),
+              'A saved payment did not split cleanly into principal and interest, so a small amount could not be sorted. Your other totals are still correct.',
+              style: TextStyle(
+                color: Barako.warningStrong,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
           ),
       ],
     );
@@ -686,31 +890,41 @@ class _ReportsScreenState extends State<ReportsScreen> {
       headlineValue: equity,
       interp: interp,
       lines: [
-        _line('What you own', totalAssets,
-            total: true, color: Barako.primary),
+        _line('What you own', totalAssets, total: true, color: Barako.primary),
         if (cash > 0) _line('Cash', cash, sub: true),
         if (bank > 0) _line('Bank and e-wallets', bank, sub: true),
         if (recv > 0) _line('Utang owed to you', recv, sub: true),
-        if (investments > 0) _line('Assets and holdings', investments, sub: true),
+        if (investments > 0)
+          _line('Assets and holdings', investments, sub: true),
         const SizedBox(height: 6),
-        _line('What you owe', totalLiab,
-            total: true, color: Barako.warningStrong),
-        if (shortDebts > 0) _line('Cards and short loans', shortDebts, sub: true),
+        _line(
+          'What you owe',
+          totalLiab,
+          total: true,
+          color: Barako.warningStrong,
+        ),
+        if (shortDebts > 0)
+          _line('Cards and short loans', shortDebts, sub: true),
         if (longDebts > 0) _line('Long-term loans', longDebts, sub: true),
         if (payables > 0) _line('Utang you owe', payables, sub: true),
         _divider(),
-        _line('Net worth', equity,
-            total: true,
-            color: equity >= 0 ? Barako.primary : Barako.warningStrong),
+        _line(
+          'Net worth',
+          equity,
+          total: true,
+          color: equity >= 0 ? Barako.primary : Barako.warningStrong,
+        ),
         const SizedBox(height: 8),
         Text(
-            balances
-                ? 'Owns ${formatMoney(totalAssets)} = owes ${formatMoney(totalLiab)} + net worth ${formatMoney(equity)}. Balanced.'
-                : 'These do not tie out. Check for an odd entry or a hand-edited balance.',
-            style: TextStyle(
-                color: balances ? Barako.faint : Barako.warningStrong,
-                fontSize: 12,
-                height: 1.35)),
+          balances
+              ? 'Owns ${formatMoney(totalAssets)} = owes ${formatMoney(totalLiab)} + net worth ${formatMoney(equity)}. Balanced.'
+              : 'These do not tie out. Check for an odd entry or a hand-edited balance.',
+          style: TextStyle(
+            color: balances ? Barako.faint : Barako.warningStrong,
+            fontSize: 12,
+            height: 1.35,
+          ),
+        ),
       ],
     );
   }
@@ -719,7 +933,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _debtPlanSection() {
     final pro = (_data['settings'] as Map?)?['pro'] == true;
     final debts = _data['debts'];
-    final hasDebt = debts is List &&
+    final hasDebt =
+        debts is List &&
         debts.any((d) => d is Map && amountOf(d['remaining']) > 0);
 
     return Column(
@@ -729,12 +944,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text('DEBT-FREE PLAN', style: Barako.kickerStyle),
             const SizedBox(width: 8),
-            Text('PRO',
-                style: TextStyle(
-                    color: Barako.caramel,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1)),
+            Text(
+              'PRO',
+              style: TextStyle(
+                color: Barako.caramel,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -744,12 +962,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: !pro
                 ? _debtLocked()
                 : !hasDebt
-                    ? Text('No debts to project. You are already free. 🎉',
-                        style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700))
-                    : _debtPlan(debts),
+                ? Text(
+                    'No debts to project. You are already free. 🎉',
+                    style: TextStyle(
+                      color: Barako.primaryText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : _debtPlan(debts),
           ),
         ),
       ],
@@ -757,29 +978,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _debtLocked() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-              'Unlock Pro to see your debt-free date and how much interest the right strategy saves you.',
-              style: TextStyle(
-                  color: Barako.textSecondary, fontSize: 14, height: 1.4)),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                      'Pro is free during early access. Turn it on from a Pro feature and it stays free for early users.')));
-            },
-            style: FilledButton.styleFrom(
-                backgroundColor: Barako.primary,
-                foregroundColor: Barako.onPrimary),
-            child: const Text('About Pro'),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Unlock Pro to see your debt-free date and how much interest the right strategy saves you.',
+        style: TextStyle(
+          color: Barako.textSecondary,
+          fontSize: 14,
+          height: 1.4,
+        ),
+      ),
+      const SizedBox(height: 12),
+      FilledButton(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Pro is free during early access. Turn it on from a Pro feature and it stays free for early users.',
+              ),
+            ),
+          );
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: Barako.primary,
+          foregroundColor: Barako.onPrimary,
+        ),
+        child: const Text('About Pro'),
+      ),
+    ],
+  );
 
   Widget _debtPlan(List debts) {
-    final extra = double.tryParse(_extra.text.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
+    final extra =
+        double.tryParse(_extra.text.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
     final ref = DateTime.now();
     final avalanche = debtFreeProjection(debts, 'avalanche', extra, ref);
     final snowball = debtFreeProjection(debts, 'snowball', extra, ref);
@@ -788,8 +1019,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-            'Keep a small cash cushion first, even one sweldo, so a surprise does not send you borrowing again. Then aim any extra at debt.',
-            style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35)),
+          'Keep a small cash cushion first, even one sweldo, so a surprise does not send you borrowing again. Then aim any extra at debt.',
+          style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35),
+        ),
         const SizedBox(height: 12),
         Text('Extra you can add each month', style: Barako.kickerStyle),
         const SizedBox(height: 6),
@@ -797,7 +1029,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           controller: _extra,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
           ],
           onChanged: (_) => setState(() {}),
           style: TextStyle(color: Barako.text, fontSize: 15),
@@ -808,8 +1040,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             prefixStyle: TextStyle(color: Barako.muted),
             filled: true,
             fillColor: Barako.background,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Barako.border),
@@ -831,8 +1065,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           _debtCompare(avalanche, snowball, extra),
         const SizedBox(height: 10),
         Text(
-            'An estimate from your logged balances and rates. It assumes rates and minimums hold and each finished debt rolls its payment into the next.',
-            style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+          'An estimate from your logged balances and rates. It assumes rates and minimums hold and each finished debt rolls its payment into the next.',
+          style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+        ),
       ],
     );
   }
@@ -840,31 +1075,46 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _debtNoExtra(Map<String, dynamic>? avalanche) {
     if (avalanche == null) {
       return Text(
-          'At your current payments the interest still grows faster than you pay it down, so there is no freedom date yet. Even a small extra aimed at your highest-rate debt can start to turn this around.',
-          style: TextStyle(
-              color: Barako.warningStrong, fontSize: 13, height: 1.4));
+        'At your current payments the interest still grows faster than you pay it down, so there is no freedom date yet. Even a small extra aimed at your highest-rate debt can start to turn this around.',
+        style: TextStyle(
+          color: Barako.warningStrong,
+          fontSize: 13,
+          height: 1.4,
+        ),
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _line('Debt-free ${_monthYear(avalanche['date'] as String)}',
-            (avalanche['totalInterest'] as num).toDouble(),
-            total: true, color: Barako.primary),
+        _line(
+          'Debt-free ${_monthYear(avalanche['date'] as String)}',
+          (avalanche['totalInterest'] as num).toDouble(),
+          total: true,
+          color: Barako.primary,
+        ),
         const SizedBox(height: 4),
         Text(
-            'That is the total interest you would pay keeping your payments steady until every debt is gone. Type an extra amount and I will show which strategy saves you more.',
-            style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35)),
+          'That is the total interest you would pay keeping your payments steady until every debt is gone. Type an extra amount and I will show which strategy saves you more.',
+          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+        ),
       ],
     );
   }
 
   Widget _debtCompare(
-      Map<String, dynamic>? avalanche, Map<String, dynamic>? snowball, double extra) {
+    Map<String, dynamic>? avalanche,
+    Map<String, dynamic>? snowball,
+    double extra,
+  ) {
     if (avalanche == null || snowball == null) {
       return Text(
-          'At this amount the interest still outruns the payments, so there is no freedom date yet. A bigger extra, aimed at your highest-rate debt, flips this.',
-          style: TextStyle(
-              color: Barako.warningStrong, fontSize: 13, height: 1.4));
+        'At this amount the interest still outruns the payments, so there is no freedom date yet. A bigger extra, aimed at your highest-rate debt, flips this.',
+        style: TextStyle(
+          color: Barako.warningStrong,
+          fontSize: 13,
+          height: 1.4,
+        ),
+      );
     }
     final avaInt = (avalanche['totalInterest'] as num).toDouble();
     final snowInt = (snowball['totalInterest'] as num).toDouble();
@@ -875,25 +1125,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
       children: [
         // Both strategies get the same neutral treatment; the interest number,
         // not the color, carries the tradeoff. Snowball is a valid choice.
-        _line('Avalanche · free ${_monthYear(avalanche['date'] as String)}',
-            avaInt,
-            total: true, color: Barako.text),
-        Text('Pay the highest interest rate first. Costs the least overall.',
-            style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
-        const SizedBox(height: 10),
-        _line('Snowball · free ${_monthYear(snowball['date'] as String)}',
-            snowInt,
-            total: true, color: Barako.text),
+        _line(
+          'Avalanche · free ${_monthYear(avalanche['date'] as String)}',
+          avaInt,
+          total: true,
+          color: Barako.text,
+        ),
         Text(
-            'Pay the smallest balance first. You clear a whole debt sooner, and that momentum is often what makes people finish.',
-            style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+          'Pay the highest interest rate first. Costs the least overall.',
+          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+        ),
+        const SizedBox(height: 10),
+        _line(
+          'Snowball · free ${_monthYear(snowball['date'] as String)}',
+          snowInt,
+          total: true,
+          color: Barako.text,
+        ),
+        Text(
+          'Pay the smallest balance first. You clear a whole debt sooner, and that momentum is often what makes people finish.',
+          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+        ),
         const SizedBox(height: 12),
         Text(
-            saved > 0
-                ? 'With ${formatMoney(extra)} extra a month, avalanche keeps about ${formatMoney(saved)} more out of interest. If that gap feels small, take snowball for the quick win.'
-                : 'At this amount both strategies cost about the same, so pick snowball for the motivation of an early win.',
-            style: TextStyle(
-                color: Barako.text, fontSize: 13, height: 1.4)),
+          saved > 0
+              ? 'With ${formatMoney(extra)} extra a month, avalanche keeps about ${formatMoney(saved)} more out of interest. If that gap feels small, take snowball for the quick win.'
+              : 'At this amount both strategies cost about the same, so pick snowball for the motivation of an early win.',
+          style: TextStyle(color: Barako.text, fontSize: 13, height: 1.4),
+        ),
       ],
     );
   }
@@ -917,16 +1176,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text(forLabel.toUpperCase(), style: Barako.kickerStyle),
             const SizedBox(height: 8),
-            _heroAmount(headlineValue, 27,
-                labelOverride: headline, colorOverride: headlineColor),
+            _heroAmount(
+              headlineValue,
+              27,
+              labelOverride: headline,
+              colorOverride: headlineColor,
+            ),
             const SizedBox(height: 8),
-            Text(interp,
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 13, height: 1.45)),
-            if (visual != null) ...[
-              const SizedBox(height: 14),
-              visual,
-            ],
+            Text(
+              interp,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+            if (visual != null) ...[const SizedBox(height: 14), visual],
             if (legend != null) ...[
               const SizedBox(height: 8),
               Wrap(spacing: 14, runSpacing: 6, children: legend),
@@ -942,26 +1207,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // The big Fraunces figure, colored by sign, scaled down so seven digits fit.
   // colorOverride wins when a headline is neutral (nothing logged, break even),
   // so a zero-activity month is not painted red like a real shortfall.
-  Widget _heroAmount(double value, double size,
-      {String? labelOverride, Color? colorOverride}) {
+  Widget _heroAmount(
+    double value,
+    double size, {
+    String? labelOverride,
+    Color? colorOverride,
+  }) {
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
-      child: Text(labelOverride ?? formatMoney(value),
-          maxLines: 1,
-          style: TextStyle(
-              fontFamily: 'Fraunces',
-              color: colorOverride ??
-                  (value >= 0 ? Barako.primary : Barako.warningStrong),
-              fontSize: size,
-              height: 1.05,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()])),
+      child: Text(
+        labelOverride ?? formatMoney(value),
+        maxLines: 1,
+        style: TextStyle(
+          fontFamily: 'Fraunces',
+          color:
+              colorOverride ??
+              (value >= 0 ? Barako.primary : Barako.warningStrong),
+          fontSize: size,
+          height: 1.05,
+          fontWeight: FontWeight.w700,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 
-  Widget _line(String label, num value,
-      {bool sub = false, bool total = false, Color? color}) {
+  Widget _line(
+    String label,
+    num value, {
+    bool sub = false,
+    bool total = false,
+    Color? color,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: total ? 8 : (sub ? 3 : 6)),
       child: Row(
@@ -970,47 +1248,57 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(left: sub ? 16 : 0, right: 12),
-              child: Text(label,
-                  style: TextStyle(
-                      color: sub
-                          ? Barako.muted
-                          : (total ? Barako.text : Barako.textSecondary),
-                      fontSize: sub ? 12 : 14,
-                      fontWeight: total ? FontWeight.w700 : FontWeight.w500,
-                      height: 1.3)),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: sub
+                      ? Barako.muted
+                      : (total ? Barako.text : Barako.textSecondary),
+                  fontSize: sub ? 12 : 14,
+                  fontWeight: total ? FontWeight.w700 : FontWeight.w500,
+                  height: 1.3,
+                ),
+              ),
             ),
           ),
-          Text(formatMoney(value),
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                  color: color ?? (sub ? Barako.muted : Barako.text),
-                  fontSize: sub ? 12 : (total ? 16 : 14),
-                  fontWeight: total ? FontWeight.w700 : FontWeight.w500,
-                  fontFeatures: const [FontFeature.tabularFigures()])),
+          Text(
+            formatMoney(value),
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: color ?? (sub ? Barako.muted : Barako.text),
+              fontSize: sub ? 12 : (total ? 16 : 14),
+              fontWeight: total ? FontWeight.w700 : FontWeight.w500,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _divider() => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Divider(color: Barako.border, height: 1),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Divider(color: Barako.border, height: 1),
+  );
 
   Widget _legendDot(Color color, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
-        Text(label,
-            style: TextStyle(
-                color: Barako.muted,
-                fontSize: 12,
-                fontFeatures: const [FontFeature.tabularFigures()])),
+        Text(
+          label,
+          style: TextStyle(
+            color: Barako.muted,
+            fontSize: 12,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
       ],
     );
   }
@@ -1024,17 +1312,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             const Text('📊', style: TextStyle(fontSize: 32)),
             const SizedBox(height: 8),
-            Text('Your reports build themselves',
-                style: TextStyle(
-                    fontFamily: 'Fraunces',
-                    color: Barako.text,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              'Your reports build themselves',
+              style: TextStyle(
+                fontFamily: 'Fraunces',
+                color: Barako.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 6),
             Text(
-                'Add an account and log a few entries, and three statements appear here. Position shows what you own and owe. Income shows what you earned and spent this month. Cash flow shows where the pesos actually moved. Nothing to set up, just log.',
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 14, height: 1.45)),
+              'Add an account and log a few entries, and three statements appear here. Position shows what you own and owe. Income shows what you earned and spent this month. Cash flow shows where the pesos actually moved. Nothing to set up, just log.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            ),
             const SizedBox(height: 14),
             FilledButton(
               onPressed: () {
@@ -1046,8 +1341,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 }
               },
               style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary),
+                backgroundColor: Barako.primary,
+                foregroundColor: Barako.onPrimary,
+              ),
               child: const Text('Start logging'),
             ),
           ],
@@ -1119,7 +1415,8 @@ class _TrendBars extends StatelessWidget {
                                   ? Barako.primary
                                   : Barako.primary.withValues(alpha: 0.26),
                               borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4)),
+                                top: Radius.circular(4),
+                              ),
                             ),
                           ),
                         ),
@@ -1145,24 +1442,28 @@ class _TrendBars extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text(m['label'] as String,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: m['key'] == focusKey
-                                ? Barako.text
-                                : Barako.faint,
-                            fontSize: 10,
-                            fontWeight: m['key'] == focusKey
-                                ? FontWeight.w700
-                                : FontWeight.w500)),
+                    Text(
+                      m['label'] as String,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: m['key'] == focusKey
+                            ? Barako.text
+                            : Barako.faint,
+                        fontSize: 10,
+                        fontWeight: m['key'] == focusKey
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
                     // The current month's bar is only spending so far, not a
                     // finished month, so it is labeled to avoid a false
                     // "low month" read against the completed bars beside it.
                     if (m['key'] == focusKey && focusPartial)
-                      Text('so far',
-                          textAlign: TextAlign.center,
-                          style:
-                              TextStyle(color: Barako.faint, fontSize: 8.5)),
+                      Text(
+                        'so far',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Barako.faint, fontSize: 8.5),
+                      ),
                   ],
                 ),
               ),
@@ -1174,14 +1475,208 @@ class _TrendBars extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                  width: 16, child: Divider(color: Barako.faint, height: 1)),
+                width: 16,
+                child: Divider(color: Barako.faint, height: 1),
+              ),
               const SizedBox(width: 6),
-              Text('Your usual ${formatMoney(usual)} a month',
-                  style: TextStyle(color: Barako.muted, fontSize: 11)),
+              Text(
+                'Your usual ${formatMoney(usual)} a month',
+                style: TextStyle(color: Barako.muted, fontSize: 11),
+              ),
             ],
           ),
         ],
       ],
+    );
+  }
+}
+
+// Average spend per weekday, Sun..Sat, with the busiest day in full color and
+// the rest recessive, so the peak reads at a glance. Same bar language as
+// _TrendBars (thin, rounded 4px ends, baseline-anchored).
+class _WeekdayBars extends StatelessWidget {
+  final List<Map<String, dynamic>> pattern;
+  final WeekdayPeak peak;
+  const _WeekdayBars({required this.pattern, required this.peak});
+
+  static const _short = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  @override
+  Widget build(BuildContext context) {
+    const areaH = 76.0;
+    final scale = peak.maxAvg > 0 ? peak.maxAvg : 1.0;
+    return Column(
+      children: [
+        SizedBox(
+          height: areaH,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final p in pattern)
+                Builder(
+                  builder: (_) {
+                    final day = (p['day'] as num?)?.toInt() ?? -1;
+                    final avg = amountOf(p['avg']);
+                    final isPeak = day == peak.peakDay;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height: avg > 0
+                                ? (avg / scale * areaH).clamp(2.0, areaH)
+                                : 0.0,
+                            decoration: BoxDecoration(
+                              color: isPeak
+                                  ? Barako.primary
+                                  : Barako.primary.withValues(alpha: 0.26),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (final p in pattern)
+              Builder(
+                builder: (_) {
+                  final day = (p['day'] as num?)?.toInt() ?? -1;
+                  final isPeak = day == peak.peakDay;
+                  return Expanded(
+                    child: Text(
+                      day >= 0 && day < 7 ? _short[day] : '',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isPeak ? Barako.text : Barako.faint,
+                        fontSize: 10,
+                        fontWeight: isPeak ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// Net (income minus spending) per month around a zero baseline: bars rise green
+// for a month you ended ahead, fall in the warning color for one you overspent.
+// A diverging form because the job is polarity over time. Focus month in full
+// color, others recessive; text stays in ink tokens, never the bar color.
+class _DivergingBars extends StatelessWidget {
+  final List<Map<String, dynamic>> series;
+  final double maxAbs;
+  final String focusKey;
+  const _DivergingBars({
+    required this.series,
+    required this.maxAbs,
+    required this.focusKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const half = 46.0;
+    final scale = maxAbs > 0 ? maxAbs : 1.0;
+    return Column(
+      children: [
+        SizedBox(
+          height: half * 2,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  for (final m in series) Expanded(child: _col(m, half, scale)),
+                ],
+              ),
+              // The zero line the bars diverge from.
+              Positioned(
+                left: 0,
+                right: 0,
+                top: half - 0.5,
+                child: Container(height: 1, color: Barako.border),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (final m in series)
+              Expanded(
+                child: Text(
+                  m['label'] as String,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: m['key'] == focusKey ? Barako.text : Barako.faint,
+                    fontSize: 10,
+                    fontWeight: m['key'] == focusKey
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _col(Map<String, dynamic> m, double half, double scale) {
+    final net = amountOf(m['net']);
+    final focus = m['key'] == focusKey;
+    final pos = net > 0;
+    final barH = net == 0 ? 0.0 : (net.abs() / scale * half).clamp(2.0, half);
+    final base = pos ? Barako.primary : Barako.warningStrong;
+    final color = focus ? base : base.withValues(alpha: 0.30);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Column(
+        children: [
+          SizedBox(
+            height: half,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                height: pos ? barH : 0.0,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: half,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                height: net < 0 ? barH : 0.0,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1197,7 +1692,10 @@ class _DashedLine extends StatelessWidget {
       builder: (context, constraints) {
         const dash = 5.0;
         const gap = 4.0;
-        final count = (constraints.maxWidth / (dash + gap)).floor().clamp(1, 400);
+        final count = (constraints.maxWidth / (dash + gap)).floor().clamp(
+          1,
+          400,
+        );
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1239,9 +1737,15 @@ class _SplitBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(5),
       child: Row(
         children: [
-          Expanded(flex: af, child: Container(height: 10, color: aColor)),
+          Expanded(
+            flex: af,
+            child: Container(height: 10, color: aColor),
+          ),
           const SizedBox(width: 2),
-          Expanded(flex: bf, child: Container(height: 10, color: bColor)),
+          Expanded(
+            flex: bf,
+            child: Container(height: 10, color: bColor),
+          ),
         ],
       ),
     );
