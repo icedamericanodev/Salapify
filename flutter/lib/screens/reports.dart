@@ -697,7 +697,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   style: TextStyle(color: Barako.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
-                _WeekdayBars(pattern: pattern, peak: peak),
+                _WeekdayBars(
+                  pattern: pattern,
+                  peak: peak,
+                  semanticsLabel: peak.peakDay >= 0
+                      ? 'Weekday spending chart. Busiest on ${_dayLong[peak.peakDay]}.'
+                      : 'Weekday spending chart.',
+                ),
                 const SizedBox(height: 14),
                 Text(
                   read,
@@ -725,11 +731,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     Color readColor;
     if (sum.totalNet > 0) {
       read =
-          'You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months, and kept ${formatMoney(sum.totalNet)} over the stretch. That is money building up. Keep the green months coming.';
+          'You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months, and kept ${formatMoney(sum.totalNet)} over the stretch. That is money building up. Keep those ahead months coming.';
       readColor = Barako.primaryText;
     } else if (sum.totalNet < 0) {
       read =
-          'Across these months you spent ${formatMoney(-sum.totalNet)} more than you earned. Look at a green month and ask what made it work, then repeat it.';
+          'Across these months you spent ${formatMoney(-sum.totalNet)} more than you earned. Look at a month you ended ahead and ask what made it work, then repeat it.';
       readColor = Barako.warningStrong;
     } else {
       read =
@@ -758,6 +764,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   focusKey: series.isNotEmpty
                       ? series.last['key'] as String
                       : '',
+                  focusPartial: _monthOffset == 0,
+                  semanticsLabel:
+                      'Net cash flow chart, last 6 months. You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months.',
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -1497,7 +1506,12 @@ class _TrendBars extends StatelessWidget {
 class _WeekdayBars extends StatelessWidget {
   final List<Map<String, dynamic>> pattern;
   final WeekdayPeak peak;
-  const _WeekdayBars({required this.pattern, required this.peak});
+  final String semanticsLabel;
+  const _WeekdayBars({
+    required this.pattern,
+    required this.peak,
+    this.semanticsLabel = '',
+  });
 
   static const _short = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -1505,69 +1519,79 @@ class _WeekdayBars extends StatelessWidget {
   Widget build(BuildContext context) {
     const areaH = 76.0;
     final scale = peak.maxAvg > 0 ? peak.maxAvg : 1.0;
-    return Column(
-      children: [
-        SizedBox(
-          height: areaH,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (final p in pattern)
-                Builder(
-                  builder: (_) {
-                    final day = (p['day'] as num?)?.toInt() ?? -1;
-                    final avg = amountOf(p['avg']);
-                    final isPeak = day == peak.peakDay;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: avg > 0
-                                ? (avg / scale * areaH).clamp(2.0, areaH)
-                                : 0.0,
-                            decoration: BoxDecoration(
-                              color: isPeak
-                                  ? Barako.primary
-                                  : Barako.primary.withValues(alpha: 0.26),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(4),
+    // Decorative to a screen reader; the read paragraph below names the peak
+    // and the pesos. Exclude the bare letter run, give the chart one summary.
+    return Semantics(
+      container: true,
+      label: semanticsLabel,
+      child: ExcludeSemantics(
+        child: Column(
+          children: [
+            SizedBox(
+              height: areaH,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (final p in pattern)
+                    Builder(
+                      builder: (_) {
+                        final day = (p['day'] as num?)?.toInt() ?? -1;
+                        final avg = amountOf(p['avg']);
+                        final isPeak = day == peak.peakDay;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                height: avg > 0
+                                    ? (avg / scale * areaH).clamp(2.0, areaH)
+                                    : 0.0,
+                                decoration: BoxDecoration(
+                                  color: isPeak
+                                      ? Barako.primary
+                                      : Barako.primary.withValues(alpha: 0.26),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            for (final p in pattern)
-              Builder(
-                builder: (_) {
-                  final day = (p['day'] as num?)?.toInt() ?? -1;
-                  final isPeak = day == peak.peakDay;
-                  return Expanded(
-                    child: Text(
-                      day >= 0 && day < 7 ? _short[day] : '',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isPeak ? Barako.text : Barako.faint,
-                        fontSize: 10,
-                        fontWeight: isPeak ? FontWeight.w700 : FontWeight.w500,
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
+                ],
               ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                for (final p in pattern)
+                  Builder(
+                    builder: (_) {
+                      final day = (p['day'] as num?)?.toInt() ?? -1;
+                      final isPeak = day == peak.peakDay;
+                      return Expanded(
+                        child: Text(
+                          day >= 0 && day < 7 ? _short[day] : '',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isPeak ? Barako.text : Barako.faint,
+                            fontSize: 10,
+                            fontWeight: isPeak
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1580,67 +1604,100 @@ class _DivergingBars extends StatelessWidget {
   final List<Map<String, dynamic>> series;
   final double maxAbs;
   final String focusKey;
+  final bool focusPartial;
+  final String semanticsLabel;
   const _DivergingBars({
     required this.series,
     required this.maxAbs,
     required this.focusKey,
+    this.focusPartial = false,
+    this.semanticsLabel = '',
   });
 
   @override
   Widget build(BuildContext context) {
     const half = 46.0;
     final scale = maxAbs > 0 ? maxAbs : 1.0;
-    return Column(
-      children: [
-        SizedBox(
-          height: half * 2,
-          child: Stack(
-            children: [
-              Row(
+    // The chart is decorative to a screen reader; the read paragraph below the
+    // card carries the numbers and the decision. Exclude the bare label run and
+    // give the whole visual one summary instead.
+    return Semantics(
+      container: true,
+      label: semanticsLabel,
+      child: ExcludeSemantics(
+        child: Column(
+          children: [
+            SizedBox(
+              height: half * 2,
+              child: Stack(
                 children: [
-                  for (final m in series) Expanded(child: _col(m, half, scale)),
+                  Row(
+                    children: [
+                      for (final m in series)
+                        Expanded(child: _col(m, half, scale)),
+                    ],
+                  ),
+                  // The zero line the bars diverge from: below it means a month
+                  // you overspent, so it reads at faint, not the hairline token.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: half - 0.75,
+                    child: Container(height: 1.5, color: Barako.faint),
+                  ),
                 ],
               ),
-              // The zero line the bars diverge from.
-              Positioned(
-                left: 0,
-                right: 0,
-                top: half - 0.5,
-                child: Container(height: 1, color: Barako.border),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            for (final m in series)
-              Expanded(
-                child: Text(
-                  m['label'] as String,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: m['key'] == focusKey ? Barako.text : Barako.faint,
-                    fontSize: 10,
-                    fontWeight: m['key'] == focusKey
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final m in series)
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          m['label'] as String,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: m['key'] == focusKey
+                                ? Barako.text
+                                : Barako.faint,
+                            fontSize: 10,
+                            fontWeight: m['key'] == focusKey
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                        // The current month is still filling in, so it is
+                        // labeled, matching the spending trend bars.
+                        if (m['key'] == focusKey && focusPartial)
+                          Text(
+                            'so far',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Barako.faint,
+                              fontSize: 8.5,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _col(Map<String, dynamic> m, double half, double scale) {
     final net = amountOf(m['net']);
-    final focus = m['key'] == focusKey;
     final pos = net > 0;
     final barH = net == 0 ? 0.0 : (net.abs() / scale * half).clamp(2.0, half);
-    final base = pos ? Barako.primary : Barako.warningStrong;
-    final color = focus ? base : base.withValues(alpha: 0.30);
+    // Full-strength polarity on every month: the one month you ended behind is
+    // the whole point of the card and must not fade below the months you saved.
+    final color = pos ? Barako.primary : Barako.warningStrong;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Column(
