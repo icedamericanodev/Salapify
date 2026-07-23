@@ -40,7 +40,15 @@ PR text, UI copy, ads. Use commas or periods instead. Plain English
 explanations for the founder, who is a beginner. Small tested steps.
 
 Marketing ads are ALWAYS in English (the audience is global). Filipino
-words appear only as product identity flavor (utang, sweldo). Never
+words appear only as product identity flavor (utang, sweldo).
+
+App UI copy is English first (founder decision, 2026-07-23, for the global
+launch): every user-facing sentence must read in plain English on its own.
+Filipino identity nouns (utang, sweldo, paluwagan, hatian, ipon) may stay as
+titles and kickers only where an English gloss sits right beside them; inside
+sentences use the English word (payday, salary, contribution, savings). Pan
+keeps UNDERSTANDING Tagalog input (matchers and normalization stay), but its
+replies and example chips are English. Never
 promise "free forever" in marketing; the truthful lines are core features
 free forever, free during early access, and early users keep Pro free.
 

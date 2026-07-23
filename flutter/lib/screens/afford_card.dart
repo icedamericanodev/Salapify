@@ -51,8 +51,13 @@ class _AffordCardState extends State<AffordCard> {
 
   @override
   Widget build(BuildContext context) {
-    final r = affordCheck(widget.data, widget.ref,
-        mode: _mode, amount: _amount, termMonths: _term);
+    final r = affordCheck(
+      widget.data,
+      widget.ref,
+      mode: _mode,
+      amount: _amount,
+      termMonths: _term,
+    );
     final applicable = r['applicable'] == true;
 
     return Card(
@@ -61,12 +66,16 @@ class _AffordCardState extends State<AffordCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('KAYA MO BA ITO?', style: Barako.kickerStyle),
+            Text('CAN YOU AFFORD IT?', style: Barako.kickerStyle),
             const SizedBox(height: 6),
             Text(
-                'Eyeing something? See what it does to your money before you commit.',
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+              'Eyeing something? See what it does to your money before you commit.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 14),
             _modeChips(),
             const SizedBox(height: 12),
@@ -80,17 +89,18 @@ class _AffordCardState extends State<AffordCard> {
             const SizedBox(height: 16),
             if (!applicable)
               Text(
-                  _mode == AffordMode.installment
-                      ? 'Enter the monthly amount to see if it fits your month.'
-                      : 'Enter a price to see if it fits your spendable cash.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13))
+                _mode == AffordMode.installment
+                    ? 'Enter the monthly amount to see if it fits your month.'
+                    : 'Enter a price to see if it fits your spendable cash.',
+                style: TextStyle(color: Barako.muted, fontSize: 13),
+              )
             else
               _verdict(r),
             const SizedBox(height: 14),
             Text(
-                'This mirrors your own numbers against a typical and a lean month. It is not advice to buy. Ang huling desisyon ay sa iyo.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'This mirrors your own numbers against a typical and a lean month. It is not advice to buy. Ang huling desisyon ay sa iyo.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -109,71 +119,81 @@ class _AffordCardState extends State<AffordCard> {
   }
 
   Widget _modeChips() => Wrap(
-        spacing: 8,
-        children: [
-          _choice('Pay in full', _mode == AffordMode.oneTime,
-              () => _setMode(AffordMode.oneTime)),
-          _choice('Pay monthly', _mode == AffordMode.installment,
-              () => _setMode(AffordMode.installment)),
-        ],
-      );
+    spacing: 8,
+    children: [
+      _choice(
+        'Pay in full',
+        _mode == AffordMode.oneTime,
+        () => _setMode(AffordMode.oneTime),
+      ),
+      _choice(
+        'Pay monthly',
+        _mode == AffordMode.installment,
+        () => _setMode(AffordMode.installment),
+      ),
+    ],
+  );
 
   Widget _termChips() => Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final t in _terms)
-            _choice('$t months', _term == t, () => setState(() => _term = t)),
-        ],
-      );
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final t in _terms)
+        _choice('$t months', _term == t, () => setState(() => _term = t)),
+    ],
+  );
 
   Widget _choice(String label, bool selected, VoidCallback onTap) => ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        selectedColor: Barako.primary,
-        backgroundColor: Barako.background,
-        labelStyle: TextStyle(
-            color: selected ? Barako.onPrimary : Barako.textSecondary,
-            fontWeight: FontWeight.w600),
-      );
+    label: Text(label),
+    selected: selected,
+    onSelected: (_) {
+      HapticFeedback.selectionClick();
+      onTap();
+    },
+    selectedColor: Barako.primary,
+    backgroundColor: Barako.background,
+    labelStyle: TextStyle(
+      color: selected ? Barako.onPrimary : Barako.textSecondary,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 
   Widget _amountField() => TextField(
-        controller: _controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        onChanged: (_) => setState(() {}),
-        style: TextStyle(
-            color: Barako.text, fontSize: 18, fontWeight: FontWeight.w700),
-        decoration: InputDecoration(
-          prefixText: '₱ ',
-          prefixStyle: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700),
-          hintText: _mode == AffordMode.installment ? 'Monthly amount' : 'Price',
-          hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
-          filled: true,
-          fillColor: Barako.background,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          // Match the app's other input fields (14 radius, 1.4 focus ring).
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.primary, width: 1.4),
-          ),
-        ),
-      );
+    controller: _controller,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    onChanged: (_) => setState(() {}),
+    style: TextStyle(
+      color: Barako.text,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+    ),
+    decoration: InputDecoration(
+      prefixText: '₱ ',
+      prefixStyle: TextStyle(
+        color: Barako.textSecondary,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
+      hintText: _mode == AffordMode.installment ? 'Monthly amount' : 'Price',
+      hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
+      filled: true,
+      fillColor: Barako.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      // Match the app's other input fields (14 radius, 1.4 focus ring).
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.primary, width: 1.4),
+      ),
+    ),
+  );
 
   // The verdict word, its color, and the honest lines behind it.
   Widget _verdict(Map<String, dynamic> r) {
@@ -202,25 +222,31 @@ class _AffordCardState extends State<AffordCard> {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(word,
-                      maxLines: 1,
-                      style: TextStyle(
-                          fontFamily: Barako.displayFont,
-                          color: color,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    word,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: Barako.displayFont,
+                      color: color,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           for (final line in lines) ...[
-            Text(line.$1,
-                style: TextStyle(
-                    color: line.$2 ? color : Barako.text,
-                    fontSize: 13.5,
-                    height: 1.45,
-                    fontWeight: line.$2 ? FontWeight.w700 : FontWeight.w500)),
+            Text(
+              line.$1,
+              style: TextStyle(
+                color: line.$2 ? color : Barako.text,
+                fontSize: 13.5,
+                height: 1.45,
+                fontWeight: line.$2 ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 6),
           ],
         ],
@@ -233,28 +259,20 @@ class _AffordCardState extends State<AffordCard> {
   // the cash, so "Kaya mo ito" is honest; for a plan it only means there is room
   // in the budget, never "go take on the debt", so it stays a room statement.
   (String, Color, IconData) _verdictHead(String verdict) => switch (verdict) {
-        'comfortable' => (
-            _mode == AffordMode.installment ? 'May puwang pa' : 'Kaya mo ito',
-            Barako.primary,
-            Icons.check_circle_outline
-          ),
-        'tight' => (
-            'Kaya, pero masikip',
-            Barako.warning,
-            Icons.balance
-          ),
-        'heavy' => (
-            'Mabigat sa budget',
-            Barako.warningStrong,
-            Icons.warning_amber_rounded
-          ),
-        'no-fit' => (
-            'Hindi pa kaya',
-            Barako.warningStrong,
-            Icons.block
-          ),
-        _ => ('Kulang pa ang datos', Barako.muted, Icons.help_outline),
-      };
+    'comfortable' => (
+      _mode == AffordMode.installment ? 'There is room' : 'You can afford this',
+      Barako.primary,
+      Icons.check_circle_outline,
+    ),
+    'tight' => ('Doable, but tight', Barako.warning, Icons.balance),
+    'heavy' => (
+      'Heavy on the budget',
+      Barako.warningStrong,
+      Icons.warning_amber_rounded,
+    ),
+    'no-fit' => ('Not yet affordable', Barako.warningStrong, Icons.block),
+    _ => ('Not enough data yet', Barako.muted, Icons.help_outline),
+  };
 
   // Each line: (text, isEmphasised). Emphasised lines take the verdict color.
   List<(String, bool)> _oneTimeLines(Map<String, dynamic> r) {
@@ -264,8 +282,8 @@ class _AffordCardState extends State<AffordCard> {
     final eatsCushion = r['eatsCushion'] == true;
     if (!eatsCushion) {
       lines.add((
-        'Leaves ${_peso(after)} of your ${_peso(available)} spendable cash until sweldo.',
-        false
+        'Leaves ${_peso(after)} of your ${_peso(available)} spendable cash until payday.',
+        false,
       ));
     } else {
       final overflow = (r['overflow'] as num).toDouble();
@@ -274,15 +292,15 @@ class _AffordCardState extends State<AffordCard> {
       lines.add((
         wipes
             ? 'This is more than all the money in your accounts (${_peso((r['buffer'] as num).toDouble())}), so it does not fit right now.'
-            : 'This is past your ${_peso(available)} spendable cash until sweldo. ${_peso(overflow)} would come from savings or money set aside for bills, leaving ${_peso(cushionAfter)} across your accounts.',
-        true
+            : 'This is past your ${_peso(available)} spendable cash until payday. ${_peso(overflow)} would come from savings or money set aside for bills, leaving ${_peso(cushionAfter)} across your accounts.',
+        true,
       ));
     }
     final monthsLost = r['cushionMonthsLost'];
     if (monthsLost is num && monthsLost.isFinite && monthsLost > 0) {
       lines.add((
         'That is about ${_months(monthsLost.toDouble())} of your usual spending.',
-        false
+        false,
       ));
     }
     return lines;
@@ -295,12 +313,14 @@ class _AffordCardState extends State<AffordCard> {
     final term = r['termMonths'] as int;
     if (!hasIncome) {
       lines.add((
-        'I cannot tell yet how this fits your month. Log a few more sweldo so a typical month is known, and check back.',
-        true
+        'I cannot tell yet how this fits your month. Log a few more paydays so a typical month is known, and check back.',
+        true,
       ));
       if (total is num && total > 0) {
-        lines.add(
-            ('That is ${_peso(total.toDouble())} in total over $term months.', false));
+        lines.add((
+          'That is ${_peso(total.toDouble())} in total over $term months.',
+          false,
+        ));
       }
       return lines;
     }
@@ -309,7 +329,7 @@ class _AffordCardState extends State<AffordCard> {
     if (cur is num && next is num && cur.isFinite && next.isFinite) {
       lines.add((
         'Your spoken-for money would go from ${_pct(cur.toDouble())} to ${_pct(next.toDouble())} of a typical month.',
-        next >= 0.5
+        next >= 0.5,
       ));
     }
     final leanShare = r['newLeanShare'];
@@ -323,27 +343,29 @@ class _AffordCardState extends State<AffordCard> {
         leanShare > 1
             ? 'On your leaner months it would not even fit, taking ${_pct(leanShare.toDouble())} of what came in.'
             : fitsLean
-                ? 'Even on your leaner months it stays manageable at ${_pct(leanShare.toDouble())}.'
-                : 'On your leaner months it gets tight, taking ${_pct(leanShare.toDouble())} of what came in.',
-        !fitsLean
+            ? 'Even on your leaner months it stays manageable at ${_pct(leanShare.toDouble())}.'
+            : 'On your leaner months it gets tight, taking ${_pct(leanShare.toDouble())} of what came in.',
+        !fitsLean,
       ));
     } else {
       // Flat or too-little income history: say so plainly instead of implying a
       // resilience we have not seen.
       lines.add((
-        'This assumes every sweldo is like your usual. You have not logged a leaner month yet.',
-        false
+        'This assumes every payday is like your usual. You have not logged a leaner month yet.',
+        false,
       ));
     }
     if ((r['shortNow'] as num) > 0) {
       lines.add((
         'The first payment does not fit your spendable cash right now, so it would come out of savings or bills.',
-        true
+        true,
       ));
     }
     if (total is num && total > 0) {
-      lines.add(
-          ('All in, that is ${_peso(total.toDouble())} over $term months.', false));
+      lines.add((
+        'All in, that is ${_peso(total.toDouble())} over $term months.',
+        false,
+      ));
     }
     return lines;
   }
@@ -386,7 +408,9 @@ class _AffordCardState extends State<AffordCard> {
     if (m > 1200) return 'over 1,000 months';
     // One decimal unless it is whole, so "0.5 months" and "2 months" both read.
     final rounded = scaled.round() / 10;
-    final text = rounded % 1 == 0 ? rounded.toInt().toString() : rounded.toString();
+    final text = rounded % 1 == 0
+        ? rounded.toInt().toString()
+        : rounded.toString();
     return '$text ${rounded == 1 ? 'month' : 'months'}';
   }
 }

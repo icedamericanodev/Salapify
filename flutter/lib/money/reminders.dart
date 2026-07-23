@@ -96,8 +96,9 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
   }
 
   if (on['daily'] == true) {
-    final loggedToday =
-        _list(data['transactions']).any((t) => t['date'] == todayISO(now));
+    final loggedToday = _list(
+      data['transactions'],
+    ).any((t) => t['date'] == todayISO(now));
     for (var i = 0; i < 14; i++) {
       final d = DateTime(now.year, now.month, now.day + i, 20);
       if (!d.isAfter(now)) continue;
@@ -110,9 +111,10 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
     final schedule = settings is Map ? settings['paydaySchedule'] : null;
     for (final p in _upcomingPaydays(now, schedule, 6)) {
       add(
-          'Sweldo day!',
-          'Open Salapify and the sweldo plan walks you through it: log it, move savings first, then set the budget.',
-          DateTime(p.year, p.month, p.day, 9));
+        'Payday!',
+        'Open Salapify and the payday plan walks you through it: log it, move savings first, then set the budget.',
+        DateTime(p.year, p.month, p.day, 9),
+      );
     }
   }
 
@@ -122,7 +124,8 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
       final bankDue = bankDueDate(d, now);
       if (bankDue == null) continue;
       final due = bankDue.date;
-      final name = (d['name'] is String && (d['name'] as String).trim().isNotEmpty)
+      final name =
+          (d['name'] is String && (d['name'] as String).trim().isNotEmpty)
           ? d['name'] as String
           : 'A debt';
       final min = amountOf(d['minPayment']);
@@ -130,41 +133,52 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
       final hasMin = min > 0;
       final minTxt = _peso(min < remaining ? min : remaining);
       add(
-          '$name is due in 3 days',
-          '${hasMin ? 'Pay in full to avoid interest, or at least $minTxt to avoid late fees.' : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'} GCash and over the counter payments can take 1 to 3 days to post, so pay early.',
-          DateTime(due.year, due.month, due.day - 3, 18));
+        '$name is due in 3 days',
+        '${hasMin ? 'Pay in full to avoid interest, or at least $minTxt to avoid late fees.' : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'} GCash and over the counter payments can take 1 to 3 days to post, so pay early.',
+        DateTime(due.year, due.month, due.day - 3, 18),
+      );
       add(
-          '$name is due today',
-          hasMin
-              ? 'Pay at least $minTxt today to avoid penalties.'
-              : 'Pay at least the minimum on your SOA today to avoid penalties.',
-          DateTime(due.year, due.month, due.day, 9));
+        '$name is due today',
+        hasMin
+            ? 'Pay at least $minTxt today to avoid penalties.'
+            : 'Pay at least the minimum on your SOA today to avoid penalties.',
+        DateTime(due.year, due.month, due.day, 9),
+      );
     }
   }
 
   if (on['collect'] == true) {
     for (final r in _list(data['receivables'])) {
       if (r['paid'] == true || r['dueDate'] == null) continue;
-      final paidSoFar = _list(r['payments'])
-          .fold<double>(0, (s, p) => s + amountOf(p['amount']));
+      final paidSoFar = _list(
+        r['payments'],
+      ).fold<double>(0, (s, p) => s + amountOf(p['amount']));
       final remaining = amountOf(r['amount']) - paidSoFar;
       if (remaining <= 0) continue;
       final due = _atHour(r['dueDate'], 9);
       if (due == null) continue;
-      final person = (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
+      final person =
+          (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
           ? r['person'] as String
           : 'Someone';
       final amount = _peso(remaining);
-      add('Utang due tomorrow', "$person's $amount is due tomorrow.",
-          DateTime(due.year, due.month, due.day - 1, 9));
+      add(
+        'Utang due tomorrow',
+        "$person's $amount is due tomorrow.",
+        DateTime(due.year, due.month, due.day - 1, 9),
+      );
       if (due.isAfter(now)) {
-        add('Time to collect',
-            '$person owes you $amount and it is due today. Send a reminder from the app.',
-            due);
+        add(
+          'Time to collect',
+          '$person owes you $amount and it is due today. Send a reminder from the app.',
+          due,
+        );
       } else {
-        add('Still waiting',
-            "$person's $amount was due ${r['dueDate']}. A friendly follow up usually works.",
-            DateTime(now.year, now.month, now.day + 1, 9));
+        add(
+          'Still waiting',
+          "$person's $amount was due ${r['dueDate']}. A friendly follow up usually works.",
+          DateTime(now.year, now.month, now.day + 1, 9),
+        );
       }
     }
   }

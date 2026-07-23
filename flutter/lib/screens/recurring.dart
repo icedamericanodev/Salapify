@@ -28,14 +28,20 @@ class RecurringScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Recurring',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Recurring',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         actions: [
           TextButton(
             onPressed: () => _onAdd(context),
-            child: Text('+ Add',
-                style: TextStyle(
-                    color: Barako.primaryText, fontWeight: FontWeight.w700)),
+            child: Text(
+              '+ Add',
+              style: TextStyle(
+                color: Barako.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -62,7 +68,10 @@ class RecurringScreen extends StatelessWidget {
                   'Set a bill or income once and Salapify logs it every month '
                   'on its day, into the account you pick.',
                   style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 14, height: 1.45),
+                    color: Barako.textSecondary,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (items.isNotEmpty) _totals(monthlyOut, monthlyIn),
@@ -74,9 +83,10 @@ class RecurringScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   if (!_pro)
                     Text(
-                        '${items.length} of $freeLimit free recurring items used. '
-                        'Pro is unlimited.',
-                        style: TextStyle(color: Barako.faint, fontSize: 12)),
+                      '${items.length} of $freeLimit free recurring items used. '
+                      'Pro is unlimited.',
+                      style: TextStyle(color: Barako.faint, fontSize: 12),
+                    ),
                 ],
               ],
             );
@@ -87,67 +97,77 @@ class RecurringScreen extends StatelessWidget {
   }
 
   Widget _totals(double out, double income) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              _totalCol('MONEY OUT', out, Barako.warningStrong),
-              Container(width: 1, height: 34, color: Barako.border),
-              _totalCol('MONEY IN', income, Barako.primaryText),
-            ],
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          _totalCol('MONEY OUT', out, Barako.warningStrong),
+          Container(width: 1, height: 34, color: Barako.border),
+          _totalCol('MONEY IN', income, Barako.primaryText),
+        ],
+      ),
+    ),
+  );
 
   Widget _totalCol(String label, double value, Color color) => Expanded(
-        child: Column(
-          children: [
-            Text(label, style: Barako.kickerStyle),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(formatMoneyText(value),
-                  maxLines: 1,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+    child: Column(
+      children: [
+        Text(label, style: Barako.kickerStyle),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            formatMoneyText(value),
+            maxLines: 1,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _empty(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 24),
-        child: Column(
-          children: [
-            Icon(Icons.event_repeat_outlined, color: Barako.faint, size: 40),
-            const SizedBox(height: 10),
-            Text('No recurring items yet',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('Add your rent, salary, or a subscription so it logs itself.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => _onAdd(context),
-              style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add your first recurring item',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ],
+    padding: const EdgeInsets.only(top: 24),
+    child: Column(
+      children: [
+        Icon(Icons.event_repeat_outlined, color: Barako.faint, size: 40),
+        const SizedBox(height: 10),
+        Text(
+          'No recurring items yet',
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      );
+        const SizedBox(height: 4),
+        Text(
+          'Add your rent, salary, or a subscription so it logs itself.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Barako.muted, fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () => _onAdd(context),
+          style: FilledButton.styleFrom(
+            backgroundColor: Barako.primary,
+            foregroundColor: Barako.onPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text(
+            'Add your first recurring item',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
 
   String _accountName(String? id) {
     if (id == null || id.isEmpty) return 'No account';
@@ -172,38 +192,46 @@ class RecurringScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(isIncome ? Icons.south_west : Icons.north_east,
-                      color:
-                          isIncome ? Barako.primaryText : Barako.warningStrong,
-                      size: 20),
+                  Icon(
+                    isIncome ? Icons.south_west : Icons.north_east,
+                    color: isIncome ? Barako.primaryText : Barako.warningStrong,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(r['label']?.toString() ?? 'Recurring',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700)),
+                        Text(
+                          r['label']?.toString() ?? 'Recurring',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Barako.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('Day $day · ${_accountName(r['accountId'] as String?)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                TextStyle(color: Barako.muted, fontSize: 12)),
+                        Text(
+                          'Day $day · ${_accountName(r['accountId'] as String?)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Barako.muted, fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('${isIncome ? '+' : '-'}${formatMoneyText(amt)}',
-                      style: TextStyle(
-                          color: isIncome ? Barako.primaryText : Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          fontFeatures: const [FontFeature.tabularFigures()])),
+                  Text(
+                    '${isIncome ? '+' : '-'}${formatMoneyText(amt)}',
+                    style: TextStyle(
+                      color: isIncome ? Barako.primaryText : Barako.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -257,26 +285,35 @@ class _ProWall extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Unlimited recurring with Pro',
-              style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
+          Text(
+            'Unlimited recurring with Pro',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
-              'You have $freeLimit recurring items, the free limit. Pro makes '
-              'them unlimited. During early access Pro is free, and early users '
-              'keep it free.',
-              style: TextStyle(
-                  color: Barako.textSecondary, fontSize: 14, height: 1.45)),
+            'You have $freeLimit recurring items, the free limit. Pro makes '
+            'them unlimited. During early access Pro is free, and early users '
+            'keep it free.',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
           const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('Not now',
-                    style: TextStyle(color: Barako.textSecondary)),
+                child: Text(
+                  'Not now',
+                  style: TextStyle(color: Barako.textSecondary),
+                ),
               ),
               const SizedBox(width: 8),
               FilledButton(
@@ -287,10 +324,13 @@ class _ProWall extends StatelessWidget {
                   onUnlockedProceed();
                 },
                 style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary),
-                child: const Text('Unlock Pro free',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                ),
+                child: const Text(
+                  'Unlock Pro free',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
@@ -328,11 +368,14 @@ class _RecurringSheetState extends State<_RecurringSheet> {
     _type = r?['type'] == 'income' ? 'income' : 'expense';
     _accountId = r?['accountId'] is String ? r!['accountId'] as String : '';
     _label = TextEditingController(text: r?['label']?.toString() ?? '');
-    _amount =
-        TextEditingController(text: r != null ? _numStr(r['amount']) : '');
+    _amount = TextEditingController(
+      text: r != null ? _numStr(r['amount']) : '',
+    );
     _day = TextEditingController(
-        text:
-            r != null ? ((r['dayOfMonth'] as num?)?.toInt() ?? 1).toString() : '');
+      text: r != null
+          ? ((r['dayOfMonth'] as num?)?.toInt() ?? 1).toString()
+          : '',
+    );
   }
 
   String _numStr(dynamic v) {
@@ -351,9 +394,9 @@ class _RecurringSheetState extends State<_RecurringSheet> {
   }
 
   List<Map<String, dynamic>> get _accounts => [
-        for (final a in (widget.store.data['accounts'] as List? ?? const []))
-          if (a is Map) a.cast<String, dynamic>(),
-      ];
+    for (final a in (widget.store.data['accounts'] as List? ?? const []))
+      if (a is Map) a.cast<String, dynamic>(),
+  ];
 
   Future<void> _save() async {
     if (_saving) return;
@@ -374,8 +417,10 @@ class _RecurringSheetState extends State<_RecurringSheet> {
       return;
     }
     if (!widget.store.canWrite) {
-      setState(() => _err =
-          'Saving is off because your data could not be read. Import a backup first.');
+      setState(
+        () => _err =
+            'Saving is off because your data could not be read. Import a backup first.',
+      );
       return;
     }
     _saving = true;
@@ -383,19 +428,22 @@ class _RecurringSheetState extends State<_RecurringSheet> {
     try {
       final id = widget.item?['id'];
       if (id is String) {
-        await widget.store.updateRecurring(id,
-            type: _type,
-            label: label,
-            amount: amount,
-            dayOfMonth: day,
-            accountId: _accountId);
+        await widget.store.updateRecurring(
+          id,
+          type: _type,
+          label: label,
+          amount: amount,
+          dayOfMonth: day,
+          accountId: _accountId,
+        );
       } else {
         await widget.store.addRecurring(
-            type: _type,
-            label: label,
-            amount: amount,
-            dayOfMonth: day,
-            accountId: _accountId);
+          type: _type,
+          label: label,
+          amount: amount,
+          dayOfMonth: day,
+          accountId: _accountId,
+        );
       }
     } finally {
       _saving = false;
@@ -426,19 +474,22 @@ class _RecurringSheetState extends State<_RecurringSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         constraints: BoxConstraints(
-            maxHeight:
-                (MediaQuery.of(context).size.height - bottomInset) * 0.92),
+          maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.92,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_isEdit ? 'Edit recurring' : 'New recurring',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+              Text(
+                _isEdit ? 'Edit recurring' : 'New recurring',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 14),
               Row(
                 children: [
@@ -448,27 +499,31 @@ class _RecurringSheetState extends State<_RecurringSheet> {
                 ],
               ),
               _label2('Name'),
-              _input(_label, hint: 'e.g. Rent, Netflix, Sweldo'),
+              _input(_label, hint: 'e.g. Rent, Netflix, Salary'),
               _label2('Amount'),
               _input(_amount, hint: '0', number: true),
               _label2('Day of the month (1 to 31)'),
               _input(_day, hint: 'e.g. 15', digitsOnly: true, maxLen: 2),
               const SizedBox(height: 6),
               Text(
-                  'Logs on this day. If a month is shorter, it uses the last '
-                  'day.',
-                  style: TextStyle(color: Barako.faint, fontSize: 11)),
+                'Logs on this day. If a month is shorter, it uses the last '
+                'day.',
+                style: TextStyle(color: Barako.faint, fontSize: 11),
+              ),
               if (_accounts.isNotEmpty) ...[
-                _label2(isIncome
-                    ? 'Into which account? (optional)'
-                    : 'From which account? (optional)'),
+                _label2(
+                  isIncome
+                      ? 'Into which account? (optional)'
+                      : 'From which account? (optional)',
+                ),
                 _accountPicker(),
               ],
               if (_err != null) ...[
                 const SizedBox(height: 12),
-                Text(_err!,
-                    style:
-                        TextStyle(color: Barako.warningStrong, fontSize: 13)),
+                Text(
+                  _err!,
+                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                ),
               ],
               const SizedBox(height: 22),
               Row(
@@ -479,14 +534,18 @@ class _RecurringSheetState extends State<_RecurringSheet> {
                       onPressed: _delete,
                       style: _confirmDel
                           ? TextButton.styleFrom(
-                              backgroundColor:
-                                  Barako.warningStrong.withValues(alpha: 0.12))
+                              backgroundColor: Barako.warningStrong.withValues(
+                                alpha: 0.12,
+                              ),
+                            )
                           : null,
                       child: Text(
-                          _confirmDel ? 'Tap again to delete' : 'Delete',
-                          style: TextStyle(
-                              color: Barako.warningStrong,
-                              fontWeight: FontWeight.w600)),
+                        _confirmDel ? 'Tap again to delete' : 'Delete',
+                        style: TextStyle(
+                          color: Barako.warningStrong,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   else
                     const SizedBox.shrink(),
@@ -494,8 +553,10 @@ class _RecurringSheetState extends State<_RecurringSheet> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel',
-                            style: TextStyle(color: Barako.textSecondary)),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Barako.textSecondary),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -503,13 +564,18 @@ class _RecurringSheetState extends State<_RecurringSheet> {
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
-                          disabledBackgroundColor:
-                              Barako.primary.withValues(alpha: 0.5),
+                          disabledBackgroundColor: Barako.primary.withValues(
+                            alpha: 0.5,
+                          ),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 14),
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                         ),
-                        child: const Text('Save',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
@@ -544,13 +610,17 @@ class _RecurringSheetState extends State<_RecurringSheet> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: on ? Barako.primary : Barako.border),
+                  border: Border.all(
+                    color: on ? Barako.primary : Barako.border,
+                  ),
                 ),
-                child: Text(text,
-                    style: TextStyle(
-                        color: on ? Barako.onPrimary : Barako.textSecondary,
-                        fontWeight: FontWeight.w600)),
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: on ? Barako.onPrimary : Barako.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -566,8 +636,10 @@ class _RecurringSheetState extends State<_RecurringSheet> {
       children: [
         _acctChip('No account', ''),
         for (final a in _accounts)
-          _acctChip(a['name']?.toString() ?? 'Account',
-              a['id']?.toString() ?? ''),
+          _acctChip(
+            a['name']?.toString() ?? 'Account',
+            a['id']?.toString() ?? '',
+          ),
       ],
     );
   }
@@ -581,22 +653,25 @@ class _RecurringSheetState extends State<_RecurringSheet> {
       selectedColor: Barako.primary,
       backgroundColor: Barako.card,
       labelStyle: TextStyle(
-          color: on ? Barako.onPrimary : Barako.textSecondary,
-          fontWeight: FontWeight.w600),
+        color: on ? Barako.onPrimary : Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
       side: BorderSide(color: Barako.border),
     );
   }
 
   Widget _label2(String text) => Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 6),
-        child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
-      );
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+  );
 
-  Widget _input(TextEditingController c,
-      {String? hint,
-      bool number = false,
-      bool digitsOnly = false,
-      int? maxLen}) {
+  Widget _input(
+    TextEditingController c, {
+    String? hint,
+    bool number = false,
+    bool digitsOnly = false,
+    int? maxLen,
+  }) {
     final formatters = <TextInputFormatter>[
       if (digitsOnly) FilteringTextInputFormatter.digitsOnly,
       if (number && !digitsOnly)
@@ -615,8 +690,10 @@ class _RecurringSheetState extends State<_RecurringSheet> {
         hintStyle: TextStyle(color: Barako.faint),
         filled: true,
         fillColor: Barako.card,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),

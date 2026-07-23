@@ -76,7 +76,7 @@ class MenuScreen extends StatelessWidget {
                 icon: Icons.calendar_month_outlined,
                 title: 'Cash flow',
                 blurb:
-                    'Your month ahead day by day: sweldo in, bills out, and the days your cash runs tight.',
+                    'Your month ahead day by day: salary in, bills out, and the days your cash runs tight.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => CashFlowScreen(store: store),
@@ -147,7 +147,7 @@ class MenuScreen extends StatelessWidget {
                 icon: Icons.chat_bubble_outline,
                 title: 'Ask Pan',
                 blurb:
-                    'Your money questions, answered from your own data. Walang halong AI sa cloud.',
+                    'Your money questions, answered from your own data, right on your phone. No cloud AI.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) =>
@@ -461,7 +461,7 @@ class MenuScreen extends StatelessWidget {
             row(
               'payday',
               Icons.payments_outlined,
-              'Sweldo day',
+              'Payday',
               'A morning ping on payday to plan the money before it goes.',
             ),
             const Divider(height: 24),

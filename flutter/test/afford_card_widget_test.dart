@@ -50,7 +50,7 @@ void main() {
 
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('KAYA MO BA ITO?'), 300,
+    await tester.scrollUntilVisible(find.text('CAN YOU AFFORD IT?'), 300,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
 
@@ -70,6 +70,6 @@ void main() {
     expect(tester.takeException(), isNull);
 
     // The card is still on screen, not replaced by a red error box.
-    expect(find.text('KAYA MO BA ITO?'), findsOneWidget);
+    expect(find.text('CAN YOU AFFORD IT?'), findsOneWidget);
   });
 }

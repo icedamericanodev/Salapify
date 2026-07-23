@@ -234,11 +234,11 @@ class _SplitSheetState extends State<_SplitSheet> {
               ),
               _label('What was this for?'),
               _input(_activity, hint: 'e.g. Baler trip, Grab, dinner'),
-              _label('Sino kasama?'),
+              _label('Who shared it?'),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  'Leave a box blank to split evenly, or type an exact ambag.',
+                  'Leave a box blank to split evenly, or type an exact amount.',
                   style: TextStyle(color: Barako.faint, fontSize: 11),
                 ),
               ),

@@ -1,7 +1,9 @@
-// Replays flutter/test/goldens/lessons_goldens.json, generated from the REAL RN
-// mobile/lib/lessons.js. The ported Learn content must match the live app word
-// for word (id, title, emoji, minutes, summary, every body paragraph), and
-// lessonOfTheDay must pick the same lesson for a given date.
+// Replays flutter/test/goldens/lessons_goldens.json. Originally generated from
+// the RN mobile/lib/lessons.js; the CONTENT is Flutter-owned since 2026-07-23
+// (English-first copy for the global launch). This lock now catches accidental
+// edits: change a lesson on purpose, then regenerate with
+// `dart run tool/regen_copy_goldens.dart`. lessonOfTheDay must keep picking
+// the same lesson for a given date.
 
 import 'dart:convert';
 import 'dart:io';
@@ -10,9 +12,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/lessons.dart';
 
 void main() {
-  final g = jsonDecode(
-      File('test/goldens/lessons_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final g =
+      jsonDecode(File('test/goldens/lessons_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   test('the ported lessons match the RN content exactly', () {
     final want = (g['lessons'] as List).cast<Map<String, dynamic>>();
@@ -25,9 +27,11 @@ void main() {
       expect(a['emoji'], b['emoji'], reason: 'emoji ${b['id']}');
       expect(a['minutes'], b['minutes'], reason: 'minutes ${b['id']}');
       expect(a['summary'], b['summary'], reason: 'summary ${b['id']}');
-      expect((a['body'] as List).cast<String>(),
-          (b['body'] as List).cast<String>(),
-          reason: 'body ${b['id']}');
+      expect(
+        (a['body'] as List).cast<String>(),
+        (b['body'] as List).cast<String>(),
+        reason: 'body ${b['id']}',
+      );
     }
   });
 
@@ -40,8 +44,10 @@ void main() {
   });
 
   test('lessonById finds a lesson or returns null', () {
-    expect(lessonById('emergency-fund')?['title'],
-        'Your first shield: the emergency fund');
+    expect(
+      lessonById('emergency-fund')?['title'],
+      'Your first shield: the emergency fund',
+    );
     expect(lessonById('nope'), isNull);
   });
 }
