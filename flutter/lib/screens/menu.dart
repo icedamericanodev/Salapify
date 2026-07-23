@@ -13,6 +13,7 @@ import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
+import 'cashflow.dart';
 import 'csv_import.dart';
 import 'debts.dart';
 import 'goals.dart';
@@ -66,6 +67,18 @@ class MenuScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => AccountsScreen(store: store),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.calendar_month_outlined,
+                title: 'Cash flow',
+                blurb:
+                    'Your month ahead day by day: sweldo in, bills out, and the days your cash runs tight.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CashFlowScreen(store: store),
                   ),
                 ),
               ),
