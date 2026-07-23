@@ -294,9 +294,15 @@ class OverviewScreen extends StatelessWidget {
                 children: [
                   _kicker('MONEY CHECK-IN'),
                   const Spacer(),
-                  PanMascot(
-                      mood: panMoodForCoachKind(c['kind'] as String?),
-                      size: 44),
+                  // Decorative here: the check-in card already announces the
+                  // situation, so keep Pan out of the screen reader on Home (his
+                  // descriptive label stays on the Ask Pan header, where it adds
+                  // information).
+                  ExcludeSemantics(
+                    child: PanMascot(
+                        mood: panMoodForCoachKind(c['kind'] as String?),
+                        size: 44),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
