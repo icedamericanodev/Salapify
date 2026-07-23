@@ -142,8 +142,9 @@ class _LogSheetState extends State<LogSheet> {
     // Only accounts with a real string id can be linked (the engine ignores
     // anything else), and only those get chips, so an odd id from an imported
     // backup can never crash the sheet.
-    final accounts = (widget.store.data['accounts'] as List)
-        .cast<Map<String, dynamic>>()
+    final accounts = (widget.store.data['accounts'] as List? ?? const [])
+        .whereType<Map>()
+        .map((a) => a.cast<String, dynamic>())
         .where((a) => a['id'] is String && (a['id'] as String).isNotEmpty)
         .toList();
 
