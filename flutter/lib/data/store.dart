@@ -18,6 +18,7 @@ import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/paluwagan.dart' as paluwagan;
+import '../money/splits.dart' as splits;
 import 'backup.dart';
 
 const String storageKey = 'salapify_data_v2';
@@ -227,18 +228,18 @@ class SalapifyStore extends ChangeNotifier {
   /// gates the export button and the replace-everything warning, and hiding
   /// either because only receivables exist would invite a silent wipe.
   bool get hasData => const [
-        'accounts',
-        'transactions',
-        'receivables',
-        'payables',
-        'people',
-        'debts',
-        'goals',
-        'assets',
-        'wins',
-        'notes',
-        'recurring',
-      ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
+    'accounts',
+    'transactions',
+    'receivables',
+    'payables',
+    'people',
+    'debts',
+    'goals',
+    'assets',
+    'wins',
+    'notes',
+    'recurring',
+  ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
 
   Future<void> load() async {
     try {
@@ -249,7 +250,8 @@ class SalapifyStore extends ChangeNotifier {
         // The import/restore path keeps the default (false), forcing the lock
         // off when a backup lands on a phone whose biometrics differ.
         data = ensureEntityIds(
-            ensureUniqueTxnIds(sanitizeData(jsonDecode(raw), keepAppLock: true)));
+          ensureUniqueTxnIds(sanitizeData(jsonDecode(raw), keepAppLock: true)),
+        );
       }
       loadError = null;
     } catch (e) {
@@ -273,15 +275,20 @@ class SalapifyStore extends ChangeNotifier {
     // Cheap probe (no ids minted) to skip a redundant write when nothing is
     // due; the engine returns the SAME map instance in that case.
     if (identical(
-        recurring.postDueRecurring(data, DateTime.now(), () => ''), data)) {
+      recurring.postDueRecurring(data, DateTime.now(), () => ''),
+      data,
+    )) {
       return;
     }
     // Compute the real post INSIDE the queue so it folds onto the latest
     // committed state, never overwriting a concurrent write. Matches RN's
     // setData(prev => ...). A no-op result keeps the previous map (no churn).
     await _mutate((prev) {
-      final next =
-          recurring.postDueRecurring(prev, DateTime.now(), () => _genId('txn'));
+      final next = recurring.postDueRecurring(
+        prev,
+        DateTime.now(),
+        () => _genId('txn'),
+      );
       return identical(next, prev) ? prev : next;
     });
   }
@@ -296,48 +303,52 @@ class SalapifyStore extends ChangeNotifier {
   /// FormatException for the UI to explain; on success the store is
   /// replaced and persisted.
   Future<void> importBackupText(String text) => _serialized(() async {
-        final parsed = parseBackupObject(jsonDecode(text));
-        // A restore must never invent money: stamp recurring items whose day
-        // this month already passed as posted, so the posting engine does not
-        // re-post a bill the backup already recorded. Items still to come keep
-        // their marker. Must run before the blob is adopted.
-        parsed['recurring'] =
-            recurring.stampRecurringOnRestore(parsed['recurring'], DateTime.now());
-        // Snapshot BEFORE anything is replaced, and snapshot the RAW stored
-        // blob, not what memory holds: after a failed or refused read
-        // (newer version, corrupt bytes) memory is the empty default while
-        // disk still holds the ONLY copy of the user's data, and this
-        // import is the documented recovery action about to overwrite it.
-        // If this write fails the import aborts with memory and disk
-        // untouched; replacing data without the net would be the one
-        // unforgivable loss.
-        final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(storageKey);
-        if (raw != null && raw.isNotEmpty) {
-          await prefs.setString(previousBackupKey, raw);
-        }
-        final previous = data;
-        data = ensureEntityIds(ensureUniqueTxnIds(parsed));
-        try {
-          await _save();
-        } catch (e) {
-          data = previous;
-          notifyListeners();
-          rethrow;
-        }
-        // A successful import IS the recovery the failed-read message
-        // promises: disk now equals memory and both are readable, so writing
-        // is safe again and the stale read error must not keep the app
-        // locked read-only.
-        loadError = null;
-        loaded = true;
-        notifyListeners();
-      });
+    final parsed = parseBackupObject(jsonDecode(text));
+    // A restore must never invent money: stamp recurring items whose day
+    // this month already passed as posted, so the posting engine does not
+    // re-post a bill the backup already recorded. Items still to come keep
+    // their marker. Must run before the blob is adopted.
+    parsed['recurring'] = recurring.stampRecurringOnRestore(
+      parsed['recurring'],
+      DateTime.now(),
+    );
+    // Snapshot BEFORE anything is replaced, and snapshot the RAW stored
+    // blob, not what memory holds: after a failed or refused read
+    // (newer version, corrupt bytes) memory is the empty default while
+    // disk still holds the ONLY copy of the user's data, and this
+    // import is the documented recovery action about to overwrite it.
+    // If this write fails the import aborts with memory and disk
+    // untouched; replacing data without the net would be the one
+    // unforgivable loss.
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(storageKey);
+    if (raw != null && raw.isNotEmpty) {
+      await prefs.setString(previousBackupKey, raw);
+    }
+    final previous = data;
+    data = ensureEntityIds(ensureUniqueTxnIds(parsed));
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    // A successful import IS the recovery the failed-read message
+    // promises: disk now equals memory and both are readable, so writing
+    // is safe again and the stale read error must not keep the app
+    // locked read-only.
+    loadError = null;
+    loaded = true;
+    notifyListeners();
+  });
 
   /// The backup text for the whole store, same wrapper as the RN Backup
   /// screen, so the current app can import it unchanged. Read-only.
-  String exportBackupText() => buildBackupText(data,
-      exportedAt: DateTime.now().toUtc().toIso8601String());
+  String exportBackupText() => buildBackupText(
+    data,
+    exportedAt: DateTime.now().toUtc().toIso8601String(),
+  );
 
   /// True when writing is safe: the store finished loading and the read did
   /// not fail. After a failed read, saving would overwrite data we could not
@@ -364,33 +375,34 @@ class SalapifyStore extends ChangeNotifier {
   /// fails, the in-memory state is rolled back so memory never runs ahead of
   /// disk, and the error is rethrown for the UI to show.
   Future<void> addEntry(Map<String, dynamic> tx) => _serialized(() async {
-        if (!canWrite) {
-          throw StateError(
-              'Saving is off because your stored data could not be read. '
-              'Import a backup to recover first.');
-        }
-        final amount = tx['amount'];
-        if (amount is! num || !amount.isFinite) {
-          throw ArgumentError('That amount is not a normal number.');
-        }
-        // Every entry needs a stable id, or it cannot be deleted or undone from
-        // History and duplicate null-id rows crash the list. RN's addTransaction
-        // guarantees one; mirror that here so no caller can post an id-less
-        // entry (the balance-adjustment path did).
-        final withId = (tx['id'] is String && (tx['id'] as String).isNotEmpty)
-            ? tx
-            : {...tx, 'id': _genId('txn')};
-        final previous = data;
-        data = ledger.addTransaction(data, withId);
-        try {
-          await _save();
-        } catch (e) {
-          data = previous;
-          notifyListeners();
-          rethrow;
-        }
-        notifyListeners();
-      });
+    if (!canWrite) {
+      throw StateError(
+        'Saving is off because your stored data could not be read. '
+        'Import a backup to recover first.',
+      );
+    }
+    final amount = tx['amount'];
+    if (amount is! num || !amount.isFinite) {
+      throw ArgumentError('That amount is not a normal number.');
+    }
+    // Every entry needs a stable id, or it cannot be deleted or undone from
+    // History and duplicate null-id rows crash the list. RN's addTransaction
+    // guarantees one; mirror that here so no caller can post an id-less
+    // entry (the balance-adjustment path did).
+    final withId = (tx['id'] is String && (tx['id'] as String).isNotEmpty)
+        ? tx
+        : {...tx, 'id': _genId('txn')};
+    final previous = data;
+    data = ledger.addTransaction(data, withId);
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    notifyListeners();
+  });
 
   /// Append imported transactions in one atomic save. Each gets a fresh id and
   /// flows through the same golden-verified engine as a manual log, so nothing
@@ -420,24 +432,25 @@ class SalapifyStore extends ChangeNotifier {
   /// if the disk says no. Keeps every receivables write path on exactly the
   /// same discipline as addEntry and removeEntry.
   Future<void> _mutate(
-          Map<String, dynamic> Function(Map<String, dynamic>) apply) =>
-      _serialized(() async {
-        if (!canWrite) {
-          throw StateError(
-              'Saving is off because your stored data could not be read. '
-              'Import a backup to recover first.');
-        }
-        final previous = data;
-        data = apply(previous);
-        try {
-          await _save();
-        } catch (e) {
-          data = previous;
-          notifyListeners();
-          rethrow;
-        }
-        notifyListeners();
-      });
+    Map<String, dynamic> Function(Map<String, dynamic>) apply,
+  ) => _serialized(() async {
+    if (!canWrite) {
+      throw StateError(
+        'Saving is off because your stored data could not be read. '
+        'Import a backup to recover first.',
+      );
+    }
+    final previous = data;
+    data = apply(previous);
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    notifyListeners();
+  });
 
   final _rand = Random();
 
@@ -468,36 +481,42 @@ class SalapifyStore extends ChangeNotifier {
   /// abandoned empty note is discarded on close, matching the RN screen).
   Future<String> addNote() async {
     final id = _genId('notes');
-    await _mutate((d) => {
-          ...d,
-          'notes': [
-            ...(d['notes'] as List? ?? const []),
-            {'text': '', 'updatedAt': _nowISO(), 'id': id},
-          ],
-        });
+    await _mutate(
+      (d) => {
+        ...d,
+        'notes': [
+          ...(d['notes'] as List? ?? const []),
+          {'text': '', 'updatedAt': _nowISO(), 'id': id},
+        ],
+      },
+    );
     return id;
   }
 
   /// Update a note's text, stamping updatedAt like the RN screen does.
-  Future<void> updateNote(String id, String text) => _mutate((d) => {
-        ...d,
-        'notes': [
-          for (final n in (d['notes'] as List? ?? const []))
-            if (n is Map && n['id'] == id)
-              {...n.cast<String, dynamic>(), 'text': text, 'updatedAt': _nowISO()}
-            else
-              n,
-        ],
-      });
+  Future<void> updateNote(String id, String text) => _mutate(
+    (d) => {
+      ...d,
+      'notes': [
+        for (final n in (d['notes'] as List? ?? const []))
+          if (n is Map && n['id'] == id)
+            {...n.cast<String, dynamic>(), 'text': text, 'updatedAt': _nowISO()}
+          else
+            n,
+      ],
+    },
+  );
 
   /// Delete a note.
-  Future<void> deleteNote(String id) => _mutate((d) => {
-        ...d,
-        'notes': [
-          for (final n in (d['notes'] as List? ?? const []))
-            if (!(n is Map && n['id'] == id)) n,
-        ],
-      });
+  Future<void> deleteNote(String id) => _mutate(
+    (d) => {
+      ...d,
+      'notes': [
+        for (final n in (d['notes'] as List? ?? const []))
+          if (!(n is Map && n['id'] == id)) n,
+      ],
+    },
+  );
 
   /// Create a savings goal, matching the RN Goals screen. Values are already
   /// parsed and clamped by the screen (target and saved never negative). Goals
@@ -507,20 +526,21 @@ class SalapifyStore extends ChangeNotifier {
     required double target,
     required double saved,
     required String targetDate,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'goals': [
-              ...(d['goals'] as List? ?? const []),
-              {
-                'name': name,
-                'target': target,
-                'saved': saved,
-                'targetDate': targetDate,
-                'id': _genId('goals'),
-              },
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        ...(d['goals'] as List? ?? const []),
+        {
+          'name': name,
+          'target': target,
+          'saved': saved,
+          'targetDate': targetDate,
+          'id': _genId('goals'),
+        },
+      ],
+    },
+  );
 
   /// Update a goal's editable fields, preserving any others (unknown keys and
   /// a legacy shape survive the spread).
@@ -530,56 +550,61 @@ class SalapifyStore extends ChangeNotifier {
     required double target,
     required double saved,
     required String targetDate,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'goals': [
-              for (final g in (d['goals'] as List? ?? const []))
-                if (g is Map && g['id'] == id)
-                  {
-                    ...g.cast<String, dynamic>(),
-                    'name': name,
-                    'target': target,
-                    'saved': saved,
-                    'targetDate': targetDate,
-                  }
-                else
-                  g,
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        for (final g in (d['goals'] as List? ?? const []))
+          if (g is Map && g['id'] == id)
+            {
+              ...g.cast<String, dynamic>(),
+              'name': name,
+              'target': target,
+              'saved': saved,
+              'targetDate': targetDate,
+            }
+          else
+            g,
+      ],
+    },
+  );
 
   /// Add money to a goal's saved total. Adds on top of the STORED saved, never
   /// the editable form field, and floors at zero, matching the RN applyFunds
   /// so clearing the field first can never wipe the real saved amount.
-  Future<void> addGoalFunds(String id, double amount) => _mutate((d) => {
-        ...d,
-        'goals': [
-          for (final g in (d['goals'] as List? ?? const []))
-            if (g is Map && g['id'] == id)
-              {
-                ...g.cast<String, dynamic>(),
-                'saved': () {
-                  final cur = g['saved'];
-                  final base = cur is num
-                      ? cur.toDouble()
-                      : (cur is String ? (double.tryParse(cur) ?? 0) : 0);
-                  final next = base + amount;
-                  return next > 0 ? next : 0.0;
-                }(),
-              }
-            else
-              g,
-        ],
-      });
+  Future<void> addGoalFunds(String id, double amount) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        for (final g in (d['goals'] as List? ?? const []))
+          if (g is Map && g['id'] == id)
+            {
+              ...g.cast<String, dynamic>(),
+              'saved': () {
+                final cur = g['saved'];
+                final base = cur is num
+                    ? cur.toDouble()
+                    : (cur is String ? (double.tryParse(cur) ?? 0) : 0);
+                final next = base + amount;
+                return next > 0 ? next : 0.0;
+              }(),
+            }
+          else
+            g,
+      ],
+    },
+  );
 
   /// Delete a goal.
-  Future<void> deleteGoal(String id) => _mutate((d) => {
-        ...d,
-        'goals': [
-          for (final g in (d['goals'] as List? ?? const []))
-            if (!(g is Map && g['id'] == id)) g,
-        ],
-      });
+  Future<void> deleteGoal(String id) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        for (final g in (d['goals'] as List? ?? const []))
+          if (!(g is Map && g['id'] == id)) g,
+      ],
+    },
+  );
 
   /// Create an account with an opening balance. Accounts is an existing backup
   /// collection, so this is additive with no migration. Balance changes to an
@@ -592,22 +617,23 @@ class SalapifyStore extends ChangeNotifier {
     required String icon,
     required double target,
     required double balance,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'accounts': [
-              ...(d['accounts'] as List? ?? const []),
-              {
-                'name': name,
-                'kind': kind,
-                'brand': brand,
-                'icon': icon,
-                'target': target,
-                'balance': balance,
-                'id': _genId('acct'),
-              },
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'accounts': [
+        ...(d['accounts'] as List? ?? const []),
+        {
+          'name': name,
+          'kind': kind,
+          'brand': brand,
+          'icon': icon,
+          'target': target,
+          'balance': balance,
+          'id': _genId('acct'),
+        },
+      ],
+    },
+  );
 
   /// Update an account's DETAILS only (never its balance, which moves through a
   /// recorded adjustment). Unknown keys survive the spread.
@@ -618,63 +644,60 @@ class SalapifyStore extends ChangeNotifier {
     required String brand,
     required String icon,
     required double target,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'accounts': [
-              for (final a in (d['accounts'] as List? ?? const []))
-                if (a is Map && a['id'] == id)
-                  {
-                    ...a.cast<String, dynamic>(),
-                    'name': name,
-                    'kind': kind,
-                    'brand': brand,
-                    'icon': icon,
-                    'target': target,
-                  }
-                else
-                  a,
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'accounts': [
+        for (final a in (d['accounts'] as List? ?? const []))
+          if (a is Map && a['id'] == id)
+            {
+              ...a.cast<String, dynamic>(),
+              'name': name,
+              'kind': kind,
+              'brand': brand,
+              'icon': icon,
+              'target': target,
+            }
+          else
+            a,
+      ],
+    },
+  );
 
   /// Delete an account. Entries stay (their accountId simply stops resolving,
   /// matching the RN screen, so no logged money is ever lost), and settings
   /// that pointed at it are cleared so they never point at a ghost.
   Future<void> deleteAccount(String id) => _mutate((d) {
-        final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final cleared = {
-          ...s,
-          if (s['defaultAccountId'] == id) 'defaultAccountId': '',
-          if (s['salaryAccountId'] == id) 'salaryAccountId': '',
-        };
-        return {
-          ...d,
-          'accounts': [
-            for (final a in (d['accounts'] as List? ?? const []))
-              if (!(a is Map && a['id'] == id)) a,
-          ],
-          'settings': cleared,
-        };
-      });
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final cleared = {
+      ...s,
+      if (s['defaultAccountId'] == id) 'defaultAccountId': '',
+      if (s['salaryAccountId'] == id) 'salaryAccountId': '',
+    };
+    return {
+      ...d,
+      'accounts': [
+        for (final a in (d['accounts'] as List? ?? const []))
+          if (!(a is Map && a['id'] == id)) a,
+      ],
+      'settings': cleared,
+    };
+  });
 
   /// Create an investment or other asset.
   Future<void> addAsset({
     required String name,
     required String kind,
     required double value,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'assets': [
-              ...(d['assets'] as List? ?? const []),
-              {
-                'name': name,
-                'kind': kind,
-                'value': value,
-                'id': _genId('asset'),
-              },
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'assets': [
+        ...(d['assets'] as List? ?? const []),
+        {'name': name, 'kind': kind, 'value': value, 'id': _genId('asset')},
+      ],
+    },
+  );
 
   /// Update an asset's fields.
   Future<void> updateAsset(
@@ -682,51 +705,58 @@ class SalapifyStore extends ChangeNotifier {
     required String name,
     required String kind,
     required double value,
-  }) =>
-      _mutate((d) => {
-            ...d,
-            'assets': [
-              for (final a in (d['assets'] as List? ?? const []))
-                if (a is Map && a['id'] == id)
-                  {
-                    ...a.cast<String, dynamic>(),
-                    'name': name,
-                    'kind': kind,
-                    'value': value,
-                  }
-                else
-                  a,
-            ],
-          });
+  }) => _mutate(
+    (d) => {
+      ...d,
+      'assets': [
+        for (final a in (d['assets'] as List? ?? const []))
+          if (a is Map && a['id'] == id)
+            {
+              ...a.cast<String, dynamic>(),
+              'name': name,
+              'kind': kind,
+              'value': value,
+            }
+          else
+            a,
+      ],
+    },
+  );
 
   /// Delete an asset.
-  Future<void> deleteAsset(String id) => _mutate((d) => {
-        ...d,
-        'assets': [
-          for (final a in (d['assets'] as List? ?? const []))
-            if (!(a is Map && a['id'] == id)) a,
-        ],
-      });
+  Future<void> deleteAsset(String id) => _mutate(
+    (d) => {
+      ...d,
+      'assets': [
+        for (final a in (d['assets'] as List? ?? const []))
+          if (!(a is Map && a['id'] == id)) a,
+      ],
+    },
+  );
 
   /// Add a small win, stamped with today's date, matching the RN Mindset
   /// screen (addItem('wins', { text, date })). Kept in data.wins so the
   /// backup already carries it.
-  Future<void> addWin(String text) => _mutate((d) => {
-        ...d,
-        'wins': [
-          ...(d['wins'] as List? ?? const []),
-          {'text': text, 'date': _todayISO(), 'id': _genId('wins')},
-        ],
-      });
+  Future<void> addWin(String text) => _mutate(
+    (d) => {
+      ...d,
+      'wins': [
+        ...(d['wins'] as List? ?? const []),
+        {'text': text, 'date': _todayISO(), 'id': _genId('wins')},
+      ],
+    },
+  );
 
   /// Delete a small win.
-  Future<void> deleteWin(String id) => _mutate((d) => {
-        ...d,
-        'wins': [
-          for (final w in (d['wins'] as List? ?? const []))
-            if (!(w is Map && w['id'] == id)) w,
-        ],
-      });
+  Future<void> deleteWin(String id) => _mutate(
+    (d) => {
+      ...d,
+      'wins': [
+        for (final w in (d['wins'] as List? ?? const []))
+          if (!(w is Map && w['id'] == id)) w,
+      ],
+    },
+  );
 
   /// Best-effort collapse of a (themeKey, appearanceMode) choice back to the one
   /// legacy mood string, so an older build or an old backup reopened elsewhere
@@ -739,37 +769,30 @@ class SalapifyStore extends ChangeNotifier {
   /// legacy themeMood so a rollback still looks right; unknown settings keys are
   /// preserved by the backup, so this needs no migration.
   Future<void> setThemeMode(String mode) => _mutate((d) {
-        final s =
-            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        // is String, not a hard cast: a hand-edited or future backup could
-        // carry a non-string themeKey, and a cast would throw on tap.
-        final key = s['themeKey'] is String ? s['themeKey'] as String : 'barako';
-        return {
-          ...d,
-          'settings': {
-            ...s,
-            'themeMode': mode,
-            'themeMood': _legacyMood(key, mode),
-          },
-        };
-      });
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    // is String, not a hard cast: a hand-edited or future backup could
+    // carry a non-string themeKey, and a cast would throw on tap.
+    final key = s['themeKey'] is String ? s['themeKey'] as String : 'barako';
+    return {
+      ...d,
+      'settings': {
+        ...s,
+        'themeMode': mode,
+        'themeMood': _legacyMood(key, mode),
+      },
+    };
+  });
 
   /// Remember the chosen theme (barako, tidal, ...). Kept alongside the legacy
   /// themeMood for the same rollback reason.
   Future<void> setThemeKey(String key) => _mutate((d) {
-        final s =
-            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final mode =
-            s['themeMode'] is String ? s['themeMode'] as String : 'system';
-        return {
-          ...d,
-          'settings': {
-            ...s,
-            'themeKey': key,
-            'themeMood': _legacyMood(key, mode),
-          },
-        };
-      });
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final mode = s['themeMode'] is String ? s['themeMode'] as String : 'system';
+    return {
+      ...d,
+      'settings': {...s, 'themeKey': key, 'themeMood': _legacyMood(key, mode)},
+    };
+  });
 
   /// Whether a reminder kind (daily, payday, bills, collect) is switched on.
   bool notifOn(String key) {
@@ -783,47 +806,46 @@ class SalapifyStore extends ChangeNotifier {
   /// screen reschedules the OS notifications after; the store stays free of any
   /// platform dependency so it remains unit testable.
   Future<void> setNotifPref(String key, bool value) => _mutate((d) {
-        final s =
-            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final notifs = (s['notifications'] is Map)
-            ? (s['notifications'] as Map).cast<String, dynamic>()
-            : <String, dynamic>{};
-        return {
-          ...d,
-          'settings': {
-            ...s,
-            'notifications': {...notifs, key: value},
-          },
-        };
-      });
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final notifs = (s['notifications'] is Map)
+        ? (s['notifications'] as Map).cast<String, dynamic>()
+        : <String, dynamic>{};
+    return {
+      ...d,
+      'settings': {
+        ...s,
+        'notifications': {...notifs, key: value},
+      },
+    };
+  });
 
   /// Remember the mood theme (legacy latte/barako/milktea). Kept for the old
   /// mood card and tests; new UI uses setThemeKey/setThemeMode.
-  Future<void> setThemeMood(String mood) => _mutate((d) => {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'themeMood': mood,
-        },
-      });
+  Future<void> setThemeMood(String mood) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'themeMood': mood,
+      },
+    },
+  );
 
   /// Mark a Learn lesson read, deduped, kept in settings.lessonsRead. The
   /// backup preserves unknown settings keys, so this needs no migration.
   Future<void> markLessonRead(String id) => _mutate((d) {
-        final s =
-            ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-        final read = <String>{
-          for (final x in (s['lessonsRead'] is List
-              ? s['lessonsRead'] as List
-              : const []))
-            if (x is String) x,
-          id,
-        };
-        return {
-          ...d,
-          'settings': {...s, 'lessonsRead': read.toList()},
-        };
-      });
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final read = <String>{
+      for (final x
+          in (s['lessonsRead'] is List ? s['lessonsRead'] as List : const []))
+        if (x is String) x,
+      id,
+    };
+    return {
+      ...d,
+      'settings': {...s, 'lessonsRead': read.toList()},
+    };
+  });
 
   /// Earn-your-treats rules, kept in settings.treats. Every write goes through
   /// the golden-locked treats engine so check-in windows and lifetime match the
@@ -850,14 +872,15 @@ class SalapifyStore extends ChangeNotifier {
   }
 
   Map<String, dynamic> _withTreats(
-          Map<String, dynamic> d, List<Map<String, dynamic>> next) =>
-      {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'treats': next,
-        },
-      };
+    Map<String, dynamic> d,
+    List<Map<String, dynamic>> next,
+  ) => {
+    ...d,
+    'settings': {
+      ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+      'treats': next,
+    },
+  };
 
   /// Create a treat rule from form fields and return its id.
   Future<String> addTreat(Map<String, dynamic> fields) async {
@@ -888,15 +911,17 @@ class SalapifyStore extends ChangeNotifier {
 
   /// Toggle today's check-in on one treat through the golden-locked engine.
   Future<void> toggleTreatCheckIn(String id) => _mutate((d) {
-        final next = _settingsTreats(d)
-            .map((t) => t['id'] == id ? treats.toggleCheckIn(t, DateTime.now()) : t)
-            .toList();
-        return _withTreats(d, next);
-      });
+    final next = _settingsTreats(d)
+        .map((t) => t['id'] == id ? treats.toggleCheckIn(t, DateTime.now()) : t)
+        .toList();
+    return _withTreats(d, next);
+  });
 
   /// Remove a treat rule.
-  Future<void> deleteTreat(String id) => _mutate((d) =>
-      _withTreats(d, _settingsTreats(d).where((t) => t['id'] != id).toList()));
+  Future<void> deleteTreat(String id) => _mutate(
+    (d) =>
+        _withTreats(d, _settingsTreats(d).where((t) => t['id'] != id).toList()),
+  );
 
   /// The user's paluwagan groups. Like treats, this is a Flutter-era
   /// collection nested under settings, not a top-level RN backup key, so it is
@@ -914,14 +939,15 @@ class SalapifyStore extends ChangeNotifier {
   }
 
   Map<String, dynamic> _withPaluwagans(
-          Map<String, dynamic> d, List<Map<String, dynamic>> next) =>
-      {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'paluwagans': next,
-        },
-      };
+    Map<String, dynamic> d,
+    List<Map<String, dynamic>> next,
+  ) => {
+    ...d,
+    'settings': {
+      ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+      'paluwagans': next,
+    },
+  };
 
   /// Create a paluwagan from raw form fields through the engine, which clamps
   /// members and turn, reads the amount the JS way, and mints a stable id.
@@ -947,8 +973,12 @@ class SalapifyStore extends ChangeNotifier {
       });
 
   /// Remove a paluwagan group.
-  Future<void> deletePaluwagan(String id) => _mutate((d) => _withPaluwagans(
-      d, _settingsPaluwagans(d).where((p) => p['id'] != id).toList()));
+  Future<void> deletePaluwagan(String id) => _mutate(
+    (d) => _withPaluwagans(
+      d,
+      _settingsPaluwagans(d).where((p) => p['id'] != id).toList(),
+    ),
+  );
 
   /// Recurring bills and income (top-level collection).
   List<Map<String, dynamic>> get recurringList {
@@ -987,12 +1017,16 @@ class SalapifyStore extends ChangeNotifier {
         'dayOfMonth': dayOfMonth,
         'accountId': accountId,
         'lastPosted': recurring.recurringSaveLastPosted(
-            dayOfMonth: dayOfMonth,
-            existingLastPosted: '',
-            now: DateTime.now(),
-            isEdit: false),
+          dayOfMonth: dayOfMonth,
+          existingLastPosted: '',
+          now: DateTime.now(),
+          isEdit: false,
+        ),
       };
-      return {...d, 'recurring': [..._recurring(d), item]};
+      return {
+        ...d,
+        'recurring': [..._recurring(d), item],
+      };
     });
     return id;
   }
@@ -1006,78 +1040,99 @@ class SalapifyStore extends ChangeNotifier {
     required double amount,
     required int dayOfMonth,
     String accountId = '',
-  }) =>
-      _mutate((d) {
-        final next = _recurring(d).map((r) {
-          if (r['id'] != id) return r;
-          final kept = r['lastPosted'] is String ? r['lastPosted'] as String : '';
-          return {
-            ...r,
-            'type': type == 'income' ? 'income' : 'expense',
-            'label': label,
-            'amount': amount,
-            'dayOfMonth': dayOfMonth,
-            'accountId': accountId,
-            'lastPosted': recurring.recurringSaveLastPosted(
-                dayOfMonth: dayOfMonth,
-                existingLastPosted: kept,
-                now: DateTime.now(),
-                isEdit: true),
-          };
-        }).toList();
-        return {...d, 'recurring': next};
-      });
+  }) => _mutate((d) {
+    final next = _recurring(d).map((r) {
+      if (r['id'] != id) return r;
+      final kept = r['lastPosted'] is String ? r['lastPosted'] as String : '';
+      return {
+        ...r,
+        'type': type == 'income' ? 'income' : 'expense',
+        'label': label,
+        'amount': amount,
+        'dayOfMonth': dayOfMonth,
+        'accountId': accountId,
+        'lastPosted': recurring.recurringSaveLastPosted(
+          dayOfMonth: dayOfMonth,
+          existingLastPosted: kept,
+          now: DateTime.now(),
+          isEdit: true,
+        ),
+      };
+    }).toList();
+    return {...d, 'recurring': next};
+  });
 
   /// Remove a recurring item. Transactions it already posted stay; only the
   /// rule stops, matching RN.
-  Future<void> deleteRecurring(String id) => _mutate((d) =>
-      {...d, 'recurring': _recurring(d).where((r) => r['id'] != id).toList()});
+  Future<void> deleteRecurring(String id) => _mutate(
+    (d) => {
+      ...d,
+      'recurring': _recurring(d).where((r) => r['id'] != id).toList(),
+    },
+  );
 
   /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
   /// disables it automatically if the phone has no biometrics enrolled, so this
   /// can never lock the owner out.
-  Future<void> setAppLock(bool value) => _mutate((d) => {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'appLock': value,
-        },
-      });
+  Future<void> setAppLock(bool value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'appLock': value,
+      },
+    },
+  );
 
   /// Unlock Pro. During early access Pro is free and early users keep it free,
   /// so this is the honest "unlock" the recurring cap offers. A plain settings
   /// write, preserved by backup like every other settings key.
-  Future<void> setPro(bool value) => _mutate((d) => {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'pro': value,
-        },
-      });
+  Future<void> setPro(bool value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'pro': value,
+      },
+    },
+  );
 
   /// Set (or clear, with 0) the monthly budget limit.
-  Future<void> setMonthlyLimit(double limit) => _mutate((d) => {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'monthlyLimit': limit,
-        },
-      });
+  Future<void> setMonthlyLimit(double limit) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'monthlyLimit': limit,
+      },
+    },
+  );
 
   /// Log a partial utang payment through the golden-verified engine.
   Future<void> collectUtangPayment(String receivableId, String amountText) =>
-      _mutate((d) => receivables.logPartial(d, receivableId, amountText,
-          today: _todayISO(), genId: _genId));
+      _mutate(
+        (d) => receivables.logPartial(
+          d,
+          receivableId,
+          amountText,
+          today: _todayISO(),
+          genId: _genId,
+        ),
+      );
 
   /// Settle whatever is still owed on one utang.
-  Future<void> markUtangPaid(String receivableId) =>
-      _mutate((d) => receivables.markPaid(d, receivableId,
-          today: _todayISO(), genId: _genId));
+  Future<void> markUtangPaid(String receivableId) => _mutate(
+    (d) => receivables.markPaid(
+      d,
+      receivableId,
+      today: _todayISO(),
+      genId: _genId,
+    ),
+  );
 
   /// Remove one logged payment and reverse its income entry.
   Future<void> removeUtangPayment(String receivableId, String paymentId) =>
-      _mutate(
-          (d) => receivables.removePayment(d, receivableId, paymentId));
+      _mutate((d) => receivables.removePayment(d, receivableId, paymentId));
 
   /// Create a new utang. Throws ArgumentError with a friendly message when
   /// the engine refuses (blank name, bad amount, impossible date).
@@ -1088,30 +1143,149 @@ class SalapifyStore extends ChangeNotifier {
     String phone = '',
     String note = '',
     String fromAccount = '',
-  }) =>
-      _mutate((d) {
-        final r = receivables.saveReceivable(
-          d,
-          person: person,
-          amountText: amountText,
-          dueDate: dueDate,
-          phone: phone,
-          note: note,
-          fromAccount: fromAccount,
+  }) => _mutate((d) {
+    final r = receivables.saveReceivable(
+      d,
+      person: person,
+      amountText: amountText,
+      dueDate: dueDate,
+      phone: phone,
+      note: note,
+      fromAccount: fromAccount,
+      today: _todayISO(),
+      genId: _genId,
+    );
+    if (r.error != null) {
+      throw ArgumentError(switch (r.error) {
+        'name' => 'Please enter a name.',
+        'amount' => 'Enter a valid amount.',
+        'date' => 'That date does not exist. Type it like 2026-07-15.',
+        _ => 'Could not save this utang.',
+      });
+    }
+    return r.data;
+  });
+
+  /// Split an already logged expense you fronted (Hatian). Reduces the source
+  /// transaction to YOUR share, and turns each other person's share into a
+  /// receivable through the golden-locked engine, all tied to one activity so
+  /// the utang screen can group them. When the source expense came from a real
+  /// account, each share also posts a cash-leg transfer out of that account, so
+  /// exactly the fronted total ever leaves it and your net worth drops only by
+  /// your own share. Pass the split plan the screen already validated with
+  /// splits.splitExpense; a bad plan or a missing source is a safe no-op.
+  ///
+  /// Returns the number of receivables created, so the screen can confirm.
+  Future<int> splitExpense({
+    required String txnId,
+    required List<Map<String, dynamic>> participants,
+    String activityLabel = '',
+  }) async {
+    var created = 0;
+    await _mutate((d) {
+      final txns = (d['transactions'] as List? ?? const []);
+      Map<String, dynamic>? src;
+      for (final t in txns) {
+        if (t is Map && t['id'] == txnId) {
+          src = t.cast<String, dynamic>();
+          break;
+        }
+      }
+      if (src == null) return d;
+
+      // Only a plain, unlinked expense may be split. A flow leg, a source
+      // stamp, a debt link, or a payable/receivable payment pointing at this
+      // txn all mean shrinking it would desync a locked contract or invent
+      // money (a linked payment would later reverse a now-smaller txn). This
+      // enforces at the store the same gate the History affordance uses, so the
+      // money invariant holds no matter who calls this.
+      if (src['type'] != 'expense' ||
+          src['flow'] != null ||
+          src['source'] != null ||
+          src['debtId'] != null) {
+        return d;
+      }
+      for (final key in const ['payables', 'receivables']) {
+        final list = d[key];
+        if (list is! List) continue;
+        for (final item in list) {
+          if (item is! Map) continue;
+          final pays = item['payments'];
+          if (pays is! List) continue;
+          for (final p in pays) {
+            if (p is Map && p['txnId'] == txnId) return d;
+          }
+        }
+      }
+
+      final total = ledger.amountOf(src['amount']);
+      final plan = splits.splitExpense(total, participants);
+      if (plan['ok'] != true) return d;
+
+      final accountId = src['accountId'] is String
+          ? src['accountId'] as String
+          : '';
+      final label = activityLabel.trim().isNotEmpty
+          ? activityLabel.trim()
+          : (src['label']?.toString().trim().isNotEmpty == true
+                ? src['label'].toString().trim()
+                : 'Split');
+      final activityId = _genId('activity');
+
+      // 1. The source expense shrinks to your own share, and carries the
+      //    activity id so the screen can show it was split and never re-split.
+      final yourShare = (plan['yourShare'] as num).toDouble();
+      var next = ledger.updateTransaction(d, txnId, {
+        'amount': yourShare,
+        'splitActivityId': activityId,
+      });
+
+      // 2. Each other person's share becomes a receivable, tagged to the
+      //    activity. A cash-leg (fromAccount) is recorded only when the source
+      //    expense had a real account, matching the engine's honest utang cases.
+      var madeCount = 0;
+      for (final s in plan['shares'] as List) {
+        if (s is! Map || s['isYou'] == true) continue;
+        final share = (s['share'] as num?)?.toDouble() ?? 0;
+        if (share <= 0) continue;
+        final res = receivables.saveReceivable(
+          next,
+          person: s['name']?.toString() ?? 'Someone',
+          amountText: share.toStringAsFixed(2),
+          note: label,
+          fromAccount: accountId,
           today: _todayISO(),
           genId: _genId,
         );
-        if (r.error != null) {
-          throw ArgumentError(switch (r.error) {
-            'name' => 'Please enter a name.',
-            'amount' => 'Enter a valid amount.',
-            'date' =>
-              'That date does not exist. Type it like 2026-07-15.',
-            _ => 'Could not save this utang.',
-          });
+        // All or nothing: the source expense is already reduced, so a share
+        // that failed to become a receivable would leave money that left the
+        // account with nothing recording it. Abort the whole split instead;
+        // _mutate discards this and the store is untouched.
+        if (res.error != null || res.id == null) {
+          created = 0;
+          return d;
         }
-        return r.data;
-      });
+        final newId = res.id;
+        next = {
+          ...res.data,
+          'receivables': [
+            for (final r in (res.data['receivables'] as List))
+              (r is Map && r['id'] == newId)
+                  ? {
+                      ...r.cast<String, dynamic>(),
+                      'activityId': activityId,
+                      'activityLabel': label,
+                    }
+                  : r,
+          ],
+        };
+        madeCount += 1;
+      }
+      created = madeCount;
+      return next;
+    });
+    return created;
+  }
 
   /// Save (create or edit) a debt through the golden-verified engine. The
   /// form map carries the same text fields as the RN screen. Throws
@@ -1133,12 +1307,21 @@ class SalapifyStore extends ChangeNotifier {
   /// result so the screen can show the logged message and celebrate a debt
   /// cleared to zero.
   Future<debts.DebtPayResult> logDebtPayment(
-      String debtId, String amountText, String? payFrom) async {
+    String debtId,
+    String amountText,
+    String? payFrom,
+  ) async {
     late debts.DebtPayResult result;
     await _mutate((d) {
       _requireDebt(d, debtId);
-      result = debts.logDebtPayment(d, {'id': debtId}, payFrom, amountText,
-          today: _todayISO(), genId: _genId);
+      result = debts.logDebtPayment(
+        d,
+        {'id': debtId},
+        payFrom,
+        amountText,
+        today: _todayISO(),
+        genId: _genId,
+      );
       return result.data;
     });
     return result;
@@ -1157,12 +1340,19 @@ class SalapifyStore extends ChangeNotifier {
   /// Pay off everything still owed on one debt, including interest accrued
   /// since the last payment, as a real payment through the same path.
   Future<debts.DebtPayResult> markDebtPaid(
-      String debtId, String? payFrom) async {
+    String debtId,
+    String? payFrom,
+  ) async {
     late debts.DebtPayResult result;
     await _mutate((d) {
       _requireDebt(d, debtId);
-      result = debts.markDebtPaid(d, {'id': debtId}, payFrom,
-          today: _todayISO(), genId: _genId);
+      result = debts.markDebtPaid(
+        d,
+        {'id': debtId},
+        payFrom,
+        today: _todayISO(),
+        genId: _genId,
+      );
       return result.data;
     });
     return result;
@@ -1176,28 +1366,27 @@ class SalapifyStore extends ChangeNotifier {
   /// back), with the same write guard and rollback discipline as addEntry.
   /// Returns the removed transaction map so the caller can offer undo by
   /// re-adding the exact same entry.
-  Future<Map<String, dynamic>?> removeEntry(String id) =>
-      _serialized(() async {
-        if (!canWrite) {
-          throw StateError(
-              'Saving is off because your stored data could not be read. '
-              'Import a backup to recover first.');
-        }
-        final txs =
-            (data['transactions'] as List).cast<Map<String, dynamic>>();
-        final idx = txs.indexWhere((t) => t['id'] == id);
-        if (idx < 0) return null;
-        final removed = txs[idx];
-        final previous = data;
-        data = ledger.removeTransaction(data, id);
-        try {
-          await _save();
-        } catch (e) {
-          data = previous;
-          notifyListeners();
-          rethrow;
-        }
-        notifyListeners();
-        return removed;
-      });
+  Future<Map<String, dynamic>?> removeEntry(String id) => _serialized(() async {
+    if (!canWrite) {
+      throw StateError(
+        'Saving is off because your stored data could not be read. '
+        'Import a backup to recover first.',
+      );
+    }
+    final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
+    final idx = txs.indexWhere((t) => t['id'] == id);
+    if (idx < 0) return null;
+    final removed = txs[idx];
+    final previous = data;
+    data = ledger.removeTransaction(data, id);
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    notifyListeners();
+    return removed;
+  });
 }

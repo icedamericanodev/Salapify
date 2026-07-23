@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/receivables.dart' as engine;
+import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
 import '../widgets/screen_header.dart';
@@ -20,11 +21,14 @@ import 'overview.dart' show formatMoney;
 /// lowercased resolved name (personId row and legacy name row together), so
 /// the action hub must gather by the same rule or a person's older utang
 /// would silently miss from their own sheet.
-List<Map<String, dynamic>> openUtangFor(Map<String, dynamic> data, String name) {
+List<Map<String, dynamic>> openUtangFor(
+  Map<String, dynamic> data,
+  String name,
+) {
   final key = name.trim().toLowerCase();
   final out = <Map<String, dynamic>>[];
-  for (final r in (data['receivables'] as List? ?? [])
-      .cast<Map<String, dynamic>>()) {
+  for (final r
+      in (data['receivables'] as List? ?? []).cast<Map<String, dynamic>>()) {
     if (r['paid'] == true) continue;
     if (engine.remainingOf(r) <= 0) continue;
     if (engine.nameOf(data, r).trim().toLowerCase() == key) out.add(r);
@@ -51,16 +55,17 @@ class UtangScreen extends StatelessWidget {
               backgroundColor: Barako.primary,
               foregroundColor: Barako.onPrimary,
               icon: const Icon(Icons.add),
-              label: const Text('New utang',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'New utang',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             )
           : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            ScreenHeader('UTANG',
-                subtitle: 'Money owed to you, oldest first'),
+            ScreenHeader('UTANG', subtitle: 'Money owed to you, oldest first'),
             if (people.isEmpty)
               Card(
                 child: Padding(
@@ -68,19 +73,24 @@ class UtangScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Nobody owes you right now',
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        'Nobody owes you right now',
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       SizedBox(height: 6),
                       Text(
-                          'When someone borrows, tap New utang to log it, so '
-                          'it never gets awkward later.',
-                          style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 14,
-                              height: 1.4)),
+                        'When someone borrows, tap New utang to log it, so '
+                        'it never gets awkward later.',
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -92,24 +102,30 @@ class UtangScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('STILL OUT',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
+                      Text(
+                        'STILL OUT',
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text(formatMoney(total),
-                            maxLines: 1,
-                            style: TextStyle(
-                                fontFamily: Barako.displayFont,
-                                color: Barako.primary,
-                                fontSize: 30,
-                                fontWeight: FontWeight.w700,
-                                fontFeatures: [FontFeature.tabularFigures()])),
+                        child: Text(
+                          formatMoney(total),
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontFamily: Barako.displayFont,
+                            color: Barako.primary,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -117,30 +133,37 @@ class UtangScreen extends StatelessWidget {
                             ? '${formatMoney(overdueTotal)} of it is overdue with $overdueCount ${overdueCount == 1 ? 'person' : 'people'}. Follow up gently, oldest first.'
                             : 'Nothing is overdue yet, so a gentle reminder is enough.',
                         style: TextStyle(
-                            color: overdueCount > 0
-                                ? Barako.warning
-                                : Barako.muted,
-                            fontSize: 13,
-                            height: 1.4),
+                          color: overdueCount > 0
+                              ? Barako.warning
+                              : Barako.muted,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 12),
+              _splitsSection(),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   child: Column(
                     children: [
                       for (var i = 0; i < people.length; i++) ...[
-                        if (i > 0)
-                          Divider(height: 1, color: Barako.border),
+                        if (i > 0) Divider(height: 1, color: Barako.border),
                         _PersonRow(
-                            person: people[i],
-                            onTap: () => showPersonSheet(
-                                context, store, people[i]['name'] as String)),
+                          person: people[i],
+                          onTap: () => showPersonSheet(
+                            context,
+                            store,
+                            people[i]['name'] as String,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -150,6 +173,92 @@ class UtangScreen extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _splitsSection() {
+    // The per-activity fold lives in the tested splits engine, not here, so the
+    // totals are covered by a vector. This is a pure display lens; each share
+    // still appears in the golden-locked per-person aging below.
+    final groups = splits.activitySummaries(store.data['receivables']);
+    if (groups.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            'SPLITS',
+            style: TextStyle(
+              color: Barako.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Column(
+              children: [
+                for (var i = 0; i < groups.length; i++) ...[
+                  if (i > 0) Divider(height: 1, color: Barako.border),
+                  _activityRow(groups[i]),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _activityRow(Map<String, dynamic> g) {
+    final label = g['label'] as String;
+    final stillOut = g['stillOut'] as double;
+    final count = g['people'] as int;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Icon(Icons.call_split, size: 18, color: Barako.primaryText),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$count ${count == 1 ? 'person owes you' : 'people owe you'}',
+                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${formatMoney(stillOut)} out',
+            style: TextStyle(
+              color: Barako.primaryText,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -168,8 +277,8 @@ class _PersonRow extends StatelessWidget {
     final sub = overdue
         ? 'Overdue $days ${days == 1 ? 'day' : 'days'}'
         : (person['oldestDue'] as String).isNotEmpty
-            ? 'Due ${person['oldestDue']}'
-            : 'No due date';
+        ? 'Due ${person['oldestDue']}'
+        : 'No due date';
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -180,27 +289,34 @@ class _PersonRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(person['name'] as String,
-                      style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    person['name'] as String,
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '$sub · $count ${count == 1 ? 'utang' : 'utang entries'}',
                     style: TextStyle(
-                        color: overdue ? Barako.warning : Barako.muted,
-                        fontSize: 12),
+                      color: overdue ? Barako.warning : Barako.muted,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            Text(formatMoney(person['outstanding'] as double),
-                style: TextStyle(
-                    color: overdue ? Barako.warning : Barako.textSecondary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
+            Text(
+              formatMoney(person['outstanding'] as double),
+              style: TextStyle(
+                color: overdue ? Barako.warning : Barako.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, color: Barako.faint, size: 20),
           ],
@@ -217,7 +333,10 @@ class _PersonRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 Future<void> showPersonSheet(
-    BuildContext context, SalapifyStore store, String name) {
+  BuildContext context,
+  SalapifyStore store,
+  String name,
+) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -226,8 +345,9 @@ Future<void> showPersonSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) => Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: PersonSheet(store: store, name: name),
     ),
   );
@@ -276,14 +396,14 @@ class _PersonSheetState extends State<PersonSheet> {
   Future<void> _logPayment(Map<String, dynamic> r) async {
     final amount = parseAmount(payController.text);
     if (amount == null) {
-      setState(() =>
-          error = 'Enter a plain amount above zero, like 250 or 99.50.');
+      setState(
+        () => error = 'Enter a plain amount above zero, like 250 or 99.50.',
+      );
       return;
     }
     final text = payController.text;
     await _run(() async {
-      await widget.store
-          .collectUtangPayment((r['id'] ?? '').toString(), text);
+      await widget.store.collectUtangPayment((r['id'] ?? '').toString(), text);
       // The sheet may have been dismissed while the save was in flight; the
       // payment is already persisted, so only touch the controller if the
       // widget is still alive.
@@ -300,21 +420,20 @@ class _PersonSheetState extends State<PersonSheet> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Mark as paid?',
-            style: TextStyle(color: Barako.text)),
+        title: Text('Mark as paid?', style: TextStyle(color: Barako.text)),
         content: Text(
           'Log ${formatMoney(remaining)} from ${widget.name} as received and close this utang?',
           style: TextStyle(color: Barako.textSecondary),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child:
-                  Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text('Mark paid',
-                  style: TextStyle(color: Barako.primary))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Mark paid', style: TextStyle(color: Barako.primary)),
+          ),
         ],
       ),
     );
@@ -323,14 +442,15 @@ class _PersonSheetState extends State<PersonSheet> {
   }
 
   Future<void> _removePayment(
-      Map<String, dynamic> r, Map<String, dynamic> p) async {
+    Map<String, dynamic> r,
+    Map<String, dynamic> p,
+  ) async {
     final linked = p['txnId'] is String && (p['txnId'] as String).isNotEmpty;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Remove payment?',
-            style: TextStyle(color: Barako.text)),
+        title: Text('Remove payment?', style: TextStyle(color: Barako.text)),
         content: Text(
           linked
               ? 'Remove this ${formatMoney((p['amount'] as num).toDouble())} payment? Its money entry will be reversed too.'
@@ -339,19 +459,23 @@ class _PersonSheetState extends State<PersonSheet> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child:
-                  Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text('Remove',
-                  style: TextStyle(color: Barako.warning))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Remove', style: TextStyle(color: Barako.warning)),
+          ),
         ],
       ),
     );
     if (ok != true) return;
-    await _run(() => widget.store.removeUtangPayment(
-        (r['id'] ?? '').toString(), (p['id'] ?? '').toString()));
+    await _run(
+      () => widget.store.removeUtangPayment(
+        (r['id'] ?? '').toString(),
+        (p['id'] ?? '').toString(),
+      ),
+    );
   }
 
   @override
@@ -360,8 +484,7 @@ class _PersonSheetState extends State<PersonSheet> {
       listenable: widget.store,
       builder: (context, _) {
         final items = openUtangFor(widget.store.data, widget.name);
-        final total =
-            items.fold(0.0, (t, r) => t + engine.remainingOf(r));
+        final total = items.fold(0.0, (t, r) => t + engine.remainingOf(r));
         return SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -380,26 +503,31 @@ class _PersonSheetState extends State<PersonSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(widget.name,
-                    style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800)),
                 Text(
-                    items.isEmpty
-                        ? 'All settled. Salamat, ${widget.name}!'
-                        : '${formatMoney(total)} still out',
-                    style: TextStyle(
-                        color:
-                            items.isEmpty ? Barako.primaryText : Barako.muted,
-                        fontSize: 13)),
+                  widget.name,
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  items.isEmpty
+                      ? 'All settled. Salamat, ${widget.name}!'
+                      : '${formatMoney(total)} still out',
+                  style: TextStyle(
+                    color: items.isEmpty ? Barako.primaryText : Barako.muted,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 for (final r in items) _utangCard(r),
                 if (error != null) ...[
                   const SizedBox(height: 8),
-                  Text(error!,
-                      style: TextStyle(
-                          color: Barako.warning, fontSize: 13)),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Barako.warning, fontSize: 13),
+                  ),
                 ],
               ],
             ),
@@ -415,8 +543,8 @@ class _PersonSheetState extends State<PersonSheet> {
     final paidPart = engine.paidSumOf(r);
     final due = (r['dueDate'] ?? '').toString();
     final note = (r['note'] ?? '').toString();
-    final payments =
-        (r['payments'] as List? ?? []).cast<Map<String, dynamic>>();
+    final payments = (r['payments'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
     final rId = (r['id'] ?? '').toString();
     final open = payingFor == rId;
 
@@ -435,22 +563,26 @@ class _PersonSheetState extends State<PersonSheet> {
                         ? '${formatMoney(remaining)} left of ${formatMoney(amount)}'
                         : formatMoney(remaining),
                     style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()]),
+                      color: Barako.text,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ),
-                Text(due.isNotEmpty ? 'due $due' : 'no due date',
-                    style:
-                        TextStyle(color: Barako.muted, fontSize: 12)),
+                Text(
+                  due.isNotEmpty ? 'due $due' : 'no due date',
+                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                ),
               ],
             ),
             if (note.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Text(note,
-                    style: TextStyle(color: Barako.faint, fontSize: 12)),
+                child: Text(
+                  note,
+                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                ),
               ),
             if (payments.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -459,14 +591,19 @@ class _PersonSheetState extends State<PersonSheet> {
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle_outline,
-                          color: Barako.muted, size: 14),
+                      Icon(
+                        Icons.check_circle_outline,
+                        color: Barako.muted,
+                        size: 14,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           '${formatMoney((p['amount'] as num?)?.toDouble() ?? 0)} on ${(p['date'] ?? '').toString()}',
                           style: TextStyle(
-                              color: Barako.textSecondary, fontSize: 12),
+                            color: Barako.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                       InkWell(
@@ -476,8 +613,11 @@ class _PersonSheetState extends State<PersonSheet> {
                         child: SizedBox(
                           width: 44,
                           height: 44,
-                          child: Icon(Icons.close,
-                              color: Barako.faint, size: 14),
+                          child: Icon(
+                            Icons.close,
+                            color: Barako.faint,
+                            size: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -489,21 +629,23 @@ class _PersonSheetState extends State<PersonSheet> {
               TextField(
                 controller: payController,
                 autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700),
+                  color: Barako.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
                 decoration: InputDecoration(
                   hintText: 'How much came back?',
-                  hintStyle:
-                      TextStyle(color: Barako.faint, fontSize: 14),
+                  hintStyle: TextStyle(color: Barako.faint, fontSize: 14),
                   prefixText: '₱ ',
                   prefixStyle: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700),
+                    color: Barako.muted,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                   filled: true,
                   fillColor: Barako.background,
                   border: OutlineInputBorder(
@@ -518,12 +660,14 @@ class _PersonSheetState extends State<PersonSheet> {
                   Expanded(
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                          backgroundColor: Barako.primary,
-                          foregroundColor: Barako.onPrimary),
+                        backgroundColor: Barako.primary,
+                        foregroundColor: Barako.onPrimary,
+                      ),
                       onPressed: busy ? null : () => _logPayment(r),
-                      child: Text(busy ? 'Saving...' : 'Save payment',
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w700)),
+                      child: Text(
+                        busy ? 'Saving...' : 'Save payment',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -531,11 +675,13 @@ class _PersonSheetState extends State<PersonSheet> {
                     onPressed: busy
                         ? null
                         : () => setState(() {
-                              payingFor = null;
-                              payController.clear();
-                            }),
-                    child: Text('Cancel',
-                        style: TextStyle(color: Barako.muted)),
+                            payingFor = null;
+                            payController.clear();
+                          }),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Barako.muted),
+                    ),
                   ),
                 ],
               ),
@@ -544,22 +690,24 @@ class _PersonSheetState extends State<PersonSheet> {
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Barako.border),
-                        foregroundColor: Barako.text),
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.text,
+                    ),
                     onPressed: busy
                         ? null
                         : () => setState(() {
-                              payingFor = rId;
-                              payController.clear();
-                              error = null;
-                            }),
+                            payingFor = rId;
+                            payController.clear();
+                            error = null;
+                          }),
                     child: const Text('Log payment'),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Barako.border),
-                        foregroundColor: Barako.primary),
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.primary,
+                    ),
                     onPressed: busy ? null : () => _markPaid(r),
                     child: const Text('Mark paid'),
                   ),
@@ -586,8 +734,9 @@ Future<void> showAddUtangSheet(BuildContext context, SalapifyStore store) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) => Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: AddUtangSheet(store: store),
     ),
   );
@@ -633,9 +782,11 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
     // would move 250 real pesos out of the source account).
     final amount = parseAmount(amountController.text);
     if (amount == null) {
-      setState(() => error = amountController.text.contains(',')
-          ? 'Use a period for centavos, like 2.50. Commas only group thousands.'
-          : 'Enter a plain amount above zero, like 250 or 99.50.');
+      setState(
+        () => error = amountController.text.contains(',')
+            ? 'Use a period for centavos, like 2.50. Commas only group thousands.'
+            : 'Enter a plain amount above zero, like 250 or 99.50.',
+      );
       return;
     }
     setState(() {
@@ -692,12 +843,15 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('NEW UTANG',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2)),
+            Text(
+              'NEW UTANG',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: personController,
@@ -718,11 +872,13 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                       label: Text(p['name'] as String),
                       backgroundColor: Barako.card,
                       labelStyle: TextStyle(
-                          color: Barako.textSecondary,
-                          fontWeight: FontWeight.w600),
+                        color: Barako.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
                       side: BorderSide(color: Barako.border),
-                      onPressed: () => setState(() =>
-                          personController.text = p['name'] as String),
+                      onPressed: () => setState(
+                        () => personController.text = p['name'] as String,
+                      ),
                     ),
                 ],
               ),
@@ -730,12 +886,14 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
             const SizedBox(height: 10),
             TextField(
               controller: amountController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700),
+                color: Barako.text,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
               decoration: _decor('0.00', prefix: '₱ '),
             ),
             const SizedBox(height: 10),
@@ -758,11 +916,12 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                     label: Text(label),
                     backgroundColor: Barako.card,
                     labelStyle: TextStyle(
-                        color: Barako.textSecondary,
-                        fontWeight: FontWeight.w600),
+                      color: Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     side: BorderSide(color: Barako.border),
-                    onPressed: () => setState(
-                        () => dueController.text = _plusDays(days)),
+                    onPressed: () =>
+                        setState(() => dueController.text = _plusDays(days)),
                   ),
               ],
             ),
@@ -774,17 +933,21 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
             ),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text('WHERE DID THE MONEY LEAVE FROM?',
-                  style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2)),
+              Text(
+                'WHERE DID THE MONEY LEAVE FROM?',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
-                  'Pick an account and the lent amount moves out of it now, '
-                  'then comes back when they pay. Skip it to just track the utang.',
-                  style: TextStyle(color: Barako.faint, fontSize: 12)),
+                'Pick an account and the lent amount moves out of it now, '
+                'then comes back when they pay. Skip it to just track the utang.',
+                style: TextStyle(color: Barako.faint, fontSize: 12),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -793,28 +956,36 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                   _accountChip('Just track it', ''),
                   for (final a in accounts)
                     _accountChip(
-                        a['name']?.toString() ?? 'Account', a['id'] as String),
+                      a['name']?.toString() ?? 'Account',
+                      a['id'] as String,
+                    ),
                 ],
               ),
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(error!,
-                  style:
-                      TextStyle(color: Barako.warning, fontSize: 13)),
+              Text(
+                error!,
+                style: TextStyle(color: Barako.warning, fontSize: 13),
+              ),
             ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: saving ? null : _save,
-                child: Text(saving ? 'Saving...' : 'Save utang',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                child: Text(
+                  saving ? 'Saving...' : 'Save utang',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ],
@@ -824,18 +995,21 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
   }
 
   InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Barako.faint),
-        prefixText: prefix,
-        prefixStyle: TextStyle(
-            color: Barako.muted, fontSize: 24, fontWeight: FontWeight.w700),
-        filled: true,
-        fillColor: Barako.card,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-      );
+    hintText: hint,
+    hintStyle: TextStyle(color: Barako.faint),
+    prefixText: prefix,
+    prefixStyle: TextStyle(
+      color: Barako.muted,
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+    ),
+    filled: true,
+    fillColor: Barako.card,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Barako.border),
+    ),
+  );
 
   Widget _accountChip(String label, String id) {
     final on = fromAccount == id;
@@ -846,8 +1020,9 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
       selectedColor: Barako.primary,
       backgroundColor: Barako.card,
       labelStyle: TextStyle(
-          color: on ? Barako.onPrimary : Barako.textSecondary,
-          fontWeight: FontWeight.w600),
+        color: on ? Barako.onPrimary : Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
       side: BorderSide(color: Barako.border),
     );
   }

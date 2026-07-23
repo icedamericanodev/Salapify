@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.06 · Paluwagan tracker: add your office or barkada paluwagan and see your payout date, where you stand, and an honest read on your turn (early turn is a 0% loan, late turn is 0% forced savings).';
+    'f2.07 · Hatian, split a bill: tap any expense you fronted in History, pick who shared it, and each person owes you their part as collectible utang. Your own share stays your expense, so only the real cost hits your money.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

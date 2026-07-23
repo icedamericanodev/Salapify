@@ -11,6 +11,7 @@ import '../data/store.dart';
 import '../money/search.dart' as search;
 import '../theme.dart';
 import 'overview.dart' show formatMoney;
+import 'split_expense.dart' show showSplitSheet;
 
 const _filters = [
   ('all', 'All'),
@@ -76,11 +77,12 @@ class HistoryScreen extends StatefulWidget {
   /// route rather than shown as the History tab.
   final String initialQuery;
   final bool pushed;
-  const HistoryScreen(
-      {super.key,
-      required this.store,
-      this.initialQuery = '',
-      this.pushed = false});
+  const HistoryScreen({
+    super.key,
+    required this.store,
+    this.initialQuery = '',
+    this.pushed = false,
+  });
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -88,8 +90,9 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String filter = 'all';
-  late final TextEditingController _query =
-      TextEditingController(text: widget.initialQuery);
+  late final TextEditingController _query = TextEditingController(
+    text: widget.initialQuery,
+  );
 
   @override
   void dispose() {
@@ -122,7 +125,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final indexed = <(Map<String, dynamic>, int)>[];
     for (var i = 0; i < all.length; i++) {
       final t = all[i];
-      final keepType = filter == 'all' ||
+      final keepType =
+          filter == 'all' ||
           (filter == 'records'
               ? t['type'] != 'income' && t['type'] != 'expense'
               : t['type'] == filter);
@@ -131,9 +135,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (keepType && keepText) indexed.add((t, i));
     }
     indexed.sort((a, b) {
-      final byDate = (b.$1['date'] ?? '')
-          .toString()
-          .compareTo((a.$1['date'] ?? '').toString());
+      final byDate = (b.$1['date'] ?? '').toString().compareTo(
+        (a.$1['date'] ?? '').toString(),
+      );
       if (byDate != 0) return byDate;
       return b.$2.compareTo(a.$2);
     });
@@ -147,15 +151,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final header = dateHeader((t['date'] ?? '').toString(), now);
       if (header != lastHeader) {
         lastHeader = header;
-        items.add(Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 6),
-          child: Text(header,
+        items.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 6),
+            child: Text(
+              header,
               style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5)),
-        ));
+                color: Barako.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+        );
       }
       items.add(_row(t, locked));
     }
@@ -165,9 +174,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ? AppBar(
               backgroundColor: Barako.background,
               foregroundColor: Barako.text,
-              title: Text('History',
-                  style: TextStyle(
-                      color: Barako.text, fontWeight: FontWeight.w800)),
+              title: Text(
+                'History',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             )
           : null,
       body: SafeArea(
@@ -179,12 +192,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
             children: [
               if (!widget.pushed) ...[
                 const SizedBox(height: 12),
-                Text('HISTORY',
-                    style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3)),
+                Text(
+                  'HISTORY',
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 3,
+                  ),
+                ),
               ],
               const SizedBox(height: 12),
               TextField(
@@ -195,19 +211,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 decoration: InputDecoration(
                   hintText: 'Filter entries, like jollibee or 1500',
                   hintStyle: TextStyle(color: Barako.faint),
-                  prefixIcon:
-                      Icon(Icons.search, color: Barako.faint, size: 20),
+                  prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
-                          icon:
-                              Icon(Icons.close, color: Barako.muted, size: 18),
+                          icon: Icon(
+                            Icons.close,
+                            color: Barako.muted,
+                            size: 18,
+                          ),
                           onPressed: () => setState(() => _query.clear()),
                         ),
                   filled: true,
                   fillColor: Barako.card,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: Barako.border),
@@ -235,10 +255,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         selectedColor: Barako.primary,
                         backgroundColor: Barako.card,
                         labelStyle: TextStyle(
-                            color: filter == value
-                                ? Barako.onPrimary
-                                : Barako.textSecondary,
-                            fontWeight: FontWeight.w600),
+                          color: filter == value
+                              ? Barako.onPrimary
+                              : Barako.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                         side: BorderSide(color: Barako.border),
                       ),
                       const SizedBox(width: 8),
@@ -251,7 +272,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ? _empty(all.isEmpty)
                     : ListView(
                         padding: const EdgeInsets.only(bottom: 24),
-                        children: items),
+                        children: items,
+                      ),
               ),
             ],
           ),
@@ -261,34 +283,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _empty(bool trulyEmpty) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(trulyEmpty ? 'Nothing here yet' : 'No entries match',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text(
-                trulyEmpty
-                    ? 'Entries you log will show up here.'
-                    : 'Try a different search or filter.',
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
-            if (!trulyEmpty) ...[
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () => setState(() {
-                  filter = 'all';
-                  _query.clear();
-                }),
-                child: Text('Show all',
-                    style: TextStyle(color: Barako.primary)),
-              ),
-            ],
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          trulyEmpty ? 'Nothing here yet' : 'No entries match',
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      );
+        const SizedBox(height: 6),
+        Text(
+          trulyEmpty
+              ? 'Entries you log will show up here.'
+              : 'Try a different search or filter.',
+          style: TextStyle(color: Barako.muted, fontSize: 13),
+        ),
+        if (!trulyEmpty) ...[
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: () => setState(() {
+              filter = 'all';
+              _query.clear();
+            }),
+            child: Text('Show all', style: TextStyle(color: Barako.primary)),
+          ),
+        ],
+      ],
+    ),
+  );
 
   Widget _row(Map<String, dynamic> t, Set<String> locked) {
     final type = (t['type'] ?? '').toString();
@@ -299,39 +324,86 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ? (record ? type : (isIncome ? 'Income' : 'Expense'))
         : (t['label']).toString();
 
+    // A plain expense you fronted can be split with friends. It must clear the
+    // SAME safety gate as delete (isDeletable): a real, unlocked expense with
+    // no flow leg, no source stamp, and nothing a payable or receivable payment
+    // points at, plus no debt link. Splitting a ledger-linked or debt-interest
+    // expense would desync the payable/debt to ledger contract and invent money
+    // (a linked payment would later reverse a now-smaller txn). Already-split
+    // expenses (shrunk to your share) can be split again on the remainder.
+    final splittable =
+        isDeletable(t, lockedIds: locked) &&
+        t['type'] == 'expense' &&
+        amount > 0 &&
+        t['debtId'] == null;
+    // Advertise the split affordance only on rows not yet split; an already
+    // split expense stays tappable (to split the remainder) but without the
+    // loud hint, so the list does not repeat the CTA on every single row.
+    final alreadySplit = t['splitActivityId'] != null;
+    final showSplitHint = splittable && !alreadySplit;
+
+    final rowContent = Padding(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: Barako.text, fontSize: 15)),
+                if (record)
+                  Text(
+                    'Record of a money move, read-only here',
+                    style: TextStyle(color: Barako.faint, fontSize: 11),
+                  )
+                else if (showSplitHint)
+                  Text(
+                    'Tap to split with friends',
+                    style: TextStyle(color: Barako.muted, fontSize: 11),
+                  ),
+              ],
+            ),
+          ),
+          if (showSplitHint) ...[
+            ExcludeSemantics(
+              child: Icon(Icons.call_split, size: 16, color: Barako.muted),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Text(
+            '${isIncome
+                ? '+'
+                : record
+                ? ''
+                : '-'}${formatMoney(amount)}',
+            style: TextStyle(
+              color: isIncome
+                  ? Barako.primary
+                  : record
+                  ? Barako.muted
+                  : Barako.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+
     final row = Card(
       margin: const EdgeInsets.symmetric(vertical: 3),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: Barako.text, fontSize: 15)),
-                  if (record)
-                    Text('Record of a money move, read-only here',
-                        style:
-                            TextStyle(color: Barako.faint, fontSize: 11)),
-                ],
+      child: splittable
+          ? Semantics(
+              button: true,
+              label: 'Split $label',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => showSplitSheet(context, widget.store, t),
+                child: rowContent,
               ),
-            ),
-            Text('${isIncome ? '+' : record ? '' : '-'}${formatMoney(amount)}',
-                style: TextStyle(
-                    color: isIncome
-                        ? Barako.primary
-                        : record
-                            ? Barako.muted
-                            : Barako.textSecondary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
-          ],
-        ),
-      ),
+            )
+          : rowContent,
     );
 
     if (!isDeletable(t, lockedIds: locked)) return row;
@@ -348,7 +420,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-            color: Barako.warning, borderRadius: BorderRadius.circular(12)),
+          color: Barako.warning,
+          borderRadius: BorderRadius.circular(12),
+        ),
         // Palette-driven ink so the icon clears contrast on the warning
         // fill in every mood (white sat at 2.97:1 in the dark moods).
         child: Icon(Icons.delete_outline, color: Barako.onPrimary),
@@ -356,40 +430,54 @@ class _HistoryScreenState extends State<HistoryScreen> {
       confirmDismiss: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         try {
-          final removed =
-              await widget.store.removeEntry((t['id'] ?? '').toString());
+          final removed = await widget.store.removeEntry(
+            (t['id'] ?? '').toString(),
+          );
           if (removed == null) return false;
           // Only claim a balance moved back when the entry was actually
           // linked to an account that still exists; the engine moves a
           // balance only under that same condition, so the message never
           // over-claims.
           final acctId = removed['accountId'];
-          final wasLinked = acctId is String &&
+          final wasLinked =
+              acctId is String &&
               acctId.isNotEmpty &&
-              (widget.store.data['accounts'] as List? ?? const [])
-                  .any((a) => a is Map && a['id'] == acctId);
-          messenger.showSnackBar(SnackBar(
-            content: Text(wasLinked
-                ? 'Deleted. The linked account got its money back.'
-                : 'Deleted.'),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: () async {
-                try {
-                  await widget.store.addEntry(removed);
-                } catch (e) {
-                  messenger.showSnackBar(SnackBar(
-                      content: Text(
-                          'Could not restore the entry, it is still deleted. $e')));
-                }
-              },
+              (widget.store.data['accounts'] as List? ?? const []).any(
+                (a) => a is Map && a['id'] == acctId,
+              );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                wasLinked
+                    ? 'Deleted. The linked account got its money back.'
+                    : 'Deleted.',
+              ),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () async {
+                  try {
+                    await widget.store.addEntry(removed);
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Could not restore the entry, it is still deleted. $e',
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
             ),
-          ));
+          );
           return true;
         } catch (e) {
-          messenger.showSnackBar(SnackBar(
-              content: Text('Could not delete, nothing was changed. $e')));
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Could not delete, nothing was changed. $e'),
+            ),
+          );
           return false;
         }
       },
