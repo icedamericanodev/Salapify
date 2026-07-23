@@ -298,7 +298,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       interp =
           'No income or spending logged for this month, so there is nothing to weigh up yet. Log a few entries and this fills in on its own.';
     } else if (income == 0 && expenses > 0) {
-      head = 'No sweldo logged yet';
+      head = 'No income logged yet';
       headColor = Barako.muted;
       interp =
           'No income logged for this month yet, so this only counts what you have spent so far. It is not a final shortfall.';
@@ -1028,7 +1028,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Keep a small cash cushion first, even one sweldo, so a surprise does not send you borrowing again. Then aim any extra at debt.',
+          'Keep a small cash cushion first, even one payday, so a surprise does not send you borrowing again. Then aim any extra at debt.',
           style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35),
         ),
         const SizedBox(height: 12),

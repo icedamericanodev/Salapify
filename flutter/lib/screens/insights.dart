@@ -25,8 +25,18 @@ import 'overview.dart' show formatMoney;
 import 'windfall_card.dart';
 
 const List<String> _monthsShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// An ISO 'YYYY-MM-DD' payoff date as 'Mon YYYY', the same short format the
@@ -85,11 +95,15 @@ Map<String, dynamic>? _pickFocusGoal(dynamic goals, DateTime ref) {
     active.add((gm, p));
   }
   if (active.isEmpty) return null;
-  int rank(String? s) =>
-      s == 'behind' ? 0 : (s == 'due-soon' || s == 'active') ? 1 : 2;
+  int rank(String? s) => s == 'behind'
+      ? 0
+      : (s == 'due-soon' || s == 'active')
+      ? 1
+      : 2;
   active.sort((a, b) {
-    final r = rank(a.$2['status'] as String?)
-        .compareTo(rank(b.$2['status'] as String?));
+    final r = rank(
+      a.$2['status'] as String?,
+    ).compareTo(rank(b.$2['status'] as String?));
     if (r != 0) return r;
     final da = (a.$2['targetDate'] as String?) ?? '';
     final db = (b.$2['targetDate'] as String?) ?? '';
@@ -128,48 +142,56 @@ class InsightsScreen extends StatelessWidget {
 
   // Shown before there is any data, in place of the full analytics wall.
   Widget _emptyInsights(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              ScreenHeader('INSIGHTS',
-                  subtitle: 'What your money is telling you, and what to do next'),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('📊', style: TextStyle(fontSize: 30)),
-                      const SizedBox(height: 8),
-                      Text('Nothing to read yet, and that is fine',
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 6),
-                      Text(
-                          'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
-                          style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 14,
-                              height: 1.45)),
-                      const SizedBox(height: 14),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                            backgroundColor: Barako.primary,
-                            foregroundColor: Barako.onPrimary),
-                        onPressed: () => onSwitchTab?.call(0),
-                        child: const Text('Start logging'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          ScreenHeader(
+            'INSIGHTS',
+            subtitle: 'What your money is telling you, and what to do next',
           ),
-        ),
-      );
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('📊', style: TextStyle(fontSize: 30)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Nothing to read yet, and that is fine',
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 14,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                    ),
+                    onPressed: () => onSwitchTab?.call(0),
+                    child: const Text('Start logging'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -182,8 +204,8 @@ class InsightsScreen extends StatelessWidget {
     // careful to avoid. Match Home: show one warm invitation instead.
     final accts = data['accounts'];
     final txs = data['transactions'];
-    final hasStarted = (accts is List && accts.isNotEmpty) ||
-        (txs is List && txs.isNotEmpty);
+    final hasStarted =
+        (accts is List && accts.isNotEmpty) || (txs is List && txs.isNotEmpty);
     if (!hasStarted) return _emptyInsights(context);
 
     final candidates = coach.decisionCandidates(data, ref);
@@ -203,8 +225,10 @@ class InsightsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            ScreenHeader('INSIGHTS',
-                subtitle: 'What your money is telling you, and what to do next'),
+            ScreenHeader(
+              'INSIGHTS',
+              subtitle: 'What your money is telling you, and what to do next',
+            ),
             if (candidates.isNotEmpty) ...[
               _kicker('DO NEXT'),
               SizedBox(height: 8),
@@ -216,16 +240,22 @@ class InsightsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('You are on track',
-                          style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        'You are on track',
+                        style: TextStyle(
+                          color: Barako.primaryText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       SizedBox(height: 4),
                       Text(
-                          'Nothing needs a money decision right now. Keep logging and enjoy the calm.',
-                          style: TextStyle(
-                              color: Barako.textSecondary, fontSize: 13)),
+                        'Nothing needs a money decision right now. Keep logging and enjoy the calm.',
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -234,15 +264,21 @@ class InsightsScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.celebration_outlined,
-                      color: Barako.primary, size: 16),
+                  Icon(
+                    Icons.celebration_outlined,
+                    color: Barako.primary,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(win['text'] as String,
-                        style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      win['text'] as String,
+                      style: TextStyle(
+                        color: Barako.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -293,20 +329,23 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _kicker(String text) => Text(text,
-      style: TextStyle(
-          color: Barako.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2));
+  Widget _kicker(String text) => Text(
+    text,
+    style: TextStyle(
+      color: Barako.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 2,
+    ),
+  );
 
   Widget _decisionCard(Map<String, dynamic> c) {
     final tone = c['tone'] as String;
     final color = tone == 'urgent'
         ? Barako.warning
         : tone == 'watch'
-            ? Barako.text
-            : Barako.textSecondary;
+        ? Barako.text
+        : Barako.textSecondary;
     final utang = c['kind'] == 'utang';
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -327,30 +366,35 @@ class InsightsScreen extends StatelessWidget {
                       color: tone == 'urgent'
                           ? Barako.warning
                           : tone == 'nudge'
-                              ? Barako.muted
-                              : Barako.primary,
+                          ? Barako.muted
+                          : Barako.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(c['title'] as String,
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      c['title'] as String,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   if (utang && onSwitchTab != null)
-                    Icon(Icons.chevron_right,
-                        color: Barako.faint, size: 18),
+                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(c['message'] as String,
-                  style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.4)),
+              Text(
+                c['message'] as String,
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
             ],
           ),
         ),
@@ -376,25 +420,29 @@ class InsightsScreen extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(formatMoney(available > 0 ? available : 0),
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      color: tight ? Barako.warning : Barako.primary,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              child: Text(
+                formatMoney(available > 0 ? available : 0),
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: Barako.displayFont,
+                  color: tight ? Barako.warning : Barako.primary,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               tight
-                  ? 'Bills before payday already use up your spendable cash. Hold off on extras until sweldo.'
+                  ? 'Bills before payday already use up your spendable cash. Hold off on extras until payday.'
                   : 'About ${formatMoney(perDay)} a day for the next $daysLeft ${daysLeft == 1 ? 'day' : 'days'} (payday ${sts['payday']}). '
-                      '${billCount > 0 ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.' : 'No bills land before then.'}',
+                        '${billCount > 0 ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.' : 'No bills land before then.'}',
               style: TextStyle(
-                  color: tight ? Barako.warning : Barako.muted,
-                  fontSize: 13,
-                  height: 1.4),
+                color: tight ? Barako.warning : Barako.muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -431,9 +479,13 @@ class InsightsScreen extends StatelessWidget {
               _kicker('SPOKEN FOR EACH MONTH'),
               const SizedBox(height: 8),
               Text(
-                  'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your sweldo is.',
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+                'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your salary is.',
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
             ],
           ),
         ),
@@ -451,7 +503,8 @@ class InsightsScreen extends StatelessWidget {
     // non-finite value; round() throws on those. When any input is not finite
     // we skip the percent and show the guarded peso total instead, the way
     // _wholePeso and formatMoney stay alive on absurd data.
-    final finite = committed.isFinite &&
+    final finite =
+        committed.isFinite &&
         income.isFinite &&
         (share == null || share.isFinite);
     final showShare = hasIncomeBase && finite && share != null;
@@ -472,15 +525,15 @@ class InsightsScreen extends StatelessWidget {
       hero = _wholePeso(committed);
       support = hasIncomeBase
           ? 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause.'
-          : 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause. Log your sweldo for a few months and I can show this as a share of your income.';
+          : 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause. Log your salary for a few months and I can show this as a share of your income.';
     } else if (over) {
       hero = pctText(share);
       support =
-          'More is committed than your typical ${_wholePeso(income)} sweldo covers$fromClause. One lean month can turn into utang, so trimming a bill or paying off one debt makes real room.';
+          'More is committed than your typical ${_wholePeso(income)} salary covers$fromClause. One lean month can turn into utang, so trimming a bill or paying off one debt makes real room.';
     } else {
       hero = pctText(share);
       support =
-          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} sweldo goes to bills and minimums$fromClause. The rest, about ${_wholePeso(free!)}, still has to cover everything else, food, transport, and load, plus whatever you save.';
+          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} salary goes to bills and minimums$fromClause. The rest, about ${_wholePeso(free!)}, still has to cover everything else, food, transport, and load, plus whatever you save.';
     }
     final heroColor = over ? Barako.warningStrong : Barako.primaryText;
 
@@ -495,14 +548,17 @@ class InsightsScreen extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(hero,
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      color: heroColor,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+              child: Text(
+                hero,
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: Barako.displayFont,
+                  color: heroColor,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
             if (showShare) ...[
               const SizedBox(height: 10),
@@ -523,28 +579,41 @@ class InsightsScreen extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            Text(support,
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            Text(
+              support,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
             if (showShare && incomeMonths < 6) ...[
               const SizedBox(height: 6),
               Text(
-                  'This uses your months with income. On a lean or no-income month, a bigger share is spoken for.',
-                  style:
-                      TextStyle(color: Barako.muted, fontSize: 12, height: 1.4)),
+                'This uses your months with income. On a lean or no-income month, a bigger share is spoken for.',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
             ],
             if (minimumUnfilled) ...[
               const SizedBox(height: 6),
               Text(
-                  'A debt has no minimum saved, so this may understate. Add its minimum for a truer picture.',
-                  style:
-                      TextStyle(color: Barako.muted, fontSize: 12, height: 1.4)),
+                'A debt has no minimum saved, so this may understate. Add its minimum for a truer picture.',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
             ],
             const SizedBox(height: 8),
             Text(
-                'From the bills and minimums you have logged. The more you log, the truer this gets.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'From the bills and minimums you have logged. The more you log, the truer this gets.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -557,7 +626,9 @@ class InsightsScreen extends StatelessWidget {
   /// It fixes the quiet trap where finishing a goal looked more rewarding than
   /// clearing a debt that costs more than any savings can earn back.
   Widget _nextPesoCard(
-      Map<String, dynamic> plan, Map<String, dynamic>? focusGoal) {
+    Map<String, dynamic> plan,
+    Map<String, dynamic>? focusGoal,
+  ) {
     final step = plan['step'] as String;
     final buffer = plan['buffer'] as double;
     final starterTarget = plan['starterTarget'] as double;
@@ -572,7 +643,9 @@ class InsightsScreen extends StatelessWidget {
 
     // A cushion this user already has, spoken plainly, so the starter and
     // fuller steps say "you have X, aim for Y" instead of a bare gap.
-    final haveCushion = buffer > 0 ? ' You have about ${_wholePeso(buffer)} so far.' : '';
+    final haveCushion = buffer > 0
+        ? ' You have about ${_wholePeso(buffer)} so far.'
+        : '';
     // When an unrated debt was left out of the order, do not claim ALL debts
     // are handled; say "rated" so the copy never contradicts the note below.
     final rated = rateUnfilled ? 'rated ' : '';
@@ -605,9 +678,9 @@ class InsightsScreen extends StatelessWidget {
         final rateText = rate % 1 == 0
             ? rate.toInt().toString()
             : rate
-                .toStringAsFixed(2)
-                .replaceAll(RegExp(r'0+$'), '')
-                .replaceAll(RegExp(r'\.$'), '');
+                  .toStringAsFixed(2)
+                  .replaceAll(RegExp(r'0+$'), '')
+                  .replaceAll(RegExp(r'\.$'), '');
         title = 'Clear your costliest debt';
         support =
             'Your $name costs about $rateText% a month, more than any savings can earn back. Every ₱100 you put here is worth more than ₱100 anywhere else right now.';
@@ -636,7 +709,7 @@ class InsightsScreen extends StatelessWidget {
     }
 
     final spareLine = crunch
-        ? 'Your bills use up this sweldo already, so treat this as a plan for after payday.'
+        ? 'Your bills use up this pay cycle already, so treat this as a plan for after payday.'
         : 'This cycle you have about ${_wholePeso(spare)} free to move, if you can spare it.';
 
     return Card(
@@ -647,38 +720,53 @@ class InsightsScreen extends StatelessWidget {
           children: [
             _kicker('WHERE YOUR NEXT PESO SHOULD GO'),
             const SizedBox(height: 6),
-            Text(title,
-                style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: heroColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: Barako.displayFont,
+                color: heroColor,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(support,
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 13, height: 1.45)),
+            Text(
+              support,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
             const SizedBox(height: 14),
             _orderRail(activeIndex),
             const SizedBox(height: 12),
-            Text(spareLine,
-                style: TextStyle(
-                    color: crunch ? Barako.warningStrong : Barako.muted,
-                    fontSize: 12,
-                    height: 1.4)),
+            Text(
+              spareLine,
+              style: TextStyle(
+                color: crunch ? Barako.warningStrong : Barako.muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
             if (rateUnfilled) ...[
               const SizedBox(height: 6),
               // Informational, not a money warning, so it stays in the calm
               // muted tone (which also clears AA) instead of a third red line.
               Text(
-                  'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
-                  style: TextStyle(
-                      color: Barako.muted, fontSize: 12, height: 1.4)),
+                'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
+                style: TextStyle(
+                  color: Barako.muted,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
             ],
             const SizedBox(height: 8),
             Text(
-                'An order based on the rates and balances you logged, not a promise. Your call always wins.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'An order based on the rates and balances you logged, not a promise. Your call always wins.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -707,26 +795,29 @@ class InsightsScreen extends StatelessWidget {
                       color: i < activeIndex
                           ? Barako.primary.withValues(alpha: 0.45)
                           : i == activeIndex
-                              ? Barako.primary
-                              : Barako.border,
+                          ? Barako.primary
+                          : Barako.border,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(labels[i],
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: i == activeIndex
-                              ? Barako.text
-                              : i < activeIndex
-                                  ? Barako.muted
-                                  : Barako.faint,
-                          fontSize: 10,
-                          fontWeight: i == activeIndex
-                              ? FontWeight.w700
-                              : FontWeight.w500)),
+                  Text(
+                    labels[i],
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: i == activeIndex
+                          ? Barako.text
+                          : i < activeIndex
+                          ? Barako.muted
+                          : Barako.faint,
+                      fontSize: 10,
+                      fontWeight: i == activeIndex
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -760,16 +851,21 @@ class InsightsScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('$total',
-                    style: TextStyle(
-                        fontFamily: Barako.displayFont,
-                        color: Barako.primary,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700)),
+                Text(
+                  '$total',
+                  style: TextStyle(
+                    fontFamily: Barako.displayFont,
+                    color: Barako.primary,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 Padding(
                   padding: EdgeInsets.only(bottom: 6, left: 4),
-                  child: Text('of 100',
-                      style: TextStyle(color: Barako.muted, fontSize: 12)),
+                  child: Text(
+                    'of 100',
+                    style: TextStyle(color: Barako.muted, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -781,9 +877,13 @@ class InsightsScreen extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 110,
-                      child: Text(partLabel[key]!,
-                          style: TextStyle(
-                              color: Barako.textSecondary, fontSize: 12)),
+                      child: Text(
+                        partLabel[key]!,
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                     Expanded(
                       child: ClipRRect(
@@ -800,10 +900,10 @@ class InsightsScreen extends StatelessWidget {
                     SizedBox(
                       width: 44,
                       child: Text(
-                          '${(parts[key] as double).toInt()}/${partMax[key]}',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                              color: Barako.muted, fontSize: 11)),
+                        '${(parts[key] as double).toInt()}/${partMax[key]}',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(color: Barako.muted, fontSize: 11),
+                      ),
                     ),
                   ],
                 ),
@@ -838,9 +938,7 @@ class InsightsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final l in labels)
-                  Text(l,
-                      style: TextStyle(
-                          color: Barako.faint, fontSize: 10)),
+                  Text(l, style: TextStyle(color: Barako.faint, fontSize: 10)),
               ],
             ),
             const SizedBox(height: 8),
@@ -858,22 +956,22 @@ class InsightsScreen extends StatelessWidget {
   }
 
   Widget _legendDot(Color color, String label) => Row(
-        children: [
-          Container(
-              width: 8,
-              height: 8,
-              decoration:
-                  BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(color: Barako.textSecondary, fontSize: 12)),
-        ],
-      );
+    children: [
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 6),
+      Text(label, style: TextStyle(color: Barako.textSecondary, fontSize: 12)),
+    ],
+  );
 
   Widget _categoriesCard(
-      List<Map<String, dynamic>> cats, Map<String, dynamic> forecast) {
-    final visible =
-        cats.where((c) => (c['now'] as double) > 0).toList();
+    List<Map<String, dynamic>> cats,
+    Map<String, dynamic> forecast,
+  ) {
+    final visible = cats.where((c) => (c['now'] as double) > 0).toList();
     var maxNow = 0.0;
     for (final c in visible) {
       if ((c['now'] as double) > maxNow) maxNow = c['now'] as double;
@@ -887,8 +985,9 @@ class InsightsScreen extends StatelessWidget {
             _kicker('WHERE YOUR MONEY WENT THIS MONTH'),
             const SizedBox(height: 4),
             Text(
-                '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
-                style: TextStyle(color: Barako.muted, fontSize: 12)),
+              '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
+              style: TextStyle(color: Barako.muted, fontSize: 12),
+            ),
             const SizedBox(height: 10),
             for (final c in visible)
               Padding(
@@ -900,19 +999,21 @@ class InsightsScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(c['label'] as String,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: Barako.text, fontSize: 13)),
+                          child: Text(
+                            c['label'] as String,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Barako.text, fontSize: 13),
+                          ),
                         ),
-                        Text(formatMoney(c['now'] as double),
-                            style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                fontFeatures: [
-                                  FontFeature.tabularFigures()
-                                ])),
+                        Text(
+                          formatMoney(c['now'] as double),
+                          style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -922,7 +1023,8 @@ class InsightsScreen extends StatelessWidget {
                         value: maxNow > 0 ? (c['now'] as double) / maxNow : 0,
                         minHeight: 5,
                         backgroundColor: Barako.border,
-                        color: (c['expected'] as double) > 0 &&
+                        color:
+                            (c['expected'] as double) > 0 &&
                                 (c['now'] as double) >
                                     (c['expected'] as double) * 1.2
                             ? Barako.warning
@@ -934,8 +1036,9 @@ class InsightsScreen extends StatelessWidget {
               ),
             const SizedBox(height: 4),
             Text(
-                'An orange bar is running past its usual pace for this point in the month.',
-                style: TextStyle(color: Barako.faint, fontSize: 11)),
+              'An orange bar is running past its usual pace for this point in the month.',
+              style: TextStyle(color: Barako.faint, fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -953,18 +1056,20 @@ class InsightsScreen extends StatelessWidget {
           children: [
             _kicker('EMERGENCY RUNWAY'),
             const SizedBox(height: 6),
-            Text(runwayLabel(months, capped),
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800)),
+            Text(
+              runwayLabel(months, capped),
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               months == null
                   ? 'After two full months of logged spending, this shows how long your accessible money would carry you.'
                   : 'Your accessible money (${formatMoney(runway['buffer'] as double)}) covers ${capped ? 'more than a year' : 'about ${runwayLabel(months, false)}'} of your typical ${formatMoney(runway['avgMonthlyExpense'] as double)} monthly spending.',
-              style: TextStyle(
-                  color: Barako.muted, fontSize: 13, height: 1.4),
+              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
             ),
           ],
         ),
@@ -982,8 +1087,11 @@ class _DebtWhatIfCard extends StatefulWidget {
   final dynamic debts;
   final Map<String, dynamic> sts;
   final DateTime ref;
-  const _DebtWhatIfCard(
-      {required this.debts, required this.sts, required this.ref});
+  const _DebtWhatIfCard({
+    required this.debts,
+    required this.sts,
+    required this.ref,
+  });
 
   @override
   State<_DebtWhatIfCard> createState() => _DebtWhatIfCardState();
@@ -1011,7 +1119,9 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
       }
     }
     final name = best?['name'];
-    return (name is String && name.trim().isNotEmpty) ? name.trim() : 'your debt';
+    return (name is String && name.trim().isNotEmpty)
+        ? name.trim()
+        : 'your debt';
   }
 
   // Debt types that always carry interest in real life. The store fills a
@@ -1019,7 +1129,9 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
   // the user never entered the rate, not that it is genuinely free. An
   // informal utang at 0% is left alone.
   static const Set<String> _interestBearingTypes = {
-    'credit card', 'bnpl', 'loan',
+    'credit card',
+    'bnpl',
+    'loan',
   };
 
   /// True when an interest-bearing debt still owes money but has no rate
@@ -1073,8 +1185,8 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
         heroText = '$saved ${saved == 1 ? 'month' : 'months'} sooner';
         final interestPart =
             (showInterest && interestSaved != null && interestSaved > 0)
-                ? ' You keep about ${_peso(interestSaved)} that would have gone to interest.'
-                : '';
+            ? ' You keep about ${_peso(interestSaved)} that would have gone to interest.'
+            : '';
         supportText =
             'Around $dateE instead of $date0, from putting the extra on $focus.$interestPart';
       } else if (showInterest && interestSaved != null && interestSaved > 0) {
@@ -1097,7 +1209,7 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
     }
 
     final grounding = crunch
-        ? 'Your bills use up your spendable cash until sweldo, so this is a what if for now. Even a small extra after payday makes a real dent.'
+        ? 'Your bills use up your spendable cash until payday, so this is a what if for now. Even a small extra after payday makes a real dent.'
         : 'You have about ${_peso(widget.sts['perDay'] as double)} a day free to spend right now, so a little extra is doable if you can spare it.';
 
     return Card(
@@ -1123,10 +1235,11 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.background,
                     labelStyle: TextStyle(
-                        color: _extra == e
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600),
+                      color: _extra == e
+                          ? Barako.onPrimary
+                          : Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
               ],
             ),
@@ -1135,44 +1248,62 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(heroText,
-                    maxLines: 1,
-                    style: TextStyle(
-                        fontFamily: Barako.displayFont,
-                        color: Barako.primary,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+                child: Text(
+                  heroText,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: Barako.displayFont,
+                    color: Barako.primary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
               ),
               const SizedBox(height: 4),
-              Text(supportText,
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
-            ] else
-              Text(supportText,
-                  style: TextStyle(
-                      color: supportColor,
-                      fontSize: 14,
-                      height: 1.45,
-                      fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Text(grounding,
+              Text(
+                supportText,
                 style: TextStyle(
-                    color: crunch ? Barako.warning : Barako.muted,
-                    fontSize: 12,
-                    height: 1.4)),
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ] else
+              Text(
+                supportText,
+                style: TextStyle(
+                  color: supportColor,
+                  fontSize: 14,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              grounding,
+              style: TextStyle(
+                color: crunch ? Barako.warning : Barako.muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
             if (unfilled) ...[
               const SizedBox(height: 6),
               Text(
-                  'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
-                  style: TextStyle(
-                      color: Barako.warning, fontSize: 12, height: 1.4)),
+                'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
+                style: TextStyle(
+                  color: Barako.warning,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
             ],
             const SizedBox(height: 8),
             Text(
-                'A projection from your logged balances, assuming you keep it up and add no new charges. A guide, not a promise.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'A projection from your logged balances, assuming you keep it up and add no new charges. A guide, not a promise.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -1188,8 +1319,11 @@ class _GoalWhatIfCard extends StatefulWidget {
   final Map<String, dynamic> goal;
   final Map<String, dynamic> sts;
   final DateTime ref;
-  const _GoalWhatIfCard(
-      {required this.goal, required this.sts, required this.ref});
+  const _GoalWhatIfCard({
+    required this.goal,
+    required this.sts,
+    required this.ref,
+  });
 
   @override
   State<_GoalWhatIfCard> createState() => _GoalWhatIfCardState();
@@ -1209,8 +1343,7 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
         : 'your goal';
     final targetDate = (pace['targetDate'] as String?) ?? '';
     final status = pace['status'] as String;
-    final forecast =
-        analytics.goalForecast(remaining, _weekly, widget.ref);
+    final forecast = analytics.goalForecast(remaining, _weekly, widget.ref);
     final available = widget.sts['available'] as double;
     final crunch = available <= 0;
     final weeklyLabel = _wholePeso(_weekly);
@@ -1237,7 +1370,7 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
     if (forecast != null && targetDate.isNotEmpty && status != 'no-date') {
       if (status == 'behind') {
         targetText =
-            'Your ${_monthYear(targetDate)} target has already passed. Okay lang, a fresh date keeps the goal alive.';
+            'Your ${_monthYear(targetDate)} target has already passed. That is okay, a fresh date keeps the goal alive.';
         targetTone = 'behind';
       } else if (fundedOnTime(forecast['date'] as String, targetDate)) {
         targetText =
@@ -1252,7 +1385,7 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
     }
 
     final grounding = crunch
-        ? 'Your bills use up your spendable cash until sweldo, so treat this as a plan for after payday.'
+        ? 'Your bills use up your spendable cash until payday, so treat this as a plan for after payday.'
         : 'You have about ${_wholePeso(widget.sts['perDay'] as double)} a day free right now, so setting a little aside each week is doable if you can spare it.';
 
     return Card(
@@ -1278,10 +1411,11 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.background,
                     labelStyle: TextStyle(
-                        color: _weekly == e
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600),
+                      color: _weekly == e
+                          ? Barako.onPrimary
+                          : Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
               ],
             ),
@@ -1290,54 +1424,71 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(heroText,
-                    maxLines: 1,
-                    style: TextStyle(
-                        fontFamily: Barako.displayFont,
-                        color: Barako.primary,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+                child: Text(
+                  heroText,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: Barako.displayFont,
+                    color: Barako.primary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
               ),
               const SizedBox(height: 4),
-              Text(supportText,
-                  style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+              Text(
+                supportText,
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
             ] else
-              Text(supportText,
-                  style: TextStyle(
-                      color: supportColor,
-                      fontSize: 14,
-                      height: 1.45,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                supportText,
+                style: TextStyle(
+                  color: supportColor,
+                  fontSize: 14,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             if (targetText.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(targetText,
-                  style: TextStyle(
-                      color: targetTone == 'behind'
-                          ? Barako.warning
-                          : targetTone == 'ontime'
-                              ? Barako.primary
-                              : Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
-                      // Only the reward and the warning carry weight; the
-                      // neutral "aim for X a week" reads as part of support.
-                      fontWeight: targetTone == 'plain'
-                          ? FontWeight.w400
-                          : FontWeight.w600)),
+              Text(
+                targetText,
+                style: TextStyle(
+                  color: targetTone == 'behind'
+                      ? Barako.warning
+                      : targetTone == 'ontime'
+                      ? Barako.primary
+                      : Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                  // Only the reward and the warning carry weight; the
+                  // neutral "aim for X a week" reads as part of support.
+                  fontWeight: targetTone == 'plain'
+                      ? FontWeight.w400
+                      : FontWeight.w600,
+                ),
+              ),
             ],
             const SizedBox(height: 8),
-            Text(grounding,
-                style: TextStyle(
-                    color: crunch ? Barako.warning : Barako.muted,
-                    fontSize: 12,
-                    height: 1.4)),
+            Text(
+              grounding,
+              style: TextStyle(
+                color: crunch ? Barako.warning : Barako.muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-                'A projection from your target and what you set aside, assuming you keep it up. A guide, not a promise.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'A projection from your target and what you set aside, assuming you keep it up. A guide, not a promise.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -1364,10 +1515,20 @@ class _TrendPainter extends CustomPainter {
     _drawSeries(canvas, size, expenses, max, Barako.warning);
   }
 
-  void _drawSeries(Canvas canvas, Size size, List<double> values, double max,
-      Color color) {
-    final pts =
-        chartgeom.linePointsScaled(values, max, size.width, size.height, 8);
+  void _drawSeries(
+    Canvas canvas,
+    Size size,
+    List<double> values,
+    double max,
+    Color color,
+  ) {
+    final pts = chartgeom.linePointsScaled(
+      values,
+      max,
+      size.width,
+      size.height,
+      8,
+    );
     if (pts.isEmpty) return;
     final paint = Paint()
       ..color = color
@@ -1380,8 +1541,7 @@ class _TrendPainter extends CustomPainter {
     }
     canvas.drawPath(path, paint);
     final dot = Paint()..color = color;
-    canvas.drawCircle(
-        Offset(pts.last['x']!, pts.last['y']!), 3.5, dot);
+    canvas.drawCircle(Offset(pts.last['x']!, pts.last['y']!), 3.5, dot);
   }
 
   @override

@@ -110,8 +110,8 @@
           "prio": 100,
           "kind": "crunch",
           "tone": "urgent",
-          "title": "Money is tight until sweldo",
-          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "title": "Money is tight until payday",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -209,8 +209,8 @@
       "checkIn": {
         "kind": "crunch",
         "tone": "urgent",
-        "title": "Money is tight until sweldo",
-        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "title": "Money is tight until payday",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"
@@ -405,8 +405,8 @@
           "prio": 100,
           "kind": "crunch",
           "tone": "urgent",
-          "title": "Money is tight until sweldo",
-          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "title": "Money is tight until payday",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -427,8 +427,8 @@
       "checkIn": {
         "kind": "crunch",
         "tone": "urgent",
-        "title": "Money is tight until sweldo",
-        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "title": "Money is tight until payday",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"
@@ -477,7 +477,7 @@
           "kind": "lesson",
           "tone": "nudge",
           "title": "Keep BNPL from piling up",
-          "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one sweldo can cover.",
+          "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one paycheck can cover.",
           "action": {
             "label": "Read the lesson",
             "route": "/learn?focus=bnpl"
@@ -488,7 +488,7 @@
         "kind": "lesson",
         "tone": "nudge",
         "title": "Keep BNPL from piling up",
-        "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one sweldo can cover.",
+        "message": "You have a buy now pay later balance. A quick read on keeping the installments from stacking past what one paycheck can cover.",
         "action": {
           "label": "Read the lesson",
           "route": "/learn?focus=bnpl"
@@ -1032,8 +1032,8 @@
           "prio": 100,
           "kind": "crunch",
           "tone": "urgent",
-          "title": "Money is tight until sweldo",
-          "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+          "title": "Money is tight until payday",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -1088,7 +1088,7 @@
           "kind": "lesson",
           "tone": "nudge",
           "title": "Make your 13th month count",
-          "message": "Sweldo season is here. A short read on making your 13th month pay actually last, so it does not vanish by January.",
+          "message": "13th month season is here. A short read on making your 13th month pay actually last, so it does not vanish by January.",
           "action": {
             "label": "Read the lesson",
             "route": "/learn?focus=thirteenth-month"
@@ -1098,8 +1098,8 @@
       "checkIn": {
         "kind": "crunch",
         "tone": "urgent",
-        "title": "Money is tight until sweldo",
-        "message": "The bills and minimums due before your next sweldo already use up your spendable cash. Best to hold off on extras until payday.",
+        "title": "Money is tight until payday",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"

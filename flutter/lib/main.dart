@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.11 · Save backups and exports straight to your phone (Downloads or any folder you pick), not only through the share sheet. Plus Start fresh: erase everything and begin from zero, with a double confirmation and a backup offered first.';
+    'f2.12 · English-first copy across the whole app, ready to go global: every sentence now reads in plain English, with utang, sweldo, paluwagan, and hatian kept as identity words where the meaning is clear beside them. Pan still understands Tagalog questions.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
@@ -103,14 +103,17 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
               2 => HistoryScreen(store: widget.store),
               3 => UtangScreen(store: widget.store),
               4 => InsightsScreen(
-                  store: widget.store,
-                  onSwitchTab: (i) => setState(() => tab = i)),
+                store: widget.store,
+                onSwitchTab: (i) => setState(() => tab = i),
+              ),
               5 => MenuScreen(
-                  store: widget.store,
-                  onSwitchTab: (i) => setState(() => tab = i)),
+                store: widget.store,
+                onSwitchTab: (i) => setState(() => tab = i),
+              ),
               _ => OverviewScreen(
-                  store: widget.store,
-                  onSwitchTab: (i) => setState(() => tab = i)),
+                store: widget.store,
+                onSwitchTab: (i) => setState(() => tab = i),
+              ),
             },
             bottomNavigationBar: NavigationBar(
               selectedIndex: tab,
@@ -119,34 +122,38 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
               indicatorColor: Barako.primary,
               destinations: [
                 NavigationDestination(
-                    icon: const Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
-                    label: 'Home'),
+                  icon: const Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
+                  label: 'Home',
+                ),
                 NavigationDestination(
-                    icon: const Icon(Icons.savings_outlined),
-                    selectedIcon:
-                        Icon(Icons.savings, color: Barako.onPrimary),
-                    label: 'Budget'),
+                  icon: const Icon(Icons.savings_outlined),
+                  selectedIcon: Icon(Icons.savings, color: Barako.onPrimary),
+                  label: 'Budget',
+                ),
                 NavigationDestination(
-                    icon: const Icon(Icons.receipt_long_outlined),
-                    selectedIcon:
-                        Icon(Icons.receipt_long, color: Barako.onPrimary),
-                    label: 'History'),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(
+                    Icons.receipt_long,
+                    color: Barako.onPrimary,
+                  ),
+                  label: 'History',
+                ),
                 NavigationDestination(
-                    icon: const Icon(Icons.handshake_outlined),
-                    selectedIcon:
-                        Icon(Icons.handshake, color: Barako.onPrimary),
-                    label: 'Utang'),
+                  icon: const Icon(Icons.handshake_outlined),
+                  selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
+                  label: 'Utang',
+                ),
                 NavigationDestination(
-                    icon: const Icon(Icons.insights_outlined),
-                    selectedIcon:
-                        Icon(Icons.insights, color: Barako.onPrimary),
-                    label: 'Insights'),
+                  icon: const Icon(Icons.insights_outlined),
+                  selectedIcon: Icon(Icons.insights, color: Barako.onPrimary),
+                  label: 'Insights',
+                ),
                 NavigationDestination(
-                    icon: const Icon(Icons.grid_view_outlined),
-                    selectedIcon:
-                        Icon(Icons.grid_view, color: Barako.onPrimary),
-                    label: 'Menu'),
+                  icon: const Icon(Icons.grid_view_outlined),
+                  selectedIcon: Icon(Icons.grid_view, color: Barako.onPrimary),
+                  label: 'Menu',
+                ),
               ],
             ),
           ),

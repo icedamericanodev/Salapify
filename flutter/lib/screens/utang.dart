@@ -513,7 +513,7 @@ class _PersonSheetState extends State<PersonSheet> {
                 ),
                 Text(
                   items.isEmpty
-                      ? 'All settled. Salamat, ${widget.name}!'
+                      ? 'All settled. Thank you, ${widget.name}!'
                       : '${formatMoney(total)} still out',
                   style: TextStyle(
                     color: items.isEmpty ? Barako.primaryText : Barako.muted,

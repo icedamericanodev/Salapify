@@ -108,7 +108,7 @@ class CashFlowScreen extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text(
-                      'Add your sweldo and bills',
+                      'Add your salary and bills',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   )
@@ -160,14 +160,14 @@ class CashFlowScreen extends StatelessWidget {
     if (noEvents) {
       head = 'Set up your month';
       body =
-          'Add your sweldo and bills as recurring items, and your cards and loans as debts. '
-          'Then this shows the days your cash runs tight before your next sweldo.';
+          'Add your salary and bills as recurring items, and your cards and loans as debts. '
+          'Then this shows the days your cash runs tight before your next payday.';
       color = Barako.muted;
     } else if (anyNegative) {
       head = 'Heads up, cash runs short';
       body =
           'At this pace your spendable cash is projected to run out around ${_pretty(lowDate)}. '
-          'Move a bill, hold a big buy, or set aside from your next sweldo so you do not get caught.';
+          'Move a bill, hold a big buy, or set aside from your next payday so you do not get caught.';
       color = Barako.warningStrong;
     } else if (lowBal < start) {
       head = 'You are on track';
@@ -287,7 +287,7 @@ class CashFlowScreen extends StatelessWidget {
             Text('WHAT IS COMING', style: Barako.kickerStyle),
             const SizedBox(height: 4),
             Text(
-              'Every sweldo in, every bill and due out',
+              'Every salary in, every bill and due out',
               style: TextStyle(color: Barako.muted, fontSize: 12),
             ),
             const SizedBox(height: 8),

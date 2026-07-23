@@ -131,7 +131,7 @@ class PaluwaganScreen extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Add your office or barkada paluwagan to see your payout date '
+          'Add your office or friend group paluwagan to see your payout date '
           'and where you stand.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Barako.muted, fontSize: 13),
@@ -261,7 +261,7 @@ class _PaluwaganCard extends StatelessWidget {
                       _note(
                         Icons.error_outline,
                         'Behind by ${formatMoneyText(behindBy)}. Catch up your '
-                        'ambag so the group stays whole.',
+                        'contributions so the group stays whole.',
                         Barako.warningStrong,
                       )
                     else
@@ -386,7 +386,7 @@ class _PaluwaganCard extends StatelessWidget {
     if (received) {
       return _note(
         Icons.check_circle_outline,
-        'You already collected the pot. Keep paying your ambag until the '
+        'You already collected the pot. Keep paying your contribution until the '
         'round finishes so the group stays whole.',
         Barako.primaryText,
       );
@@ -396,7 +396,7 @@ class _PaluwaganCard extends StatelessWidget {
         return _note(
           Icons.trending_up,
           'Early turn: like a 0% loan from the group. You get the pot now '
-          'and pay it back over the rest of the round. Set the ambag aside.',
+          'and pay it back over the rest of the round. Set the contribution aside.',
           Barako.primaryText,
         );
       case 'late':
@@ -543,7 +543,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
     final amount =
         double.tryParse(_amount.text.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
     if (!amount.isFinite || amount <= 0) {
-      setState(() => _err = 'Enter an ambag amount greater than 0.');
+      setState(() => _err = 'Enter a contribution amount greater than 0.');
       return;
     }
     final members = int.tryParse(_members.text.trim()) ?? 0;
@@ -680,12 +680,12 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
               _input(_paidCycles, hint: '0', digitsOnly: true, maxLen: 2),
               const SizedBox(height: 6),
               Text(
-                'This is how many ambag you have put in so far. It tells you '
+                'This is how many contributions you have put in so far. It tells you '
                 'if you are behind.',
                 style: TextStyle(color: Barako.faint, fontSize: 11),
               ),
               _label('Note (optional)'),
-              _input(_note, hint: 'e.g. Kada 15 ng buwan'),
+              _input(_note, hint: 'e.g. Draws every 15th'),
               if (_err != null) ...[
                 const SizedBox(height: 12),
                 Text(

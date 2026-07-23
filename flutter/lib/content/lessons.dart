@@ -11,7 +11,8 @@ const List<Map<String, dynamic>> lessons = [
     'title': 'Your first shield: the emergency fund',
     'emoji': '🛟',
     'minutes': 2,
-    'summary': 'Why a small cash buffer changes everything, and how to start one.',
+    'summary':
+        'Why a small cash buffer changes everything, and how to start one.',
     'body': [
       'An emergency fund is money you set aside for the surprises, a hospital visit, a phone that dies, a sudden trip home to the province. It is not for a sale or a new gadget. Its whole job is to keep one bad week from turning into utang.',
       'A common target is three to six months of your expenses. That can feel impossible when you are starting, so do not aim there yet. Aim for your first one month of expenses, and before that, your first 10,000. A small buffer already stops most small emergencies from becoming debt.',
@@ -49,24 +50,24 @@ const List<Map<String, dynamic>> lessons = [
     'title': '50/30/20, Pinoy edition',
     'emoji': '🍚',
     'minutes': 2,
-    'summary': 'A starting frame for splitting your sweldo.',
+    'summary': 'A starting frame for splitting your salary.',
     'body': [
       'A simple way to divide your take-home pay: about 50 percent to needs, 30 percent to wants, and 20 percent to savings and paying down debt. It is a starting frame, not a rule carved in stone.',
-      'Needs are rent, food, bills, transport, load. Wants are eating out, subscriptions, shopping, gimik. The last 20 percent is you paying your future self first, ipon and clearing utang.',
+      'Needs are rent, food, bills, transport, load. Wants are eating out, subscriptions, shopping, nights out. The last 20 percent is you paying your future self first, savings and clearing utang.',
       'If your rent alone eats most of your pay, which is real for many, do not force the numbers. Shrink wants first, protect even a small savings slice, and treat the split as a direction to move toward, not a test you failed.',
       'Salapify already sets aside your bills before it shows your safe to spend, so your daily number is closer to real life than a flat percentage.',
     ],
   },
   {
     'id': 'pay-yourself-first',
-    'title': 'Ipon that actually sticks',
+    'title': 'Savings that actually stick',
     'emoji': '🐷',
     'minutes': 2,
     'summary': 'Why saving first beats saving whatever is left.',
     'body': [
       'Most people plan to save whatever is left at the end of the month. The problem is there is rarely anything left. The month always finds a way to spend it.',
       'Flip it. On payday, before the spending starts, move your savings out first, even a small fixed amount. This is pay yourself first. What is left is what you live on, and it works because you never see the saved money as spendable.',
-      'Make it automatic and boring. Same amount, every sweldo, moved the same day. Willpower runs out, habits do not. Starting small and never skipping beats a big amount you cannot keep up.',
+      'Make it automatic and boring. Same amount, every payday, moved the same day. Willpower runs out, habits do not. Starting small and never skipping beats a big amount you cannot keep up.',
       'On your payday, Salapify helps you set aside your savings slice first, before it shows what is left to live on.',
     ],
   },
@@ -78,7 +79,7 @@ const List<Map<String, dynamic>> lessons = [
     'summary': 'A plan for the once-a-year money so it does not vanish.',
     'body': [
       'The 13th month pay feels like free money, so it disappears the fastest. A little planning before it lands makes it do real work for you.',
-      'One simple split: a slice to your emergency fund or savings, a slice to clear the highest-interest utang you carry, and a slice, guilt-free, for something you enjoy or for noche buena and gifts. Deciding the split before the money arrives is the whole trick.',
+      'One simple split: a slice to your emergency fund or savings, a slice to clear the highest-interest utang you carry, and a slice, guilt-free, for something you enjoy or for the holidays and gifts. Deciding the split before the money arrives is the whole trick.',
       'Clearing a high-interest debt with part of it is one of the best returns you can get, because every peso of interest you stop paying is a peso kept.',
       'When December comes, log it in Salapify and point it at a goal, so future you gets a share too.',
     ],
@@ -92,7 +93,7 @@ const List<Map<String, dynamic>> lessons = [
     'body': [
       'Buy now pay later splits a purchase into installments. Used carefully on something you were already going to buy, and can afford, it can spread a cost without pain.',
       'The risk is that it makes spending feel smaller than it is. Three or four small installments across different apps add up, and you can lose track of the total you owe. Miss a due date and fees or interest can appear fast.',
-      'Before you tap install: would you still buy this if you had to pay the full price today? If not, the installments are talking you into it. And never let the installments pile up past what one sweldo can comfortably cover.',
+      'Before you tap install: would you still buy this if you had to pay the full price today? If not, the installments are talking you into it. And never let the installments pile up past what one paycheck can comfortably cover.',
       'Log each BNPL as a debt in Salapify so the real total, and each due date, stays in front of you instead of scattered across apps.',
     ],
   },
@@ -105,7 +106,7 @@ const List<Map<String, dynamic>> lessons = [
     'body': [
       'Lending to family and friends is part of Filipino life. It goes wrong when the amount, and the memory of it, gets fuzzy. Then both the money and the relationship get awkward.',
       'Two simple habits keep it clean. First, only lend what you can afford to not get back soon, so waiting never puts you in a bind. Second, write it down, the amount and the date, the moment it happens, so nobody has to rely on memory.',
-      'Following up is not being madamot. A calm, friendly reminder is normal and fair, and it actually protects the friendship, because unspoken debt is what breeds resentment.',
+      'Following up is not being stingy. A calm, friendly reminder is normal and fair, and it actually protects the friendship, because unspoken debt is what breeds resentment.',
       'Salapify tracks who owes you, how long it has been, and can draft a gentle reminder you can send, so collecting stays kind.',
     ],
   },
@@ -114,9 +115,10 @@ const List<Map<String, dynamic>> lessons = [
     'title': 'Which tax forms do I actually file?',
     'emoji': '🧾',
     'minutes': 3,
-    'summary': 'A plain map of BIR returns for employees, freelancers, and the self-employed.',
+    'summary':
+        'A plain map of BIR returns for employees, freelancers, and the self-employed.',
     'body': [
-      'If you are an employee with just one job, good news, you usually file nothing yourself. Your employer takes the tax from your sweldo, remits it, and gives you Form 2316 every January. That shortcut is called substituted filing.',
+      'If you are an employee with just one job, good news, you usually file nothing yourself. Your employer takes the tax from your salary, remits it, and gives you Form 2316 every January. That shortcut is called substituted filing.',
       'You do need to file your own return, Form 1700, if you had two or more employers during the year, if your tax was not withheld correctly, or if you also run a sideline. A sideline makes you a mixed income earner, and then you file Form 1701 instead.',
       'If you are a freelancer, online seller, or professional, you register once with Form 1901. There is no more 500 peso yearly registration fee, it was removed in 2024 by the Ease of Paying Taxes law, so ignore old guides that still mention it.',
       'As self-employed you pay income tax quarterly on Form 1701Q, due May 15, August 15, and November 15, then once a year on Form 1701 or 1701A by April 15. Take note, the first quarter is due in May, not April. A quarter with zero income still means you file, just with nothing to pay.',
@@ -133,7 +135,7 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'Why taking care of your body protects your money too.',
     'body': [
-      'The fastest way to lose years of ipon is one serious illness. A hospital stay, a maintenance medicine, an emergency operation, these can wipe out savings that took a long time to build. So looking after your health is not separate from your money, it is part of it.',
+      'The fastest way to lose years of savings is one serious illness. A hospital stay, a maintenance medicine, an emergency operation, these can wipe out savings that took a long time to build. So looking after your health is not separate from your money, it is part of it.',
       'The cheapest health peso you will ever spend is the one that prevents a big bill later. A checkup that catches something early, staying active, sleeping enough, eating a little better, these quietly protect your finances by keeping the huge bills away. Think of it as a return on investment you cannot see, the crisis that never happened.',
       'Two shields work together. The first is your emergency fund, money ready for the surprise. The second is your health itself, which decides how often the surprise comes. Building both is how you stop one bad week from undoing years of work. Salapify tracks the money shield for you on Insights, as your emergency fund runway.',
       'You already have more cover than you think. PhilHealth, which you pay into every month, shoulders part of a hospital bill. An HMO or health card from your job covers more, so use it if you have one. Beyond those, a small amount set aside for health, a Health fund goal here in the app, covers the rest, so a checkup or a medicine is a planned cost, not a panic.',
@@ -145,7 +147,8 @@ const List<Map<String, dynamic>> lessons = [
     'title': 'Getting your year-end tax refund',
     'emoji': '💵',
     'minutes': 2,
-    'summary': 'Why many employees get money back in December, and how to make sure you do.',
+    'summary':
+        'Why many employees get money back in December, and how to make sure you do.',
     'body': [
       'Every payday your employer takes a slice of your pay for income tax, based on a guess of what you will earn for the whole year. At year end they add up what you really earned and compare it to what they already took. If they took too much, the extra comes back to you as a refund, usually in your December or January pay.',
       'Why would they take too much? A few common reasons. You started partway through the year, so the monthly guess assumed twelve months you did not actually work. Your pay changed during the year. Your 13th month and bonuses stayed within the tax free ceiling but a little was still withheld along the way. Any of these can mean money is owed back to you.',
@@ -159,7 +162,8 @@ const List<Map<String, dynamic>> lessons = [
     'title': 'Selling online or freelancing? Set aside for tax',
     'emoji': '💼',
     'minutes': 2,
-    'summary': 'The simple habit that keeps a sideline or small business out of tax trouble.',
+    'summary':
+        'The simple habit that keeps a sideline or small business out of tax trouble.',
     'body': [
       'When no employer withholds tax for you, the discipline is yours. The freelancers and online sellers who never panic at deadline are the ones who treat a slice of every payment as not theirs. When a client pays, move a small part aside the same day, before it starts to feel like spending money.',
       'How big a slice? On the flat 8 percent option, which you can use up to 3,000,000 in sales a year, a safe habit is to set aside 8 percent of every peso from the start. Your first 250,000 for the year is tax free, so that early set aside quietly builds a buffer for filing day instead of a surprise. On the graduated option it depends on your income and your real expenses. The Income tax calculator in Tools compares both for your own numbers, tells you which costs less, and shows about how much to set aside each month.',
@@ -173,8 +177,7 @@ const List<Map<String, dynamic>> lessons = [
 /// whole day and cycles over time. Mirrors the RN lessonOfTheDay exactly.
 Map<String, dynamic> lessonOfTheDay(DateTime ref) {
   final start = DateTime(ref.year, 1, 0);
-  final dayOfYear =
-      (ref.difference(start).inMilliseconds / 86400000).floor();
+  final dayOfYear = (ref.difference(start).inMilliseconds / 86400000).floor();
   return lessons[dayOfYear % lessons.length];
 }
 

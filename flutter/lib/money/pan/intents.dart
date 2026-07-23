@@ -15,12 +15,37 @@ class Guardrail {
 const List<Guardrail> guardrails = [
   Guardrail(
     'no_invest',
-    ['invest', 'stocks', 'stock market', 'crypto', 'bitcoin', 'forex', 'mutual fund', 'uitf', 'mp2', 'trading', 'shares', 'good return', 'grow my money', 'where to invest', 'good investment'],
+    [
+      'invest',
+      'stocks',
+      'stock market',
+      'crypto',
+      'bitcoin',
+      'forex',
+      'mutual fund',
+      'uitf',
+      'mp2',
+      'trading',
+      'shares',
+      'good return',
+      'grow my money',
+      'where to invest',
+      'good investment',
+    ],
     'I do not give investment advice, that needs a licensed professional. What I can do is show you exactly how much you can set aside, so you decide with clear numbers. Want your safe to spend, or how a goal is pacing?',
   ),
   Guardrail(
     'no_loan',
-    ['apply for a loan', 'get a loan', 'cash loan', 'borrow money', 'lend me', 'loan app', 'where to borrow', 'sangla'],
+    [
+      'apply for a loan',
+      'get a loan',
+      'cash loan',
+      'borrow money',
+      'lend me',
+      'loan app',
+      'where to borrow',
+      'sangla',
+    ],
     'I cannot help you find or apply for a loan. But if you are weighing one, the Loan calculator in Tools shows its real monthly payment and true interest rate, so you go in with clear eyes. I can also track debts you already have.',
     {'label': 'Open Loan calculator', 'route': '/loan-calculator'},
   ),
@@ -32,7 +57,15 @@ const List<Guardrail> guardrails = [
   ),
   Guardrail(
     'no_legal',
-    ['sue', 'small claims', 'estafa', 'legal', 'lawyer', 'demand letter', 'contract'],
+    [
+      'sue',
+      'small claims',
+      'estafa',
+      'legal',
+      'lawyer',
+      'demand letter',
+      'contract',
+    ],
     'I cannot give legal advice. For utang, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?',
   ),
   Guardrail(
@@ -66,9 +99,22 @@ const List<Intent> intents = [
     id: 'safe_to_spend',
     title: 'Safe to spend',
     resolve: 'safeToSpend',
-    strong: ['safe to spend', 'how much can i spend', 'spend today', 'until payday', 'spend until'],
-    any: ['spend', 'afford', 'left to spend', 'howmuch left', 'baon', 'budget left'],
-    examples: ['How much can I safely spend?', 'Magkano pa pwede kong gastusin?'],
+    strong: [
+      'safe to spend',
+      'how much can i spend',
+      'spend today',
+      'until payday',
+      'spend until',
+    ],
+    any: [
+      'spend',
+      'afford',
+      'left to spend',
+      'howmuch left',
+      'baon',
+      'budget left',
+    ],
+    examples: ['How much can I safely spend?', 'What is safe to spend today?'],
   ),
   Intent(
     id: 'can_afford',
@@ -82,55 +128,109 @@ const List<Intent> intents = [
     id: 'utang',
     title: 'Who owes me',
     resolve: 'utang',
-    strong: ['who owe me', 'who owes me', 'who owe', 'follow up', 'utang list', 'collect'],
+    strong: [
+      'who owe me',
+      'who owes me',
+      'who owe',
+      'follow up',
+      'utang list',
+      'collect',
+    ],
     any: ['owe', 'owes', 'receivable', 'niningil', 'pautang'],
-    examples: ['Who owes me money?', 'Sino may utang sa akin?'],
+    examples: ['Who owes me money?', 'Who should I follow up first?'],
   ),
   Intent(
     id: 'upcoming_bills',
     title: 'What is due',
     resolve: 'upcomingBills',
-    strong: ['what is due', 'whats due', 'upcoming bills', 'bills due', 'anong bills'],
+    strong: [
+      'what is due',
+      'whats due',
+      'upcoming bills',
+      'bills due',
+      'anong bills',
+    ],
     any: ['bills', 'due', 'bayarin', 'payables'],
-    examples: ["What's due before my sweldo?", 'Anong babayaran ko?'],
+    examples: ["What's due before payday?", 'What bills are due soon?'],
   ),
   Intent(
     id: 'debt_due',
     title: 'Card and debt due dates',
     resolve: 'debtDue',
-    strong: ['card due', 'when is my card', 'debt due', 'when to pay', 'pay in full'],
+    strong: [
+      'card due',
+      'when is my card',
+      'debt due',
+      'when to pay',
+      'pay in full',
+    ],
     any: ['card', 'debt', 'credit', 'minimum', 'statement'],
-    examples: ['When is my credit card due?', 'Magkano babayaran sa card?'],
+    examples: ['When is my credit card due?', 'How much is due on my card?'],
   ),
   Intent(
     id: 'debt_free',
     title: 'Debt-free date',
     resolve: 'debtFree',
-    strong: ['debt free', 'pay off', 'payoff', 'when will i be debt', 'finish debt', 'finish my debt', 'if i add', 'how long to pay'],
-    any: ['payoff', 'clear debt', 'matatapos utang', 'add extra', 'a month to my'],
+    strong: [
+      'debt free',
+      'pay off',
+      'payoff',
+      'when will i be debt',
+      'finish debt',
+      'finish my debt',
+      'if i add',
+      'how long to pay',
+    ],
+    any: [
+      'payoff',
+      'clear debt',
+      'matatapos utang',
+      'add extra',
+      'a month to my',
+    ],
     examples: ['When will I be debt-free?', 'If I add 1000 a month?'],
   ),
   Intent(
     id: 'month_recap',
     title: 'My month',
     resolve: 'recap',
-    strong: ['my month', 'recap', 'how was my month', 'how am i doing', 'how spending', 'summary'],
+    strong: [
+      'my month',
+      'recap',
+      'how was my month',
+      'how am i doing',
+      'how spending',
+      'summary',
+    ],
     any: ['month', 'kumusta', 'buod'],
-    examples: ['How was my month?', 'Kumusta gastos ko this month?'],
+    examples: ['How was my month?', 'How did I do this month?'],
   ),
   Intent(
     id: 'top_spending',
     title: 'Where my money goes',
     resolve: 'topSpending',
-    strong: ['am i overspending', 'where does my money go', 'biggest spending', 'top spending', 'saan napupunta', 'overspending'],
+    strong: [
+      'am i overspending',
+      'where does my money go',
+      'biggest spending',
+      'top spending',
+      'saan napupunta',
+      'overspending',
+    ],
     any: ['category', 'spending', 'gastos', 'napupunta'],
-    examples: ['Am I overspending on food?', 'Saan napupunta pera ko?'],
+    examples: ['Am I overspending on food?', 'Where does my money go?'],
   ),
   Intent(
     id: 'forecast',
     title: 'Month-end forecast',
     resolve: 'forecast',
-    strong: ['will i go over', 'over budget', 'end of month', 'forecast', 'lalagpas'],
+    strong: [
+      'will i go over',
+      'over budget',
+      'end of month',
+      'forecast',
+      'lalagpas',
+    ],
     any: ['budget', 'projected', 'reach'],
     examples: ['Will I go over budget?', 'Lalagpas ba ako this month?'],
   ),
@@ -138,7 +238,12 @@ const List<Intent> intents = [
     id: 'savings_rate',
     title: 'Am I saving enough',
     resolve: 'savingsRate',
-    strong: ['am i saving', 'savings rate', 'how much did i save', 'saving enough'],
+    strong: [
+      'am i saving',
+      'savings rate',
+      'how much did i save',
+      'saving enough',
+    ],
     any: ['save', 'savings', 'ipon'],
     examples: ['Am I saving enough?', 'Nakakaipon ba ako?'],
   ),
@@ -146,7 +251,13 @@ const List<Intent> intents = [
     id: 'goal_pace',
     title: 'My goals',
     resolve: 'goalPace',
-    strong: ['my goal', 'will i hit my goal', 'on track', 'goal pace', 'save for'],
+    strong: [
+      'my goal',
+      'will i hit my goal',
+      'on track',
+      'goal pace',
+      'save for',
+    ],
     any: ['goal', 'target', 'fund'],
     examples: ['Will I hit my goal?', 'On track ba ako sa goal ko?'],
   ),
@@ -154,7 +265,13 @@ const List<Intent> intents = [
     id: 'health',
     title: 'Money health score',
     resolve: 'health',
-    strong: ['health score', 'how healthy', 'financial health', 'money health', 'overall'],
+    strong: [
+      'health score',
+      'how healthy',
+      'financial health',
+      'money health',
+      'overall',
+    ],
     any: ['score', 'healthy'],
     examples: ['How healthy is my money?', "What's my money score?"],
   ),
@@ -162,17 +279,35 @@ const List<Intent> intents = [
     id: 'balances',
     title: 'My balances',
     resolve: 'balances',
-    strong: ['how much do i have', 'my balance', 'total money', 'net worth', 'howmuch i have', 'howmuch money', 'how much do i owe', 'howmuch i owe', 'total debt', 'how much i owe', 'how much debt'],
+    strong: [
+      'how much do i have',
+      'my balance',
+      'total money',
+      'net worth',
+      'howmuch i have',
+      'howmuch money',
+      'how much do i owe',
+      'howmuch i owe',
+      'total debt',
+      'how much i owe',
+      'how much debt',
+    ],
     any: ['balance', 'money', 'cash', 'total'],
-    examples: ['How much do I have?', 'Magkano pera ko?'],
+    examples: ['How much do I have?', 'What is my total balance?'],
   ),
   Intent(
     id: 'payday',
-    title: 'Next sweldo',
+    title: 'Next payday',
     resolve: 'payday',
-    strong: ['when is payday', 'when payday', 'next sweldo', 'when sweldo', 'payday countdown'],
+    strong: [
+      'when is payday',
+      'when payday',
+      'next sweldo',
+      'when sweldo',
+      'payday countdown',
+    ],
     any: ['payday', 'sweldo', 'sahod'],
-    examples: ['When is my next sweldo?', 'Ilang araw bago sweldo?'],
+    examples: ['When is my next payday?', 'How many days until payday?'],
   ),
   Intent(
     id: 'tool_take_home',
@@ -180,9 +315,16 @@ const List<Intent> intents = [
     pointer: {
       'route': '/salary-calculator',
       'label': 'Open Take-home pay',
-      'text': 'To turn a gross salary into net, the Take-home pay calculator in Tools does it properly, with SSS, PhilHealth, Pag-IBIG, tax, and allowances, and can show it per cutoff, monthly, or yearly.',
+      'text':
+          'To turn a gross salary into net, the Take-home pay calculator in Tools does it properly, with SSS, PhilHealth, Pag-IBIG, tax, and allowances, and can show it per cutoff, monthly, or yearly.',
     },
-    strong: ['take home', 'take home pay', 'net pay', 'net salary', 'gross to net'],
+    strong: [
+      'take home',
+      'take home pay',
+      'net pay',
+      'net salary',
+      'gross to net',
+    ],
     any: ['takehome', 'deductions from salary'],
     examples: ['What is my take-home pay?', 'Gross to net salary'],
   ),
@@ -192,7 +334,8 @@ const List<Intent> intents = [
     pointer: {
       'route': '/thirteenth-calculator',
       'label': 'Open 13th month pay',
-      'text': 'For 13th month pay, the calculator in Tools figures what you should get, prorated for months worked, and shows the tax-free part up to the 90,000 ceiling.',
+      'text':
+          'For 13th month pay, the calculator in Tools figures what you should get, prorated for months worked, and shows the tax-free part up to the 90,000 ceiling.',
     },
     strong: ['13th month', '13 month', 'thirteenth month', '13th month pay'],
     any: ['13th', 'bonus'],
@@ -204,9 +347,18 @@ const List<Intent> intents = [
     pointer: {
       'route': '/contribution-calculator',
       'label': 'Open Contribution checker',
-      'text': 'For your monthly SSS, PhilHealth, and Pag-IBIG, the Contribution checker in Tools shows what comes out of your pay, what your employer adds, and the total, for any salary.',
+      'text':
+          'For your monthly SSS, PhilHealth, and Pag-IBIG, the Contribution checker in Tools shows what comes out of your pay, what your employer adds, and the total, for any salary.',
     },
-    strong: ['sss', 'philhealth', 'phil health', 'pag ibig', 'pagibig', 'contribution', 'contributions'],
+    strong: [
+      'sss',
+      'philhealth',
+      'phil health',
+      'pag ibig',
+      'pagibig',
+      'contribution',
+      'contributions',
+    ],
     any: ['hdmf', 'sss contribution', 'monthly contribution'],
     examples: ['How much is my SSS?', 'PhilHealth and Pag-IBIG for 25000'],
   ),
@@ -216,9 +368,16 @@ const List<Intent> intents = [
     pointer: {
       'route': '/loan-calculator',
       'label': 'Open Loan calculator',
-      'text': 'To see the real cost of a loan, the Loan calculator in Tools shows the monthly payment, total interest, and the true effective rate, so an add-on quote cannot hide how much it really costs.',
+      'text':
+          'To see the real cost of a loan, the Loan calculator in Tools shows the monthly payment, total interest, and the true effective rate, so an add-on quote cannot hide how much it really costs.',
     },
-    strong: ['amortization', 'monthly amortization', 'loan calculator', 'effective rate', 'true cost of a loan'],
+    strong: [
+      'amortization',
+      'monthly amortization',
+      'loan calculator',
+      'effective rate',
+      'true cost of a loan',
+    ],
     any: ['amortize', 'add on rate'],
     examples: ['Monthly amortization of a loan', 'True cost of a loan'],
   ),
@@ -290,15 +449,21 @@ int _scoreIntent(String norm, List<String> tokens, Intent intent) {
 /// limited suffix set still catches taxes, investing, investments.
 bool _wordHit(String norm, String kw) {
   final esc = RegExp.escape(kw);
-  return RegExp('(?:^|[^a-z0-9])$esc(?:s|es|ing|ment|ments)?(?![a-z0-9])')
-      .hasMatch(norm);
+  return RegExp(
+    '(?:^|[^a-z0-9])$esc(?:s|es|ing|ment|ments)?(?![a-z0-9])',
+  ).hasMatch(norm);
 }
 
 /// detectIntent(normalized) -> { id, guardrail?, score, alternatives }.
 Map<String, dynamic> detectIntent(String norm) {
   for (final g in guardrails) {
     if (g.keywords.any((k) => _wordHit(norm, k))) {
-      return {'id': g.id, 'guardrail': g, 'score': 99, 'alternatives': const []};
+      return {
+        'id': g.id,
+        'guardrail': g,
+        'score': 99,
+        'alternatives': const [],
+      };
     }
   }
   final tokens = norm.split(' ').where((t) => t.isNotEmpty).toList();
@@ -314,7 +479,9 @@ Map<String, dynamic> detectIntent(String norm) {
     return c != 0 ? c : a.$2.compareTo(b.$2);
   });
   final sorted = [for (final e in indexed) e.$1];
-  if (sorted.isEmpty) return {'id': helpId, 'score': 0, 'alternatives': const []};
+  if (sorted.isEmpty) {
+    return {'id': helpId, 'score': 0, 'alternatives': const []};
+  }
   final top = sorted[0];
   if (sorted.length > 1 && sorted[1]['score'] == top['score']) {
     return {

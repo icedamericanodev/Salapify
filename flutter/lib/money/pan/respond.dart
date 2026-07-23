@@ -7,8 +7,18 @@ import '../debtmath.dart' show formatMoneyText;
 import '../ledger.dart' show amountOf;
 
 const List<String> _mon = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 const List<String> _day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -18,7 +28,9 @@ String _m(dynamic n) => formatMoneyText(amountOf(n));
 double _jsRound(num x) => (x + 0.5).floorToDouble();
 
 String _fmtDate(dynamic d) {
-  final DateTime? dt = d is DateTime ? d : (d != null ? DateTime.tryParse(d.toString()) : null);
+  final DateTime? dt = d is DateTime
+      ? d
+      : (d != null ? DateTime.tryParse(d.toString()) : null);
   if (dt == null) return '';
   return '${_day[dt.weekday % 7]}, ${_mon[dt.month - 1]} ${dt.day}';
 }
@@ -26,8 +38,9 @@ String _fmtDate(dynamic d) {
 /// Goal target dates are "YYYY-MM" or "YYYY-MM-DD"; formatted by hand so a
 /// month-only target never gets a spurious day.
 String _fmtTarget(dynamic iso) {
-  final mt = RegExp(r'^(\d{4})-(\d{2})(?:-(\d{2}))?$')
-      .firstMatch((iso ?? '').toString().trim());
+  final mt = RegExp(
+    r'^(\d{4})-(\d{2})(?:-(\d{2}))?$',
+  ).firstMatch((iso ?? '').toString().trim());
   if (mt == null) return '';
   final monNum = int.parse(mt.group(2)!);
   if (monNum < 1 || monNum > 12) return '';
@@ -45,14 +58,14 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           return {
             'mood': 'worried',
             'text':
-                'The bills and minimums due before your ${_fmtDate(facts['payday'])} sweldo already use up your spendable cash. Best to hold off on extras until then. This counts only the bills you have logged, so add any I am missing.',
+                'The bills and minimums due before your ${_fmtDate(facts['payday'])} payday already use up your spendable cash. Best to hold off on extras until then. This counts only the bills you have logged, so add any I am missing.',
             'cta': {'label': 'See what is committed', 'route': '/insights'},
           };
         }
         return {
           'mood': 'idle',
           'text':
-              'You have ${_m(facts['available'])} free to spend until your ${_fmtDate(facts['payday'])} sweldo, about ${_m(facts['perDay'])} a day for ${facts['daysLeft']} days. '
+              'You have ${_m(facts['available'])} free to spend until your ${_fmtDate(facts['payday'])} payday, about ${_m(facts['perDay'])} a day for ${facts['daysLeft']} days. '
               'That already sets aside ${_m(facts['committed'])} for bills and minimums, and it does not touch your savings, on purpose.',
           'cta': {'label': 'See the breakdown', 'route': '/insights'},
         };
@@ -71,14 +84,14 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           return {
             'mood': 'worried',
             'text':
-                'A ${_m(facts['amount'])} buy is more than the ${_m(facts['available'])} you have safe until sweldo. If it can wait until after ${_fmtDate(facts['payday'])}, that is the safer call.',
+                'A ${_m(facts['amount'])} buy is more than the ${_m(facts['available'])} you have safe until payday. If it can wait until after ${_fmtDate(facts['payday'])}, that is the safer call.',
           };
         }
         final perDayAfter = facts['perDayAfter'] as double;
         return {
           'mood': 'happy',
           'text':
-              'You have ${_m(facts['available'])} safe until sweldo. A ${_m(facts['amount'])} buy leaves ${_m(facts['afterBuy'])}, about ${_m(facts['perDayAfter'])} a day for ${facts['daysLeft']} days. ${perDayAfter < 100 ? 'Doable, but tight.' : 'Comfortably doable.'}',
+              'You have ${_m(facts['available'])} safe until payday. A ${_m(facts['amount'])} buy leaves ${_m(facts['afterBuy'])}, about ${_m(facts['perDayAfter'])} a day for ${facts['daysLeft']} days. ${perDayAfter < 100 ? 'Doable, but tight.' : 'Comfortably doable.'}',
         };
       }
 
@@ -98,12 +111,12 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
             ? '$count ${count == 1 ? 'person owes' : 'people owe'} you ${_m(facts['total'])} total. Follow up ${w['name']} first, ${_m(w['outstanding'])} and ${w['daysOverdue']} ${w['daysOverdue'] == 1 ? 'day' : 'days'} past due.'
             : '$count ${count == 1 ? 'person owes' : 'people owe'} you ${_m(facts['total'])} total. Nothing is overdue yet, a gentle reminder is enough.';
         final reminder = w != null
-            ? 'Uy ${w['name']}, pasensya na sa abala, gentle reminder lang sa ${_m(w['outstanding'])}, whenever kaya mo na. Salamat!'
+            ? 'Hi ${w['name']}, gentle reminder about the ${_m(w['outstanding'])} when you get the chance. Thank you!'
             : null;
         return {
           'mood': overdue ? 'worried' : 'idle',
           'text':
-              '$lead Collecting is not being madamot, a calm reminder keeps both the money and the friendship healthy.',
+              '$lead Collecting is not being stingy, a calm reminder keeps both the money and the friendship healthy.',
           'reminder': reminder,
           'cta': {'label': 'Open utang list', 'route': '/receivables'},
         };
@@ -116,17 +129,19 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           return {
             'mood': 'idle',
             'text':
-                'No bills logged before your ${_fmtDate(facts['payday'])} sweldo. If you have some coming, add them so I can protect that cash for you.',
+                'No bills logged before your ${_fmtDate(facts['payday'])} payday. If you have some coming, add them so I can protect that cash for you.',
           };
         }
         final lines = bills
-            .map((b) =>
-                '${b['name']} ${_m(b['amount'])}${!_falsy(b['date']) ? ' (${_fmtDate(b['date'])})' : ''}')
+            .map(
+              (b) =>
+                  '${b['name']} ${_m(b['amount'])}${!_falsy(b['date']) ? ' (${_fmtDate(b['date'])})' : ''}',
+            )
             .join(', ');
         return {
           'mood': 'idle',
           'text':
-              'Before your ${_fmtDate(facts['payday'])} sweldo: $lines. Total ${_m(facts['total'])}. Keep that parked so nothing bounces.',
+              'Before your ${_fmtDate(facts['payday'])} payday: $lines. Total ${_m(facts['total'])}. Keep that parked so nothing bounces.',
           'cta': {'label': 'See bills', 'route': '/insights'},
         };
       }
@@ -208,8 +223,8 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
         final kept = keptRate == null
             ? '$daysLogged ${daysLogged == 1 ? 'day' : 'days'} logged'
             : keptRate < 0
-                ? 'spending passed income'
-                : 'you kept ${_jsRound(keptRate * 100).toInt()}%';
+            ? 'spending passed income'
+            : 'you kept ${_jsRound(keptRate * 100).toInt()}%';
         final topCats = (r['topCats'] as List).cast<Map<String, dynamic>>();
         final top = topCats.isNotEmpty
             ? ' Top spend was ${topCats.first['label']} at ${(topCats.first['pct'] as num).toInt()}%.'
@@ -234,12 +249,13 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
         }
         final hot = facts['hot'] as Map<String, dynamic>?;
         if (hot != null) {
-          final hotAmt =
-              _jsRound((hot['now'] as double) - (hot['expected'] as double));
+          final hotAmt = _jsRound(
+            (hot['now'] as double) - (hot['expected'] as double),
+          );
           return {
             'mood': 'worried',
             'text':
-                '${hot['label']} is at ${_m(hot['now'])} this month. For this point your usual pace is about ${_m(hot['expected'])}, so you are running roughly ${_m(hotAmt)} hot. Easing back frees that before sweldo.',
+                '${hot['label']} is at ${_m(hot['now'])} this month. For this point your usual pace is about ${_m(hot['expected'])}, so you are running roughly ${_m(hotAmt)} hot. Easing back frees that before payday.',
             'cta': {'label': 'See categories', 'route': '/insights'},
           };
         }
@@ -312,7 +328,8 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
         if (p['status'] == 'done') {
           return {
             'mood': 'happy',
-            'text': 'Your ${f['name']} is fully funded. Time to set the next one.',
+            'text':
+                'Your ${f['name']} is fully funded. Time to set the next one.',
             'cta': {'label': 'Goals', 'route': '/goals'},
           };
         }
@@ -391,7 +408,7 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           return {
             'mood': 'idle',
             'text':
-                'Set your payday schedule in More and I will count down your sweldo and figure your safe to spend.',
+                'Set your payday schedule in More and I will count down to your payday and figure your safe to spend.',
             'cta': {'label': 'Set payday', 'route': '/(tabs)/more'},
           };
         }
@@ -399,7 +416,7 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
         return {
           'mood': 'idle',
           'text':
-              'Your next sweldo is ${_fmtDate(facts['next'])}, ${d <= 0 ? 'today' : '$d ${d == 1 ? 'day' : 'days'} away'}, on your ${facts['label']} schedule. Want your safe to spend for those days?',
+              'Your next payday is ${_fmtDate(facts['next'])}, ${d <= 0 ? 'today' : '$d ${d == 1 ? 'day' : 'days'} away'}, on your ${facts['label']} schedule. Want your safe to spend for those days?',
         };
       }
 
@@ -411,8 +428,4 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
 /// JS template truthiness for optional fields like a bill date or a late
 /// interest amount: null, '', 0, and false all suppress the clause.
 bool _falsy(dynamic v) =>
-    v == null ||
-    v == false ||
-    v == '' ||
-    v == 0 ||
-    (v is double && v.isNaN);
+    v == null || v == false || v == '' || v == 0 || (v is double && v.isNaN);

@@ -196,7 +196,7 @@ class _LogSheetState extends State<LogSheet> {
               controller: labelController,
               style: TextStyle(color: Barako.text, fontSize: 16),
               decoration: _decor(
-                type == 'income' ? 'e.g. Sweldo' : 'e.g. Groceries',
+                type == 'income' ? 'e.g. Salary' : 'e.g. Groceries',
               ),
             ),
             if (recents.isNotEmpty) ...[
