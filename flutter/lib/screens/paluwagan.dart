@@ -16,8 +16,18 @@ import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 
 const List<String> _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// Turn an ISO 'YYYY-MM-DD' into '10 Jul 2026'. Returns the raw string on
@@ -52,14 +62,20 @@ class PaluwaganScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Paluwagan',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Paluwagan',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         actions: [
           TextButton(
             onPressed: () => _openSheet(context, null),
-            child: Text('+ Add',
-                style: TextStyle(
-                    color: Barako.primaryText, fontWeight: FontWeight.w700)),
+            child: Text(
+              '+ Add',
+              style: TextStyle(
+                color: Barako.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -74,12 +90,13 @@ class PaluwaganScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
                 Text(
-                  'A paluwagan is interest free and zero sum. Everyone pays the '
-                  'same ambag and takes the pot once. The only thing that '
-                  'changes is your turn, so Salapify reads it honestly: an early '
-                  'turn is like a 0% loan, a late turn is 0% forced savings.',
+                  'Interest free and zero sum. The only variable is your turn, '
+                  'and Salapify reads it for you below.',
                   style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 14, height: 1.45),
+                    color: Barako.textSecondary,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (items.isEmpty)
@@ -99,37 +116,43 @@ class PaluwaganScreen extends StatelessWidget {
   }
 
   Widget _empty(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 24),
-        child: Column(
-          children: [
-            Icon(Icons.groups_outlined, color: Barako.faint, size: 40),
-            const SizedBox(height: 10),
-            Text('No paluwagan yet',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(
-                'Add your office or barkada paluwagan to see your payout date '
-                'and where you stand.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Barako.muted, fontSize: 13)),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => _openSheet(context, null),
-              style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add your first paluwagan',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ],
+    padding: const EdgeInsets.only(top: 24),
+    child: Column(
+      children: [
+        Icon(Icons.groups_outlined, color: Barako.faint, size: 40),
+        const SizedBox(height: 10),
+        Text(
+          'No paluwagan yet',
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      );
+        const SizedBox(height: 4),
+        Text(
+          'Add your office or barkada paluwagan to see your payout date '
+          'and where you stand.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Barako.muted, fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () => _openSheet(context, null),
+          style: FilledButton.styleFrom(
+            backgroundColor: Barako.primary,
+            foregroundColor: Barako.onPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text(
+            'Add your first paluwagan',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
 
   void _openSheet(BuildContext context, Map<String, dynamic>? item) {
     showModalBottomSheet<void>(
@@ -171,61 +194,80 @@ class _PaluwaganCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: PressableScale(
         child: Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.groups_outlined,
-                          color: Barako.primaryText, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(name,
+          child: Semantics(
+            button: true,
+            label:
+                '$name, your payout ${formatMoneyText(payoutAmount)}'
+                '${payoutDate != null ? ' on ${_prettyDate(payoutDate)}' : ''}',
+            hint: 'Edit',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.groups_outlined,
+                          color: Barako.primaryText,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800)),
-                      ),
-                      const SizedBox(width: 8),
-                      _statusPill(done, received, behind, cyclesToPayout),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
+                              color: Barako.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _statusPill(done, received, behind, cyclesToPayout),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       '${formatMoneyText(amount)} ${_cadenceShort(cadence)} · '
-                      '$members members · you are turn $myTurn',
-                      style: TextStyle(color: Barako.muted, fontSize: 12)),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      _figure('YOUR PAYOUT', formatMoneyText(payoutAmount),
-                          Barako.primaryText),
-                      Container(width: 1, height: 32, color: Barako.border),
-                      _figure(
+                      '$members members · your turn is #$myTurn',
+                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _figure(
+                          'YOUR PAYOUT',
+                          formatMoneyText(payoutAmount),
+                          Barako.primaryText,
+                        ),
+                        Container(width: 1, height: 32, color: Barako.border),
+                        _figure(
                           received ? 'RECEIVED ON' : 'PAYOUT DATE',
                           payoutDate != null ? _prettyDate(payoutDate) : 'n/a',
-                          Barako.text),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _progress(currentCycle, members),
-                  const SizedBox(height: 10),
-                  if (behind && !done)
-                    _note(
+                          Barako.text,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _progress(currentCycle, members),
+                    const SizedBox(height: 10),
+                    if (behind && !done)
+                      _note(
                         Icons.error_outline,
                         'Behind by ${formatMoneyText(behindBy)}. Catch up your '
                         'ambag so the group stays whole.',
-                        Barako.warningStrong)
-                  else
-                    _dealRead(dealType, done),
-                ],
+                        Barako.warningStrong,
+                      )
+                    else
+                      _dealRead(dealType, done, received),
+                  ],
+                ),
               ),
             ),
           ),
@@ -234,14 +276,19 @@ class _PaluwaganCard extends StatelessWidget {
     );
   }
 
-  Widget _statusPill(bool done, bool received, bool behind, int cyclesToPayout) {
+  Widget _statusPill(
+    bool done,
+    bool received,
+    bool behind,
+    int cyclesToPayout,
+  ) {
     String text;
     Color bg;
     Color fg;
     if (done) {
       text = 'Done';
       bg = Barako.card;
-      fg = Barako.muted;
+      fg = Barako.textSecondary;
     } else if (behind) {
       text = 'Behind';
       bg = Barako.warningStrong.withValues(alpha: 0.14);
@@ -251,105 +298,140 @@ class _PaluwaganCard extends StatelessWidget {
       bg = Barako.positiveSurface;
       fg = Barako.primaryText;
     } else {
-      text = cyclesToPayout <= 1 ? 'Your turn is near' : '$cyclesToPayout to go';
+      text = cyclesToPayout == 0
+          ? 'Your turn now'
+          : cyclesToPayout == 1
+          ? 'Your turn is near'
+          : '$cyclesToPayout cycles to go';
       bg = Barako.card;
       fg = Barako.textSecondary;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(text,
-          style: TextStyle(
-              color: fg, fontSize: 11, fontWeight: FontWeight.w700)),
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
     );
   }
 
   Widget _figure(String label, String value, Color color) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: Barako.kickerStyle),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(value,
-                    maxLines: 1,
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Barako.kickerStyle),
+          const SizedBox(height: 3),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
-            ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   Widget _progress(int currentCycle, int members) {
     final done = currentCycle.clamp(0, members);
     final frac = members > 0 ? done / members : 0.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: frac,
-            minHeight: 6,
-            backgroundColor: Barako.border,
-            valueColor: AlwaysStoppedAnimation(Barako.primary),
+    return Semantics(
+      label: 'Cycle $done of $members',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: frac,
+                minHeight: 6,
+                backgroundColor: Barako.border,
+                valueColor: AlwaysStoppedAnimation(Barako.primary),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Text('Cycle $done of $members',
-            style: TextStyle(color: Barako.faint, fontSize: 11)),
-      ],
+          const SizedBox(height: 5),
+          Text(
+            'Cycle $done of $members',
+            style: TextStyle(color: Barako.muted, fontSize: 11),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _dealRead(String dealType, bool done) {
+  Widget _dealRead(String dealType, bool done, bool received) {
     if (done) {
-      return _note(Icons.check_circle_outline,
-          'This round is finished. Everyone paid in and took out once.',
-          Barako.primaryText);
+      return _note(
+        Icons.check_circle_outline,
+        'This round is finished. Everyone paid in and took out once.',
+        Barako.primaryText,
+      );
+    }
+    if (received) {
+      return _note(
+        Icons.check_circle_outline,
+        'You already collected the pot. Keep paying your ambag until the '
+        'round finishes so the group stays whole.',
+        Barako.primaryText,
+      );
     }
     switch (dealType) {
       case 'early':
         return _note(
-            Icons.trending_up,
-            'Early turn: like a 0% loan from the group. You get the pot now '
-            'and pay it back over the rest of the round. Set the ambag aside.',
-            Barako.primaryText);
+          Icons.trending_up,
+          'Early turn: like a 0% loan from the group. You get the pot now '
+          'and pay it back over the rest of the round. Set the ambag aside.',
+          Barako.primaryText,
+        );
       case 'late':
         return _note(
-            Icons.savings_outlined,
-            'Late turn: 0% forced savings. You pay in first and collect a lump '
-            'sum later. Great if you struggle to save on your own.',
-            Barako.primaryText);
+          Icons.savings_outlined,
+          'Late turn: 0% forced savings. You pay in first and collect a lump '
+          'sum later. Great if you struggle to save on your own.',
+          Barako.primaryText,
+        );
       default:
         return _note(
-            Icons.balance,
-            'Middle turn: roughly even, no strong loan or savings tilt.',
-            Barako.muted);
+          Icons.balance,
+          'Middle turn: roughly even, no strong loan or savings tilt.',
+          Barako.muted,
+        );
     }
   }
 
   Widget _note(IconData icon, String text, Color color) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text,
-                style:
-                    TextStyle(color: Barako.textSecondary, fontSize: 12.5, height: 1.4)),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 15, color: color),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Barako.textSecondary,
+            fontSize: 12.5,
+            height: 1.4,
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 class _PaluwaganSheet extends StatefulWidget {
@@ -383,17 +465,23 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
     _cadence = eng.paluwaganCadences.any((c) => c['key'] == p?['cadence'])
         ? p!['cadence'] as String
         : 'monthly';
-    _startDate = (p?['startDate'] is String && (p!['startDate'] as String).isNotEmpty)
+    _startDate =
+        (p?['startDate'] is String && (p!['startDate'] as String).isNotEmpty)
         ? p['startDate'] as String
         : _todayISO(DateTime.now());
     _name = TextEditingController(text: p?['name']?.toString() ?? '');
-    _amount = TextEditingController(text: p != null ? _numStr(p['amount']) : '');
-    _members =
-        TextEditingController(text: p != null ? _numStr(p['members']) : '5');
-    _myTurn =
-        TextEditingController(text: p != null ? _numStr(p['myTurn']) : '1');
-    _paidCycles =
-        TextEditingController(text: p != null ? _numStr(p['paidCycles']) : '0');
+    _amount = TextEditingController(
+      text: p != null ? _numStr(p['amount']) : '',
+    );
+    _members = TextEditingController(
+      text: p != null ? _numStr(p['members']) : '5',
+    );
+    _myTurn = TextEditingController(
+      text: p != null ? _numStr(p['myTurn']) : '1',
+    );
+    _paidCycles = TextEditingController(
+      text: p != null ? _numStr(p['paidCycles']) : '0',
+    );
     _note = TextEditingController(text: p?['note']?.toString() ?? '');
   }
 
@@ -422,15 +510,25 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
 
   Future<void> _pickStartDate() async {
     final parts = _startDate.split('-');
-    final initial = parts.length == 3
-        ? DateTime(int.tryParse(parts[0]) ?? DateTime.now().year,
-            int.tryParse(parts[1]) ?? 1, int.tryParse(parts[2]) ?? 1)
+    final firstDate = DateTime(2015);
+    final lastDate = DateTime(DateTime.now().year + 5);
+    var initial = parts.length == 3
+        ? DateTime(
+            int.tryParse(parts[0]) ?? DateTime.now().year,
+            int.tryParse(parts[1]) ?? 1,
+            int.tryParse(parts[2]) ?? 1,
+          )
         : DateTime.now();
+    // A stored startDate from a changed clock or a hand-edited import can fall
+    // outside the picker range. showDatePicker asserts on that in debug, so
+    // clamp before opening; the field still shows the real stored date.
+    if (initial.isBefore(firstDate)) initial = firstDate;
+    if (initial.isAfter(lastDate)) initial = lastDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(2015),
-      lastDate: DateTime(DateTime.now().year + 5),
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked != null) setState(() => _startDate = _todayISO(picked));
   }
@@ -464,8 +562,10 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
       return;
     }
     if (!widget.store.canWrite) {
-      setState(() => _err =
-          'Saving is off because your data could not be read. Import a backup first.');
+      setState(
+        () => _err =
+            'Saving is off because your data could not be read. Import a backup first.',
+      );
       return;
     }
     _saving = true;
@@ -515,19 +615,22 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         constraints: BoxConstraints(
-            maxHeight:
-                (MediaQuery.of(context).size.height - bottomInset) * 0.92),
+          maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.92,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_isEdit ? 'Edit paluwagan' : 'New paluwagan',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+              Text(
+                _isEdit ? 'Edit paluwagan' : 'New paluwagan',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               _label('Name'),
               _input(_name, hint: 'e.g. Office paluwagan'),
               _label('Ambag per cycle'),
@@ -540,8 +643,12 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _label('Members'),
-                        _input(_members,
-                            hint: '5', digitsOnly: true, maxLen: 2),
+                        _input(
+                          _members,
+                          hint: '5',
+                          digitsOnly: true,
+                          maxLen: 2,
+                        ),
                       ],
                     ),
                   ),
@@ -551,8 +658,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _label('Your turn'),
-                        _input(_myTurn,
-                            hint: '1', digitsOnly: true, maxLen: 2),
+                        _input(_myTurn, hint: '1', digitsOnly: true, maxLen: 2),
                       ],
                     ),
                   ),
@@ -574,16 +680,18 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
               _input(_paidCycles, hint: '0', digitsOnly: true, maxLen: 2),
               const SizedBox(height: 6),
               Text(
-                  'This is how many ambag you have put in so far. It tells you '
-                  'if you are behind.',
-                  style: TextStyle(color: Barako.faint, fontSize: 11)),
+                'This is how many ambag you have put in so far. It tells you '
+                'if you are behind.',
+                style: TextStyle(color: Barako.faint, fontSize: 11),
+              ),
               _label('Note (optional)'),
               _input(_note, hint: 'e.g. Kada 15 ng buwan'),
               if (_err != null) ...[
                 const SizedBox(height: 12),
-                Text(_err!,
-                    style:
-                        TextStyle(color: Barako.warningStrong, fontSize: 13)),
+                Text(
+                  _err!,
+                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                ),
               ],
               const SizedBox(height: 22),
               Row(
@@ -594,14 +702,18 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                       onPressed: _delete,
                       style: _confirmDel
                           ? TextButton.styleFrom(
-                              backgroundColor:
-                                  Barako.warningStrong.withValues(alpha: 0.12))
+                              backgroundColor: Barako.warningStrong.withValues(
+                                alpha: 0.12,
+                              ),
+                            )
                           : null,
                       child: Text(
-                          _confirmDel ? 'Tap again to delete' : 'Delete',
-                          style: TextStyle(
-                              color: Barako.warningStrong,
-                              fontWeight: FontWeight.w600)),
+                        _confirmDel ? 'Tap again to delete' : 'Delete',
+                        style: TextStyle(
+                          color: Barako.warningStrong,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   else
                     const SizedBox.shrink(),
@@ -609,8 +721,10 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel',
-                            style: TextStyle(color: Barako.textSecondary)),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Barako.textSecondary),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -618,13 +732,18 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
-                          disabledBackgroundColor:
-                              Barako.primary.withValues(alpha: 0.5),
+                          disabledBackgroundColor: Barako.primary.withValues(
+                            alpha: 0.5,
+                          ),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 14),
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                         ),
-                        child: const Text('Save',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
@@ -639,11 +758,14 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
 
   Widget _cadenceChip(String text, String value) {
     final on = _cadence == value;
+    // One label for both the eye and the screen reader, so they never disagree
+    // (the engine's kinsenas label is long; the chip shows the short word).
+    final shown = value == 'kinsenas' ? 'Kinsenas' : text;
     return Expanded(
       child: Semantics(
         button: true,
         selected: on,
-        label: text,
+        label: shown,
         child: PressableScale(
           child: Material(
             color: on ? Barako.primary : Barako.card,
@@ -655,20 +777,26 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                 setState(() => _cadence = value);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 6,
+                ),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: on ? Barako.primary : Barako.border),
+                  border: Border.all(
+                    color: on ? Barako.primary : Barako.border,
+                  ),
                 ),
                 child: Text(
-                    value == 'kinsenas' ? 'Kinsenas' : text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: on ? Barako.onPrimary : Barako.textSecondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                  shown,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: on ? Barako.onPrimary : Barako.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -677,44 +805,54 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
     );
   }
 
-  Widget _dateField() => PressableScale(
-        child: Material(
-          color: Barako.card,
+  Widget _dateField() => Semantics(
+    button: true,
+    label: 'Start date, ${_prettyDate(_startDate)}, tap to change',
+    child: PressableScale(
+      child: Material(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: _pickStartDate,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Barako.border),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_today_outlined,
-                      size: 16, color: Barako.muted),
-                  const SizedBox(width: 10),
-                  Text(_prettyDate(_startDate),
-                      style: TextStyle(color: Barako.text, fontSize: 15)),
-                ],
-              ),
+          onTap: _pickStartDate,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Barako.border),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: Barako.muted,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _prettyDate(_startDate),
+                  style: TextStyle(color: Barako.text, fontSize: 15),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 6),
-        child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
-      );
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+  );
 
-  Widget _input(TextEditingController c,
-      {String? hint,
-      bool number = false,
-      bool digitsOnly = false,
-      int? maxLen}) {
+  Widget _input(
+    TextEditingController c, {
+    String? hint,
+    bool number = false,
+    bool digitsOnly = false,
+    int? maxLen,
+  }) {
     final formatters = <TextInputFormatter>[
       if (digitsOnly) FilteringTextInputFormatter.digitsOnly,
       if (number && !digitsOnly)
@@ -733,8 +871,10 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
         hintStyle: TextStyle(color: Barako.faint),
         filled: true,
         fillColor: Barako.card,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),
