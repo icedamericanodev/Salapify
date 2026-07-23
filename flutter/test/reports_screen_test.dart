@@ -14,6 +14,12 @@ String _thisMonth(int day) {
   return '${n.year}-${n.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 }
 
+String _monthsAgo(int months, int day) {
+  final n = DateTime.now();
+  final d = DateTime(n.year, n.month - months, day);
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
 Future<void> _openReports(WidgetTester tester) async {
   await tester.tap(find.text('Menu'));
   await tester.pumpAndSettle();
@@ -97,5 +103,51 @@ void main() {
     // the filter with the category name.
     expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
+  });
+
+  testWidgets('the new decision graphs render without overflow', (tester) async {
+    tester.view.physicalSize = const Size(1200, 4200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'accounts': [
+          {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 12000},
+        ],
+        'transactions': [
+          // This month: income plus expenses on five different weekdays, so the
+          // weekday pattern has a real peak to draw.
+          {'id': 'i0', 'date': _thisMonth(15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
+          {'id': 'e1', 'date': _thisMonth(2), 'type': 'expense', 'label': 'Food', 'amount': 400, 'accountId': 'c'},
+          {'id': 'e2', 'date': _thisMonth(3), 'type': 'expense', 'label': 'Grab', 'amount': 300, 'accountId': 'c'},
+          {'id': 'e3', 'date': _thisMonth(4), 'type': 'expense', 'label': 'Food', 'amount': 900, 'accountId': 'c'},
+          {'id': 'e4', 'date': _thisMonth(5), 'type': 'expense', 'label': 'Bills', 'amount': 200, 'accountId': 'c'},
+          {'id': 'e5', 'date': _thisMonth(6), 'type': 'expense', 'label': 'Food', 'amount': 600, 'accountId': 'c'},
+          // Prior months so the net cash flow trend has a positive and a
+          // negative month.
+          {'id': 'i1', 'date': _monthsAgo(1, 15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
+          {'id': 'e6', 'date': _monthsAgo(1, 10), 'type': 'expense', 'label': 'Rent', 'amount': 25000, 'accountId': 'c'},
+          {'id': 'i2', 'date': _monthsAgo(2, 15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
+          {'id': 'e7', 'date': _monthsAgo(2, 10), 'type': 'expense', 'label': 'Food', 'amount': 8000, 'accountId': 'c'},
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openReports(tester);
+
+    // Income tab: the weekday pattern card renders.
+    expect(find.text('WHEN YOU SPEND'), findsOneWidget);
+    expect(find.textContaining('You spend the most on'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Cash flow tab: the net saved-or-spent trend renders above the statement.
+    await tester.tap(find.text('Cash flow'));
+    await tester.pumpAndSettle();
+    expect(find.text('SAVED OR SPENT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
