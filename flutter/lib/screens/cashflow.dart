@@ -10,7 +10,7 @@ import '../data/store.dart';
 import '../money/cashflow_calendar.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../theme.dart';
-import '../widgets/screen_header.dart';
+import 'recurring.dart';
 
 const _months = [
   'Jan',
@@ -46,7 +46,16 @@ class CashFlowScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Barako.background,
+        foregroundColor: Barako.text,
+        title: Text(
+          'Cash flow',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListenableBuilder(
           listenable: store,
           builder: (context, _) {
@@ -64,21 +73,18 @@ class CashFlowScreen extends StatelessWidget {
             final events = <Map<String, dynamic>>[];
             for (final d in days) {
               for (final e in (d['events'] as List)) {
+                // Each event already carries its own balanceAfter from the
+                // engine; just tag which day it lands on for the list.
                 events.add({
                   ...(e as Map).cast<String, dynamic>(),
                   'date': d['date'],
-                  'balance': d['balance'],
                 });
               }
             }
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                ScreenHeader(
-                  'CASH FLOW',
-                  subtitle: 'Your month ahead, day by day',
-                ),
                 _decisionCard(
                   start,
                   end,
@@ -88,7 +94,25 @@ class CashFlowScreen extends StatelessWidget {
                   events.isEmpty,
                 ),
                 const SizedBox(height: 14),
-                if (events.isNotEmpty) ...[
+                if (events.isEmpty)
+                  FilledButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecurringScreen(store: store),
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text(
+                      'Add your sweldo and bills',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  )
+                else ...[
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
@@ -202,12 +226,16 @@ class CashFlowScreen extends StatelessWidget {
                 children: [
                   _figure('NOW', formatMoneyText(start), Barako.text),
                   Container(width: 1, height: 30, color: Barako.border),
-                  _figure(
-                    'LOWEST',
-                    formatMoneyText(lowBal),
-                    anyNegative ? Barako.warningStrong : Barako.text,
-                  ),
-                  Container(width: 1, height: 30, color: Barako.border),
+                  // Only show LOWEST when the month actually dips below today; in
+                  // a steady month it would just repeat the NOW figure.
+                  if (lowBal < start) ...[
+                    _figure(
+                      'LOWEST',
+                      formatMoneyText(lowBal),
+                      anyNegative ? Barako.warningStrong : Barako.text,
+                    ),
+                    Container(width: 1, height: 30, color: Barako.border),
+                  ],
                   _figure(
                     'END OF MONTH',
                     formatMoneyText(end),
@@ -276,51 +304,76 @@ class CashFlowScreen extends StatelessWidget {
   Widget _eventRow(Map<String, dynamic> e) {
     final isIncome = e['kind'] == 'income';
     final amount = (e['amount'] as num).toDouble();
-    final balance = (e['balance'] as num).toDouble();
+    final balance = (e['balanceAfter'] as num?)?.toDouble() ?? 0;
     final color = isIncome ? Barako.primaryText : Barako.warningStrong;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      child: Row(
-        children: [
-          Icon(
-            isIncome ? Icons.south_west : Icons.north_east,
-            size: 18,
-            color: color,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  e['label']?.toString() ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                  ),
+    final label = e['label']?.toString() ?? '';
+    final dateStr = _pretty(e['date'].toString());
+    return Semantics(
+      label:
+          '$label, $dateStr, ${isIncome ? 'in' : 'out'} ${formatMoneyText(amount)}, '
+          'balance ${formatMoneyText(balance)}',
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Row(
+            children: [
+              Icon(
+                isIncome ? Icons.south_west : Icons.north_east,
+                size: 18,
+                color: color,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$dateStr · balance ',
+                            style: TextStyle(color: Barako.faint),
+                          ),
+                          TextSpan(
+                            text: formatMoneyText(balance),
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      style: const TextStyle(fontSize: 11.5),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${_pretty(e['date'].toString())} · balance ${formatMoneyText(balance)}',
-                  style: TextStyle(color: Barako.faint, fontSize: 11.5),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${isIncome ? '+' : '-'}${formatMoneyText(amount)}',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            '${isIncome ? '+' : '-'}${formatMoneyText(amount)}',
-            style: TextStyle(
-              color: color,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -357,8 +410,9 @@ class _BalanceChart extends StatelessWidget {
                 painter: _BalancePainter(
                   days: days,
                   line: Barako.primary,
-                  fill: Barako.primary.withValues(alpha: 0.14),
+                  fill: Barako.primary.withValues(alpha: 0.19),
                   warn: Barako.warningStrong,
+                  label: Barako.muted,
                   grid: Barako.border,
                   anyNegative: anyNegative,
                   lowDate: lowDate,
@@ -392,6 +446,7 @@ class _BalancePainter extends CustomPainter {
   final Color fill;
   final Color warn;
   final Color grid;
+  final Color label;
   final bool anyNegative;
   final String lowDate;
   _BalancePainter({
@@ -400,6 +455,7 @@ class _BalancePainter extends CustomPainter {
     required this.fill,
     required this.warn,
     required this.grid,
+    required this.label,
     required this.anyNegative,
     required this.lowDate,
   });
@@ -468,19 +524,39 @@ class _BalancePainter extends CustomPainter {
     }
     final lowV = vals[lowI];
     final markColor = anyNegative ? warn : line;
+    // Inset the marker so a lowest-day-is-today dot is not clipped at the edge.
+    final markX = x(lowI).clamp(3.5, size.width - 3.5);
+    final markY = y(lowV);
+    canvas.drawCircle(Offset(markX, markY), 3.5, Paint()..color = markColor);
     canvas.drawCircle(
-      Offset(x(lowI), y(lowV)),
-      3.5,
-      Paint()..color = markColor,
-    );
-    canvas.drawCircle(
-      Offset(x(lowI), y(lowV)),
+      Offset(markX, markY),
       3.5,
       Paint()
         ..color = markColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
+
+    // Label the dip day right at the marker, so the tightest day reads at a
+    // glance instead of only from the card.
+    final tp = TextPainter(
+      text: TextSpan(
+        text: _pretty(lowDate),
+        style: TextStyle(
+          color: label,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    // Keep the label inside the canvas horizontally, and place it above the dot
+    // unless that would clip the top, in which case drop it below.
+    var lx = markX - tp.width / 2;
+    lx = lx.clamp(0.0, size.width - tp.width);
+    final aboveY = markY - tp.height - 6;
+    final ly = aboveY < 0 ? markY + 8 : aboveY;
+    tp.paint(canvas, Offset(lx, ly));
   }
 
   @override

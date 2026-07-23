@@ -14,18 +14,36 @@ void main() {
   // income on the 15th, rent 12,000 recurring bill on the 20th, and a credit
   // card minimum of 1,500 due on the 25th.
   Map<String, dynamic> data() => {
-        'accounts': [
-          {'id': 'g', 'kind': 'ewallet', 'balance': 8000},
-          {'id': 's', 'kind': 'savings', 'balance': 50000}, // not liquid
-        ],
-        'recurring': [
-          {'id': 'r1', 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'dayOfMonth': 15},
-          {'id': 'r2', 'type': 'expense', 'label': 'Rent', 'amount': 12000, 'dayOfMonth': 20},
-        ],
-        'debts': [
-          {'id': 'd1', 'name': 'Card', 'remaining': 30000, 'minPayment': 1500, 'dueDay': 25},
-        ],
-      };
+    'accounts': [
+      {'id': 'g', 'kind': 'ewallet', 'balance': 8000},
+      {'id': 's', 'kind': 'savings', 'balance': 50000}, // not liquid
+    ],
+    'recurring': [
+      {
+        'id': 'r1',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 20000,
+        'dayOfMonth': 15,
+      },
+      {
+        'id': 'r2',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 12000,
+        'dayOfMonth': 20,
+      },
+    ],
+    'debts': [
+      {
+        'id': 'd1',
+        'name': 'Card',
+        'remaining': 30000,
+        'minPayment': 1500,
+        'dueDay': 25,
+      },
+    ],
+  };
 
   final ref = DateTime(2026, 7, 10);
 
@@ -45,8 +63,11 @@ void main() {
     var running = r['startBalance'] as double;
     for (final d in daysOf(r)) {
       running += (d['moneyIn'] as double) - (d['moneyOut'] as double);
-      expect((d['balance'] as double), closeTo(running, 1e-9),
-          reason: 'balance must equal the carried running total on ${d['date']}');
+      expect(
+        (d['balance'] as double),
+        closeTo(running, 1e-9),
+        reason: 'balance must equal the carried running total on ${d['date']}',
+      );
     }
     expect(r['endBalance'], closeTo(running, 1e-9));
   });
@@ -83,6 +104,42 @@ void main() {
     expect(card['kind'], 'debt');
   });
 
+  test('each event carries the running balance right after it', () {
+    // Two events on one day: an income and a bill land on the same date, and
+    // each must show its own running balance, not the shared day close.
+    final d = {
+      'accounts': [
+        {'id': 'c', 'kind': 'cash', 'balance': 1000},
+      ],
+      'recurring': [
+        {
+          'id': 'a',
+          'type': 'income',
+          'label': 'Bonus',
+          'amount': 5000,
+          'dayOfMonth': 15,
+        },
+        {
+          'id': 'b',
+          'type': 'expense',
+          'label': 'Rent',
+          'amount': 3000,
+          'dayOfMonth': 15,
+        },
+      ],
+      'debts': [],
+    };
+    final r = cashFlowCalendar(d, ref);
+    final events = (dayAt(r, '2026-07-15')['events'] as List).cast<Map>();
+    expect(events.length, 2);
+    // Income applies first (recurring loop order): 1000 + 5000 = 6000, then
+    // 6000 - 3000 = 3000. The two balanceAfter values differ.
+    expect(events[0]['balanceAfter'], 6000);
+    expect(events[1]['balanceAfter'], 3000);
+    // The last event of the window ends at the window end balance.
+    expect(events[1]['balanceAfter'], dayAt(r, '2026-07-15')['balance']);
+  });
+
   test('a tight month flags the lowest day and the run-out', () {
     // Only 500 liquid, rent 12,000 on the 20th, sweldo not until next month.
     final tight = {
@@ -90,7 +147,13 @@ void main() {
         {'id': 'g', 'kind': 'cash', 'balance': 500},
       ],
       'recurring': [
-        {'id': 'r2', 'type': 'expense', 'label': 'Rent', 'amount': 12000, 'dayOfMonth': 20},
+        {
+          'id': 'r2',
+          'type': 'expense',
+          'label': 'Rent',
+          'amount': 12000,
+          'dayOfMonth': 20,
+        },
       ],
       'debts': [],
     };
@@ -119,12 +182,22 @@ void main() {
         {'id': 'g', 'kind': 'cash', 'balance': 5000},
       ],
       'recurring': [
-        {'id': 'r', 'type': 'expense', 'label': 'Netflix', 'amount': 500, 'dayOfMonth': 5},
+        {
+          'id': 'r',
+          'type': 'expense',
+          'label': 'Netflix',
+          'amount': 500,
+          'dayOfMonth': 5,
+        },
       ],
       'debts': [],
     };
     final r = cashFlowCalendar(d, ref);
-    expect(r['endBalance'], 5000, reason: 'the 5th is behind us, next hit is next month');
+    expect(
+      r['endBalance'],
+      5000,
+      reason: 'the 5th is behind us, next hit is next month',
+    );
   });
 
   test('a fixed look-ahead window runs the right number of days', () {
@@ -150,7 +223,13 @@ void main() {
         {'id': 'g', 'kind': 'cash', 'balance': double.infinity},
       ],
       'recurring': [
-        {'id': 'r', 'type': 'income', 'label': 'x', 'amount': 'abc', 'dayOfMonth': 15},
+        {
+          'id': 'r',
+          'type': 'income',
+          'label': 'x',
+          'amount': 'abc',
+          'dayOfMonth': 15,
+        },
       ],
       'debts': [],
     };

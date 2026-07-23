@@ -47,8 +47,10 @@ double _liquidNow(dynamic accounts) {
 ///
 /// Returns:
 ///   { startBalance, days: [ {date, moneyIn, moneyOut, balance, events:
-///     [{label, amount, kind}] } ... ], endBalance, lowest: {date, balance},
-///     anyNegative, tightestDrop }
+///     [{label, amount, kind, balanceAfter}] } ... ], endBalance,
+///     lowest: {date, balance}, anyNegative, tightestDrop }
+/// where each event's `balanceAfter` is the running balance right after that
+/// item applies (so a day with several events shows a distinct balance each).
 /// where `balance` is the projected end-of-day cash, `lowest` is the tightest
 /// day in the window, and `anyNegative` is true if cash is projected to run out.
 Map<String, dynamic> cashFlowCalendar(
@@ -133,6 +135,18 @@ Map<String, dynamic> cashFlowCalendar(
     final day = byDate[key];
     final moneyIn = day != null ? day['in'] as double : 0.0;
     final moneyOut = day != null ? day['out'] as double : 0.0;
+    // Stamp each event with the running balance right after it applies, so the
+    // screen shows the true balance after this item, not the day close.
+    final events = <Map<String, dynamic>>[];
+    if (day != null) {
+      var running = balance;
+      for (final e in (day['events'] as List)) {
+        final ev = (e as Map).cast<String, dynamic>();
+        final amt = amountOf(ev['amount']);
+        running = _fin(running + (ev['kind'] == 'income' ? amt : -amt));
+        events.add({...ev, 'balanceAfter': running});
+      }
+    }
     balance = _fin(balance + moneyIn - moneyOut);
     if (balance < lowest) {
       lowest = balance;
@@ -144,7 +158,7 @@ Map<String, dynamic> cashFlowCalendar(
       'moneyIn': moneyIn,
       'moneyOut': moneyOut,
       'balance': balance,
-      'events': day != null ? day['events'] : const [],
+      'events': events,
     });
   }
 

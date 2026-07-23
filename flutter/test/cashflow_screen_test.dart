@@ -29,7 +29,10 @@ Future<void> _pump(WidgetTester tester, SalapifyStore store) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
-      MaterialApp(home: CashFlowScreen(store: store, now: _ref)));
+    MaterialApp(
+      home: CashFlowScreen(store: store, now: _ref),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -40,13 +43,25 @@ void main() {
         {'id': 'g', 'name': 'GCash', 'kind': 'ewallet', 'balance': 8000},
       ],
       'recurring': [
-        {'id': 'r1', 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'dayOfMonth': 28},
-        {'id': 'r2', 'type': 'expense', 'label': 'Rent', 'amount': 12000, 'dayOfMonth': 20},
+        {
+          'id': 'r1',
+          'type': 'income',
+          'label': 'Sweldo',
+          'amount': 20000,
+          'dayOfMonth': 28,
+        },
+        {
+          'id': 'r2',
+          'type': 'expense',
+          'label': 'Rent',
+          'amount': 12000,
+          'dayOfMonth': 20,
+        },
       ],
     });
     await _pump(tester, store);
 
-    expect(find.text('CASH FLOW'), findsOneWidget);
+    expect(find.text('Cash flow'), findsOneWidget);
     expect(find.text('PROJECTED BALANCE'), findsOneWidget);
     expect(find.text('WHAT IS COMING'), findsOneWidget);
     expect(find.text('Sweldo'), findsWidgets);
@@ -69,7 +84,13 @@ void main() {
         {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 500},
       ],
       'recurring': [
-        {'id': 'r2', 'type': 'expense', 'label': 'Rent', 'amount': 12000, 'dayOfMonth': 20},
+        {
+          'id': 'r2',
+          'type': 'expense',
+          'label': 'Rent',
+          'amount': 12000,
+          'dayOfMonth': 20,
+        },
       ],
     });
     await _pump(tester, store);
