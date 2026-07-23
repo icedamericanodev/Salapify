@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.08 · Reports get two decision graphs: Saved or spent shows your net cash flow month by month (green when you ended ahead), and When you spend shows your busiest spending weekday so you know when to ease off.';
+    'f2.09 · Faster logging: tap a recent name instead of typing it, and the account you last used is already picked. Plus the backup buttons no longer overflow on small phones.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
