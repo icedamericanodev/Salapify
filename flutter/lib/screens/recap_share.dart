@@ -23,7 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/store.dart';
-import '../money/cycle.dart' show cycleRecap;
+import '../money/cycle.dart' show cycleRecap, cycleRecapText;
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/pan_mood.dart';
 import '../money/recap.dart';
@@ -97,7 +97,13 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
 
   Future<void> _shareText() async {
     try {
-      await Share.share(recapText(_recap, formatMoneyText, _hideAmounts));
+      // Each window has its own text builder so a cycle share never says
+      // "this month" about a cycle percentage.
+      await Share.share(
+        _isCycle
+            ? cycleRecapText(_recap, formatMoneyText, _hideAmounts)
+            : recapText(_recap, formatMoneyText, _hideAmounts),
+      );
     } catch (_) {
       // The user closing the sheet is not an error worth surfacing.
     }
@@ -106,16 +112,24 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
   Future<void> _shareImage() async {
     if (_busy) return;
     setState(() => _busy = true);
+    // Snapshot the window at press time (the chips are also disabled while
+    // busy): the filename, sheet text, and fallback must describe the same
+    // card the capture caught, not whatever the toggle says later.
+    final recap = _recap;
+    final isCycle = _isCycle;
     File? file;
     try {
       final bytes = await _capture();
       if (bytes == null) throw StateError('no snapshot');
       final dir = await getTemporaryDirectory();
-      file = File('${dir.path}/salapify-recap-${_recap['monthKey']}.png');
+      file = File('${dir.path}/salapify-recap-${recap['monthKey']}.png');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([
-        XFile(file.path, mimeType: 'image/png'),
-      ], text: "My month with Salapify");
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'image/png')],
+        text: isCycle
+            ? 'My payday cycle with Salapify'
+            : 'My month with Salapify',
+      );
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -186,7 +200,11 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                         ),
                       ),
                       selected: !_isCycle,
-                      onSelected: (_) => setState(() => _isCycle = false),
+                      // Disabled mid-capture so the PNG, filename, and text
+                      // can never describe different windows.
+                      onSelected: _busy
+                          ? null
+                          : (_) => setState(() => _isCycle = false),
                       selectedColor: Barako.primary,
                       backgroundColor: Barako.card,
                       side: BorderSide(color: Barako.border),
@@ -202,7 +220,9 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                         ),
                       ),
                       selected: _isCycle,
-                      onSelected: (_) => setState(() => _isCycle = true),
+                      onSelected: _busy
+                          ? null
+                          : (_) => setState(() => _isCycle = true),
                       selectedColor: Barako.primary,
                       backgroundColor: Barako.card,
                       side: BorderSide(color: Barako.border),
@@ -341,16 +361,20 @@ class _RecapCard extends StatelessWidget {
         ? PanMood.happy
         : PanMood.worried;
 
+    // Which window the percent belongs to: the cycle map names its noun, the
+    // month map has none and falls back, so a cycle card can never claim
+    // "this month" about a cycle figure in the shared image.
+    final noun = (recap['windowNoun'] as String?) ?? 'month';
     final big = pct == null
         ? '$daysLogged ${daysLogged == 1 ? 'day' : 'days'} logged'
         : kept >= 0
         ? (hideAmounts ? 'Kept ${pct < 0 ? 0 : pct}%' : '${money(kept)} kept')
-        : (hideAmounts ? 'Over this month' : '${money(-kept)} over');
+        : (hideAmounts ? 'Over this $noun' : '${money(-kept)} over');
     final sub = pct == null
         ? 'Every logged day builds the habit.'
         : kept >= 0
         ? (hideAmounts
-              ? 'of my income this month'
+              ? 'of my income this $noun'
               : '${pct < 0 ? 0 : pct}% of income kept')
         : 'spending passed income';
 

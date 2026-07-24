@@ -168,9 +168,34 @@ Map<String, dynamic> cycleRecap(dynamic data, DateTime ref) {
   final settings = d['settings'];
   final schedule = settings is Map ? settings['paydaySchedule'] : null;
   final today = DateTime(ref.year, ref.month, ref.day);
-  final start = prevPayday(ref, schedule);
+  // On payday itself prevPayday returns today, which would collapse the
+  // window to hours and brag "kept 100%" about a cycle just born. Payday is
+  // exactly when the FINISHED cycle is worth sharing, so on a payday the
+  // window becomes the completed cycle: from the payday before, through
+  // yesterday, keeping today's fresh salary out of the finished story.
+  var start = prevPayday(ref, schedule);
+  var end = today;
+  if (!start.isBefore(today)) {
+    end = DateTime(today.year, today.month, today.day - 1);
+    start = prevPayday(end, schedule);
+  }
   bool inWindow(DateTime? when) =>
-      when != null && !when.isBefore(start) && !when.isAfter(today);
+      when != null && !when.isBefore(start) && !when.isAfter(end);
+
+  // Category naming must match the golden monthRecap exactly (categoryId
+  // resolves through the categories list first, then the label, then Other,
+  // with the same falsy folding), or the two windows on one screen would
+  // name a different top category for the same rows. categoryId is alive:
+  // imported RN backups and the Flutter budget quick-add both write it.
+  final cats = d['categories'] is List ? d['categories'] as List : const [];
+  final catNames = <dynamic, dynamic>{
+    for (final c in cats)
+      if (c is Map) c['id']: c['name'],
+  };
+  String jsStr(dynamic v) =>
+      (v == null || v == false || v == 0 || v == '' || (v is double && v.isNaN))
+      ? ''
+      : v.toString();
 
   var moneyIn = 0.0;
   var moneyOut = 0.0;
@@ -190,7 +215,13 @@ Map<String, dynamic> cycleRecap(dynamic data, DateTime ref) {
       days.add(ds);
       final amt = amountOf(raw['amount']);
       moneyOut += amt;
-      var name = (raw['label'] is String ? raw['label'] as String : '').trim();
+      final catId = raw['categoryId'];
+      final catName =
+          (catId != null && catId != false && catId != '' && catId != 0)
+          ? catNames[catId]
+          : null;
+      var name = jsStr(catName).trim();
+      if (name.isEmpty) name = jsStr(raw['label']).trim();
       if (name.isEmpty) name = 'Other';
       final k = name.toLowerCase();
       var bucket = byCat[k];
@@ -273,6 +304,9 @@ Map<String, dynamic> cycleRecap(dynamic data, DateTime ref) {
   return {
     'label': 'payday cycle since $startLabel',
     'kicker': 'MY CYCLE SINCE ${startLabel.toUpperCase()}',
+    // The card's hide-amounts lines say "of my income this <noun>"; the
+    // month map has no noun and falls back to 'month'.
+    'windowNoun': 'cycle',
     'monthKey':
         'cycle-${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}',
     'moneyIn': moneyIn,
@@ -286,6 +320,45 @@ Map<String, dynamic> cycleRecap(dynamic data, DateTime ref) {
     'utangCollected': utangCollected,
     'verdict': verdict,
   };
+}
+
+/// The share-as-text fallback for the cycle window, mirroring the golden
+/// recapText line for line but saying "cycle" where it says "month" (the
+/// golden file stays untouched).
+String cycleRecapText(
+  Map<String, dynamic> recap,
+  String Function(num) formatMoney, [
+  bool hideAmounts = false,
+]) {
+  final lines = <String>['My ${recap['label']} with Salapify:'];
+  final keptRate = recap['keptRate'];
+  if (keptRate != null) {
+    if (hideAmounts) {
+      lines.add(
+        (recap['kept'] as double) >= 0
+            ? 'Kept ${_jsRound((keptRate as double) * 100).toInt()}% of my income this cycle.'
+            : 'Spending passed my income this cycle.',
+      );
+    } else {
+      lines.add(
+        'Money in ${formatMoney(recap['moneyIn'] as double)}, out ${formatMoney(recap['moneyOut'] as double)}, kept ${formatMoney(recap['kept'] as double)}.',
+      );
+    }
+  }
+  final topCats = recap['topCats'] as List;
+  if (topCats.isNotEmpty) {
+    final top = topCats.first as Map;
+    lines.add(
+      'Top spending: ${top['label']} (${(top['pct'] as num).toInt()}%).',
+    );
+  }
+  final daysLogged = recap['daysLogged'] as int;
+  if (daysLogged > 0) {
+    lines.add('Logged $daysLogged ${daysLogged == 1 ? 'day' : 'days'}.');
+  }
+  lines.add(recap['verdict'] as String);
+  lines.add("Tracked with Salapify, on your money's side. ☕");
+  return lines.join('\n');
 }
 
 /// The Home card's whole state, composed from tested engines. Junk never

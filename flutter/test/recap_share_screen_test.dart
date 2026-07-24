@@ -134,6 +134,15 @@ void main() {
         'accounts': [
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
         ],
+        // Payday pinned to tomorrow: on a payday the cycle card would show
+        // the FINISHED cycle (ending yesterday), which would exclude today's
+        // rows and flake this test on the 15th or month-end.
+        'settings': {
+          'paydaySchedule': {
+            'mode': 'weekly',
+            'weekday': (DateTime.now().weekday % 7 + 1) % 7,
+          },
+        },
         'transactions': [
           {
             'id': 'i1',

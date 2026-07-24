@@ -367,6 +367,79 @@ void main() {
       expect(r['verdict'], contains('tracked this cycle honestly'));
     });
 
+    test(
+      'categoryId resolves through categories, matching monthRecap (QA)',
+      () {
+        // Imported RN data carries categoryId with the note as label; the two
+        // windows on one screen must name the same top category.
+        final d = seed();
+        d['categories'] = [
+          {'id': 'cat1', 'name': 'Food'},
+        ];
+        d['transactions'] = [
+          {
+            'id': 'e1',
+            'type': 'expense',
+            'label': 'grab to work',
+            'amount': 2000,
+            'date': '2026-07-06',
+          },
+          {
+            'id': 'e2',
+            'type': 'expense',
+            'label': 'jollibee',
+            'amount': 900,
+            'categoryId': 'cat1',
+            'date': '2026-07-07',
+          },
+          {
+            'id': 'e3',
+            'type': 'expense',
+            'label': 'mcdo',
+            'amount': 700,
+            'categoryId': 'cat1',
+            'date': '2026-07-08',
+          },
+        ];
+        final r = cycleRecap(d, ref);
+        final top = (r['topCats'] as List).first as Map;
+        expect(top['label'], 'grab to work');
+        expect(top['amount'], 2000);
+        final second = (r['topCats'] as List)[1] as Map;
+        expect(
+          second['label'],
+          'Food',
+          reason: 'the two cat1 rows fold into the category name',
+        );
+        expect(second['amount'], 1600);
+      },
+    );
+
+    test('on payday itself the card shows the FINISHED cycle (QA)', () {
+      // Ref Jul 5 IS the payday: the window becomes Jun 5 through Jul 4, so
+      // the fresh salary stays out of the finished story and the card never
+      // brags "kept 100%" about a cycle a few hours old.
+      final d = seed();
+      final r = cycleRecap(d, DateTime(2026, 7, 5));
+      expect(r['label'], 'payday cycle since Jun 5');
+      expect(
+        r['moneyIn'],
+        9999,
+        reason: 'only the Jul 4 income sits in Jun 5..Jul 4',
+      );
+      expect(r['moneyOut'], 0);
+    });
+
+    test('cycleRecapText says cycle, never month', () {
+      final r = cycleRecap(seed(), ref);
+      final hidden = cycleRecapText(r, (n) => 'P$n', true);
+      expect(hidden, contains('of my income this cycle'));
+      expect(hidden.contains('month'), isFalse);
+      final open = cycleRecapText(r, (n) => 'P$n');
+      expect(open, contains('Money in P10000.0'));
+      expect(open, contains('My payday cycle since Jul 5 with Salapify:'));
+    });
+
     test('junk never throws', () {
       expect(cycleRecap(null, ref)['daysLogged'], 0);
       expect(cycleRecap('junk', ref)['daysLogged'], 0);
