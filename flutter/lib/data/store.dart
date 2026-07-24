@@ -1108,6 +1108,29 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  /// Accept a Steady Pay weekly draw (founder-approved stored field,
+  /// 2026-07-24). A conditional settings key: setting writes it, clearing
+  /// removes it entirely so a backup without it never gains the key.
+  Future<void> setSteadyPay(double amount) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'steadyPay': {
+          'amount': amount,
+          'acceptedAt': DateTime.now().toIso8601String().substring(0, 10),
+        },
+      },
+    },
+  );
+
+  Future<void> clearSteadyPay() => _mutate((d) {
+    final settings = ((d['settings'] as Map?) ?? const {})
+        .cast<String, dynamic>();
+    final next = {...settings}..remove('steadyPay');
+    return {...d, 'settings': next};
+  });
+
   /// Unlock Pro. During early access Pro is free and early users keep it free,
   /// so this is the honest "unlock" the recurring cap offers. A plain settings
   /// write, preserved by backup like every other settings key.

@@ -491,6 +491,21 @@ Map<String, dynamic> sanitizeData(
       } else {
         s.remove('paluwagans');
       }
+      // Steady Pay (the accepted weekly draw) is Flutter-era too, and the
+      // same CONDITIONAL-key rule applies: present only when a valid
+      // accepted amount exists, absent otherwise, so RN-generated fixtures
+      // never gain the key and the golden key-set contract holds. Founder
+      // approved 2026-07-24.
+      final sp = settings['steadyPay'];
+      final spAmt = sp is Map ? _num(sp['amount']) : 0.0;
+      if (sp is Map && spAmt > 0 && spAmt.isFinite) {
+        s['steadyPay'] = {
+          'amount': spAmt,
+          'acceptedAt': _str(sp['acceptedAt']),
+        };
+      } else {
+        s.remove('steadyPay');
+      }
       final cur = s['currency'];
       if (cur is! String || cur.isEmpty) s.remove('currency');
       if (s['currencyCode'] is! String) s.remove('currencyCode');
