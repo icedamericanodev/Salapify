@@ -122,4 +122,43 @@ void main() {
     // The honest over line still reads sympathetic, not shameful.
     expect(find.textContaining('over'), findsWidgets);
   });
+
+  testWidgets('a no-verdict month (expenses only) shows a calm Pan', (
+    tester,
+  ) async {
+    // No income means no keptRate, so the card celebrates the habit instead
+    // and Pan rests calm, completing the three-mood pin.
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'transactions': [
+          {
+            'id': 'e1',
+            'date': _thisMonth(5),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 400,
+          },
+          {
+            'id': 'e2',
+            'date': _thisMonth(6),
+            'type': 'expense',
+            'label': 'Fare',
+            'amount': 60,
+          },
+        ],
+      }),
+    });
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openRecap(tester);
+
+    expect(find.bySemanticsLabel('Pan looking calm'), findsWidgets);
+    expect(find.textContaining('days logged'), findsWidgets);
+  });
 }

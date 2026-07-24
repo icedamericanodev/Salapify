@@ -117,7 +117,13 @@ class PanPalette {
 class PanCupPainter extends CustomPainter {
   final PanMood mood;
   final double wisp; // 0..1 one-shot progress, for a gentle steam settle
-  final PanPalette? palette; // null = live Barako, read at paint time
+
+  /// null = live Barako, read fresh on every paint. Two cautions for future
+  /// callers: shouldRepaint compares palettes by IDENTITY, so pass a const
+  /// (like the share card does) or a cached instance, never a fresh object per
+  /// build; and do not wrap Pan in his own RepaintBoundary, a theme switch
+  /// is invisible to shouldRepaint and would leave him in stale colors.
+  final PanPalette? palette;
   PanCupPainter({required this.mood, required this.wisp, this.palette});
 
   PanPalette get _colors =>
