@@ -123,6 +123,64 @@ void main() {
     expect(find.textContaining('over'), findsWidgets);
   });
 
+  testWidgets('the Payday cycle chip re-windows the card', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'accounts': [
+          {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        ],
+        // Payday pinned to tomorrow: on a payday the cycle card would show
+        // the FINISHED cycle (ending yesterday), which would exclude today's
+        // rows and flake this test on the 15th or month-end.
+        'settings': {
+          'paydaySchedule': {
+            'mode': 'weekly',
+            'weekday': (DateTime.now().weekday % 7 + 1) % 7,
+          },
+        },
+        'transactions': [
+          {
+            'id': 'i1',
+            'date': _thisMonth(DateTime.now().day),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e1',
+            'date': _thisMonth(DateTime.now().day),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 5000,
+            'accountId': 'c',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openRecap(tester);
+
+    // Month window first, then flip to the cycle.
+    expect(find.textContaining('MY CYCLE SINCE'), findsNothing);
+    await tester.tap(find.text('Payday cycle'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Payday cycle recap'), findsOneWidget);
+    expect(find.textContaining('MY CYCLE SINCE'), findsWidgets);
+    // Today's income and expense land inside any cycle window (the window
+    // always ends today), so the kept headline renders with a happy Pan.
+    expect(find.textContaining('kept'), findsWidgets);
+    expect(find.bySemanticsLabel('Pan looking happy'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a no-verdict month (expenses only) shows a calm Pan', (
     tester,
   ) async {
