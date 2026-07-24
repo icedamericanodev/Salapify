@@ -101,7 +101,7 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           return {
             'mood': 'idle',
             'text':
-                'No one owes you right now, your utang list is clear. When you lend, log it here and I will track who to follow up.',
+                'No one owes you right now, your IOU list is clear. When you lend, log it here and I will track who to follow up.',
           };
         }
         final w = facts['worst'] as Map<String, dynamic>?;
@@ -118,7 +118,7 @@ Map<String, dynamic> respond(Map<String, dynamic> facts) {
           'text':
               '$lead Collecting is not being stingy, a calm reminder keeps both the money and the friendship healthy.',
           'reminder': reminder,
-          'cta': {'label': 'Open utang list', 'route': '/receivables'},
+          'cta': {'label': 'Open Utang', 'route': '/receivables'},
         };
       }
 

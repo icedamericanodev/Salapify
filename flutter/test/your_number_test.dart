@@ -67,7 +67,7 @@ void main() {
     // safe-to-spend breakdown lives.
     await tester.tap(find.text('YOUR NUMBER'));
     await tester.pumpAndSettle();
-    expect(find.text('SAFE TO SPEND UNTIL SWELDO'), findsWidgets);
+    expect(find.text('SAFE TO SPEND UNTIL PAYDAY'), findsWidgets);
   });
 
   testWidgets('five quiet days greet the comeback kindly', (tester) async {

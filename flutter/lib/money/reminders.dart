@@ -163,7 +163,7 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
           : 'Someone';
       final amount = _peso(remaining);
       add(
-        'Utang due tomorrow',
+        'IOU due tomorrow',
         "$person's $amount is due tomorrow.",
         DateTime(due.year, due.month, due.day - 1, 9),
       );

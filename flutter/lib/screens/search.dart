@@ -56,9 +56,15 @@ class _SearchScreenState extends State<SearchScreen> {
       case 'transactions':
         // Push History pre-filtered to the same words, so tapping a result
         // actually shows it rather than dumping the user on the full list.
-        Navigator.of(context).push(MaterialPageRoute(
+        Navigator.of(context).push(
+          MaterialPageRoute(
             builder: (_) => HistoryScreen(
-                store: widget.store, initialQuery: _query.text, pushed: true)));
+              store: widget.store,
+              initialQuery: _query.text,
+              pushed: true,
+            ),
+          ),
+        );
         break;
       case 'utang':
         Navigator.of(context).pop();
@@ -186,7 +192,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Search across your entries, utang, debts, goals, and notes. Try a name, a place, a category, or an amount.',
+            'Search across your entries, IOUs, debts, goals, and notes. Try a name, a place, a category, or an amount.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Barako.muted, fontSize: 14, height: 1.5),
           ),

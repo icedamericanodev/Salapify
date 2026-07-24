@@ -183,7 +183,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             if (receivableHeavy) ...[
               const SizedBox(height: 6),
               Text(
-                'A big part of this is utang owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
+                'A big part of this is money owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
                 style: TextStyle(
                   color: Barako.faint,
                   fontSize: 12,
@@ -314,7 +314,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } else {
       head = '${formatMoney(-net)} short';
       interp =
-          'You spent more than you earned this month. One big month happens; if it repeats, the gap comes out of savings or onto utang. Pick one line to ease off, not everything.';
+          'You spent more than you earned this month. One big month happens; if it repeats, the gap comes out of savings or onto borrowed money. Pick one line to ease off, not everything.';
     }
 
     return _statementCard(
@@ -810,7 +810,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           : 'Your normal life paid for itself this month, with cash to spare. That is the engine everything else runs on.';
     } else if (op < 0 && netChange >= 0) {
       interp =
-          'Your cash went up, but only because you borrowed, collected utang, or sold something. Your day-to-day spending actually ran ${formatMoney(-op)} short.';
+          'Your cash went up, but only because you borrowed, collected what you were owed, or sold something. Your day-to-day spending actually ran ${formatMoney(-op)} short.';
       if (fin > 0) {
         interp += ' Watch this one, borrowed cash has to be paid back.';
       }
@@ -818,7 +818,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } else {
       head = '${formatMoney(-netChange)} less cash';
       interp =
-          'More cash moved out than came in this month. If your day-to-day keeps running short, the gap is coming from somewhere, usually savings or new utang.';
+          'More cash moved out than came in this month. If your day-to-day keeps running short, the gap is coming from somewhere, usually savings or new borrowing.';
     }
 
     List<Widget> bucket(String name, Map m) {
@@ -847,7 +847,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       lines: [
         ...bucket('Day to day', s['operating'] as Map),
         ...bucket('Buying or selling', s['investing'] as Map),
-        ...bucket('Utang and loans', s['financing'] as Map),
+        ...bucket('Loans and IOUs', s['financing'] as Map),
         _divider(),
         _line(
           'Net change in cash',
@@ -888,8 +888,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final gap = liquidGap(s);
     final interp = gap >= 0
-        ? 'If every short-term debt came due today, your cash, e-wallets, and utang owed to you would cover it, with ${formatMoney(gap)} to spare.'
-        : 'If every short-term debt came due today, your cash, e-wallets, and utang owed to you would fall ${formatMoney(-gap)} short. A small buffer you do not touch is the fix.';
+        ? 'If every short-term debt came due today, your cash, e-wallets, and money owed to you would cover it, with ${formatMoney(gap)} to spare.'
+        : 'If every short-term debt came due today, your cash, e-wallets, and money owed to you would fall ${formatMoney(-gap)} short. A small buffer you do not touch is the fix.';
 
     return _statementCard(
       forLabel: 'As of today',
@@ -902,7 +902,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _line('What you own', totalAssets, total: true, color: Barako.primary),
         if (cash > 0) _line('Cash', cash, sub: true),
         if (bank > 0) _line('Bank and e-wallets', bank, sub: true),
-        if (recv > 0) _line('Utang owed to you', recv, sub: true),
+        if (recv > 0) _line('Owed to you', recv, sub: true),
         if (investments > 0)
           _line('Assets and holdings', investments, sub: true),
         const SizedBox(height: 6),
@@ -915,7 +915,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         if (shortDebts > 0)
           _line('Cards and short loans', shortDebts, sub: true),
         if (longDebts > 0) _line('Long-term loans', longDebts, sub: true),
-        if (payables > 0) _line('Utang you owe', payables, sub: true),
+        if (payables > 0) _line('You owe', payables, sub: true),
         _divider(),
         _line(
           'Net worth',

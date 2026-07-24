@@ -33,14 +33,20 @@ class _WindfallCardState extends State<WindfallCard> {
 
   double _parse(TextEditingController c) {
     var cleaned = c.text.replaceAll(RegExp(r'[^0-9.]'), '');
-    if ('.'.allMatches(cleaned).length > 1) cleaned = cleaned.replaceAll('.', '');
+    if ('.'.allMatches(cleaned).length > 1) {
+      cleaned = cleaned.replaceAll('.', '');
+    }
     return double.tryParse(cleaned) ?? 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    final r = splitWindfall(widget.data, widget.ref,
-        amount: _parse(_amount), setAside: _parse(_setAside));
+    final r = splitWindfall(
+      widget.data,
+      widget.ref,
+      amount: _parse(_amount),
+      setAside: _parse(_setAside),
+    );
     final applicable = r['applicable'] == true;
 
     return Card(
@@ -52,30 +58,37 @@ class _WindfallCardState extends State<WindfallCard> {
             Text('MAY NATANGGAP NA MALAKI?', style: Barako.kickerStyle),
             const SizedBox(height: 6),
             Text(
-                'A 13th month, bonus, tax refund, or paluwagan payout? See a sound way to split it before it disappears.',
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 13, height: 1.4)),
+              'A 13th month, bonus, tax refund, or paluwagan payout? See a sound way to split it before it disappears.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 14),
             _field(_amount, 'How much landed'),
             const SizedBox(height: 10),
             Text('Set aside first, optional', style: Barako.kickerStyle),
             const SizedBox(height: 4),
             Text(
-                'Money you already need soon: gifts, tuition, premiums, a paluwagan turn, or ongoing hulog.',
-                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3)),
+              'Money you already need soon: gifts, tuition, premiums, a paluwagan turn, or ongoing installments.',
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+            ),
             const SizedBox(height: 6),
             _field(_setAside, 'Amount to keep aside'),
             const SizedBox(height: 16),
             if (!applicable)
-              Text('Enter what you received to see a plan.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13))
+              Text(
+                'Enter what you received to see a plan.',
+                style: TextStyle(color: Barako.muted, fontSize: 13),
+              )
             else
               _plan(r),
             const SizedBox(height: 14),
             Text(
-                'A suggested split from your own cushion, debts, and goals. Nothing is moved for you. Ikaw pa rin ang bahala.',
-                style:
-                    TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'A suggested split from your own cushion, debts, and goals. Nothing is moved for you. Ikaw pa rin ang bahala.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
           ],
         ),
       ),
@@ -83,37 +96,40 @@ class _WindfallCardState extends State<WindfallCard> {
   }
 
   Widget _field(TextEditingController c, String hint) => TextField(
-        controller: c,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        onChanged: (_) => setState(() {}),
-        style: TextStyle(
-            color: Barako.text, fontSize: 18, fontWeight: FontWeight.w700),
-        decoration: InputDecoration(
-          prefixText: '₱ ',
-          prefixStyle: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700),
-          hintText: hint,
-          hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
-          filled: true,
-          fillColor: Barako.background,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Barako.primary, width: 1.4),
-          ),
-        ),
-      );
+    controller: c,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    onChanged: (_) => setState(() {}),
+    style: TextStyle(
+      color: Barako.text,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+    ),
+    decoration: InputDecoration(
+      prefixText: '₱ ',
+      prefixStyle: TextStyle(
+        color: Barako.textSecondary,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
+      hintText: hint,
+      hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
+      filled: true,
+      fillColor: Barako.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Barako.primary, width: 1.4),
+      ),
+    ),
+  );
 
   Widget _plan(Map<String, dynamic> r) {
     final slices = (r['slices'] as List).cast<Map<String, dynamic>>();
@@ -125,65 +141,91 @@ class _WindfallCardState extends State<WindfallCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (setAside > 0) ...[
-            _row('Set aside for what you need soon', setAside,
-                color: Barako.textSecondary),
+            _row(
+              'Set aside for what you need soon',
+              setAside,
+              color: Barako.textSecondary,
+            ),
             const SizedBox(height: 6),
           ],
           for (final s in slices) ...[
-            _row(s['label'] as String, (s['amount'] as num).toDouble(),
-                color: Barako.primary),
+            _row(
+              s['label'] as String,
+              (s['amount'] as num).toDouble(),
+              color: Barako.primary,
+            ),
             const SizedBox(height: 2),
-            Text(s['detail'] as String,
-                style: TextStyle(
-                    color: Barako.muted, fontSize: 12, height: 1.35)),
+            Text(
+              s['detail'] as String,
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+            ),
             const SizedBox(height: 8),
           ],
           Divider(color: Barako.border, height: 16),
           _row(
-              leftover > 0
-                  ? 'Keep for long-term goals or investing'
-                  : 'Nothing left over',
-              leftover,
-              color: leftover > 0 ? Barako.primaryText : Barako.muted,
-              bold: true),
+            leftover > 0
+                ? 'Keep for long-term goals or investing'
+                : 'Nothing left over',
+            leftover,
+            color: leftover > 0 ? Barako.primaryText : Barako.muted,
+            bold: true,
+          ),
           if (r['usedFloor'] == true) ...[
             const SizedBox(height: 10),
             Text(
-                'Based on a starter cushion of ₱10,000 for now. Log a few months and this uses your real monthly spending.',
-                style:
-                    TextStyle(color: Barako.textSecondary, fontSize: 12, height: 1.35)),
+              'Based on a starter cushion of ₱10,000 for now. Log a few months and this uses your real monthly spending.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
           ],
           if (r['rateUnfilled'] == true) ...[
             const SizedBox(height: 10),
             Text(
-                'One debt has no monthly interest rate saved, so it could not be ranked. Add its rate in Utang so a real windfall knows to hit it first.',
-                style: TextStyle(
-                    color: Barako.warning, fontSize: 12, height: 1.35)),
+              'One debt has no monthly interest rate saved, so it could not be ranked. Add its rate in Utang so a real windfall knows to hit it first.',
+              style: TextStyle(
+                color: Barako.warning,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _row(String label, double amount, {required Color color, bool bold = false}) =>
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    color: bold ? color : Barako.text,
-                    fontSize: 14,
-                    fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+  Widget _row(
+    String label,
+    double amount, {
+    required Color color,
+    bool bold = false,
+  }) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: bold ? color : Barako.text,
+            fontSize: 14,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
           ),
-          const SizedBox(width: 8),
-          Text(_peso(amount),
-              style: TextStyle(
-                  color: color,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800)),
-        ],
-      );
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text(
+        _peso(amount),
+        style: TextStyle(
+          color: color,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ],
+  );
 
   static const double _pesoCeiling = 1e12;
   String _peso(double v) {

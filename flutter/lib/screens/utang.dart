@@ -299,7 +299,7 @@ class _PersonRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$sub · $count ${count == 1 ? 'utang' : 'utang entries'}',
+                    '$sub · $count ${count == 1 ? 'entry' : 'entries'}',
                     style: TextStyle(
                       color: overdue ? Barako.warning : Barako.muted,
                       fontSize: 12,
@@ -422,7 +422,7 @@ class _PersonSheetState extends State<PersonSheet> {
         backgroundColor: Barako.card,
         title: Text('Mark as paid?', style: TextStyle(color: Barako.text)),
         content: Text(
-          'Log ${formatMoney(remaining)} from ${widget.name} as received and close this utang?',
+          'Log ${formatMoney(remaining)} from ${widget.name} as received and mark it settled?',
           style: TextStyle(color: Barako.textSecondary),
         ),
         actions: [
@@ -945,7 +945,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               const SizedBox(height: 4),
               Text(
                 'Pick an account and the lent amount moves out of it now, '
-                'then comes back when they pay. Skip it to just track the utang.',
+                'then comes back when they pay. Skip it to just track what is owed.',
                 style: TextStyle(color: Barako.faint, fontSize: 12),
               ),
               const SizedBox(height: 8),
@@ -980,7 +980,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                 ),
                 onPressed: saving ? null : _save,
                 child: Text(
-                  saving ? 'Saving...' : 'Save utang',
+                  saving ? 'Saving...' : 'Save',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

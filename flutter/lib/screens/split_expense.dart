@@ -291,7 +291,7 @@ class _SplitSheetState extends State<_SplitSheet> {
                     child: Text(
                       collectFrom == 0
                           ? 'Add someone'
-                          : 'Create ${formatMoneyText(toCollect)} utang',
+                          : 'Create ${formatMoneyText(toCollect)} to collect',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -510,7 +510,7 @@ class _SplitSheetState extends State<_SplitSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your share stays a normal expense. Only the rest becomes utang.',
+            'Your share stays a normal expense. Only the rest becomes money to collect.',
             style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
           ),
         ],

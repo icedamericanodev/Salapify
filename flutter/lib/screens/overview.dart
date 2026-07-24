@@ -725,7 +725,7 @@ class OverviewScreen extends StatelessWidget {
           _kicker('WELCOME'),
           const SizedBox(height: 8),
           Text(
-            'Wala pang laman, and that is okay.',
+            'Nothing here yet, and that is okay.',
             style: TextStyle(
               color: Barako.text,
               fontSize: 18,
@@ -756,14 +756,14 @@ class OverviewScreen extends StatelessWidget {
             context,
             Icons.handshake_outlined,
             'See who owes me',
-            'Keep an utang list that adds itself up',
+            'Keep a who-owes-you list that adds itself up',
             () => onSwitchTab?.call(3),
           ),
           const SizedBox(height: 10),
           _lane(
             context,
             Icons.trending_down,
-            'Pay off a debt or utang',
+            'Pay off a debt, formal or between friends',
             'A payoff date and the cheapest way there',
             () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
@@ -951,7 +951,7 @@ class _ExportScreenState extends State<ExportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, utang, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
+                'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, IOUs, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
                 style: TextStyle(
                   color: Barako.textSecondary,
                   fontSize: 14,

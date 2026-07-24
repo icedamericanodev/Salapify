@@ -377,29 +377,29 @@
     "templates": [
       {
         "emoji": "☕",
-        "treat": "Milk tea or kape",
-        "action": "30-minutong lakad",
+        "treat": "Milk tea or coffee",
+        "action": "A 30 minute walk",
         "target": 3,
         "windowDays": 7
       },
       {
         "emoji": "🍟",
         "treat": "Burger or sisig",
-        "action": "Home-cooked baon",
+        "action": "A home-cooked lunch",
         "target": 3,
         "windowDays": 7
       },
       {
         "emoji": "🎬",
         "treat": "Movie night",
-        "action": "Maagang tulog",
+        "action": "An early bedtime",
         "target": 4,
         "windowDays": 7
       },
       {
         "emoji": "🛍️",
-        "treat": "One item sa cart",
-        "action": "Tubig, no softdrinks",
+        "treat": "One item in the cart",
+        "action": "Water, no soda",
         "target": 5,
         "windowDays": 7
       }

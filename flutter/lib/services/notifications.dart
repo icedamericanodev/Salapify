@@ -84,7 +84,7 @@ class Reminders {
     android: AndroidNotificationDetails(
       'reminders',
       'Reminders',
-      channelDescription: 'Log nudges, payday, bills, and utang reminders',
+      channelDescription: 'Log nudges, payday, bills, and IOU reminders',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
     ),

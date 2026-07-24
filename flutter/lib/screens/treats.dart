@@ -28,8 +28,10 @@ class TreatsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Earn your treats',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Earn your treats',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         actions: [
           ListenableBuilder(
             listenable: store,
@@ -37,10 +39,13 @@ class TreatsScreen extends StatelessWidget {
               final atCap = store.treatRules.length >= maxTreats;
               return TextButton(
                 onPressed: atCap ? null : () => _openSheet(context, null),
-                child: Text('+ Add',
-                    style: TextStyle(
-                        color: atCap ? Barako.faint : Barako.primaryText,
-                        fontWeight: FontWeight.w700)),
+                child: Text(
+                  '+ Add',
+                  style: TextStyle(
+                    color: atCap ? Barako.faint : Barako.primaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               );
             },
           ),
@@ -60,7 +65,10 @@ class TreatsScreen extends StatelessWidget {
                   'Pair a small treat with something healthy. Do the healthy '
                   'thing, tap one check-in, and the treat is yours guilt free.',
                   style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 14, height: 1.45),
+                    color: Barako.textSecondary,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 if (rules.isEmpty)
@@ -72,9 +80,10 @@ class TreatsScreen extends StatelessWidget {
                   else
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text('3 of 3 treats. Delete one to add another.',
-                          style:
-                              TextStyle(color: Barako.faint, fontSize: 12)),
+                      child: Text(
+                        '3 of 3 treats. Delete one to add another.',
+                        style: TextStyle(color: Barako.faint, fontSize: 12),
+                      ),
                     ),
                   const SizedBox(height: 20),
                   _honestNote(),
@@ -88,90 +97,99 @@ class TreatsScreen extends StatelessWidget {
   }
 
   Widget _honestNote() => Text(
-        'This tracks a habit, not your wallet. It never blocks a purchase and '
-        'never counts your pesos.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.4),
-      );
+    'This tracks a habit, not your wallet. It never blocks a purchase and '
+    'never counts your pesos.',
+    textAlign: TextAlign.center,
+    style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.4),
+  );
 
   Widget _addAnotherButton(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
-        child: SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _openSheet(context, null),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Barako.primaryText,
-              side: BorderSide(color: Barako.border),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add another treat',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
+    padding: const EdgeInsets.only(top: 4, bottom: 4),
+    child: SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _openSheet(context, null),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Barako.primaryText,
+          side: BorderSide(color: Barako.border),
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-      );
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text(
+          'Add another treat',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    ),
+  );
 
   List<Widget> _emptyState(BuildContext context) => [
-        Text('PICK ONE TO START', style: Barako.kickerStyle),
-        const SizedBox(height: 12),
-        for (final tpl in treats.treatTemplates)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PressableScale(
-              child: Card(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => _openSheet(context, null, template: tpl),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Text(tpl['emoji'] as String,
-                            style: const TextStyle(fontSize: 28)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(tpl['treat'] as String,
-                                  style: TextStyle(
-                                      color: Barako.text,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 2),
-                              Text('${tpl['target']} x ${tpl['action']}',
-                                  style: TextStyle(
-                                      color: Barako.muted, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right,
-                            color: Barako.faint, size: 20),
-                      ],
+    Text('PICK ONE TO START', style: Barako.kickerStyle),
+    const SizedBox(height: 12),
+    for (final tpl in treats.treatTemplates)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: PressableScale(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _openSheet(context, null, template: tpl),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Text(
+                      tpl['emoji'] as String,
+                      style: const TextStyle(fontSize: 28),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tpl['treat'] as String,
+                            style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${tpl['target']} x ${tpl['action']}',
+                            style: TextStyle(color: Barako.muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                  ],
                 ),
               ),
             ),
           ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => _openSheet(context, null),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Barako.primaryText,
-              side: BorderSide(color: Barako.border),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text('Make my own',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
         ),
-        const SizedBox(height: 20),
-        _honestNote(),
-      ];
+      ),
+    const SizedBox(height: 6),
+    SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () => _openSheet(context, null),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Barako.primaryText,
+          side: BorderSide(color: Barako.border),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        child: const Text(
+          'Make my own',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    ),
+    const SizedBox(height: 20),
+    _honestNote(),
+  ];
 
   Widget _treatCard(BuildContext context, Map<String, dynamic> t) {
     final st = treats.treatStatus(t, DateTime.now());
@@ -187,12 +205,12 @@ class TreatsScreen extends StatelessWidget {
 
     final line = earned
         ? 'Earned. Enjoy your ${treatName.toLowerCase()}, you paid for it in '
-            '${action.toLowerCase()}, not regret.'
+              '${action.toLowerCase()}, not regret.'
         : recent == 0
-            ? 'Do your ${action.toLowerCase()}, then tap below. $target check '
-                'ins earns it.'
-            : '$recent of $target self care check ins. $remaining more and it '
-                'is yours.';
+        ? 'Do your ${action.toLowerCase()}, then tap below. $target check '
+              'ins earns it.'
+        : '$recent of $target self care check ins. $remaining more and it '
+              'is yours.';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -204,8 +222,9 @@ class TreatsScreen extends StatelessWidget {
           // and in dark mode, where the positive surface is only a whisper off
           // the normal card.
           border: Border.all(
-              color: earned ? Barako.celebrate : Barako.border,
-              width: earned ? 1.5 : 1),
+            color: earned ? Barako.celebrate : Barako.border,
+            width: earned ? 1.5 : 1,
+          ),
         ),
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -220,15 +239,19 @@ class TreatsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(treatName,
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
+                      Text(
+                        treatName,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(action,
-                          style:
-                              TextStyle(color: Barako.muted, fontSize: 13)),
+                      Text(
+                        action,
+                        style: TextStyle(color: Barako.muted, fontSize: 13),
+                      ),
                     ],
                   ),
                 ),
@@ -236,7 +259,9 @@ class TreatsScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Barako.primary,
                       borderRadius: BorderRadius.circular(8),
@@ -244,15 +269,21 @@ class TreatsScreen extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle,
-                            color: Barako.onPrimary, size: 13),
+                        Icon(
+                          Icons.check_circle,
+                          color: Barako.onPrimary,
+                          size: 13,
+                        ),
                         const SizedBox(width: 4),
-                        Text('EARNED',
-                            style: TextStyle(
-                                color: Barako.onPrimary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1)),
+                        Text(
+                          'EARNED',
+                          style: TextStyle(
+                            color: Barako.onPrimary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -277,12 +308,15 @@ class TreatsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(line,
-                style: TextStyle(
-                    color: earned ? Barako.text : Barako.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
-                    fontWeight: earned ? FontWeight.w600 : FontWeight.w400)),
+            Text(
+              line,
+              style: TextStyle(
+                color: earned ? Barako.text : Barako.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+                fontWeight: earned ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
             const SizedBox(height: 14),
             _CheckInButton(
               doneToday: doneToday,
@@ -301,20 +335,28 @@ class TreatsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('$lifetime self care check ins in total',
-                      style: TextStyle(color: Barako.faint, fontSize: 12)),
+                  child: Text(
+                    '$lifetime self care check ins in total',
+                    style: TextStyle(color: Barako.faint, fontSize: 12),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () => _openSheet(context, t),
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      minimumSize: const Size(44, 44)),
-                  child: Text('Edit',
-                      style: TextStyle(
-                          color: Barako.primaryText,
-                          fontWeight: FontWeight.w600)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: const Size(44, 44),
+                  ),
+                  child: Text(
+                    'Edit',
+                    style: TextStyle(
+                      color: Barako.primaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -327,13 +369,20 @@ class TreatsScreen extends StatelessWidget {
   void _offBanner(BuildContext context) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(
+      ..showSnackBar(
+        const SnackBar(
           content: Text(
-              'Saving is off because your data could not be read. Import a backup to recover first.')));
+            'Saving is off because your data could not be read. Import a backup to recover first.',
+          ),
+        ),
+      );
   }
 
-  void _openSheet(BuildContext context, Map<String, dynamic>? treat,
-      {Map<String, dynamic>? template}) {
+  void _openSheet(
+    BuildContext context,
+    Map<String, dynamic>? treat, {
+    Map<String, dynamic>? template,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -370,7 +419,8 @@ class _CheckInButton extends StatelessWidget {
               color: doneToday ? Barako.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: doneToday ? Barako.primary : Barako.border),
+                color: doneToday ? Barako.primary : Barako.border,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -396,10 +446,10 @@ class _CheckInButton extends StatelessWidget {
                         : 'I did it today',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color:
-                            doneToday ? Barako.onPrimary : Barako.primaryText,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14),
+                      color: doneToday ? Barako.onPrimary : Barako.primaryText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ],
@@ -442,11 +492,14 @@ class _TreatSheetState extends State<_TreatSheet> {
     final t = widget.treat;
     final tpl = widget.template;
     _treat = TextEditingController(
-        text: t?['treat']?.toString() ?? tpl?['treat']?.toString() ?? '');
+      text: t?['treat']?.toString() ?? tpl?['treat']?.toString() ?? '',
+    );
     _action = TextEditingController(
-        text: t?['action']?.toString() ?? tpl?['action']?.toString() ?? '');
+      text: t?['action']?.toString() ?? tpl?['action']?.toString() ?? '',
+    );
     _emoji = TextEditingController(
-        text: t?['emoji']?.toString() ?? tpl?['emoji']?.toString() ?? '☕');
+      text: t?['emoji']?.toString() ?? tpl?['emoji']?.toString() ?? '☕',
+    );
     _windowDays = _asInt(t?['windowDays'] ?? tpl?['windowDays'], 7, 1, 31);
     // Never let the earn count exceed the window: recent can never reach a
     // target above the number of days in the window, so the treat would be
@@ -470,9 +523,13 @@ class _TreatSheetState extends State<_TreatSheet> {
   void _offBanner() {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(
+      ..showSnackBar(
+        const SnackBar(
           content: Text(
-              'Saving is off because your data could not be read. Import a backup to recover first.')));
+            'Saving is off because your data could not be read. Import a backup to recover first.',
+          ),
+        ),
+      );
   }
 
   Future<void> _save() async {
@@ -502,9 +559,13 @@ class _TreatSheetState extends State<_TreatSheet> {
           if (mounted) setState(() {});
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(const SnackBar(
+            ..showSnackBar(
+              const SnackBar(
                 content: Text(
-                    'You can keep 3 treats at a time. Delete one to add another.')));
+                  'You can keep 3 treats at a time. Delete one to add another.',
+                ),
+              ),
+            );
           return;
         }
         await widget.store.addTreat(fields);
@@ -541,26 +602,31 @@ class _TreatSheetState extends State<_TreatSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         constraints: BoxConstraints(
-            maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.9),
+          maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.9,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_isEdit ? 'Edit treat' : 'New treat',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+              Text(
+                _isEdit ? 'Edit treat' : 'New treat',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               _label('Treat'),
               _input(_treat, hint: 'e.g. milk tea'),
               _label('Healthy action'),
-              _input(_action, hint: 'e.g. 30-minutong lakad'),
+              _input(_action, hint: 'e.g. a 30 minute walk'),
               _label('Emoji'),
               SizedBox(
-                  width: 90,
-                  child: _input(_emoji, hint: '☕', center: true, emoji: true)),
+                width: 90,
+                child: _input(_emoji, hint: '☕', center: true, emoji: true),
+              ),
               _label('Check-ins to earn it'),
               _stepper(),
               _label('Within'),
@@ -574,14 +640,18 @@ class _TreatSheetState extends State<_TreatSheet> {
                       onPressed: _delete,
                       style: _confirmDel
                           ? TextButton.styleFrom(
-                              backgroundColor:
-                                  Barako.warningStrong.withValues(alpha: 0.12))
+                              backgroundColor: Barako.warningStrong.withValues(
+                                alpha: 0.12,
+                              ),
+                            )
                           : null,
                       child: Text(
-                          _confirmDel ? 'Tap again to delete' : 'Delete',
-                          style: TextStyle(
-                              color: Barako.warningStrong,
-                              fontWeight: FontWeight.w600)),
+                        _confirmDel ? 'Tap again to delete' : 'Delete',
+                        style: TextStyle(
+                          color: Barako.warningStrong,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   else
                     const SizedBox.shrink(),
@@ -589,8 +659,10 @@ class _TreatSheetState extends State<_TreatSheet> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel',
-                            style: TextStyle(color: Barako.textSecondary)),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Barako.textSecondary),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -598,13 +670,18 @@ class _TreatSheetState extends State<_TreatSheet> {
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
-                          disabledBackgroundColor:
-                              Barako.primary.withValues(alpha: 0.5),
+                          disabledBackgroundColor: Barako.primary.withValues(
+                            alpha: 0.5,
+                          ),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 14),
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                         ),
-                        child: const Text('Save',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
@@ -618,12 +695,16 @@ class _TreatSheetState extends State<_TreatSheet> {
   }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 6),
-        child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
-      );
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+  );
 
-  Widget _input(TextEditingController c,
-      {String? hint, bool center = false, bool emoji = false}) {
+  Widget _input(
+    TextEditingController c, {
+    String? hint,
+    bool center = false,
+    bool emoji = false,
+  }) {
     return TextField(
       controller: c,
       textAlign: center ? TextAlign.center : TextAlign.start,
@@ -635,8 +716,9 @@ class _TreatSheetState extends State<_TreatSheet> {
               if (g.length > 1) {
                 final one = g.take(1).toString();
                 c.value = TextEditingValue(
-                    text: one,
-                    selection: TextSelection.collapsed(offset: one.length));
+                  text: one,
+                  selection: TextSelection.collapsed(offset: one.length),
+                );
               }
             }
           : null,
@@ -646,8 +728,10 @@ class _TreatSheetState extends State<_TreatSheet> {
         hintStyle: TextStyle(color: Barako.faint),
         filled: true,
         fillColor: Barako.card,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),
@@ -667,25 +751,33 @@ class _TreatSheetState extends State<_TreatSheet> {
   Widget _stepper() {
     return Row(
       children: [
-        _stepBtn(Icons.remove, 'Fewer check-ins to earn',
-            () => setState(() => _target = _target > 1 ? _target - 1 : 1)),
+        _stepBtn(
+          Icons.remove,
+          'Fewer check-ins to earn',
+          () => setState(() => _target = _target > 1 ? _target - 1 : 1),
+        ),
         SizedBox(
           width: 56,
           child: Semantics(
             liveRegion: true,
-            child: Text('$_target',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
+            child: Text(
+              '$_target',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ),
         _stepBtn(
-            Icons.add,
-            'More check-ins to earn',
-            () => setState(() =>
-                _target = _target < _windowDays ? _target + 1 : _windowDays)),
+          Icons.add,
+          'More check-ins to earn',
+          () => setState(
+            () => _target = _target < _windowDays ? _target + 1 : _windowDays,
+          ),
+        ),
       ],
     );
   }
@@ -748,14 +840,18 @@ class _TreatSheetState extends State<_TreatSheet> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: on ? Barako.primary : Barako.border),
+                    border: Border.all(
+                      color: on ? Barako.primary : Barako.border,
+                    ),
                   ),
-                  child: Text(text,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: on ? Barako.onPrimary : Barako.textSecondary,
-                          fontWeight: FontWeight.w600)),
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: on ? Barako.onPrimary : Barako.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),

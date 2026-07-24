@@ -84,7 +84,7 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
                 if (win == null) ...[
                   Text(
                     'No wins to share yet, and that is okay. Pay a debt down '
-                    'to zero, fund a savings goal, or settle an utang either '
+                    'to zero, fund a savings goal, or settle an IOU either '
                     'way, and the card builds itself here.',
                     style: TextStyle(
                       color: Barako.textSecondary,
@@ -292,7 +292,7 @@ class _MilestoneCard extends StatelessWidget {
     'debt' => 'Every payment logged. That is how it gets done.',
     'goal' => 'Saved on purpose, not by luck.',
     'utangIn' => 'Tracked kindly, collected kindly.',
-    _ => 'Utang paid, friendship intact.',
+    _ => 'Paid back in full, friendship intact.',
   };
 
   @override

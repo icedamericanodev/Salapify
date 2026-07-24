@@ -12,36 +12,39 @@ import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
-      'schemaVersion': 12,
-      'accounts': [
-        {'id': 'acct1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 10000},
-      ],
-      'transactions': [],
-      'debts': [
-        {
-          'id': 'debt1',
-          'name': 'Salary Loan',
-          'type': 'personal loan',
-          'remaining': 5000,
-          'monthlyRate': 0,
-          'minPayment': 500,
-          'dueDay': 0,
-          'statementDay': 0,
-          'graceDays': 0,
-          'creditLimit': 0,
-          'interestThroughISO': '2026-01-01',
-        },
-      ],
-      'payments': [],
-    };
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'acct1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 10000},
+  ],
+  'transactions': [],
+  'debts': [
+    {
+      'id': 'debt1',
+      'name': 'Salary Loan',
+      'type': 'personal loan',
+      'remaining': 5000,
+      'monthlyRate': 0,
+      'minPayment': 500,
+      'dueDay': 0,
+      'statementDay': 0,
+      'graceDays': 0,
+      'creditLimit': 0,
+      'interestThroughISO': '2026-01-01',
+    },
+  ],
+  'payments': [],
+};
 
 Future<void> openDebts(WidgetTester tester, SalapifyStore store) async {
   await tester.pumpWidget(SalapifyApp(store: store));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Menu'));
   await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('Debts'), 200,
-      scrollable: find.byType(Scrollable).first);
+  await tester.scrollUntilVisible(
+    find.text('Debts'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.text('Debts'));
   await tester.pumpAndSettle();
@@ -52,8 +55,9 @@ void main() {
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob())});
   });
 
-  testWidgets('totals render and a payment flows through the account',
-      (tester) async {
+  testWidgets('totals render and a payment flows through the account', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await openDebts(tester, store);
 
@@ -71,18 +75,22 @@ void main() {
     await tester.tap(find.text('Log payment'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Logged ₱500 from GCash. New balance ₱4,500.'),
-        findsOneWidget);
-    final acct =
-        (store.data['accounts'] as List).cast<Map<String, dynamic>>().single;
+    expect(
+      find.text('Logged ₱500 from GCash. New balance ₱4,500.'),
+      findsOneWidget,
+    );
+    final acct = (store.data['accounts'] as List)
+        .cast<Map<String, dynamic>>()
+        .single;
     expect(acct['balance'], 9500.0);
-    final txs =
-        (store.data['transactions'] as List).cast<Map<String, dynamic>>();
+    final txs = (store.data['transactions'] as List)
+        .cast<Map<String, dynamic>>();
     expect(txs.single['label'], 'Debt payment: Salary Loan');
   });
 
-  testWidgets('mark paid off confirms with the true payoff and celebrates',
-      (tester) async {
+  testWidgets('mark paid off confirms with the true payoff and celebrates', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await openDebts(tester, store);
     await tester.tap(find.text('Salary Loan'));
@@ -90,46 +98,58 @@ void main() {
 
     await tester.tap(find.text('Mark paid off'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Log ₱5,000 as a real payment'),
-        findsOneWidget);
+    expect(find.textContaining('Log ₱5,000 as a real payment'), findsOneWidget);
     await tester.tap(find.text('Pay it off'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('paid off! Utang free.'), findsOneWidget);
-    final debt =
-        (store.data['debts'] as List).cast<Map<String, dynamic>>().single;
+    expect(find.textContaining('paid off! Debt free.'), findsOneWidget);
+    final debt = (store.data['debts'] as List)
+        .cast<Map<String, dynamic>>()
+        .single;
     expect(debt['remaining'], 0.0);
     expect(
-        ((store.data['accounts'] as List).cast<Map<String, dynamic>>())
-            .single['balance'],
-        10000.0); // Outside the app by default: no account was picked.
+      ((store.data['accounts'] as List).cast<Map<String, dynamic>>())
+          .single['balance'],
+      10000.0,
+    ); // Outside the app by default: no account was picked.
   });
 
-  testWidgets('the add form validates with the exact RN sentence',
-      (tester) async {
+  testWidgets('the add form validates with the exact RN sentence', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await openDebts(tester, store);
 
     await tester.tap(find.text('Add debt'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Name, like BPI card or Utang kay Kuya'),
-        'Metrobank');
+      find.widgetWithText(TextField, 'Name, like BPI card or a family loan'),
+      'Metrobank',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Remaining balance'), '8,000');
+      find.widgetWithText(TextField, 'Remaining balance'),
+      '8,000',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Statement day (optional)'), '3');
+      find.widgetWithText(TextField, 'Statement day (optional)'),
+      '3',
+    );
     await tester.ensureVisible(find.text('Add debt').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add debt').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Add the days after statement until due'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Add the days after statement until due'),
+      findsOneWidget,
+    );
 
     await tester.enterText(
-        find.widgetWithText(
-            TextField, 'Days after statement until due (optional)'),
-        '21');
+      find.widgetWithText(
+        TextField,
+        'Days after statement until due (optional)',
+      ),
+      '21',
+    );
     await tester.ensureVisible(find.text('Add debt').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add debt').last);
@@ -142,8 +162,9 @@ void main() {
     expect(debts.last['graceDays'], 21);
   });
 
-  testWidgets('a no-op edit round trips a huge balance unchanged',
-      (tester) async {
+  testWidgets('a no-op edit round trips a huge balance unchanged', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
         'schemaVersion': 12,
@@ -163,7 +184,7 @@ void main() {
             'interestThroughISO': '2026-01-01',
           },
         ],
-      })
+      }),
     });
     final store = SalapifyStore();
     await openDebts(tester, store);
@@ -178,8 +199,9 @@ void main() {
 
     // The prefill used to clamp 1e21 to 2^63-1, silently rewriting the
     // balance and resetting the interest clock on a save-without-changes.
-    final debt =
-        (store.data['debts'] as List).cast<Map<String, dynamic>>().single;
+    final debt = (store.data['debts'] as List)
+        .cast<Map<String, dynamic>>()
+        .single;
     expect(debt['remaining'], 1e21);
     expect(debt['interestThroughISO'], '2026-01-01');
   });

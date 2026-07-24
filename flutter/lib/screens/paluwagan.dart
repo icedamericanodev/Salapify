@@ -633,7 +633,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
               ),
               _label('Name'),
               _input(_name, hint: 'e.g. Office paluwagan'),
-              _label('Ambag per cycle'),
+              _label('Contribution per cycle'),
               _input(_amount, hint: '0', number: true),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

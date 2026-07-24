@@ -66,7 +66,7 @@ const List<Guardrail> guardrails = [
       'demand letter',
       'contract',
     ],
-    'I cannot give legal advice. For utang, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?',
+    'I cannot give legal advice. For money owed to you, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?',
   ),
   Guardrail(
     'no_insurance',
@@ -122,7 +122,10 @@ const List<Intent> intents = [
     resolve: 'canAfford',
     strong: ['can i afford', 'can i buy', 'should i buy', 'afford this'],
     any: ['afford', 'buy', 'bili'],
-    examples: ['Can I afford 2000 shoes?', 'Kaya ko ba bumili ng 1500?'],
+    // One English example only: chips surface examples.first, and a dormant
+    // Tagalog example here could resurface if a future consumer read more.
+    // Pan still UNDERSTANDS Tagalog questions through the matchers.
+    examples: ['Can I afford 2000 shoes?'],
   ),
   Intent(
     id: 'utang',

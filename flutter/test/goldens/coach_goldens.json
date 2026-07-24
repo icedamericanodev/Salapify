@@ -135,7 +135,7 @@
           "title": "Follow up Migs",
           "message": "Migs is 12 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
           "action": {
-            "label": "Open utang list",
+            "label": "Open Utang",
             "route": "/receivables"
           }
         },
@@ -188,7 +188,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Beach fund slipped its date",
-          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Beach fund's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -340,7 +340,7 @@
           "kind": "buffer",
           "tone": "nudge",
           "title": "Your buffer is thin",
-          "message": "Your buffer covers under a month. Even ₱7,500 more toward your first cushion helps stop a surprise from becoming utang.",
+          "message": "Your buffer covers under a month. Even ₱7,500 more toward your first cushion helps stop a surprise from becoming debt.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -417,7 +417,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Laptop slipped its date",
-          "message": "Laptop's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Laptop's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -1057,7 +1057,7 @@
           "title": "Follow up Migs",
           "message": "Migs is 135 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
           "action": {
-            "label": "Open utang list",
+            "label": "Open Utang",
             "route": "/receivables"
           }
         },
@@ -1077,7 +1077,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Beach fund slipped its date",
-          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Beach fund's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"

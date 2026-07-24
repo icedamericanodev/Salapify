@@ -52,7 +52,7 @@ class MenuScreen extends StatelessWidget {
               _navRow(
                 icon: Icons.search,
                 title: 'Search',
-                blurb: 'Find any entry, account, or utang by name or amount.',
+                blurb: 'Find any entry, account, or IOU by name or amount.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) =>
@@ -194,7 +194,7 @@ class MenuScreen extends StatelessWidget {
                 icon: Icons.celebration_outlined,
                 title: 'Share a win',
                 blurb:
-                    'Paid off a debt, funded a goal, or settled an utang? That deserves a card.',
+                    'Paid off a debt, funded a goal, or got paid back? That deserves a card.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => MilestoneShareScreen(store: store),
@@ -499,7 +499,7 @@ class MenuScreen extends StatelessWidget {
             row(
               'collect',
               Icons.handshake_outlined,
-              'Utang to collect',
+              'Money to collect',
               'A reminder when someone owes you and it is due.',
             ),
           ],
@@ -758,7 +758,7 @@ class MenuScreen extends StatelessWidget {
             ),
           ),
           content: Text(
-            'Start fresh deletes every account, entry, utang, goal, debt, and '
+            'Start fresh deletes every account, entry, IOU, goal, debt, and '
             'setting Salapify keeps on this phone, including the safety copy '
             'kept from your last import. There is no undo. If you might ever '
             'want this data back, save a backup first.',
@@ -917,7 +917,7 @@ class MenuScreen extends StatelessWidget {
             Text(
               store.hasData
                   ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
-                  : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, utang, goals, settings.',
+                  : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, IOUs, goals, settings.',
               style: TextStyle(
                 color: Barako.textSecondary,
                 fontSize: 14,
