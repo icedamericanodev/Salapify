@@ -110,6 +110,14 @@ phone. So: after EVERY merge to main, confirm the "Flutter preview APK" run
 went green and actually published a patch. A red preview build means the
 founder got nothing, no matter how clean the PR looked.
 
+After the founder confirms a patch on the phone, run the lunch and learn: a
+short blameless retrospective, facilitated by the lunch-and-learn agent,
+written up in docs/lunch-and-learn.md. Ground truth is always the stamp on the
+phone, never what the repo says should have happened. A clean patch is a valid
+result; the session exists to catch the gap between what we believed shipped
+and what actually did, and to turn each lesson into a guard that works while
+nobody is watching.
+
 For significant changes, Claude still merges, but must clearly tell the
 founder what shipped and why it is significant, right after merging.
 Significant means any of: the stored data shape or migration logic, money
