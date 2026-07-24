@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.14 · Pan is now on your Share your month card, wearing the month\'s honest mood: happy when you kept money, a sympathetic worried on an over month, calm while the habit builds. Same brand colors on every phone.';
+    'f2.15 · Safety fix under the hood: a corrupted or hand-edited backup with impossible amounts can no longer crash the Share your month screen. The month reads honestly as days logged instead.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

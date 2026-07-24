@@ -7,8 +7,18 @@
 import 'ledger.dart' show amountOf;
 
 const List<String> _monthsLong = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 String _monthKey(DateTime d) =>
@@ -17,11 +27,8 @@ String _monthKey(DateTime d) =>
 /// RN String(x || ''): a falsy name or label (0, false, '', null, NaN) is
 /// missing, never the strings "0" or "false", so junk-labeled rows fold
 /// into the same buckets as the live app.
-String _jsStr(dynamic v) => (v == null ||
-        v == false ||
-        v == 0 ||
-        v == '' ||
-        (v is double && v.isNaN))
+String _jsStr(dynamic v) =>
+    (v == null || v == false || v == 0 || v == '' || (v is double && v.isNaN))
     ? ''
     : v.toString();
 
@@ -34,7 +41,8 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
   final txns = d['transactions'] is List ? d['transactions'] as List : const [];
   final cats = d['categories'] is List ? d['categories'] as List : const [];
   final catNames = <dynamic, dynamic>{
-    for (final c in cats) if (c is Map) c['id']: c['name'],
+    for (final c in cats)
+      if (c is Map) c['id']: c['name'],
   };
 
   var moneyIn = 0.0;
@@ -57,7 +65,8 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
       // String() everywhere: a numeric label from a hand edited backup must
       // never crash the recap.
       final catId = t['categoryId'];
-      final catName = (catId != null && catId != false && catId != '' && catId != 0)
+      final catName =
+          (catId != null && catId != false && catId != '' && catId != 0)
           ? catNames[catId]
           : null;
       var name = _jsStr(catName).trim();
@@ -107,11 +116,13 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
   }
 
   var utangCollected = 0.0;
-  final receivables =
-      d['receivables'] is List ? d['receivables'] as List : const [];
+  final receivables = d['receivables'] is List
+      ? d['receivables'] as List
+      : const [];
   for (final r in receivables) {
     if (r is! Map) continue;
-    for (final p in (r['payments'] is List ? r['payments'] as List : const [])) {
+    for (final p
+        in (r['payments'] is List ? r['payments'] as List : const [])) {
       if (p is! Map) continue;
       final date = (p['date'] ?? '').toString();
       if ((date.length >= 7 ? date.substring(0, 7) : date) == key) {
@@ -122,7 +133,15 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
   }
 
   final kept = moneyIn - moneyOut;
-  final double? keptRate = moneyIn > 0 ? kept / moneyIn : null;
+  // Non-finite guard, a deliberate tiny divergence from RN: absurd amounts in
+  // a hand-edited backup can overflow the sums so kept/moneyIn is NaN, and the
+  // share card's percent floor would then throw (RN renders "NaN%" instead).
+  // A null rate falls back to the honest days-logged reading. No golden
+  // fixture can reach this: JSON cannot encode a non-finite number.
+  final rawRate = moneyIn > 0 ? kept / moneyIn : null;
+  final double? keptRate = (rawRate != null && rawRate.isFinite)
+      ? rawRate
+      : null;
 
   String verdict;
   if (moneyIn == 0 &&
@@ -163,25 +182,32 @@ Map<String, dynamic> monthRecap(dynamic data, DateTime ref) {
 /// The plain text recap for the share-as-text fallback. hideAmounts swaps
 /// peso values for percentages so nothing sensitive leaves the phone unless
 /// chosen.
-String recapText(Map<String, dynamic> recap, String Function(num) formatMoney,
-    [bool hideAmounts = false]) {
+String recapText(
+  Map<String, dynamic> recap,
+  String Function(num) formatMoney, [
+  bool hideAmounts = false,
+]) {
   final lines = <String>['My ${recap['label']} with Salapify:'];
   final keptRate = recap['keptRate'];
   if (keptRate != null) {
     if (hideAmounts) {
-      lines.add((recap['kept'] as double) >= 0
-          ? 'Kept ${_jsRound((keptRate as double) * 100).toInt()}% of my income.'
-          : 'Spending passed my income this month.');
+      lines.add(
+        (recap['kept'] as double) >= 0
+            ? 'Kept ${_jsRound((keptRate as double) * 100).toInt()}% of my income.'
+            : 'Spending passed my income this month.',
+      );
     } else {
       lines.add(
-          'Money in ${formatMoney(recap['moneyIn'] as double)}, out ${formatMoney(recap['moneyOut'] as double)}, kept ${formatMoney(recap['kept'] as double)}.');
+        'Money in ${formatMoney(recap['moneyIn'] as double)}, out ${formatMoney(recap['moneyOut'] as double)}, kept ${formatMoney(recap['kept'] as double)}.',
+      );
     }
   }
   final topCats = recap['topCats'] as List;
   if (topCats.isNotEmpty) {
     final top = topCats.first as Map;
     lines.add(
-        'Top spending: ${top['label']} (${(top['pct'] as num).toInt()}%).');
+      'Top spending: ${top['label']} (${(top['pct'] as num).toInt()}%).',
+    );
   }
   final daysLogged = recap['daysLogged'] as int;
   if (daysLogged > 0) {
