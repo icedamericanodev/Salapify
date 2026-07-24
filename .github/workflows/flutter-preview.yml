@@ -14,6 +14,13 @@ on:
       - main
     paths:
       - 'flutter/**'
+      # This workflow watches its own definition ON PURPOSE. Without this line
+      # a push that edits only the publisher triggers nothing at all: no check
+      # and no publish, so the shipping mechanism can be broken, or believed
+      # fixed, with zero signal until some later push happens to touch
+      # flutter/ and fails there. Editing the publisher must exercise the
+      # publisher.
+      - '.github/workflows/flutter-preview.yml'
   workflow_dispatch:
 
 # One build at a time, and builds QUEUE rather than cancel: a Shorebird

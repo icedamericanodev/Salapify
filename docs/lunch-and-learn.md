@@ -10,6 +10,125 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-24, session 2: a clean patch, and an audit of session 1's guards
+
+### What we believed / What was true
+
+Believed: the fix would deliver every stranded stamp in one patch.
+
+True: it did. The phone shows **f2.26, patch 22**, "You are on the newest build
+already", and the Menu now has the "New phone day" row that shipped in f2.24
+and had never been on a phone before. Repo and phone agree: `updateStamp` in
+flutter/lib/main.dart line 22 is f2.26. Nothing to investigate. This entry is
+therefore step 6 only: an independent re-check of the guards written in
+session 1, done by reading the repo rather than trusting the write-up.
+
+### Guard status
+
+**Lesson 1 guard (forced-offline FX test): VERIFIED, still strong.**
+flutter/test/fx_log_test.dart lines 111 to 126 wrap the call in
+`HttpOverrides.runZoned`, throw `SocketException` from `createHttpClient`, and
+assert `askedForAClient` is true. flutter/lib/data/fx_service.dart line 134
+uses the bare `HttpClient()` constructor, which routes through
+`HttpOverrides.current`, so the override intercepts the real code path and the
+test never reaches the network on a runner. The self-check is not decorative:
+`askedForAClient` would be false, and the test would fail, if a refactor ever
+moved the fetch off `HttpClient()`. It passes here, which proves the zone
+really applies.
+
+**Whole-suite sweep for machine dependence (the session 1 bug class): clean.**
+All 90 test files, 614 tests, checked for network, clock, time zone, locale,
+and filesystem coupling.
+- Network: exactly one call site in the suite, the forced one above.
+- Image goldens: none. No `matchesGoldenFile` anywhere, so the classic
+  renders-differently-on-another-machine failure cannot occur. The `goldens/`
+  directory is JSON number vectors, read repo-relative, deterministic.
+- Locale: no `DateFormat`, `NumberFormat`, or `intl` formatting in lib/.
+- Platform channels and temp files: no `path_provider`, no `MethodChannel`
+  mocks in tests.
+- Clock: `DateTime.now()` appears in about 15 tests, always to anchor seed data
+  to the run day rather than to assert a fixed answer. Weekday-anchored payday
+  seeds, `_monthsAgo` built with `DateTime(y, m - n, d)` which rolls over the
+  year correctly, and every literal day argument is 15 or lower, so no test can
+  ask for February 30.
+- One narrow residual: fx_log_test.dart lines 137 to 147 assert local
+  wall-clock strings. In a time zone whose daylight-saving gap starts at
+  midnight on 2 January 2026, `DateTime(2026, 1, 2, 0, 30)` normalizes forward
+  and the assertion fails. Sandbox and runner are both UTC, so this is
+  theoretical. Logged, not fixed.
+
+**Lesson 2 guard (.github/workflows/flutter-check.yml): VERIFIED, strong, with
+a named blind spot.** The branch filter `claude/**` does match the working
+branch `claude/salapify-continuation-3i8jup`. The paths filter is where it
+misses. It does not run on: a push touching no file under flutter/ (proven on
+this branch, commit fcf6433 touched only .claude/, CLAUDE.md and docs/, so the
+current HEAD has no Flutter check); a branch not prefixed `claude/`; or main.
+A workflow skipped by a paths filter shows as no check at all, not a red X, so
+absence can read as approval. Practical consequence: if a pull request's last
+commit is docs-only, its head commit carries no Flutter check.
+
+**Lesson 3 and 4 guards (CLAUDE.md): VERIFIED, present and actionable.**
+CLAUDE.md lines 104 to 111 name the "Flutter check" action as the pre-merge
+equivalent, forbid treating a green local `flutter test` as a substitute, and
+state that after EVERY merge to main we confirm the "Flutter preview APK" run
+went green and actually published a patch. That names the action, the moment,
+and both things to confirm, which is specific enough to act on. Residual: the
+generic waiver at lines 96 to 100 ("blocked by billing or infrastructure ...
+that condition is waived") still sits above and is never explicitly scoped away
+from the Flutter checks. The post-merge sentence is unconditional, so there is
+little for the waiver to attach to, but the words are still generic.
+
+Separately, CLAUDE.md line 14 says "Every push touching flutter/ triggers the
+'Flutter preview APK' action". That is not true as written: the publisher's
+branch filter is main and claude/salapify-v2 only, so a push touching flutter/
+on the current working branch triggers nothing. This sentence describes the
+belief that made the session 1 failure invisible, and it is still in the file.
+Guard: correct the sentence to say the publisher runs on main, and the branch
+check runs on claude/** before the merge. Strength: **medium** (a rule, but an
+accurate one beats an inaccurate one).
+
+### New finding: the publisher does not watch its own definition
+
+.github/workflows/flutter-preview.yml has `paths: 'flutter/**'` and does not
+list itself. flutter-check.yml does list itself. So a push that edits ONLY the
+publisher workflow triggers neither workflow: no check, and no publish. The
+publisher can be broken, or believed fixed, with zero signal until the next
+push that happens to touch flutter/, at which point it fails and ships nothing
+while the pull request looks clean. That is the exact shape of session 1.
+Guard: add `.github/workflows/flutter-preview.yml` to that workflow's own
+paths filter, one line, so editing the publisher exercises the publisher.
+Strength: **strong** once applied. Not applied in this session; it changes
+delivery infrastructure and belongs in a normal reviewed change.
+
+### Confirmed: the twelve failed builds consumed no patch numbers
+
+Checked in .github/workflows/flutter-preview.yml. Step order is Analyze (line
+52), Test (line 55), setup-shorebird (line 58), Release or patch (line 65).
+No `continue-on-error`, no `if: always()`. A failed Test step ends the job, so
+Shorebird was never installed and no patch command ever ran. The counter
+genuinely sat at 21 and patch 22 is the next one. That reasoning is sound.
+Limitation, stated rather than hidden: GitHub API access is not enabled for
+this session and there is no `gh` CLI, so run ids 200 to 213 come from session
+1's record, not from a fresh query. The step-order argument stands on the
+workflow file alone.
+
+### Open lessons carried forward
+
+**Open 1. A Shorebird step failure is still silent.** Still open, and now
+slightly wider: the new finding above means the publisher can also fail to
+trigger at all. Candidate guard unchanged, an `if: failure()` step that files
+an issue saying plainly that nothing shipped, plus the one-line paths fix.
+
+**Open 2. A pubspec version bump strands the installed app.** Still open.
+flutter/pubspec.yaml is still `0.5.0+8` and the run took the patch path, which
+is why one patch could carry thirteen stamps. Coverage remains a habit, weak.
+
+**Open 3. Nothing compares the phone to main.** Still open. The prediction
+matched reality this time, but it was still a human reading a screen that
+closed the loop.
+
+---
+
 ## 2026-07-24, session 1: thirteen stamps that never left the building
 
 ### What we believed / What was true

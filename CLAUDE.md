@@ -11,9 +11,15 @@ The founder chose to rebuild Salapify from scratch in Flutter. The rebuild
 lives in flutter/ and grows NEXT TO the live RN app; mobile/ stays shippable
 and untouched for testers until the Flutter app reaches parity. Rules for the
 Flutter track:
-1. Every push touching flutter/ triggers the "Flutter preview APK" action
+1. Delivery has TWO actions, and confusing them cost thirteen undelivered
+   stamps once already. Pushes to a claude/** branch run the "Flutter check"
+   action (.github/workflows/flutter-check.yml): analyze and test only, on a
+   real runner, nothing published. Only pushes to main or claude/salapify-v2
+   that touch flutter/ run the "Flutter preview APK" action
    (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
-   flutter test, then Shorebird ships it. One RELEASE exists per pubspec
+   flutter test, then Shorebird ships it. So a push touching flutter/ on the
+   working branch publishes NOTHING; delivery happens at the merge to main,
+   and is not real until that run is green. One RELEASE exists per pubspec
    version (the base APK at the fixed flutter-preview release tag, installed
    once); every later push PATCHES that release over the air and the
    installed app updates itself on reopen. Bump the pubspec version ONLY for
@@ -97,7 +103,10 @@ these hold:
   "Publish OTA update" GitHub Action). If that mechanism is ever blocked
   by billing or infrastructure rather than by the code, that condition is
   waived and the founder is told; a QA pass plus compile and harness green
-  is enough to merge in that case.
+  is enough to merge in that case. This waiver NEVER applies to the Flutter
+  checks below. It was written for a mechanism that is broken, and applying
+  it to one that was working is precisely how twelve real failures got
+  ignored. A check that is reporting failures is not blocked, it is talking.
 - The merge uses "Create a merge commit". Never squash, squash rewrites
   history and causes merge conflicts on the next PR every single time.
 

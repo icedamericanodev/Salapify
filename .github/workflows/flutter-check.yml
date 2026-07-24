@@ -18,10 +18,14 @@ on:
   push:
     branches:
       - 'claude/**'
-    paths:
-      - 'flutter/**'
-      - '.github/workflows/flutter-check.yml'
   workflow_dispatch:
+
+# No paths filter ON PURPOSE, even though it means running the suite on a
+# docs-only push. A workflow skipped by a paths filter shows up as NO CHECK
+# rather than a red X, and an absent check reads as approval at a glance. That
+# is how a whole batch of work could end on a docs commit whose head carried
+# no Flutter check at all. Two minutes of free runner time is a fair price for
+# every commit on the branch carrying a real verdict.
 
 # No pull_request trigger on purpose: PRs here come from branches in this same
 # repo, so the push event above already covers them. Adding both would run
