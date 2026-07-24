@@ -101,6 +101,15 @@ these hold:
 - The merge uses "Create a merge commit". Never squash, squash rewrites
   history and causes merge conflicts on the next PR every single time.
 
+For Flutter work the equivalent check is the "Flutter check" action on the
+branch (analyze and test on a real runner). Never treat a green local
+`flutter test` as a substitute: the dev sandbox has no outbound network, so
+a test can pass locally and fail on a runner. That exact gap once hid a
+failing preview build for thirteen stamps, and none of that work reached the
+phone. So: after EVERY merge to main, confirm the "Flutter preview APK" run
+went green and actually published a patch. A red preview build means the
+founder got nothing, no matter how clean the PR looked.
+
 For significant changes, Claude still merges, but must clearly tell the
 founder what shipped and why it is significant, right after merging.
 Significant means any of: the stored data shape or migration logic, money
