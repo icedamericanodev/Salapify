@@ -20,7 +20,11 @@ import 'thirteenth_calculator.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
-  const ToolsScreen({super.key, required this.store});
+
+  /// Threaded through to Money courses so a lesson action can jump to a
+  /// bottom tab (Budget, Utang, Insights).
+  final void Function(int)? onSwitchTab;
+  const ToolsScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
   Widget build(BuildContext context) {
@@ -126,11 +130,14 @@ class ToolsScreen extends StatelessWidget {
             _tool(
               context,
               icon: Icons.school_outlined,
-              title: 'Money lessons',
+              title: 'Money courses',
               blurb:
                   'Short, plain reads on your money and habits. Free, always.',
               open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => LearnScreen(store: store)),
+                MaterialPageRoute(
+                  builder: (_) =>
+                      LearnScreen(store: store, onSwitchTab: onSwitchTab),
+                ),
               ),
             ),
             _tool(
@@ -140,7 +147,10 @@ class ToolsScreen extends StatelessWidget {
               blurb:
                   "Today's lesson, a quick impulse check before you buy, and your small wins.",
               open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => MindsetScreen(store: store)),
+                MaterialPageRoute(
+                  builder: (_) =>
+                      MindsetScreen(store: store, onSwitchTab: onSwitchTab),
+                ),
               ),
             ),
           ],

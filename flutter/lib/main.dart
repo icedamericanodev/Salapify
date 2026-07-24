@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.21 · The whole app now reads in plain English, every tab checked: reminder toggles, report lines, starter suggestions, and coach messages. Utang, Paluwagan, and Hatian stay as feature names with their meaning always beside them.';
+    'f2.22 · Money lessons grew into Money courses: four tracks, 22 lessons, each ending in one real step in the app. New lessons on debt order, extra payments, paying yourself a salary, and savings circles, with tax facts CPA-checked and Philippine rules clearly tagged.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

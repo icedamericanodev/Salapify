@@ -10,8 +10,9 @@ import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('reading a lesson marks it done and bumps the progress',
-      (tester) async {
+  testWidgets('reading a lesson marks it done and bumps the progress', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
@@ -21,15 +22,21 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Tools'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Tools'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(find.text('Tools'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tools'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Money lessons'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Money lessons'));
+    await tester.scrollUntilVisible(
+      find.text('Money courses'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Money courses'));
     await tester.pumpAndSettle();
 
     expect(find.text('YOUR PROGRESS'), findsOneWidget);
