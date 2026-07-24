@@ -345,11 +345,11 @@ class SalapifyStore extends ChangeNotifier {
   });
 
   /// Start fresh: erase EVERYTHING Salapify keeps on this phone. The stored
-  /// data, the previous-import safety copy, and the cached exchange rates all
-  /// go; the in-memory store resets to the empty default. This is the most
-  /// destructive action in the app and it was founder approved before being
-  /// built; the screen gates it behind an explicit double confirmation and
-  /// offers an export first.
+  /// data, the previous-import safety copy, the cached exchange rates, and
+  /// the Privacy receipt's fetch log all go; the in-memory store resets to
+  /// the empty default. This is the most destructive action in the app and it
+  /// was founder approved before being built; the screen gates it behind an
+  /// explicit double confirmation and offers an export first.
   ///
   /// Deliberately allowed even after a failed read (like importBackupText):
   /// wiping unreadable data is the other documented recovery action, so it
@@ -360,6 +360,7 @@ class SalapifyStore extends ChangeNotifier {
     await prefs.remove(storageKey);
     await prefs.remove(previousBackupKey);
     await prefs.remove(FxService.cacheKey);
+    await prefs.remove(FxService.logKey);
     data = sanitizeData({});
     loadError = null;
     loaded = true;

@@ -27,19 +27,37 @@ const _months = [
   'Dec',
 ];
 
-/// A fetch timestamp as 'Jul 24, 9:14 AM' in local time, safe on junk.
+/// A fetch timestamp as 'Jul 24 2026, 9:14 AM' in local time. The year stays
+/// in on purpose: a light converter user's ten entries can span years, and a
+/// trust surface must never let last July read as this July. parseFxLog has
+/// already range-checked the value, so this cannot throw on stored junk.
 String fxLogWhen(int atMs) {
   final d = DateTime.fromMillisecondsSinceEpoch(atMs);
   final h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
   final min = d.minute.toString().padLeft(2, '0');
   final ap = d.hour < 12 ? 'AM' : 'PM';
-  return '${_months[d.month - 1]} ${d.day}, $h12:$min $ap';
+  return '${_months[d.month - 1]} ${d.day} ${d.year}, $h12:$min $ap';
 }
 
-class PrivacyReceiptScreen extends StatelessWidget {
+class PrivacyReceiptScreen extends StatefulWidget {
   /// Injectable for tests; the real screen reads the live log.
   final FxService fx;
   PrivacyReceiptScreen({super.key, FxService? fx}) : fx = fx ?? FxService();
+
+  @override
+  State<PrivacyReceiptScreen> createState() => _PrivacyReceiptScreenState();
+}
+
+class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
+  // Read once when the screen opens; a theme flip or any other rebuild must
+  // not re-read prefs and flicker the log card back to its loading state.
+  late final Future<List<Map<String, dynamic>>> _log;
+
+  @override
+  void initState() {
+    super.initState();
+    _log = widget.fx.fetchLog();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +91,11 @@ class PrivacyReceiptScreen extends StatelessWidget {
             _connectionCard(
               Icons.system_update_alt,
               'App updates',
-              'On launch, the app checks for an updated version of its own '
-                  'code so fixes reach you without a store download. The check '
-                  'is about the app, not about you; your money data is not '
-                  'part of it.',
+              'On launch, and when you tap Check for updates in the Menu, '
+                  'the app checks for an updated version of its own code so '
+                  'fixes reach you without a store download. The check is '
+                  'about the app, not about you; your money data is not part '
+                  'of it.',
             ),
             const SizedBox(height: 10),
             _wholeListCard(),
@@ -293,7 +312,7 @@ class PrivacyReceiptScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: fx.fetchLog(),
+          future: _log,
           builder: (context, snap) {
             final entries = snap.data ?? const <Map<String, dynamic>>[];
             if (snap.connectionState != ConnectionState.done) {
@@ -315,8 +334,9 @@ class PrivacyReceiptScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Every time this app asked for exchange rates, newest '
-                  'first. Each request carried only the currency code shown.',
+                  'The most recent times this app asked for exchange rates, '
+                  'newest first. Each request carried only the currency code '
+                  'shown.',
                   style: TextStyle(
                     color: Barako.muted,
                     fontSize: 12,
@@ -337,6 +357,9 @@ class PrivacyReceiptScreen extends StatelessWidget {
                           color: e['ok'] == true
                               ? Barako.celebrate
                               : Barako.faint,
+                          semanticLabel: e['ok'] == true
+                              ? 'Fetched'
+                              : 'No connection',
                         ),
                         const SizedBox(width: 8),
                         Expanded(

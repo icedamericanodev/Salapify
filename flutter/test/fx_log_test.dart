@@ -30,6 +30,18 @@ void main() {
       expect(parseFxLog(null), isEmpty);
       expect(parseFxLog({'at': 1}), isEmpty);
     });
+
+    test('an out-of-range timestamp is dropped, never crashes the screen', () {
+      // DateTime.fromMillisecondsSinceEpoch throws past ~8.64e15; a corrupted
+      // or hand-edited prefs entry must not take down the receipt.
+      final parsed = parseFxLog([
+        {'at': 9223372036854775807, 'base': 'PHP', 'ok': true},
+        {'at': -5, 'base': 'PHP', 'ok': true},
+        {'at': 1000, 'base': 'PHP', 'ok': true},
+      ]);
+      expect(parsed.length, 1);
+      expect(parsed.single['at'], 1000);
+    });
   });
 
   group('appendFxLog', () {
@@ -104,16 +116,16 @@ void main() {
   });
 
   group('fxLogWhen', () {
-    test('formats a local timestamp plainly', () {
+    test('formats a local timestamp plainly, year included', () {
       final at = DateTime(2026, 7, 24, 9, 5).millisecondsSinceEpoch;
-      expect(fxLogWhen(at), 'Jul 24, 9:05 AM');
+      expect(fxLogWhen(at), 'Jul 24 2026, 9:05 AM');
     });
 
     test('noon and midnight read as 12', () {
       final noon = DateTime(2026, 1, 2, 12, 0).millisecondsSinceEpoch;
       final midnight = DateTime(2026, 1, 2, 0, 30).millisecondsSinceEpoch;
-      expect(fxLogWhen(noon), 'Jan 2, 12:00 PM');
-      expect(fxLogWhen(midnight), 'Jan 2, 12:30 AM');
+      expect(fxLogWhen(noon), 'Jan 2 2026, 12:00 PM');
+      expect(fxLogWhen(midnight), 'Jan 2 2026, 12:30 AM');
     });
   });
 }

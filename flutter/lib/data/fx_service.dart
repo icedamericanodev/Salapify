@@ -21,11 +21,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../money/fxrates.dart';
 
+// DateTime.fromMillisecondsSinceEpoch throws beyond this; a hand-edited or
+// corrupted entry past it must be dropped, not crash the receipt screen.
+const int _maxEpochMs = 8640000000000000;
+
 /// Parse a stored receipt log into well-formed entries only. Junk (not a
-/// list, foreign entries, wrong field types) is dropped, never thrown on.
+/// list, foreign entries, wrong field types, an out-of-range timestamp) is
+/// dropped, never thrown on.
 List<Map<String, dynamic>> parseFxLog(dynamic stored) => [
   for (final e in (stored is List ? stored : const []))
-    if (e is Map && e['at'] is int && e['base'] is String && e['ok'] is bool)
+    if (e is Map &&
+        e['at'] is int &&
+        (e['at'] as int) >= 0 &&
+        (e['at'] as int) <= _maxEpochMs &&
+        e['base'] is String &&
+        e['ok'] is bool)
       e.cast<String, dynamic>(),
 ];
 

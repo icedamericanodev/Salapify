@@ -83,11 +83,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('Jul 24, 9:05 AM rates for PHP'),
+      find.textContaining('Jul 24 2026, 9:05 AM rates for PHP'),
       findsOneWidget,
     );
     expect(
-      find.textContaining('Jul 20, 9:40 PM rates for USD, no connection'),
+      find.textContaining('Jul 20 2026, 9:40 PM rates for USD, no connection'),
       findsOneWidget,
     );
     expect(find.textContaining('No rate fetches yet'), findsNothing);
