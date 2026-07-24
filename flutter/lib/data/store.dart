@@ -228,19 +228,36 @@ class SalapifyStore extends ChangeNotifier {
   /// collection a backup carries. Utang-only or goals-only data counts: this
   /// gates the export button and the replace-everything warning, and hiding
   /// either because only receivables exist would invite a silent wipe.
-  bool get hasData => const [
-    'accounts',
-    'transactions',
-    'receivables',
-    'payables',
-    'people',
-    'debts',
-    'goals',
-    'assets',
-    'wins',
-    'notes',
-    'recurring',
-  ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
+  ///
+  /// Settings-era data counts too: paluwagans, treats, quick adds, and an
+  /// accepted Steady Pay all live under settings, and a user whose only data
+  /// is a paluwagan setup deserves the same replace-everything warning and
+  /// backup buttons as one with transactions.
+  bool get hasData {
+    final collections = const [
+      'accounts',
+      'transactions',
+      'receivables',
+      'payables',
+      'people',
+      'debts',
+      'goals',
+      'assets',
+      'wins',
+      'notes',
+      'recurring',
+    ].any((k) => (data[k] as List? ?? const []).isNotEmpty);
+    if (collections) return true;
+    final s = data['settings'];
+    if (s is Map) {
+      for (final k in const ['paluwagans', 'treats', 'quickAdds']) {
+        final v = s[k];
+        if (v is List && v.isNotEmpty) return true;
+      }
+      if (s['steadyPay'] is Map) return true;
+    }
+    return false;
+  }
 
   Future<void> load() async {
     try {

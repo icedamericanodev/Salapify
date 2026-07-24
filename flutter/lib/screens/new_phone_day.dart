@@ -6,6 +6,7 @@
 // importer does the safety work on the other end. Works from either side: the
 // old phone saves and sends, the new phone brings the file in.
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/backup_file.dart';
@@ -24,15 +25,20 @@ class NewPhoneDayScreen extends StatefulWidget {
 class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
   bool _busy = false;
 
-  Future<void> _run(Future<void> Function() task, String doneMessage) async {
+  // Runs a backup task and toasts only on a real outcome: a task returning
+  // false means the user deliberately backed out (cancelled the save dialog,
+  // dismissed the share sheet), which deserves silence, not an error.
+  Future<void> _run(Future<bool> Function() task, String doneMessage) async {
     if (_busy) return;
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await task();
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(doneMessage)));
+      final done = await task();
+      if (done) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(doneMessage)));
+      }
     } catch (e) {
       messenger
         ..hideCurrentSnackBar()
@@ -46,7 +52,10 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasData = widget.store.hasData;
+    // The save dialog and share sheet need a native platform, matching the
+    // export screen's web gating; on the web preview the steps still read as
+    // instructions and the import path still works.
+    final canAct = !kIsWeb && widget.store.hasData;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
@@ -79,15 +88,13 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
               'Save your backup file',
               'One file, everything in it. Save it to this phone or straight '
                   'into a drive folder.',
-              button: hasData ? 'Save backup file' : null,
-              onPressed: hasData
-                  ? () => _run(() async {
-                      final ok = await saveBackupFileToDevice(
-                        widget.store,
-                        DateTime.now(),
-                      );
-                      if (!ok) throw StateError('save cancelled');
-                    }, 'Backup saved. Now get it to the new phone.')
+              button: canAct ? 'Save backup file' : null,
+              onPressed: canAct
+                  ? () => _run(
+                      () =>
+                          saveBackupFileToDevice(widget.store, DateTime.now()),
+                      'Backup saved. Now get it to the new phone.',
+                    )
                   : null,
             ),
             const SizedBox(height: 10),
@@ -97,8 +104,8 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
               'Any way you like: Quick Share to the new phone, email it to '
                   'yourself, or drop it in a drive. The share button sends '
                   'the same file directly.',
-              button: hasData ? 'Share the backup' : null,
-              onPressed: hasData
+              button: canAct ? 'Share the backup' : null,
+              onPressed: canAct
                   ? () => _run(
                       () => shareBackupFile(widget.store, DateTime.now()),
                       'Sent. Open Salapify on the new phone next.',

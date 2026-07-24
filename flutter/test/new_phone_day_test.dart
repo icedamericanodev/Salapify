@@ -1,7 +1,8 @@
 // New phone day: reachable from Menu, shows the three guided steps, hides the
-// old-phone action buttons on an empty store (nothing to save yet), and the
-// new-phone step opens the existing import screen. The save and share sheets
-// are platform channels, so the tests stop at the buttons.
+// old-phone action buttons on an empty store (nothing to save yet) but shows
+// them for settings-only data (a Steady Pay setup is worth moving too), and
+// the new-phone step opens the existing import screen. The save and share
+// sheets are platform channels, so the tests stop at the buttons.
 
 import 'dart:convert';
 
@@ -88,5 +89,31 @@ void main() {
       findsOneWidget,
       reason: 'the new-phone path is exactly what an empty store needs',
     );
+  });
+
+  testWidgets('settings-only data still gets the save and share buttons', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // No accounts, no transactions, just an accepted Steady Pay: data worth
+    // moving to the new phone all the same.
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'settings': {
+          'steadyPay': {'amount': 2500, 'acceptedAt': '2026-07-01'},
+        },
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openNewPhoneDay(tester);
+
+    expect(find.text('Save backup file'), findsOneWidget);
+    expect(find.text('Share the backup'), findsOneWidget);
   });
 }

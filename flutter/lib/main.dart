@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.24 · New in Menu: New phone day, the two minute guided move to a new device with no cloud in the middle, plus an optional monthly backup reminder on the 1st. A lost phone becomes an errand, not a disaster.';
+    'f2.25 · New in Menu: New phone day, the two minute guided move to a new device with no cloud in the middle, plus an optional monthly backup reminder on the 1st. QA polish: settings only data now counts as data worth protecting, and cancelling a save stays quiet.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
