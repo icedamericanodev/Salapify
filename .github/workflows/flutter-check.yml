@@ -1,0 +1,61 @@
+# Flutter check on the working branches. Analyze and test ONLY, no Shorebird,
+# no publishing, no secrets.
+#
+# Why this exists: the "CI" workflow is the React Native app (npm), and the
+# only job that ever ran `flutter test` on a GitHub runner was the preview
+# publisher, which runs on main alone. So a test that passed in the dev
+# sandbox but failed on a runner stayed invisible until after the merge, and
+# a failing preview build silently shipped nothing. That happened: one test
+# assumed the machine had no internet, and thirteen stamps of work never
+# reached the phone.
+#
+# This runs the same analyze and test steps on the branch, so a runner-only
+# failure shows up BEFORE the merge, on the PR, where it is cheap to fix.
+
+name: Flutter check
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+  workflow_dispatch:
+
+# No paths filter ON PURPOSE, even though it means running the suite on a
+# docs-only push. A workflow skipped by a paths filter shows up as NO CHECK
+# rather than a red X, and an absent check reads as approval at a glance. That
+# is how a whole batch of work could end on a docs commit whose head carried
+# no Flutter check at all. Two minutes of free runner time is a fair price for
+# every commit on the branch carrying a real verdict.
+
+# No pull_request trigger on purpose: PRs here come from branches in this same
+# repo, so the push event above already covers them. Adding both would run
+# every check twice for nothing.
+
+# A newer push to the same branch makes an in-flight check pointless. Nothing
+# here publishes, so cancelling is safe (unlike the preview publisher, which
+# must always finish).
+concurrency:
+  group: flutter-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+
+      - name: Analyze (zero tolerance)
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

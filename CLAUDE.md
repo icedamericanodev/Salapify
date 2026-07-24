@@ -11,9 +11,15 @@ The founder chose to rebuild Salapify from scratch in Flutter. The rebuild
 lives in flutter/ and grows NEXT TO the live RN app; mobile/ stays shippable
 and untouched for testers until the Flutter app reaches parity. Rules for the
 Flutter track:
-1. Every push touching flutter/ triggers the "Flutter preview APK" action
+1. Delivery has TWO actions, and confusing them cost thirteen undelivered
+   stamps once already. Pushes to a claude/** branch run the "Flutter check"
+   action (.github/workflows/flutter-check.yml): analyze and test only, on a
+   real runner, nothing published. Only pushes to main or claude/salapify-v2
+   that touch flutter/ run the "Flutter preview APK" action
    (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
-   flutter test, then Shorebird ships it. One RELEASE exists per pubspec
+   flutter test, then Shorebird ships it. So a push touching flutter/ on the
+   working branch publishes NOTHING; delivery happens at the merge to main,
+   and is not real until that run is green. One RELEASE exists per pubspec
    version (the base APK at the fixed flutter-preview release tag, installed
    once); every later push PATCHES that release over the air and the
    installed app updates itself on reopen. Bump the pubspec version ONLY for
@@ -97,9 +103,29 @@ these hold:
   "Publish OTA update" GitHub Action). If that mechanism is ever blocked
   by billing or infrastructure rather than by the code, that condition is
   waived and the founder is told; a QA pass plus compile and harness green
-  is enough to merge in that case.
+  is enough to merge in that case. This waiver NEVER applies to the Flutter
+  checks below. It was written for a mechanism that is broken, and applying
+  it to one that was working is precisely how twelve real failures got
+  ignored. A check that is reporting failures is not blocked, it is talking.
 - The merge uses "Create a merge commit". Never squash, squash rewrites
   history and causes merge conflicts on the next PR every single time.
+
+For Flutter work the equivalent check is the "Flutter check" action on the
+branch (analyze and test on a real runner). Never treat a green local
+`flutter test` as a substitute: the dev sandbox has no outbound network, so
+a test can pass locally and fail on a runner. That exact gap once hid a
+failing preview build for thirteen stamps, and none of that work reached the
+phone. So: after EVERY merge to main, confirm the "Flutter preview APK" run
+went green and actually published a patch. A red preview build means the
+founder got nothing, no matter how clean the PR looked.
+
+After the founder confirms a patch on the phone, run the lunch and learn: a
+short blameless retrospective, facilitated by the lunch-and-learn agent,
+written up in docs/lunch-and-learn.md. Ground truth is always the stamp on the
+phone, never what the repo says should have happened. A clean patch is a valid
+result; the session exists to catch the gap between what we believed shipped
+and what actually did, and to turn each lesson into a guard that works while
+nobody is watching.
 
 For significant changes, Claude still merges, but must clearly tell the
 founder what shipped and why it is significant, right after merging.
