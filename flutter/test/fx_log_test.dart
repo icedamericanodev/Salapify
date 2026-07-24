@@ -4,6 +4,7 @@
 // as empty instead of crashing the receipt screen.
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/fx_service.dart';
@@ -101,11 +102,28 @@ void main() {
   group('a real refresh records its attempt', () {
     test('an offline failure lands in the log as ok=false', () async {
       SharedPreferences.setMockInitialValues({});
-      // In the test environment the HTTP client is blocked, so this attempt
-      // fails exactly like an offline phone. The failed attempt must still be
-      // recorded, because the receipt logs attempts, not just successes.
+      // The phone is offline: every HTTP client fails. This is FORCED here
+      // rather than assumed, because a machine with working internet (a CI
+      // runner) would otherwise really reach the rates endpoint, succeed, and
+      // fail this test while nothing was wrong with the app. The failed
+      // attempt must still be recorded, because the receipt logs attempts,
+      // not just successes.
       final service = FxService();
-      final result = await service.refresh('PHP', nowMs: 1234567890);
+      var askedForAClient = false;
+      final result = await HttpOverrides.runZoned(
+        () => service.refresh('PHP', nowMs: 1234567890),
+        createHttpClient: (_) {
+          askedForAClient = true;
+          throw const SocketException('offline, by test design');
+        },
+      );
+      expect(
+        askedForAClient,
+        isTrue,
+        reason:
+            'the forced-offline client must be the one used, so this test '
+            'can never quietly start depending on the machine having internet',
+      );
       expect(result, isNull);
       final log = await service.fetchLog();
       expect(log.length, 1);
