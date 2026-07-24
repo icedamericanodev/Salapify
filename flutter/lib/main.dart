@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.12 · English-first copy across the whole app, ready to go global: every sentence now reads in plain English, with utang, sweldo, paluwagan, and hatian kept as identity words where the meaning is clear beside them. Pan still understands Tagalog questions.';
+    'f2.13 · New under Security: the Privacy receipt. Every connection this app can make, every permission and why, a live log of the only data fetch, and the airplane mode challenge. Do not take our word for it, check it.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

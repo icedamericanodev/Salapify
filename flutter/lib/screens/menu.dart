@@ -21,6 +21,7 @@ import 'goals.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'paluwagan.dart';
 import 'pan.dart';
+import 'privacy_receipt.dart';
 import 'search.dart';
 import 'recap_share.dart';
 import 'recurring.dart';
@@ -200,6 +201,16 @@ class MenuScreen extends StatelessWidget {
                 _kicker('SECURITY'),
                 const SizedBox(height: 8),
                 _appLockCard(context),
+                const SizedBox(height: 10),
+                _navRow(
+                  icon: Icons.verified_user_outlined,
+                  title: 'Privacy receipt',
+                  blurb:
+                      'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => PrivacyReceiptScreen()),
+                  ),
+                ),
               ],
               const SizedBox(height: 20),
               _kicker('YOUR DATA'),

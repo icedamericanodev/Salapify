@@ -1,9 +1,9 @@
 // Start fresh (erase everything): the most destructive action in the app,
 // founder approved before it was built. The invariants: every key Salapify
 // owns is removed from disk (the data, the previous-import safety copy, the
-// cached exchange rates), the in-memory store resets to the empty default and
-// stays writable, a reload comes back empty, and it also recovers a store
-// whose data could not be read.
+// cached exchange rates, and the Privacy receipt's fetch log), the in-memory
+// store resets to the empty default and stays writable, a reload comes back
+// empty, and it also recovers a store whose data could not be read.
 
 import 'dart:convert';
 
@@ -29,40 +29,57 @@ Map<String, dynamic> _seedData() => {
 };
 
 void main() {
-  test('erases the data, the safety copy, and the fx cache', () async {
-    SharedPreferences.setMockInitialValues({
-      FxService.cacheKey: '{"base":"PHP"}',
-    });
-    final store = SalapifyStore();
-    await store.load();
-    // First import writes the data; second import snapshots it into the
-    // previous-backup safety copy, so all three keys exist before the wipe.
-    final text = jsonEncode({
-      'app': 'salapify',
-      'version': 2,
-      'data': _seedData(),
-    });
-    await store.importBackupText(text);
-    await store.importBackupText(text);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString(storageKey), isNotNull);
-    expect(prefs.getString(previousBackupKey), isNotNull);
-    expect(prefs.getString(FxService.cacheKey), isNotNull);
-    expect(store.hasData, isTrue);
+  test(
+    'erases the data, the safety copy, the fx cache, and the fetch log',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        FxService.cacheKey: '{"base":"PHP"}',
+        // The receipt log is a behavioral trace (when the app was used, which
+        // currency); a wipe that promises "erase everything" must take it too.
+        FxService.logKey: '[{"at":1000,"base":"PHP","ok":true}]',
+      });
+      final store = SalapifyStore();
+      await store.load();
+      // First import writes the data; second import snapshots it into the
+      // previous-backup safety copy, so all three keys exist before the wipe.
+      final text = jsonEncode({
+        'app': 'salapify',
+        'version': 2,
+        'data': _seedData(),
+      });
+      await store.importBackupText(text);
+      await store.importBackupText(text);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(storageKey), isNotNull);
+      expect(prefs.getString(previousBackupKey), isNotNull);
+      expect(prefs.getString(FxService.cacheKey), isNotNull);
+      expect(prefs.getString(FxService.logKey), isNotNull);
+      expect(store.hasData, isTrue);
 
-    await store.startFresh();
+      await store.startFresh();
 
-    expect(prefs.getString(storageKey), isNull);
-    expect(prefs.getString(previousBackupKey), isNull);
-    expect(prefs.getString(FxService.cacheKey), isNull);
-    expect(store.hasData, isFalse);
-    expect(store.canWrite, isTrue, reason: 'a fresh store must accept writes');
+      expect(prefs.getString(storageKey), isNull);
+      expect(prefs.getString(previousBackupKey), isNull);
+      expect(prefs.getString(FxService.cacheKey), isNull);
+      expect(prefs.getString(FxService.logKey), isNull);
+      expect(
+        await FxService().fetchLog(),
+        isEmpty,
+        reason: 'the receipt itself must read empty after a wipe',
+      );
+      expect(store.hasData, isFalse);
+      expect(
+        store.canWrite,
+        isTrue,
+        reason: 'a fresh store must accept writes',
+      );
 
-    // A brand new store loads back empty, not the old data.
-    final second = SalapifyStore();
-    await second.load();
-    expect(second.hasData, isFalse);
-  });
+      // A brand new store loads back empty, not the old data.
+      final second = SalapifyStore();
+      await second.load();
+      expect(second.hasData, isFalse);
+    },
+  );
 
   test('recovers a store whose data could not be read', () async {
     // Corrupt bytes on disk: load fails, writing locks. Start fresh is the
