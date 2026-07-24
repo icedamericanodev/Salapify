@@ -100,6 +100,18 @@ void main() {
     expect(steadyPaySuggestion({'transactions': 'nope'}, ref).activeMonths, 0);
   });
 
+  test('a sub-peso weekly draw stays silent instead of suggesting zero', () {
+    final sp = steadyPaySuggestion(
+      withIncomes({'2026-02': 2, '2026-03': 2, '2026-04': 2}),
+      ref,
+    );
+    expect(
+      sp.weeklyDraw,
+      isNull,
+      reason: 'a card saying Pay yourself P0 a week helps nobody',
+    );
+  });
+
   group('steadyPayWeek', () {
     test('sums this week\'s discretionary spend against the draw', () {
       // ref Mon Jul 20; week is Jul 20..20 so far.

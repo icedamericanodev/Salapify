@@ -63,7 +63,9 @@ SteadyPay steadyPaySuggestion(dynamic data, DateTime ref) {
   final lean = incomes.take(3).toList();
   final baseline = (lean[0] + lean[1] + lean[2]) / 3;
   final weekly = baseline * 12 / 52;
-  if (!baseline.isFinite || !weekly.isFinite || !(baseline > 0)) {
+  // Below one whole peso a week the card would suggest "Pay yourself ₱0",
+  // which is only reachable with junk data and helps nobody: stay silent.
+  if (!baseline.isFinite || !weekly.isFinite || !(weekly >= 1)) {
     return SteadyPay(
       weeklyDraw: null,
       leanBaseline: null,

@@ -430,11 +430,15 @@ class InsightsScreen extends StatelessWidget {
     steadypay.SteadyPay suggestion,
   ) {
     Future<void> askAmount() async {
-      final controller = TextEditingController(
-        text: (accepted ?? suggestion.weeklyDraw?.roundToDouble() ?? 0)
-            .round()
-            .toString(),
-      );
+      // Prefill the EXACT stored amount when one exists (rounding here would
+      // let a no-edit Save silently change a decimal draw); only a fresh
+      // suggestion gets rounded to whole pesos.
+      final prefill = accepted != null
+          ? (accepted == accepted.roundToDouble()
+                ? accepted.round().toString()
+                : accepted.toString())
+          : (suggestion.weeklyDraw ?? 0).round().toString();
+      final controller = TextEditingController(text: prefill);
       final messenger = ScaffoldMessenger.of(context);
       final action = await showDialog<String>(
         context: context,
@@ -506,7 +510,12 @@ class InsightsScreen extends StatelessWidget {
         if (action == 'stop') {
           await store.clearSteadyPay();
         } else if (action == 'save') {
-          final amount = double.tryParse(controller.text.trim());
+          // Commas and spaces are stripped like every other amount field in
+          // the app; the dialog itself displays "₱2,769", so typing exactly
+          // that must work.
+          final amount = double.tryParse(
+            controller.text.replaceAll(RegExp(r'[, ]'), ''),
+          );
           if (amount == null || !amount.isFinite || amount <= 0) {
             messenger.showSnackBar(
               const SnackBar(

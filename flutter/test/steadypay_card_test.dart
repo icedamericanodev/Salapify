@@ -80,10 +80,18 @@ void main() {
       expect(find.textContaining('Pay yourself ₱2,769 a week'), findsOneWidget);
       expect(find.textContaining('runway, not lifestyle'), findsOneWidget);
 
-      // Accept the suggestion through the dialog.
+      // Accept through the dialog, typing the comma format the dialog itself
+      // displays; the parse must strip it like every other amount field.
       await tester.tap(find.text('Set my weekly pay'));
       await tester.pumpAndSettle();
       expect(find.text('Your weekly pay'), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        '2,769',
+      );
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 

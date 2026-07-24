@@ -1110,19 +1110,27 @@ class SalapifyStore extends ChangeNotifier {
 
   /// Accept a Steady Pay weekly draw (founder-approved stored field,
   /// 2026-07-24). A conditional settings key: setting writes it, clearing
-  /// removes it entirely so a backup without it never gains the key.
-  Future<void> setSteadyPay(double amount) => _mutate(
-    (d) => {
-      ...d,
-      'settings': {
-        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-        'steadyPay': {
-          'amount': amount,
-          'acceptedAt': DateTime.now().toIso8601String().substring(0, 10),
+  /// removes it entirely so a backup without it never gains the key. The
+  /// guard mirrors addEntry: the store boundary rejects a bad amount even
+  /// though today's only caller validates, so no future caller can persist
+  /// a key the readers treat as absent.
+  Future<void> setSteadyPay(double amount) {
+    if (!amount.isFinite || amount <= 0) {
+      throw ArgumentError('Steady Pay amount must be a positive finite peso');
+    }
+    return _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'steadyPay': {
+            'amount': amount,
+            'acceptedAt': DateTime.now().toIso8601String().substring(0, 10),
+          },
         },
       },
-    },
-  );
+    );
+  }
 
   Future<void> clearSteadyPay() => _mutate((d) {
     final settings = ((d['settings'] as Map?) ?? const {})

@@ -46,6 +46,20 @@ void main() {
     expect((fresh.data['settings'] as Map).containsKey('steadyPay'), isFalse);
   });
 
+  test('the store boundary rejects a bad amount (defense in depth)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    expect(() => store.setSteadyPay(0), throwsArgumentError);
+    expect(() => store.setSteadyPay(-5), throwsArgumentError);
+    expect(() => store.setSteadyPay(double.infinity), throwsArgumentError);
+    expect(
+      (store.data['settings'] as Map).containsKey('steadyPay'),
+      isFalse,
+      reason: 'nothing persisted by any rejected call',
+    );
+  });
+
   test('a blob without steadyPay never gains the key (golden safety)', () {
     final clean = sanitizeData({'accounts': [], 'settings': {}});
     expect(
