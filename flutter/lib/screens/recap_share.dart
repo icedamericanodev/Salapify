@@ -395,7 +395,7 @@ class _RecapCard extends StatelessWidget {
       ]);
     }
     if (utangCollected > 0) {
-      rows.add(['Utang collected', money(utangCollected)]);
+      rows.add(['Paid back to you', money(utangCollected)]);
     }
     if (debtPaid > 0) rows.add(['Debt paid down', money(debtPaid)]);
     rows.add(['Days logged', '$daysLogged']);

@@ -46,8 +46,18 @@ String _todayISO() {
 }
 
 const List<String> _monthsShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _monthYear(String iso) {
@@ -87,21 +97,26 @@ class _DebtsScreenState extends State<DebtsScreen> {
           for (final d in (widget.store.data['debts'] as List? ?? const []))
             if (d is Map) d.cast<String, dynamic>(),
         ];
-        final totalDebt =
-            debts.fold(0.0, (t, d) => t + amountOf(d['remaining']));
-        final totalMin =
-            debts.fold(0.0, (t, d) => t + amountOf(d['minPayment']));
-        final totalInterest =
-            debts.fold(0.0, (t, d) => t + monthlyInterest(d));
+        final totalDebt = debts.fold(
+          0.0,
+          (t, d) => t + amountOf(d['remaining']),
+        );
+        final totalMin = debts.fold(
+          0.0,
+          (t, d) => t + amountOf(d['minPayment']),
+        );
+        final totalInterest = debts.fold(0.0, (t, d) => t + monthlyInterest(d));
 
         // JS sort is stable; keep the list order as the tiebreak.
         final indexed = List.generate(debts.length, (i) => (debts[i], i));
         indexed.sort((a, b) {
           final c = strategy == 'snowball'
-              ? amountOf(a.$1['remaining'])
-                  .compareTo(amountOf(b.$1['remaining']))
-              : amountOf(b.$1['monthlyRate'])
-                  .compareTo(amountOf(a.$1['monthlyRate']));
+              ? amountOf(
+                  a.$1['remaining'],
+                ).compareTo(amountOf(b.$1['remaining']))
+              : amountOf(
+                  b.$1['monthlyRate'],
+                ).compareTo(amountOf(a.$1['monthlyRate']));
           return c != 0 ? c : a.$2.compareTo(b.$2);
         });
         final ordered = [for (final e in indexed) e.$1];
@@ -114,27 +129,29 @@ class _DebtsScreenState extends State<DebtsScreen> {
         }
         focus ??= ordered.isNotEmpty ? ordered.first : null;
 
-        final projection =
-            totalDebt > 0 ? debtFreeProjection(debts, strategy) : null;
-        final shortTerm =
-            debts.where((d) => _isShortTerm(d['type'])).toList();
-        final longTerm =
-            debts.where((d) => !_isShortTerm(d['type'])).toList();
+        final projection = totalDebt > 0
+            ? debtFreeProjection(debts, strategy)
+            : null;
+        final shortTerm = debts.where((d) => _isShortTerm(d['type'])).toList();
+        final longTerm = debts.where((d) => !_isShortTerm(d['type'])).toList();
 
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Barako.background,
             foregroundColor: Barako.text,
-            title: Text('Debts',
-                style: TextStyle(
-                    color: Barako.text, fontWeight: FontWeight.w800)),
+            title: Text(
+              'Debts',
+              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+            ),
           ),
           floatingActionButton: widget.store.canWrite
               ? FloatingActionButton.extended(
                   onPressed: () => showDebtFormSheet(context, widget.store),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add debt',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Add debt',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 )
               : null,
           body: SafeArea(
@@ -145,21 +162,26 @@ class _DebtsScreenState extends State<DebtsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('No debts tracked',
-                              style: TextStyle(
-                                  color: Barako.text,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700)),
+                          Text(
+                            'No debts tracked',
+                            style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Text(
-                              'Track a card, a loan, or an utang and every '
-                              'payment splits into interest and principal '
-                              'honestly.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Barako.muted,
-                                  fontSize: 13,
-                                  height: 1.4)),
+                            'Track a card, a loan, or money owed to a person, and every '
+                            'payment splits into interest and principal '
+                            'honestly.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -178,22 +200,26 @@ class _DebtsScreenState extends State<DebtsScreen> {
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerLeft,
-                                child: Text(formatMoney(totalDebt),
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                        color: Barako.text,
-                                        fontSize: 30,
-                                        fontFamily: Barako.displayFont,
-                                        fontWeight: FontWeight.w700,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures()
-                                        ])),
+                                child: Text(
+                                  formatMoney(totalDebt),
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 30,
+                                    fontFamily: Barako.displayFont,
+                                    fontWeight: FontWeight.w700,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 8),
-                              _line('Monthly minimums',
-                                  formatMoney(totalMin)),
-                              _line('Interest cost per month',
-                                  formatMoney(totalInterest)),
+                              _line('Monthly minimums', formatMoney(totalMin)),
+                              _line(
+                                'Interest cost per month',
+                                formatMoney(totalInterest),
+                              ),
                             ],
                           ),
                         ),
@@ -222,50 +248,59 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                       selectedColor: Barako.primary,
                                       backgroundColor: Barako.background,
                                       labelStyle: TextStyle(
-                                          color: strategy == s.$1
-                                              ? Barako.onPrimary
-                                              : Barako.textSecondary,
-                                          fontWeight: FontWeight.w600),
+                                        color: strategy == s.$1
+                                            ? Barako.onPrimary
+                                            : Barako.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                 ],
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                  strategy == 'snowball'
-                                      ? 'Smallest balance first, for quick wins that keep you going.'
-                                      : 'Highest interest first, the cheapest path in pesos.',
-                                  style: TextStyle(
-                                      color: Barako.muted,
-                                      fontSize: 12,
-                                      height: 1.4)),
+                                strategy == 'snowball'
+                                    ? 'Smallest balance first, for quick wins that keep you going.'
+                                    : 'Highest interest first, the cheapest path in pesos.',
+                                style: TextStyle(
+                                  color: Barako.muted,
+                                  fontSize: 12,
+                                  height: 1.4,
+                                ),
+                              ),
                               if (focus != null &&
                                   amountOf(focus['remaining']) > 0) ...[
                                 const SizedBox(height: 10),
                                 Text(
-                                    'Focus: ${focus['name']} at ${formatMoney(amountOf(focus['remaining']))}',
-                                    style: TextStyle(
-                                        color: Barako.text,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700)),
+                                  'Focus: ${focus['name']} at ${formatMoney(amountOf(focus['remaining']))}',
+                                  style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ],
                               if (projection != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                    (projection['months'] as int) == 0
-                                        ? 'Only centavos left. Log the last payments and you are debt free.'
-                                        : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
-                                    style: TextStyle(
-                                        color: Barako.textSecondary,
-                                        fontSize: 12,
-                                        height: 1.4)),
+                                  (projection['months'] as int) == 0
+                                      ? 'Only centavos left. Log the last payments and you are debt free.'
+                                      : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
+                                  style: TextStyle(
+                                    color: Barako.textSecondary,
+                                    fontSize: 12,
+                                    height: 1.4,
+                                  ),
+                                ),
                               ] else if (totalDebt > 0) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                    'The minimums never win against the interest here. Any extra amount changes that.',
-                                    style: TextStyle(
-                                        color: Barako.warning,
-                                        fontSize: 12,
-                                        height: 1.4)),
+                                  'The minimums never win against the interest here. Any extra amount changes that.',
+                                  style: TextStyle(
+                                    color: Barako.warning,
+                                    fontSize: 12,
+                                    height: 1.4,
+                                  ),
+                                ),
                               ],
                             ],
                           ),
@@ -294,23 +329,27 @@ class _DebtsScreenState extends State<DebtsScreen> {
   Widget _kicker(String text) => Text(text, style: Barako.kickerStyle);
 
   Widget _line(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style:
-                      TextStyle(color: Barako.textSecondary, fontSize: 13)),
-            ),
-            Text(value,
-                style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+          ),
         ),
-      );
+        Text(
+          value,
+          style: TextStyle(
+            color: Barako.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _debtCard(BuildContext context, Map<String, dynamic> d) {
     final remaining = amountOf(d['remaining']);
@@ -320,8 +359,8 @@ class _DebtsScreenState extends State<DebtsScreen> {
       child: Card(
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => showDebtSheet(
-              context, widget.store, (d['id'] ?? '').toString()),
+          onTap: () =>
+              showDebtSheet(context, widget.store, (d['id'] ?? '').toString()),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -330,34 +369,35 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text((d['name'] ?? 'Debt').toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        (d['name'] ?? 'Debt').toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                          rate > 0
-                              ? '${d['type']} · ${_rateText(rate)}% monthly'
-                              : '${d['type']}',
-                          style: TextStyle(
-                              color: Barako.muted, fontSize: 12)),
+                        rate > 0
+                            ? '${d['type']} · ${_rateText(rate)}% monthly'
+                            : '${d['type']}',
+                        style: TextStyle(color: Barako.muted, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
                 Text(
-                    remaining > 0 ? formatMoney(remaining) : 'Paid off',
-                    style: TextStyle(
-                        color: remaining > 0
-                            ? Barako.text
-                            : Barako.primary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [
-                          FontFeature.tabularFigures()
-                        ])),
+                  remaining > 0 ? formatMoney(remaining) : 'Paid off',
+                  style: TextStyle(
+                    color: remaining > 0 ? Barako.text : Barako.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
               ],
             ),
           ),
@@ -382,7 +422,10 @@ String _rateText(double v) {
 // ---------------------------------------------------------------------------
 
 Future<void> showDebtSheet(
-    BuildContext context, SalapifyStore store, String debtId) {
+  BuildContext context,
+  SalapifyStore store,
+  String debtId,
+) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -392,7 +435,8 @@ Future<void> showDebtSheet(
     ),
     builder: (sheetContext) => Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: DebtSheet(store: store, debtId: debtId),
     ),
   );
@@ -446,8 +490,7 @@ class _DebtSheetState extends State<DebtSheet> {
       if (mounted) {
         setState(() {
           busy = false;
-          error =
-              'Nothing was changed. ${e is ArgumentError ? e.message : e}';
+          error = 'Nothing was changed. ${e is ArgumentError ? e.message : e}';
         });
       }
     }
@@ -456,34 +499,41 @@ class _DebtSheetState extends State<DebtSheet> {
   void _celebrate(String name) {
     // The single most rewarding moment in the app, so it wears the win tokens:
     // a celebrate-colored icon on the positive surface, not a plain snackbar.
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         backgroundColor: Barako.positiveSurface,
         content: Row(
           children: [
             Icon(Icons.celebration, color: Barako.celebrate, size: 20),
             const SizedBox(width: 10),
             Expanded(
-              child: Text('$name paid off! Utang free.',
-                  style: TextStyle(
-                      color: Barako.text, fontWeight: FontWeight.w700)),
+              child: Text(
+                '$name paid off! Debt free.',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
-        duration: const Duration(seconds: 4)));
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<void> _logPayment(Map<String, dynamic> d) async {
     final amount = parseAmount(payController.text);
     if (amount == null) {
-      setState(() =>
-          error = 'Enter a plain amount above zero, like 250 or 99.50.');
+      setState(
+        () => error = 'Enter a plain amount above zero, like 250 or 99.50.',
+      );
       return;
     }
     final text = payController.text;
     final name = (d['name'] ?? 'Debt').toString();
     await _run(() async {
-      final r =
-          await widget.store.logDebtPayment(widget.debtId, text, payFrom);
+      final r = await widget.store.logDebtPayment(widget.debtId, text, payFrom);
       if (!mounted) return;
       payController.clear();
       setState(() => msg = r.msg);
@@ -502,27 +552,34 @@ class _DebtSheetState extends State<DebtSheet> {
     }
     // Show the amount that will actually leave: the balance plus interest
     // accrued since the last payment, same number the engine will pay.
-    final payoff = splitDebtPayment(remaining, amountOf(d['monthlyRate']),
-        d['interestThroughISO'], 0, _todayISO())['balance'] as double;
+    final payoff =
+        splitDebtPayment(
+              remaining,
+              amountOf(d['monthlyRate']),
+              d['interestThroughISO'],
+              0,
+              _todayISO(),
+            )['balance']
+            as double;
     final name = (d['name'] ?? 'Debt').toString();
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title:
-            Text('Mark paid off?', style: TextStyle(color: Barako.text)),
+        title: Text('Mark paid off?', style: TextStyle(color: Barako.text)),
         content: Text(
           'Log ${formatMoney(payoff)} as a real payment${payFrom != null ? ' from the chosen account' : ''} and zero out $name?',
           style: TextStyle(color: Barako.textSecondary),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text('Pay it off',
-                  style: TextStyle(color: Barako.primary))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Pay it off', style: TextStyle(color: Barako.primary)),
+          ),
         ],
       ),
     );
@@ -543,20 +600,20 @@ class _DebtSheetState extends State<DebtSheet> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Delete this debt?',
-            style: TextStyle(color: Barako.text)),
+        title: Text('Delete this debt?', style: TextStyle(color: Barako.text)),
         content: Text(
           'Logged payments and their money entries stay in History. Only the debt itself is removed.',
           style: TextStyle(color: Barako.textSecondary),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child:
-                  Text('Delete', style: TextStyle(color: Barako.warning))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Delete', style: TextStyle(color: Barako.warning)),
+          ),
         ],
       ),
     );
@@ -576,8 +633,10 @@ class _DebtSheetState extends State<DebtSheet> {
         if (d == null) {
           return Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('This debt no longer exists.',
-                style: TextStyle(color: Barako.muted)),
+            child: Text(
+              'This debt no longer exists.',
+              style: TextStyle(color: Barako.muted),
+            ),
           );
         }
         if (!_seeded) {
@@ -592,7 +651,8 @@ class _DebtSheetState extends State<DebtSheet> {
           for (final a in (widget.store.data['accounts'] as List? ?? const []))
             if (a is Map) a.cast<String, dynamic>(),
         ];
-        final forecast = d['type'] == 'credit card' &&
+        final forecast =
+            d['type'] == 'credit card' &&
                 (amountOf(d['dueDay']) > 0 || amountOf(d['statementDay']) > 0)
             ? cardForecast(d, widget.store.data['payments'], DateTime.now())
             : null;
@@ -605,45 +665,52 @@ class _DebtSheetState extends State<DebtSheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text((d['name'] ?? 'Debt').toString(),
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800)),
+                      child: Text(
+                        (d['name'] ?? 'Debt').toString(),
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                     if (widget.store.canWrite) ...[
                       IconButton(
-                          icon: Icon(Icons.edit_outlined,
-                              color: Barako.muted),
-                          onPressed: busy
-                              ? null
-                              : () => showDebtFormSheet(
-                                  context, widget.store,
-                                  debt: d)),
+                        icon: Icon(Icons.edit_outlined, color: Barako.muted),
+                        onPressed: busy
+                            ? null
+                            : () => showDebtFormSheet(
+                                context,
+                                widget.store,
+                                debt: d,
+                              ),
+                      ),
                       IconButton(
-                          icon: Icon(Icons.delete_outline,
-                              color: Barako.muted),
-                          onPressed: busy ? null : () => _delete(d)),
+                        icon: Icon(Icons.delete_outline, color: Barako.muted),
+                        onPressed: busy ? null : () => _delete(d),
+                      ),
                     ],
                   ],
                 ),
                 Text(
-                    remaining > 0
-                        ? '${formatMoney(remaining)} left${rate > 0 ? ' · ${_rateText(rate)}% monthly' : ''}'
-                        : 'Paid off',
-                    style: TextStyle(
-                        color: remaining > 0
-                            ? Barako.textSecondary
-                            : Barako.primary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
+                  remaining > 0
+                      ? '${formatMoney(remaining)} left${rate > 0 ? ' · ${_rateText(rate)}% monthly' : ''}'
+                      : 'Paid off',
+                  style: TextStyle(
+                    color: remaining > 0
+                        ? Barako.textSecondary
+                        : Barako.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (rate > 0 && remaining > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                        'About ${formatMoney(monthlyInterest(d))} interest gets added each month it sits.',
-                        style:
-                            TextStyle(color: Barako.muted, fontSize: 12)),
+                      'About ${formatMoney(monthlyInterest(d))} interest gets added each month it sits.',
+                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
                   ),
                 if (forecast != null) ...[
                   const SizedBox(height: 12),
@@ -658,54 +725,69 @@ class _DebtSheetState extends State<DebtSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('THIS CYCLE',
-                            style: TextStyle(
-                                color: Barako.muted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 2)),
+                        Text(
+                          'THIS CYCLE',
+                          style: TextStyle(
+                            color: Barako.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         if (forecast['statement'] != null)
                           Text(
-                              'Statement cuts ${_longDate(forecast['statement'] as String)}',
-                              style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 12)),
+                            'Statement cuts ${_longDate(forecast['statement'] as String)}',
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
                         if (forecast['due'] != null)
                           Text(
-                              'Due ${_longDate(forecast['due'] as String)}${forecast['dueMoved'] == true ? ' (moved, ${forecast['dueMovedReason']})' : ''}',
-                              style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 12)),
-                        Text(
-                            'Pay at least ${formatMoney(forecast['minDue'] as double)} to avoid late fees',
+                            'Due ${_longDate(forecast['due'] as String)}${forecast['dueMoved'] == true ? ' (moved, ${forecast['dueMovedReason']})' : ''}',
                             style: TextStyle(
-                                color: Barako.textSecondary, fontSize: 12)),
+                              color: Barako.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        Text(
+                          'Pay at least ${formatMoney(forecast['minDue'] as double)} to avoid late fees',
+                          style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
                         if ((forecast['pending'] as double) > 0)
                           Text(
-                              'Sent but not yet posted: ${formatMoney(forecast['pending'] as double)}',
-                              style: TextStyle(
-                                  color: Barako.muted, fontSize: 12)),
+                            'Sent but not yet posted: ${formatMoney(forecast['pending'] as double)}',
+                            style: TextStyle(color: Barako.muted, fontSize: 12),
+                          ),
                       ],
                     ),
                   ),
                 ],
                 if (widget.store.canWrite && remaining > 0) ...[
                   const SizedBox(height: 16),
-                  Text('LOG A PAYMENT',
-                      style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2)),
+                  Text(
+                    'LOG A PAYMENT',
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: payController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     style: TextStyle(color: Barako.text),
                     decoration: InputDecoration(
-                      hintText: 'Amount, like ${_rateText(amountOf(d['minPayment']) > 0 ? amountOf(d['minPayment']) : 500)}',
+                      hintText:
+                          'Amount, like ${_rateText(amountOf(d['minPayment']) > 0 ? amountOf(d['minPayment']) : 500)}',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -720,26 +802,29 @@ class _DebtSheetState extends State<DebtSheet> {
                         selectedColor: Barako.primary,
                         backgroundColor: Barako.background,
                         labelStyle: TextStyle(
-                            color: payFrom == null
-                                ? Barako.onPrimary
-                                : Barako.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600),
+                          color: payFrom == null
+                              ? Barako.onPrimary
+                              : Barako.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       for (final a in accounts)
                         ChoiceChip(
                           label: Text((a['name'] ?? 'Account').toString()),
                           selected: payFrom == a['id'],
                           onSelected: (_) => setState(
-                              () => payFrom = (a['id'] ?? '').toString()),
+                            () => payFrom = (a['id'] ?? '').toString(),
+                          ),
                           selectedColor: Barako.primary,
                           backgroundColor: Barako.background,
                           labelStyle: TextStyle(
-                              color: payFrom == a['id']
-                                  ? Barako.onPrimary
-                                  : Barako.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
+                            color: payFrom == a['id']
+                                ? Barako.onPrimary
+                                : Barako.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                     ],
                   ),
@@ -749,18 +834,20 @@ class _DebtSheetState extends State<DebtSheet> {
                       Expanded(
                         child: FilledButton(
                           onPressed: busy ? null : () => _logPayment(d),
-                          child: const Text('Log payment',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.w700)),
+                          child: const Text(
+                            'Log payment',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: busy ? null : () => _markPaid(d),
-                          child: const Text('Mark paid off',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.w700)),
+                          child: const Text(
+                            'Mark paid off',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                     ],
@@ -769,20 +856,26 @@ class _DebtSheetState extends State<DebtSheet> {
                 if (msg != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(msg!,
-                        style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 12,
-                            height: 1.4)),
+                    child: Text(
+                      msg!,
+                      style: TextStyle(
+                        color: Barako.primaryText,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(error!,
-                        style: TextStyle(
-                            color: Barako.warning,
-                            fontSize: 12,
-                            height: 1.4)),
+                    child: Text(
+                      error!,
+                      style: TextStyle(
+                        color: Barako.warning,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -797,8 +890,11 @@ class _DebtSheetState extends State<DebtSheet> {
 // Add and edit form.
 // ---------------------------------------------------------------------------
 
-Future<void> showDebtFormSheet(BuildContext context, SalapifyStore store,
-    {Map<String, dynamic>? debt}) {
+Future<void> showDebtFormSheet(
+  BuildContext context,
+  SalapifyStore store, {
+  Map<String, dynamic>? debt,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -808,7 +904,8 @@ Future<void> showDebtFormSheet(BuildContext context, SalapifyStore store,
     ),
     builder: (sheetContext) => Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: DebtFormSheet(store: store, debt: debt),
     ),
   );
@@ -849,11 +946,14 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     name = TextEditingController(text: (d?['name'] ?? '').toString());
     type = (d?['type'] ?? 'credit card').toString();
     remaining = TextEditingController(
-        text: d != null ? _rateText(amountOf(d['remaining'])) : '');
+      text: d != null ? _rateText(amountOf(d['remaining'])) : '',
+    );
     rateCtl = TextEditingController(
-        text: d != null ? _rateText(amountOf(d['monthlyRate'])) : '');
+      text: d != null ? _rateText(amountOf(d['monthlyRate'])) : '',
+    );
     minPay = TextEditingController(
-        text: d != null ? _rateText(amountOf(d['minPayment'])) : '');
+      text: d != null ? _rateText(amountOf(d['minPayment'])) : '',
+    );
     dueDay = TextEditingController(text: numText(d?['dueDay']));
     statementDay = TextEditingController(text: numText(d?['statementDay']));
     graceDays = TextEditingController(text: numText(d?['graceDays']));
@@ -907,8 +1007,7 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     }
   }
 
-  Widget _field(TextEditingController c, String label,
-      {bool number = true}) {
+  Widget _field(TextEditingController c, String label, {bool number = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
@@ -931,14 +1030,16 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.debt != null ? 'Edit debt' : 'Add a debt',
-                style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
+            Text(
+              widget.debt != null ? 'Edit debt' : 'Add a debt',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 12),
-            _field(name, 'Name, like BPI card or Utang kay Kuya',
-                number: false),
+            _field(name, 'Name, like BPI card or a family loan', number: false),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -951,11 +1052,12 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.background,
                     labelStyle: TextStyle(
-                        color: type == t
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600),
+                      color: type == t
+                          ? Barako.onPrimary
+                          : Barako.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
               ],
             ),
@@ -972,16 +1074,23 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
             if (error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(error!,
-                    style: TextStyle(
-                        color: Barako.warning, fontSize: 12, height: 1.4)),
+                child: Text(
+                  error!,
+                  style: TextStyle(
+                    color: Barako.warning,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
               ),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: busy ? null : _save,
-                child: Text(widget.debt != null ? 'Save changes' : 'Add debt',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(
+                  widget.debt != null ? 'Save changes' : 'Add debt',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],

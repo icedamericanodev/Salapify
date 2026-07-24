@@ -9,56 +9,55 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/analytics.dart' as analytics;
-import 'package:salapify/screens/insights.dart'
-    show runwayLabel, fundedOnTime;
+import 'package:salapify/screens/insights.dart' show runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
-      'schemaVersion': 12,
-      'accounts': [
-        {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3000},
-      ],
-      'transactions': [
-        {
-          'id': 'i1',
-          'type': 'income',
-          'label': 'Sweldo',
-          'amount': 5000,
-          'date': _monthDay(15),
-          'accountId': 'cash',
-        },
-        {
-          'id': 'e1',
-          'type': 'expense',
-          'label': 'Milk tea',
-          'amount': 2600,
-          'date': _monthDay(8),
-        },
-        {
-          'id': 'e2',
-          'type': 'expense',
-          'label': 'Food',
-          'amount': 4000,
-          'date': _monthDay(5),
-        },
-      ],
-      'people': [
-        {'id': 'p1', 'name': 'Migs'},
-      ],
-      'receivables': [
-        {
-          'id': 'r1',
-          'personId': 'p1',
-          'person': 'Migs',
-          'amount': 1500,
-          'payments': [],
-          'paid': false,
-          'dueDate': '2020-01-01',
-        },
-      ],
-      'settings': {'monthlyLimit': 5000},
-    };
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3000},
+  ],
+  'transactions': [
+    {
+      'id': 'i1',
+      'type': 'income',
+      'label': 'Sweldo',
+      'amount': 5000,
+      'date': _monthDay(15),
+      'accountId': 'cash',
+    },
+    {
+      'id': 'e1',
+      'type': 'expense',
+      'label': 'Milk tea',
+      'amount': 2600,
+      'date': _monthDay(8),
+    },
+    {
+      'id': 'e2',
+      'type': 'expense',
+      'label': 'Food',
+      'amount': 4000,
+      'date': _monthDay(5),
+    },
+  ],
+  'people': [
+    {'id': 'p1', 'name': 'Migs'},
+  ],
+  'receivables': [
+    {
+      'id': 'r1',
+      'personId': 'p1',
+      'person': 'Migs',
+      'amount': 1500,
+      'payments': [],
+      'paid': false,
+      'dueDate': '2020-01-01',
+    },
+  ],
+  'settings': {'monthlyLimit': 5000},
+};
 
 String _monthDay(int day) {
   final now = DateTime.now();
@@ -69,13 +68,15 @@ String _monthDay(int day) {
 }
 
 void main() {
-  test('formatMoney survives non-finite sums instead of killing the screen',
-      () {
-    expect(formatMoney(double.infinity), '₱Infinity');
-    expect(formatMoney(double.negativeInfinity), '₱-Infinity');
-    expect(formatMoney(double.nan), '₱NaN');
-    expect(formatMoney(1250.5), '₱1,250.50');
-  });
+  test(
+    'formatMoney survives non-finite sums instead of killing the screen',
+    () {
+      expect(formatMoney(double.infinity), '₱Infinity');
+      expect(formatMoney(double.negativeInfinity), '₱-Infinity');
+      expect(formatMoney(double.nan), '₱NaN');
+      expect(formatMoney(1250.5), '₱1,250.50');
+    },
+  );
 
   test('healthScore never fabricates savings points from a NaN rate', () {
     // Two near-max incomes sum to Infinity; savingsRate goes NaN. Dart
@@ -136,18 +137,20 @@ void main() {
     expect((health['parts'] as Map)['debt'], 0);
   });
 
-  test('fundedOnTime is day-precise, never falsely on time within the month',
-      () {
-    // A day-precise target: a funded date later in the SAME month is late.
-    expect(fundedOnTime('2026-08-20', '2026-08-05'), isFalse);
-    expect(fundedOnTime('2026-08-03', '2026-08-05'), isTrue);
-    expect(fundedOnTime('2026-08-05', '2026-08-05'), isTrue);
-    expect(fundedOnTime('2026-07-01', '2026-08-31'), isTrue);
-    // A month-only target means end of that month, so any same-month funded
-    // date is on time, and the next month is late.
-    expect(fundedOnTime('2026-08-28', '2026-08'), isTrue);
-    expect(fundedOnTime('2026-09-01', '2026-08'), isFalse);
-  });
+  test(
+    'fundedOnTime is day-precise, never falsely on time within the month',
+    () {
+      // A day-precise target: a funded date later in the SAME month is late.
+      expect(fundedOnTime('2026-08-20', '2026-08-05'), isFalse);
+      expect(fundedOnTime('2026-08-03', '2026-08-05'), isTrue);
+      expect(fundedOnTime('2026-08-05', '2026-08-05'), isTrue);
+      expect(fundedOnTime('2026-07-01', '2026-08-31'), isTrue);
+      // A month-only target means end of that month, so any same-month funded
+      // date is on time, and the next month is late.
+      expect(fundedOnTime('2026-08-28', '2026-08'), isTrue);
+      expect(fundedOnTime('2026-09-01', '2026-08'), isFalse);
+    },
+  );
 
   test('runwayLabel drops the .0 on whole months', () {
     expect(runwayLabel(null, false), 'Not enough history yet');
@@ -157,14 +160,14 @@ void main() {
     expect(runwayLabel(12.0, true), '12+ months');
   });
 
-  testWidgets('the Insights tab renders decisions and numbers from real data',
-      (tester) async {
+  testWidgets('the Insights tab renders decisions and numbers from real data', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob())});
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
@@ -173,7 +176,7 @@ void main() {
     // decision must rank near the top, and Migs is years overdue.
     expect(find.text('Spending passed income this month'), findsOneWidget);
     expect(find.text('Follow up Migs'), findsOneWidget);
-    expect(find.text('SAFE TO SPEND UNTIL SWELDO'), findsOneWidget);
+    expect(find.text('SAFE TO SPEND UNTIL PAYDAY'), findsOneWidget);
     // The lower cards live below the test viewport fold: scroll to each.
     for (final label in [
       'MONEY HEALTH',
@@ -183,22 +186,29 @@ void main() {
       // Only the current month has spending: runway has no honest number.
       'Not enough history yet',
     ]) {
-      await tester.scrollUntilVisible(find.text(label), 200,
-          scrollable: find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(
+        find.text(label),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
     // Tapping the utang decision jumps to the Utang tab.
-    await tester.scrollUntilVisible(find.text('Follow up Migs'), -200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Follow up Migs'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();
     expect(find.text('STILL OUT'), findsOneWidget);
   });
 
-  testWidgets('the what-if simulator projects savings and reacts to the chips',
-      (tester) async {
+  testWidgets('the what-if simulator projects savings and reacts to the chips', (
+    tester,
+  ) async {
     // A liquid cash cushion (so it is not the crunch state) and the exact
     // three-debt book from the golden. debtFreeProjection's month COUNTS are
     // ref-independent (only the absolute payoff date shifts with today), so
@@ -239,16 +249,21 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-        await tester.tap(find.text('Insights'));
+    await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-        find.text('WHAT IF YOU PAID A LITTLE EXTRA'), 200,
-        scrollable: find.byType(Scrollable).first);
+      find.text('WHAT IF YOU PAID A LITTLE EXTRA'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     // Default is +500: the avalanche focus is the 3% card, 3 months sooner.
     // The next-peso card above also names BPI card (same debt, correctly), so
     // assert the phrase unique to the what-if support instead of the bare name.
-    expect(find.textContaining('putting the extra on BPI card'), findsOneWidget);
+    expect(
+      find.textContaining('putting the extra on BPI card'),
+      findsOneWidget,
+    );
     expect(find.textContaining('3 months sooner'), findsOneWidget);
 
     // Tapping the +1,000 chip recomputes to 5 months sooner, live. The
@@ -256,7 +271,7 @@ void main() {
     // little first to keep its center inside the tappable viewport.
     await tester.ensureVisible(find.text('+₱1,000 a month'));
     await tester.pumpAndSettle();
-       await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
     await tester.tap(find.text('+₱1,000 a month'));
     await tester.pumpAndSettle();
@@ -264,44 +279,56 @@ void main() {
     expect(find.textContaining('3 months sooner'), findsNothing);
   });
 
-  testWidgets('a debt with no rate saved is caveated, never shown as 0 interest',
-      (tester) async {
-    // remaining but no monthlyRate field: amountOf coerces it to 0, so a
-    // naive card would print "0 interest". The guard must caveat instead.
-    SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode({
-        'schemaVersion': 12,
-        'accounts': [
-          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
-        ],
-        'debts': [
-          {'id': 'card', 'name': 'Store card', 'type': 'credit card',
-              'remaining': 12000, 'minPayment': 800},
-        ],
-        'settings': {},
-      }),
-    });
-    final store = SalapifyStore();
-    await tester.pumpWidget(SalapifyApp(store: store));
-    await tester.pumpAndSettle();
-        await tester.tap(find.text('Insights'));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'a debt with no rate saved is caveated, never shown as 0 interest',
+    (tester) async {
+      // remaining but no monthlyRate field: amountOf coerces it to 0, so a
+      // naive card would print "0 interest". The guard must caveat instead.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'accounts': [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+          ],
+          'debts': [
+            {
+              'id': 'card',
+              'name': 'Store card',
+              'type': 'credit card',
+              'remaining': 12000,
+              'minPayment': 800,
+            },
+          ],
+          'settings': {},
+        }),
+      });
+      final store = SalapifyStore();
+      await tester.pumpWidget(SalapifyApp(store: store));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Insights'));
+      await tester.pumpAndSettle();
 
-    // The whole card is one ListView child, so scrolling its kicker into view
-    // builds every descendant, including the caveat below it.
-    await tester.scrollUntilVisible(
-        find.text('WHAT IF YOU PAID A LITTLE EXTRA'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(
+      // The whole card is one ListView child, so scrolling its kicker into view
+      // builds every descendant, including the caveat below it.
+      await tester.scrollUntilVisible(
+        find.text('WHAT IF YOU PAID A LITTLE EXTRA'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
         find.text(
-            'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.'),
-        findsOneWidget);
-    // The rosy zero-interest phrasing must never appear.
-    expect(find.textContaining('gone to interest'), findsNothing);
-  });
+          'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
+        ),
+        findsOneWidget,
+      );
+      // The rosy zero-interest phrasing must never appear.
+      expect(find.textContaining('gone to interest'), findsNothing);
+    },
+  );
 
-  testWidgets('the savings simulator forecasts a goal and reacts to the chips',
-      (tester) async {
+  testWidgets('the savings simulator forecasts a goal and reacts to the chips', (
+    tester,
+  ) async {
     // One goal, no debt, so only the savings card shows. No target date, so
     // the funded month (which depends on today) is never asserted; the
     // support sentence, which is date independent, carries the check.
@@ -320,12 +347,14 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-        await tester.tap(find.text('Insights'));
+    await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-        find.text('WHAT IF YOU SAVED EACH WEEK'), 200,
-        scrollable: find.byType(Scrollable).first);
+      find.text('WHAT IF YOU SAVED EACH WEEK'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     // The next-peso card above also names New phone (the same goal, correctly),
     // so assert the phrase unique to the savings what-if support.
     expect(find.textContaining('fund New phone'), findsOneWidget);
@@ -336,7 +365,7 @@ void main() {
     // it a little first to keep its center inside the tappable viewport.
     await tester.ensureVisible(find.text('₱1,000 a week'));
     await tester.pumpAndSettle();
-       await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
     await tester.tap(find.text('₱1,000 a week'));
     await tester.pumpAndSettle();
@@ -344,9 +373,9 @@ void main() {
     expect(find.textContaining('Saving ₱500 a week'), findsNothing);
   });
 
-  testWidgets(
-      'next-peso card ranks a costly debt ahead of a tempting goal',
-      (tester) async {
+  testWidgets('next-peso card ranks a costly debt ahead of a tempting goal', (
+    tester,
+  ) async {
     // The soundness fix: a user with a one-month cushion, a 3% card, AND a
     // fundable goal. The old screen made the goal look like the reward; the
     // order card must send the next peso to the debt instead.
@@ -357,8 +386,14 @@ void main() {
           {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
         ],
         'debts': [
-          {'id': 'card', 'name': 'BPI card', 'type': 'credit card',
-              'remaining': 18000, 'monthlyRate': 3, 'minPayment': 900},
+          {
+            'id': 'card',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 18000,
+            'monthlyRate': 3,
+            'minPayment': 900,
+          },
         ],
         'goals': [
           {'id': 'g1', 'name': 'New phone', 'target': 15000, 'saved': 5000},
@@ -373,18 +408,25 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-        find.text('WHERE YOUR NEXT PESO SHOULD GO'), 200,
-        scrollable: find.byType(Scrollable).first);
+      find.text('WHERE YOUR NEXT PESO SHOULD GO'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Clear your costliest debt'), findsOneWidget);
-    expect(find.textContaining('more than any savings can earn back'),
-        findsOneWidget);
+    expect(
+      find.textContaining('more than any savings can earn back'),
+      findsOneWidget,
+    );
     // The honesty footer is always present.
-    expect(find.textContaining('not a promise. Your call always wins'),
-        findsOneWidget);
+    expect(
+      find.textContaining('not a promise. Your call always wins'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('spoken-for card shows the committed share of income',
-      (tester) async {
+  testWidgets('spoken-for card shows the committed share of income', (
+    tester,
+  ) async {
     // Two months of income plus recurring bills and a debt minimum, so the
     // card can quote a share. 10000 income, 2000 rent + 500 minimum = 2500
     // committed, 25%.
@@ -406,12 +448,22 @@ void main() {
           {'id': 'i3', 'type': 'income', 'amount': 10000, 'date': ym(3)},
         ],
         'recurring': [
-          {'id': 'r1', 'type': 'expense', 'label': 'Rent', 'amount': 2000,
-              'dayOfMonth': 1},
+          {
+            'id': 'r1',
+            'type': 'expense',
+            'label': 'Rent',
+            'amount': 2000,
+            'dayOfMonth': 1,
+          },
         ],
         'debts': [
-          {'id': 'd1', 'name': 'Card', 'type': 'credit card',
-              'remaining': 12000, 'minPayment': 500},
+          {
+            'id': 'd1',
+            'name': 'Card',
+            'type': 'credit card',
+            'remaining': 12000,
+            'minPayment': 500,
+          },
         ],
         'settings': {},
       }),
@@ -422,14 +474,18 @@ void main() {
     await tester.tap(find.text('Insights'));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('SPOKEN FOR EACH MONTH'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('SPOKEN FOR EACH MONTH'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('25%'), findsOneWidget);
     expect(find.textContaining('everything else'), findsOneWidget);
   });
 
-  testWidgets('spoken-for survives an absurd backup instead of crashing',
-      (tester) async {
+  testWidgets('spoken-for survives an absurd backup instead of crashing', (
+    tester,
+  ) async {
     // Two near-max recurring amounts overflow the committed sum to Infinity;
     // round() would throw on that. The card must fall back, not kill the tab.
     final now = DateTime.now();
@@ -450,10 +506,20 @@ void main() {
           {'id': 'i3', 'type': 'income', 'amount': 15000, 'date': ym(3)},
         ],
         'recurring': [
-          {'id': 'r1', 'type': 'expense', 'label': 'A', 'amount': 1.7e308,
-              'dayOfMonth': 1},
-          {'id': 'r2', 'type': 'expense', 'label': 'B', 'amount': 1.7e308,
-              'dayOfMonth': 2},
+          {
+            'id': 'r1',
+            'type': 'expense',
+            'label': 'A',
+            'amount': 1.7e308,
+            'dayOfMonth': 1,
+          },
+          {
+            'id': 'r2',
+            'type': 'expense',
+            'label': 'B',
+            'amount': 1.7e308,
+            'dayOfMonth': 2,
+          },
         ],
         'settings': {},
       }),
@@ -467,13 +533,17 @@ void main() {
     // The tab rendered without throwing, and the card fell back to the peso
     // total rather than a garbage percent.
     expect(tester.takeException(), isNull);
-    await tester.scrollUntilVisible(find.text('SPOKEN FOR EACH MONTH'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('SPOKEN FOR EACH MONTH'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
   });
 
-  testWidgets('an empty app invites logging instead of a wall of zeros',
-      (tester) async {
+  testWidgets('an empty app invites logging instead of a wall of zeros', (
+    tester,
+  ) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
     SharedPreferences.setMockInitialValues({});

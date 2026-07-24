@@ -188,7 +188,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Beach fund slipped its date",
-          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Beach fund's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -417,7 +417,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Laptop slipped its date",
-          "message": "Laptop's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Laptop's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -1077,7 +1077,7 @@
           "kind": "goal",
           "tone": "nudge",
           "title": "Beach fund slipped its date",
-          "message": "Beach fund's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up.",
+          "message": "Beach fund's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up.",
           "action": {
             "label": "Open goals",
             "route": "/goals"

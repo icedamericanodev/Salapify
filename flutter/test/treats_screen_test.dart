@@ -13,8 +13,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 Future<void> _openTreats(WidgetTester tester) async {
   await tester.tap(find.text('Menu'));
   await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('Earn your treats'), 200,
-      scrollable: find.byType(Scrollable).first);
+  await tester.scrollUntilVisible(
+    find.text('Earn your treats'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.ensureVisible(find.text('Earn your treats'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Earn your treats'));
@@ -25,8 +28,9 @@ List _treats(SalapifyStore store) =>
     (store.data['settings'] as Map)['treats'] as List;
 
 void main() {
-  testWidgets('start from a template, save, then check in today',
-      (tester) async {
+  testWidgets('start from a template, save, then check in today', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
@@ -35,10 +39,10 @@ void main() {
 
     // Empty state shows the templates.
     expect(find.text('PICK ONE TO START'), findsOneWidget);
-    expect(find.text('Milk tea or kape'), findsOneWidget);
+    expect(find.text('Milk tea or coffee'), findsOneWidget);
 
     // Tap a template, then Save the prefilled sheet.
-    await tester.tap(find.text('Milk tea or kape'));
+    await tester.tap(find.text('Milk tea or coffee'));
     await tester.pumpAndSettle();
     expect(find.text('New treat'), findsOneWidget);
     await tester.tap(find.text('Save'));
@@ -46,7 +50,7 @@ void main() {
 
     expect(_treats(store).length, 1);
     final t = _treats(store).first as Map;
-    expect(t['treat'], 'Milk tea or kape');
+    expect(t['treat'], 'Milk tea or coffee');
     expect(t['target'], 3);
     expect((t['checkIns'] as List).isEmpty, isTrue);
 
@@ -71,9 +75,33 @@ void main() {
       'salapify_data_v2': jsonEncode({
         'settings': {
           'treats': [
-            {'id': 't1', 'treat': 'A', 'action': 'x', 'target': 3, 'windowDays': 7, 'checkIns': [], 'lifetime': 0},
-            {'id': 't2', 'treat': 'B', 'action': 'y', 'target': 3, 'windowDays': 7, 'checkIns': [], 'lifetime': 0},
-            {'id': 't3', 'treat': 'C', 'action': 'z', 'target': 3, 'windowDays': 7, 'checkIns': [], 'lifetime': 0},
+            {
+              'id': 't1',
+              'treat': 'A',
+              'action': 'x',
+              'target': 3,
+              'windowDays': 7,
+              'checkIns': [],
+              'lifetime': 0,
+            },
+            {
+              'id': 't2',
+              'treat': 'B',
+              'action': 'y',
+              'target': 3,
+              'windowDays': 7,
+              'checkIns': [],
+              'lifetime': 0,
+            },
+            {
+              'id': 't3',
+              'treat': 'C',
+              'action': 'z',
+              'target': 3,
+              'windowDays': 7,
+              'checkIns': [],
+              'lifetime': 0,
+            },
           ],
         },
       }),
@@ -86,12 +114,14 @@ void main() {
     // The list renders and + Add is disabled at the cap of three.
     expect(find.text('A'), findsOneWidget);
     final addBtn = tester.widget<TextButton>(
-        find.widgetWithText(TextButton, '+ Add'));
+      find.widgetWithText(TextButton, '+ Add'),
+    );
     expect(addBtn.onPressed, isNull);
   });
 
-  testWidgets('editing a treat keeps its check-ins and lifetime',
-      (tester) async {
+  testWidgets('editing a treat keeps its check-ins and lifetime', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({
         'settings': {

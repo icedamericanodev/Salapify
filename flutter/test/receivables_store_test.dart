@@ -14,28 +14,28 @@ import 'package:salapify/screens/utang.dart' show openUtangFor;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> blob() => {
-      'schemaVersion': 12,
-      'accounts': [
-        {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
-        {'id': 'bank', 'name': 'Bank', 'kind': 'bank', 'balance': 20000},
-      ],
-      'transactions': [],
-      'people': [
-        {'id': 'p1', 'name': 'Migs', 'phone': '', 'note': ''},
-      ],
-      'receivables': [
-        {
-          'id': 'r1',
-          'personId': 'p1',
-          'person': 'Migs',
-          'amount': 2000,
-          'dueDate': '2026-07-04',
-          'payments': [],
-          'paid': false,
-        },
-      ],
-      'settings': {'defaultAccountId': 'bank'},
-    };
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+    {'id': 'bank', 'name': 'Bank', 'kind': 'bank', 'balance': 20000},
+  ],
+  'transactions': [],
+  'people': [
+    {'id': 'p1', 'name': 'Migs', 'phone': '', 'note': ''},
+  ],
+  'receivables': [
+    {
+      'id': 'r1',
+      'personId': 'p1',
+      'person': 'Migs',
+      'amount': 2000,
+      'dueDate': '2026-07-04',
+      'payments': [],
+      'paid': false,
+    },
+  ],
+  'settings': {'defaultAccountId': 'bank'},
+};
 
 Future<SalapifyStore> loaded() async {
   final store = SalapifyStore();
@@ -44,37 +44,40 @@ Future<SalapifyStore> loaded() async {
 }
 
 double balanceOf(SalapifyStore store, String id) =>
-    ((store.data['accounts'] as List)
-            .cast<Map<String, dynamic>>()
-            .firstWhere((a) => a['id'] == id)['balance'] as num)
+    ((store.data['accounts'] as List).cast<Map<String, dynamic>>().firstWhere(
+              (a) => a['id'] == id,
+            )['balance']
+            as num)
         .toDouble();
 
 Map<String, dynamic> receivable(SalapifyStore store, String id) =>
-    (store.data['receivables'] as List)
-        .cast<Map<String, dynamic>>()
-        .firstWhere((r) => r['id'] == id);
+    (store.data['receivables'] as List).cast<Map<String, dynamic>>().firstWhere(
+      (r) => r['id'] == id,
+    );
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob())});
   });
 
-  test('collectUtangPayment posts income to the default account and persists',
-      () async {
-    final store = await loaded();
-    await store.collectUtangPayment('r1', '250');
-    expect(balanceOf(store, 'bank'), 20250);
-    final r = receivable(store, 'r1');
-    expect((r['payments'] as List).length, 1);
-    expect(r['paid'], false);
-    final txns = (store.data['transactions'] as List)
-        .cast<Map<String, dynamic>>();
-    expect(txns.length, 1);
-    expect(txns.first['source'], 'receivable');
-    expect(txns.first['type'], 'income');
-    final fresh = await loaded();
-    expect(balanceOf(fresh, 'bank'), 20250);
-  });
+  test(
+    'collectUtangPayment posts income to the default account and persists',
+    () async {
+      final store = await loaded();
+      await store.collectUtangPayment('r1', '250');
+      expect(balanceOf(store, 'bank'), 20250);
+      final r = receivable(store, 'r1');
+      expect((r['payments'] as List).length, 1);
+      expect(r['paid'], false);
+      final txns = (store.data['transactions'] as List)
+          .cast<Map<String, dynamic>>();
+      expect(txns.length, 1);
+      expect(txns.first['source'], 'receivable');
+      expect(txns.first['type'], 'income');
+      final fresh = await loaded();
+      expect(balanceOf(fresh, 'bank'), 20250);
+    },
+  );
 
   test('a payment covering everything settles the utang', () async {
     final store = await loaded();
@@ -83,25 +86,26 @@ void main() {
     expect(balanceOf(store, 'bank'), 22000);
   });
 
-  test('markUtangPaid settles the remainder with a settled-tagged payment',
-      () async {
-    final store = await loaded();
-    await store.collectUtangPayment('r1', '500');
-    await store.markUtangPaid('r1');
-    final r = receivable(store, 'r1');
-    expect(r['paid'], true);
-    final payments = (r['payments'] as List).cast<Map<String, dynamic>>();
-    expect(payments.length, 2);
-    expect(payments.last['settled'], true);
-    expect(balanceOf(store, 'bank'), 22000);
-  });
+  test(
+    'markUtangPaid settles the remainder with a settled-tagged payment',
+    () async {
+      final store = await loaded();
+      await store.collectUtangPayment('r1', '500');
+      await store.markUtangPaid('r1');
+      final r = receivable(store, 'r1');
+      expect(r['paid'], true);
+      final payments = (r['payments'] as List).cast<Map<String, dynamic>>();
+      expect(payments.length, 2);
+      expect(payments.last['settled'], true);
+      expect(balanceOf(store, 'bank'), 22000);
+    },
+  );
 
   test('removeUtangPayment reverses the income and reopens', () async {
     final store = await loaded();
     await store.collectUtangPayment('r1', '2000');
     final r = receivable(store, 'r1');
-    final paymentId =
-        ((r['payments'] as List).first as Map)['id'].toString();
+    final paymentId = ((r['payments'] as List).first as Map)['id'].toString();
     await store.removeUtangPayment('r1', paymentId);
     final after = receivable(store, 'r1');
     expect(after['paid'], false);
@@ -112,8 +116,7 @@ void main() {
 
   test('addUtang creates the person once and records the lend leg', () async {
     final store = await loaded();
-    await store.addUtang(
-        person: 'Ana', amountText: '600', fromAccount: 'cash');
+    await store.addUtang(person: 'Ana', amountText: '600', fromAccount: 'cash');
     expect(balanceOf(store, 'cash'), 4400);
     final people = (store.data['people'] as List).cast<Map<String, dynamic>>();
     expect(people.length, 2);
@@ -123,13 +126,12 @@ void main() {
     expect((store.data['receivables'] as List).length, 3);
   });
 
-  test('addUtang refuses an impossible date with a friendly message',
-      () async {
+  test('addUtang refuses an impossible date with a friendly message', () async {
     final store = await loaded();
     await expectLater(
-        store.addUtang(
-            person: 'Lita', amountText: '100', dueDate: '2026-02-30'),
-        throwsA(isA<ArgumentError>()));
+      store.addUtang(person: 'Lita', amountText: '100', dueDate: '2026-02-30'),
+      throwsA(isA<ArgumentError>()),
+    );
     // Nothing was written.
     expect((store.data['receivables'] as List).length, 1);
     expect((store.data['people'] as List).length, 1);
@@ -151,7 +153,9 @@ void main() {
     await tester.tap(find.text('Log payment'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'How much came back?'), '250');
+      find.widgetWithText(TextField, 'How much came back?'),
+      '250',
+    );
     await tester.tap(find.text('Save payment'));
     await tester.pumpAndSettle();
 
@@ -164,8 +168,7 @@ void main() {
   });
 
   test('repairing duplicate txn ids clears the payment links that carried '
-      'the duplicated id, so removal cannot reverse the wrong money',
-      () async {
+      'the duplicated id, so removal cannot reverse the wrong money', () async {
     final dirty = blob();
     // An unrelated expense and the payment's income share id 'dup'; the
     // receivable's payment points at 'dup'. After repair the link must be
@@ -204,8 +207,11 @@ void main() {
     final store = await loaded();
     final r = receivable(store, 'r1');
     final payment = ((r['payments'] as List).first as Map);
-    expect(payment['txnId'], '',
-        reason: 'the ambiguous link must be cleared on load');
+    expect(
+      payment['txnId'],
+      '',
+      reason: 'the ambiguous link must be cleared on load',
+    );
     // Removing the payment now drops the row and moves NO money: both
     // transactions and the bank balance stay untouched.
     await store.removeUtangPayment('r1', 'pay1');
@@ -229,27 +235,40 @@ void main() {
     });
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(dirty)});
     final store = await loaded();
-    expect(openUtangFor(store.data, 'Juan').length, 1,
-        reason: 'the aging row Juan must open a sheet with the entry');
+    expect(
+      openUtangFor(store.data, 'Juan').length,
+      1,
+      reason: 'the aging row Juan must open a sheet with the entry',
+    );
   });
 
   test('junk entries inside payments do not crash the pure helpers', () {
     expect(
-        engine.paidSumOf({
-          'amount': 100,
-          'payments': [null, 'junk', {'amount': 40}],
-        }),
-        40);
+      engine.paidSumOf({
+        'amount': 100,
+        'payments': [
+          null,
+          'junk',
+          {'amount': 40},
+        ],
+      }),
+      40,
+    );
     expect(
-        engine.remainingOf({
-          'amount': 100,
-          'payments': [null, {'amount': 40}],
-        }),
-        60);
+      engine.remainingOf({
+        'amount': 100,
+        'payments': [
+          null,
+          {'amount': 40},
+        ],
+      }),
+      60,
+    );
   });
 
-  testWidgets('the add utang sheet refuses a comma decimal amount',
-      (tester) async {
+  testWidgets('the add utang sheet refuses a comma decimal amount', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -260,16 +279,21 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Who borrowed? e.g. Juan'), 'Ben');
+      find.widgetWithText(TextField, 'Who borrowed? e.g. Juan'),
+      'Ben',
+    );
     await tester.enterText(find.widgetWithText(TextField, '0.00'), '2,50');
-    await tester.ensureVisible(find.text('Save utang'));
+    await tester.ensureVisible(find.text('Save'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save utang'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Use a period for centavos'), findsOneWidget);
-    expect((store.data['receivables'] as List).length, 1,
-        reason: '2,50 must never save as 250');
+    expect(
+      (store.data['receivables'] as List).length,
+      1,
+      reason: '2,50 must never save as 250',
+    );
   });
 
   testWidgets('the add utang sheet saves a new utang', (tester) async {
@@ -283,12 +307,14 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Who borrowed? e.g. Juan'), 'Ben');
+      find.widgetWithText(TextField, 'Who borrowed? e.g. Juan'),
+      'Ben',
+    );
     await tester.enterText(find.widgetWithText(TextField, '0.00'), '300');
     // The save button sits below the fold of the sheet in the test viewport.
-    await tester.ensureVisible(find.text('Save utang'));
+    await tester.ensureVisible(find.text('Save'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save utang'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('Ben'), findsOneWidget);

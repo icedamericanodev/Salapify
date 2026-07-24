@@ -652,7 +652,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('SAFE TO SPEND UNTIL SWELDO'),
+            _kicker('SAFE TO SPEND UNTIL PAYDAY'),
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,

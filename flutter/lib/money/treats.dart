@@ -17,11 +17,7 @@ double _num(dynamic x) => amountOf(x);
 
 // JS falsiness for the `x || default` idiom.
 bool _falsy(dynamic v) =>
-    v == null ||
-    v == false ||
-    v == 0 ||
-    v == '' ||
-    (v is num && v.isNaN);
+    v == null || v == false || v == 0 || v == '' || (v is num && v.isNaN);
 
 // JS clampInt: `min(max(round(num(x)) || dflt, lo), hi)`. A rounded 0 (or an
 // unparseable value) falls back to the default before clamping.
@@ -104,7 +100,9 @@ Map<String, dynamic> toggleCheckIn(dynamic treat, DateTime ref) {
       : <String, dynamic>{};
   final windowDays = _clampInt(t['windowDays'], 1, 31, 7);
   final today = _todayISO(ref);
-  final existing = t['checkIns'] is List ? List.from(t['checkIns'] as List) : [];
+  final existing = t['checkIns'] is List
+      ? List.from(t['checkIns'] as List)
+      : [];
   final has = existing.contains(today);
   var lifetime = _lifetimeFloor(t['lifetime']);
   List checkIns;
@@ -145,8 +143,32 @@ Map<String, dynamic> newTreat(dynamic fields, DateTime ref, {String? id}) {
 
 /// Starter templates shown on the empty state, tuned for a Filipino user.
 const List<Map<String, dynamic>> treatTemplates = [
-  {'emoji': '☕', 'treat': 'Milk tea or kape', 'action': '30-minutong lakad', 'target': 3, 'windowDays': 7},
-  {'emoji': '🍟', 'treat': 'Burger or sisig', 'action': 'Home-cooked baon', 'target': 3, 'windowDays': 7},
-  {'emoji': '🎬', 'treat': 'Movie night', 'action': 'Maagang tulog', 'target': 4, 'windowDays': 7},
-  {'emoji': '🛍️', 'treat': 'One item sa cart', 'action': 'Tubig, no softdrinks', 'target': 5, 'windowDays': 7},
+  {
+    'emoji': '☕',
+    'treat': 'Milk tea or coffee',
+    'action': 'A 30 minute walk',
+    'target': 3,
+    'windowDays': 7,
+  },
+  {
+    'emoji': '🍟',
+    'treat': 'Burger or sisig',
+    'action': 'A home-cooked lunch',
+    'target': 3,
+    'windowDays': 7,
+  },
+  {
+    'emoji': '🎬',
+    'treat': 'Movie night',
+    'action': 'An early bedtime',
+    'target': 4,
+    'windowDays': 7,
+  },
+  {
+    'emoji': '🛍️',
+    'treat': 'One item in the cart',
+    'action': 'Water, no soda',
+    'target': 5,
+    'windowDays': 7,
+  },
 ];

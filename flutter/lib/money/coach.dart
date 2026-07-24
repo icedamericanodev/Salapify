@@ -359,7 +359,7 @@ List<Map<String, dynamic>> decisionCandidates(
           'nudge',
           '$titleName slipped its date',
           available <= 0
-              ? "$name's target date has passed. Okay lang to pause this goal muna, bills muna. Come back to it when this cycle eases up."
+              ? "$name's target date has passed. It is okay to pause this goal for now, bills come first. Come back to it when this cycle eases up."
               : '$name is ${_jsRound((p['pct'] as double) * 100).toInt()}% funded and its target date has passed with ${_m(p['remaining'])} to go. Set a fresh date and I will pace it again.',
           'Open goals',
           '/goals',
