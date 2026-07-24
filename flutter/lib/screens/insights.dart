@@ -294,9 +294,14 @@ class InsightsScreen extends StatelessWidget {
             ...(() {
               final accepted = steadypay.acceptedSteadyPay(data);
               final suggestion = steadypay.steadyPaySuggestion(data, ref);
+              // A first income logged THIS month counts as a start too (the
+              // suggestion window drops the current partial month on
+              // purpose), so the course lesson's button lands on the
+              // in-progress line from day one.
               if (accepted == null &&
                   suggestion.weeklyDraw == null &&
-                  suggestion.activeMonths == 0) {
+                  suggestion.activeMonths == 0 &&
+                  !steadypay.incomeThisMonth(data, ref)) {
                 return const <Widget>[];
               }
               return [
@@ -543,13 +548,22 @@ class InsightsScreen extends StatelessWidget {
 
     Widget body;
     if (accepted == null && suggestion.weeklyDraw == null) {
-      // Building state: some income history, not yet the three full months
-      // the lean-month math needs. Honest progress, no button, no nagging.
+      // Building state: income exists, but not yet the three full months the
+      // lean-month math needs. Honest progress, no button, no nagging. The
+      // fraction only shows while it is true: junk-data guard paths can null
+      // the suggestion with three or more active months, and a first-month
+      // user has zero full months, so both get plain words instead of an
+      // absurd "6 of 3".
       final n = suggestion.activeMonths;
+      final progress = n == 0
+          ? 'Your first month is in progress.'
+          : n < 3
+          ? '$n of 3 so far.'
+          : 'Almost there.';
       body = Text(
         'Steady Pay suggests a weekly salary you pay yourself, planned on '
-        'your lean months. It needs about three months of logged income to '
-        'be honest: $n of 3 so far. Keep logging and it appears here.',
+        'your lean months. It needs about three full months of logged '
+        'income to be honest: $progress Keep logging and it appears here.',
         style: TextStyle(
           color: Barako.textSecondary,
           fontSize: 13,

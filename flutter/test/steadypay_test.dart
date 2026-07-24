@@ -192,6 +192,38 @@ void main() {
     });
   });
 
+  group('incomeThisMonth', () {
+    test('sees a real income in the current month, ignores collections', () {
+      final d = {
+        'transactions': [
+          {
+            'id': 'r1',
+            'type': 'income',
+            'source': 'receivable',
+            'label': 'Paid back',
+            'amount': 500,
+            'date': '2026-07-05',
+          },
+        ],
+      };
+      expect(
+        incomeThisMonth(d, ref),
+        isFalse,
+        reason: 'a collection is not a start',
+      );
+      (d['transactions'] as List).add({
+        'id': 'i1',
+        'type': 'income',
+        'label': 'First gig',
+        'amount': 800,
+        'date': '2026-07-18',
+      });
+      expect(incomeThisMonth(d, ref), isTrue);
+      expect(incomeThisMonth({'transactions': []}, ref), isFalse);
+      expect(incomeThisMonth(null, ref), isFalse);
+    });
+  });
+
   group('acceptedSteadyPay', () {
     test('reads a valid accepted draw and rejects junk', () {
       expect(
