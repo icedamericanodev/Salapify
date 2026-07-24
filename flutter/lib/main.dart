@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.16 · New in Menu: Share a win. Paid a debt down to zero, funded a goal, or settled an utang either way? Pan celebrates it on a card you can post or send, amounts optional. Your wins, your proof.';
+    'f2.17 · Your Number is now on Home: the one figure to carry until payday, how much a day keeps you covered, with a gentle pace read when your logging is thick enough. Come back after quiet days and it greets you kindly, never scolds.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
