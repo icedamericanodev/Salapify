@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.26 · Updates are flowing again. Everything built since f2.12 lands in this one patch: Privacy receipt, Share a win, Your Number, the payday ritual, the cycle share card, Steady Pay, Money courses, the English sweep, and New phone day. A build check had been failing for the wrong reason and holding every update back.';
+    'f2.27 · Payday is yours to set now, in Menu. Salapify was assuming everyone is paid on the 15th and end of month, so the payday plan and its reminder could claim payday on a day you are not paid. It stays quiet until you tell it, and "my pay has no fixed date" is a real answer. Also fixed: goals now say so if a save fails instead of closing as if it worked, and big text no longer overflows on Home.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

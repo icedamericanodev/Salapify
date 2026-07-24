@@ -872,6 +872,32 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  /// The user's own payday schedule, kept in settings.paydaySchedule. Until
+  /// this is set, everything that would ASSERT "today is payday" stays quiet
+  /// rather than guessing (see hasExplicitPaydaySchedule); forecasts fall back
+  /// to the 15/31 default. Shapes match the RN app exactly so an imported
+  /// backup keeps working: {'mode':'semimonthly','days':[a,b]},
+  /// {'mode':'monthly','day':n}, {'mode':'weekly','weekday':0..6}.
+  /// The backup preserves unknown settings keys, so this needs no migration.
+  Future<void> setPaydaySchedule(Map<String, dynamic> schedule) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'paydaySchedule': schedule,
+      },
+    },
+  );
+
+  /// Forget the payday schedule, for the user whose pay has no fixed date.
+  /// Removing the key (rather than storing a marker) is what keeps the rest of
+  /// the money layer unchanged: it reads exactly like a user who never set one.
+  Future<void> clearPaydaySchedule() => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>()
+      ..remove('paydaySchedule');
+    return {...d, 'settings': s};
+  });
+
   /// Mark a Learn lesson read, deduped, kept in settings.lessonsRead. The
   /// backup preserves unknown settings keys, so this needs no migration.
   Future<void> markLessonRead(String id) => _mutate((d) {

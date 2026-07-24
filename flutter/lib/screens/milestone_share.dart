@@ -56,7 +56,18 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
 
   // Computed once on open, like the recap: the list cannot shift under the
   // user mid-share.
-  late final List<Milestone> _wins = milestones(widget.store.data);
+  // Capped. milestones() returns EVERY settled utang, funded goal and cleared
+  // debt with no limit, a realistic few hundred for a heavy utang user, and
+  // the picker became a wall of chips to scroll past before reaching the card.
+  //
+  // Order is left exactly as milestones() returns it (debts, goals, then
+  // utang). Sorting by recency would be better, but Milestone carries no date,
+  // so that needs a change in the money layer and its goldens rather than a
+  // reverse() here, which would only shuffle the categories.
+  static const int _maxWins = 12;
+  late final List<Milestone> _wins = milestones(
+    widget.store.data,
+  ).take(_maxWins).toList();
 
   @override
   Widget build(BuildContext context) {

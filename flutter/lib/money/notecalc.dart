@@ -105,7 +105,28 @@ class _Parser {
     return left;
   }
 
+  // Nesting depth guard. parseFactor recurses once per '(' and once per
+  // unary sign, and evaluateMath catches only FormatException. Without this,
+  // a pasted line of thousands of parentheses would raise StackOverflowError,
+  // an Error rather than an Exception, which would escape into the Notes
+  // build and leave a red screen on every rebuild until the note was edited
+  // elsewhere. A FormatException just makes the line read as plain text.
+  static const int _maxDepth = 64;
+  int _depth = 0;
+
   double parseFactor() {
+    if (_depth >= _maxDepth) {
+      throw const FormatException('expression nested too deeply');
+    }
+    _depth++;
+    try {
+      return _parseFactorInner();
+    } finally {
+      _depth--;
+    }
+  }
+
+  double _parseFactorInner() {
     final t = _peek;
     if (t == null) throw const FormatException('unexpected end');
     if (t.type == '+') {

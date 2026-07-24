@@ -348,7 +348,9 @@ class OverviewScreen extends StatelessWidget {
               // Ask Pan. Same widget, same mood engine.
               Row(
                 children: [
-                  _kicker('MONEY CHECK-IN'),
+                  // Flexible, not bare: the kicker grows with the system font
+                  // scale and overflowed this Row at the largest setting.
+                  Flexible(child: _kicker('MONEY CHECK-IN')),
                   const Spacer(),
                   // Decorative here: the check-in card already announces the
                   // situation, so keep Pan out of the screen reader on Home (his
@@ -851,24 +853,34 @@ class OverviewScreen extends StatelessWidget {
     Color? color,
   }) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
+    // Both sides flex: at the largest Android font scale the label and the
+    // peso value each need room, and a fixed Row overflowed by up to 94px on
+    // a 320px phone. The amount keeps priority, the label wraps.
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: strong ? Barako.text : Barako.muted,
-            fontSize: 15,
-            fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: strong ? Barako.text : Barako.muted,
+              fontSize: 15,
+              fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+            ),
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: color ?? Barako.textSecondary,
-            fontSize: 15,
-            fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: color ?? Barako.textSecondary,
+              fontSize: 15,
+              fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],
@@ -1148,8 +1160,8 @@ class _ImportScreenState extends State<ImportScreen> {
           ),
           content: Text(
             'Everything currently in this preview app will be replaced by '
-            'the backup you chose. The replaced data is kept on this phone until '
-            'your next import, but there is no undo button.',
+            'the backup you chose. This cannot be undone, so save a backup of '
+            'what you have now if you might still want it.',
             style: TextStyle(color: Barako.textSecondary),
           ),
           actions: [

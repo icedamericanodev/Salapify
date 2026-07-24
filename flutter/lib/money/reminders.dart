@@ -18,7 +18,7 @@
 
 import 'commitments.dart' show bankDueDate;
 import 'ledger.dart' show amountOf;
-import 'schedule.dart' show nextPayday;
+import 'schedule.dart' show hasExplicitPaydaySchedule, nextPayday;
 import 'statements.dart' show todayISO;
 
 class PlannedReminder {
@@ -110,7 +110,10 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
     }
   }
 
-  if (on['payday'] == true) {
+  // Same rule as the payday card: never assert "Payday!" unless the user told
+  // us when payday is. A 9am push on the wrong day is the most annoying
+  // possible way to be wrong.
+  if (on['payday'] == true && hasExplicitPaydaySchedule(data)) {
     final schedule = settings is Map ? settings['paydaySchedule'] : null;
     for (final p in _upcomingPaydays(now, schedule, 6)) {
       add(

@@ -299,7 +299,10 @@ class _GoalSheetState extends State<_GoalSheet> {
     super.dispose();
   }
 
-  void _save() {
+  // Awaited, unlike the original fire-and-forget version: a dropped Future
+  // meant a failed write closed the sheet as if it had saved, with no goal and
+  // no message. Every other write screen in the app awaits and reports.
+  Future<void> _save() async {
     if (!widget.store.canWrite) {
       _offBanner();
       return;
@@ -312,17 +315,29 @@ class _GoalSheetState extends State<_GoalSheet> {
     // Only update when this is a real, id-carrying goal; otherwise add a fresh
     // one. This matches RN (a falsy form.id falls through to addItem) and never
     // crashes on a goal that a hand-edited backup left without a string id.
-    if (id is String) {
-      widget.store.updateGoal(id,
-          name: name, target: target, saved: saved, targetDate: date);
-    } else {
-      widget.store
-          .addGoal(name: name, target: target, saved: saved, targetDate: date);
+    final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (id is String) {
+        await widget.store.updateGoal(id,
+            name: name, target: target, saved: saved, targetDate: date);
+      } else {
+        await widget.store
+            .addGoal(name: name, target: target, saved: saved, targetDate: date);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+            content: Text('That did not save. Please check the amounts and '
+                'try again.')));
+      return;
     }
-    Navigator.of(context).pop();
+    if (mounted) nav.pop();
   }
 
-  void _applyFunds() {
+  Future<void> _applyFunds() async {
     final amt = goalNum(_funds.text);
     final id = widget.goal?['id'];
     if (id is! String || amt == 0) return;
@@ -336,11 +351,25 @@ class _GoalSheetState extends State<_GoalSheet> {
     // is the exact protection the RN screen documents.
     final stored = savedNum(_currentStored(id));
     final newSaved = (stored + amt) > 0 ? stored + amt : 0.0;
-    widget.store.addGoalFunds(id, amt);
+    final messenger = ScaffoldMessenger.of(context);
+    // Await BEFORE claiming the money moved. The original showed "Added X"
+    // ahead of the write, so a failed save left the user believing their
+    // savings had gone up when nothing had been stored at all.
+    try {
+      await widget.store.addGoalFunds(id, amt);
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+            content: Text('That did not save, so nothing was added.')));
+      return;
+    }
+    if (!mounted) return;
     _saved.text = _numStr(newSaved);
     _funds.clear();
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context)
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
           content: Text(

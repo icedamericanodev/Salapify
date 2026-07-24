@@ -13,7 +13,8 @@
 
 import 'commitments.dart' show paydayProjection, safeToSpend;
 import 'ledger.dart' show amountOf;
-import 'schedule.dart' show daysUntilPayday, prevPayday;
+import 'schedule.dart'
+    show daysUntilPayday, hasExplicitPaydaySchedule, prevPayday;
 
 class CycleStatus {
   /// True only for the 'ok' reason: Home renders the card solely then.
@@ -103,6 +104,13 @@ PaydayRitual paydayRitual(dynamic data, DateTime ref) {
       (accounts is List && accounts.isNotEmpty) ||
       (transactions is List && transactions.isNotEmpty);
   if (!hasStarted) {
+    return const PaydayRitual(isPayday: false, salaryLogged: false);
+  }
+  // Never CLAIM it is payday from a guess. Until the user sets their payday,
+  // the schedule is only normalizeSchedule's 15/31 fallback, and telling a
+  // monthly-on-the-30th earner "it is payday" on the 15th is simply false.
+  // Forecasts may keep using the default; an assertion may not.
+  if (!hasExplicitPaydaySchedule(d)) {
     return const PaydayRitual(isPayday: false, salaryLogged: false);
   }
   final settings = d['settings'];

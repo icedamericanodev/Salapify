@@ -25,6 +25,7 @@ import 'paluwagan.dart';
 import 'pan.dart';
 import 'privacy_receipt.dart';
 import 'search.dart';
+import 'payday.dart';
 import 'recap_share.dart';
 import 'recurring.dart';
 import 'reports.dart';
@@ -207,6 +208,21 @@ class MenuScreen extends StatelessWidget {
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
+                _kicker('YOUR PAYDAY'),
+                const SizedBox(height: 8),
+                _navRow(
+                  icon: Icons.event_available_outlined,
+                  title: 'Payday',
+                  blurb:
+                      'Tell Salapify when you actually get paid, or that your '
+                      'pay has no fixed date.',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PaydayScreen(store: store),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 _kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceCard(context),
@@ -218,17 +234,23 @@ class MenuScreen extends StatelessWidget {
                 _kicker('SECURITY'),
                 const SizedBox(height: 8),
                 _appLockCard(context),
-                const SizedBox(height: 10),
-                _navRow(
-                  icon: Icons.verified_user_outlined,
-                  title: 'Privacy receipt',
-                  blurb:
-                      'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => PrivacyReceiptScreen()),
-                  ),
-                ),
               ],
+              // Deliberately OUTSIDE the canWrite block. This screen is read
+              // only and touches no user data, and a user whose stored data
+              // failed to load is exactly the user most likely to want to
+              // check what the app can reach on the network.
+              const SizedBox(height: 20),
+              _kicker('PRIVACY'),
+              const SizedBox(height: 8),
+              _navRow(
+                icon: Icons.verified_user_outlined,
+                title: 'Privacy receipt',
+                blurb:
+                    'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => PrivacyReceiptScreen()),
+                ),
+              ),
               const SizedBox(height: 20),
               _kicker('YOUR DATA'),
               const SizedBox(height: 8),

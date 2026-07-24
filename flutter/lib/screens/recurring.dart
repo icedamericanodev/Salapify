@@ -445,10 +445,25 @@ class _RecurringSheetState extends State<_RecurringSheet> {
           accountId: _accountId,
         );
       }
-    } finally {
+    } catch (_) {
+      // Without this the exception escaped _save, pop() never ran, and
+      // _saving was cleared with no setState, leaving the Save button
+      // rendered as permanently disabled in a sheet the user could only
+      // cancel out of, with no idea whether the bill had been saved.
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _err = 'That did not save. Please try again.';
+        });
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() => _saving = false);
+      Navigator.of(context).pop();
+    } else {
       _saving = false;
     }
-    if (mounted) Navigator.of(context).pop();
   }
 
   void _delete() {
