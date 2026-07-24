@@ -164,7 +164,10 @@ class MenuScreen extends StatelessWidget {
                 blurb:
                     'Loan, tax, and take-home calculators, currency converter, notes, and lessons.',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => ToolsScreen(store: store)),
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ToolsScreen(store: store, onSwitchTab: onSwitchTab),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),

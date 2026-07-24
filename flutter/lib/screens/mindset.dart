@@ -69,15 +69,17 @@ class _MindsetScreenState extends State<MindsetScreen> {
     if (text is String && text.isNotEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: const Text('Win removed'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              if (widget.store.canWrite) widget.store.addWin(text);
-            },
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Win removed'),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () {
+                if (widget.store.canWrite) widget.store.addWin(text);
+              },
+            ),
           ),
-        ));
+        );
     }
   }
 
@@ -91,8 +93,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Money mindset',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Money mindset',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
       ),
       body: SafeArea(
         child: ListenableBuilder(
@@ -122,28 +126,40 @@ class _MindsetScreenState extends State<MindsetScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("TODAY'S LESSON",
-                                style: Barako.kickerStyle
-                                    .copyWith(color: Barako.primaryText)),
+                            Text(
+                              "TODAY'S LESSON",
+                              style: Barako.kickerStyle.copyWith(
+                                color: Barako.primaryText,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            Text('${lesson['emoji']}  ${lesson['title']}',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 16,
-                                    height: 1.35,
-                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              '${lesson['emoji']}  ${lesson['title']}',
+                              style: TextStyle(
+                                color: Barako.text,
+                                fontSize: 16,
+                                height: 1.35,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text(lesson['summary'] as String,
-                                style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 13,
-                                    height: 1.4)),
+                            Text(
+                              lesson['summary'] as String,
+                              style: TextStyle(
+                                color: Barako.textSecondary,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            Text('Read this and more in Money lessons ›',
-                                style: TextStyle(
-                                    color: Barako.primaryText,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
+                            Text(
+                              'Read this and more in Money courses ›',
+                              style: TextStyle(
+                                color: Barako.primaryText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -176,11 +192,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
                               // this one buy-or-wait line uses the designated
                               // strong tokens.
                               style: TextStyle(
-                                  color: allYes
-                                      ? Barako.primaryText
-                                      : Barako.warningStrong,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600),
+                                color: allYes
+                                    ? Barako.primaryText
+                                    : Barako.warningStrong,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -208,7 +225,9 @@ class _MindsetScreenState extends State<MindsetScreen> {
                           filled: true,
                           fillColor: Barako.card,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: Barako.border),
@@ -231,10 +250,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
                         backgroundColor: Barako.primary,
                         foregroundColor: Barako.onPrimary,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 14),
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
                       ),
-                      child: const Text('Add',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      child: const Text(
+                        'Add',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),
@@ -246,9 +269,13 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     child: wins.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Text('No wins yet. Add a small one above.',
-                                style: TextStyle(
-                                    color: Barako.faint, fontSize: 13)),
+                            child: Text(
+                              'No wins yet. Add a small one above.',
+                              style: TextStyle(
+                                color: Barako.faint,
+                                fontSize: 13,
+                              ),
+                            ),
                           )
                         : Column(
                             children: [
@@ -273,17 +300,25 @@ class _MindsetScreenState extends State<MindsetScreen> {
       child: Container(
         decoration: i > 0
             ? BoxDecoration(
-                border: Border(top: BorderSide(color: Barako.border, width: 0.5)))
+                border: Border(
+                  top: BorderSide(color: Barako.border, width: 0.5),
+                ),
+              )
             : null,
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            Icon(on ? Icons.check_box : Icons.check_box_outline_blank,
-                color: on ? Barako.primary : Barako.muted, size: 22),
+            Icon(
+              on ? Icons.check_box : Icons.check_box_outline_blank,
+              color: on ? Barako.primary : Barako.muted,
+              size: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(_questions[i],
-                  style: TextStyle(color: Barako.text, fontSize: 15)),
+              child: Text(
+                _questions[i],
+                style: TextStyle(color: Barako.text, fontSize: 15),
+              ),
             ),
           ],
         ),
@@ -295,22 +330,24 @@ class _MindsetScreenState extends State<MindsetScreen> {
     return Container(
       decoration: divided
           ? BoxDecoration(
-              border: Border(top: BorderSide(color: Barako.border, width: 0.5)))
+              border: Border(top: BorderSide(color: Barako.border, width: 0.5)),
+            )
           : null,
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
           Expanded(
-            child: Text('🎉 ${w['text'] ?? ''}',
-                style: TextStyle(color: Barako.text, fontSize: 15)),
+            child: Text(
+              '🎉 ${w['text'] ?? ''}',
+              style: TextStyle(color: Barako.text, fontSize: 15),
+            ),
           ),
           const SizedBox(width: 8),
           IconButton(
             onPressed: () => _deleteWin(w),
             iconSize: 18,
             visualDensity: VisualDensity.standard,
-            constraints:
-                const BoxConstraints(minWidth: 44, minHeight: 44),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             tooltip: 'Delete win',
             icon: Icon(Icons.close, color: Barako.faint),
           ),
