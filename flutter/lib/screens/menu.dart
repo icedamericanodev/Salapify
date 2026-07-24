@@ -19,6 +19,7 @@ import 'csv_import.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'milestone_share.dart';
+import 'new_phone_day.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'paluwagan.dart';
 import 'pan.dart';
@@ -238,6 +239,18 @@ class MenuScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _exportCard(context),
               ],
+              const SizedBox(height: 12),
+              _navRow(
+                icon: Icons.phonelink_ring_outlined,
+                title: 'New phone day',
+                blurb:
+                    'Moving phones? A two minute guided handoff, no cloud in the middle.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => NewPhoneDayScreen(store: store),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               _startFreshCard(context),
               const SizedBox(height: 16),
@@ -504,6 +517,14 @@ class MenuScreen extends StatelessWidget {
               Icons.handshake_outlined,
               'Money to collect',
               'A reminder when someone owes you and it is due.',
+            ),
+            const Divider(height: 24),
+            row(
+              'backup',
+              Icons.save_outlined,
+              'Monthly backup',
+              'A nudge on the 1st to save a fresh backup file, so a lost '
+                  'phone is an errand, not a disaster.',
             ),
           ],
         ),

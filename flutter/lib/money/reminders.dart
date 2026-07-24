@@ -3,12 +3,15 @@
 // (rescheduleAll), but kept PURE and separate from the plugin so the
 // what-to-fire logic is unit tested and the plugin adapter stays a thin shell.
 //
-// Four kinds, each behind its own settings toggle (settings.notifications):
+// Five kinds, each behind its own settings toggle (settings.notifications):
 //  - daily: an evening log nudge, skipped tonight if you already logged today
 //  - payday: 9am on each upcoming payday (your own schedule)
 //  - bills: a debt due in 3 days (evening) and the morning it is due
 //  - collect: an unpaid utang the day before and the day it is due, then a
 //    gentle overdue follow-up
+//  - backup: 10am on the 1st of each month, only once there is data worth
+//    backing up; offline data has no cloud safety net, so the nudge IS the
+//    safety net
 //
 // Every peso here is read from the data, never invented. Non-finite and bad
 // dates are guarded, matching the rest of the money layer.
@@ -178,6 +181,27 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
           'Still waiting',
           "$person's $amount was due ${r['dueDate']}. A friendly follow up usually works.",
           DateTime(now.year, now.month, now.day + 1, 9),
+        );
+      }
+    }
+  }
+
+  if (on['backup'] == true) {
+    // Only nag once there is something to lose.
+    final accounts = data['accounts'];
+    final transactions = data['transactions'];
+    final hasData =
+        (accounts is List && accounts.isNotEmpty) ||
+        (transactions is List && transactions.isNotEmpty);
+    if (hasData) {
+      for (var i = 0; i < 3; i++) {
+        final d = DateTime(now.year, now.month + i, 1, 10);
+        add(
+          'Monthly backup',
+          'Your data lives only on this phone, which is the whole point. '
+              'Two taps in Menu saves a fresh backup file to a place you '
+              'choose.',
+          d,
         );
       }
     }
