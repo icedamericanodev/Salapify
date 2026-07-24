@@ -145,6 +145,26 @@ SteadyWeek steadyPayWeek(dynamic data, DateTime ref, double draw) {
   );
 }
 
+/// True when any real income (collections never count) is logged in the
+/// CURRENT month, which the suggestion window deliberately excludes. Lets the
+/// card greet a first-month user with "in progress" instead of nothing.
+bool incomeThisMonth(dynamic data, DateTime ref) {
+  final d = data is Map ? data.cast<String, dynamic>() : <String, dynamic>{};
+  final key =
+      '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}';
+  final txns = d['transactions'];
+  for (final raw in (txns is List ? txns : const [])) {
+    if (raw is! Map) continue;
+    if (raw['type'] != 'income') continue;
+    if (raw['source'] == 'receivable') continue;
+    final ds = (raw['date'] ?? '').toString();
+    if (ds.length >= 7 && ds.substring(0, 7) == key) {
+      if (amountOf(raw['amount']) > 0) return true;
+    }
+  }
+  return false;
+}
+
 /// The accepted draw from settings, or null. Sanitized on load, but read
 /// defensively anyway.
 double? acceptedSteadyPay(dynamic data) {

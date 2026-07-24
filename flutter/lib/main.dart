@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.22 · Money lessons grew into Money courses: four tracks, 22 lessons, each ending in one real step in the app. New lessons on debt order, extra payments, paying yourself a salary, and savings circles, with tax facts CPA-checked and Philippine rules clearly tagged.';
+    'f2.23 · Steady Pay now shows its progress while it learns: with under three months of logged income the card says honestly how far along you are instead of hiding, so the course lesson always lands somewhere real.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
