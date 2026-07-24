@@ -105,6 +105,37 @@ void main() {
     },
   );
 
+  testWidgets('thin history shows the honest building state (QA follow-up)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 4200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Two income months: not enough for a suggestion, enough to show the
+    // card with progress instead of nothing, so the course lesson's button
+    // never lands on a blank.
+    final seed = _gigSeed();
+    (seed['transactions'] as List).removeLast();
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(seed),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openInsights(tester);
+
+    await tester.scrollUntilVisible(
+      find.text('STEADY PAY · YOUR OWN SALARY'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2 of 3 so far'), findsOneWidget);
+    expect(find.text('Set my weekly pay'), findsNothing);
+  });
+
   testWidgets('no income history means no Steady Pay card', (tester) async {
     tester.view.physicalSize = const Size(1200, 4200);
     tester.view.devicePixelRatio = 1.0;

@@ -286,14 +286,17 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
-            // Steady Pay: safe-to-spend's sibling for swing income. Shows only
-            // when there is a real suggestion (three or more income months) or
-            // an already accepted draw; salaried users who never touch it are
-            // never nagged by it.
+            // Steady Pay: safe-to-spend's sibling for swing income. Shows with
+            // an accepted draw, a real suggestion (three or more full income
+            // months), or a building state once ANY income month exists, so a
+            // user sent here by the course lesson lands on an honest progress
+            // line instead of nothing. Only a truly income-less store hides it.
             ...(() {
               final accepted = steadypay.acceptedSteadyPay(data);
               final suggestion = steadypay.steadyPaySuggestion(data, ref);
-              if (accepted == null && suggestion.weeklyDraw == null) {
+              if (accepted == null &&
+                  suggestion.weeklyDraw == null &&
+                  suggestion.activeMonths == 0) {
                 return const <Widget>[];
               }
               return [
@@ -539,7 +542,21 @@ class InsightsScreen extends StatelessWidget {
         : 'Your cash covers about ${runway.toStringAsFixed(1)} lean months.';
 
     Widget body;
-    if (accepted == null) {
+    if (accepted == null && suggestion.weeklyDraw == null) {
+      // Building state: some income history, not yet the three full months
+      // the lean-month math needs. Honest progress, no button, no nagging.
+      final n = suggestion.activeMonths;
+      body = Text(
+        'Steady Pay suggests a weekly salary you pay yourself, planned on '
+        'your lean months. It needs about three months of logged income to '
+        'be honest: $n of 3 so far. Keep logging and it appears here.',
+        style: TextStyle(
+          color: Barako.textSecondary,
+          fontSize: 13,
+          height: 1.4,
+        ),
+      );
+    } else if (accepted == null) {
       final weekly = suggestion.weeklyDraw!;
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
