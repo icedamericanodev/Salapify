@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.18 · Payday mornings now open with the three minute ritual: log your salary in one tap, move savings first, and your number for the whole cycle is set. The card knows from your real ledger, no checkboxes to tick.';
+    'f2.19 · Share your month can now share your payday cycle instead: flip the new toggle and the card re-windows from your last payday to today, because the month is not the unit your money actually lives in. A rough cycle tracked honestly is still worth posting.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

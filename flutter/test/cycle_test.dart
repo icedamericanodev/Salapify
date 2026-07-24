@@ -238,4 +238,150 @@ void main() {
       expect(paydayRitual(d, DateTime(2026, 7, 16)).isPayday, isFalse);
     });
   });
+
+  group('cycleRecap', () {
+    // Monthly payday on the 5th; ref July 10 makes the window Jul 5..Jul 10.
+    Map<String, dynamic> seed() => {
+      'accounts': [
+        {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 10000},
+      ],
+      'settings': {
+        'paydaySchedule': {'mode': 'monthly', 'day': 5},
+      },
+      'transactions': [
+        {
+          'id': 'i0',
+          'type': 'income',
+          'label': 'Old',
+          'amount': 9999,
+          'date': '2026-07-04',
+        },
+        {
+          'id': 'i1',
+          'type': 'income',
+          'label': 'Sweldo',
+          'amount': 10000,
+          'date': '2026-07-05',
+        },
+        {
+          'id': 'r1',
+          'type': 'income',
+          'source': 'receivable',
+          'label': 'Migs',
+          'amount': 500,
+          'date': '2026-07-06',
+        },
+        {
+          'id': 'e1',
+          'type': 'expense',
+          'label': 'Food',
+          'amount': 2000,
+          'date': '2026-07-06',
+        },
+        {
+          'id': 'e2',
+          'type': 'expense',
+          'label': 'food',
+          'amount': 1000,
+          'date': '2026-07-08',
+        },
+        {
+          'id': 'e3',
+          'type': 'expense',
+          'label': 'Grab',
+          'amount': 500,
+          'date': '2026-07-10',
+        },
+        {
+          'id': 'e4',
+          'type': 'expense',
+          'label': 'Future',
+          'amount': 777,
+          'date': '2026-07-11',
+        },
+      ],
+    };
+
+    test('windows from the previous payday through today, to the peso', () {
+      final r = cycleRecap(seed(), ref);
+      expect(
+        r['moneyIn'],
+        10000,
+        reason: 'Jul 4 income and the receivable are out',
+      );
+      expect(r['moneyOut'], 3500, reason: 'the Jul 11 future expense is out');
+      expect(r['kept'], 6500);
+      expect(r['keptRate'], 0.65);
+      expect(r['daysLogged'], 4, reason: 'Jul 5, 6, 8, 10');
+      expect(r['label'], 'payday cycle since Jul 5');
+      expect(r['kicker'], 'MY CYCLE SINCE JUL 5');
+      expect(r['monthKey'], 'cycle-2026-07-05');
+      // Case-insensitive category fold, biggest first.
+      final top = (r['topCats'] as List).first as Map;
+      expect(top['label'], 'Food');
+      expect(top['amount'], 3000);
+      expect(r['verdict'], contains('Reaching payday with money left'));
+    });
+
+    test('a losing cycle stays kind and honest', () {
+      final d = seed();
+      (d['transactions'] as List).add({
+        'id': 'e5',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 9000,
+        'date': '2026-07-09',
+      });
+      final r = cycleRecap(d, ref);
+      expect((r['kept'] as double) < 0, isTrue);
+      expect(r['verdict'], contains('tracked every day of it honestly'));
+      expect(r['verdict'], contains('fresh start'));
+    });
+
+    test('an empty window reads as a quiet cycle', () {
+      final r = cycleRecap({
+        'settings': {
+          'paydaySchedule': {'mode': 'monthly', 'day': 5},
+        },
+      }, ref);
+      expect(r['daysLogged'], 0);
+      expect(r['verdict'], contains('A quiet cycle so far'));
+      expect(r['keptRate'], isNull);
+    });
+
+    test('overflowed income guards keptRate to null, never NaN', () {
+      final d = seed();
+      // Added one by one: the seed list's inferred element type rejects a
+      // List<dynamic> through addAll.
+      for (final id in ['x1', 'x2']) {
+        (d['transactions'] as List).add({
+          'id': id,
+          'type': 'income',
+          'label': 'Big',
+          'amount': 1.5e308,
+          'date': '2026-07-07',
+        });
+      }
+      final r = cycleRecap(d, ref);
+      expect(r['keptRate'], isNull);
+      expect(r['verdict'], contains('tracked this cycle honestly'));
+    });
+
+    test('junk never throws', () {
+      expect(cycleRecap(null, ref)['daysLogged'], 0);
+      expect(cycleRecap('junk', ref)['daysLogged'], 0);
+      final r = cycleRecap({
+        'transactions': [
+          42,
+          'x',
+          {'type': 'expense', 'date': 'bad', 'amount': 'abc'},
+        ],
+        'payments': 'junk',
+        'receivables': [
+          {'payments': 'junk'},
+        ],
+      }, ref);
+      expect(r['daysLogged'], 0);
+    });
+  });
 }

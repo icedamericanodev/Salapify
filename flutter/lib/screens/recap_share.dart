@@ -23,6 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/store.dart';
+import '../money/cycle.dart' show cycleRecap;
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/pan_mood.dart';
 import '../money/recap.dart';
@@ -66,12 +67,20 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
   bool _busy = false;
 
   // Computed once, so the clock is read a single time: the captured image, the
-  // filename, and the text fallback can never describe two different months if
-  // the user crosses midnight with the screen open.
-  late final Map<String, dynamic> _recap = monthRecap(
+  // filename, and the text fallback can never describe two different windows
+  // if the user crosses midnight with the screen open. Both windows come from
+  // that same instant; the toggle only picks which one renders.
+  late final DateTime _openedAt = DateTime.now();
+  late final Map<String, dynamic> _month = monthRecap(
     widget.store.data,
-    DateTime.now(),
+    _openedAt,
   );
+  late final Map<String, dynamic> _cycle = cycleRecap(
+    widget.store.data,
+    _openedAt,
+  );
+  bool _isCycle = false;
+  Map<String, dynamic> get _recap => _isCycle ? _cycle : _month;
 
   String _money(num n) => _hideAmounts ? '***' : formatMoneyText(n);
 
@@ -140,7 +149,7 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
         title: Text(
-          '${_recap['label']} recap',
+          _isCycle ? 'Payday cycle recap' : '${_recap['label']} recap',
           style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
         ),
       ),
@@ -151,15 +160,57 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
                 Text(
-                  'Turn ${_recap['label']} into a card you can post or send. '
-                  'You choose if peso amounts show.',
+                  'Turn ${_isCycle ? 'this payday cycle' : _recap['label']} '
+                  'into a card you can post or send. You choose if peso '
+                  'amounts show.',
                   style: TextStyle(
                     color: Barako.textSecondary,
                     fontSize: 14,
                     height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+                // The window toggle: the calendar month, or your own sweldo
+                // cycle (payday to payday), because the month is not the unit
+                // your money actually lives in.
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: Text(
+                        'This month',
+                        style: TextStyle(
+                          color: _isCycle ? Barako.text : Barako.onPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      selected: !_isCycle,
+                      onSelected: (_) => setState(() => _isCycle = false),
+                      selectedColor: Barako.primary,
+                      backgroundColor: Barako.card,
+                      side: BorderSide(color: Barako.border),
+                      showCheckmark: false,
+                    ),
+                    ChoiceChip(
+                      label: Text(
+                        'Payday cycle',
+                        style: TextStyle(
+                          color: _isCycle ? Barako.onPrimary : Barako.text,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      selected: _isCycle,
+                      onSelected: (_) => setState(() => _isCycle = true),
+                      selectedColor: Barako.primary,
+                      backgroundColor: Barako.card,
+                      side: BorderSide(color: Barako.border),
+                      showCheckmark: false,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 // Preview scales down to fit a narrow phone without distorting;
                 // the capture happens off-screen at the true 330 (below).
                 Center(
@@ -341,8 +392,11 @@ class _RecapCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                // The cycle recap supplies its own kicker ('MY CYCLE SINCE
+                // JUL 5'); the month falls back to the derived form.
                 child: Text(
-                  'MY ${recap['label'].toString().toUpperCase()}',
+                  (recap['kicker'] as String?) ??
+                      'MY ${recap['label'].toString().toUpperCase()}',
                   style: const TextStyle(
                     fontFamily: 'Jakarta',
                     color: _orange,

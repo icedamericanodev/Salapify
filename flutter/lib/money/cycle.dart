@@ -12,7 +12,8 @@
 // paydayProjection's own silence rule exists to avoid.
 
 import 'commitments.dart' show paydayProjection, safeToSpend;
-import 'schedule.dart' show daysUntilPayday;
+import 'ledger.dart' show amountOf;
+import 'schedule.dart' show daysUntilPayday, prevPayday;
 
 class CycleStatus {
   /// True only for the 'ok' reason: Home renders the card solely then.
@@ -124,6 +125,167 @@ PaydayRitual paydayRitual(dynamic data, DateTime ref) {
     }
   }
   return PaydayRitual(isPayday: true, salaryLogged: logged);
+}
+
+const List<String> _mos = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+double _jsRound(num x) => (x + 0.5).floorToDouble();
+
+DateTime? _parseDay(dynamic raw) {
+  final ds = (raw ?? '').toString();
+  if (ds.length < 10) return null;
+  final p = ds.substring(0, 10).split('-');
+  if (p.length != 3) return null;
+  final y = int.tryParse(p[0]);
+  final m = int.tryParse(p[1]);
+  final d = int.tryParse(p[2]);
+  if (y == null || m == null || d == null) return null;
+  return DateTime(y, m, d);
+}
+
+/// The payday-cycle recap: the month recap's honest story re-windowed to
+/// [prevPayday .. today], so the share card can end each sweldo cycle on a
+/// summary instead of a fade-out. Same shape as the golden-locked monthRecap
+/// (the card widget reads it unchanged) but a separate, unit-tested
+/// implementation; the golden file is never touched. Verdicts celebrate the
+/// behavior, never shame: a rough cycle that was tracked honestly is still a
+/// card worth sharing.
+Map<String, dynamic> cycleRecap(dynamic data, DateTime ref) {
+  final d = data is Map ? data.cast<String, dynamic>() : <String, dynamic>{};
+  final settings = d['settings'];
+  final schedule = settings is Map ? settings['paydaySchedule'] : null;
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final start = prevPayday(ref, schedule);
+  bool inWindow(DateTime? when) =>
+      when != null && !when.isBefore(start) && !when.isAfter(today);
+
+  var moneyIn = 0.0;
+  var moneyOut = 0.0;
+  final byCat = <String, Map<String, dynamic>>{};
+  final byCatOrder = <String>[];
+  final days = <String>{};
+  final txns = d['transactions'];
+  for (final raw in (txns is List ? txns : const [])) {
+    if (raw is! Map) continue;
+    final when = _parseDay(raw['date']);
+    if (!inWindow(when)) continue;
+    final ds = raw['date'].toString().substring(0, 10);
+    if (raw['type'] == 'income') {
+      days.add(ds);
+      if (raw['source'] != 'receivable') moneyIn += amountOf(raw['amount']);
+    } else if (raw['type'] == 'expense') {
+      days.add(ds);
+      final amt = amountOf(raw['amount']);
+      moneyOut += amt;
+      var name = (raw['label'] is String ? raw['label'] as String : '').trim();
+      if (name.isEmpty) name = 'Other';
+      final k = name.toLowerCase();
+      var bucket = byCat[k];
+      if (bucket == null) {
+        bucket = {'label': name, 'amount': 0.0};
+        byCat[k] = bucket;
+        byCatOrder.add(k);
+      }
+      bucket['amount'] = (bucket['amount'] as double) + amt;
+    }
+  }
+
+  final indexed = [
+    for (var i = 0; i < byCatOrder.length; i++) (byCat[byCatOrder[i]]!, i),
+  ];
+  indexed.sort((a, b) {
+    final c = (b.$1['amount'] as double).compareTo(a.$1['amount'] as double);
+    return c != 0 ? c : a.$2.compareTo(b.$2);
+  });
+  final topCats = [
+    for (final e in indexed.take(3))
+      {
+        ...e.$1,
+        'pct': moneyOut > 0
+            ? _jsRound((e.$1['amount'] as double) / moneyOut * 100)
+            : 0.0,
+      },
+  ];
+
+  var debtPaid = 0.0;
+  final payments = d['payments'];
+  for (final p in (payments is List ? payments : const [])) {
+    if (p is! Map) continue;
+    if (!inWindow(_parseDay(p['date']))) continue;
+    final part = amountOf(p['principal'] ?? p['amount']);
+    if (part > 0) debtPaid += part;
+  }
+
+  var utangCollected = 0.0;
+  final receivables = d['receivables'];
+  for (final r in (receivables is List ? receivables : const [])) {
+    if (r is! Map) continue;
+    final pays = r['payments'];
+    for (final p in (pays is List ? pays : const [])) {
+      if (p is! Map) continue;
+      if (!inWindow(_parseDay(p['date']))) continue;
+      final a = amountOf(p['amount']);
+      if (a > 0) utangCollected += a;
+    }
+  }
+
+  final kept = moneyIn - moneyOut;
+  final rawRate = moneyIn > 0 ? kept / moneyIn : null;
+  final double? keptRate = (rawRate != null && rawRate.isFinite)
+      ? rawRate
+      : null;
+
+  final startLabel = '${_mos[start.month - 1]} ${start.day}';
+  String verdict;
+  if (moneyIn == 0 &&
+      moneyOut == 0 &&
+      days.isEmpty &&
+      debtPaid == 0 &&
+      utangCollected == 0) {
+    verdict = 'A quiet cycle so far. Log your money and payday tells a story.';
+  } else if (keptRate != null && keptRate >= 0.2) {
+    verdict =
+        "You kept ${_jsRound(keptRate * 100).toInt()}% of this cycle's income. Reaching payday with money left is the whole game.";
+  } else if (keptRate != null && keptRate > 0) {
+    verdict =
+        "You kept ${_jsRound(keptRate * 100).toInt()}% of this cycle's income. Every peso that survives to payday counts.";
+  } else if (keptRate != null) {
+    verdict =
+        'Spending passed income this cycle, and you tracked every day of it honestly. The next payday is a fresh start.';
+  } else {
+    verdict =
+        'You tracked this cycle honestly. That habit is what changes things.';
+  }
+
+  return {
+    'label': 'payday cycle since $startLabel',
+    'kicker': 'MY CYCLE SINCE ${startLabel.toUpperCase()}',
+    'monthKey':
+        'cycle-${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}',
+    'moneyIn': moneyIn,
+    'moneyOut': moneyOut,
+    'kept': kept,
+    'keptRate': keptRate,
+    'topCats': topCats,
+    'biggest': null,
+    'daysLogged': days.length,
+    'debtPaid': debtPaid,
+    'utangCollected': utangCollected,
+    'verdict': verdict,
+  };
 }
 
 /// The Home card's whole state, composed from tested engines. Junk never
