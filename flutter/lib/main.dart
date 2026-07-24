@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.19 · Share your month can now share your payday cycle instead: flip the new toggle and the card re-windows from your last payday to today, because the month is not the unit your money actually lives in. A rough cycle tracked honestly is still worth posting.';
+    'f2.20 · New in Insights: Steady Pay, a weekly salary you pay yourself from swing income. Planned on your three leanest months, never your best ones, so a good month becomes runway instead of lifestyle. For every gig worker, freelancer, and seller with no fixed payday.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

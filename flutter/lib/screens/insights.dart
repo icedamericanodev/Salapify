@@ -17,6 +17,7 @@ import '../money/commitmentload.dart' as commitmentload;
 import '../money/commitments.dart' as commitments;
 import '../money/debtmath.dart' as debtmath;
 import '../money/ledger.dart' show amountOf;
+import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import '../widgets/screen_header.dart';
@@ -285,6 +286,21 @@ class InsightsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 18),
             _safeToSpendCard(sts),
+            // Steady Pay: safe-to-spend's sibling for swing income. Shows only
+            // when there is a real suggestion (three or more income months) or
+            // an already accepted draw; salaried users who never touch it are
+            // never nagged by it.
+            ...(() {
+              final accepted = steadypay.acceptedSteadyPay(data);
+              final suggestion = steadypay.steadyPaySuggestion(data, ref);
+              if (accepted == null && suggestion.weeklyDraw == null) {
+                return const <Widget>[];
+              }
+              return [
+                const SizedBox(height: 12),
+                _steadyPayCard(context, data, ref, accepted, suggestion),
+              ];
+            })(),
             if (plan['applicable'] == true) ...[
               const SizedBox(height: 12),
               _nextPesoCard(plan, focusGoal),
@@ -397,6 +413,227 @@ class InsightsScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Steady Pay: the weekly salary you pay yourself from swing income,
+  /// planned on the three leanest of the last six full income months. Every
+  /// figure comes from the tested steadypay engine; accepting or adjusting
+  /// writes the one founder-approved settings key through the store.
+  Widget _steadyPayCard(
+    BuildContext context,
+    Map<String, dynamic> data,
+    DateTime ref,
+    double? accepted,
+    steadypay.SteadyPay suggestion,
+  ) {
+    Future<void> askAmount() async {
+      // Prefill the EXACT stored amount when one exists (rounding here would
+      // let a no-edit Save silently change a decimal draw); only a fresh
+      // suggestion gets rounded to whole pesos.
+      final prefill = accepted != null
+          ? (accepted == accepted.roundToDouble()
+                ? accepted.round().toString()
+                : accepted.toString())
+          : (suggestion.weeklyDraw ?? 0).round().toString();
+      final controller = TextEditingController(text: prefill);
+      final messenger = ScaffoldMessenger.of(context);
+      final action = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Barako.background,
+          title: Text(
+            'Your weekly pay',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                suggestion.weeklyDraw == null
+                    ? 'The amount you pay yourself each week, whatever the '
+                          'month brings.'
+                    : 'Suggested: ${formatMoney(suggestion.weeklyDraw!.roundToDouble())} a week, planned on your lean months.',
+                style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                style: TextStyle(color: Barako.text),
+                decoration: InputDecoration(
+                  prefixText: '₱ ',
+                  prefixStyle: TextStyle(color: Barako.text),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Barako.primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            if (accepted != null)
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop('stop'),
+                child: Text(
+                  'Stop Steady Pay',
+                  style: TextStyle(color: Barako.muted),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop('save'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Barako.primary,
+                foregroundColor: Barako.onPrimary,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      );
+      try {
+        if (action == 'stop') {
+          await store.clearSteadyPay();
+        } else if (action == 'save') {
+          // Commas and spaces are stripped like every other amount field in
+          // the app; the dialog itself displays "₱2,769", so typing exactly
+          // that must work.
+          final amount = double.tryParse(
+            controller.text.replaceAll(RegExp(r'[, ]'), ''),
+          );
+          if (amount == null || !amount.isFinite || amount <= 0) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Enter an amount above zero, nothing saved.'),
+              ),
+            );
+          } else {
+            await store.setSteadyPay(amount);
+          }
+        }
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Could not save that, nothing changed. $e')),
+        );
+      }
+    }
+
+    final runway = suggestion.runwayMonths;
+    final runwayLine = runway == null
+        ? null
+        : 'Your cash covers about ${runway.toStringAsFixed(1)} lean months.';
+
+    Widget body;
+    if (accepted == null) {
+      final weekly = suggestion.weeklyDraw!;
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pay yourself ${formatMoney(weekly.roundToDouble())} a week',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Planned on your three leanest months out of the last six '
+            '(about ${formatMoney(suggestion.leanBaseline!.roundToDouble())} a month), so a good month '
+            'becomes runway, not lifestyle.'
+            '${runwayLine == null ? '' : ' $runwayLine'}',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: askAmount,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Barako.primaryText,
+              side: BorderSide(color: Barako.border),
+            ),
+            child: const Text(
+              'Set my weekly pay',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      );
+    } else {
+      final week = steadypay.steadyPayWeek(data, ref, accepted);
+      final over = week.remaining < 0;
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${formatMoney(accepted)} a week',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            over
+                ? 'Drawn ${formatMoney(week.spent)} this week, '
+                      '${formatMoney(-week.remaining)} past your pay. It '
+                      'happens; the runway absorbs it, and next week starts '
+                      'fresh.'
+                : 'Drawn ${formatMoney(week.spent)} of your pay this week, '
+                      '${formatMoney(week.remaining)} still yours to spend.'
+                      '${runwayLine == null ? '' : ' $runwayLine'}',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: askAmount,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Barako.primaryText,
+              side: BorderSide(color: Barako.border),
+            ),
+            child: const Text(
+              'Adjust',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kicker('STEADY PAY · YOUR OWN SALARY'),
+            const SizedBox(height: 8),
+            body,
+          ],
         ),
       ),
     );
