@@ -87,7 +87,7 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'A starting frame for splitting your pay.',
     'action': {
-      'label': 'Set your category limits in Budget',
+      'label': 'Set your monthly limit in Budget',
       'route': 'budget-tab',
     },
     'body': [
@@ -127,7 +127,7 @@ const List<Map<String, dynamic>> lessons = [
     'body': [
       'An emergency fund is money set aside for the surprises: a medical visit, a phone that dies, an urgent trip to family. It is not for a sale or a new gadget. Its whole job is to keep one bad week from turning into debt.',
       'A common target is three to six months of your expenses. That can feel impossible when you are starting, so do not aim there yet. Aim for your first week of expenses, then your first month. In the Philippines, 10,000 pesos is a classic first milestone; wherever you live, one week of your real expenses is the honest version of the same target.',
-      'One important order-of-operations rule: if you carry high-interest debt, build only a small starter cushion first, then send everything extra at the debt. The "Cushion or debt first?" lesson in the Debt zero track walks through exactly why.',
+      'One important order-of-operations rule: if you carry high-interest debt, build only a small starter cushion first, then send everything extra at the debt. The "Cushion or debt: which comes first?" lesson in the Debt zero track walks through exactly why.',
       'Keep the fund separate from your spending money, ideally in an account you do not touch daily, so it is not accidentally spent. Make it a goal in Salapify and watch it grow. The point is not to get rich. It is to sleep better, because the next surprise is already handled.',
     ],
   },
@@ -197,7 +197,7 @@ const List<Map<String, dynamic>> lessons = [
       'When you owe on more than one thing, the order you attack them in matters. There are two proven orders, and either one beats drifting.',
       'The snowball: pay minimums on everything, then throw every spare peso at the SMALLEST balance first. Each debt you finish is a win you can feel, and the freed-up payment rolls into the next one like a snowball. It wins on motivation.',
       'The avalanche: same idea, but attack the HIGHEST interest rate first. Mathematically this always costs less in total interest. It wins on money.',
-      'Which is right? The one you will actually stick with. If you need visible wins to keep going, snowball. If the interest number motivates you, avalanche. Salapify computes both orders from your real debts and shows the finish date and the interest difference, so you choose with numbers instead of vibes.',
+      'Which is right? The one you will actually stick with. If you need visible wins to keep going, snowball. If the interest number motivates you, avalanche. Salapify computes both orders from your real debts; flip between them in Debts to compare the finish date and total interest, so you choose with numbers instead of vibes.',
     ],
   },
   {
@@ -226,12 +226,15 @@ const List<Map<String, dynamic>> lessons = [
     'emoji': '🔎',
     'minutes': 2,
     'summary': 'One small fixed extra moves the finish date by months.',
-    'action': {'label': 'Try an extra payment in Debts', 'route': 'debts'},
+    'action': {
+      'label': 'Try an extra payment in Insights',
+      'route': 'insights-tab',
+    },
     'body': [
       'Debt payoff is not linear, and that is good news. Because interest compounds, a small extra payment early is worth much more than the same amount later. The math is on your side once you push past the minimums.',
       'Find one fixed amount you can add every single month. One cancelled subscription. One downgraded plan. One want from the 24-hour-rule lesson that did not survive the night. It does not need to be big; it needs to be permanent.',
       'Then watch what it does. On a typical card balance, even a modest fixed extra can pull the finish date months closer and cut the total interest by more than the extra itself. That is the compounding working for you instead of against you.',
-      'Open Debts and enter an extra monthly amount. The app shows your new finish date and the interest you keep. Seeing those two numbers move is the best motivation there is.',
+      'Open Insights and find the debt what-if card. It shows what a fixed extra, like 200, 500, or 1000 a month, does to your finish date and total interest. Seeing those two numbers move is the best motivation there is.',
     ],
   },
   {
@@ -246,7 +249,7 @@ const List<Map<String, dynamic>> lessons = [
       'Lending inside the family and the barkada, the friend group, is part of Filipino life, and informal lending exists everywhere in the world. It goes wrong the same way everywhere too: the amount, and the memory of it, gets fuzzy. Then both the money and the relationship get awkward.',
       'Two habits keep it clean. First, only lend what you would be okay never getting back. Not "not getting back soon". Never. If losing it would put you in a bind, the honest answer is a smaller amount or a kind no. Second, write it down, the amount and the date, the moment it happens, so nobody has to rely on memory.',
       'Following up is not being stingy. A calm, friendly reminder is normal and fair, and it actually protects the friendship, because unspoken debt is what breeds resentment.',
-      'Salapify tracks who owes you, how long it has been, and can draft a gentle reminder you can send, so collecting stays kind.',
+      'Salapify tracks who owes you and how long it has been, and Ask Pan can draft a gentle reminder you can copy and send, so collecting stays kind.',
     ],
   },
 
@@ -263,7 +266,7 @@ const List<Map<String, dynamic>> lessons = [
       'When your income swings, the danger is not the lean months. It is the good ones. A big month quietly raises your lifestyle, and then the next lean month cannot carry it.',
       'The move that fixes this: stop spending your income and start paying yourself a salary from it. Look at your three LEANEST months out of the last six, and pay yourself that, a fixed weekly amount, whatever the month brings.',
       'Good months then do their real job: they fill a buffer that carries the lean ones. Your lifestyle rides the floor, not the ceiling, so it never has to fall. That is the whole secret of surviving on a swing income, and salaried people get it for free without noticing.',
-      'Salapify computes this from your own logged income. Open Insights and set Steady Pay; the app suggests the lean-month weekly amount and then tracks each week against it.',
+      'Salapify computes this from your own logged income. Open Insights and set Steady Pay; the app suggests the lean-month weekly amount and then tracks each week against it. The suggestion appears once about three months of income are logged, so if it is not there yet, keep logging; it is worth the wait.',
     ],
   },
   {
@@ -374,7 +377,7 @@ const List<Map<String, dynamic>> lessons = [
       'route': 'tools-thirteenth',
     },
     'body': [
-      'In the Philippines, every employee gets an extra month of pay in December, the 13th month. If your country pays a year-end bonus or holiday pay instead, the exact same plan works.',
+      'In the Philippines, rank-and-file employees get an extra month of pay in December, the 13th month. If your country pays a year-end bonus or holiday pay instead, the exact same plan works.',
       'The 13th month feels like free money, so it disappears the fastest. A little planning before it lands makes it do real work for you.',
       'One simple split: a slice to your emergency fund or savings, a slice to clear the highest-interest debt you carry, and a slice, guilt free, for the holidays and the people you love. Deciding the split before the money arrives is the whole trick.',
       'Clearing a high-interest debt with part of it is one of the best uses of the money, because every peso of interest you stop paying is a peso kept. And a nice-to-know: in the Philippines the 13th month plus other bonuses are tax free up to 90,000 combined, which the calculator already accounts for.',

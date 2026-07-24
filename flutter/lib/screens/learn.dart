@@ -97,7 +97,10 @@ class _LearnScreenState extends State<LearnScreen> {
       case 'log':
         return () => showLogSheet(context, widget.store);
       case 'mindset':
-        screen = MindsetScreen(store: widget.store);
+        screen = MindsetScreen(
+          store: widget.store,
+          onSwitchTab: widget.onSwitchTab,
+        );
       case 'recurring':
         screen = RecurringScreen(store: widget.store);
       case 'goals':
@@ -332,9 +335,17 @@ class _LearnScreenState extends State<LearnScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Text(
-                            '${l['minutes']} min read',
-                            style: TextStyle(color: Barako.faint, fontSize: 11),
+                          // Flexible so the PHILIPPINES chip can never push
+                          // this row into an overflow on a narrow phone.
+                          Flexible(
+                            child: Text(
+                              '${l['minutes']} min read',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Barako.faint,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                           if (isPH) ...[
                             const SizedBox(width: 8),

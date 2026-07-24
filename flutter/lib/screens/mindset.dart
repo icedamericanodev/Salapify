@@ -19,8 +19,11 @@ const _questions = [
 ];
 
 class MindsetScreen extends StatefulWidget {
+  /// Threaded through to Money courses so lesson actions that jump to a
+  /// bottom tab keep working when courses are opened from here.
+  final void Function(int)? onSwitchTab;
   final SalapifyStore store;
-  const MindsetScreen({super.key, required this.store});
+  const MindsetScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
   State<MindsetScreen> createState() => _MindsetScreenState();
@@ -118,7 +121,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
                       borderRadius: BorderRadius.circular(20),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => LearnScreen(store: widget.store),
+                          builder: (_) => LearnScreen(
+                            store: widget.store,
+                            onSwitchTab: widget.onSwitchTab,
+                          ),
                         ),
                       ),
                       child: Padding(

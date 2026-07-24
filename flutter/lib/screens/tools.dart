@@ -147,7 +147,10 @@ class ToolsScreen extends StatelessWidget {
               blurb:
                   "Today's lesson, a quick impulse check before you buy, and your small wins.",
               open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => MindsetScreen(store: store)),
+                MaterialPageRoute(
+                  builder: (_) =>
+                      MindsetScreen(store: store, onSwitchTab: onSwitchTab),
+                ),
               ),
             ),
           ],
