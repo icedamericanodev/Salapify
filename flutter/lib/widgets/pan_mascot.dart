@@ -10,9 +10,11 @@
 // RIVE SWAP POINT (the ONE place to swap in the real animated Pan later):
 // When a rigged Pan.riv exists, add the `rive` package, drop the file at
 // [kPanRivAsset], declare it under flutter/assets in pubspec, and replace the
-// `_PlaceholderCup` below with the Rive widget driving a single number input
+// `PanCupPainter` below with the Rive widget driving a single number input
 // named "mood" set to `mood.input` (0 calm, 1 nudge, 2 worried, 3 happy).
-// Nothing else, the mood engine, both call sites, and the input contract, changes.
+// Nothing else, the mood engine, the call sites, and the input contract, changes.
+// (The share card paints Pan through PanCupPainter with a baked PanPalette;
+// keep a static-render path for it when swapping.)
 // ==========================================================================
 
 import 'dart:math' as math;
@@ -70,7 +72,7 @@ class _PanMascotState extends State<PanMascot>
             child: Transform.translate(
               offset: Offset(0, -lift),
               child: CustomPaint(
-                painter: _PlaceholderCup(mood: widget.mood, wisp: t),
+                painter: PanCupPainter(mood: widget.mood, wisp: t),
               ),
             ),
           );
@@ -80,37 +82,78 @@ class _PanMascotState extends State<PanMascot>
   }
 
   String _moodWord(PanMood m) => switch (m) {
-        PanMood.calm => 'calm',
-        PanMood.nudge => 'attentive',
-        PanMood.worried => 'worried',
-        PanMood.happy => 'happy',
-      };
+    PanMood.calm => 'calm',
+    PanMood.nudge => 'attentive',
+    PanMood.worried => 'worried',
+    PanMood.happy => 'happy',
+  };
 }
 
-/// The placeholder cup, drawn from Barako colors. Replaced by the real Rive art
-/// at the swap point above; the mood contract stays identical.
-class _PlaceholderCup extends CustomPainter {
+/// The colors Pan is drawn with. In the app the painter reads the live Barako
+/// palette (no palette passed), so Pan always matches the active theme. The
+/// share card passes an explicit baked palette instead: the exported image is
+/// brand marketing wherever it lands and must never inherit the sender's
+/// theme.
+class PanPalette {
+  final Color cup; // body, handle, and eye ink
+  final Color face; // eyes and mouth strokes
+  final Color calm; // per-mood accent (steam, and the worried sweat bead)
+  final Color nudge;
+  final Color worried;
+  final Color happy;
+  const PanPalette({
+    required this.cup,
+    required this.face,
+    required this.calm,
+    required this.nudge,
+    required this.worried,
+    required this.happy,
+  });
+}
+
+/// The placeholder cup, replaced by the real Rive art at the swap point above;
+/// the mood contract stays identical. Public because the recap share card
+/// paints Pan directly (statically, with its own baked palette).
+class PanCupPainter extends CustomPainter {
   final PanMood mood;
   final double wisp; // 0..1 one-shot progress, for a gentle steam settle
-  _PlaceholderCup({required this.mood, required this.wisp});
 
-  Color get _accent => switch (mood) {
-        PanMood.calm => Barako.faint,
-        PanMood.nudge => Barako.primary,
-        PanMood.worried => Barako.warningStrong,
-        PanMood.happy => Barako.celebrate,
-      };
+  /// null = live Barako, read fresh on every paint. Two cautions for future
+  /// callers: shouldRepaint compares palettes by IDENTITY, so pass a const
+  /// (like the share card does) or a cached instance, never a fresh object per
+  /// build; and do not wrap Pan in his own RepaintBoundary, a theme switch
+  /// is invisible to shouldRepaint and would leave him in stale colors.
+  final PanPalette? palette;
+  PanCupPainter({required this.mood, required this.wisp, this.palette});
+
+  PanPalette get _colors =>
+      palette ??
+      PanPalette(
+        cup: Barako.primary,
+        face: Barako.onPrimary,
+        calm: Barako.faint,
+        nudge: Barako.primary,
+        worried: Barako.warningStrong,
+        happy: Barako.celebrate,
+      );
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    final cup = Barako.primary;
-    final face = Barako.onPrimary;
-    final ink = Barako.primary;
+    final c = _colors;
+    final accent = switch (mood) {
+      PanMood.calm => c.calm,
+      PanMood.nudge => c.nudge,
+      PanMood.worried => c.worried,
+      PanMood.happy => c.happy,
+    };
+    final cup = c.cup;
+    final face = c.face;
+    final ink = c.cup;
 
     // Steam above the cup: one wisp for calm/nudge/worried, two for happy.
     final steamPaint = Paint()
-      ..color = _accent.withValues(alpha: 0.55)
+      ..color = accent.withValues(alpha: 0.55)
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.035
       ..strokeCap = StrokeCap.round;
@@ -131,14 +174,14 @@ class _PlaceholderCup extends CustomPainter {
     );
     canvas.drawRRect(bodyRect, Paint()..color = cup);
     final handle = Path()
-      ..addArc(
-          Rect.fromLTWH(w * 0.66, h * 0.42, w * 0.22, h * 0.3), -1.2, 2.4);
+      ..addArc(Rect.fromLTWH(w * 0.66, h * 0.42, w * 0.22, h * 0.3), -1.2, 2.4);
     canvas.drawPath(
-        handle,
-        Paint()
-          ..color = cup
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = w * 0.06);
+      handle,
+      Paint()
+        ..color = cup
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * 0.06,
+    );
 
     // Face plate.
     final faceCx = w * 0.46, faceCy = h * 0.58;
@@ -156,30 +199,34 @@ class _PlaceholderCup extends CustomPainter {
           // Happy upward arcs.
           final p = Path()
             ..addArc(
-                Rect.fromCircle(center: Offset(ex, eyeY), radius: w * 0.05),
-                math.pi,
-                math.pi);
+              Rect.fromCircle(center: Offset(ex, eyeY), radius: w * 0.05),
+              math.pi,
+              math.pi,
+            );
           canvas.drawPath(
-              p,
-              Paint()
-                ..color = face
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = w * 0.03
-                ..strokeCap = StrokeCap.round);
+            p,
+            Paint()
+              ..color = face
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = w * 0.03
+              ..strokeCap = StrokeCap.round,
+          );
         case PanMood.calm:
           // Relaxed downward arcs (soft, sleepy).
           final p = Path()
             ..addArc(
-                Rect.fromCircle(center: Offset(ex, eyeY), radius: w * 0.045),
-                0,
-                math.pi);
+              Rect.fromCircle(center: Offset(ex, eyeY), radius: w * 0.045),
+              0,
+              math.pi,
+            );
           canvas.drawPath(
-              p,
-              Paint()
-                ..color = face
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = w * 0.03
-                ..strokeCap = StrokeCap.round);
+            p,
+            Paint()
+              ..color = face
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = w * 0.03
+              ..strokeCap = StrokeCap.round,
+          );
         case PanMood.nudge:
           canvas.drawCircle(Offset(ex, eyeY), w * 0.04, eyePaint);
           canvas.drawCircle(Offset(ex, eyeY), w * 0.02, eyeInk);
@@ -197,30 +244,41 @@ class _PlaceholderCup extends CustomPainter {
       case PanMood.happy:
         final p = Path()
           ..addArc(
-              Rect.fromCircle(center: Offset(faceCx, mouthY), radius: w * 0.09),
-              0.15 * math.pi,
-              0.7 * math.pi);
+            Rect.fromCircle(center: Offset(faceCx, mouthY), radius: w * 0.09),
+            0.15 * math.pi,
+            0.7 * math.pi,
+          );
         canvas.drawPath(p, mouthPaint);
       case PanMood.worried:
-        canvas.drawCircle(Offset(faceCx, mouthY + h * 0.01), w * 0.03,
-            Paint()..color = face);
+        canvas.drawCircle(
+          Offset(faceCx, mouthY + h * 0.01),
+          w * 0.03,
+          Paint()..color = face,
+        );
         // A little bead of sweat by the right eye.
-        canvas.drawCircle(Offset(faceCx + w * 0.16, eyeY),
-            w * 0.022, Paint()..color = _accent.withValues(alpha: 0.8));
+        canvas.drawCircle(
+          Offset(faceCx + w * 0.16, eyeY),
+          w * 0.022,
+          Paint()..color = accent.withValues(alpha: 0.8),
+        );
       case PanMood.nudge:
-        canvas.drawLine(Offset(faceCx - w * 0.05, mouthY),
-            Offset(faceCx + w * 0.05, mouthY), mouthPaint);
+        canvas.drawLine(
+          Offset(faceCx - w * 0.05, mouthY),
+          Offset(faceCx + w * 0.05, mouthY),
+          mouthPaint,
+        );
       case PanMood.calm:
         final p = Path()
           ..addArc(
-              Rect.fromCircle(center: Offset(faceCx, mouthY), radius: w * 0.06),
-              0.2 * math.pi,
-              0.6 * math.pi);
+            Rect.fromCircle(center: Offset(faceCx, mouthY), radius: w * 0.06),
+            0.2 * math.pi,
+            0.6 * math.pi,
+          );
         canvas.drawPath(p, mouthPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _PlaceholderCup old) =>
-      old.mood != mood || old.wisp != wisp;
+  bool shouldRepaint(covariant PanCupPainter old) =>
+      old.mood != mood || old.wisp != wisp || old.palette != palette;
 }
