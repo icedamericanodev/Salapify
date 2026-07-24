@@ -36,8 +36,11 @@ String backupFileName(DateTime now) =>
 /// earlier backup temp files are swept first, and the fresh one is deleted once
 /// the share sheet flow completes (the share is awaited first, so the receiving
 /// app has finished reading the content URI before the file goes). Throws on
-/// write or share failure; the caller surfaces it.
-Future<void> shareBackupFile(SalapifyStore store, DateTime now) async {
+/// write or share failure; the caller surfaces it. Returns false when the user
+/// dismissed the share sheet without picking a target (so callers do not claim
+/// "sent" on a deliberate back-out), true otherwise; platforms that cannot
+/// report the outcome count as true.
+Future<bool> shareBackupFile(SalapifyStore store, DateTime now) async {
   final text = store.exportBackupText();
   final dir = await getTemporaryDirectory();
   // Sweep any leftover backup temp files (e.g. from a share the OS killed
@@ -57,9 +60,10 @@ Future<void> shareBackupFile(SalapifyStore store, DateTime now) async {
   final file = File('${dir.path}/${backupFileName(now)}');
   await file.writeAsString(text);
   try {
-    await Share.shareXFiles([
+    final result = await Share.shareXFiles([
       XFile(file.path, mimeType: 'application/json'),
     ], subject: 'Salapify backup');
+    return result.status != ShareResultStatus.dismissed;
   } finally {
     try {
       await file.delete();

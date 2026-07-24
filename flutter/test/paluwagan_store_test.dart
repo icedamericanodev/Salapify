@@ -64,15 +64,17 @@ void main() {
     expect(p['myTurn'], 60);
   });
 
-  test('hasData ignores a settings-only paluwagan (matches treats)', () async {
-    // hasData gates the export button and the wipe warning on the top-level
-    // collections only; a paluwagan under settings is like a treat, it does
-    // not by itself flip hasData. This just pins the current contract.
+  test('hasData counts a settings-only paluwagan', () async {
+    // hasData gates the export button and the replace-everything warning. A
+    // paluwagan setup lives under settings, but it is real user data: hiding
+    // the warning because only settings-era data exists would let an import
+    // silently wipe it (QA finding on the New phone day build).
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await store.load();
-    await store.addPaluwagan(form);
     expect(store.hasData, isFalse);
+    await store.addPaluwagan(form);
+    expect(store.hasData, isTrue);
   });
 
   test('a paluwagan round-trips through export and import', () async {
@@ -95,15 +97,20 @@ void main() {
     expect(fresh.paluwagans.single['name'], 'Office paluwagan');
   });
 
-  test('sanitize omits the key when there are no paluwagans (golden safety)',
-      () {
-    final clean = sanitizeData({'accounts': [], 'settings': {}});
-    final settings = clean['settings'] as Map;
-    expect(settings.containsKey('paluwagans'), isFalse,
+  test(
+    'sanitize omits the key when there are no paluwagans (golden safety)',
+    () {
+      final clean = sanitizeData({'accounts': [], 'settings': {}});
+      final settings = clean['settings'] as Map;
+      expect(
+        settings.containsKey('paluwagans'),
+        isFalse,
         reason:
             'a blob without paluwagans must not gain the key, or the RN key-set '
-            'golden breaks');
-  });
+            'golden breaks',
+      );
+    },
+  );
 
   test('sanitize drops a junk paluwagans value instead of keeping it', () {
     final clean = sanitizeData({

@@ -24,7 +24,8 @@ dynamic normalize(dynamic v) {
 
 void main() {
   final raw = jsonDecode(
-      File('test/goldens/backup_export_goldens.json').readAsStringSync());
+    File('test/goldens/backup_export_goldens.json').readAsStringSync(),
+  );
   final fixture = (raw['fixture'] as Map).cast<String, dynamic>();
   final rnSanitized = raw['sanitized'];
   final rnDecoded = jsonDecode(raw['rnText'] as String) as Map;
@@ -33,24 +34,26 @@ void main() {
     expect(normalize(sanitizeData(fixture)), normalize(rnSanitized));
   });
 
-  test('buildBackupText decodes to exactly what the RN buildBackup writes',
-      () {
+  test('buildBackupText decodes to exactly what the RN buildBackup writes', () {
     final dartText = buildBackupText(
-        sanitizeData(fixture),
-        exportedAt: '2026-07-16T12:00:00.000Z');
+      sanitizeData(fixture),
+      exportedAt: '2026-07-16T12:00:00.000Z',
+    );
     final dartDecoded = jsonDecode(dartText) as Map;
     expect(dartDecoded['app'], 'salapify');
     expect(normalize(dartDecoded['version']), normalize(rnDecoded['version']));
     // exportedAt is a timestamp, compared for shape only.
     expect(dartDecoded['exportedAt'], isA<String>());
-    expect(normalize(dartDecoded['data']), normalize(rnDecoded['data']),
-        reason: 'the RN app must import a Flutter backup unchanged');
+    expect(
+      normalize(dartDecoded['data']),
+      normalize(rnDecoded['data']),
+      reason: 'the RN app must import a Flutter backup unchanged',
+    );
   });
 
   test('the Flutter import reads its own export back losslessly', () {
     final clean = sanitizeData(fixture);
-    final text =
-        buildBackupText(clean, exportedAt: '2026-07-16T12:00:00.000Z');
+    final text = buildBackupText(clean, exportedAt: '2026-07-16T12:00:00.000Z');
     final roundTripped = parseBackupObject(jsonDecode(text));
     expect(normalize(roundTripped), normalize(clean));
   });
@@ -74,24 +77,44 @@ void main() {
     });
     final store = SalapifyStore();
     await store.load();
-    expect(store.hasData, isTrue,
-        reason: 'receivables alone are data worth exporting and protecting');
+    expect(
+      store.hasData,
+      isTrue,
+      reason: 'receivables alone are data worth exporting and protecting',
+    );
+  });
+
+  test('hasData counts settings-era data too', () async {
+    // An accepted Steady Pay lives under settings, not a top-level list, but
+    // it is still data the replace-everything warning must protect.
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    expect(store.hasData, isFalse);
+    await store.setSteadyPay(2500);
+    expect(
+      store.hasData,
+      isTrue,
+      reason: 'a settings-only store still deserves the wipe warning',
+    );
+    await store.clearSteadyPay();
+    expect(store.hasData, isFalse);
   });
 
   test('importing over existing data keeps the outgoing blob under the '
       'side key', () async {
     final before = sanitizeData(fixture);
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(before)});
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(before)});
     final store = SalapifyStore();
     await store.load();
     final incoming = buildBackupText(
-        sanitizeData({
-          'accounts': [
-            {'id': 'x', 'name': 'X', 'kind': 'cash', 'balance': 1},
-          ],
-        }),
-        exportedAt: '2026-07-16T12:00:00.000Z');
+      sanitizeData({
+        'accounts': [
+          {'id': 'x', 'name': 'X', 'kind': 'cash', 'balance': 1},
+        ],
+      }),
+      exportedAt: '2026-07-16T12:00:00.000Z',
+    );
     await store.importBackupText(incoming);
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(previousBackupKey);
@@ -118,23 +141,31 @@ void main() {
     expect(store.loadError, isNotNull);
     expect(store.hasData, isFalse);
     // The documented recovery action: paste a valid backup.
-    await store.importBackupText(buildBackupText(
+    await store.importBackupText(
+      buildBackupText(
         sanitizeData({
           'accounts': [
             {'id': 'x', 'name': 'X', 'kind': 'cash', 'balance': 1},
           ],
         }),
-        exportedAt: '2026-07-16T12:00:00.000Z'));
+        exportedAt: '2026-07-16T12:00:00.000Z',
+      ),
+    );
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString(previousBackupKey), newerBlob,
-        reason: 'the unreadable blob must survive byte for byte');
+    expect(
+      prefs.getString(previousBackupKey),
+      newerBlob,
+      reason: 'the unreadable blob must survive byte for byte',
+    );
     expect(store.canWrite, isTrue);
   });
 
-  testWidgets('importing over existing data asks before replacing',
-      (tester) async {
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(sanitizeData(fixture))});
+  testWidgets('importing over existing data asks before replacing', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(sanitizeData(fixture)),
+    });
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -143,14 +174,23 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Import backup'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Import backup'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Import backup'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField),
-        jsonEncode({'app': 'salapify', 'version': 2, 'data': {'accounts': []}}));
+    await tester.enterText(
+      find.byType(TextField),
+      jsonEncode({
+        'app': 'salapify',
+        'version': 2,
+        'data': {'accounts': []},
+      }),
+    );
     await tester.tap(find.text('Import'));
     await tester.pumpAndSettle();
     expect(find.text('Replace everything?'), findsOneWidget);
@@ -158,14 +198,18 @@ void main() {
     // Cancel keeps every byte.
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    expect((store.data['transactions'] as List).length,
-        (sanitizeData(fixture)['transactions'] as List).length);
+    expect(
+      (store.data['transactions'] as List).length,
+      (sanitizeData(fixture)['transactions'] as List).length,
+    );
   });
 
-  testWidgets('the export screen shows the backup text from real data',
-      (tester) async {
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(sanitizeData(fixture))});
+  testWidgets('the export screen shows the backup text from real data', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(sanitizeData(fixture)),
+    });
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -174,8 +218,11 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Export backup'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Export backup'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Export backup'));
     await tester.pumpAndSettle();
