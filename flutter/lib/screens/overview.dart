@@ -14,6 +14,7 @@ import '../data/backup.dart';
 import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
+import '../money/cycle.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
@@ -70,6 +71,9 @@ class OverviewScreen extends StatelessWidget {
     final checkIn = hasStarted
         ? coach.weeklyCheckIn(data, DateTime.now())
         : null;
+    // Your Number: the one figure to carry until payday, from the same
+    // safeToSpend the coach and Insights read, so the three never disagree.
+    final cycle = cycleStatus(data, DateTime.now());
 
     return Scaffold(
       // No Log button until the store loaded cleanly: after a failed read,
@@ -135,6 +139,10 @@ class OverviewScreen extends StatelessWidget {
               ),
             if (checkIn != null) ...[
               _checkInCard(context, checkIn),
+              const SizedBox(height: 12),
+            ],
+            if (cycle.show) ...[
+              _yourNumberCard(context, cycle),
               const SizedBox(height: 12),
             ],
             // On a brand-new device the ₱0 hero would just compete with the
@@ -382,6 +390,119 @@ class OverviewScreen extends StatelessWidget {
     // Only the tappable states get the press feel; the calm all-clear (no
     // action) stays still, so press feedback never lies about interactivity.
     return onTap == null ? card : PressableScale(child: card);
+  }
+
+  /// Your Number: the daily figure to carry until payday, straight from
+  /// safeToSpend's perDay via the cycle composer. Shows only when positive
+  /// (crunch belongs to the check-in above). The pace line speaks only when
+  /// paydayProjection does; after three quiet days the sub greets the
+  /// comeback kindly instead of scolding. Tap opens Insights, where the full
+  /// safe-to-spend breakdown lives.
+  Widget _yourNumberCard(BuildContext context, CycleStatus s) {
+    String pretty(String iso) {
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      if (iso.length < 10) return iso;
+      final m = int.tryParse(iso.substring(5, 7));
+      final day = int.tryParse(iso.substring(8, 10));
+      if (m == null || day == null || m < 1 || m > 12) return iso;
+      return '${months[m - 1]} $day';
+    }
+
+    final sub = s.comeback
+        ? 'Welcome back, life happens. Fresh from your real balances: '
+              '${s.daysLeft} ${s.daysLeft == 1 ? 'day' : 'days'} to your '
+              '${pretty(s.payday)} payday.'
+        : 'until your ${pretty(s.payday)} payday, ${s.daysLeft} '
+              '${s.daysLeft == 1 ? 'day' : 'days'} away.';
+    final String? paceLine = s.onTrack == null
+        ? null
+        : s.onTrack == true
+        ? 'Your recent pace fits. Keep going.'
+        : 'Recent pace is about ${formatMoney(s.dailyPace)} a day. Easing '
+              '${formatMoney(s.easeOff)} a day keeps you covered to payday.';
+
+    return PressableScale(
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onSwitchTab == null ? null : () => onSwitchTab!(4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _kicker('YOUR NUMBER'),
+                    const Spacer(),
+                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: formatMoney(s.perDay),
+                        style: TextStyle(
+                          fontFamily: 'Fraunces',
+                          color: Barako.text,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '  a day',
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sub,
+                  style: TextStyle(
+                    color: Barako.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                if (paceLine != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    paceLine,
+                    style: TextStyle(
+                      color: s.onTrack == true
+                          ? Barako.primaryText
+                          : Barako.textSecondary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// The dashboard hero. Now that the clutter moved to Menu, net worth is the
