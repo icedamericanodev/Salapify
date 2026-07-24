@@ -12,6 +12,7 @@
 // paydayProjection's own silence rule exists to avoid.
 
 import 'commitments.dart' show paydayProjection, safeToSpend;
+import 'schedule.dart' show daysUntilPayday;
 
 class CycleStatus {
   /// True only for the 'ok' reason: Home renders the card solely then.
@@ -77,6 +78,52 @@ int _gapDays(dynamic transactions, DateTime ref) {
   final gap = today.difference(latest).inDays;
   // A future-dated log reads as zero gap, never a negative streak of quiet.
   return gap < 0 ? 0 : gap;
+}
+
+class PaydayRitual {
+  /// Today is a payday on the user's own schedule, and there is data to act
+  /// on, so the payday card shows.
+  final bool isPayday;
+
+  /// A real salary-like income was logged today (receivable collections do
+  /// not count; getting paid back is not a salary). Flips the card from the
+  /// invitation to the done state.
+  final bool salaryLogged;
+  const PaydayRitual({required this.isPayday, required this.salaryLogged});
+}
+
+/// The payday-morning ritual state, fully derived: no stored flag anywhere,
+/// so the card can never disagree with the ledger. Junk never throws.
+PaydayRitual paydayRitual(dynamic data, DateTime ref) {
+  final d = data is Map ? data.cast<String, dynamic>() : <String, dynamic>{};
+  final accounts = d['accounts'];
+  final transactions = d['transactions'];
+  final hasStarted =
+      (accounts is List && accounts.isNotEmpty) ||
+      (transactions is List && transactions.isNotEmpty);
+  if (!hasStarted) {
+    return const PaydayRitual(isPayday: false, salaryLogged: false);
+  }
+  final settings = d['settings'];
+  final schedule = settings is Map ? settings['paydaySchedule'] : null;
+  final isPayday = daysUntilPayday(ref, schedule) == 0;
+  if (!isPayday) {
+    return const PaydayRitual(isPayday: false, salaryLogged: false);
+  }
+  final today =
+      '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-${ref.day.toString().padLeft(2, '0')}';
+  var logged = false;
+  for (final raw in (transactions is List ? transactions : const [])) {
+    if (raw is! Map) continue;
+    if (raw['type'] != 'income') continue;
+    if (raw['source'] == 'receivable') continue;
+    final ds = (raw['date'] ?? '').toString();
+    if (ds.length >= 10 && ds.substring(0, 10) == today) {
+      logged = true;
+      break;
+    }
+  }
+  return PaydayRitual(isPayday: true, salaryLogged: logged);
 }
 
 /// The Home card's whole state, composed from tested engines. Junk never
