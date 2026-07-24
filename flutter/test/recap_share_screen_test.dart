@@ -21,8 +21,11 @@ String _thisMonth(int day) {
 Future<void> _openRecap(WidgetTester tester) async {
   await tester.tap(find.text('Menu'));
   await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('Share your month'), 200,
-      scrollable: find.byType(Scrollable).first);
+  await tester.scrollUntilVisible(
+    find.text('Share your month'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.ensureVisible(find.text('Share your month'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Share your month'));
@@ -30,13 +33,26 @@ Future<void> _openRecap(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('recap card renders and the hide-amounts toggle swaps to ***',
-      (tester) async {
+  testWidgets('recap card renders and the hide-amounts toggle swaps to ***', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({
         'transactions': [
-          {'id': 'i1', 'date': _thisMonth(15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000},
-          {'id': 'e1', 'date': _thisMonth(5), 'type': 'expense', 'label': 'Groceries', 'amount': 5000},
+          {
+            'id': 'i1',
+            'date': _thisMonth(15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+          },
+          {
+            'id': 'e1',
+            'date': _thisMonth(5),
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 5000,
+          },
         ],
       }),
     });
@@ -57,6 +73,9 @@ void main() {
     expect(find.text("Salapify, on your money's side"), findsWidgets);
     expect(find.text('Share the card'), findsOneWidget);
     expect(find.text('Share as text'), findsOneWidget);
+    // A kept month puts a happy Pan on the card. (The off-screen capture copy
+    // does not surface a second semantics node, so presence is the pin.)
+    expect(find.bySemanticsLabel('Pan looking happy'), findsWidgets);
     // Amounts are shown, not hidden.
     expect(find.textContaining('***'), findsNothing);
 
@@ -64,5 +83,43 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
     expect(find.textContaining('***'), findsWidgets);
+  });
+
+  testWidgets('an over month puts a worried, sympathetic Pan on the card', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'transactions': [
+          {
+            'id': 'i1',
+            'date': _thisMonth(15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 5000,
+          },
+          {
+            'id': 'e1',
+            'date': _thisMonth(5),
+            'type': 'expense',
+            'label': 'Rent',
+            'amount': 9000,
+          },
+        ],
+      }),
+    });
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openRecap(tester);
+
+    expect(find.bySemanticsLabel('Pan looking worried'), findsWidgets);
+    // The honest over line still reads sympathetic, not shameful.
+    expect(find.textContaining('over'), findsWidgets);
   });
 }

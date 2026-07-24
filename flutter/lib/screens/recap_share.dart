@@ -24,8 +24,10 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/pan_mood.dart';
 import '../money/recap.dart';
 import '../theme.dart';
+import '../widgets/pan_mascot.dart' show PanCupPainter, PanPalette;
 
 // Barako, baked into the shared image on purpose: the card is brand marketing
 // wherever it lands, whatever theme the sender uses in the app.
@@ -37,6 +39,18 @@ const Color _muted = Color(0xFFA99182);
 
 // Card size in logical units; the snapshot comes out at device pixels.
 const double _cardW = 330;
+
+// Pan on the card, in the same baked brand colors as the card itself, never
+// the live theme (the painter would otherwise inherit whatever palette the
+// sender runs, breaking the card's one-brand rule).
+const PanPalette _panBrand = PanPalette(
+  cup: _orange,
+  face: _bg,
+  calm: _muted,
+  nudge: _muted,
+  worried: _cream,
+  happy: _cream,
+);
 
 class RecapShareScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -54,8 +68,10 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
   // Computed once, so the clock is read a single time: the captured image, the
   // filename, and the text fallback can never describe two different months if
   // the user crosses midnight with the screen open.
-  late final Map<String, dynamic> _recap =
-      monthRecap(widget.store.data, DateTime.now());
+  late final Map<String, dynamic> _recap = monthRecap(
+    widget.store.data,
+    DateTime.now(),
+  );
 
   String _money(num n) => _hideAmounts ? '***' : formatMoneyText(n);
 
@@ -88,14 +104,20 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
       final dir = await getTemporaryDirectory();
       file = File('${dir.path}/salapify-recap-${_recap['monthKey']}.png');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(file.path, mimeType: 'image/png')],
-          text: "My month with Salapify");
+      await Share.shareXFiles([
+        XFile(file.path, mimeType: 'image/png'),
+      ], text: "My month with Salapify");
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-              content: Text('Could not build the image. Sharing as text instead.')));
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Could not build the image. Sharing as text instead.',
+              ),
+            ),
+          );
       }
       await _shareText();
     } finally {
@@ -108,14 +130,19 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final card =
-        _RecapCard(recap: _recap, hideAmounts: _hideAmounts, money: _money);
+    final card = _RecapCard(
+      recap: _recap,
+      hideAmounts: _hideAmounts,
+      money: _money,
+    );
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('${_recap['label']} recap',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          '${_recap['label']} recap',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
       ),
       body: Stack(
         children: [
@@ -127,7 +154,10 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                   'Turn ${_recap['label']} into a card you can post or send. '
                   'You choose if peso amounts show.',
                   style: TextStyle(
-                      color: Barako.textSecondary, fontSize: 14, height: 1.45),
+                    color: Barako.textSecondary,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 // Preview scales down to fit a narrow phone without distorting;
@@ -145,12 +175,15 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: Barako.primary,
                       foregroundColor: Barako.onPrimary,
-                      disabledBackgroundColor:
-                          Barako.primary.withValues(alpha: 0.5),
+                      disabledBackgroundColor: Barako.primary.withValues(
+                        alpha: 0.5,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
-                    child: Text(_busy ? 'Preparing...' : 'Share the card',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(
+                      _busy ? 'Preparing...' : 'Share the card',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -163,8 +196,10 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                       side: BorderSide(color: Barako.border),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: const Text('Share as text',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'Share as text',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
@@ -185,40 +220,45 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
   }
 
   Widget _toggle() => Container(
-        decoration: BoxDecoration(
-          color: Barako.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Barako.border),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Hide peso amounts',
-                      style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text('Show percentages only, keep numbers private.',
-                      style: TextStyle(color: Barako.faint, fontSize: 12)),
-                ],
+    decoration: BoxDecoration(
+      color: Barako.card,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Barako.border),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hide peso amounts',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            Switch(
-              value: _hideAmounts,
-              onChanged: (v) => setState(() => _hideAmounts = v),
-              activeThumbColor: Barako.onPrimary,
-              activeTrackColor: Barako.primary,
-              inactiveThumbColor: Barako.faint,
-              inactiveTrackColor: Barako.border,
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Show percentages only, keep numbers private.',
+                style: TextStyle(color: Barako.faint, fontSize: 12),
+              ),
+            ],
+          ),
         ),
-      );
+        Switch(
+          value: _hideAmounts,
+          onChanged: (v) => setState(() => _hideAmounts = v),
+          activeThumbColor: Barako.onPrimary,
+          activeTrackColor: Barako.primary,
+          inactiveThumbColor: Barako.faint,
+          inactiveTrackColor: Barako.border,
+        ),
+      ],
+    ),
+  );
 }
 
 // The branded card, fixed at 330 wide so the captured PNG is consistent. Uses
@@ -228,8 +268,11 @@ class _RecapCard extends StatelessWidget {
   final Map<String, dynamic> recap;
   final bool hideAmounts;
   final String Function(num) money;
-  const _RecapCard(
-      {required this.recap, required this.hideAmounts, required this.money});
+  const _RecapCard({
+    required this.recap,
+    required this.hideAmounts,
+    required this.money,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,18 +281,27 @@ class _RecapCard extends StatelessWidget {
     final daysLogged = recap['daysLogged'] as int? ?? 0;
     final pct = keptRate is num ? ((keptRate * 100) + 0.5).floor() : null;
 
+    // Pan wears the month's honest mood: happy on a kept month, worried on an
+    // over month, calm when there is no verdict yet (days-logged only). The
+    // over month stays sympathetic, never shameful; worried is Pan's ceiling.
+    final mood = pct == null
+        ? PanMood.calm
+        : kept >= 0
+        ? PanMood.happy
+        : PanMood.worried;
+
     final big = pct == null
         ? '$daysLogged ${daysLogged == 1 ? 'day' : 'days'} logged'
         : kept >= 0
-            ? (hideAmounts ? 'Kept ${pct < 0 ? 0 : pct}%' : '${money(kept)} kept')
-            : (hideAmounts ? 'Over this month' : '${money(-kept)} over');
+        ? (hideAmounts ? 'Kept ${pct < 0 ? 0 : pct}%' : '${money(kept)} kept')
+        : (hideAmounts ? 'Over this month' : '${money(-kept)} over');
     final sub = pct == null
         ? 'Every logged day builds the habit.'
         : kept >= 0
-            ? (hideAmounts
-                ? 'of my income this month'
-                : '${pct < 0 ? 0 : pct}% of income kept')
-            : 'spending passed income';
+        ? (hideAmounts
+              ? 'of my income this month'
+              : '${pct < 0 ? 0 : pct}% of income kept')
+        : 'spending passed income';
 
     final moneyIn = (recap['moneyIn'] as num?)?.toDouble() ?? 0;
     final moneyOut = (recap['moneyOut'] as num?)?.toDouble() ?? 0;
@@ -262,9 +314,14 @@ class _RecapCard extends StatelessWidget {
     if (moneyOut > 0) rows.add(['Money out', money(moneyOut)]);
     if (topCats.isNotEmpty) {
       final t = topCats.first as Map;
-      rows.add(['Top spending', '${_fit(t['label'], 13)} ${(t['pct'] as num).toInt()}%']);
+      rows.add([
+        'Top spending',
+        '${_fit(t['label'], 13)} ${(t['pct'] as num).toInt()}%',
+      ]);
     }
-    if (utangCollected > 0) rows.add(['Utang collected', money(utangCollected)]);
+    if (utangCollected > 0) {
+      rows.add(['Utang collected', money(utangCollected)]);
+    }
     if (debtPaid > 0) rows.add(['Debt paid down', money(debtPaid)]);
     rows.add(['Days logged', '$daysLogged']);
 
@@ -284,44 +341,62 @@ class _RecapCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text('MY ${recap['label'].toString().toUpperCase()}',
-                    style: const TextStyle(
-                        fontFamily: 'Jakarta',
-                        color: _orange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5)),
+                child: Text(
+                  'MY ${recap['label'].toString().toUpperCase()}',
+                  style: const TextStyle(
+                    fontFamily: 'Jakarta',
+                    color: _orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
               ),
-              // A pure-Dart brand roundel, so the mark is identical on every
-              // device (a system emoji would render differently per phone).
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                    color: _orange, shape: BoxShape.circle),
-                child: const Text('S',
-                    style: TextStyle(
-                        fontFamily: 'Fraunces',
-                        color: _bg,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700)),
+              // Pan wearing the month's mood, painted in pure Dart so the mark
+              // is identical on every device (a system emoji would render
+              // differently per phone). Static (wisp settled), brand palette.
+              Semantics(
+                label:
+                    'Pan looking ${mood == PanMood.happy
+                        ? 'happy'
+                        : mood == PanMood.worried
+                        ? 'worried'
+                        : 'calm'}',
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CustomPaint(
+                    painter: PanCupPainter(
+                      mood: mood,
+                      wisp: 1,
+                      palette: _panBrand,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Text(big,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontFamily: 'Fraunces',
-                  color: _cream,
-                  fontSize: big.length > 13 ? 24 : 30,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            big,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Fraunces',
+              color: _cream,
+              fontSize: big.length > 13 ? 24 : 30,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(sub,
-              style: const TextStyle(
-                  fontFamily: 'Jakarta', color: _muted, fontSize: 12)),
+          Text(
+            sub,
+            style: const TextStyle(
+              fontFamily: 'Jakarta',
+              color: _muted,
+              fontSize: 12,
+            ),
+          ),
           const SizedBox(height: 14),
           Container(height: 1, color: _border),
           const SizedBox(height: 14),
@@ -332,38 +407,50 @@ class _RecapCard extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 140,
-                    child: Text(r[0],
-                        style: const TextStyle(
-                            fontFamily: 'Jakarta',
-                            color: _muted,
-                            fontSize: 13)),
+                    child: Text(
+                      r[0],
+                      style: const TextStyle(
+                        fontFamily: 'Jakarta',
+                        color: _muted,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   Expanded(
-                    child: Text(r[1],
-                        style: const TextStyle(
-                            fontFamily: 'Jakarta',
-                            color: _cream,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            fontFeatures: [FontFeature.tabularFigures()])),
+                    child: Text(
+                      r[1],
+                      style: const TextStyle(
+                        fontFamily: 'Jakarta',
+                        color: _cream,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           const SizedBox(height: 6),
-          Text(recap['verdict'].toString(),
-              style: const TextStyle(
-                  fontFamily: 'Jakarta',
-                  color: _cream,
-                  fontSize: 12,
-                  height: 1.35)),
+          Text(
+            recap['verdict'].toString(),
+            style: const TextStyle(
+              fontFamily: 'Jakarta',
+              color: _cream,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
           const SizedBox(height: 14),
-          const Text("Salapify, on your money's side",
-              style: TextStyle(
-                  fontFamily: 'Jakarta',
-                  color: _orange,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800)),
+          const Text(
+            "Salapify, on your money's side",
+            style: TextStyle(
+              fontFamily: 'Jakarta',
+              color: _orange,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.13 · New under Security: the Privacy receipt. Every connection this app can make, every permission and why, a live log of the only data fetch, and the airplane mode challenge. Do not take our word for it, check it.';
+    'f2.14 · Pan is now on your Share your month card, wearing the month\'s honest mood: happy when you kept money, a sympathetic worried on an over month, calm while the habit builds. Same brand colors on every phone.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
