@@ -1,0 +1,119 @@
+// The Privacy receipt's fetch log: every FX fetch attempt is recorded to its
+// own prefs key (never the backup blob), newest first, capped, and junk-safe.
+// The log must never break the converter, and a corrupt stored log must read
+// as empty instead of crashing the receipt screen.
+
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/fx_service.dart';
+import 'package:salapify/screens/privacy_receipt.dart' show fxLogWhen;
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  group('parseFxLog', () {
+    test('keeps only well-formed entries', () {
+      final parsed = parseFxLog([
+        {'at': 1000, 'base': 'PHP', 'ok': true},
+        {'at': 'junk', 'base': 'PHP', 'ok': true},
+        {'at': 2000, 'base': 5, 'ok': true},
+        {'at': 3000, 'base': 'USD', 'ok': 'yes'},
+        'junk',
+        null,
+      ]);
+      expect(parsed.length, 1);
+      expect(parsed.single['base'], 'PHP');
+    });
+
+    test('a non-list reads as empty', () {
+      expect(parseFxLog('junk'), isEmpty);
+      expect(parseFxLog(null), isEmpty);
+      expect(parseFxLog({'at': 1}), isEmpty);
+    });
+  });
+
+  group('appendFxLog', () {
+    test('newest entry goes first', () {
+      final log = appendFxLog(
+        [
+          {'at': 1000, 'base': 'PHP', 'ok': true},
+        ],
+        base: 'USD',
+        ok: false,
+        atMs: 2000,
+      );
+      expect(log.first, {'at': 2000, 'base': 'USD', 'ok': false});
+      expect(log.last['at'], 1000);
+    });
+
+    test('caps the stored list', () {
+      var log = <Map<String, dynamic>>[];
+      for (var i = 0; i < 15; i++) {
+        log = appendFxLog(log, base: 'PHP', ok: true, atMs: i);
+      }
+      expect(log.length, 10);
+      expect(log.first['at'], 14, reason: 'newest kept');
+      expect(log.last['at'], 5, reason: 'oldest beyond the cap dropped');
+    });
+
+    test('junk existing state is dropped, not kept', () {
+      final log = appendFxLog('not a list', base: 'PHP', ok: true, atMs: 1);
+      expect(log.length, 1);
+    });
+  });
+
+  group('FxService.fetchLog', () {
+    test('reads back recorded entries', () async {
+      SharedPreferences.setMockInitialValues({
+        FxService.logKey: jsonEncode([
+          {'at': 2000, 'base': 'USD', 'ok': true},
+          {'at': 1000, 'base': 'PHP', 'ok': false},
+        ]),
+      });
+      final log = await FxService().fetchLog();
+      expect(log.length, 2);
+      expect(log.first['base'], 'USD');
+    });
+
+    test('a corrupt stored log reads as empty, never throws', () async {
+      SharedPreferences.setMockInitialValues({FxService.logKey: '{broken'});
+      expect(await FxService().fetchLog(), isEmpty);
+    });
+
+    test('no log yet reads as empty', () async {
+      SharedPreferences.setMockInitialValues({});
+      expect(await FxService().fetchLog(), isEmpty);
+    });
+  });
+
+  group('a real refresh records its attempt', () {
+    test('an offline failure lands in the log as ok=false', () async {
+      SharedPreferences.setMockInitialValues({});
+      // In the test environment the HTTP client is blocked, so this attempt
+      // fails exactly like an offline phone. The failed attempt must still be
+      // recorded, because the receipt logs attempts, not just successes.
+      final service = FxService();
+      final result = await service.refresh('PHP', nowMs: 1234567890);
+      expect(result, isNull);
+      final log = await service.fetchLog();
+      expect(log.length, 1);
+      expect(log.single['ok'], false);
+      expect(log.single['base'], 'PHP');
+      expect(log.single['at'], 1234567890);
+    });
+  });
+
+  group('fxLogWhen', () {
+    test('formats a local timestamp plainly', () {
+      final at = DateTime(2026, 7, 24, 9, 5).millisecondsSinceEpoch;
+      expect(fxLogWhen(at), 'Jul 24, 9:05 AM');
+    });
+
+    test('noon and midnight read as 12', () {
+      final noon = DateTime(2026, 1, 2, 12, 0).millisecondsSinceEpoch;
+      final midnight = DateTime(2026, 1, 2, 0, 30).millisecondsSinceEpoch;
+      expect(fxLogWhen(noon), 'Jan 2, 12:00 PM');
+      expect(fxLogWhen(midnight), 'Jan 2, 12:30 AM');
+    });
+  });
+}

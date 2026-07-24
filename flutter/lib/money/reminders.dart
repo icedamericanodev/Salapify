@@ -31,7 +31,7 @@ const _dailyLines = [
   'Take 30 seconds to log what you spent today.',
   'Quick check in. What did money do today?',
   'Log today before you forget. Future you says thanks.',
-  'Even a zero spend day counts. Log it and keep the chain.',
+  'Even a zero spend day counts. Log it and stay current.',
   'One tap per expense. That is the whole habit.',
 ];
 
