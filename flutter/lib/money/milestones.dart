@@ -4,14 +4,18 @@
 // instead of a golden replay.
 //
 // Four kinds, each a moment people already screenshot:
-//  - debt: a debt paid down to zero, with at least one logged payment (a debt
-//    merely created at zero is not a win). Amount = the payments logged.
+//  - debt: a debt paid down to zero, with real logged pesos behind it (paid
+//    sum > 0; a row-presence check is not enough, the payment path records a
+//    zero-amount row even when an overpay is refused). Amount = the payments
+//    logged. For revolving debts (card, BNPL) that sum spans every cycle, so
+//    the label says all time.
 //  - goal: a savings goal at or past its target. Amount = the target.
 //  - utangIn: someone settled what they owed you. Amount = what was owed.
 //  - utangOut: you paid someone back in full. Amount = what you owed.
 //
-// Every amount comes from the data; when the data cannot support one (a debt
-// zeroed by hand with no payments is excluded entirely), no number is shown.
+// Every amount comes from the data; a debt zeroed by hand with no real
+// payment pesos is excluded entirely. Names are capped so a giant label can
+// never balloon the shared card.
 
 import 'ledger.dart' show amountOf;
 
@@ -37,6 +41,11 @@ List<Map<String, dynamic>> _maps(dynamic v) => [
     if (x is Map) x.cast<String, dynamic>(),
 ];
 
+/// Cap a user-entered name so the card and its chips stay card-shaped; the
+/// recap does the same for category labels.
+String _fitName(String s, [int max = 40]) =>
+    s.length <= max ? s : '${s.substring(0, max - 1).trimRight()}…';
+
 double _paidTotal(Map<String, dynamic> r) {
   var sum = 0.0;
   for (final p in _maps(r['payments'])) {
@@ -60,32 +69,37 @@ List<Milestone> milestones(dynamic data) {
   final out = <Milestone>[];
 
   // Debts paid to zero. The payments ledger is the proof: sum what was logged
-  // for this debt (principal plus interest, the real pesos that left).
+  // for this debt (principal plus interest, the real pesos that left). The
+  // gate is paid > 0, not row presence: the payment path records a zero-amount
+  // row when an overpay is refused, and a sanitized negative becomes 0.0, so
+  // rows alone prove nothing.
   final payments = _maps(d['payments']);
   for (final debt in _maps(d['debts'])) {
     if (amountOf(debt['remaining']) > 0) continue;
     final id = debt['id'];
     var paid = 0.0;
-    var any = false;
     for (final p in payments) {
       if (id == null || p['debtId'] != id) continue;
-      any = true;
       final a = amountOf(p['amount']);
       if (a > 0) paid += a;
     }
-    if (!any) continue; // zeroed by hand, not a tracked payoff
-    final name =
-        (debt['name'] is String && (debt['name'] as String).trim().isNotEmpty)
-        ? (debt['name'] as String).trim()
-        : 'A debt';
+    if (!(paid > 0)) continue; // zeroed by hand, not a tracked payoff
+    final name = _fitName(
+      (debt['name'] is String && (debt['name'] as String).trim().isNotEmpty)
+          ? (debt['name'] as String).trim()
+          : 'A debt',
+    );
+    // A card or BNPL line revolves, so the payment sum spans every cycle and
+    // must say so; reading a lifetime total as one payoff would overstate it.
+    final revolving = debt['type'] == 'credit card' || debt['type'] == 'bnpl';
     out.add(
       Milestone(
         kind: 'debt',
         name: name,
         amount: paid,
-        headline: 'Debt free',
-        sub: '$name, paid down to zero',
-        amountLabel: 'Total paid',
+        headline: revolving ? 'Back to zero' : 'Debt free',
+        sub: revolving ? '$name, paid in full' : '$name, paid down to zero',
+        amountLabel: revolving ? 'Paid, all time' : 'Total paid',
       ),
     );
   }
@@ -94,10 +108,11 @@ List<Milestone> milestones(dynamic data) {
   for (final g in _maps(d['goals'])) {
     final target = amountOf(g['target']);
     if (!(target > 0) || amountOf(g['saved']) < target) continue;
-    final name =
-        (g['name'] is String && (g['name'] as String).trim().isNotEmpty)
-        ? (g['name'] as String).trim()
-        : 'A goal';
+    final name = _fitName(
+      (g['name'] is String && (g['name'] as String).trim().isNotEmpty)
+          ? (g['name'] as String).trim()
+          : 'A goal',
+    );
     out.add(
       Milestone(
         kind: 'goal',
@@ -113,10 +128,11 @@ List<Milestone> milestones(dynamic data) {
   // Utang settled, both directions.
   for (final r in _maps(d['receivables'])) {
     if (!_settled(r)) continue;
-    final person =
-        (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
-        ? (r['person'] as String).trim()
-        : 'Someone';
+    final person = _fitName(
+      (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
+          ? (r['person'] as String).trim()
+          : 'Someone',
+    );
     out.add(
       Milestone(
         kind: 'utangIn',
@@ -130,10 +146,11 @@ List<Milestone> milestones(dynamic data) {
   }
   for (final r in _maps(d['payables'])) {
     if (!_settled(r)) continue;
-    final person =
-        (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
-        ? (r['person'] as String).trim()
-        : 'Someone';
+    final person = _fitName(
+      (r['person'] is String && (r['person'] as String).trim().isNotEmpty)
+          ? (r['person'] as String).trim()
+          : 'Someone',
+    );
     out.add(
       Milestone(
         kind: 'utangOut',

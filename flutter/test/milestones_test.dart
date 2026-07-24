@@ -45,6 +45,48 @@ void main() {
       expect(ms, isEmpty);
     });
 
+    test('zero-amount payment rows do NOT fabricate a win (QA regression)', () {
+      // The payment path records a row with amount 0 when an overpay is
+      // refused, and a sanitized negative amount becomes 0.0. Row presence
+      // proves nothing; only real pesos do.
+      final ms = milestones({
+        'debts': [
+          {'id': 'd1', 'name': 'Hand zeroed', 'remaining': 0},
+        ],
+        'payments': [
+          {'id': 'p1', 'debtId': 'd1', 'amount': 0, 'date': '2026-06-01'},
+          {'id': 'p2', 'debtId': 'd1', 'amount': 0.0, 'date': '2026-06-02'},
+        ],
+      });
+      expect(ms, isEmpty);
+    });
+
+    test('a revolving card at zero says all time, not one payoff', () {
+      final ms = milestones({
+        'debts': [
+          {'id': 'd1', 'name': 'Visa', 'type': 'credit card', 'remaining': 0},
+        ],
+        'payments': [
+          {'id': 'p1', 'debtId': 'd1', 'amount': 8000, 'date': '2026-05-01'},
+          {'id': 'p2', 'debtId': 'd1', 'amount': 9000, 'date': '2026-06-01'},
+        ],
+      });
+      final m = ms.single;
+      expect(m.headline, 'Back to zero');
+      expect(m.amountLabel, 'Paid, all time');
+      expect(m.amount, 17000);
+    });
+
+    test('a giant name is capped so the card stays card-shaped', () {
+      final ms = milestones({
+        'goals': [
+          {'name': 'X' * 300, 'target': 100, 'saved': 100},
+        ],
+      });
+      expect(ms.single.name.length, lessThanOrEqualTo(40));
+      expect(ms.single.name, endsWith('…'));
+    });
+
     test('a debt still owing is not a win', () {
       final ms = milestones({
         'debts': [

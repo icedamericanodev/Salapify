@@ -57,9 +57,10 @@ void main() {
     await tester.pumpAndSettle();
     await _openWins(tester);
 
-    // The debt win renders first, with its amount and a happy Pan.
-    expect(find.text('Debt free'), findsWidgets);
-    expect(find.text('Total paid'), findsWidgets);
+    // The debt win renders first, with its amount and a happy Pan. A credit
+    // card is revolving, so the honest copy is all-time, not one payoff.
+    expect(find.text('Back to zero'), findsWidgets);
+    expect(find.text('Paid, all time'), findsWidgets);
     expect(find.bySemanticsLabel('Pan looking happy'), findsWidgets);
     expect(find.text('Share the card'), findsOneWidget);
     expect(find.text('Share as text'), findsOneWidget);
