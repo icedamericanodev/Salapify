@@ -17,6 +17,15 @@ String _daysAgo(int n) {
   return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
+// Payday pinned to "tomorrow": these tests are about the number card, so the
+// PAYDAY ritual card must never join the layout on a 15th or month-end run.
+Map<String, dynamic> _settings() => {
+  'paydaySchedule': {
+    'mode': 'weekly',
+    'weekday': (DateTime.now().weekday % 7 + 1) % 7,
+  },
+};
+
 void main() {
   testWidgets('a funded account shows Your Number and taps to Insights', (
     tester,
@@ -31,6 +40,7 @@ void main() {
         'accounts': [
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 10000},
         ],
+        'settings': _settings(),
         'transactions': [
           {
             'id': 'e1',
@@ -71,6 +81,7 @@ void main() {
         'accounts': [
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 8000},
         ],
+        'settings': _settings(),
         'transactions': [
           {
             'id': 'e1',

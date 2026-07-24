@@ -43,7 +43,11 @@ double? parseAmount(String raw) {
   return parsed;
 }
 
-Future<void> showLogSheet(BuildContext context, SalapifyStore store) {
+Future<void> showLogSheet(
+  BuildContext context,
+  SalapifyStore store, {
+  String initialType = 'expense',
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -56,14 +60,22 @@ Future<void> showLogSheet(BuildContext context, SalapifyStore store) {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: LogSheet(store: store),
+      child: LogSheet(store: store, initialType: initialType),
     ),
   );
 }
 
 class LogSheet extends StatefulWidget {
   final SalapifyStore store;
-  const LogSheet({super.key, required this.store});
+
+  /// 'expense' (the default) or 'income'; the payday ritual opens the sheet
+  /// straight on income so logging the salary is one tap shorter.
+  final String initialType;
+  const LogSheet({
+    super.key,
+    required this.store,
+    this.initialType = 'expense',
+  });
 
   @override
   State<LogSheet> createState() => _LogSheetState();
@@ -72,7 +84,7 @@ class LogSheet extends StatefulWidget {
 class _LogSheetState extends State<LogSheet> {
   final amountController = TextEditingController();
   final labelController = TextEditingController();
-  String type = 'expense';
+  late String type = widget.initialType == 'income' ? 'income' : 'expense';
   String? accountId;
   String? error;
   bool saving = false;

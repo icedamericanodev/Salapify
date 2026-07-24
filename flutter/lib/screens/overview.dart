@@ -80,6 +80,12 @@ class OverviewScreen extends StatelessWidget {
     // (with different rounding) would put two versions of one number on
     // screen, so the card goes quiet on its pace line.
     final checkInIsPayday = checkIn != null && checkIn['kind'] == 'payday';
+    // Payday morning: the three-minute ritual card, fully derived from the
+    // ledger (the salary-logged state IS the data, no stored flag exists to
+    // drift). Only when writes are open, since both its actions write.
+    final ritual = store.canWrite
+        ? paydayRitual(data, now)
+        : const PaydayRitual(isPayday: false, salaryLogged: false);
 
     return Scaffold(
       // No Log button until the store loaded cleanly: after a failed read,
@@ -110,16 +116,24 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 10),
-                Text(
-                  'SALAPIFY',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3,
+                // Flexible + scaleDown: on a very narrow phone the wordmark
+                // shrinks a touch instead of pushing the search button off the
+                // edge (the old fixed Text overflowed by ~30px at 330 wide).
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'SALAPIFY',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3,
+                      ),
+                    ),
                   ),
                 ),
-                const Spacer(),
                 IconButton(
                   icon: Icon(Icons.search, color: Barako.text),
                   tooltip: 'Search',
@@ -143,6 +157,10 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            if (ritual.isPayday) ...[
+              _paydayCard(context, ritual, numberShows: cycle.show),
+              const SizedBox(height: 12),
+            ],
             if (checkIn != null) ...[
               _checkInCard(context, checkIn),
               const SizedBox(height: 12),
@@ -396,6 +414,116 @@ class OverviewScreen extends StatelessWidget {
     // Only the tappable states get the press feel; the calm all-clear (no
     // action) stays still, so press feedback never lies about interactivity.
     return onTap == null ? card : PressableScale(child: card);
+  }
+
+  /// Payday morning, the three-minute ritual: log the salary (one tap to the
+  /// income sheet), move savings first (one tap to Goals), then Your Number
+  /// below carries the cycle. The done state is detected from the ledger
+  /// itself: a real income logged today flips the copy, and receivable
+  /// collections do not count as salary. On purpose there is no checkbox to
+  /// tick and no stored flag; the data is the state.
+  Widget _paydayCard(
+    BuildContext context,
+    PaydayRitual r, {
+    required bool numberShows,
+  }) {
+    return Card(
+      color: Barako.surfaceRaised,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.payments_outlined, color: Barako.primary, size: 18),
+                const SizedBox(width: 8),
+                _kicker('PAYDAY'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              r.salaryLogged
+                  ? 'Salary logged. Your cycle is set.'
+                  : 'It is payday. Three minutes sets your whole cycle.',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              // Never point at a card that is not there: when available is
+              // still <= 0 (salary logged to no account, or smaller than the
+              // committed bills), the number card below does not render, so
+              // the sentence points at what IS true instead.
+              r.salaryLogged
+                  ? numberShows
+                        ? 'Your number below is fresh from the new balance. '
+                              'Moving a little to savings first, before the '
+                              'spending starts, is what makes it honest.'
+                        : 'Your number appears below once the salary sits in '
+                              'an account with room past the upcoming bills.'
+                  : 'Log your salary, move a little to savings first, and '
+                        'carry your number until the next payday.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (!r.salaryLogged) ...[
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () =>
+                          showLogSheet(context, store, initialType: 'income'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Barako.primary,
+                        foregroundColor: Barako.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Log salary',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => GoalsScreen(store: store),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Barako.primaryText,
+                      side: BorderSide(color: Barako.border),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Savings first',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Your Number: the daily figure to carry until payday, straight from

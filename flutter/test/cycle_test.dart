@@ -175,4 +175,67 @@ void main() {
     }, ref);
     expect(s.show, isFalse);
   });
+
+  group('paydayRitual', () {
+    test('fires only on the scheduled payday', () {
+      // Schedule pays on the 20th; ref July 10 is not a payday, July 20 is.
+      expect(paydayRitual(base(), ref).isPayday, isFalse);
+      final r = paydayRitual(base(), DateTime(2026, 7, 20));
+      expect(r.isPayday, isTrue);
+      expect(r.salaryLogged, isFalse);
+    });
+
+    test('a real income today flips salaryLogged; a collection does not', () {
+      final payday = DateTime(2026, 7, 20);
+      final d = base();
+      d['transactions'] = [
+        {
+          'id': 'r1',
+          'type': 'income',
+          'source': 'receivable',
+          'label': 'Migs paid',
+          'amount': 500,
+          'date': '2026-07-20',
+        },
+      ];
+      expect(
+        paydayRitual(d, payday).salaryLogged,
+        isFalse,
+        reason: 'getting paid back is not a salary',
+      );
+      (d['transactions'] as List).add({
+        'id': 'i1',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 20000,
+        'date': '2026-07-20',
+      });
+      expect(paydayRitual(d, payday).salaryLogged, isTrue);
+    });
+
+    test('a fresh store never shows the ritual, and junk never throws', () {
+      expect(paydayRitual({}, DateTime(2026, 7, 20)).isPayday, isFalse);
+      expect(paydayRitual(null, ref).isPayday, isFalse);
+      // A garbage schedule falls back to the semimonthly 15/31 default, so
+      // the 15th IS a payday under it and the 14th is not, and junk
+      // transactions never throw either way.
+      final junky = {
+        'accounts': [
+          {'id': 'c'},
+        ],
+        'transactions': 'junk',
+        'settings': {'paydaySchedule': 'garbage'},
+      };
+      expect(paydayRitual(junky, DateTime(2026, 7, 14)).isPayday, isFalse);
+      expect(paydayRitual(junky, DateTime(2026, 7, 15)).isPayday, isTrue);
+    });
+
+    test('the default schedule pays on the 15th and end of month', () {
+      final d = base();
+      (d['settings'] as Map).remove('paydaySchedule');
+      expect(paydayRitual(d, DateTime(2026, 7, 15)).isPayday, isTrue);
+      expect(paydayRitual(d, DateTime(2026, 7, 31)).isPayday, isTrue);
+      expect(paydayRitual(d, DateTime(2026, 7, 16)).isPayday, isFalse);
+    });
+  });
 }
