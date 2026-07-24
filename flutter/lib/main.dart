@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.25 · New in Menu: New phone day, the two minute guided move to a new device with no cloud in the middle, plus an optional monthly backup reminder on the 1st. QA polish: settings only data now counts as data worth protecting, and cancelling a save stays quiet.';
+    'f2.26 · Updates are flowing again. Everything built since f2.12 lands in this one patch: Privacy receipt, Share a win, Your Number, the payday ritual, the cycle share card, Steady Pay, Money courses, the English sweep, and New phone day. A build check had been failing for the wrong reason and holding every update back.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
