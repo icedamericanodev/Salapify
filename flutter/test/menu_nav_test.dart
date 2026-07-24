@@ -12,8 +12,9 @@ import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('dashboard is status-only; Menu tab holds the destinations',
-      (tester) async {
+  testWidgets('dashboard is status-only; Menu tab holds the destinations', (
+    tester,
+  ) async {
     // Seed an account so the populated dashboard (with the net-worth hero)
     // is what we assert, not the first-run welcome card.
     SharedPreferences.setMockInitialValues({
@@ -21,6 +22,15 @@ void main() {
         'accounts': [
           {'id': 'a1', 'name': 'Cash', 'kind': 'cash', 'balance': 1000.0},
         ],
+        // Pin payday to "tomorrow" so the PAYDAY ritual card never renders
+        // here; without this, runs on the 15th or month-end (the default
+        // schedule) would add a card this layout test does not expect.
+        'settings': {
+          'paydaySchedule': {
+            'mode': 'weekly',
+            'weekday': (DateTime.now().weekday % 7 + 1) % 7,
+          },
+        },
       }),
     });
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
@@ -48,8 +58,11 @@ void main() {
       'Ask Pan',
       'Tools',
     ]) {
-      await tester.scrollUntilVisible(find.text(row), 100,
-          scrollable: find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(
+        find.text(row),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(row), findsOneWidget, reason: 'Menu should hold $row');
     }
   });

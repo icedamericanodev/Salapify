@@ -106,6 +106,40 @@ void main() {
     expect(find.text('Savings first'), findsOneWidget);
   });
 
+  testWidgets(
+    'done state never points at a number card that is not there (QA)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 3200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // Salary logged today but with no account and a zero balance: available
+      // stays at zero, so Your Number does not render and the card must not
+      // claim it does.
+      final seed = _seed(salaryToday: true);
+      (seed['accounts'] as List).clear();
+      seed['accounts'] = [
+        {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 0},
+      ];
+      ((seed['transactions'] as List).first as Map).remove('accountId');
+      SharedPreferences.setMockInitialValues({
+        'salapify_data_v2': jsonEncode(seed),
+      });
+      final store = SalapifyStore();
+      await tester.pumpWidget(SalapifyApp(store: store));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Salary logged. Your cycle is set.'), findsOneWidget);
+      expect(find.text('YOUR NUMBER'), findsNothing);
+      expect(find.textContaining('Your number below is fresh'), findsNothing);
+      expect(
+        find.textContaining('Your number appears below once'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('no card on an ordinary day', (tester) async {
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode(_seed(paydayToday: false)),

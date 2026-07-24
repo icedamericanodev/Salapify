@@ -158,7 +158,7 @@ class OverviewScreen extends StatelessWidget {
                 ),
               ),
             if (ritual.isPayday) ...[
-              _paydayCard(context, ritual),
+              _paydayCard(context, ritual, numberShows: cycle.show),
               const SizedBox(height: 12),
             ],
             if (checkIn != null) ...[
@@ -422,7 +422,11 @@ class OverviewScreen extends StatelessWidget {
   /// itself: a real income logged today flips the copy, and receivable
   /// collections do not count as salary. On purpose there is no checkbox to
   /// tick and no stored flag; the data is the state.
-  Widget _paydayCard(BuildContext context, PaydayRitual r) {
+  Widget _paydayCard(
+    BuildContext context,
+    PaydayRitual r, {
+    required bool numberShows,
+  }) {
     return Card(
       color: Barako.surfaceRaised,
       child: Padding(
@@ -450,10 +454,17 @@ class OverviewScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
+              // Never point at a card that is not there: when available is
+              // still <= 0 (salary logged to no account, or smaller than the
+              // committed bills), the number card below does not render, so
+              // the sentence points at what IS true instead.
               r.salaryLogged
-                  ? 'Your number below is fresh from the new balance. Moving '
-                        'a little to savings first, before the spending '
-                        'starts, is what makes it honest.'
+                  ? numberShows
+                        ? 'Your number below is fresh from the new balance. '
+                              'Moving a little to savings first, before the '
+                              'spending starts, is what makes it honest.'
+                        : 'Your number appears below once the salary sits in '
+                              'an account with room past the upcoming bills.'
                   : 'Log your salary, move a little to savings first, and '
                         'carry your number until the next payday.',
               style: TextStyle(
