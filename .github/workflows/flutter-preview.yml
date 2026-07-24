@@ -34,6 +34,7 @@ concurrency:
 
 permissions:
   contents: write # needed to update the flutter-preview release
+  issues: write # needed to say out loud when a build shipped nothing
 
 jobs:
   build:
@@ -109,3 +110,40 @@ jobs:
             you are on. Built from ${{ github.sha }}.
           prerelease: true
           files: flutter/build/app/outputs/flutter-apk/app-release.apk
+
+      # These two steps go LAST on purpose. A notice placed before the publish
+      # step cannot report a failure IN the publish step, which is the exact
+      # blind spot being closed here.
+      #
+      # A failed run means the founder got NOTHING, while the pull request
+      # still looks clean and merged. That silence is how twelve real failures
+      # went unnoticed for thirteen stamps. Make it visible: ONE open issue,
+      # commented on rather than duplicated, closed by the next green run so it
+      # never rots into noise that gets ignored in turn.
+      - name: Say plainly that nothing shipped
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: 'Preview build failed, nothing shipped to the phone'
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          BODY=$(printf 'The "Flutter preview APK" run for commit %s failed, so no patch was published and the app on the phone did NOT change, whatever the merged pull request suggests.\n\nFailed run: %s\n\nThis issue closes itself on the next green run.' "$SHA" "$RUN_URL")
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$OPEN" ]; then
+            gh issue comment "$OPEN" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: Close the nothing-shipped issue now that delivery works again
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: 'Preview build failed, nothing shipped to the phone'
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$OPEN" ]; then
+            gh issue close "$OPEN" --comment "Delivery is working again: $RUN_URL published successfully."
+          fi
