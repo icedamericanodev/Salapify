@@ -416,7 +416,7 @@
         "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being stingy, a calm reminder keeps both the money and the friendship healthy.",
         "reminder": "Hi Migs, gentle reminder about the ₱1,500 when you get the chance. Thank you!",
         "cta": {
-          "label": "Open utang list",
+          "label": "Open Utang",
           "route": "/receivables"
         }
       }
@@ -437,7 +437,7 @@
         "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being stingy, a calm reminder keeps both the money and the friendship healthy.",
         "reminder": "Hi Migs, gentle reminder about the ₱1,500 when you get the chance. Thank you!",
         "cta": {
-          "label": "Open utang list",
+          "label": "Open Utang",
           "route": "/receivables"
         }
       }
@@ -458,7 +458,7 @@
         "text": "2 people owe you ₱2,300 total. Follow up Migs first, ₱1,500 and 13 days past due. Collecting is not being stingy, a calm reminder keeps both the money and the friendship healthy.",
         "reminder": "Hi Migs, gentle reminder about the ₱1,500 when you get the chance. Thank you!",
         "cta": {
-          "label": "Open utang list",
+          "label": "Open Utang",
           "route": "/receivables"
         }
       }
@@ -476,7 +476,7 @@
       "reply": {
         "intent": "utang",
         "mood": "idle",
-        "text": "No one owes you right now, your utang list is clear. When you lend, log it here and I will track who to follow up."
+        "text": "No one owes you right now, your IOU list is clear. When you lend, log it here and I will track who to follow up."
       }
     },
     {
@@ -1399,7 +1399,7 @@
       "reply": {
         "intent": "no_legal",
         "mood": "idle",
-        "text": "I cannot give legal advice. For utang, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?"
+        "text": "I cannot give legal advice. For money owed to you, what I can do is help you write a polite reminder and track what is owed. Want to see who owes you?"
       }
     },
     {

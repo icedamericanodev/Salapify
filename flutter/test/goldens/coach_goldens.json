@@ -135,7 +135,7 @@
           "title": "Follow up Migs",
           "message": "Migs is 12 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
           "action": {
-            "label": "Open utang list",
+            "label": "Open Utang",
             "route": "/receivables"
           }
         },
@@ -340,7 +340,7 @@
           "kind": "buffer",
           "tone": "nudge",
           "title": "Your buffer is thin",
-          "message": "Your buffer covers under a month. Even ₱7,500 more toward your first cushion helps stop a surprise from becoming utang.",
+          "message": "Your buffer covers under a month. Even ₱7,500 more toward your first cushion helps stop a surprise from becoming debt.",
           "action": {
             "label": "Open goals",
             "route": "/goals"
@@ -1057,7 +1057,7 @@
           "title": "Follow up Migs",
           "message": "Migs is 135 days overdue on ₱1,500. A calm reminder keeps both the money and the friendship healthy.",
           "action": {
-            "label": "Open utang list",
+            "label": "Open Utang",
             "route": "/receivables"
           }
         },

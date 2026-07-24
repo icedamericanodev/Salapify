@@ -290,7 +290,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             row(
               Icons.notifications_none,
               'Notifications',
-              'Your reminders (log nudge, payday, bills, utang) are built and '
+              'Your reminders (log nudge, payday, bills, IOUs) are built and '
                   'shown on the phone itself. Nothing is sent to a server to '
                   'send them back to you.',
             ),

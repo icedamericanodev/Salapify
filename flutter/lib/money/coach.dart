@@ -182,7 +182,7 @@ List<Map<String, dynamic>> decisionCandidates(
         'watch',
         'Follow up $name',
         '$name is $days ${days == 1 ? 'day' : 'days'} overdue on ${_m(worst['outstanding'])}. A calm reminder keeps both the money and the friendship healthy.',
-        'Open utang list',
+        'Open Utang',
         '/receivables',
       ),
     );
@@ -334,7 +334,7 @@ List<Map<String, dynamic>> decisionCandidates(
         'buffer',
         'nudge',
         'Your buffer is thin',
-        'Your buffer covers under a month. $nudge helps stop a surprise from becoming utang.',
+        'Your buffer covers under a month. $nudge helps stop a surprise from becoming debt.',
         'Open goals',
         '/goals',
       ),

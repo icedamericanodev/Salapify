@@ -106,7 +106,7 @@ void main() {
     );
 
     // The utang CTA pops Pan and lands on the Utang tab.
-    await tester.tap(find.text('Open utang list'));
+    await tester.tap(find.text('Open Utang'));
     await tester.pumpAndSettle();
     expect(find.text('Ask about your money…'), findsNothing);
     expect(find.textContaining('Migs'), findsWidgets);

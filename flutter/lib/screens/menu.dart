@@ -917,7 +917,7 @@ class MenuScreen extends StatelessWidget {
             Text(
               store.hasData
                   ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
-                  : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, utang, goals, settings.',
+                  : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, IOUs, goals, settings.',
               style: TextStyle(
                 color: Barako.textSecondary,
                 fontSize: 14,

@@ -766,7 +766,7 @@ class InsightsScreen extends StatelessWidget {
     } else if (over) {
       hero = pctText(share);
       support =
-          'More is committed than your typical ${_wholePeso(income)} salary covers$fromClause. One lean month can turn into utang, so trimming a bill or paying off one debt makes real room.';
+          'More is committed than your typical ${_wholePeso(income)} salary covers$fromClause. One lean month can turn into borrowing, so trimming a bill or paying off one debt makes real room.';
     } else {
       hero = pctText(share);
       support =
@@ -903,7 +903,7 @@ class InsightsScreen extends StatelessWidget {
             ? 'a one month cushion (about ${_wholePeso(starterTarget)})'
             : 'a ${_wholePeso(starterTarget)} starter cushion';
         support =
-            'About ${_wholePeso(starterGap)} more gets you to $desc, so the next gulat does not turn into utang.$haveCushion';
+            'About ${_wholePeso(starterGap)} more gets you to $desc, so the next surprise does not turn into debt.$haveCushion';
         break;
       case 'debt':
         activeIndex = 1;

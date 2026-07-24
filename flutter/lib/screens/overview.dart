@@ -725,7 +725,7 @@ class OverviewScreen extends StatelessWidget {
           _kicker('WELCOME'),
           const SizedBox(height: 8),
           Text(
-            'Wala pang laman, and that is okay.',
+            'Nothing here yet, and that is okay.',
             style: TextStyle(
               color: Barako.text,
               fontSize: 18,

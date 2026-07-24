@@ -847,7 +847,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       lines: [
         ...bucket('Day to day', s['operating'] as Map),
         ...bucket('Buying or selling', s['investing'] as Map),
-        ...bucket('Debts and loans', s['financing'] as Map),
+        ...bucket('Loans and IOUs', s['financing'] as Map),
         _divider(),
         _line(
           'Net change in cash',

@@ -1215,7 +1215,7 @@ class SalapifyStore extends ChangeNotifier {
         'name' => 'Please enter a name.',
         'amount' => 'Enter a valid amount.',
         'date' => 'That date does not exist. Type it like 2026-07-15.',
-        _ => 'Could not save this utang.',
+        _ => 'Could not save this entry.',
       });
     }
     return r.data;

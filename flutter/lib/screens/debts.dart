@@ -172,7 +172,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Track a card, a loan, or money owed to a person, and every '
+                            'Track a card, a loan, or money you owe a person, and every '
                             'payment splits into interest and principal '
                             'honestly.',
                             textAlign: TextAlign.center,
