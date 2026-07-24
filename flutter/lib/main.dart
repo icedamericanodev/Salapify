@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.15 · Safety fix under the hood: a corrupted or hand-edited backup with impossible amounts can no longer crash the Share your month screen. The month reads honestly as days logged instead.';
+    'f2.16 · New in Menu: Share a win. Paid a debt down to zero, funded a goal, or settled an utang either way? Pan celebrates it on a card you can post or send, amounts optional. Your wins, your proof.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -18,6 +18,7 @@ import 'cashflow.dart';
 import 'csv_import.dart';
 import 'debts.dart';
 import 'goals.dart';
+import 'milestone_share.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'paluwagan.dart';
 import 'pan.dart';
@@ -185,6 +186,18 @@ class MenuScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => RecapShareScreen(store: store),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _navRow(
+                icon: Icons.celebration_outlined,
+                title: 'Share a win',
+                blurb:
+                    'Paid off a debt, funded a goal, or settled an utang? That deserves a card.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MilestoneShareScreen(store: store),
                   ),
                 ),
               ),
