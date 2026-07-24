@@ -58,8 +58,11 @@ class OverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = store.data;
+    // One clock for the whole build, so a midnight straddle can never show
+    // the check-in for one day and the number for the next in the same frame.
+    final now = DateTime.now();
     final parts = netWorthParts(data);
-    final istmt = incomeStatement(data, DateTime.now());
+    final istmt = incomeStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
     // The one thing to do about money right now, seen the moment Home opens.
     // Reuses the same coach decision layer Insights renders, so the two can
@@ -68,12 +71,15 @@ class OverviewScreen extends StatelessWidget {
     final hasStarted =
         accounts.isNotEmpty ||
         (transactions is List && transactions.isNotEmpty);
-    final checkIn = hasStarted
-        ? coach.weeklyCheckIn(data, DateTime.now())
-        : null;
+    final checkIn = hasStarted ? coach.weeklyCheckIn(data, now) : null;
     // Your Number: the one figure to carry until payday, from the same
     // safeToSpend the coach and Insights read, so the three never disagree.
-    final cycle = cycleStatus(data, DateTime.now());
+    final cycle = cycleStatus(data, now);
+    // When the check-in itself is the payday warning, its message already
+    // carries the pace and easing figures; repeating them on the card below
+    // (with different rounding) would put two versions of one number on
+    // screen, so the card goes quiet on its pace line.
+    final checkInIsPayday = checkIn != null && checkIn['kind'] == 'payday';
 
     return Scaffold(
       // No Log button until the store loaded cleanly: after a failed read,
@@ -142,7 +148,7 @@ class OverviewScreen extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             if (cycle.show) ...[
-              _yourNumberCard(context, cycle),
+              _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
               const SizedBox(height: 12),
             ],
             // On a brand-new device the ₱0 hero would just compete with the
@@ -398,7 +404,11 @@ class OverviewScreen extends StatelessWidget {
   /// paydayProjection does; after three quiet days the sub greets the
   /// comeback kindly instead of scolding. Tap opens Insights, where the full
   /// safe-to-spend breakdown lives.
-  Widget _yourNumberCard(BuildContext context, CycleStatus s) {
+  Widget _yourNumberCard(
+    BuildContext context,
+    CycleStatus s, {
+    bool hidePace = false,
+  }) {
     String pretty(String iso) {
       const months = [
         'Jan',
@@ -427,77 +437,88 @@ class OverviewScreen extends StatelessWidget {
               '${pretty(s.payday)} payday.'
         : 'until your ${pretty(s.payday)} payday, ${s.daysLeft} '
               '${s.daysLeft == 1 ? 'day' : 'days'} away.';
-    final String? paceLine = s.onTrack == null
+    // Whole pesos, matching the coach's formatter, so the check-in and this
+    // line can never show two roundings of the same engine figure. A sub-peso
+    // easing would render "Easing ₱0 a day", which is nonsense, so a pace
+    // that close to fitting reads as fitting.
+    final easeWhole = s.easeOff.round();
+    final paceFits = s.onTrack == true || easeWhole < 1;
+    final String? paceLine = hidePace || s.onTrack == null
         ? null
-        : s.onTrack == true
+        : paceFits
         ? 'Your recent pace fits. Keep going.'
-        : 'Recent pace is about ${formatMoney(s.dailyPace)} a day. Easing '
-              '${formatMoney(s.easeOff)} a day keeps you covered to payday.';
+        : 'Recent pace is about ${formatMoney(s.dailyPace.roundToDouble())} '
+              'a day. Easing ${formatMoney(easeWhole)} a day keeps you '
+              'covered to payday.';
 
     return PressableScale(
-      child: Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onSwitchTab == null ? null : () => onSwitchTab!(4),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _kicker('YOUR NUMBER'),
-                    const Spacer(),
-                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text.rich(
-                  TextSpan(
+      child: Semantics(
+        button: onSwitchTab != null,
+        hint: onSwitchTab != null ? 'Opens Insights' : null,
+        child: Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onSwitchTab == null ? null : () => onSwitchTab!(4),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      TextSpan(
-                        text: formatMoney(s.perDay),
-                        style: TextStyle(
-                          fontFamily: 'Fraunces',
-                          color: Barako.text,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '  a day',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      _kicker('YOUR NUMBER'),
+                      const Spacer(),
+                      Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                     ],
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  sub,
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-                if (paceLine != null) ...[
                   const SizedBox(height: 6),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: formatMoney(s.perDay),
+                          style: TextStyle(
+                            fontFamily: 'Fraunces',
+                            color: Barako.text,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '  a day',
+                          style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
-                    paceLine,
+                    sub,
                     style: TextStyle(
-                      color: s.onTrack == true
-                          ? Barako.primaryText
-                          : Barako.textSecondary,
-                      fontSize: 12,
+                      color: Barako.textSecondary,
+                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
+                  if (paceLine != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      paceLine,
+                      style: TextStyle(
+                        color: paceFits
+                            ? Barako.primaryText
+                            : Barako.textSecondary,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

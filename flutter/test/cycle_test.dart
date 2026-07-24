@@ -108,6 +108,31 @@ void main() {
     expect(s.comeback, isFalse);
   });
 
+  test('one junk-dated row cannot mute the comeback greeting (QA)', () {
+    // A corrupted date that sorts lexicographically above every real ISO date
+    // must not win the latest-log race and hide the greeting for valid logs.
+    final d = base();
+    d['transactions'] = [
+      {
+        'id': 'e1',
+        'type': 'expense',
+        'label': 'Food',
+        'amount': 100,
+        'date': '2026-07-05',
+      },
+      {
+        'id': 'bad',
+        'type': 'expense',
+        'label': 'Junk',
+        'amount': 10,
+        'date': 'corrupted!!',
+      },
+    ];
+    final s = cycleStatus(d, ref);
+    expect(s.gapDays, 5, reason: 'the valid Jul 5 log still counts');
+    expect(s.comeback, isTrue);
+  });
+
   test('a future-dated log reads as zero gap, never negative', () {
     final d = base();
     d['transactions'] = [

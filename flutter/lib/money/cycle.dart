@@ -54,24 +54,27 @@ class CycleStatus {
 }
 
 int _gapDays(dynamic transactions, DateTime ref) {
-  // ISO date strings compare chronologically, so track the max as a string.
-  String latest = '';
+  // Validate each candidate BEFORE taking the max: a junk date that sorts
+  // lexicographically above the real ones (an imported "corrupted!" row)
+  // must not win the max and mute the comeback greeting for valid logs.
+  DateTime? latest;
   for (final raw in (transactions is List ? transactions : const [])) {
     if (raw is! Map) continue;
     if (raw['type'] != 'income' && raw['type'] != 'expense') continue;
     final ds = (raw['date'] ?? '').toString();
     if (ds.length < 10) continue;
-    final day = ds.substring(0, 10);
-    if (day.compareTo(latest) > 0) latest = day;
+    final p = ds.substring(0, 10).split('-');
+    if (p.length != 3) continue;
+    final y = int.tryParse(p[0]);
+    final m = int.tryParse(p[1]);
+    final d = int.tryParse(p[2]);
+    if (y == null || m == null || d == null) continue;
+    final when = DateTime(y, m, d);
+    if (latest == null || when.isAfter(latest)) latest = when;
   }
-  if (latest.isEmpty) return -1;
-  final p = latest.split('-');
-  final y = int.tryParse(p[0]);
-  final m = p.length > 1 ? int.tryParse(p[1]) : null;
-  final d = p.length > 2 ? int.tryParse(p[2]) : null;
-  if (y == null || m == null || d == null) return -1;
+  if (latest == null) return -1;
   final today = DateTime(ref.year, ref.month, ref.day);
-  final gap = today.difference(DateTime(y, m, d)).inDays;
+  final gap = today.difference(latest).inDays;
   // A future-dated log reads as zero gap, never a negative streak of quiet.
   return gap < 0 ? 0 : gap;
 }
