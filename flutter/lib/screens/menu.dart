@@ -255,6 +255,7 @@ class MenuScreen extends StatelessWidget {
               _kicker('YOUR DATA'),
               const SizedBox(height: 8),
               _backupCard(context),
+              _undoImportCard(context),
               // The save dialog and share sheet are native-only; on the web
               // preview both would fail, so the export card hides there.
               if (store.hasData && !kIsWeb) ...[
@@ -946,6 +947,108 @@ class MenuScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The way back from a mistaken import. The store has always snapshotted the
+  /// data an import replaced, but nothing could read that copy, so the dialog
+  /// had to admit there was no undo. This row appears only when a copy really
+  /// exists, so it is never a button that does nothing.
+  Widget _undoImportCard(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: store.hasPreviousImportCopy(),
+      builder: (context, snap) {
+        if (snap.data != true || !store.canWrite) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _kicker('AFTER AN IMPORT'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Salapify kept a copy of the data your last import '
+                    'replaced. You can put it back. What is on the phone now '
+                    'becomes the kept copy instead, so you can switch back '
+                    'again and nothing is thrown away.',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => _confirmUndoImport(context),
+                    child: const Text('Put back what the import replaced'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmUndoImport(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text(
+          'Put back the earlier data?',
+          style: TextStyle(color: Barako.text),
+        ),
+        content: Text(
+          'Everything on this phone right now will be swapped for the data '
+          'your last import replaced. The current data is kept as the copy, '
+          'so you can swap back if this was not what you wanted.',
+          style: TextStyle(color: Barako.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Put it back'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final done = await store.undoLastImport();
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              done
+                  ? 'Done. The earlier data is back, and the imported data is '
+                        'now the kept copy.'
+                  : 'There was nothing to put back.',
+            ),
+          ),
+        );
+    } catch (e) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'That copy could not be read, so nothing was changed.',
+            ),
+          ),
+        );
+    }
   }
 
   Widget _backupCard(BuildContext context) {

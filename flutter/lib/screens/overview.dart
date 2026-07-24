@@ -1160,8 +1160,8 @@ class _ImportScreenState extends State<ImportScreen> {
           ),
           content: Text(
             'Everything currently in this preview app will be replaced by '
-            'the backup you chose. This cannot be undone, so save a backup of '
-            'what you have now if you might still want it.',
+            'the backup you chose. Salapify keeps a copy of what is here now, '
+            'and Menu has a way to put it back if this was a mistake.',
             style: TextStyle(color: Barako.textSecondary),
           ),
           actions: [

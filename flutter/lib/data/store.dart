@@ -361,6 +361,65 @@ class SalapifyStore extends ChangeNotifier {
     notifyListeners();
   });
 
+  /// Is there a pre-import copy to go back to? The snapshot has existed on
+  /// disk since imports were built, but nothing could read it, so the safety
+  /// net was real and unreachable. Never throws; a missing key reads as false.
+  Future<bool> hasPreviousImportCopy() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(previousBackupKey);
+      return raw != null && raw.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Put back the data that the last import replaced.
+  ///
+  /// This SWAPS rather than restores: what is on screen now becomes the new
+  /// safety copy. That matters because undo is itself a data-replacing action,
+  /// and a one-shot restore would make a mistaken undo the very kind of
+  /// unrecoverable loss this exists to prevent. Swapping means nothing is
+  /// ever destroyed, only exchanged, and a second undo puts you back.
+  ///
+  /// The restored blob goes through the SAME pipeline as load(): it was
+  /// written by an older run of this app and may predate a migration, so it
+  /// is never adopted raw. Returns false when there is nothing to undo.
+  /// Runs on the serialized write queue so it cannot interleave with a save.
+  Future<bool> undoLastImport() => _serialized(() async {
+    final prefs = await SharedPreferences.getInstance();
+    final prev = prefs.getString(previousBackupKey);
+    if (prev == null || prev.isEmpty) return false;
+    // Parse and migrate BEFORE touching anything. A corrupt or newer-schema
+    // snapshot must fail here, with the current data still intact, rather
+    // than half way through the swap.
+    final restored = ensureEntityIds(
+      ensureUniqueTxnIds(sanitizeData(jsonDecode(prev), keepAppLock: true)),
+    );
+    final outgoing = prefs.getString(storageKey);
+    final memoryBefore = data;
+    data = restored;
+    try {
+      await _save();
+    } catch (e) {
+      data = memoryBefore;
+      notifyListeners();
+      rethrow;
+    }
+    // Only now is the swap safe to complete on disk. If this write fails the
+    // user still has their restored data; they simply lose the ability to
+    // swap back, which is the mild half of the failure.
+    if (outgoing != null && outgoing.isNotEmpty) {
+      await prefs.setString(previousBackupKey, outgoing);
+    } else {
+      await prefs.remove(previousBackupKey);
+    }
+    loadError = null;
+    loaded = true;
+    notifyListeners();
+    return true;
+  });
+
   /// Start fresh: erase EVERYTHING Salapify keeps on this phone. The stored
   /// data, the previous-import safety copy, the cached exchange rates, and
   /// the Privacy receipt's fetch log all go; the in-memory store resets to
