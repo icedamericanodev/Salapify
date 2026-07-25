@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
+import 'services/diagnostics.dart';
 import 'services/notifications.dart';
 import 'screens/budget.dart';
 import 'screens/history.dart';
@@ -29,9 +30,13 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.38 \u00b7 Empty screens now look the same everywhere, and this stamp is short again.';
+    'f2.39 \u00b7 New Copy diagnostics button in Menu, for when something looks wrong.';
 
 void main() {
+  // Before anything else, so an error thrown during startup is still caught.
+  // A crash reporter installed after the crash reports nothing.
+  Diagnostics.install();
+  Diagnostics.load();
   runApp(SalapifyApp(store: SalapifyStore()));
 }
 
