@@ -57,16 +57,25 @@ jobs:
       - name: Compare what main builds against what the phone received
         id: compare
         run: |
-          STAMP=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
+          # Anchored to the ASSIGNMENT, not to the first quoted thing that
+          # looks like a stamp. `head -1` on a loose pattern works only for as
+          # long as nobody writes an example stamp in the doc comment above
+          # the constant, at which point this would silently start watching a
+          # comment. Fail loudly instead of guessing: a watchdog reading the
+          # wrong line is worse than one that says it cannot read.
+          STAMP=$(sed -n "/const String updateStamp/,/;/p" flutter/lib/main.dart \
+            | grep -oE "'f[0-9]+\.[0-9]+" | head -1 | tr -d "'")
           DELIVERED=$(grep -oE '\| f[0-9]+\.[0-9]+ \|' docs/delivery-log.md 2>/dev/null \
             | tail -1 | tr -d '| ')
           echo "main builds:  ${STAMP:-unknown}"
           echo "phone has:    ${DELIVERED:-none recorded}"
 
           if [ -z "$STAMP" ]; then
-            echo "Could not read the stamp. Not guessing."
-            echo "state=unknown" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "Could not read updateStamp from flutter/lib/main.dart."
+            echo "The constant may have been renamed or reformatted. Fix this"
+            echo "anchor rather than leaving the watchdog blind: a guard that"
+            echo "cannot read what it watches reports nothing wrong forever."
+            exit 1
           fi
 
           if [ "$STAMP" = "$DELIVERED" ]; then

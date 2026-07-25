@@ -31,9 +31,11 @@ Flutter track:
    KEEP IT SHORT, one high level line, 120 characters, enforced by
    test/update_stamp_test.dart. It became a forty line wall of text on the
    founder's phone because each build appended the previous build's notes
-   instead of replacing them. The detail belongs in the pull request and
-   docs/delivery-log.md. That row answers one question, which build am I
-   running.
+   instead of replacing them. The detail belongs in the PULL REQUEST. Not in
+   docs/delivery-log.md, which has no notes column and is not meant to gain
+   one: it records what shipped, not what changed. That row on the phone
+   answers one question, which build am I running, and the founder asked for
+   exactly that, high level only.
 3. The committed preview keystore signs every build so updates install in
    place. It is NOT a production key; the Play upload key never enters the
    repo.
@@ -57,9 +59,12 @@ prose as a wall of text, and lessons losing their completed tick. Both were
 obvious at a glance and invisible to 673 passing tests, because a test checks
 what someone thought to check.
 
-It renders every tab plus a lesson, at BOTH brightnesses, fifteen shots in
-about eight seconds. Look at the dark ones first; that is what the founder
-uses.
+It renders every tab, a lesson, and the diagnostics dialog, at BOTH
+brightnesses. Look at the dark ones first; that is what the founder uses.
+Deliberately no count or timing here: the last version of this sentence said
+"fifteen shots in about eight seconds" and was stale within hours of being
+written, because two more shots were added the same day. Numbers in prose rot.
+The directory listing is the count.
 
 Three things about the render, learned the hard way:
 - Loading the real fonts must happen inside `tester.runAsync`. testWidgets
@@ -86,6 +91,28 @@ would not have been enough: tags only filter when you pass `--tags`.
 CI does run it, deliberately and separately, with `--update-goldens` so it only
 writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
+
+## Prove a new test can fail before trusting it
+
+When adding a test to guard a lesson, break the code once, watch it fail, and
+paste the failure line into the commit message.
+
+This is not ceremony. A test written from the same wrong mental model as the
+code passes for the wrong reason and reads as proof. It has already happened
+here: a test once asserted the WRONG behaviour on purpose, with a confident
+reason string, and 673 green tests then defended a real bug for a whole round.
+
+Three guards were proven this way in one day, each in about three minutes: the
+stamp cap rejected a deliberate wall, the icon test caught a renamed icon name
+reaching the silent fallback, and the diagnostics privacy test caught a
+plausible leak by name ("The report leaked an account name"). So "no time" is
+not an objection.
+
+The same applies to ALARMS, and harder. Prove both halves: that it fires when
+it should, and that it stays SILENT when it should. The delivery watchdog was
+broken in exactly the second half, and only the second half, on its first
+version. An alarm that cries wolf gets its battery taken out, and then it is
+not there during the fire.
 
 ## Icons: ours are orange, the user's are emoji
 
