@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
 import 'learn.dart';
 
@@ -342,9 +343,11 @@ class _MindsetScreenState extends State<MindsetScreen> {
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
+          const SalapifyGlyph('celebrate', size: 18, boxed: false),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '🎉 ${w['text'] ?? ''}',
+              '${w['text'] ?? ''}',
               style: TextStyle(color: Barako.text, fontSize: 15),
             ),
           ),

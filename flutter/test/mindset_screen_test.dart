@@ -63,7 +63,7 @@ void main() {
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 
-    expect(find.text('🎉 Packed lunch all week'), findsOneWidget);
+    expect(find.text('Packed lunch all week'), findsOneWidget);
     expect((store.data['wins'] as List).length, 1);
 
     await tester.ensureVisible(find.byIcon(Icons.close));
@@ -71,7 +71,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
-    expect(find.text('🎉 Packed lunch all week'), findsNothing);
+    expect(find.text('Packed lunch all week'), findsNothing);
     expect(find.text('No wins yet. Add a small one above.'), findsOneWidget);
     expect((store.data['wins'] as List).isEmpty, isTrue);
   });
@@ -92,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openMindset(tester);
 
-    expect(find.text('🎉 Legacy win'), findsOneWidget);
+    expect(find.text('Legacy win'), findsOneWidget);
     await tester.ensureVisible(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.close));
@@ -100,6 +100,6 @@ void main() {
 
     // The idless win cannot be targeted, so it stays and nothing throws.
     expect(tester.takeException(), isNull);
-    expect(find.text('🎉 Legacy win'), findsOneWidget);
+    expect(find.text('Legacy win'), findsOneWidget);
   });
 }

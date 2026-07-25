@@ -17,6 +17,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'history.dart';
 import 'overview.dart' show formatMoney;
@@ -1319,7 +1320,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('📊', style: TextStyle(fontSize: 32)),
+            const SalapifyGlyph('chart', size: 26),
             const SizedBox(height: 8),
             Text(
               'Your reports build themselves',

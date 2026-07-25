@@ -10,6 +10,7 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/search.dart' as search;
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'history.dart';
@@ -207,7 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🔍', style: TextStyle(fontSize: 40)),
+          const SalapifyGlyph('search', size: 28),
           const SizedBox(height: 10),
           Text(
             'No matches',
