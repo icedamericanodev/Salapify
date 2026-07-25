@@ -59,3 +59,47 @@ jobs:
 
       - name: Test
         run: flutter test
+
+      # The screenshot harness is deliberately excluded from `flutter test`
+      # (it is not named *_test.dart), so nothing else ever runs it. That is
+      # the same silence that let it be abandoned once already: it appeared to
+      # hang, the reason was never written down, and the founder was the only
+      # pair of eyes on this app for two rounds.
+      #
+      # analyze covers the compile-time half, a renamed screen constructor
+      # breaks the build above. This covers the RUNTIME half: that the real
+      # fonts still load and a screen still renders.
+      #
+      # --update-goldens is load-bearing, not a shortcut. The harness ends in
+      # matchesGoldenFile and test/shots/ is gitignored, so without the flag a
+      # fresh checkout compares against a file that does not exist and fails
+      # for a reason that says nothing about the app. With it, the step only
+      # writes, and the only way it can fail is if the harness genuinely
+      # stopped working.
+      - name: The screenshot harness still renders
+        run: flutter test test/screens_shot.dart --update-goldens
+
+      # Informational, never a gate. Unmerged work in progress is completely
+      # normal, so failing here would cry wolf on every push.
+      #
+      # What it fixes is a reporting gap, not a code one: "finished" used to
+      # mean the tests passed, and a batch once sat in an open pull request
+      # while the founder tapped check-for-update and read back the old stamp.
+      # This prints the last stamp that genuinely reached the phone right next
+      # to the one on this branch, in the same output, at the moment someone is
+      # deciding whether a batch is done.
+      - name: Branch stamp vs the stamp actually delivered
+        working-directory: .
+        run: |
+          BRANCH=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
+          git fetch --depth=1 origin main || true
+          DELIVERED=$(git show origin/main:docs/delivery-log.md 2>/dev/null \
+            | grep -oE '\| f[0-9]+\.[0-9]+ \|' | tail -1 | tr -d '| ')
+          echo "This branch builds stamp: ${BRANCH:-unknown}"
+          echo "Last stamp on the phone:  ${DELIVERED:-none recorded}"
+          if [ "$BRANCH" != "$DELIVERED" ]; then
+            echo
+            echo "These differ, which is normal for work in progress. It stops"
+            echo "being normal once the work is finished: finished means merged"
+            echo "AND carrying a delivery-log row, not merely green here."
+          fi

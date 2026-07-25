@@ -79,6 +79,21 @@ These have actually happened or nearly happened. Check them by name:
 - The founder is a beginner and will believe a confident summary. A claim of
   "shipped" that was never verified on the phone is the most expensive kind of
   wrong in this project.
+- CLAUDE.md goes stale, and a rule that is wrong is worse than no rule because
+  it is read with authority. Two consecutive sessions found a false factual
+  claim in it: a trigger rule that no longer matched the workflow, and a
+  sentence saying a file lived in a directory it had been moved out of. Neither
+  was catchable by any checker, because both named real things.
+  So: re-read CLAUDE.md's FACTUAL claims against the repository as a step of
+  every session, not as a favour. Check the paths it names exist where it says,
+  the commands it gives run as written, and the workflows it describes still
+  trigger on what it claims. Report what you find in the entry even when the
+  answer is that everything still matches.
+- A test that had to CHANGE for a bug fix to pass was asserting the bug. When a
+  session's fix removed or inverted a test, quote the old assertion in the
+  entry. That is the single strongest piece of evidence a retrospective here
+  can produce, because it shows the suite was defending the defect rather than
+  merely missing it.
 
 ## Output
 

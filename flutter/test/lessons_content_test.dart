@@ -210,4 +210,70 @@ void main() {
       expect(all.contains('\u2013'), isFalse, reason: '${l.id} en dash');
     }
   });
+
+  test('no lesson says the same sentence twice', () {
+    // Half of a real bug the founder found by screenshot. The tax lessons
+    // printed three sentences a second time, a paragraph or two later,
+    // because a coaching line and the reference prose were written from the
+    // same source and nothing compared them.
+    //
+    // This is the half a machine CAN check. The other half, whether a block
+    // reads as a wall of text, needs eyes, and that is what
+    // test/screens_shot.dart is for.
+    for (final raw in lessons) {
+      final l = lessonFromMap(raw);
+      final seen = <String, int>{};
+      for (final s in _allSentences(l)) {
+        // Short fragments repeat legitimately: a heading, a label, a nudge
+        // like "Try it now". Only meaningful sentences are worth flagging.
+        if (s.length < 40) continue;
+        seen[s] = (seen[s] ?? 0) + 1;
+      }
+      final twice = seen.entries.where((e) => e.value > 1).toList();
+      expect(
+        twice,
+        isEmpty,
+        reason:
+            '${l.id} repeats a sentence, which reads as padding: '
+            '${twice.map((e) => e.key).join(' | ')}',
+      );
+    }
+  });
+}
+
+/// Every user-facing sentence of a lesson, normalized enough that the same
+/// sentence written with different spacing or casing still counts as the same
+/// sentence. Splitting on sentence enders rather than on blocks is the point:
+/// the duplicate that reached the phone was one sentence lifted out of a
+/// paragraph, not a whole repeated block.
+Iterable<String> _allSentences(MoneyLesson l) {
+  final buf = StringBuffer();
+  for (final b in l.blocks) {
+    switch (b) {
+      case ProseBlock(:final heading, :final paragraphs):
+        buf.writeAll([heading, ...paragraphs], ' ');
+      case RulesBlock(:final passages):
+        buf.writeAll(passages, ' ');
+      case NuggetsBlock(:final items):
+        buf.writeAll(items, ' ');
+      case DiscoveryBlock(:final question, :final reveal):
+        buf.writeAll([question, reveal], ' ');
+      case StoryBlock(:final who, :final text):
+        buf.writeAll([who, text], ' ');
+      case DiagramBlock(:final steps, :final caption):
+        buf.writeAll([...steps, caption], ' ');
+      case TrapBlock(:final mostPeople, :final worksBetter):
+        buf.writeAll([mostPeople, worksBetter], ' ');
+      case ChallengeBlock(:final prompt, :final compare):
+        buf.writeAll([prompt, compare], ' ');
+      case ReflectionBlock(:final line):
+        buf.write(line);
+    }
+    buf.write(' ');
+  }
+  return buf
+      .toString()
+      .split(RegExp(r'(?<=[.!?])\s+'))
+      .map((s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' '))
+      .where((s) => s.isNotEmpty);
 }
