@@ -60,9 +60,16 @@ Three things about the render, learned the hard way:
 - The render uses the light palette. Dark mode contrast still needs the
   founder's eyes.
 
-The file lives in tool/, not test/, on purpose: a tag alone would still let
-`flutter test` run it on CI, where different fonts would fail it for reasons
-that say nothing about the app.
+The file lives under test/ but is NOT named `*_test.dart`, and both halves of
+that are deliberate. Under test/, because the analyzer only permits test-only
+APIs there and parking it in tool/ turned `flutter analyze` red. Without the
+`_test` suffix, because `flutter test` only ever collects files matching
+`*_test.dart`, so it can never join a CI run and fail there on fonts. A tag
+would not have been enough: tags only filter when you pass `--tags`.
+
+CI does run it, deliberately and separately, with `--update-goldens` so it only
+writes. That proves the harness still renders. It was abandoned once already
+after a runtime failure nobody wrote down.
 
 ## Writing style
 

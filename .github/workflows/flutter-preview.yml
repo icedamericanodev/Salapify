@@ -144,6 +144,24 @@ jobs:
           STAMP=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
           WHEN=$(date -u '+%Y-%m-%d %H:%M UTC')
           mkdir -p docs
+          # Two different builds must never carry the same name on the Update
+          # stamp row. That row is the ONLY thing the founder can check that
+          # nobody here can fake, and its whole value is that the stamp on the
+          # phone can be compared straight against the last row of this file.
+          # Ship twice under one stamp and that comparison silently starts
+          # lying: the phone says f2.40 and so does the log, while the phone is
+          # actually running the earlier of two different builds.
+          #
+          # This fails AFTER the publish on purpose. The patch is already out,
+          # so refusing to record it would be the worse lie. Fail loudly, and
+          # the failure notice at the end of this file opens an issue.
+          PREV=$(grep -oE '\| f[0-9]+\.[0-9]+ \|' docs/delivery-log.md 2>/dev/null \
+            | tail -1 | tr -d '| ')
+          if [ -n "$STAMP" ] && [ "$STAMP" = "$PREV" ]; then
+            echo "Stamp $STAMP was already delivered, and this is a different build."
+            echo "Bump updateStamp in flutter/lib/main.dart. One stamp, one patch."
+            exit 1
+          fi
           if [ ! -f docs/delivery-log.md ]; then
             {
               echo "# Delivery log"
@@ -193,6 +211,32 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           BODY=$(printf 'The "Flutter preview APK" run for commit %s failed, so no patch was published and the app on the phone did NOT change, whatever the merged pull request suggests.\n\nFailed run: %s\n\nThis issue closes itself on the next green run.' "$SHA" "$RUN_URL")
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$OPEN" ]; then
+            gh issue comment "$OPEN" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      # Mode `release` means a NEW base APK, which the founder must install by
+      # hand. If they do not, they receive nothing FOREVER while every build
+      # here stays green, which is the most dangerous state this pipeline has,
+      # because it looks exactly like success from every angle except the
+      # phone. Until now the only warning was a word in a table that a human
+      # had to notice and pass on.
+      #
+      # An issue, not a log line: it arrives as a notification, it stays open
+      # until someone closes it, and it says what to do.
+      - name: Shout when a new base APK must be installed by hand
+        if: success() && steps.ship.outputs.mode == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          APP_VERSION: ${{ steps.ship.outputs.version }}
+        run: |
+          TITLE="Install the new APK by hand, or the phone stops receiving updates"
+          BODY=$(printf 'This build published a RELEASE, not a patch, because the app version changed to %s.\n\nOver the air updates cannot cross a release boundary. Until the new APK is installed by hand from the flutter-preview release page, the phone keeps running the OLD build and every future patch lands on a release it is not on. Everything here will keep passing while nothing reaches the phone.\n\nDownload and install: %s/releases/tag/flutter-preview\nBuild: %s\n\nClose this issue once the new APK is installed.' \
+            "$APP_VERSION" "${{ github.server_url }}/${{ github.repository }}" "$RUN_URL")
           OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
           if [ -n "$OPEN" ]; then
             gh issue comment "$OPEN" --body "$BODY"
