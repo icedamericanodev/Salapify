@@ -56,6 +56,10 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
     // export screen's web gating; on the web preview the steps still read as
     // instructions and the import path still works.
     final canAct = !kIsWeb && widget.store.hasData;
+    // On a brand new phone there is nothing to back up yet, which is the whole
+    // point of arriving here. Say so, rather than rendering steps 1 and 2 with
+    // their buttons silently missing.
+    final nothingToSendYet = !kIsWeb && !widget.store.hasData;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
@@ -83,6 +87,24 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
             const SizedBox(height: 20),
             Text('ON THIS PHONE', style: Barako.kickerStyle),
             const SizedBox(height: 8),
+            if (nothingToSendYet) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'This phone has nothing saved yet, so there is nothing to '
+                    'send from here. These two steps are for your OLD phone. '
+                    'If this is the new one, skip to step 3.',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 13,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             _stepCard(
               '1',
               'Save your backup file',

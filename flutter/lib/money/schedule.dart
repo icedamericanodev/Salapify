@@ -5,6 +5,26 @@
 
 import 'ledger.dart' show amountOf;
 
+/// True when the user has actually TOLD us their payday, as opposed to
+/// normalizeSchedule quietly falling back to the 15/31 default.
+///
+/// This distinction matters because the two uses are not equally forgiving.
+/// Guessing 15/31 for a FORECAST is harmless: it says "your next payday is
+/// probably around then". Guessing it for a CLAIM is not, because "it is
+/// payday today" is either true or a lie, and it was a lie for every user who
+/// never migrated a schedule from the old app. Anything that asserts today is
+/// payday, or pushes a notification about it, must check this first.
+bool hasExplicitPaydaySchedule(dynamic data) {
+  final settings = data is Map ? data['settings'] : null;
+  final s = settings is Map ? settings['paydaySchedule'] : null;
+  if (s is! Map) return false;
+  final mode = s['mode'];
+  if (mode == 'monthly') return s['day'] != null;
+  if (mode == 'weekly') return s['weekday'] != null;
+  if (mode == 'semimonthly') return s['days'] is List;
+  return false;
+}
+
 Map<String, dynamic> normalizeSchedule(dynamic s) {
   int clampDay(dynamic d, int fallback) {
     final n = amountOf(d).truncate();

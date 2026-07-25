@@ -216,9 +216,8 @@ void main() {
     test('a fresh store never shows the ritual, and junk never throws', () {
       expect(paydayRitual({}, DateTime(2026, 7, 20)).isPayday, isFalse);
       expect(paydayRitual(null, ref).isPayday, isFalse);
-      // A garbage schedule falls back to the semimonthly 15/31 default, so
-      // the 15th IS a payday under it and the 14th is not, and junk
-      // transactions never throw either way.
+      // A garbage schedule is not a schedule the user set, so the card makes
+      // no claim on any day, and junk transactions never throw either way.
       final junky = {
         'accounts': [
           {'id': 'c'},
@@ -227,15 +226,29 @@ void main() {
         'settings': {'paydaySchedule': 'garbage'},
       };
       expect(paydayRitual(junky, DateTime(2026, 7, 14)).isPayday, isFalse);
-      expect(paydayRitual(junky, DateTime(2026, 7, 15)).isPayday, isTrue);
+      expect(paydayRitual(junky, DateTime(2026, 7, 15)).isPayday, isFalse);
     });
 
-    test('the default schedule pays on the 15th and end of month', () {
+    test('no payday set means the card never claims it is payday', () {
+      // This test used to assert the opposite, pinning a real bug: with no
+      // schedule stored, normalizeSchedule falls back to 15/31 and the card
+      // told EVERY user it was payday on the 15th and the month end. Nothing
+      // in the app wrote paydaySchedule, so a monthly-on-the-30th earner and
+      // every swing-income user were simply told something false, with no way
+      // to correct it. A forecast may guess; a claim may not.
       final d = base();
       (d['settings'] as Map).remove('paydaySchedule');
-      expect(paydayRitual(d, DateTime(2026, 7, 15)).isPayday, isTrue);
-      expect(paydayRitual(d, DateTime(2026, 7, 31)).isPayday, isTrue);
+      expect(paydayRitual(d, DateTime(2026, 7, 15)).isPayday, isFalse);
+      expect(paydayRitual(d, DateTime(2026, 7, 31)).isPayday, isFalse);
       expect(paydayRitual(d, DateTime(2026, 7, 16)).isPayday, isFalse);
+    });
+
+    test('setting a payday turns the card back on, on that day only', () {
+      final d = base();
+      (d['settings'] as Map)['paydaySchedule'] = {'mode': 'monthly', 'day': 30};
+      expect(paydayRitual(d, DateTime(2026, 7, 30)).isPayday, isTrue);
+      expect(paydayRitual(d, DateTime(2026, 7, 15)).isPayday, isFalse);
+      expect(paydayRitual(d, DateTime(2026, 7, 31)).isPayday, isFalse);
     });
   });
 

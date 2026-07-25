@@ -1488,9 +1488,13 @@ class _TrendBars extends StatelessWidget {
                 child: Divider(color: Barako.faint, height: 1),
               ),
               const SizedBox(width: 6),
-              Text(
-                'Your usual ${formatMoney(usual)} a month',
-                style: TextStyle(color: Barako.muted, fontSize: 11),
+              // Flexible so a long peso amount at a large font scale wraps
+              // instead of overflowing this mainAxisSize.min Row.
+              Flexible(
+                child: Text(
+                  'Your usual ${formatMoney(usual)} a month',
+                  style: TextStyle(color: Barako.muted, fontSize: 11),
+                ),
               ),
             ],
           ),

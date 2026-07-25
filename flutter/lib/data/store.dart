@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:math';
 
+import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
@@ -359,6 +360,65 @@ class SalapifyStore extends ChangeNotifier {
     loadError = null;
     loaded = true;
     notifyListeners();
+  });
+
+  /// Is there a pre-import copy to go back to? The snapshot has existed on
+  /// disk since imports were built, but nothing could read it, so the safety
+  /// net was real and unreachable. Never throws; a missing key reads as false.
+  Future<bool> hasPreviousImportCopy() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(previousBackupKey);
+      return raw != null && raw.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Put back the data that the last import replaced.
+  ///
+  /// This SWAPS rather than restores: what is on screen now becomes the new
+  /// safety copy. That matters because undo is itself a data-replacing action,
+  /// and a one-shot restore would make a mistaken undo the very kind of
+  /// unrecoverable loss this exists to prevent. Swapping means nothing is
+  /// ever destroyed, only exchanged, and a second undo puts you back.
+  ///
+  /// The restored blob goes through the SAME pipeline as load(): it was
+  /// written by an older run of this app and may predate a migration, so it
+  /// is never adopted raw. Returns false when there is nothing to undo.
+  /// Runs on the serialized write queue so it cannot interleave with a save.
+  Future<bool> undoLastImport() => _serialized(() async {
+    final prefs = await SharedPreferences.getInstance();
+    final prev = prefs.getString(previousBackupKey);
+    if (prev == null || prev.isEmpty) return false;
+    // Parse and migrate BEFORE touching anything. A corrupt or newer-schema
+    // snapshot must fail here, with the current data still intact, rather
+    // than half way through the swap.
+    final restored = ensureEntityIds(
+      ensureUniqueTxnIds(sanitizeData(jsonDecode(prev), keepAppLock: true)),
+    );
+    final outgoing = prefs.getString(storageKey);
+    final memoryBefore = data;
+    data = restored;
+    try {
+      await _save();
+    } catch (e) {
+      data = memoryBefore;
+      notifyListeners();
+      rethrow;
+    }
+    // Only now is the swap safe to complete on disk. If this write fails the
+    // user still has their restored data; they simply lose the ability to
+    // swap back, which is the mild half of the failure.
+    if (outgoing != null && outgoing.isNotEmpty) {
+      await prefs.setString(previousBackupKey, outgoing);
+    } else {
+      await prefs.remove(previousBackupKey);
+    }
+    loadError = null;
+    loaded = true;
+    notifyListeners();
+    return true;
   });
 
   /// Start fresh: erase EVERYTHING Salapify keeps on this phone. The stored
@@ -871,6 +931,70 @@ class SalapifyStore extends ChangeNotifier {
       },
     },
   );
+
+  /// The user's own payday schedule, kept in settings.paydaySchedule. Until
+  /// this is set, everything that would ASSERT "today is payday" stays quiet
+  /// rather than guessing (see hasExplicitPaydaySchedule); forecasts fall back
+  /// to the 15/31 default. Shapes match the RN app exactly so an imported
+  /// backup keeps working: {'mode':'semimonthly','days':[a,b]},
+  /// {'mode':'monthly','day':n}, {'mode':'weekly','weekday':0..6}.
+  /// The backup preserves unknown settings keys, so this needs no migration.
+  Future<void> setPaydaySchedule(Map<String, dynamic> schedule) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'paydaySchedule': schedule,
+      },
+    },
+  );
+
+  /// Forget the payday schedule, for the user whose pay has no fixed date.
+  /// Removing the key (rather than storing a marker) is what keeps the rest of
+  /// the money layer unchanged: it reads exactly like a user who never set one.
+  Future<void> clearPaydaySchedule() => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>()
+      ..remove('paydaySchedule');
+    return {...d, 'settings': s};
+  });
+
+  /// Record how far a learner got with one lesson.
+  ///
+  /// Writes settings.lessonProgress, and ALSO keeps settings.lessonsRead in
+  /// step for learned lessons. The duplication is deliberate and temporary:
+  /// a backup made here must still restore correctly onto a build that only
+  /// knows the old key, because during a staged rollout both versions exist
+  /// and a user may move a file between them. The backup preserves unknown
+  /// settings keys, so neither direction loses anything.
+  Future<void> setLessonState(String id, LessonState state) => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final progress = withLessonState(s['lessonProgress'], id, state);
+    // Only a learned lesson joins the legacy list, since that list is read by
+    // older builds as "done" with no finer grain available.
+    final read = <String>{
+      for (final x
+          in (s['lessonsRead'] is List ? s['lessonsRead'] as List : const []))
+        if (x is String) x,
+      if (state == LessonState.learned) id,
+    };
+    return {
+      ...d,
+      'settings': {
+        ...s,
+        'lessonProgress': progress,
+        'lessonsRead': read.toList(),
+      },
+    };
+  });
+
+  /// The per-lesson progress, with old lessonsRead entries folded in.
+  Map<String, LessonState> get lessonProgress {
+    final s = data['settings'];
+    return parseLessonProgress(
+      s is Map ? s['lessonProgress'] : null,
+      legacyRead: s is Map ? s['lessonsRead'] : null,
+    );
+  }
 
   /// Mark a Learn lesson read, deduped, kept in settings.lessonsRead. The
   /// backup preserves unknown settings keys, so this needs no migration.

@@ -22,7 +22,11 @@ double goalNum(String t) {
     cleaned = cleaned.substring(0, cleaned.length - 1);
   }
   final n = double.tryParse(cleaned) ?? 0;
-  return n > 0 ? n : 0;
+  // isFinite matters as much as the sign here. A pasted 400-digit number
+  // parses to Infinity, which passes "> 0", reaches the store, and makes
+  // jsonEncode throw so the goal is silently never saved. Every other money
+  // parser in the app already guards this; this one did not.
+  return (n.isFinite && n > 0) ? n : 0;
 }
 
 /// Whole-number percent for the badge, min 100, matching the RN display math

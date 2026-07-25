@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.26 · Updates are flowing again. Everything built since f2.12 lands in this one patch: Privacy receipt, Share a win, Your Number, the payday ritual, the cycle share card, Steady Pay, Money courses, the English sweep, and New phone day. A build check had been failing for the wrong reason and holding every update back.';
+    'f2.29 · Money courses now work like courses. Opening a lesson no longer counts it as done, which means your progress figure is real: you finish a lesson by reaching the end, and old progress is kept. Lessons can now carry a clear goal, worked examples, a common mistake, a quick check, and a takeaway. The first lesson shows the new shape; the other 21 follow next. Also new: Menu can put back the data an import replaced.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

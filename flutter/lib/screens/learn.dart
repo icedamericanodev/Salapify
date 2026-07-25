@@ -8,8 +8,10 @@
 
 import 'package:flutter/material.dart';
 
+import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
+import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import 'bnpl_calculator.dart';
@@ -67,15 +69,6 @@ class _LearnScreenState extends State<LearnScreen> {
     }
   }
 
-  List<String> _readIds() {
-    final s = widget.store.data['settings'];
-    final raw = s is Map ? s['lessonsRead'] : null;
-    return [
-      for (final x in (raw is List ? raw : const []))
-        if (x is String) x,
-    ];
-  }
-
   /// Resolve a lesson action to a real navigation. Returns null when the
   /// action cannot run here (a tab jump with no tab switcher), so the reader
   /// hides the button instead of showing a dead one.
@@ -131,20 +124,28 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   void _open(BuildContext context, Map<String, dynamic> lesson) {
-    // Reading always works; only record it when writes are allowed, so a
-    // read-only store (after a failed load) never throws from the unawaited
-    // write. Marking read is best effort, never blocks opening the lesson.
+    final typed = lessonFromMap(lesson);
+    // Opening is NOT finishing. This used to mark the lesson read here, so
+    // tapping a card and backing straight out counted as learned forever and
+    // the progress figure measured taps. Opening now records inProgress; only
+    // reaching the end of the lesson earns learned.
+    //
+    // Recording is best effort and never blocks reading: a read-only store
+    // (after a failed load) must still let the user read.
     if (widget.store.canWrite) {
-      widget.store.markLessonRead(lesson['id'] as String);
+      widget.store.setLessonState(typed.id, LessonState.inProgress);
     }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => _LessonReader(
-          lesson: lesson,
+          lesson: typed,
           onAction: _resolveAction(
             context,
             (lesson['action'] as Map?)?.cast<String, dynamic>(),
           ),
+          onLearned: widget.store.canWrite
+              ? () => widget.store.setLessonState(typed.id, LessonState.learned)
+              : null,
         ),
       ),
     );
@@ -165,10 +166,12 @@ class _LearnScreenState extends State<LearnScreen> {
         child: ListenableBuilder(
           listenable: widget.store,
           builder: (context, _) {
-            final read = _readIds().toSet();
-            final readCount = lessons
-                .where((l) => read.contains(l['id']))
-                .length;
+            final progress = widget.store.lessonProgress;
+            final read = {
+              for (final e in progress.entries)
+                if (e.value == LessonState.learned) e.key,
+            };
+            final readCount = read.length;
             final featured = lessonOfTheDay(DateTime.now());
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -182,7 +185,7 @@ class _LearnScreenState extends State<LearnScreen> {
                         Text('YOUR PROGRESS', style: Barako.kickerStyle),
                         const SizedBox(height: 6),
                         Text(
-                          '$readCount of ${lessons.length} lessons read',
+                          '$readCount of ${lessons.length} lessons done',
                           style: TextStyle(
                             color: Barako.text,
                             fontSize: 18,
@@ -395,18 +398,45 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 }
 
-/// The reading view for one lesson: emoji, title, minutes, the body, and the
-/// one action that turns the lesson into a step.
-class _LessonReader extends StatelessWidget {
-  final Map<String, dynamic> lesson;
+/// The reading view for one lesson: the objective, the body in its real
+/// sections, the knowledge check, the takeaway, and the one action that turns
+/// the lesson into a step.
+///
+/// This screen owns completion. A lesson becomes learned when the reader
+/// reaches the end: by answering the knowledge check where one exists, or by
+/// confirming they have read it where one does not yet. The in-app action is
+/// never required, because requiring it would push people to invent financial
+/// records just to finish a lesson.
+class _LessonReader extends StatefulWidget {
+  final MoneyLesson lesson;
   final VoidCallback? onAction;
-  const _LessonReader({required this.lesson, this.onAction});
+  final VoidCallback? onLearned;
+  const _LessonReader({required this.lesson, this.onAction, this.onLearned});
+
+  @override
+  State<_LessonReader> createState() => _LessonReaderState();
+}
+
+class _LessonReaderState extends State<_LessonReader> {
+  int? _picked;
+  bool _done = false;
+
+  void _finish() {
+    if (_done) return;
+    _done = true;
+    widget.onLearned?.call();
+  }
+
+  void _answer(int i) {
+    setState(() => _picked = i);
+    // Right or wrong, the learner has engaged with the decision, which is what
+    // the check is for. Being wrong never costs progress.
+    _finish();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final body = (lesson['body'] as List).cast<String>();
-    final action = (lesson['action'] as Map?)?.cast<String, dynamic>();
-    final isPH = lesson['region'] == 'PH';
+    final l = widget.lesson;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
@@ -421,13 +451,10 @@ class _LessonReader extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
               children: [
-                Text(
-                  lesson['emoji'] as String,
-                  style: const TextStyle(fontSize: 40),
-                ),
+                Text(l.emoji, style: const TextStyle(fontSize: 40)),
                 const SizedBox(height: 12),
                 Text(
-                  lesson['title'] as String,
+                  l.title,
                   style: TextStyle(
                     fontFamily: Barako.displayFont,
                     color: Barako.text,
@@ -439,58 +466,56 @@ class _LessonReader extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text(
-                      '${lesson['minutes']} min read',
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
-                    ),
-                    if (isPH) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Barako.border),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'PHILIPPINES',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1,
-                          ),
-                        ),
+                    Flexible(
+                      child: Text(
+                        '${l.minutes} min read',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Barako.muted, fontSize: 12),
                       ),
+                    ),
+                    if (l.isPhilippines) ...[
+                      const SizedBox(width: 8),
+                      _phTag(),
                     ],
                   ],
                 ),
+                if (l.isPhilippines) ...[
+                  const SizedBox(height: 10),
+                  _scopeNote(l),
+                ],
+                if (l.objective.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _objectiveBox(l.objective),
+                ],
                 const SizedBox(height: 20),
-                for (final p in body)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      p,
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 15,
-                        height: 1.55,
-                      ),
-                    ),
-                  ),
-                if (action != null && onAction != null) ...[
+                for (final section in l.sections) ..._section(section),
+                if (l.commonMistake.isNotEmpty) ...[
+                  _mistakeBox(l.commonMistake),
+                  const SizedBox(height: 16),
+                ],
+                if (l.check != null) _checkBox(l.check!),
+                if (l.keyTakeaway.isNotEmpty) ...[
                   const SizedBox(height: 8),
+                  _takeawayBox(l.keyTakeaway),
+                ],
+                // No check yet on this lesson, so the end of the reading is
+                // the completion point. Without this, a lesson with no check
+                // could never be finished at all.
+                if (l.check == null) ...[
+                  const SizedBox(height: 16),
+                  _doneButton(),
+                ],
+                if (l.action != null && widget.onAction != null) ...[
+                  const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: onAction,
+                    onPressed: widget.onAction,
                     style: FilledButton.styleFrom(
                       backgroundColor: Barako.primary,
                       foregroundColor: Barako.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text(
-                      action['label'] as String,
+                      l.action!.label,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 14,
@@ -506,4 +531,326 @@ class _LessonReader extends StatelessWidget {
       ),
     );
   }
+
+  Widget _phTag() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+    decoration: BoxDecoration(
+      border: Border.all(color: Barako.border),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      'PHILIPPINES',
+      style: TextStyle(
+        color: Barako.muted,
+        fontSize: 9,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1,
+      ),
+    ),
+  );
+
+  // The regional scope goes near the TOP, never buried at the end, so a reader
+  // outside the Philippines knows before acting on any of it.
+  Widget _scopeNote(MoneyLesson l) {
+    final checked = l.factCheckedOn;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Barako.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        'The rules in this lesson are Philippine rules. The idea behind them '
+        'works anywhere, but the rates and deadlines do not. Always confirm '
+        'with the agency or a licensed professional before you act.'
+        '${checked != null ? ' Facts last checked $checked.' : ''}',
+        style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+      ),
+    );
+  }
+
+  Widget _objectiveBox(String text) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(Icons.flag_outlined, size: 16, color: Barako.primary),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 14,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  List<Widget> _section(LessonSection s) {
+    final heading = s.heading.isNotEmpty ? s.heading : _defaultHeading(s.kind);
+    return [
+      if (heading.isNotEmpty) ...[
+        Text(heading.toUpperCase(), style: Barako.kickerStyle),
+        const SizedBox(height: 8),
+      ],
+      if (s.kind == SectionKind.steps)
+        for (var i = 0; i < s.body.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '${i + 1}.',
+                    style: TextStyle(
+                      color: Barako.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    s.body[i],
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+      else if (s.kind == SectionKind.example)
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Barako.surfaceRaised,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final p in s.body)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    p,
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        )
+      else
+        for (final p in s.body)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              p,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 15,
+                height: 1.55,
+              ),
+            ),
+          ),
+      const SizedBox(height: 4),
+    ];
+  }
+
+  String _defaultHeading(SectionKind k) => switch (k) {
+    SectionKind.context => 'Why it matters',
+    SectionKind.concept => '',
+    SectionKind.steps => 'How to do it',
+    SectionKind.example => 'For example',
+    SectionKind.warning => 'Watch out for',
+    SectionKind.takeaway => 'Remember',
+  };
+
+  Widget _mistakeBox(String text) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      border: Border.all(color: Barako.border),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.error_outline, size: 18, color: Barako.warningStrong),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('A COMMON MISTAKE', style: Barako.kickerStyle),
+              const SizedBox(height: 6),
+              Text(
+                text,
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _checkBox(KnowledgeCheck c) {
+    final picked = _picked;
+    final answered = picked != null;
+    final correct = answered && picked == c.correctIndex;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Barako.surfaceRaised,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('QUICK CHECK', style: Barako.kickerStyle),
+          const SizedBox(height: 8),
+          Text(
+            c.question,
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 15,
+              height: 1.45,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (var i = 0; i < c.choices.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: answered ? null : () => _answer(i),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      // Only the CORRECT answer is ever highlighted. A wrong
+                      // pick is not stained red: being wrong here is how the
+                      // lesson works, not a failure to punish.
+                      color: answered && i == c.correctIndex
+                          ? Barako.primary
+                          : Barako.border,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        answered && i == c.correctIndex
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
+                        size: 18,
+                        color: answered && i == c.correctIndex
+                            ? Barako.primary
+                            : Barako.faint,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          c.choices[i],
+                          style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          if (answered) ...[
+            const SizedBox(height: 4),
+            Text(
+              correct ? 'That is it.' : 'Close. Here is the thinking.',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              !correct && c.whyWrong != null
+                  ? '${c.whyWrong} ${c.explanation}'
+                  : c.explanation,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _takeawayBox(String text) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Barako.positiveSurface,
+      border: Border.all(color: Barako.positiveBorder),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('WORTH REMEMBERING', style: Barako.kickerStyle),
+        const SizedBox(height: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: Barako.text,
+            fontSize: 15,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _doneButton() => _done
+      ? Row(
+          children: [
+            Icon(Icons.check_circle, size: 18, color: Barako.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Marked as done',
+              style: TextStyle(
+                color: Barako.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        )
+      : OutlinedButton(
+          onPressed: () => setState(_finish),
+          child: const Text('I have read this'),
+        );
 }

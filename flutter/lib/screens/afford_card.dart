@@ -98,7 +98,7 @@ class _AffordCardState extends State<AffordCard> {
               _verdict(r),
             const SizedBox(height: 14),
             Text(
-              'This mirrors your own numbers against a typical and a lean month. It is not advice to buy. Ang huling desisyon ay sa iyo.',
+              'This mirrors your own numbers against a typical and a lean month. It is not advice to buy. The final decision is yours.',
               style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
             ),
           ],
