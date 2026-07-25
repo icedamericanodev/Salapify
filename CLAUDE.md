@@ -39,6 +39,31 @@ Flutter track:
    /opt/flutter/bin to PATH); install 3.44.6 stable from
    storage.googleapis.com if missing.
 
+## Look at the screen before shipping a screen
+
+Claude can render any Flutter screen to a PNG and actually look at it:
+
+    cd flutter && flutter test test/screens_shot.dart --update-goldens
+
+Do this for every UI change, before the merge. Two real bugs reached the
+founder's phone because it was not done: a lesson rendering its reference
+prose as a wall of text, and lessons losing their completed tick. Both were
+obvious at a glance and invisible to 673 passing tests, because a test checks
+what someone thought to check.
+
+Three things about the render, learned the hard way:
+- Loading the real fonts must happen inside `tester.runAsync`. testWidgets
+  uses a fake clock, so real file reads never complete inside it and the run
+  hangs with no output. That gotcha cost two rounds of founder screenshots.
+- The sandbox has no emoji font, so emoji and some icons draw as boxes in the
+  render but are fine on the phone. Never "fix" one of those.
+- The render uses the light palette. Dark mode contrast still needs the
+  founder's eyes.
+
+The file lives in tool/, not test/, on purpose: a tag alone would still let
+`flutter test` run it on CI, where different fonts would fail it for reasons
+that say nothing about the app.
+
 ## Writing style
 
 Never use em dashes or en dashes anywhere: code comments, commit messages,
