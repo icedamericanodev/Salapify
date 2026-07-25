@@ -19,8 +19,17 @@ import 'widgets/lock_gate.dart';
 
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
+///
+/// KEEP IT SHORT. One line, high level, what changed and nothing else. This
+/// grew into a wall of text on the founder's phone because each build kept
+/// appending the previous build's notes, and the row it lives in is a plain
+/// right-aligned Text that will happily wrap forever. The full story belongs
+/// in the pull request and docs/delivery-log.md; this row exists so the
+/// founder can answer one question, which build am I running.
+///
+/// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.37 · The icons are consistent now. Every icon Salapify draws itself, the course tracks, the lessons, the empty screens, the small wins, is one orange symbol in the app palette instead of a multicolour emoji sticker. The emoji YOU pick, on your categories, treats, accounts, and goals, are untouched on purpose: those are your choice, not ours. Previously: f2.36 turned the lunch and learn into guards, This one is the lunch and learn turned into guards that work while nobody is watching: the build now runs the screen renderer on every push so it cannot quietly stop working, it refuses to ship two different builds under one stamp name, it opens an issue if you ever need to install an APK by hand, and a test now catches a lesson that says the same sentence twice. Recent builds you can see: f2.35 added the screen renderer itself, and f2.34 fixes a real one: lessons you had already finished were going back to unfinished when you opened them again, because the newer record was overwriting the older done mark instead of keeping the higher of the two. Your ticks come back on their own, nothing was deleted. Also in this build: the Philippine tax rules are now one card each instead of a wall of text, and the sentences that were being said twice are gone.';
+    'f2.38 \u00b7 Empty screens now look the same everywhere, and this stamp is short again.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

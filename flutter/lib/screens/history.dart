@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/search.dart' as search;
 import '../theme.dart';
+import '../widgets/empty_state.dart';
 import 'overview.dart' show formatMoney;
 import 'split_expense.dart' show showSplitSheet;
 
@@ -282,37 +283,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _empty(bool trulyEmpty) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          trulyEmpty ? 'Nothing here yet' : 'No entries match',
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          trulyEmpty
-              ? 'Entries you log will show up here.'
-              : 'Try a different search or filter.',
-          style: TextStyle(color: Barako.muted, fontSize: 13),
-        ),
-        if (!trulyEmpty) ...[
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: () => setState(() {
-              filter = 'all';
-              _query.clear();
-            }),
-            child: Text('Show all', style: TextStyle(color: Barako.primary)),
-          ),
-        ],
-      ],
-    ),
+  // Top-aligned in a scroll view rather than centred in the leftover space.
+  // Centred, it floated at whatever height the filter bar happened to leave,
+  // which read as an accident rather than a decision, and it moved as soon as
+  // a chip wrapped to a second line.
+  Widget _empty(bool trulyEmpty) => ListView(
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+    children: [
+      trulyEmpty
+          ? const EmptyState(
+              icon: 'receipt',
+              title: 'Nothing here yet',
+              body:
+                  'Every expense and every peso in shows up here, newest '
+                  'first, the moment you log it. This is also where you '
+                  'search and filter once there is something to look through.',
+            )
+          : EmptyState(
+              icon: 'inspect',
+              title: 'No entries match',
+              body:
+                  'Nothing fits this search and filter. The entries are still '
+                  'there, they are just hidden by what is selected right now.',
+              actionLabel: 'Show all',
+              onAction: () => setState(() {
+                filter = 'all';
+                _query.clear();
+              }),
+            ),
+    ],
   );
 
   Widget _row(Map<String, dynamic> t, Set<String> locked) {

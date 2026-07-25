@@ -142,11 +142,19 @@ class _UpdateCardState extends State<UpdateCard> {
                     style: TextStyle(color: Barako.text, fontSize: 14)),
                 const SizedBox(width: 16),
                 Expanded(
+                  // Capped on purpose. A stamp is meant to answer one
+                  // question, which build am I running, and this row once
+                  // filled the entire screen with forty lines of release
+                  // notes because nothing here pushed back on a long string.
+                  // A test keeps the stamp short; this keeps the SCREEN safe
+                  // even when something gets past it.
                   child: Text(
                       patchNumber != null
                           ? '$updateStamp (patch $patchNumber)'
                           : updateStamp,
                       textAlign: TextAlign.right,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: Barako.muted, fontSize: 12)),
                 ),

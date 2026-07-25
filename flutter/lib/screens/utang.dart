@@ -13,6 +13,7 @@ import '../money/receivables.dart' as engine;
 import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney;
@@ -67,33 +68,14 @@ class UtangScreen extends StatelessWidget {
           children: [
             ScreenHeader('UTANG', subtitle: 'Money owed to you, oldest first'),
             if (people.isEmpty)
-              Card(
-                child: Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Nobody owes you right now',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'When someone borrows, tap New utang to log it, so '
-                        'it never gets awkward later.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              const EmptyState(
+                icon: 'handshake',
+                title: 'Nobody owes you right now',
+                body:
+                    'When someone borrows, tap New utang to log it, so it '
+                    'never gets awkward later. Salapify keeps the running '
+                    'total and the date, so you never have to be the one '
+                    'who remembers.',
               )
             else ...[
               Card(
