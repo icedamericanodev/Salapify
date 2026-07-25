@@ -81,7 +81,11 @@ class MoneyLesson {
   final String id;
   final String trackId;
   final String title;
-  final String emoji;
+
+  /// Semantic icon NAME, resolved by widgets/salapify_icon.dart. Not an
+  /// emoji: content names the meaning and one file decides how it is drawn,
+  /// so the whole app restyles in one edit.
+  final String icon;
   final int minutes;
   final String summary;
 
@@ -113,7 +117,7 @@ class MoneyLesson {
     required this.id,
     required this.trackId,
     required this.title,
-    required this.emoji,
+    required this.icon,
     required this.minutes,
     required this.summary,
     required this.objective,
@@ -185,7 +189,9 @@ class MoneyLesson {
 class CourseTrack {
   final String id;
   final String title;
-  final String emoji;
+
+  /// Semantic icon name, see MoneyLesson.icon.
+  final String icon;
 
   /// What the learner will be able to DO at the end, not what it covers.
   final String outcome;
@@ -193,7 +199,7 @@ class CourseTrack {
   const CourseTrack({
     required this.id,
     required this.title,
-    required this.emoji,
+    required this.icon,
     required this.outcome,
   });
 }
@@ -298,7 +304,7 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
     id: (m['id'] ?? '').toString(),
     trackId: (m['track'] ?? '').toString(),
     title: (m['title'] ?? '').toString(),
-    emoji: (m['emoji'] ?? '').toString(),
+    icon: (m['icon'] ?? '').toString(),
     minutes: m['minutes'] is int ? m['minutes'] as int : 1,
     summary: (m['summary'] ?? '').toString(),
     objective: (m['objective'] ?? '').toString(),
@@ -326,6 +332,6 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
 CourseTrack trackFromMap(Map<String, dynamic> m) => CourseTrack(
   id: (m['key'] ?? '').toString(),
   title: (m['title'] ?? '').toString(),
-  emoji: (m['emoji'] ?? '').toString(),
+  icon: (m['icon'] ?? '').toString(),
   outcome: (m['outcome'] ?? '').toString(),
 );

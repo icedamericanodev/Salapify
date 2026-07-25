@@ -24,7 +24,7 @@ void main() {
       final b = want[i];
       expect(a['id'], b['id'], reason: 'id at $i');
       expect(a['title'], b['title'], reason: 'title ${b['id']}');
-      expect(a['emoji'], b['emoji'], reason: 'emoji ${b['id']}');
+      expect(a['icon'], b['icon'], reason: 'icon ${b['id']}');
       expect(a['minutes'], b['minutes'], reason: 'minutes ${b['id']}');
       expect(a['summary'], b['summary'], reason: 'summary ${b['id']}');
       expect(

@@ -20,6 +20,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
 import 'overview.dart' show formatMoney;
@@ -157,7 +158,7 @@ class InsightsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('📊', style: TextStyle(fontSize: 30)),
+                  const SalapifyGlyph('chart', size: 24),
                   const SizedBox(height: 8),
                   Text(
                     'Nothing to read yet, and that is fine',

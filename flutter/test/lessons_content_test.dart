@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/lesson_blocks.dart';
 import 'package:salapify/content/lesson_model.dart';
 import 'package:salapify/content/lessons.dart';
+import 'package:salapify/widgets/salapify_icon.dart';
 
 // Every route the Learn action resolver knows how to run.
 const _knownRoutes = {
@@ -55,7 +56,7 @@ void main() {
       for (final field in [
         'id',
         'title',
-        'emoji',
+        'icon',
         'minutes',
         'summary',
         'body',
@@ -208,6 +209,31 @@ void main() {
       final all = buf.toString();
       expect(all.contains('\u2014'), isFalse, reason: '${l.id} em dash');
       expect(all.contains('\u2013'), isFalse, reason: '${l.id} en dash');
+    }
+  });
+
+  test('every icon name actually resolves to a glyph', () {
+    // salapifyIcon falls back to a neutral marker for an unknown name, on
+    // purpose, because a missing icon must never take a screen down. That
+    // fallback is exactly what makes a typo invisible on the phone: the
+    // lesson still renders, just with the wrong picture, and nobody notices.
+    // So the fallback stays, and this test is what stops it being reached.
+    final fallback = salapifyIcon('a name that is definitely not in the map');
+    for (final track in courseTracks) {
+      final name = track['icon'] as String;
+      expect(
+        salapifyIcon(name),
+        isNot(fallback),
+        reason: 'track ${track['key']} has an unmapped icon name: $name',
+      );
+    }
+    for (final raw in lessons) {
+      final l = lessonFromMap(raw);
+      expect(
+        salapifyIcon(l.icon),
+        isNot(fallback),
+        reason: '${l.id} has an unmapped icon name: ${l.icon}',
+      );
     }
   });
 

@@ -13,6 +13,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/goals_calc.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
 
 // Tabular figures so peso amounts and percents keep a steady width as they
@@ -78,7 +79,7 @@ class GoalsScreen extends StatelessWidget {
         Center(
           child: Column(
             children: [
-              const Text('🎯', style: TextStyle(fontSize: 44)),
+              const SalapifyGlyph('target', size: 30),
               const SizedBox(height: 10),
               Text('No goals yet',
                   style: TextStyle(

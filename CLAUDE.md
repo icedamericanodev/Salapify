@@ -71,6 +71,25 @@ CI does run it, deliberately and separately, with `--update-goldens` so it only
 writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
 
+## Icons: ours are orange, the user's are emoji
+
+Salapify's own icons are Material glyphs in the theme accent, resolved through
+flutter/lib/widgets/salapify_icon.dart. Content declares the MEANING ('shield',
+'mountain') and that one file decides how it is drawn, so restyling every icon
+is one edit. Emoji cannot do this: they are OS-drawn multicolour stickers, the
+palette cannot reach them, and they change shape between phones.
+
+The line that decides whether something belongs there: it covers icons
+SALAPIFY authors (course tracks, lessons, empty states, moments). It must NEVER
+be extended to emoji the USER picked. Category icons, treat icons, account
+icons, and goal icons are user data, they live in the backup file, and
+replacing them would overwrite a choice that was never ours. Those stay emoji.
+
+A new icon needs a name in the map, or the content test 'every icon name
+actually resolves to a glyph' fails. The resolver falls back to a neutral
+marker so a typo can never take a screen down, and that test is what stops the
+fallback being reached silently.
+
 ## Writing style
 
 Never use em dashes or en dashes anywhere: code comments, commit messages,

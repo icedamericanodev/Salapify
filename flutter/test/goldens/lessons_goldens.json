@@ -4,7 +4,7 @@
       "id": "see-it-first",
       "track": "cushion",
       "title": "See it before you fix it",
-      "emoji": "🔦",
+      "icon": "spotlight",
       "minutes": 2,
       "summary": "One week of honest logging changes more than any budget.",
       "objective": "Find out where your daily spending actually goes.",
@@ -80,7 +80,7 @@
       "id": "needs-wants",
       "track": "cushion",
       "title": "Needs, wants, and the 24-hour rule",
-      "emoji": "🧠",
+      "icon": "mind",
       "minutes": 1,
       "summary": "A simple pause that saves real money on impulse buys.",
       "action": {
@@ -127,7 +127,7 @@
       "id": "fifty-thirty-twenty",
       "track": "cushion",
       "title": "50/30/20, adjusted for real life",
-      "emoji": "🍚",
+      "icon": "essentials",
       "minutes": 2,
       "summary": "A starting frame for splitting your pay.",
       "action": {
@@ -184,7 +184,7 @@
       "id": "pay-yourself-first",
       "track": "cushion",
       "title": "Savings that actually stick",
-      "emoji": "🐷",
+      "icon": "savings",
       "minutes": 2,
       "summary": "Why saving first beats saving whatever is left.",
       "action": {
@@ -231,7 +231,7 @@
       "id": "emergency-fund",
       "track": "cushion",
       "title": "Your first shield: the emergency fund",
-      "emoji": "🛟",
+      "icon": "cushion",
       "minutes": 2,
       "summary": "Why a small cash buffer changes everything, and how to start one.",
       "action": {
@@ -288,7 +288,7 @@
       "id": "health-is-wealth",
       "track": "cushion",
       "title": "Health is wealth, literally",
-      "emoji": "🩺",
+      "icon": "health",
       "minutes": 2,
       "summary": "Why taking care of your body protects your money too.",
       "action": {
@@ -331,7 +331,7 @@
       "id": "card-interest",
       "track": "debt",
       "title": "The minimum payment trap",
-      "emoji": "💳",
+      "icon": "card",
       "minutes": 2,
       "summary": "How paying only the minimum quietly grows what you owe.",
       "action": {
@@ -388,7 +388,7 @@
       "id": "bnpl",
       "track": "debt",
       "title": "BNPL: convenient, but count the cost",
-      "emoji": "🛒",
+      "icon": "cart",
       "minutes": 2,
       "summary": "Buy now pay later can help or hurt. Know which.",
       "action": {
@@ -435,7 +435,7 @@
       "id": "snowball-avalanche",
       "track": "debt",
       "title": "Snowball or avalanche: pick your path",
-      "emoji": "🏔️",
+      "icon": "mountain",
       "minutes": 2,
       "summary": "Two proven payoff orders, and how to choose with real numbers.",
       "action": {
@@ -487,7 +487,7 @@
       "id": "cushion-or-debt",
       "track": "debt",
       "title": "Cushion or debt: which comes first?",
-      "emoji": "⚖️",
+      "icon": "balance",
       "minutes": 2,
       "summary": "The ordering rule that saves the most money of any in this app.",
       "action": {
@@ -538,7 +538,7 @@
       "id": "extra-payment",
       "track": "debt",
       "title": "Find your extra payment",
-      "emoji": "🔎",
+      "icon": "inspect",
       "minutes": 2,
       "summary": "One small fixed extra moves the finish date by months.",
       "action": {
@@ -594,7 +594,7 @@
       "id": "utang-friends",
       "track": "debt",
       "title": "Utang without losing the friendship",
-      "emoji": "🤝",
+      "icon": "handshake",
       "minutes": 2,
       "summary": "Lending to people you care about, the healthy way.",
       "action": {
@@ -641,7 +641,7 @@
       "id": "steady-salary",
       "track": "swing",
       "title": "Pay yourself a salary",
-      "emoji": "🌊",
+      "icon": "waves",
       "minutes": 2,
       "summary": "The one move that makes a swing income livable.",
       "action": {
@@ -697,7 +697,7 @@
       "id": "lean-month-plan",
       "track": "swing",
       "title": "The lean month plan",
-      "emoji": "🗓️",
+      "icon": "calendar",
       "minutes": 2,
       "summary": "Every swing income has a famine month. Make yours boring.",
       "action": {
@@ -750,7 +750,7 @@
       "track": "swing",
       "region": "PH",
       "title": "Selling online or freelancing? Set aside for tax",
-      "emoji": "💼",
+      "icon": "work",
       "minutes": 2,
       "summary": "The simple habit that keeps a sideline or small business out of tax trouble.",
       "action": {
@@ -803,7 +803,7 @@
       "track": "swing",
       "region": "PH",
       "title": "Which tax forms do I actually file?",
-      "emoji": "🧾",
+      "icon": "receipt",
       "minutes": 3,
       "summary": "A plain map of BIR returns for employees, freelancers, and the self-employed.",
       "action": {
@@ -855,7 +855,7 @@
       "track": "swing",
       "region": "PH",
       "title": "Nobody pays your benefits but you",
-      "emoji": "🧱",
+      "icon": "foundation",
       "minutes": 2,
       "summary": "Freelance means your future contributions stopped, unless you restart them.",
       "action": {
@@ -906,7 +906,7 @@
       "id": "windfall-rule",
       "track": "moments",
       "title": "Decide before it lands",
-      "emoji": "🎯",
+      "icon": "target",
       "minutes": 2,
       "summary": "The universal rule for bonuses, refunds, and lump sums.",
       "action": {
@@ -964,7 +964,7 @@
       "track": "moments",
       "region": "PH",
       "title": "Make your 13th month count",
-      "emoji": "🎁",
+      "icon": "gift",
       "minutes": 2,
       "summary": "A plan for the once-a-year money so it does not vanish.",
       "action": {
@@ -1017,7 +1017,7 @@
       "track": "moments",
       "region": "PH",
       "title": "Getting your year-end tax refund",
-      "emoji": "💵",
+      "icon": "cash",
       "minutes": 2,
       "summary": "Why many employees get money back in December, and how to make sure you do.",
       "action": {
@@ -1065,7 +1065,7 @@
       "id": "raise-rule",
       "track": "moments",
       "title": "When your pay goes up",
-      "emoji": "📈",
+      "icon": "growth",
       "minutes": 1,
       "summary": "Beat lifestyle creep with one decision on the first new payday.",
       "action": {
@@ -1107,7 +1107,7 @@
       "id": "savings-circles",
       "track": "moments",
       "title": "Savings circles, without the heartbreak",
-      "emoji": "🔄",
+      "icon": "repeat",
       "minutes": 2,
       "summary": "Paluwagan, susu, tanda, chit funds: what they are and the one risk.",
       "action": {

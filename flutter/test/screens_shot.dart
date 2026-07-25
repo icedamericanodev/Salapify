@@ -43,6 +43,43 @@ const _fonts = {
   ],
 };
 
+/// The Material icon font, loaded separately because it lives in the SDK
+/// rather than in this repo.
+///
+/// Without it every Icon in the app draws as an empty box, which is how the
+/// note "some icons draw as boxes in the render but are fine on the phone"
+/// came about. That note was true and also a trap: once the icons ARE the
+/// thing being reviewed, a screenshot full of boxes proves nothing, and the
+/// habit of dismissing boxes is exactly how a genuinely broken icon would
+/// slip through. Load the real font and there is nothing left to excuse.
+String? _materialIconFont() {
+  // FLUTTER_ROOT is set by the flutter tool. Falling back to walking up from
+  // the running Dart binary keeps this working if it ever is not: the exact
+  // shape of the SDK layout is not something to hardcode.
+  final roots = <String>{
+    ?Platform.environment['FLUTTER_ROOT'],
+    _walkUpToFlutterRoot(Platform.resolvedExecutable) ?? '',
+  }..remove('');
+  for (final root in roots) {
+    final f = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    if (f.existsSync()) return f.path;
+  }
+  return null;
+}
+
+/// `.../<root>/bin/cache/dart-sdk/bin/dart`, walked back up to the root.
+String? _walkUpToFlutterRoot(String exe) {
+  var dir = File(exe).parent;
+  for (var i = 0; i < 8; i++) {
+    if (Directory('${dir.path}/bin/cache/artifacts').existsSync()) {
+      return dir.path;
+    }
+    if (dir.parent.path == dir.path) break;
+    dir = dir.parent;
+  }
+  return null;
+}
+
 Future<void> loadRealFonts(WidgetTester tester) async {
   // runAsync is the whole trick: real file reads cannot complete in the fake
   // async zone testWidgets installs.
@@ -55,6 +92,19 @@ Future<void> loadRealFonts(WidgetTester tester) async {
       }
       await loader.load();
     }
+    final icons = _materialIconFont();
+    if (icons == null) {
+      // Say so rather than silently rendering boxes. A quiet fallback here
+      // would put the reviewer right back to guessing.
+      // ignore: avoid_print
+      print('WARNING: Material icon font not found, icons will render as boxes');
+      return;
+    }
+    final iconLoader = FontLoader('MaterialIcons')
+      ..addFont(
+        File(icons).readAsBytes().then((b) => ByteData.view(b.buffer)),
+      );
+    await iconLoader.load();
   });
 }
 
@@ -80,6 +130,37 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/catalog.png'),
+    );
+  });
+
+  testWidgets('a lesson, opened the way a reader opens it', (tester) async {
+    // Navigated into rather than constructed, because the reader is private
+    // and, more usefully, because tapping is what a person actually does. A
+    // screen built directly in a test can look right while the route into it
+    // is broken.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: LearnScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Your first shield: the emergency fund'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/lesson.png'),
     );
   });
 }

@@ -16,6 +16,7 @@ import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../widgets/lesson_block_views.dart';
+import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
 import 'cashflow.dart';
 import 'contribution_calculator.dart';
@@ -325,10 +326,7 @@ class _LearnScreenState extends State<LearnScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  track['emoji'] as String,
-                  style: const TextStyle(fontSize: 24),
-                ),
+                SalapifyGlyph(track['icon'] as String, size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -708,11 +706,11 @@ class _LessonReaderState extends State<_LessonReader> {
     );
   }
 
-  // Small on purpose: emoji, kicker, title, one line on why it matters.
+  // Small on purpose: icon, kicker, title, one line on why it matters.
   Widget _hero(MoneyLesson l) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(l.emoji, style: const TextStyle(fontSize: 36)),
+      SalapifyGlyph(l.icon, size: 28),
       const SizedBox(height: 10),
       Row(
         children: [
