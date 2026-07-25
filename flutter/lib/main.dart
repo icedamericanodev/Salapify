@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.29 · Money courses now work like courses. Opening a lesson no longer counts it as done, which means your progress figure is real: you finish a lesson by reaching the end, and old progress is kept. Lessons can now carry a clear goal, worked examples, a common mistake, a quick check, and a takeaway. The first lesson shows the new shape; the other 21 follow next. Also new: Menu can put back the data an import replaced.';
+    'f2.30 · Money courses feel like a coach now, not an article. A lesson opens with one honest line about YOUR money from what you have logged, or says plainly when there is not enough to go on. Then short idea cards, a question before the answer, a real story, the flow as a diagram, what most people do versus what works better, a one minute challenge, and one sentence to keep. Progress now tracks viewed, understood, applied, and completed. The first lesson is rebuilt this way, the rest follow.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

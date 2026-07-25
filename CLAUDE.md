@@ -115,9 +115,32 @@ branch (analyze and test on a real runner). Never treat a green local
 `flutter test` as a substitute: the dev sandbox has no outbound network, so
 a test can pass locally and fail on a runner. That exact gap once hid a
 failing preview build for thirteen stamps, and none of that work reached the
-phone. So: after EVERY merge to main, confirm the "Flutter preview APK" run
-went green and actually published a patch. A red preview build means the
-founder got nothing, no matter how clean the PR looked.
+phone.
+
+### The delivery check, in three commands
+
+After every merge to main, confirm delivery by READING, never by assuming.
+The publisher writes what it actually shipped into docs/delivery-log.md, so
+this needs no GitHub API, no Actions tab, and no guessing:
+
+    git fetch origin main
+    git log origin/main --oneline -3
+    git show origin/main:docs/delivery-log.md | tail -5
+
+The last row names the stamp and the patch number that genuinely reached the
+phone. Rules for reading it:
+- A merge with NO new row shipped nothing, whatever the pull request said.
+  Either the build is still running or it failed; check before speaking.
+- The patch number in that row is the same number the app prints on its
+  Update stamp row, so the file and the phone can be compared directly. That
+  comparison is the only real proof, and it is the one thing the founder can
+  do that Claude cannot.
+- Mode `release` (not `patch`) means a NEW base APK: the founder must install
+  it by hand or they receive nothing forever while every build stays green.
+  Say so loudly, immediately, and never bury it.
+
+Never tell the founder a stamp is live until a row for it exists. "Merged"
+is not "delivered"; the whole delivery outage was that one word.
 
 After the founder confirms a patch on the phone, run the lunch and learn: a
 short blameless retrospective, facilitated by the lunch-and-learn agent,

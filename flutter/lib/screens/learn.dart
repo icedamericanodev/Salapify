@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
+import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
+import '../widgets/lesson_block_views.dart';
 import '../widgets/pressable_scale.dart';
 import 'bnpl_calculator.dart';
 import 'cashflow.dart';
@@ -133,7 +135,7 @@ class _LearnScreenState extends State<LearnScreen> {
     // Recording is best effort and never blocks reading: a read-only store
     // (after a failed load) must still let the user read.
     if (widget.store.canWrite) {
-      widget.store.setLessonState(typed.id, LessonState.inProgress);
+      widget.store.setLessonState(typed.id, LessonState.viewed);
     }
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -143,8 +145,9 @@ class _LearnScreenState extends State<LearnScreen> {
             context,
             (lesson['action'] as Map?)?.cast<String, dynamic>(),
           ),
-          onLearned: widget.store.canWrite
-              ? () => widget.store.setLessonState(typed.id, LessonState.learned)
+          store: widget.store,
+          onState: widget.store.canWrite
+              ? (s) => widget.store.setLessonState(typed.id, s)
               : null,
         ),
       ),
@@ -169,7 +172,7 @@ class _LearnScreenState extends State<LearnScreen> {
             final progress = widget.store.lessonProgress;
             final read = {
               for (final e in progress.entries)
-                if (e.value == LessonState.learned) e.key,
+                if (isDone(e.value)) e.key,
             };
             final readCount = read.length;
             final featured = lessonOfTheDay(DateTime.now());
@@ -398,20 +401,24 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 }
 
-/// The reading view for one lesson: the objective, the body in its real
-/// sections, the knowledge check, the takeaway, and the one action that turns
-/// the lesson into a step.
+/// The lesson, rendered as a conversation rather than a document.
 ///
-/// This screen owns completion. A lesson becomes learned when the reader
-/// reaches the end: by answering the knowledge check where one exists, or by
-/// confirming they have read it where one does not yet. The in-app action is
-/// never required, because requiring it would push people to invent financial
-/// records just to finish a lesson.
+/// Every visible piece is a block with its own widget, assembled by walking
+/// the list, so a new lesson needs content and no new UI. The order is fixed
+/// because it is the teaching order: why you should care, what it means for
+/// YOU, the idea in pieces, a question before the answer, a real person, the
+/// trap, the thing to try, the one action, the sentence to keep.
 class _LessonReader extends StatefulWidget {
   final MoneyLesson lesson;
+  final SalapifyStore store;
   final VoidCallback? onAction;
-  final VoidCallback? onLearned;
-  const _LessonReader({required this.lesson, this.onAction, this.onLearned});
+  final void Function(LessonState)? onState;
+  const _LessonReader({
+    required this.lesson,
+    required this.store,
+    this.onAction,
+    this.onState,
+  });
 
   @override
   State<_LessonReader> createState() => _LessonReaderState();
@@ -419,118 +426,146 @@ class _LessonReader extends StatefulWidget {
 
 class _LessonReaderState extends State<_LessonReader> {
   int? _picked;
-  bool _done = false;
+  bool _understood = false;
+  bool _finished = false;
 
-  void _finish() {
-    if (_done) return;
-    _done = true;
-    widget.onLearned?.call();
+  // Understanding is earned by engaging with the thinking: revealing a
+  // discovery answer or answering the check. Not by scrolling.
+  void _markUnderstood() {
+    if (_understood) return;
+    _understood = true;
+    widget.onState?.call(LessonState.understood);
   }
 
   void _answer(int i) {
     setState(() => _picked = i);
-    // Right or wrong, the learner has engaged with the decision, which is what
-    // the check is for. Being wrong never costs progress.
-    _finish();
+    _markUnderstood();
+  }
+
+  void _finish() {
+    if (_finished) return;
+    setState(() => _finished = true);
+    widget.onState?.call(LessonState.completed);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = widget.lesson;
+    final insight = lessonInsight(widget.store.data, l.trackId, DateTime.now());
+    final blocks = l.blocks;
+    var step = 0;
+
+    final children = <Widget>[
+      _hero(l),
+      const SizedBox(height: 16),
+      InsightView(text: insight.text, personalized: insight.personalized),
+      if (l.isPhilippines) ...[const SizedBox(height: 12), _scopeNote(l)],
+      const SizedBox(height: 20),
+    ];
+
+    for (final b in blocks) {
+      children.add(
+        RiseIn(
+          index: step++,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: viewForBlock(b, onRevealed: _markUnderstood),
+          ),
+        ),
+      );
+    }
+
+    if (l.check != null) {
+      children.add(RiseIn(index: step++, child: _checkCard(l.check!)));
+      children.add(const SizedBox(height: 16));
+    }
+
+    // The one action. Never required to finish: requiring it would push
+    // people to invent financial records just to complete a lesson.
+    if (l.action != null && widget.onAction != null) {
+      children.add(
+        RiseIn(
+          index: step++,
+          child: FilledButton(
+            onPressed: () {
+              widget.onState?.call(LessonState.applied);
+              widget.onAction!.call();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Barako.primary,
+              foregroundColor: Barako.onPrimary,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+            ),
+            child: Text(
+              l.action!.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      );
+      children.add(const SizedBox(height: 16));
+    }
+
+    children.add(RiseIn(index: step, child: _finishRow()));
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
       ),
       body: SafeArea(
-        // Cap the reading measure so paragraphs never run edge to edge on a
-        // tablet or landscape phone (flutter-ui-polish typography rule).
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-              children: [
-                Text(l.emoji, style: const TextStyle(fontSize: 40)),
-                const SizedBox(height: 12),
-                Text(
-                  l.title,
-                  style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: Barako.text,
-                    fontSize: 26,
-                    height: 1.1,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        '${l.minutes} min read',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Barako.muted, fontSize: 12),
-                      ),
-                    ),
-                    if (l.isPhilippines) ...[
-                      const SizedBox(width: 8),
-                      _phTag(),
-                    ],
-                  ],
-                ),
-                if (l.isPhilippines) ...[
-                  const SizedBox(height: 10),
-                  _scopeNote(l),
-                ],
-                if (l.objective.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _objectiveBox(l.objective),
-                ],
-                const SizedBox(height: 20),
-                for (final section in l.sections) ..._section(section),
-                if (l.commonMistake.isNotEmpty) ...[
-                  _mistakeBox(l.commonMistake),
-                  const SizedBox(height: 16),
-                ],
-                if (l.check != null) _checkBox(l.check!),
-                if (l.keyTakeaway.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  _takeawayBox(l.keyTakeaway),
-                ],
-                // No check yet on this lesson, so the end of the reading is
-                // the completion point. Without this, a lesson with no check
-                // could never be finished at all.
-                if (l.check == null) ...[
-                  const SizedBox(height: 16),
-                  _doneButton(),
-                ],
-                if (l.action != null && widget.onAction != null) ...[
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: widget.onAction,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(
-                      l.action!.label,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              children: children,
             ),
           ),
         ),
       ),
     );
   }
+
+  // Small on purpose: emoji, kicker, title, one line on why it matters.
+  Widget _hero(MoneyLesson l) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(l.emoji, style: const TextStyle(fontSize: 36)),
+      const SizedBox(height: 10),
+      Row(
+        children: [
+          Flexible(
+            child: Text(
+              '${l.minutes} min',
+              overflow: TextOverflow.ellipsis,
+              style: Barako.kickerStyle,
+            ),
+          ),
+          if (l.isPhilippines) ...[const SizedBox(width: 8), _phTag()],
+        ],
+      ),
+      const SizedBox(height: 6),
+      Text(
+        l.title,
+        style: TextStyle(
+          fontFamily: Barako.displayFont,
+          color: Barako.text,
+          fontSize: 27,
+          height: 1.1,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      if (l.objective.isNotEmpty || l.summary.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Text(
+          l.objective.isNotEmpty ? l.objective : l.summary,
+          style: TextStyle(color: Barako.muted, fontSize: 15, height: 1.45),
+        ),
+      ],
+    ],
+  );
 
   Widget _phTag() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -549,168 +584,24 @@ class _LessonReaderState extends State<_LessonReader> {
     ),
   );
 
-  // The regional scope goes near the TOP, never buried at the end, so a reader
-  // outside the Philippines knows before acting on any of it.
-  Widget _scopeNote(MoneyLesson l) {
-    final checked = l.factCheckedOn;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Barako.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'The rules in this lesson are Philippine rules. The idea behind them '
-        'works anywhere, but the rates and deadlines do not. Always confirm '
-        'with the agency or a licensed professional before you act.'
-        '${checked != null ? ' Facts last checked $checked.' : ''}',
-        style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
-      ),
-    );
-  }
-
-  Widget _objectiveBox(String text) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Icon(Icons.flag_outlined, size: 16, color: Barako.primary),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 14,
-            height: 1.4,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    ],
-  );
-
-  List<Widget> _section(LessonSection s) {
-    final heading = s.heading.isNotEmpty ? s.heading : _defaultHeading(s.kind);
-    return [
-      if (heading.isNotEmpty) ...[
-        Text(heading.toUpperCase(), style: Barako.kickerStyle),
-        const SizedBox(height: 8),
-      ],
-      if (s.kind == SectionKind.steps)
-        for (var i = 0; i < s.body.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    '${i + 1}.',
-                    style: TextStyle(
-                      color: Barako.primary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    s.body[i],
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 15,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-      else if (s.kind == SectionKind.example)
-        Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Barako.surfaceRaised,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final p in s.body)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    p,
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        )
-      else
-        for (final p in s.body)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Text(
-              p,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 15,
-                height: 1.55,
-              ),
-            ),
-          ),
-      const SizedBox(height: 4),
-    ];
-  }
-
-  String _defaultHeading(SectionKind k) => switch (k) {
-    SectionKind.context => 'Why it matters',
-    SectionKind.concept => '',
-    SectionKind.steps => 'How to do it',
-    SectionKind.example => 'For example',
-    SectionKind.warning => 'Watch out for',
-    SectionKind.takeaway => 'Remember',
-  };
-
-  Widget _mistakeBox(String text) => Container(
-    padding: const EdgeInsets.all(14),
+  // Regional scope near the TOP, never buried at the end where a reader
+  // elsewhere would find it too late to matter.
+  Widget _scopeNote(MoneyLesson l) => Container(
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       border: Border.all(color: Barako.border),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.error_outline, size: 18, color: Barako.warningStrong),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('A COMMON MISTAKE', style: Barako.kickerStyle),
-              const SizedBox(height: 6),
-              Text(
-                text,
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    child: Text(
+      'These rules are Philippine rules. The idea works anywhere, the rates '
+      'and deadlines do not. Confirm with the agency or a licensed '
+      'professional before you act.'
+      '${l.factCheckedOn != null ? ' Facts last checked ${l.factCheckedOn}.' : ''}',
+      style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
     ),
   );
 
-  Widget _checkBox(KnowledgeCheck c) {
+  Widget _checkCard(KnowledgeCheck c) {
     final picked = _picked;
     final answered = picked != null;
     final correct = answered && picked == c.correctIndex;
@@ -731,7 +622,7 @@ class _LessonReaderState extends State<_LessonReader> {
               color: Barako.text,
               fontSize: 15,
               height: 1.45,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 12),
@@ -744,10 +635,9 @@ class _LessonReaderState extends State<_LessonReader> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
+                    // Only the correct answer is ever highlighted. A wrong
+                    // pick is not stained red: being wrong is how this works.
                     border: Border.all(
-                      // Only the CORRECT answer is ever highlighted. A wrong
-                      // pick is not stained red: being wrong here is how the
-                      // lesson works, not a failure to punish.
                       color: answered && i == c.correctIndex
                           ? Barako.primary
                           : Barako.border,
@@ -782,75 +672,64 @@ class _LessonReaderState extends State<_LessonReader> {
                 ),
               ),
             ),
-          if (answered) ...[
-            const SizedBox(height: 4),
-            Text(
-              correct ? 'That is it.' : 'Close. Here is the thinking.',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              !correct && c.whyWrong != null
-                  ? '${c.whyWrong} ${c.explanation}'
-                  : c.explanation,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            alignment: Alignment.topCenter,
+            child: answered
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                        correct
+                            ? 'That is it.'
+                            : 'Close. Here is the thinking.',
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        !correct && c.whyWrong != null
+                            ? '${c.whyWrong} ${c.explanation}'
+                            : c.explanation,
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       ),
     );
   }
 
-  Widget _takeawayBox(String text) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Barako.positiveSurface,
-      border: Border.all(color: Barako.positiveBorder),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('WORTH REMEMBERING', style: Barako.kickerStyle),
-        const SizedBox(height: 6),
-        Text(
-          text,
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 15,
-            height: 1.45,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _doneButton() => _done
+  Widget _finishRow() => _finished
       ? Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.check_circle, size: 18, color: Barako.primary),
             const SizedBox(width: 8),
-            Text(
-              'Marked as done',
-              style: TextStyle(
-                color: Barako.primary,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                'Done. One useful thing.',
+                style: TextStyle(
+                  color: Barako.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
         )
       : OutlinedButton(
-          onPressed: () => setState(_finish),
-          child: const Text('I have read this'),
+          onPressed: _finish,
+          child: const Text('Finish this lesson'),
         );
 }

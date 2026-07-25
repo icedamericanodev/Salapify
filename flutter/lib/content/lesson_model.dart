@@ -12,6 +12,8 @@
 // they read well as content, and lessonFromMap does the one conversion with
 // every fallback in one place.
 
+import 'lesson_blocks.dart';
+
 /// Where a lesson's facts apply. Tax rules, contribution rates, and filing
 /// deadlines are country specific, and burying that in the last paragraph is
 /// how a reader in another country ends up acting on Philippine rules.
@@ -89,6 +91,11 @@ class MoneyLesson {
 
   final CourseRegion region;
   final List<LessonSection> sections;
+
+  /// Blocks authored in the coaching shape. Empty means this lesson has not
+  /// been rewritten yet, and [blocks] derives a sensible set from the older
+  /// fields so every lesson keeps rendering while the content catches up.
+  final List<LessonBlock> authoredBlocks;
   final String commonMistake;
   final KnowledgeCheck? check;
   final String keyTakeaway;
@@ -112,6 +119,7 @@ class MoneyLesson {
     required this.objective,
     this.region = CourseRegion.global,
     required this.sections,
+    this.authoredBlocks = const [],
     this.commonMistake = '',
     this.check,
     this.keyTakeaway = '',
@@ -119,6 +127,51 @@ class MoneyLesson {
     this.factCheckedOn,
     this.sourceNotes = const [],
   });
+
+  /// What the reader actually renders.
+  ///
+  /// Authored blocks win. Otherwise the older fields are mapped onto the
+  /// closest block kind, so a lesson written before the redesign still reads
+  /// as cards rather than as a wall of prose, and the remaining lessons can be
+  /// rewritten one at a time instead of in one unreviewable change.
+  List<LessonBlock> get blocks {
+    if (authoredBlocks.isNotEmpty) return authoredBlocks;
+    final out = <LessonBlock>[];
+    for (final s in sections) {
+      switch (s.kind) {
+        case SectionKind.steps:
+          // Ordered steps ARE a flow, so they render as the diagram rather
+          // than as another paragraph list.
+          out.add(DiagramBlock(steps: s.body));
+        case SectionKind.example:
+          out.add(StoryBlock(who: 'For example', text: s.body.join(' ')));
+        case SectionKind.context:
+          out.add(
+            ProseBlock(
+              heading: s.heading.isNotEmpty ? s.heading : 'Why it matters',
+              paragraphs: s.body,
+            ),
+          );
+        case SectionKind.warning:
+          out.add(
+            ProseBlock(
+              heading: s.heading.isNotEmpty ? s.heading : 'Watch out for',
+              paragraphs: s.body,
+            ),
+          );
+        case SectionKind.takeaway:
+        case SectionKind.concept:
+          out.add(ProseBlock(heading: s.heading, paragraphs: s.body));
+      }
+    }
+    if (commonMistake.isNotEmpty) {
+      out.add(
+        ProseBlock(heading: 'A common mistake', paragraphs: [commonMistake]),
+      );
+    }
+    if (keyTakeaway.isNotEmpty) out.add(ReflectionBlock(keyTakeaway));
+    return out;
+  }
 
   bool get isPhilippines => region == CourseRegion.philippines;
 
@@ -223,6 +276,7 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
         ? CourseRegion.philippines
         : CourseRegion.global,
     sections: sections,
+    authoredBlocks: blocksFromList(m['blocks']),
     commonMistake: (m['commonMistake'] ?? '').toString(),
     check: _checkFrom(m['check']),
     keyTakeaway: (m['takeaway'] ?? '').toString(),

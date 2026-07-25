@@ -975,7 +975,7 @@ class SalapifyStore extends ChangeNotifier {
       for (final x
           in (s['lessonsRead'] is List ? s['lessonsRead'] as List : const []))
         if (x is String) x,
-      if (state == LessonState.learned) id,
+      if (isDone(state)) id,
     };
     return {
       ...d,

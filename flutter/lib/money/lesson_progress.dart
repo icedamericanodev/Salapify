@@ -12,16 +12,43 @@
 // which matters because the two exist side by side during a staged rollout.
 
 /// How far a learner got with one lesson.
+///
+/// Four states rather than done or not done, because "completed 9 of 22" says
+/// nothing about whether anything was understood or used. These are ordered:
+/// progress climbs and never falls, so rereading a finished lesson cannot
+/// un-finish it.
 enum LessonState {
   /// Never opened.
   notStarted,
 
-  /// Opened, but the knowledge check has not been answered yet.
-  inProgress,
+  /// Opened and read. The lowest rung, and honest about it.
+  viewed,
 
-  /// Read through and answered the check. This is what counts as done.
-  learned,
+  /// Engaged with the thinking: revealed a discovery answer or answered the
+  /// check. This is the first rung that means anything.
+  understood,
+
+  /// Took the lesson's action into the app. The rarest and most valuable
+  /// signal, because it is the only one that changed something real.
+  applied,
+
+  /// Reached the end of the lesson having understood it.
+  completed,
 }
+
+/// Rank for the never-go-backwards rule. Ordered by how much the learner did,
+/// so a lesson someone applied is never quietly demoted by a later reread.
+int _rank(LessonState s) => switch (s) {
+  LessonState.notStarted => 0,
+  LessonState.viewed => 1,
+  LessonState.understood => 2,
+  LessonState.applied => 3,
+  LessonState.completed => 4,
+};
+
+/// Everything from [LessonState.understood] up counts as done for the
+/// progress figure. Applying or completing implies understanding.
+bool isDone(LessonState s) => _rank(s) >= _rank(LessonState.completed);
 
 /// Read the per-lesson progress map out of settings, junk-safe.
 ///
@@ -42,7 +69,7 @@ Map<String, LessonState> parseLessonProgress(
   // and taking away a completed tick is a worse wrong than leaving one that
   // was generously granted. New reads earn the state honestly.
   for (final x in (legacyRead is List ? legacyRead : const [])) {
-    if (x is String && x.isNotEmpty) out[x] = LessonState.learned;
+    if (x is String && x.isNotEmpty) out[x] = LessonState.completed;
   }
 
   if (stored is Map) {
@@ -51,8 +78,14 @@ Map<String, LessonState> parseLessonProgress(
       final v = entry.value;
       if (id is! String || id.isEmpty || v is! Map) continue;
       final state = switch (v['state']) {
-        'learned' => LessonState.learned,
-        'inProgress' => LessonState.inProgress,
+        'completed' => LessonState.completed,
+        'applied' => LessonState.applied,
+        'understood' => LessonState.understood,
+        'viewed' => LessonState.viewed,
+        // The three-state names this file shipped with, kept readable so a
+        // phone that recorded progress under them keeps it.
+        'learned' => LessonState.completed,
+        'inProgress' => LessonState.viewed,
         _ => null,
       };
       if (state != null) out[id] = state;
@@ -78,13 +111,15 @@ Map<String, dynamic> withLessonState(
     }
   }
   final current = switch ((out[id] as Map?)?['state']) {
-    'learned' => LessonState.learned,
-    'inProgress' => LessonState.inProgress,
+    'completed' => LessonState.completed,
+    'applied' => LessonState.applied,
+    'understood' => LessonState.understood,
+    'viewed' => LessonState.viewed,
+    'learned' => LessonState.completed,
+    'inProgress' => LessonState.viewed,
     _ => LessonState.notStarted,
   };
-  if (current == LessonState.learned && state != LessonState.learned) {
-    return out; // never demote
-  }
+  if (_rank(state) <= _rank(current)) return out; // never demote
   out[id] = {'state': state.name};
   return out;
 }
@@ -94,7 +129,7 @@ Map<String, dynamic> withLessonState(
 int learnedCount(Map<String, LessonState> progress, Iterable<String> ids) {
   var n = 0;
   for (final id in ids) {
-    if (progress[id] == LessonState.learned) n++;
+    if (isDone(progress[id] ?? LessonState.notStarted)) n++;
   }
   return n;
 }
@@ -104,7 +139,7 @@ int learnedCount(Map<String, LessonState> progress, Iterable<String> ids) {
 /// Continue button that lands somewhere useful.
 String? nextLessonId(Map<String, LessonState> progress, List<String> trackIds) {
   for (final id in trackIds) {
-    if (progress[id] != LessonState.learned) return id;
+    if (!isDone(progress[id] ?? LessonState.notStarted)) return id;
   }
   return null;
 }

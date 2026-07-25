@@ -44,7 +44,11 @@ jobs:
       run:
         working-directory: flutter
     steps:
+      # Full history: the delivery-log step rebases onto main before pushing,
+      # and a depth-1 checkout cannot rebase.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -87,15 +91,24 @@ jobs:
           # (UnpatchableChangeException, the f0.14 failure). Shipping the
           # full icon font in the base costs ~1.6MB once and makes icon
           # changes patchable forever.
+          # Output is tee'd so the patch number Shorebird prints ("Published
+          # Patch 22!") becomes a machine-readable fact, not something a human
+          # has to go read in a log. It is the only place the delivered patch
+          # number exists, and it is what the phone shows on the Update stamp
+          # row, so it is the one value that lets repo and phone be compared.
+          set -o pipefail
           if echo "$LIST" | grep -Fq " $VERSION "; then
             echo "Release $VERSION exists; pushing an over-the-air PATCH."
-            shorebird patch android --release-version "$VERSION" --no-confirm -- --no-tree-shake-icons
+            shorebird patch android --release-version "$VERSION" --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
             echo "mode=patch" >> "$GITHUB_OUTPUT"
           else
             echo "No release $VERSION yet; building the base APK (founder installs this once)."
-            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons
+            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
             echo "mode=release" >> "$GITHUB_OUTPUT"
           fi
+          PATCH=$(grep -oE 'Published Patch [0-9]+' ship.log | grep -oE '[0-9]+' | tail -1)
+          echo "patch=${PATCH:-}" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish the base APK to the fixed flutter-preview release
         if: steps.ship.outputs.mode == 'release'
@@ -110,6 +123,57 @@ jobs:
             you are on. Built from ${{ github.sha }}.
           prerelease: true
           files: flutter/build/app/outputs/flutter-apk/app-release.apk
+
+      # The delivery record. This exists so "did it actually ship" is answered
+      # by reading a file in the repo instead of by interrogating the Actions
+      # API, which is slow, easy to get wrong, and unavailable in some
+      # sessions. After this, a plain `git pull` tells anyone the stamp and
+      # patch number that genuinely reached the phone.
+      #
+      # It cannot loop: this commit touches only docs/, and this workflow's
+      # paths filter is flutter/** plus its own file, so it does not retrigger.
+      - name: Record what actually shipped
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MODE: ${{ steps.ship.outputs.mode }}
+          PATCH: ${{ steps.ship.outputs.patch }}
+          APP_VERSION: ${{ steps.ship.outputs.version }}
+        working-directory: .
+        run: |
+          STAMP=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
+          WHEN=$(date -u '+%Y-%m-%d %H:%M UTC')
+          mkdir -p docs
+          if [ ! -f docs/delivery-log.md ]; then
+            {
+              echo "# Delivery log"
+              echo
+              echo "What actually reached the phone, written by the publisher"
+              echo "itself after a successful publish. Newest last."
+              echo
+              echo "A merge with no line here shipped NOTHING, whatever the"
+              echo "pull request said. The patch number is the same one the"
+              echo "app shows on its Update stamp row, so this file and the"
+              echo "phone can be compared directly."
+              echo
+              echo "| When | Stamp | Patch | Mode | App version | Commit |"
+              echo "|------|-------|-------|------|-------------|--------|"
+            } > docs/delivery-log.md
+          fi
+          printf '| %s | %s | %s | %s | %s | [%s](%s) |\n' \
+            "$WHEN" "${STAMP:-unknown}" "${PATCH:-none}" "$MODE" \
+            "$APP_VERSION" "$(echo "${{ github.sha }}" | cut -c1-8)" "$RUN_URL" \
+            >> docs/delivery-log.md
+          git config user.name 'salapify-delivery'
+          git config user.email 'noreply@github.com'
+          git add docs/delivery-log.md
+          git commit -m "Delivery: ${STAMP:-unknown}, patch ${PATCH:-none} [skip ci]" || exit 0
+          # main may have moved while the build ran; rebase rather than fail,
+          # and never force.
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            sleep 5
+          done
 
       # These two steps go LAST on purpose. A notice placed before the publish
       # step cannot report a failure IN the publish step, which is the exact
