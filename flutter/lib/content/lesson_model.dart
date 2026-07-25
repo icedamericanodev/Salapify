@@ -255,7 +255,12 @@ List<LessonBlock> _authoredBlocks(Map<String, dynamic> m) {
   final out = <LessonBlock>[];
   for (final entry in raw) {
     if (entry is Map && (entry['kind'] ?? '').toString() == 'reference') {
-      if (body.isNotEmpty) out.add(ProseBlock(paragraphs: body));
+      // 'from' drops leading paragraphs that a block above already covers.
+      // The scope note and the opening habit sentence were being said twice,
+      // once as coaching and again verbatim, which reads as padding.
+      final from = entry['from'] is int ? entry['from'] as int : 0;
+      final kept = body.length > from ? body.sublist(from) : const <String>[];
+      if (kept.isNotEmpty) out.add(RulesBlock(kept));
       continue;
     }
     final b = blockFromMap(entry);

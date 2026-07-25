@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.32 · Money courses now opens as four course cards instead of a list of 22 lessons. Each card shows what the course gives you, how far you are, how many minutes are left, and a Start or Continue button that opens exactly where you stopped. One course is marked recommended with the reason shown, based on your own data, and nothing is ever locked. Tap All lessons to see inside any course.';
+    'f2.33 · The tax lessons read properly now. The long Philippine rules were rendering as one wall of text in the middle of the lesson, and three sentences were said twice, once as a coaching card and again in the prose. The rules are now one card each under The rules in full, same CPA checked wording, and the repeats are gone.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

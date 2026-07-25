@@ -436,6 +436,40 @@ class ChallengeView extends StatelessWidget {
   );
 }
 
+/// Reference passages as separate cards. Deliberately quieter than the
+/// coaching blocks: this is the small print you can come back to, not the
+/// part that carries the lesson.
+class RulesView extends StatelessWidget {
+  final RulesBlock block;
+  const RulesView(this.block, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('THE RULES, IN FULL', style: Barako.kickerStyle),
+      const SizedBox(height: 8),
+      for (final p in block.passages)
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(color: Barako.border),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            p,
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 14,
+              height: 1.55,
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
 class ReflectionView extends StatelessWidget {
   final ReflectionBlock block;
   const ReflectionView(this.block, {super.key});
@@ -469,6 +503,7 @@ Widget viewForBlock(
   VoidCallback? onRevealed,
 }) => switch (block) {
   ProseBlock() => ProseView(block),
+  RulesBlock() => RulesView(block),
   NuggetsBlock() => NuggetsView(block),
   DiscoveryBlock() => DiscoveryView(block, onRevealed: onRevealed),
   StoryBlock() => StoryView(block),
