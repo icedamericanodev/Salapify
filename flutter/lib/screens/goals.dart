@@ -79,7 +79,7 @@ class GoalsScreen extends StatelessWidget {
         Center(
           child: Column(
             children: [
-              const SalapifyGlyph('target', size: 30),
+              SalapifyGlyph('target', size: 30),
               const SizedBox(height: 10),
               Text('No goals yet',
                   style: TextStyle(

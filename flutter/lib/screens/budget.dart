@@ -55,7 +55,7 @@ class BudgetScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            ScreenHeader('BUDGET'),
+            ScreenHeader('Budget'),
             _limitCard(context, summary),
             if (store.canWrite) ...[
               const SizedBox(height: 12),

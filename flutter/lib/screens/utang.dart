@@ -66,9 +66,9 @@ class UtangScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            ScreenHeader('UTANG', subtitle: 'Money owed to you, oldest first'),
+            ScreenHeader('Utang', subtitle: 'Money owed to you, oldest first'),
             if (people.isEmpty)
-              const EmptyState(
+              EmptyState(
                 icon: 'handshake',
                 title: 'Nobody owes you right now',
                 body:

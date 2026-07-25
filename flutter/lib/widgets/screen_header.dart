@@ -28,12 +28,24 @@ class ScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sentence case at 22/w800/0, matching this app's OWN AppBar titles.
+    //
+    // The old 26/w800/ls3 uppercase was the outlier, not the standard: 28
+    // pushed screens already set a sentence-case AppBar title, and all six
+    // bottom tab labels are sentence case too. So "Budget" sat in the nav bar
+    // while "BUDGET" sat 40dp above it, in two different cases, on the same
+    // screen. That is the busy feeling, and it was self inflicted.
+    //
+    // It also leaves exactly ONE uppercase treatment in the app, the 12px
+    // kicker. Two all-caps sizes competing is solved by deleting one of them,
+    // not by tuning both.
     final titleText = Text(title,
         style: TextStyle(
             color: Barako.text,
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
-            letterSpacing: 3));
+            height: 1.2,
+            letterSpacing: 0));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,7 +62,9 @@ class ScreenHeader extends StatelessWidget {
           Text(subtitle!,
               style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.3)),
         ],
-        const SizedBox(height: 20),
+        // Gap.md, not 20: the title shrank from 26 to 22, so it needs less
+        // air under it to keep the same optical relationship.
+        const SizedBox(height: Gap.md),
       ],
     );
   }
