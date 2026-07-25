@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:math';
 
+import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
@@ -956,6 +957,44 @@ class SalapifyStore extends ChangeNotifier {
       ..remove('paydaySchedule');
     return {...d, 'settings': s};
   });
+
+  /// Record how far a learner got with one lesson.
+  ///
+  /// Writes settings.lessonProgress, and ALSO keeps settings.lessonsRead in
+  /// step for learned lessons. The duplication is deliberate and temporary:
+  /// a backup made here must still restore correctly onto a build that only
+  /// knows the old key, because during a staged rollout both versions exist
+  /// and a user may move a file between them. The backup preserves unknown
+  /// settings keys, so neither direction loses anything.
+  Future<void> setLessonState(String id, LessonState state) => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final progress = withLessonState(s['lessonProgress'], id, state);
+    // Only a learned lesson joins the legacy list, since that list is read by
+    // older builds as "done" with no finer grain available.
+    final read = <String>{
+      for (final x
+          in (s['lessonsRead'] is List ? s['lessonsRead'] as List : const []))
+        if (x is String) x,
+      if (state == LessonState.learned) id,
+    };
+    return {
+      ...d,
+      'settings': {
+        ...s,
+        'lessonProgress': progress,
+        'lessonsRead': read.toList(),
+      },
+    };
+  });
+
+  /// The per-lesson progress, with old lessonsRead entries folded in.
+  Map<String, LessonState> get lessonProgress {
+    final s = data['settings'];
+    return parseLessonProgress(
+      s is Map ? s['lessonProgress'] : null,
+      legacyRead: s is Map ? s['lessonsRead'] : null,
+    );
+  }
 
   /// Mark a Learn lesson read, deduped, kept in settings.lessonsRead. The
   /// backup preserves unknown settings keys, so this needs no migration.

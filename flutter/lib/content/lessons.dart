@@ -51,9 +51,79 @@ const List<Map<String, dynamic>> lessons = [
     'track': 'cushion',
     'title': 'See it before you fix it',
     'emoji': '🔦',
-    'minutes': 1,
+    'minutes': 2,
     'summary': 'One week of honest logging changes more than any budget.',
+    'objective': 'Find out where your daily spending actually goes.',
     'action': {'label': 'Log what you spent today', 'route': 'log'},
+    'sections': [
+      {
+        'kind': 'context',
+        'body': [
+          'Most people can name their rent and their biggest bill, and still '
+              'have no idea where the rest went. That is not carelessness. '
+              'Small amounts do not feel like spending while they happen.',
+          'A budget built on a guess fails in week two, because the guess was '
+              'wrong. So start with the truth instead.',
+        ],
+      },
+      {
+        'kind': 'concept',
+        'body': [
+          'For seven days, write down everything, and change nothing. No '
+              'cutting, no rules, no judgment. You are collecting facts, not '
+              'grading yourself.',
+          'Two things happen. Spending you watch shrinks on its own, because '
+              'attention alone changes behavior. And at the end of the week '
+              'you have a real daily number, which makes every lesson after '
+              'this one work on your life instead of a template.',
+        ],
+      },
+      {
+        'kind': 'steps',
+        'body': [
+          'Log every expense for seven days, the day it happens.',
+          'Change nothing about your spending yet.',
+          'At the end of the week, look at your daily average.',
+          'Pick the one pattern you would actually be glad to change.',
+        ],
+      },
+      {
+        'kind': 'example',
+        'body': [
+          'An office worker guessed they spent about 200 a day. After a week '
+              'of logging it was closer to 340, and most of the gap was '
+              'delivery fees and a daily coffee, neither of which felt like '
+              'spending at the time.',
+          'They did not quit either one. They moved coffee to three days a '
+              'week and kept the rest, which is a change they could live with.',
+        ],
+      },
+    ],
+    'commonMistake':
+        'Trying to fix your spending in the same week you start watching it. '
+        'You end up doing neither properly, and one hard week tells you '
+        'nothing about a normal one.',
+    'check': {
+      'question':
+          'You are three days into logging and you notice you have spent more '
+          'on food delivery than you expected. What is the most useful thing '
+          'to do right now?',
+      'choices': [
+        'Stop ordering delivery immediately and restart the week.',
+        'Keep logging normally and decide at the end of the week.',
+        'Stop logging, since the answer is already obvious.',
+      ],
+      'answer': 1,
+      'explanation':
+          'The week is for measuring, not fixing. A full picture tells you '
+          'how big the pattern really is, and a change you choose with the '
+          'whole week in front of you is the one that sticks.',
+      'whyWrong':
+          'Cutting immediately feels productive, but it turns the week into '
+          'an unusual one and hides your real normal.',
+    },
+    'takeaway':
+        'You do not need a perfect budget. You need an honest starting point.',
     'body': [
       'You cannot steer money you cannot see. Most people guess their spending low, not because they lie, but because small amounts do not feel like spending while they happen.',
       'The fix is simple and short: log everything for seven days, with zero judgment. Not to cut anything yet. Just to see. Coffee, fare, load, the delivery fee, all of it, the day it happens.',

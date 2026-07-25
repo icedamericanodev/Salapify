@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.28 · Two fixes worth knowing. Payday is yours to set now, in Menu: Salapify was assuming everyone is paid on the 15th and end of month, so the payday plan and its reminder could claim payday on a day you are not paid. It stays quiet until you tell it, and "my pay has no fixed date" is a real answer. And an import can now be put back: Menu offers the data your last import replaced, swapping rather than deleting, so neither copy is ever lost.';
+    'f2.29 · Money courses now work like courses. Opening a lesson no longer counts it as done, which means your progress figure is real: you finish a lesson by reaching the end, and old progress is kept. Lessons can now carry a clear goal, worked examples, a common mistake, a quick check, and a takeaway. The first lesson shows the new shape; the other 21 follow next. Also new: Menu can put back the data an import replaced.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

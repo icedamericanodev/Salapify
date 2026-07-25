@@ -10,7 +10,7 @@ import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('reading a lesson marks it done and bumps the progress', (
+  testWidgets('opening does not finish a lesson; reaching the end does', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -40,7 +40,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('YOUR PROGRESS'), findsOneWidget);
-    expect(find.text('0 of ${lessons.length} lessons read'), findsOneWidget);
+    expect(find.text('0 of ${lessons.length} lessons done'), findsOneWidget);
 
     // The featured card sits above the full list, so its title's first match
     // is the featured card. Computing it here keeps the tap deterministic.
@@ -52,8 +52,26 @@ void main() {
     final firstPara = (featured['body'] as List).first as String;
     expect(find.textContaining(firstPara.substring(0, 40)), findsOneWidget);
 
+    // Backing out WITHOUT reaching the end must not count. This is the whole
+    // point of the change: the old screen marked the lesson read the moment it
+    // opened, so the figure counted taps rather than learning.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('1 of ${lessons.length} lessons read'), findsOneWidget);
+    expect(
+      find.text('0 of ${lessons.length} lessons done'),
+      findsOneWidget,
+      reason: 'a lesson opened and abandoned is not a lesson learned',
+    );
+
+    // Now read it properly: open, reach the end, confirm.
+    await tester.tap(find.text(featured['title'] as String).first);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('I have read this'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('I have read this'));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('1 of ${lessons.length} lessons done'), findsOneWidget);
   });
 }
