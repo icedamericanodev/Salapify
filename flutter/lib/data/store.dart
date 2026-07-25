@@ -968,7 +968,18 @@ class SalapifyStore extends ChangeNotifier {
   /// settings keys, so neither direction loses anything.
   Future<void> setLessonState(String id, LessonState state) => _mutate((d) {
     final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
-    final progress = withLessonState(s['lessonProgress'], id, state);
+    // Pass what the app currently believes, legacy list included, so a write
+    // can never land below a state the user already reached.
+    final current = parseLessonProgress(
+      s['lessonProgress'],
+      legacyRead: s['lessonsRead'],
+    )[id];
+    final progress = withLessonState(
+      s['lessonProgress'],
+      id,
+      state,
+      effectiveCurrent: current ?? LessonState.notStarted,
+    );
     // Only a learned lesson joins the legacy list, since that list is read by
     // older builds as "done" with no finer grain available.
     final read = <String>{

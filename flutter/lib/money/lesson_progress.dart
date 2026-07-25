@@ -91,7 +91,24 @@ Map<String, LessonState> parseLessonProgress(
         'inProgress' => LessonState.viewed,
         _ => null,
       };
-      if (state != null) out[id] = state;
+      // Take the HIGHER of the two, never simply the newer one.
+      //
+      // This was a straight overwrite, and it quietly took ticks away. A
+      // lesson finished under the old build lives only in lessonsRead. Open
+      // it again on this build and the reader records `viewed`, which then
+      // shadowed the legacy `completed` and the lesson went from done back to
+      // unfinished on screen. Someone rereading a lesson they had completed
+      // was punished for it.
+      //
+      // Reading the maximum also repairs phones that already stored the lower
+      // value: the legacy entry was never deleted, only hidden, so it comes
+      // back the moment this runs.
+      if (state != null) {
+        final legacy = out[id];
+        out[id] = (legacy != null && _rank(legacy) > _rank(state))
+            ? legacy
+            : state;
+      }
     }
   }
   return out;
@@ -103,8 +120,14 @@ Map<String, LessonState> parseLessonProgress(
 Map<String, dynamic> withLessonState(
   dynamic existing,
   String id,
-  LessonState state,
-) {
+  LessonState state, {
+
+  /// The state the app currently believes this lesson is in, INCLUDING any
+  /// legacy lessonsRead entry. Without it the never-demote rule only saw the
+  /// new-model map and happily wrote a lower state over a lesson whose only
+  /// record of being finished lived in the old list.
+  LessonState effectiveCurrent = LessonState.notStarted,
+}) {
   final out = <String, dynamic>{};
   if (existing is Map) {
     for (final e in existing.entries) {
@@ -122,7 +145,10 @@ Map<String, dynamic> withLessonState(
     'inProgress' => LessonState.viewed,
     _ => LessonState.notStarted,
   };
-  if (_rank(state) <= _rank(current)) return out; // never demote
+  final floor = _rank(current) > _rank(effectiveCurrent)
+      ? current
+      : effectiveCurrent;
+  if (_rank(state) <= _rank(floor)) return out; // never demote
   out[id] = {'state': state.name};
   return out;
 }

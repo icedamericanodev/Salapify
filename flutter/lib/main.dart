@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.33 · The tax lessons read properly now. The long Philippine rules were rendering as one wall of text in the middle of the lesson, and three sentences were said twice, once as a coaching card and again in the prose. The rules are now one card each under The rules in full, same CPA checked wording, and the repeats are gone.';
+    'f2.34 · Fixes a real one: lessons you had already finished were going back to unfinished when you opened them again, because the newer record was overwriting the older done mark instead of keeping the higher of the two. Your ticks come back on their own, nothing was deleted. Also in this build: the Philippine tax rules are now one card each instead of a wall of text, and the sentences that were being said twice are gone.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
