@@ -162,6 +162,48 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Run the impulse check in Money mindset',
       'route': 'mindset',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'A need keeps your life running. A want is nice but optional.',
+          'Most leaks are wants dressed as needs in the moment.',
+          'The fix is not guilt. The fix is a pause.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You see something you want right now. If you wait one day '
+            'before buying it, how often do you think you still want it?',
+        'reveal':
+            'Far less often than it feels. The urge is usually the moment, '
+            'not the thing. Waiting costs nothing and the ones that survive '
+            'a day are usually worth buying.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Decide in the shop, while the wanting is loudest.',
+        'worksBetter':
+            'Decide tomorrow, with a clear head. If it still fits your plan '
+            'in the morning, buy it and enjoy it without guilt.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Next non urgent thing you want, put it in Notes with the price '
+            'and the date instead of buying it.',
+        'compare':
+            'Check the list in a week. The ones you no longer care about are '
+            'money you kept without giving anything up.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'Skipping a want is not being stingy. It is choosing where your '
+            'money goes on purpose.',
+      },
+    ],
     'body': [
       'A need keeps your life running: food, rent, transport, a working phone. A want is nice but optional. Most money leaks are wants dressed up as needs in the moment.',
       'The fix is not guilt, it is a pause. For anything that is not urgent, wait 24 hours. If you still want it tomorrow, and it fits your plan, buy it with a clear head. Most of the time the urge is gone by morning.',
@@ -180,6 +222,54 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Set your monthly limit in Budget',
       'route': 'budget-tab',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          '50 needs, 30 wants, 20 savings is a starting frame, not a rule.',
+          'It is a direction to aim at, not a test you pass or fail.',
+          'A split you can keep beats a perfect one you abandon.',
+        ],
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Income after tax',
+          'Needs: rent, food, transport, bills',
+          'Wants: everything optional',
+          'Savings and debt payoff',
+        ],
+        'caption': 'Same order every payday. The percentages are yours.',
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'If rent alone eats 60 percent of your income, does that mean '
+            'you have failed at budgeting?',
+        'reveal':
+            'No. It means the frame needs adjusting, not you. High rent is '
+            'a fact of many cities. Aim for a smaller savings slice you can '
+            'actually keep, and revisit when income changes.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Copy the percentages exactly, miss them in week two, and drop '
+            'budgeting altogether.',
+        'worksBetter':
+            'Start from your real numbers, then move one slice by a few '
+            'percent at a time.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt': 'Guess what share of your income goes to needs right now.',
+        'compare': 'Then open Budget and compare with your real split.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'A budget is a plan you keep, not a score you are graded on.',
+      },
+    ],
     'body': [
       'A simple way to divide your take-home pay: about 50 percent to needs, 30 percent to wants, and 20 percent to savings and paying down debt. It is a starting frame, not a rule carved in stone.',
       'Needs are rent, food, bills, transport. Wants are eating out, subscriptions, shopping, nights out. The last 20 percent is you paying your future self first: savings and clearing debt.',
@@ -198,6 +288,47 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Add a payday savings entry in Recurring',
       'route': 'recurring',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Saving what is left over almost never works.',
+          'Move savings on payday, before anything else.',
+          'Whatever remains becomes your spending money, guilt free.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'Two people save the same amount. One moves it on payday, the '
+            'other at month end. Who actually still has it?',
+        'reveal':
+            'The one who moved it first. Money left in the spending pile '
+            'gets spent, not because anyone is careless, but because it is '
+            'available. Removing it from view is the whole trick.',
+      },
+      {
+        'kind': 'story',
+        'who': 'A nurse on a fixed salary',
+        'text':
+            'She tried saving whatever was left for six months and saved '
+            'almost nothing. She switched to moving a small fixed amount the '
+            'day her salary landed. It felt tighter for two weeks, then '
+            'stopped being noticeable. A year later that was her emergency '
+            'fund.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Save the leftovers at the end of the month.',
+        'worksBetter':
+            'Pay yourself first on payday, even a small amount, and let the '
+            'rest of the month sort itself out.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Savings is a bill you pay yourself, and it goes first.',
+      },
+    ],
     'body': [
       'Most people plan to save whatever is left at the end of the month. The problem is there is rarely anything left. The month always finds a way to spend it.',
       'Flip it. On payday, before the spending starts, move your savings out first, even a small fixed amount. This is pay yourself first. What is left is what you live on, and it works because you never see the saved money as spendable.',
@@ -214,6 +345,61 @@ const List<Map<String, dynamic>> lessons = [
     'summary':
         'Why a small cash buffer changes everything, and how to start one.',
     'action': {'label': 'Create your Emergency fund goal', 'route': 'goals'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'An emergency fund exists to keep you out of new debt.',
+          'Start with one month of essentials, not six.',
+          'Keep it reachable, and separate from daily spending.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'Your phone dies and you need it for work. With no cushion, what '
+            'usually happens next?',
+        'reveal':
+            'It goes on a card or a loan, and a one time problem becomes '
+            'months of interest. That is what a cushion prevents. It is not '
+            'about wealth, it is about not borrowing at the worst moment.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'One week of essentials',
+          'One month of essentials',
+          'Three months',
+          'Then invest the rest',
+        ],
+        'caption':
+            'Each step is a real milestone. Stop worrying about the last one.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Aim for six months, feel the target is impossible, and start '
+            'nothing.',
+        'worksBetter':
+            'Fund one week first. It is reachable, and it already stops the '
+            'smallest emergencies from becoming debt.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Work out one week of your essentials: food, transport, and the '
+            'bills that cannot wait.',
+        'compare':
+            'Then set it as a goal in the app. That number is your first '
+            'target, and it is closer than you think.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'The first cushion is not about being rich. It is about not '
+            'borrowing when life happens.',
+      },
+    ],
     'body': [
       'An emergency fund is money set aside for the surprises: a medical visit, a phone that dies, an urgent trip to family. It is not for a sale or a new gadget. Its whole job is to keep one bad week from turning into debt.',
       'A common target is three to six months of your expenses. That can feel impossible when you are starting, so do not aim there yet. Aim for your first week of expenses, then your first month. In the Philippines, 10,000 pesos is a classic first milestone; wherever you live, one week of your real expenses is the honest version of the same target.',
@@ -229,6 +415,39 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'Why taking care of your body protects your money too.',
     'action': {'label': 'Add a Health fund goal', 'route': 'goals'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'One hospital bill can undo a year of saving.',
+          'Health cover is the cheapest protection for your cushion.',
+          'A check up costs less than the thing it catches early.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You have a solid emergency fund but no health cover. What is '
+            'the fund really for?',
+        'reveal':
+            'It becomes the hospital fund, and it empties in one event. '
+            'Cover exists so a medical shock does not eat the savings you '
+            'built for everything else.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Treat health cover as optional until something happens.',
+        'worksBetter':
+            'Treat it as part of the cushion. The cushion protects your '
+            'plans, and cover protects the cushion.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'The cheapest emergency is the one someone else helps you pay '
+            'for.',
+      },
+    ],
     'body': [
       'The fastest way to lose years of savings is one serious illness. A hospital stay, a maintenance medicine, an emergency operation, these can wipe out savings that took a long time to build. Looking after your health is not separate from your money, it is part of it.',
       'The cheapest health money you will ever spend is the amount that prevents a big bill later. A checkup that catches something early, staying active, sleeping enough, eating a little better. The payoff is invisible on purpose: it is the crisis that never happened.',
@@ -250,6 +469,61 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Log your cards in Debts, with rates and due dates',
       'route': 'debts',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'The minimum payment is designed to keep you paying, not to clear the balance.',
+          'Interest is charged on what is left, every month.',
+          'Paying a little more than the minimum changes the finish date a lot.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You owe on a card and you pay only the minimum every month, '
+            'never adding a single new purchase. Roughly how long until it '
+            'hits zero?',
+        'reveal':
+            'Years, and often many of them. The minimum is mostly interest '
+            'at the start, so the balance barely moves. This is not a trick '
+            'played on you personally, it is simply how the product works.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Your payment',
+          'Interest is taken first',
+          'What is left reduces the balance',
+          'Next month, interest on the new balance',
+        ],
+        'caption': 'This is why extra payments work so hard.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Pay the minimum, see the balance barely move, and stop looking '
+            'at the statement.',
+        'worksBetter':
+            'Pay the minimum plus whatever you can, every month. Even a '
+            'small fixed extra goes straight at the balance.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Find the interest rate on your card. Most people cannot say it '
+            'from memory.',
+        'compare':
+            'Put it into the app with the balance. Knowing the rate is what '
+            'makes the next lesson useful.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'The minimum keeps the account open. Anything above it is what '
+            'actually pays the debt.',
+      },
+    ],
     'body': [
       'A credit card gives you a grace period. Pay the full statement balance by the due date and you pay zero interest. That is the deal working in your favor.',
       'The trap is the minimum payment. It is usually a small slice of your balance, often around 3 to 5 percent. Pay only that and you lose the interest-free grace period, so interest, often 2 to 4 percent PER MONTH (in the Philippines the cap is 3 percent, a central bank rule), applies to your balance including new purchases. Next month you owe interest on the interest. This is how a small balance quietly becomes a big one.',
@@ -268,6 +542,47 @@ const List<Map<String, dynamic>> lessons = [
       'label': "Check an installment's true cost",
       'route': 'tools-bnpl',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Zero interest is not always zero cost. Look for the fees.',
+          'Several small plans at once add up to one large commitment.',
+          'A plan is a bill. It belongs in your budget like any other.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'Four small instalment plans, each easily affordable on its own. '
+            'What makes this risky?',
+        'reveal':
+            'They all land in the same month. Individually comfortable, '
+            'together they can take a big share of one payday, and they '
+            'usually do not feel like debt while you are signing up.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Judge each plan on its own, because each one looks small.',
+        'worksBetter':
+            'Add the monthly total of every active plan and treat that as '
+            'one number in your budget.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Guess your total monthly instalment commitment across every '
+            'plan you have.',
+        'compare':
+            'Then add them up in the app. The BNPL calculator in Tools shows '
+            'the real cost of a plan before you take it.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Convenient is not the same as free. Count it before you sign.',
+      },
+    ],
     'body': [
       'Buy now pay later splits a purchase into installments. Used carefully on something you were already going to buy, and can afford, it can spread a cost without pain.',
       'The risk is that it makes spending feel smaller than it is. Three or four small installments across different apps add up, and you can lose track of the total you owe. Miss a due date and fees or interest appear fast.',
@@ -283,6 +598,50 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'Two proven payoff orders, and how to choose with real numbers.',
     'action': {'label': 'Compare both plans in Debts', 'route': 'debts'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Snowball: pay the smallest balance first, for momentum.',
+          'Avalanche: pay the highest interest first, for maths.',
+          'The best method is the one you will actually finish.',
+        ],
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Pay minimums on everything',
+          'Put every extra peso on ONE debt',
+          'That debt hits zero',
+          'Roll its payment into the next',
+        ],
+        'caption': 'Both methods work this way. Only the order differs.',
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'Avalanche saves more interest. So why does anyone choose '
+            'snowball?',
+        'reveal':
+            'Because finishing something is fuel. A debt cleared early '
+            'proves the plan works, and people who see progress keep going. '
+            'A slightly cheaper plan you abandon costs more than a slightly '
+            'dearer one you finish.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Spread extra payments thinly across every debt at once.',
+        'worksBetter':
+            'Minimums on all, everything extra on one. Concentrated payments '
+            'are what make a debt actually disappear.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'The best payoff method is the one you can follow until the '
+            'balance reaches zero.',
+      },
+    ],
     'body': [
       'When you owe on more than one thing, the order you attack them in matters. There are two proven orders, and either one beats drifting.',
       'The snowball: pay minimums on everything, then throw every spare peso at the SMALLEST balance first. Each debt you finish is a win you can feel, and the freed-up payment rolls into the next one like a snowball. It wins on motivation.',
@@ -302,6 +661,50 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Check your Emergency fund goal target',
       'route': 'goals',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'A small cushion first, then attack the expensive debt.',
+          'With no cushion, the next surprise goes straight back on the card.',
+          'You are not choosing forever. You are choosing what comes first.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You have high interest debt and no savings at all. Should every '
+            'spare peso go to the debt?',
+        'reveal':
+            'Not quite. Keep a small starter cushion first. Without one, the '
+            'next unexpected cost goes back on the same card, and you end up '
+            'running in place while paying interest for the privilege.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Small starter cushion',
+          'Attack the expensive debt hard',
+          'Debt clear',
+          'Build the full emergency fund',
+        ],
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Build six months of savings while expensive interest compounds '
+            'behind them.',
+        'worksBetter':
+            'Keep the cushion small until the costly debt is gone, then let '
+            'savings grow properly.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'A starter cushion is what stops one bad week from undoing '
+            'months of payments.',
+      },
+    ],
     'body': [
       'Here is a trap that catches careful people: parking a full month of savings in an emergency fund while a credit card charges 3 percent A MONTH. The fund earns nothing; the card compounds. Every month that money sits still, the debt eats more than the cushion protects.',
       'But going all-in on debt with zero cushion fails too. The first surprise, a medicine, a repair, forces you to borrow again, and the cycle restarts. You need both, in the right order.',
@@ -320,6 +723,53 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Try an extra payment in Insights',
       'route': 'insights-tab',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'An extra payment does not need to be large to matter.',
+          'It goes straight at the balance, not at interest.',
+          'The same amount every month beats an occasional big one.',
+        ],
+      },
+      {
+        'kind': 'story',
+        'who': 'A seller with an uneven month',
+        'text':
+            'He could not promise a big extra payment, so he promised a '
+            'small one he could make even in a slow month, and added more '
+            'whenever a good week allowed. The steady part is what moved the '
+            'finish date. The bonuses just moved it further.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Find one repeatable expense you can cut',
+          'Send exactly that amount to one debt',
+          'Keep it identical every month',
+          'Roll it forward when that debt clears',
+        ],
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Wait for a bonus or a big month to make a serious dent.',
+        'worksBetter':
+            'Start with an amount so small it is boring, and never miss it.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Find one recurring cost you would not miss. A subscription, a '
+            'delivery habit, one thing.',
+        'compare':
+            'Open Recurring in the app and look at what repeats every month. '
+            'The extra payment is usually hiding in that list.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Small and boring, every month, is what actually clears debt.',
+      },
+    ],
     'body': [
       'Debt payoff is not linear, and that is good news. Because interest compounds, a small extra payment early is worth much more than the same amount later. The math is on your side once you push past the minimums.',
       'Find one fixed amount you can add every single month. One cancelled subscription. One downgraded plan. One want from the 24-hour-rule lesson that did not survive the night. It does not need to be big; it needs to be permanent.',
@@ -335,6 +785,49 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'Lending to people you care about, the healthy way.',
     'action': {'label': 'Log who owes you in Utang', 'route': 'utang-tab'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Say the amount and the date out loud, at the start.',
+          'Write it down in the app, not in your memory.',
+          'Lend only what you are okay never getting back.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'A friend asks to borrow money and you want to help. What is the '
+            'kindest thing you can do at that moment?',
+        'reveal':
+            'Be specific. Naming the amount and the date protects the '
+            'friendship, because the awkwardness comes from vagueness later, '
+            'not from clarity now. Nobody falls out over a date they both '
+            'agreed to.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Keep it casual to avoid the awkward conversation now.',
+        'worksBetter':
+            'Have the short awkward conversation at the start, so you never '
+            'need the long one later.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Think of money you are owed right now that is not written down '
+            'anywhere.',
+        'compare':
+            'Put it in the Utang tab with a date. The reminder does the '
+            'chasing so you do not have to.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'Clear terms are not distrust. They are how the friendship '
+            'survives the loan.',
+      },
+    ],
     'body': [
       'Lending inside the family and the barkada, the friend group, is part of Filipino life, and informal lending exists everywhere in the world. It goes wrong the same way everywhere too: the amount, and the memory of it, gets fuzzy. Then both the money and the relationship get awkward.',
       'Two habits keep it clean. First, only lend what you would be okay never getting back. Not "not getting back soon". Never. If losing it would put you in a bind, the honest answer is a smaller amount or a kind no. Second, write it down, the amount and the date, the moment it happens, so nobody has to rely on memory.',
@@ -352,6 +845,53 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'The one move that makes a swing income livable.',
     'action': {'label': 'Set Steady Pay in Insights', 'route': 'insights-tab'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Swing income is not a budgeting problem. It is a timing problem.',
+          'Pay yourself a fixed weekly amount instead of spending each payment.',
+          'Plan on your leanest months, never your best ones.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'A great month lands. What separates people who stay steady from '
+            'people who swing?',
+        'reveal':
+            'Not willpower. It is whether the good month becomes runway or '
+            'lifestyle. If you draw the same salary either way, a strong '
+            'month quietly funds the weak one that follows.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Income arrives, whatever the size',
+          'It goes into the pool',
+          'You draw a fixed weekly salary',
+          'The surplus covers the lean months',
+        ],
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Spend to the size of whatever payment just arrived.',
+        'worksBetter':
+            'Pay yourself the same amount every week, set from your leanest '
+            'months, and let the pool absorb the swings.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Guess your three leanest months of the last year, before '
+            'looking.',
+        'compare':
+            'Steady Pay in Insights works this out from what you have '
+            'logged. It needs a few months of history to be honest with you, '
+            'and it says so when it does not have enough.',
+      },
+      {'kind': 'reflection', 'line': 'A good month is runway, not permission.'},
+    ],
     'body': [
       'When your income swings, the danger is not the lean months. It is the good ones. A big month quietly raises your lifestyle, and then the next lean month cannot carry it.',
       'The move that fixes this: stop spending your income and start paying yourself a salary from it. Look at your three LEANEST months out of the last six, and pay yourself that, a fixed weekly amount, whatever the month brings.',
@@ -367,6 +907,48 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'Every swing income has a famine month. Make yours boring.',
     'action': {'label': 'See your months in Cash flow', 'route': 'cashflow'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Lean months are not surprises. They are a pattern.',
+          'Decide the cuts before the lean month, not during it.',
+          'A written plan removes the panic from a quiet week.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You know a slow month is coming. When is the best time to '
+            'decide what to cut?',
+        'reveal':
+            'Now, while nothing is urgent. Decisions made calmly are better '
+            'than decisions made short, and having the list ready means the '
+            'lean month is an inconvenience rather than a crisis.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Essentials that never get cut',
+          'Things that pause first',
+          'Things that pause next',
+          'What you would only touch last',
+        ],
+        'caption': 'Write it once. Use it every lean month.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Wait until the money is short, then cut whatever is nearest.',
+        'worksBetter':
+            'Have the order written down in advance, so a slow month follows '
+            'a plan instead of a mood.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'A lean month you planned for is just a quiet month.',
+      },
+    ],
     'body': [
       'Every seasonal or gig income has a famine month. Drivers know the slow season, sellers know the month after the holidays, freelancers know the client drought. The month is not the problem. Being surprised by it is.',
       'Find yours. Look back over your last six months and name the worst one, and by how much it fell short of your normal spending. That gap is a number, and a number can be planned for.',
@@ -387,6 +969,50 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Compare 8 percent vs graduated in Tools',
       'route': 'tools-tax',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Nobody withholds tax for you, so the discipline is yours.',
+          'Move the tax slice out on the day you get paid.',
+          'Tax money is not your money. It is being held, not earned.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You get paid for a job. How much of that payment is actually '
+            'yours to spend?',
+        'reveal':
+            'Less than the full amount, always. The freelancers who never '
+            'panic at a deadline are the ones who move a slice out the same '
+            'day, before it feels like income. The exact slice depends on '
+            'your setup, which the next part covers.',
+      },
+      {'kind': 'reference'},
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Keep the whole payment in one account and work out the tax when '
+            'the deadline arrives.',
+        'worksBetter':
+            'Split it on arrival. What is left is genuinely yours, and the '
+            'deadline becomes a transfer instead of a scramble.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Take your last client payment and work out the slice you should '
+            'have set aside.',
+        'compare':
+            'The tax calculator in Tools does the arithmetic. Doing it once '
+            'on a real payment is what makes the habit stick.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Money set aside for tax was never yours to spend.',
+      },
+    ],
     'body': [
       'The set-aside habit in this lesson works in every country; the rates and forms are Philippine (BIR, 2026 rules). If you pay tax elsewhere, keep the habit and swap in your own numbers.',
       'When no employer withholds tax for you, the discipline is yours. The freelancers and sellers who never panic at deadline are the ones who treat a slice of every payment as not theirs. When a client pays, move a small part aside the same day, before it starts to feel like spending money.',
@@ -405,6 +1031,38 @@ const List<Map<String, dynamic>> lessons = [
     'summary':
         'A plain map of BIR returns for employees, freelancers, and the self-employed.',
     'action': {'label': 'Write your next deadline in Notes', 'route': 'notes'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Know which returns are yours. Most people file fewer than they fear.',
+          'Keep every certificate a client gives you. It is tax already paid.',
+          'The rhythm matters more than the form number.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You are an employee with one job and nothing else. How many tax '
+            'returns do you file yourself?',
+        'reveal':
+            'Usually none. Your employer handles it. The filing burden '
+            'starts when you have more than one employer, or income of your '
+            'own, which is exactly what the rest of this lesson maps out.',
+      },
+      {'kind': 'reference'},
+      {
+        'kind': 'trap',
+        'mostPeople': 'Assume filing is one scary event in April.',
+        'worksBetter':
+            'Treat it as a quarterly rhythm you already know the dates for, '
+            'with the paperwork filed as it arrives.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Knowing which returns are yours is most of the anxiety gone.',
+      },
+    ],
     'body': [
       'These are Philippine tax forms (BIR, 2026 rules). If you file elsewhere, skip the form names but keep the habit: know which returns are yours, keep every proof of tax already paid, and never miss a quarter.',
       'If you are an employee with just one job, good news, you usually file nothing yourself. Your employer takes the tax from your salary, remits it, and gives you Form 2316 every January. That shortcut is called substituted filing.',
@@ -430,6 +1088,48 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Run the Contribution checker',
       'route': 'tools-contrib',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'With no employer, nobody remits your contributions but you.',
+          'Gaps are quiet now and expensive later.',
+          'Treat contributions as a bill, not an optional extra.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'You stop contributing for a year while self employed and '
+            'nothing bad happens. Is that a problem?',
+        'reveal':
+            'Nothing happens immediately, which is exactly why it is easy to '
+            'let slide. The cost shows up when you need the benefit, and by '
+            'then the gap cannot be filled retroactively on the same terms.',
+      },
+      {'kind': 'reference'},
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Pause contributions during a slow month and never restart.',
+        'worksBetter':
+            'Put them in the app as a recurring bill so restarting is not a '
+            'decision you have to remember to make.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Check when you last contributed. Most self employed people are '
+            'not sure.',
+        'compare':
+            'The contribution checker in Tools works out what applies to '
+            'you, and Recurring keeps it from slipping again.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Nobody pays your benefits but you, so put them in the plan.',
+      },
+    ],
     'body': [
       'This lesson covers Philippine contributions (SSS, PhilHealth, Pag-IBIG). If you live elsewhere, the principle still holds: when you leave employment, find out which social protections stopped, and restart the ones that matter.',
       'When you had an employer, three things were quietly being paid for you every month: SSS toward your pension and sickness benefits, PhilHealth toward hospital bills, and Pag-IBIG toward savings and housing. The day you went freelance, all three stopped, unless you restarted them yourself as a voluntary member.',
@@ -447,6 +1147,58 @@ const List<Map<String, dynamic>> lessons = [
     'minutes': 2,
     'summary': 'The universal rule for bonuses, refunds, and lump sums.',
     'action': {'label': 'Plan a windfall in Insights', 'route': 'insights-tab'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'Decide what a windfall does BEFORE it arrives.',
+          'A bonus is part of your money, not free money.',
+          'Split it on purpose: debt, savings, and something you enjoy.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'A bonus lands in your account with no plan attached. Where does '
+            'most of it usually go?',
+        'reveal':
+            'Nowhere you can name a month later. Unplanned money gets '
+            'absorbed by ordinary spending, which is why deciding in advance '
+            'is the whole technique. The decision is easy while the money is '
+            'still theoretical.',
+      },
+      {
+        'kind': 'diagram',
+        'steps': [
+          'Money arrives',
+          'A share to debt',
+          'A share to savings',
+          'A share to enjoy, guilt free',
+        ],
+        'caption': 'Your shares, decided before it lands.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople': 'Promise to be sensible with the bonus once it arrives.',
+        'worksBetter':
+            'Write the split down now, while nothing is in your account and '
+            'nothing feels urgent.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Decide your split for the next lump sum you expect, whatever it '
+            'is.',
+        'compare':
+            'Write it in Notes today. The point is that the decision exists '
+            'before the money does.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'Decide what a windfall will do before it reaches your account.',
+      },
+    ],
     'body': [
       'A lump sum, a bonus, a refund, a gift, a payout, has a strange property: it disappears faster than the same amount earned slowly. It feels like extra, so it gets spent like extra, and a month later there is nothing to point at.',
       'The fix is one rule: decide the split BEFORE the money arrives. After it lands, the mall decides for you.',
@@ -466,6 +1218,46 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Run the 13th month calculator',
       'route': 'tools-thirteenth',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'It feels like free money, so it disappears fastest.',
+          'Decide the split before December, not during it.',
+          'Clearing expensive debt with part of it is a permanent win.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'The 13th month lands. What makes the difference between people '
+            'who still have some of it in February and people who do not?',
+        'reveal':
+            'Only one thing: whether the split was decided before it '
+            'arrived. Nobody plans in December, because December is loud. '
+            'The decision is easy in October, when the money is still '
+            'theoretical.',
+      },
+      {'kind': 'reference'},
+      {
+        'kind': 'trap',
+        'mostPeople': 'Plan to be sensible with it once it is in the account.',
+        'worksBetter':
+            'Write the split down before it lands: a slice to savings, a '
+            'slice to the costliest debt, and a slice to enjoy without guilt.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt': 'Guess your 13th month amount before you calculate it.',
+        'compare':
+            'The 13th month calculator in Tools gives the real figure. Then '
+            'point each slice at a goal or a debt.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Decide what it does before it arrives, or it decides for you.',
+      },
+    ],
     'body': [
       'In the Philippines, rank-and-file employees get an extra month of pay in December, the 13th month. If your country pays a year-end bonus or holiday pay instead, the exact same plan works.',
       'The 13th month feels like free money, so it disappears the fastest. A little planning before it lands makes it do real work for you.',
@@ -487,6 +1279,37 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Sanity-check your take-home pay in Tools',
       'route': 'tools-salary',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'A refund is your own money coming back, not a prize.',
+          'It means too much was withheld during the year.',
+          'Plan it like any other lump sum.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'A refund arrives. Is that good news, bad news, or neither?',
+        'reveal':
+            'Mostly neither. It means more was withheld than you owed, so '
+            'you lent it interest free for the year. Pleasant to receive, '
+            'but it is your money returning, not extra money arriving.',
+      },
+      {'kind': 'reference'},
+      {
+        'kind': 'trap',
+        'mostPeople': 'Treat a refund as a bonus and spend it as found money.',
+        'worksBetter':
+            'Treat it as the lump sum it is, and give it a job before it '
+            'lands, the same as any other windfall.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'A refund is money you already earned, arriving late.',
+      },
+    ],
     'body': [
       'This lesson covers Philippine employer withholding (BIR, 2026 rules). Elsewhere the mechanics differ, but the idea travels: withheld tax is an estimate, and year end is when the estimate gets corrected.',
       'Every payday your employer takes a slice of your pay for income tax, based on a guess of what you will earn for the whole year. At year end they add up what you really earned and compare it to what they already took. If they took too much, the extra comes back to you as a refund, usually in your December or January pay.',
@@ -508,6 +1331,39 @@ const List<Map<String, dynamic>> lessons = [
       'label': 'Raise your payday savings in Recurring',
       'route': 'recurring',
     },
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'A raise is the easiest saving you will ever do.',
+          'Capture part of it before your spending adjusts.',
+          'You never miss money you never lived on.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'Your pay goes up. How long before it feels normal and the extra '
+            'is gone?',
+        'reveal':
+            'Usually a month or two. Spending expands to fill income almost '
+            'silently. That is why the move is to raise your savings on the '
+            'SAME day your pay rises, not later.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Enjoy the raise for a few months, then plan to save it once '
+            'things settle.',
+        'worksBetter':
+            'Split it on day one: part to your life, part straight to '
+            'savings or debt. Both feel like a win.',
+      },
+      {
+        'kind': 'reflection',
+        'line': 'Raise your savings the same day you raise your salary.',
+      },
+    ],
     'body': [
       'Lifestyle creep is silent. A raise arrives, spending drifts up to meet it, and six months later the bigger salary feels exactly as tight as the old one. Nothing was decided; it just happened.',
       'The countermove takes one decision, made once: commit half of every raise to savings or debt, starting on the FIRST payday at the new rate, before the bigger number starts to feel normal. You still get the other half, so life visibly improves, and your future quietly improves twice as fast.',
@@ -524,6 +1380,50 @@ const List<Map<String, dynamic>> lessons = [
     'summary':
         'Paluwagan, susu, tanda, chit funds: what they are and the one risk.',
     'action': {'label': 'Track your circle in Paluwagan', 'route': 'paluwagan'},
+    'blocks': [
+      {
+        'kind': 'nuggets',
+        'items': [
+          'A savings circle is a promise, not a product.',
+          'It works on trust, and trust needs a written record.',
+          'Know your payout position before you join.',
+        ],
+      },
+      {
+        'kind': 'discovery',
+        'question':
+            'What is the real risk in a savings circle, compared with saving '
+            'alone?',
+        'reveal':
+            'Someone else stopping. Your money depends on every other member '
+            'continuing to pay, which is fine among people you know well and '
+            'genuinely risky among people you do not.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Join because a friend vouched for it, without knowing the full '
+            'list of members or the payout order.',
+        'worksBetter':
+            'Know who is in it, what each person pays, and when your turn '
+            'comes, before the first contribution.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'If you are in a circle now, write down every contribution date '
+            'and your payout position.',
+        'compare':
+            'The Paluwagan tracker in the app keeps the record so it does '
+            'not live in a group chat nobody scrolls back through.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'A savings circle is only as strong as the record everyone can '
+            'check.',
+      },
+    ],
     'body': [
       'A rotating savings circle, called paluwagan in the Philippines, susu in the Caribbean, tanda in Mexico, a chit fund in India, exists in nearly every culture, because it solves a real problem: saving alone is easy to quit, and saving with your group is not.',
       'The mechanics are simple. Everyone contributes a fixed amount each cycle, and each cycle one member takes the whole pot, in turns. Over a full round everyone pays in and receives exactly the same total. It is forced discipline at zero interest, powered by not wanting to let your people down.',

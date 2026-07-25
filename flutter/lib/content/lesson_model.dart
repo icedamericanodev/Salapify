@@ -239,6 +239,31 @@ KnowledgeCheck? _checkFrom(dynamic raw) {
 /// (a flat 'body' list and no sections) converts into a single concept
 /// section, so the reader renders every lesson correctly while the content is
 /// rewritten track by track rather than in one unreviewable change.
+
+/// Authored blocks, with one special marker expanded.
+///
+/// A block of kind 'reference' is replaced by the lesson's own body prose.
+/// That exists for the Philippine tax lessons: their facts are CPA reviewed
+/// and pinned by regression tests that read `body`, so restating those rates,
+/// thresholds, and deadlines inside a second copy in `blocks` would create two
+/// sources of truth for the one kind of content that must never drift. The
+/// coaching blocks wrap the verified prose instead of paraphrasing it.
+List<LessonBlock> _authoredBlocks(Map<String, dynamic> m) {
+  final raw = m['blocks'];
+  if (raw is! List) return const [];
+  final body = _strings(m['body']);
+  final out = <LessonBlock>[];
+  for (final entry in raw) {
+    if (entry is Map && (entry['kind'] ?? '').toString() == 'reference') {
+      if (body.isNotEmpty) out.add(ProseBlock(paragraphs: body));
+      continue;
+    }
+    final b = blockFromMap(entry);
+    if (b != null) out.add(b);
+  }
+  return out;
+}
+
 MoneyLesson lessonFromMap(Map<String, dynamic> m) {
   final rawSections = m['sections'];
   final sections = <LessonSection>[];
@@ -276,7 +301,7 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
         ? CourseRegion.philippines
         : CourseRegion.global,
     sections: sections,
-    authoredBlocks: blocksFromList(m['blocks']),
+    authoredBlocks: _authoredBlocks(m),
     commonMistake: (m['commonMistake'] ?? '').toString(),
     check: _checkFrom(m['check']),
     keyTakeaway: (m['takeaway'] ?? '').toString(),

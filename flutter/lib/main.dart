@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.30 · Money courses feel like a coach now, not an article. A lesson opens with one honest line about YOUR money from what you have logged, or says plainly when there is not enough to go on. Then short idea cards, a question before the answer, a real story, the flow as a diagram, what most people do versus what works better, a one minute challenge, and one sentence to keep. Progress now tracks viewed, understood, applied, and completed. The first lesson is rebuilt this way, the rest follow.';
+    'f2.31 · All 22 money lessons are now in the coaching shape, not just the first one. Every lesson opens with one honest line about your money, then short idea cards, a question you answer before the app does, a real story, the flow as a diagram, what most people do versus what works better, a one minute challenge against your own numbers, and one sentence to keep. The Philippine tax lessons keep their CPA checked wording exactly as it was.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
