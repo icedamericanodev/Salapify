@@ -139,6 +139,25 @@ phone. Rules for reading it:
   it by hand or they receive nothing forever while every build stays green.
   Say so loudly, immediately, and never bury it.
 
+### Finished means delivered (founder rule, 2026-07-25)
+
+A batch is FINISHED when it is merged and a delivery row exists for it. Not
+when the code is written, not when tests pass, not when the pull request is
+open. Applies to every future update, without exception.
+
+Concretely, before answering any new question or starting any new work:
+- If a pull request is open with finished work in it, merge it or say out
+  loud, to the founder, why it is waiting. Never silently move on.
+- After merging, watch the build through and report the patch number from
+  docs/delivery-log.md.
+- The founder should never have to tap "check for update" to discover whether
+  something was finished. If they are asking, the reporting already failed.
+
+This rule exists because three separate delivery failures had three different
+causes, a broken test, a missing pre-merge check, and simply never merging a
+finished pull request, and only the first two had guards. This one is the
+guard for the third.
+
 Never tell the founder a stamp is live until a row for it exists. "Merged"
 is not "delivered"; the whole delivery outage was that one word.
 
