@@ -1,15 +1,20 @@
 // Renders real screens to PNG files so they can be LOOKED at.
 //
-// Deliberately in tool/, NOT test/, so `flutter test` never picks it up.
-// A tag alone was not enough: tags only filter when you pass --tags, so this
-// file sitting under test/ would run on every CI build and fail there, because
-// the runner has different fonts and no reference image. Living outside test/
-// makes that impossible rather than merely unlikely.
+// Named without the `_test` suffix ON PURPOSE. `flutter test` only ever
+// collects files matching `*_test.dart`, so this can never join a CI run and
+// fail there on font differences or a missing reference image. A tag would
+// NOT have been enough: tags only filter when you pass --tags, so a
+// `*_test.dart` file would have run everywhere by default.
+//
+// It does live under test/ though, because that is what it is: the analyzer
+// only permits test-only helpers like SharedPreferences.setMockInitialValues
+// inside test code, and parking it in tool/ turned that into a hard analyze
+// failure on the branch check.
 //
 // Run deliberately, from flutter/:
-//   flutter test tool/screens_shot.dart --update-goldens
+//   flutter test test/screens_shot.dart --update-goldens
 //
-// Output lands in tool/shots/, which is gitignored: these are working images
+// Output lands in test/shots/, which is gitignored: these are working images
 // for looking at, not a check anything should depend on.
 //
 // The gotcha that cost two rounds of founder screenshots: testWidgets runs in

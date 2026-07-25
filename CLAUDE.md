@@ -43,7 +43,7 @@ Flutter track:
 
 Claude can render any Flutter screen to a PNG and actually look at it:
 
-    cd flutter && flutter test tool/screens_shot.dart --update-goldens
+    cd flutter && flutter test test/screens_shot.dart --update-goldens
 
 Do this for every UI change, before the merge. Two real bugs reached the
 founder's phone because it was not done: a lesson rendering its reference
