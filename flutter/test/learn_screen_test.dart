@@ -48,9 +48,10 @@ void main() {
     await tester.tap(find.text(featured['title'] as String).first);
     await tester.pumpAndSettle();
 
-    // A body paragraph appears only in the reader, so this confirms it opened.
-    final firstPara = (featured['body'] as List).first as String;
-    expect(find.textContaining(firstPara.substring(0, 40)), findsOneWidget);
+    // The reader opened: the hero shows the title, and the personal insight
+    // line is always present, either a real observation or the honest
+    // "not enough logged yet" line. This store is empty, so it is the latter.
+    expect(find.textContaining('Nothing here is a guess'), findsOneWidget);
 
     // Backing out WITHOUT reaching the end must not count. This is the whole
     // point of the change: the old screen marked the lesson read the moment it
@@ -63,12 +64,12 @@ void main() {
       reason: 'a lesson opened and abandoned is not a lesson learned',
     );
 
-    // Now read it properly: open, reach the end, confirm.
+    // Now read it properly: open, reach the end, finish.
     await tester.tap(find.text(featured['title'] as String).first);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('I have read this'), 200);
+    await tester.scrollUntilVisible(find.text('Finish this lesson'), 250);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('I have read this'));
+    await tester.tap(find.text('Finish this lesson'));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();

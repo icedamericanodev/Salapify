@@ -55,48 +55,68 @@ const List<Map<String, dynamic>> lessons = [
     'summary': 'One week of honest logging changes more than any budget.',
     'objective': 'Find out where your daily spending actually goes.',
     'action': {'label': 'Log what you spent today', 'route': 'log'},
-    'sections': [
+    'blocks': [
       {
-        'kind': 'context',
-        'body': [
-          'Most people can name their rent and their biggest bill, and still '
-              'have no idea where the rest went. That is not carelessness. '
-              'Small amounts do not feel like spending while they happen.',
-          'A budget built on a guess fails in week two, because the guess was '
-              'wrong. So start with the truth instead.',
+        'kind': 'nuggets',
+        'items': [
+          'Most people guess their spending low, and not by lying.',
+          'Small amounts do not feel like spending while they happen.',
+          'A budget built on a guess fails in week two.',
         ],
       },
       {
-        'kind': 'concept',
-        'body': [
-          'For seven days, write down everything, and change nothing. No '
-              'cutting, no rules, no judgment. You are collecting facts, not '
-              'grading yourself.',
-          'Two things happen. Spending you watch shrinks on its own, because '
-              'attention alone changes behavior. And at the end of the week '
-              'you have a real daily number, which makes every lesson after '
-              'this one work on your life instead of a template.',
-        ],
+        'kind': 'discovery',
+        'question':
+            'If you wrote down every peso for one week and changed nothing '
+            'else, what do you think would happen to your spending?',
+        'reveal':
+            'It usually drops on its own. Not because you tried, but because '
+            'attention alone changes behavior. That is why the first week is '
+            'for watching, not fixing.',
       },
       {
-        'kind': 'steps',
-        'body': [
-          'Log every expense for seven days, the day it happens.',
-          'Change nothing about your spending yet.',
-          'At the end of the week, look at your daily average.',
-          'Pick the one pattern you would actually be glad to change.',
-        ],
+        'kind': 'story',
+        'who': 'An office worker, one week in',
+        'text':
+            'She guessed she spent about 200 a day. After a week of logging '
+            'it was closer to 340, and most of the gap was delivery fees and '
+            'a daily coffee, neither of which felt like spending at the time. '
+            'She did not quit either one. She moved coffee to three days a '
+            'week and kept the rest, which is a change she could live with.',
       },
       {
-        'kind': 'example',
-        'body': [
-          'An office worker guessed they spent about 200 a day. After a week '
-              'of logging it was closer to 340, and most of the gap was '
-              'delivery fees and a daily coffee, neither of which felt like '
-              'spending at the time.',
-          'They did not quit either one. They moved coffee to three days a '
-              'week and kept the rest, which is a change they could live with.',
+        'kind': 'diagram',
+        'steps': [
+          'Log everything for 7 days',
+          'Change nothing yet',
+          'Look at your daily average',
+          'Pick ONE pattern to change',
         ],
+        'caption': 'The whole method. Nothing else is required.',
+      },
+      {
+        'kind': 'trap',
+        'mostPeople':
+            'Start cutting on day three, the moment something looks bad.',
+        'worksBetter':
+            'Finish the week first. One unusual week tells you nothing about '
+            'a normal one, and the change you pick with the full picture is '
+            'the one that lasts.',
+      },
+      {
+        'kind': 'challenge',
+        'prompt':
+            'Before you look, guess what you spent yesterday. Say the number '
+            'out loud.',
+        'compare':
+            'Then open History and compare. The size of the gap is the whole '
+            'lesson.',
+      },
+      {
+        'kind': 'reflection',
+        'line':
+            'You do not need a perfect budget. You need an honest starting '
+            'point.',
       },
     ],
     'commonMistake':

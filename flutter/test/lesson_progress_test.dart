@@ -34,8 +34,8 @@ void main() {
         null,
         legacyRead: ['see-it-first', 'needs-wants'],
       );
-      expect(p['see-it-first'], LessonState.learned);
-      expect(p['needs-wants'], LessonState.learned);
+      expect(p['see-it-first'], LessonState.completed);
+      expect(p['needs-wants'], LessonState.completed);
     });
 
     test('a new entry wins over the legacy list for the same lesson', () {
@@ -47,7 +47,7 @@ void main() {
       );
       expect(
         p['see-it-first'],
-        LessonState.inProgress,
+        LessonState.viewed,
         reason: 'the finer-grained record is the truthful one',
       );
     });
@@ -55,55 +55,55 @@ void main() {
 
   group('withLessonState', () {
     test('progress never goes backwards', () {
-      var stored = withLessonState(null, 'a', LessonState.learned);
-      stored = withLessonState(stored, 'a', LessonState.inProgress);
+      var stored = withLessonState(null, 'a', LessonState.completed);
+      stored = withLessonState(stored, 'a', LessonState.viewed);
       expect(
         parseLessonProgress(stored)['a'],
-        LessonState.learned,
+        LessonState.completed,
         reason: 'rereading a finished lesson must not un-finish it',
       );
     });
 
-    test('inProgress can still become learned', () {
-      var stored = withLessonState(null, 'a', LessonState.inProgress);
-      stored = withLessonState(stored, 'a', LessonState.learned);
-      expect(parseLessonProgress(stored)['a'], LessonState.learned);
+    test('viewed can still become completed', () {
+      var stored = withLessonState(null, 'a', LessonState.viewed);
+      stored = withLessonState(stored, 'a', LessonState.completed);
+      expect(parseLessonProgress(stored)['a'], LessonState.completed);
     });
 
     test('other lessons are untouched by a write', () {
-      var stored = withLessonState(null, 'a', LessonState.learned);
-      stored = withLessonState(stored, 'b', LessonState.inProgress);
+      var stored = withLessonState(null, 'a', LessonState.completed);
+      stored = withLessonState(stored, 'b', LessonState.viewed);
       final p = parseLessonProgress(stored);
-      expect(p['a'], LessonState.learned);
-      expect(p['b'], LessonState.inProgress);
+      expect(p['a'], LessonState.completed);
+      expect(p['b'], LessonState.viewed);
     });
   });
 
   group('counting and continuing', () {
     test('only learned counts, so opening a lesson earns nothing', () {
       final p = {
-        'a': LessonState.inProgress,
-        'b': LessonState.learned,
+        'a': LessonState.viewed,
+        'b': LessonState.completed,
         'c': LessonState.notStarted,
       };
       expect(learnedCount(p, ['a', 'b', 'c']), 1);
     });
 
     test('the next lesson is the first unfinished one', () {
-      final p = {'a': LessonState.learned, 'b': LessonState.inProgress};
+      final p = {'a': LessonState.completed, 'b': LessonState.viewed};
       expect(nextLessonId(p, ['a', 'b', 'c']), 'b');
-      expect(nextLessonId({'a': LessonState.learned}, ['a']), isNull);
+      expect(nextLessonId({'a': LessonState.completed}, ['a']), isNull);
     });
   });
 
   group('the store', () {
-    test('answering marks learned and keeps the old key in step', () async {
+    test('completing marks done and keeps the old key in step', () async {
       SharedPreferences.setMockInitialValues({});
       final store = SalapifyStore();
       await store.load();
-      await store.setLessonState('see-it-first', LessonState.learned);
+      await store.setLessonState('see-it-first', LessonState.completed);
 
-      expect(store.lessonProgress['see-it-first'], LessonState.learned);
+      expect(store.lessonProgress['see-it-first'], LessonState.completed);
       final settings = store.data['settings'] as Map;
       expect(
         settings['lessonsRead'],
@@ -118,9 +118,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = SalapifyStore();
       await store.load();
-      await store.setLessonState('see-it-first', LessonState.inProgress);
+      await store.setLessonState('see-it-first', LessonState.viewed);
 
-      expect(store.lessonProgress['see-it-first'], LessonState.inProgress);
+      expect(store.lessonProgress['see-it-first'], LessonState.viewed);
       final read = (store.data['settings'] as Map)['lessonsRead'];
       expect(
         read == null || (read as List).isEmpty,
@@ -133,11 +133,11 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = SalapifyStore();
       await store.load();
-      await store.setLessonState('needs-wants', LessonState.learned);
+      await store.setLessonState('needs-wants', LessonState.completed);
 
       final reopened = SalapifyStore();
       await reopened.load();
-      expect(reopened.lessonProgress['needs-wants'], LessonState.learned);
+      expect(reopened.lessonProgress['needs-wants'], LessonState.completed);
     });
 
     test('an old backup restores without losing progress', () async {
@@ -149,8 +149,8 @@ void main() {
         '{"schemaVersion":12,"accounts":[],"transactions":[],'
         '"settings":{"lessonsRead":["see-it-first","needs-wants"]}}',
       );
-      expect(store.lessonProgress['see-it-first'], LessonState.learned);
-      expect(store.lessonProgress['needs-wants'], LessonState.learned);
+      expect(store.lessonProgress['see-it-first'], LessonState.completed);
+      expect(store.lessonProgress['needs-wants'], LessonState.completed);
     });
   });
 
