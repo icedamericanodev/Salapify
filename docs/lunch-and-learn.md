@@ -10,6 +10,460 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-25, session 4: the wall, the boxes, and ninety one minutes of nothing
+
+### What we believed / What was true
+
+Four beliefs this round. One of them was true, and it is the one that matters
+most.
+
+**Believed: all four stamps reached the phone. TRUE.** Read from
+`git show origin/main:docs/delivery-log.md`, not assumed: f2.36 patch 30 at
+07:21 UTC, f2.37 patch 31 at 08:01, f2.38 patch 32 at 10:36, f2.39 patch 33 at
+11:57. All mode `patch`, all app version 0.5.0+8, `flutter/pubspec.yaml` still
+`0.5.0+8` so no base APK was stranded. The founder confirmed on the phone that
+the lesson ticks are back, which closes the f2.34 fix from session 3 with the
+only evidence that counts. Delivery worked. This entry is not about a delivery
+failure.
+
+**Believed: the Update stamp was a row.** True: it was roughly forty lines. The
+founder sent a screenshot of it filling the whole screen. Measured from git
+rather than described: the stamp text was 424 characters at f2.34, 765 at
+f2.35, 896 at f2.36, and 1264 at f2.37, which is what the founder photographed.
+The number of version names inside it went 1, 2, 3, 4. Each build appended the
+previous build's notes instead of replacing them, and the row it lived in was a
+right-aligned `Text` with no line limit, so nothing pushed back. This was
+self-inflicted, by Claude, over six consecutive builds, and the founder had to
+be the one to notice.
+
+**Believed: boxes in the screenshot render are a harmless sandbox artifact, and
+CLAUDE.md said so in writing.** True: twice in one day the boxes were the
+defect. First when icons became the thing being reviewed, second when the
+diagnostics report used a monospace font the harness does not have, so the one
+screen in the app that shows data leaving the phone rendered as solid boxes.
+The note that excused boxes was accurate when it was written. That is what made
+it dangerous.
+
+**Believed: a merge to main publishes in about eleven minutes.** True, usually.
+Measured across this round: 11 minutes, 11 minutes, 9 minutes, and once 102
+minutes, because the run sat in GitHub's queue for 91 minutes waiting for a
+free runner. Nothing in the repository was wrong. Nothing in the repository
+said a word either.
+
+### Timeline (with evidence)
+
+All times UTC, from the commit dates and from the timestamps the publisher
+wrote into docs/delivery-log.md. Stamp lengths measured by extracting the
+`updateStamp` constant from each commit.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| 06:24 (prev round) | **Wall divergence.** c68f750 writes f2.35 and, for the first time, appends the previous build's notes. 765 characters, two version names | git show c68f750:flutter/lib/main.dart |
+| 07:04 | 8fa04b7, stamp f2.36, 896 characters, three version names | git log |
+| 07:10 | Merge #192 (624af1b) | delivery row f2.36 patch 30 at 07:21 |
+| 07:44 | 35024fc, one orange icon family. Stamp f2.37, 1264 characters, four version names | git log |
+| 07:44 | The renderer is taught to load MaterialIcons from the running SDK, and to print a loud WARNING if it cannot find it | flutter/test/screens_shot.dart |
+| 07:50 | Merge #193 (3f9c23f) | delivery row f2.37 patch 31 at 08:01 |
+| after 08:01 | **Founder screenshot: the stamp row fills the screen** | founder message |
+| 08:20 | 44f0237, the renderer draws dark as well as light | git log |
+| 08:49 | 3de299e, stamp f2.38 cut to 82 characters. test/update_stamp_test.dart added. update_card.dart gains maxLines 4. Two false lines in CLAUDE.md corrected | git show 3de299e --stat |
+| 08:54 | Merge #194 (8d71c91) | git log |
+| 08:54 to 10:25 | **Queue divergence.** The publish run never starts. No runner. Zero runs in progress, all four workflows from the merge stuck identically. Not cancelled and not re-pushed, on purpose, because both add jobs to a queue that is not moving | session record |
+| 10:25 | c55367f, the Copy diagnostics button. The render shows the report as solid boxes, monospace removed, three stacked button labels shortened. Stamp f2.39, 76 characters | commit message of c55367f |
+| 10:36 | f2.38 finally publishes, 102 minutes after its merge | delivery row f2.38 patch 32 |
+| 11:48 | Merge #195 (3a8b46a) | git log |
+| 11:57 | f2.39 delivered, 9 minutes after merge | delivery row f2.39 patch 33 |
+| 13:16 | 4fde57a, .github/workflows/delivery-watchdog.yml | git log |
+
+Merge to delivery row, measured: 11, 11, 102, 9 minutes. The normal case is 9
+to 11 minutes. That measurement is what justifies the watchdog's 45 minute
+grace window, which is four times normal.
+
+Verified on the checkout at the time of writing: `flutter analyze` reports "No
+issues found", `flutter test` reports **693 tests passing**, and the screenshot
+harness writes its shots in about eleven seconds.
+
+Limitation, stated rather than hidden: the claim that zero runs were in
+progress during the queue comes from the session record, not from a fresh
+query. What does not need any API is the timing, and the timing alone proves
+the anomaly: three merges in this round went from merge to delivery row in 9 to
+11 minutes, and one took 102. That comparison comes entirely from git and from
+docs/delivery-log.md.
+
+### Divergence points
+
+Three, because there were three separate splits between belief and reality, at
+three different moments.
+
+**The wall: 06:24 UTC on commit c68f750**, in the round session 3 wrote up. That
+is the first push where the stamp stopped naming only itself. It was already
+too long before that (326 to 496 characters at f2.30 through f2.34, four to
+eight lines on a phone), but the appending is what turned "too long" into
+"forty lines". Session 3 did not catch it. Worse, and this is the sharpest
+single fact in this entry, session 3's own Lesson 6 **endorsed** it: "when
+several stamps merge together, the delivered stamp's text must cover everything
+since the last delivery row." That guard, written to stop a stamp's notes being
+lost, is the mechanism that grew the wall. A guard aimed at one failure created
+another.
+
+**The monospace boxes: the moment the note became true.** There is no commit
+for this one. The divergence is that a sentence in CLAUDE.md went from
+describing an irrelevant artifact to excusing a real defect, without changing a
+single character. Nothing can detect that transition, which is exactly why it
+deserves the most attention here.
+
+**The queue: 08:54 UTC**, the merge of #194. From that second until the founder
+asked "what happened to f2.38", every signal in the system was consistent with
+success, because a run that has not started looks precisely like a run about to
+finish. The founder asked twice, once about f2.38 and once for "status now", so
+the reporting failed even though no code did.
+
+### Root cause
+
+**The stamp wall.** The stamp had two jobs, and they fight. Job one, answer
+"which build am I running", needs one short line. Job two, added by session 3,
+carry forward everything since the last delivery row so no notes are lost,
+grows without limit. Nothing arbitrated between them, and nothing measured the
+result. The root cause is not carelessness in writing long stamps; it is that
+one field was assigned two purposes with no bound, and the only place the
+outcome was visible was the founder's screen. Note the shape: a rule with no
+number in it drifts, and a rule with a number that nothing checks drifts just
+as fast.
+
+**The monospace boxes.** A documented known-artifact is a standing invitation to
+dismiss a real defect, and the invitation is strongest exactly when the
+artifact overlaps what is being reviewed. The note said boxes are a sandbox
+artifact, never fix one of those. It was true for emoji. It was false for icons
+the moment icons were the subject, and false again for monospace text a few
+hours later. The root cause is not the note being wrong, because it was right.
+The root cause is that the artifact was documented instead of eliminated, and a
+documented exception trains the reviewer to filter out the exact pixels a
+defect would hide in. Boxes were caught this time only because someone looked
+at the harness output and refused to apply their own rule.
+
+**The 91 minute queue.** Every alarm in this repository fires when something
+FAILS. Nothing fires when something never runs. The publisher has an
+`if: failure()` step that opens an issue, and it is a good guard, but a job
+sitting in a queue has not failed, so nothing was there to speak. The root
+cause is that the monitoring watched causes rather than the outcome, and the
+outcome is the only thing the founder experiences.
+
+**The bug in the watchdog.** The first version used
+`git log -1 -- flutter/lib/main.dart`, which returns the BRANCH commit that
+wrote the stamp, not the merge that put it on main. Verified by running both
+forms against origin/main: without `--first-parent`, 10:25; with it, 11:48.
+Eighty three minutes apart, on the very stamp in front of us. Any batch that
+took longer than the 45 minute grace window would have fired a false alarm the
+instant it merged, every single time. The root cause is that a new guard is
+itself untested code, and it was written from a mental model of git rather than
+from a measurement of git.
+
+**CLAUDE.md going stale, third consecutive session.** Two lines had gone false:
+that the render uses the light palette only, and that icons draw as boxes. Both
+were corrected. The root cause is structural and worth naming precisely:
+CLAUDE.md stores facts that live somewhere else. A sentence about what the
+renderer draws is a copy of a fact owned by flutter/test/screens_shot.dart, and
+a copy has no way to know when the original changes.
+
+### Lessons and guards
+
+**Lesson 1. A field with no limit and two jobs will grow until a human
+complains.**
+Guard, part one: `flutter/test/update_stamp_test.dart`, which caps the stamp at
+120 characters and fails if it names more than one version, that second
+assertion aimed at the precise mechanism that grew the wall.
+Guard, part two: `maxLines: 4` with ellipsis overflow on the row itself, so
+even a stamp that gets past the test cannot take the screen.
+Strength: **strong**. Automated, fails loudly, two independent layers where
+either alone would have failed here.
+Verified with teeth rather than trusted. A deliberate 247 character wall naming
+five versions was written in, and both assertions fired, each naming the
+mechanism rather than just the number. Reverted immediately.
+
+**Lesson 2. A documented known-artifact is a licence to dismiss a real defect,
+and it is most dangerous when the artifact overlaps what is under review.**
+This is the most important lesson in this session.
+Guard, part one, and the only strong kind: **remove the artifact instead of
+documenting it.** The harness now loads MaterialIcons from the running Flutter
+SDK, so Salapify's own icons render for real, and it prints a loud warning
+rather than quietly drawing boxes again. The monospace family in the
+diagnostics report was deleted outright, since the report is lines and not
+aligned columns, so monospace bought nothing and cost the reviewability of the
+one screen that moves data off the phone.
+Guard, part two: the CLAUDE.md note now states what it does NOT excuse, in the
+same breath as the artifact.
+Strength: **strong** for the part that removed the artifact, because a font
+that loads cannot be misread. **Medium** for the residual, which is emoji, all
+of it user data now, and genuinely cannot render in this sandbox.
+The general rule: any note that tells a reviewer to ignore something must be
+written as a fence around a narrow case, never as a class of pixels. "Emoji in
+user data draw as boxes" is a fence. "Boxes are fine" is a blindfold.
+
+**Lesson 3. Every alarm we had fired on failure. Nothing fired on absence.**
+Guard: `.github/workflows/delivery-watchdog.yml`, on a 30 minute cron, which
+reads the stamp main is built at, reads the last delivered stamp out of
+docs/delivery-log.md, and if they disagree for more than 45 minutes opens ONE
+issue, comments rather than duplicating, and closes it when they agree again.
+Strength: **strong in design, and inert until merged.** GitHub only runs
+scheduled workflows from the default branch. "The guard is written" and "the
+guard is running" is the same one word gap as "merged" and "delivered".
+**Is watching the symptom rather than the cause the right call? Yes, and it is
+the whole reason this guard is worth having.** Causes multiply: a queued
+runner, a cancelled run, a run that died before its own failure notice, a paths
+filter that never triggered, a publish step that failed silently. Five causes
+have already happened, and a watchdog written against any one of them would
+have missed the next. There is exactly one symptom, nothing new reached the
+phone, and it is the only thing the founder ever experiences. A symptom
+watchdog also cannot rot the way a cause watchdog can, because it encodes no
+assumption about how delivery works. The cost is that it cannot say why, which
+is handled by the issue body listing the causes in the order they have actually
+happened.
+One hole, named rather than glossed: it reads main only, so work that is
+finished but never merged is invisible to it. That was session 3's failure and
+it stays covered by a rule plus the informational branch step.
+
+**Lesson 4. A new guard is untested code, and a guard that cries wolf is worse
+than no guard, because it teaches people to ignore alarms.**
+The `--first-parent` bug would have made the watchdog fire falsely on every
+batch longer than 45 minutes, which is most real batches. It was found by
+measuring git, not by reading the watchdog again.
+Guard: the reasoning is written into the workflow itself, naming the two real
+timestamps so the next person to touch that line knows what removing it costs.
+Strength: **medium**. A comment is a rule, not a check.
+The transferable practice, now written into CLAUDE.md: **before trusting a new
+alarm, prove both halves.** Prove it fires when it should, and prove it stays
+SILENT when it should. Only the second half was ever in doubt here, and only
+the second half was broken.
+
+**Lesson 5. CLAUDE.md stores facts that live somewhere else, so it goes stale
+by construction. Third consecutive session.**
+Session 3 made re-reading CLAUDE.md's factual claims a step of every
+retrospective, and that step caught both false lines this round, so **the guard
+is working**. It is also working at the wrong end: it catches false claims
+after they have already been read with authority for hours.
+Two claims that went false are now self-maintaining: the harness names its own
+output `-light` and `-dark`, so the dark mode claim is visible in a directory
+listing, and it prints a warning if the icon font is missing, so the icon claim
+announces its own falsity.
+Drift found this session, and both fixed in this commit:
+- CLAUDE.md said the renderer produces "fifteen shots in about eight seconds".
+  It was stale within HOURS of being written, because two shots were added the
+  same day. The numbers are now gone rather than corrected: numbers in prose
+  rot, and the directory listing is the count.
+- The new stamp rule said the detail belongs in the pull request and
+  docs/delivery-log.md. That file has no notes column and is not meant to gain
+  one; it records what shipped, not what changed. Half of the destination the
+  rule named did not exist. Now it names the pull request only.
+
+**Lesson 6. Session 3's Lesson 6 is superseded, and it caused this round's most
+visible defect.**
+Session 3 wrote that when several stamps merge together, the delivered stamp's
+text must cover everything since the last delivery row. That rule is now void.
+The stamp answers one question, which build am I running, and the founder said
+so directly: high level only. This is recorded because a retrospective log that
+silently keeps a superseded guard is a trap of exactly the kind Lesson 2 is
+about. It will be read later, with authority, and it is wrong.
+Guard: the 120 character test enforces the new rule mechanically, so the old
+rule cannot be followed even by someone who reads it.
+Strength: **strong**, and note what happened. A rule was replaced by a check,
+which is the upgrade every entry in this log keeps asking for.
+
+**Lesson 7. Proving a new test can fail is now a standing rule.**
+Three guards were proven this way in one day, each in about three minutes: the
+stamp cap rejected a deliberate wall, the icon test caught a renamed icon name
+reaching the silent fallback, and the diagnostics privacy test caught a
+plausible leak by name. So "no time" is not an objection.
+Guard: written into CLAUDE.md, tied to a moment. When adding a test that guards
+a lesson, break the code once, watch it fail, and paste the failure line into
+the commit message.
+Strength: **medium**, and that will not be dressed up. It is a rule and depends
+on being followed. Two things make it more than an intention: the cost is
+measured, and the artifact is visible, because a commit message either quotes a
+real failure line or it does not.
+
+**Lesson 8. Two tests changed this round, and both deserve naming even though
+neither was defending a bug.**
+This log treats a test that had to change for a fix to pass as the strongest
+evidence that the suite was defending the defect, so honesty requires reporting
+the changes and also reporting when they are innocent.
+Four assertions in flutter/test/mindset_screen_test.dart lost an emoji prefix.
+Honest read: not a bug being defended. It was decoration pinned into a data
+assertion, so a purely visual change broke four tests that were never about
+visuals. The smaller real lesson: an assertion should name the thing it is
+about, because one that also captures styling will block a legitimate change
+and be edited under pressure, which is the state in which a genuinely wrong
+edit gets made.
+The second change is the more dangerous kind. `test/goldens/lessons_goldens.json`
+was regenerated, 44 lines, and a golden regeneration is precisely where an
+unnoticed content change hides. The commit claimed the diff touches the icon
+field and nothing else. That was verified independently rather than believed:
+the number of changed lines in that file that are not an icon or emoji field is
+**zero**.
+
+### Open lessons carried forward
+
+**Open 1, a Shorebird step failure is silent: CLOSED, re-verified.** The
+`if: failure()` notice, the release warning, the auto-close, the delivery row
+writer, and the self-watching path are all still present in
+.github/workflows/flutter-preview.yml. Nothing has been quietly deleted or
+routed around.
+
+**Open 2, a pubspec version bump strands the installed app: CLOSED, still
+verified.** pubspec is still 0.5.0+8, all four rows this round say `patch`, and
+the `mode == 'release'` issue step is still present and still gated correctly.
+
+**Open 3, nothing compares the phone to main: STILL OPEN, and the repository
+half is now genuinely closed rather than half closed.** Read the halves
+precisely. The repository half, does what main is built at match what the
+publisher says it shipped, was answerable before but only by a human choosing
+to read the log. With the watchdog merged, something reads it every 30 minutes
+and speaks without being asked. The phone half is not closed and cannot be
+closed by this watchdog, because a patch published is not a patch installed:
+Shorebird delivers on reopen, so a green row proves what left the building,
+never what arrived. The founder tapping check-for-update is still the only
+proof.
+What changed this round is that the phone half became cheap to report. The new
+Copy diagnostics button prints the build and patch as TEXT, so a paste beats a
+photograph and can be compared mechanically against the last delivery row.
+
+**Open 4, the screenshot harness can rot: CLOSED, re-verified and now proven
+useful.** The harness step is still in flutter-check.yml with
+`--update-goldens`, and it is no longer theoretical: it caught two real defects
+this round, the monospace boxes and three long button labels stacked into a
+vertical column taking a third of a dialog.
+
+**Open 5, there is nowhere to read what a build changed: CLOSED as not a
+problem.** Capping the stamp was right, and the founder asked for high level
+only. The pull request is the place for detail. The false half of the rule, the
+sentence pointing at a delivery log with no notes column, is fixed in this
+commit.
+
+**New Open 6, the watchdog is written but not yet observed running.** It is
+merged in this batch, but no scheduled run has been seen yet. This is the same
+shape as session 3's unmerged pull request applied to a guard, which makes it
+the more expensive version: an unmerged feature delivers nothing, an unmerged
+guard delivers a false sense that a gap is covered. Closes when one scheduled
+run has been observed doing its comparison.
+
+**New Open 7, a merge that touches flutter/ without bumping the stamp is
+invisible to the watchdog.** In that case main's stamp already equals the
+delivered stamp, so the watchdog reports `ok` while a patch is genuinely
+pending. Partially covered, and worth being precise about how: the publisher
+refuses to record a stamp identical to the last delivered one and exits 1 after
+publishing, which trips the failure notice. So the situation gets reported, by
+a different guard, with a message about a duplicate stamp rather than about a
+pending build.
+
+### What it cost, and what it did not
+
+Cost: one founder screenshot spent on a wall of text that Claude created over
+six builds, 91 minutes of a delivered build sitting in a queue while the
+founder asked twice for status, and one round where the founder had to be the
+detector for a cosmetic defect a render would have shown at a glance.
+
+Did not cost: any user data, any wrong number, any undelivered build, any
+stranded APK. All four stamps reached the phone, and the founder confirmed the
+ticks are back, which closes the one real data-shaped scare from session 3 with
+evidence from the only source that counts.
+
+Nearly cost, and worth recording: the diagnostics report is the one feature in
+Salapify designed to move data off the phone. It shipped with a test that fails
+by name on an amount, a merchant, an account, a person, a note, or a category,
+and that test was proven to fail before it was trusted. That is the correct
+order of operations for a privacy promise.
+
+---
+
+### For the founder, in plain English
+
+**What happened.** All four builds reached your phone, and your ticks are back.
+That part worked. Three things went wrong around it.
+
+First, the Update stamp row, the line in Menu that tells you which build you
+are running. It grew into about forty lines and filled your screen, and you
+sent me the screenshot. This one was entirely my doing, over six builds: each
+time I wrote a new stamp I pasted the previous build's notes in front of it, so
+it got longer every time. I measured it, and it went from 424 characters to
+1264. The row also had no limit on how many lines it could draw, so nothing
+stopped it. Two things now stop it. A test refuses any stamp longer than 120
+characters or that mentions more than one build, and the row itself refuses to
+draw more than four lines even if something gets past the test. I proved both
+work by deliberately writing a wall and watching them reject it.
+
+Second, and this is the one I would most like you to take away, because it is
+the subtlest mistake in this whole log. When I take a picture of a screen to
+check it, some characters cannot draw in my sandbox and come out as empty
+boxes. I had written that down as a known quirk to ignore. That note was
+completely true. Then twice in one day the boxes WERE the problem. Once when
+the icons were the exact thing I was reviewing, so a screenshot full of boxes
+proved nothing at all. And once when the new diagnostics screen used a
+typewriter style font my sandbox does not have, so the one screen in the app
+that shows data leaving your phone came out as solid blocks. If I had followed
+my own note, I would have shipped a screen I had never actually seen. The fix
+was not a better note. It was to make the boxes go away: I load the real icon
+font now, and the typewriter font is gone because it bought nothing. A written
+excuse to ignore something is dangerous in a specific way. It is most tempting
+exactly when the thing you are ignoring is the thing that is broken.
+
+Third, f2.38 took 102 minutes to reach you instead of the usual 9 to 11.
+Nothing was broken. GitHub, the company that runs the machines that build
+Salapify, had no free machine, so the job waited in line for 91 minutes. Here
+is the uncomfortable part: I had alarms for a build that FAILS and no alarm at
+all for a build that never STARTS, and those look identical from outside. You
+noticed before I did, and you asked twice. Even though no code was at fault,
+the reporting was.
+
+**Why it happened.** All three come from the same habit. Something was true,
+nobody measured whether it was still true, and the only place the answer showed
+up was your screen. The stamp had no number attached to "keep it short". The
+box note had no expiry. And the delivery pipeline was watched for the ways it
+had already broken rather than for the one thing you actually care about,
+whether something new arrived.
+
+**What now makes it impossible.**
+- The stamp physically cannot be long again. That is a test, not a promise.
+- The icons draw for real in my screenshots, and if the font is ever missing
+  the run prints a loud warning instead of quietly drawing boxes.
+- A new watchdog wakes up every 30 minutes, compares the build main is carrying
+  against the last build the log says reached your phone, and if they disagree
+  for 45 minutes it opens an issue. It does not care WHY nothing shipped, which
+  is deliberate: five different causes have already happened, and a guard aimed
+  at one would miss the next.
+- The Copy diagnostics button closes the one gap I cannot close myself. When
+  something looks wrong, tap it, read what it says, and paste it to me. It has
+  counts and error messages only, never your amounts, names, notes, or the
+  people you owe. There is a test that puts fake incriminating data in and
+  fails by name if any of it escapes, and I broke the code on purpose to watch
+  that test catch it before trusting it.
+
+**One thing I found by testing my own new alarm.** The watchdog was wrong the
+first time I wrote it. It looked up the wrong date, so any batch of work that
+took more than 45 minutes would have set off a false alarm the moment it
+merged. That matters because a smoke alarm that goes off while you cook gets
+the battery taken out, and then it is not there during a fire. It is fixed, and
+the reason is written into the file so nobody undoes it later.
+
+**What it costs if a guard is ever removed.**
+- Remove the stamp test, and the row goes back to eating your screen, one build
+  at a time, and you will be the one who has to say so again.
+- Remove the icon font from my screenshot harness, and every screenshot I show
+  you becomes a picture I cannot actually read, while I tell you I checked it.
+- Remove the watchdog, and a build that never starts goes back to looking
+  exactly like a build about to finish, and you find out by asking.
+- Remove the privacy test on diagnostics, and one harmless looking edit puts
+  your amounts and the names of people you owe into text you paste into a chat.
+  That is the guard whose removal I would consider most serious, because unlike
+  a missed build it cannot be undone.
+
+**Still true and still not fixed:** nothing on my side can see your phone. The
+log tells me what left the building, never what arrived, because Salapify
+downloads its update when you reopen it. You are still the last check in the
+system, and your one tap is still the only real proof. That is acceptable while
+you are the only user. It stops being acceptable at launch, because a stranger
+will not tell us, they will just stop opening the app.
+
+---
+
 ## 2026-07-25, session 3: the eyes we already had
 
 ### What we believed / What was true
