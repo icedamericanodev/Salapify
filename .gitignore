@@ -4,3 +4,4 @@ node_modules/
 
 # Agent scratch / probe files in tests/
 tests/_*.js
+flutter/tool/shots/
