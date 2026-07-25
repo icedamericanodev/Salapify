@@ -1,0 +1,134 @@
+# Notices when main is carrying a build that never reached the phone.
+#
+# Why this exists: every alarm we have fires when a build FAILS. None of them
+# fires when a build never runs. On 2026-07-25 a merge sat queued for 91
+# minutes waiting for a GitHub runner, and a run that has not started looks
+# exactly like a run about to finish. Nothing said a word. The founder found
+# out by asking, twice, which means the reporting failed even though no code
+# did.
+#
+# That is the same shape as the outage that cost thirteen stamps: silence read
+# as progress.
+#
+# This watchdog does not care WHY nothing shipped. It compares two facts that
+# are both in the repository, and shouts if they disagree for too long:
+#
+#   1. The stamp main is currently built at (flutter/lib/main.dart).
+#   2. The last stamp the publisher recorded as delivered
+#      (docs/delivery-log.md).
+#
+# Comparing those two catches every cause at once: a queued runner, a
+# cancelled run, a run that failed before its own failure notice, a workflow
+# that never triggered because of a paths filter, and a publish step that died
+# silently. A watchdog written against one cause would miss the next one.
+
+name: Delivery watchdog
+
+on:
+  schedule:
+    # Every 30 minutes. Frequent enough that a stall is noticed within the
+    # hour, rare enough to be free. GitHub delays scheduled runs under load,
+    # which is fine: this is a backstop, not a stopwatch.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# How long a stamp may sit on main undelivered before this is a problem. A
+# normal publish takes about 11 minutes end to end, so 45 leaves generous room
+# for a slow build without crying wolf.
+env:
+  GRACE_SECONDS: '2700'
+
+jobs:
+  check:
+    name: Did the last merge actually ship
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # Full history: the age of the pending stamp comes from the commit
+          # that last touched main.dart, which a shallow clone cannot see.
+          fetch-depth: 0
+
+      - name: Compare what main builds against what the phone received
+        id: compare
+        run: |
+          STAMP=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
+          DELIVERED=$(grep -oE '\| f[0-9]+\.[0-9]+ \|' docs/delivery-log.md 2>/dev/null \
+            | tail -1 | tr -d '| ')
+          echo "main builds:  ${STAMP:-unknown}"
+          echo "phone has:    ${DELIVERED:-none recorded}"
+
+          if [ -z "$STAMP" ]; then
+            echo "Could not read the stamp. Not guessing."
+            echo "state=unknown" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$STAMP" = "$DELIVERED" ]; then
+            echo "In step. Everything on main has shipped."
+            echo "state=ok" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # They differ, which is normal for the first few minutes after a
+          # merge. Age it before calling it a problem.
+          #
+          # --first-parent is load-bearing and was a real bug without it.
+          # Without it, git reports the BRANCH commit that wrote the stamp,
+          # which can be hours before the merge: f2.39 was written at 10:25
+          # and merged at 11:48. Any batch that took longer than the grace
+          # window would then fire this alarm the instant it merged, every
+          # time. A guard that cries wolf gets ignored, which is the exact
+          # failure this one exists to prevent. With --first-parent the
+          # change is attributed to the merge commit, so the clock starts
+          # when the stamp actually landed on main.
+          WHEN=$(git log --first-parent -1 --format=%ct -- flutter/lib/main.dart)
+          AGE=$(( $(date +%s) - WHEN ))
+          echo "The pending stamp has been on main for $((AGE / 60)) minutes."
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          echo "delivered=${DELIVERED:-none recorded}" >> "$GITHUB_OUTPUT"
+          echo "minutes=$((AGE / 60))" >> "$GITHUB_OUTPUT"
+
+          if [ "$AGE" -gt "$GRACE_SECONDS" ]; then
+            echo "state=stalled" >> "$GITHUB_OUTPUT"
+          else
+            echo "Still inside the grace window. Saying nothing yet."
+            echo "state=building" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ONE issue, commented on rather than duplicated, so a long stall does
+      # not generate a notification every half hour.
+      - name: Say that a build has not reached the phone
+        if: steps.compare.outputs.state == 'stalled'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: 'A merged build has not reached the phone'
+          STAMP: ${{ steps.compare.outputs.stamp }}
+          DELIVERED: ${{ steps.compare.outputs.delivered }}
+          MINUTES: ${{ steps.compare.outputs.minutes }}
+          RUNS: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/flutter-preview.yml
+        run: |
+          BODY=$(printf 'main has been building stamp **%s** for %s minutes, but the last row in docs/delivery-log.md is **%s**. Nothing new has reached the phone.\n\nThis says WHAT is wrong, not why. Check the preview runs: %s\n\nCommon causes, in the order they have actually happened:\n- The run is queued waiting for a GitHub runner. Nothing to fix, it clears on its own.\n- The run failed. There will be a separate "nothing shipped" issue.\n- The run was cancelled, or never triggered at all.\n\nThis issue closes itself once a delivery row for %s exists.' \
+            "$STAMP" "$MINUTES" "$DELIVERED" "$RUNS" "$STAMP")
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$OPEN" ]; then
+            gh issue comment "$OPEN" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: Close it once delivery catches up
+        if: steps.compare.outputs.state == 'ok'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: 'A merged build has not reached the phone'
+        run: |
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$OPEN" ]; then
+            gh issue close "$OPEN" --comment "Delivered. main and the delivery log agree again."
+          fi
