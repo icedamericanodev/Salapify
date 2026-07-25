@@ -28,6 +28,12 @@ Flutter track:
    the app id lives in flutter/shorebird.yaml (public, not a secret).
 2. Bump the updateStamp constant in flutter/lib/main.dart on every push
    (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
+   KEEP IT SHORT, one high level line, 120 characters, enforced by
+   test/update_stamp_test.dart. It became a forty line wall of text on the
+   founder's phone because each build appended the previous build's notes
+   instead of replacing them. The detail belongs in the pull request and
+   docs/delivery-log.md. That row answers one question, which build am I
+   running.
 3. The committed preview keystore signs every build so updates install in
    place. It is NOT a production key; the Play upload key never enters the
    repo.
@@ -51,14 +57,24 @@ prose as a wall of text, and lessons losing their completed tick. Both were
 obvious at a glance and invisible to 673 passing tests, because a test checks
 what someone thought to check.
 
+It renders every tab plus a lesson, at BOTH brightnesses, fifteen shots in
+about eight seconds. Look at the dark ones first; that is what the founder
+uses.
+
 Three things about the render, learned the hard way:
 - Loading the real fonts must happen inside `tester.runAsync`. testWidgets
   uses a fake clock, so real file reads never complete inside it and the run
   hangs with no output. That gotcha cost two rounds of founder screenshots.
-- The sandbox has no emoji font, so emoji and some icons draw as boxes in the
-  render but are fine on the phone. Never "fix" one of those.
-- The render uses the light palette. Dark mode contrast still needs the
-  founder's eyes.
+- The sandbox has no emoji font, so any remaining emoji (all of it user data
+  now) draws as a box in the render but is fine on the phone. Never "fix" one
+  of those. Salapify's own ICONS do render, because the harness loads the
+  Material icon font from the SDK. It did not always, and the note that said
+  "icons draw as boxes, ignore it" was true right up until icons were the
+  thing being reviewed, at which point it excused a screenshot that proved
+  nothing.
+- The palette is set BEFORE the widget is built, the order main.dart uses.
+  Every Barako.* read happens during build, so setting brightness afterwards
+  renders the old palette while claiming to be the new one.
 
 The file lives under test/ but is NOT named `*_test.dart`, and both halves of
 that are deliberate. Under test/, because the analyzer only permits test-only
