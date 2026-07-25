@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.32 · Money courses now opens as four course cards instead of a list of 22 lessons. Each card shows what the course gives you, how far you are, how many minutes are left, and a Start or Continue button that opens exactly where you stopped. One course is marked recommended with the reason shown, based on your own data, and nothing is ever locked. Tap All lessons to see inside any course.';
+    'f2.34 · Fixes a real one: lessons you had already finished were going back to unfinished when you opened them again, because the newer record was overwriting the older done mark instead of keeping the higher of the two. Your ticks come back on their own, nothing was deleted. Also in this build: the Philippine tax rules are now one card each instead of a wall of text, and the sentences that were being said twice are gone.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));

@@ -38,18 +38,28 @@ void main() {
       expect(p['needs-wants'], LessonState.completed);
     });
 
-    test('a new entry wins over the legacy list for the same lesson', () {
+    test('the HIGHER of legacy and new wins, never simply the newer', () {
+      // This test used to assert the opposite, and it was pinning a real bug.
+      // A lesson finished under the old build lives only in lessonsRead;
+      // opening it again records `viewed`, and letting the newer entry win
+      // meant the lesson went from done back to unfinished on screen. The
+      // founder saw exactly that.
       final p = parseLessonProgress(
         {
           'see-it-first': {'state': 'inProgress'},
         },
         legacyRead: ['see-it-first'],
       );
-      expect(
-        p['see-it-first'],
-        LessonState.viewed,
-        reason: 'the finer-grained record is the truthful one',
+      expect(p['see-it-first'], LessonState.completed);
+
+      // A finer-grained record still wins when it means MORE progress.
+      final up = parseLessonProgress(
+        {
+          'see-it-first': {'state': 'applied'},
+        },
+        legacyRead: ['see-it-first'],
       );
+      expect(up['see-it-first'], LessonState.applied);
     });
   });
 
@@ -208,6 +218,75 @@ void main() {
       for (final l in ph) {
         expect(l.isTimeSensitive, isTrue);
       }
+    });
+  });
+
+  group('a tick is never taken away', () {
+    // Found on the founder's phone: lessons they had finished under the old
+    // build showed as unfinished again after opening them on the new one.
+    test('opening a legacy-completed lesson does not demote it', () {
+      final stored = withLessonState(
+        null,
+        'see-it-first',
+        LessonState.viewed,
+        effectiveCurrent: LessonState.completed,
+      );
+      expect(
+        parseLessonProgress(
+          stored,
+          legacyRead: ['see-it-first'],
+        )['see-it-first'],
+        LessonState.completed,
+        reason: 'rereading a finished lesson must not un-finish it',
+      );
+    });
+
+    test('an already-stored lower state is repaired by the legacy entry', () {
+      // Phones that already wrote the lower value must heal on next read,
+      // because the legacy entry was hidden rather than deleted.
+      final damaged = {
+        'see-it-first': {'state': 'viewed'},
+      };
+      expect(
+        parseLessonProgress(
+          damaged,
+          legacyRead: ['see-it-first'],
+        )['see-it-first'],
+        LessonState.completed,
+      );
+    });
+
+    test('a genuine upgrade still wins over the legacy entry', () {
+      final stored = {
+        'see-it-first': {'state': 'applied'},
+      };
+      expect(
+        parseLessonProgress(
+          stored,
+          legacyRead: ['see-it-first'],
+        )['see-it-first'],
+        LessonState.applied,
+        reason: 'applied outranks completed, so it must not be held back',
+      );
+    });
+
+    test('the store keeps the tick end to end', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      // A backup from the old build: finished, but only in the legacy list.
+      await store.importBackupText(
+        '{"schemaVersion":12,"accounts":[],"transactions":[],'
+        '"settings":{"lessonsRead":["see-it-first"]}}',
+      );
+      expect(store.lessonProgress['see-it-first'], LessonState.completed);
+      // Now reopen it, which records viewed.
+      await store.setLessonState('see-it-first', LessonState.viewed);
+      expect(
+        store.lessonProgress['see-it-first'],
+        LessonState.completed,
+        reason: 'the founder lost visible progress exactly this way',
+      );
     });
   });
 }

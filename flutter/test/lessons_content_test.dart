@@ -187,6 +187,8 @@ void main() {
         switch (b) {
           case ProseBlock(:final heading, :final paragraphs):
             buf.writeAll([heading, ...paragraphs], ' ');
+          case RulesBlock(:final passages):
+            buf.writeAll(passages, ' ');
           case NuggetsBlock(:final items):
             buf.writeAll(items, ' ');
           case DiscoveryBlock(:final question, :final reveal):

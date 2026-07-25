@@ -77,6 +77,18 @@ class ChallengeBlock extends LessonBlock {
   const ChallengeBlock({required this.prompt, required this.compare});
 }
 
+/// Verbatim reference passages, one card each.
+///
+/// This exists for the Philippine tax lessons. Their wording is CPA reviewed
+/// and cannot be paraphrased, but rendering five long paragraphs as one prose
+/// run turned the middle of the lesson into exactly the article the redesign
+/// was meant to replace. Same words, one card per paragraph, so the eye has
+/// somewhere to rest and the reader can stop between rules.
+class RulesBlock extends LessonBlock {
+  final List<String> passages;
+  const RulesBlock(this.passages);
+}
+
 /// The single sentence worth remembering. Exactly one, always last.
 class ReflectionBlock extends LessonBlock {
   final String line;

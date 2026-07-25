@@ -973,7 +973,7 @@ const List<Map<String, dynamic>> lessons = [
       {
         'kind': 'nuggets',
         'items': [
-          'Nobody withholds tax for you, so the discipline is yours.',
+          'No employer sets your tax aside. That part is on you.',
           'Move the tax slice out on the day you get paid.',
           'Tax money is not your money. It is being held, not earned.',
         ],
@@ -984,12 +984,12 @@ const List<Map<String, dynamic>> lessons = [
             'You get paid for a job. How much of that payment is actually '
             'yours to spend?',
         'reveal':
-            'Less than the full amount, always. The freelancers who never '
-            'panic at a deadline are the ones who move a slice out the same '
-            'day, before it feels like income. The exact slice depends on '
-            'your setup, which the next part covers.',
+            'Less than the full amount, always. Part of it is tax, and the '
+            'only question is whether you separate it now or hunt for it '
+            'later. The exact slice depends on your setup, which the rules '
+            'below spell out.',
       },
-      {'kind': 'reference'},
+      {'kind': 'reference', 'from': 1},
       {
         'kind': 'trap',
         'mostPeople':
@@ -1050,7 +1050,7 @@ const List<Map<String, dynamic>> lessons = [
             'starts when you have more than one employer, or income of your '
             'own, which is exactly what the rest of this lesson maps out.',
       },
-      {'kind': 'reference'},
+      {'kind': 'reference', 'from': 1},
       {
         'kind': 'trap',
         'mostPeople': 'Assume filing is one scary event in April.',
@@ -1107,7 +1107,7 @@ const List<Map<String, dynamic>> lessons = [
             'let slide. The cost shows up when you need the benefit, and by '
             'then the gap cannot be filled retroactively on the same terms.',
       },
-      {'kind': 'reference'},
+      {'kind': 'reference', 'from': 1},
       {
         'kind': 'trap',
         'mostPeople':
@@ -1238,7 +1238,7 @@ const List<Map<String, dynamic>> lessons = [
             'The decision is easy in October, when the money is still '
             'theoretical.',
       },
-      {'kind': 'reference'},
+      {'kind': 'reference', 'from': 1},
       {
         'kind': 'trap',
         'mostPeople': 'Plan to be sensible with it once it is in the account.',
@@ -1297,7 +1297,7 @@ const List<Map<String, dynamic>> lessons = [
             'you lent it interest free for the year. Pleasant to receive, '
             'but it is your money returning, not extra money arriving.',
       },
-      {'kind': 'reference'},
+      {'kind': 'reference', 'from': 1},
       {
         'kind': 'trap',
         'mostPeople': 'Treat a refund as a bonus and spend it as found money.',
