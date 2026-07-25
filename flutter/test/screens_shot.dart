@@ -175,6 +175,41 @@ void main() {
     }
   }
 
+  testWidgets('the diagnostics dialog, before anything is copied', (
+    tester,
+  ) async {
+    // Worth its own shot: this is the one screen that shows data leaving the
+    // phone, so what it says has to be readable and honest at a glance.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: MenuScreen(store: store, onSwitchTab: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final button = find.text('Copy diagnostics');
+    await tester.scrollUntilVisible(button, 300);
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/diagnostics-dark.png'),
+    );
+  });
+
   testWidgets('a lesson, opened the way a reader opens it', (tester) async {
     // Navigated into rather than constructed, because the reader is private
     // and, more usefully, because tapping is what a person actually does. A

@@ -277,7 +277,7 @@ class MenuScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _startFreshCard(context),
               const SizedBox(height: 16),
-              const UpdateCard(),
+              UpdateCard(store: store),
             ],
           ),
         ),

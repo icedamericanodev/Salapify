@@ -7,14 +7,20 @@
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
+import '../data/store.dart';
 import '../main.dart' show updateStamp;
+import '../services/diagnostics.dart';
 import '../theme.dart';
 import 'app_exit_stub.dart' if (dart.library.io) 'app_exit_io.dart';
 
 class UpdateCard extends StatefulWidget {
-  const UpdateCard({super.key});
+  /// Optional so existing uses keep working. When present, the diagnostics
+  /// report can include COUNTS of stored items, never their contents.
+  final SalapifyStore? store;
+  const UpdateCard({super.key, this.store});
 
   @override
   State<UpdateCard> createState() => _UpdateCardState();
@@ -127,6 +133,82 @@ class _UpdateCardState extends State<UpdateCard> {
     }
   }
 
+  // Show it, THEN copy it. A money app asking to put anything on the
+  // clipboard has to let the person read it first, and this is the only
+  // feature that deliberately moves data off the phone.
+  Future<void> _copyDiagnostics() async {
+    final text = Diagnostics.report(
+      stamp: updateStamp,
+      patch: patchNumber,
+      data: widget.store?.data,
+    );
+    if (!mounted) return;
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text('Diagnostics', style: TextStyle(color: Barako.text)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This is everything that gets copied. It has counts and '
+                  'error messages only, never your amounts, names, or notes.',
+                  style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                // Deliberately NOT a monospace family. The report is a list
+                // of lines, not aligned columns, so monospace bought almost
+                // nothing, and it cost the ability to check this screen: the
+                // render harness has no monospace font, so every character
+                // drew as a box and the one screen that shows data leaving
+                // the phone became the one screen nobody could read.
+                SelectableText(
+                  text,
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Diagnostics.clear();
+              if (context.mounted) Navigator.pop(context, false);
+            },
+            child: Text('Clear',
+                style: TextStyle(color: Barako.textSecondary)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Barako.primary,
+              foregroundColor: Barako.onPrimary,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Copy'),
+          ),
+        ],
+      ),
+    );
+    if (send != true) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      setState(() => status = 'Diagnostics copied. Paste it in a message.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -161,7 +243,9 @@ class _UpdateCardState extends State<UpdateCard> {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
@@ -176,6 +260,17 @@ class _UpdateCardState extends State<UpdateCard> {
                               strokeWidth: 2, color: Barako.muted))
                       : const Icon(Icons.refresh, size: 16),
                   label: Text(busy ? 'Working...' : 'Check for update'),
+                ),
+                // The one thing that could not be got off the phone before.
+                // Everything it copies is on screen first, so nothing leaves
+                // the device without being seen.
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Barako.border),
+                      foregroundColor: Barako.textSecondary),
+                  onPressed: _copyDiagnostics,
+                  icon: const Icon(Icons.bug_report_outlined, size: 16),
+                  label: const Text('Copy diagnostics'),
                 ),
               ],
             ),
