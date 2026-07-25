@@ -5,6 +5,8 @@
 // present so a regression back to the wrong rule fails loudly.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/content/lesson_blocks.dart';
+import 'package:salapify/content/lesson_model.dart';
 import 'package:salapify/content/lessons.dart';
 
 // Every route the Learn action resolver knows how to run.
@@ -154,5 +156,56 @@ void main() {
     final b = lessonOfTheDay(DateTime(2026, 7, 24, 23));
     expect(a['id'], b['id']);
     expect(lessons.contains(a), isTrue);
+  });
+
+  test('every lesson is authored in the coaching shape', () {
+    // The redesign is only real if it reaches all 22. A lesson without
+    // authored blocks silently falls back to the derived prose rendering,
+    // which looks fine and is exactly the half-done state this pins against.
+    for (final raw in lessons) {
+      final l = lessonFromMap(raw);
+      expect(
+        l.authoredBlocks,
+        isNotEmpty,
+        reason: '${l.id} is still rendering from the old fields',
+      );
+      expect(
+        l.blocks.last,
+        isA<ReflectionBlock>(),
+        reason: '${l.id} must end on one sentence worth keeping',
+      );
+    }
+  });
+
+  test('no em or en dashes in the block content either', () {
+    // The older check only scanned body. Blocks are user-facing copy too, and
+    // the house rule has no exceptions.
+    for (final raw in lessons) {
+      final l = lessonFromMap(raw);
+      final buf = StringBuffer();
+      for (final b in l.blocks) {
+        switch (b) {
+          case ProseBlock(:final heading, :final paragraphs):
+            buf.writeAll([heading, ...paragraphs], ' ');
+          case NuggetsBlock(:final items):
+            buf.writeAll(items, ' ');
+          case DiscoveryBlock(:final question, :final reveal):
+            buf.writeAll([question, reveal], ' ');
+          case StoryBlock(:final who, :final text):
+            buf.writeAll([who, text], ' ');
+          case DiagramBlock(:final steps, :final caption):
+            buf.writeAll([...steps, caption], ' ');
+          case TrapBlock(:final mostPeople, :final worksBetter):
+            buf.writeAll([mostPeople, worksBetter], ' ');
+          case ChallengeBlock(:final prompt, :final compare):
+            buf.writeAll([prompt, compare], ' ');
+          case ReflectionBlock(:final line):
+            buf.write(line);
+        }
+      }
+      final all = buf.toString();
+      expect(all.contains('\u2014'), isFalse, reason: '${l.id} em dash');
+      expect(all.contains('\u2013'), isFalse, reason: '${l.id} en dash');
+    }
   });
 }
