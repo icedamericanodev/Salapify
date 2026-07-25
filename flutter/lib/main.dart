@@ -20,7 +20,7 @@ import 'widgets/lock_gate.dart';
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
 const String updateStamp =
-    'f2.34 · Fixes a real one: lessons you had already finished were going back to unfinished when you opened them again, because the newer record was overwriting the older done mark instead of keeping the higher of the two. Your ticks come back on their own, nothing was deleted. Also in this build: the Philippine tax rules are now one card each instead of a wall of text, and the sentences that were being said twice are gone.';
+    'f2.35 · Nothing changes on screen in this one, and that is the point: it adds a way for me to render any screen and actually look at it before it ships. The wall of text in the tax lesson and the disappearing lesson ticks were both obvious at a glance, and you were the only one who could take that glance. Now I can too. The previous build, f2.34, fixes a real one: lessons you had already finished were going back to unfinished when you opened them again, because the newer record was overwriting the older done mark instead of keeping the higher of the two. Your ticks come back on their own, nothing was deleted. Also in this build: the Philippine tax rules are now one card each instead of a wall of text, and the sentences that were being said twice are gone.';
 
 void main() {
   runApp(SalapifyApp(store: SalapifyStore()));
