@@ -29,7 +29,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/budget.dart';
+import 'package:salapify/screens/history.dart';
+import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/menu.dart';
+import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/utang.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,30 +114,66 @@ Future<void> loadRealFonts(WidgetTester tester) async {
   });
 }
 
+/// Pump one screen at one brightness and write the PNG.
+///
+/// Both brightnesses on purpose. The renderer drew only the light palette for
+/// its whole life, so every dark-mode contrast question had to go to the
+/// founder's phone and come back as a photo. Dark is also the mode the
+/// founder actually uses, which made the one palette being checked the one
+/// palette nobody was looking at.
+Future<void> shoot(
+  WidgetTester tester,
+  String name,
+  Widget Function(SalapifyStore) build, {
+  required Brightness brightness,
+}) async {
+  await loadRealFonts(tester);
+  SharedPreferences.setMockInitialValues({});
+  final store = SalapifyStore();
+  await store.load();
+
+  tester.view.physicalSize = const Size(1170, 2532);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.reset);
+
+  // Resolve the palette BEFORE building, the same order main.dart uses, so
+  // every Barako.* read below sees the brightness under test.
+  Barako.current = Barako.currentTheme.resolve(brightness);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: salapifyTheme(Barako.current),
+      home: build(store),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final suffix = brightness == Brightness.dark ? 'dark' : 'light';
+  await expectLater(
+    find.byType(MaterialApp),
+    matchesGoldenFile('shots/$name-$suffix.png'),
+  );
+}
+
 void main() {
-  testWidgets('the money courses catalog', (tester) async {
-    await loadRealFonts(tester);
-    SharedPreferences.setMockInitialValues({});
-    final store = SalapifyStore();
-    await store.load();
+  final screens = <String, Widget Function(SalapifyStore)>{
+    'overview': (s) => OverviewScreen(store: s, onSwitchTab: (_) {}),
+    'budget': (s) => BudgetScreen(store: s),
+    'history': (s) => HistoryScreen(store: s),
+    'utang': (s) => UtangScreen(store: s),
+    'insights': (s) => InsightsScreen(store: s, onSwitchTab: (_) {}),
+    'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
+    'courses': (s) => LearnScreen(store: s),
+  };
 
-    tester.view.physicalSize = const Size(1170, 2532);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: salapifyTheme(Barako.current),
-        home: LearnScreen(store: store),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('shots/catalog.png'),
-    );
-  });
+  for (final entry in screens.entries) {
+    for (final b in [Brightness.light, Brightness.dark]) {
+      final mode = b == Brightness.dark ? 'dark' : 'light';
+      testWidgets('${entry.key}, $mode', (tester) async {
+        await shoot(tester, entry.key, entry.value, brightness: b);
+      });
+    }
+  }
 
   testWidgets('a lesson, opened the way a reader opens it', (tester) async {
     // Navigated into rather than constructed, because the reader is private
@@ -147,6 +189,7 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
@@ -160,7 +203,7 @@ void main() {
 
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('shots/lesson.png'),
+      matchesGoldenFile('shots/lesson-dark.png'),
     );
   });
 }
