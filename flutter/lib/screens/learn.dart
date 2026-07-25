@@ -11,11 +11,11 @@ import 'package:flutter/material.dart';
 import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
+import '../money/course_plan.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../widgets/lesson_block_views.dart';
-import '../widgets/pressable_scale.dart';
 import 'bnpl_calculator.dart';
 import 'cashflow.dart';
 import 'contribution_calculator.dart';
@@ -66,7 +66,7 @@ class _LearnScreenState extends State<LearnScreen> {
     if (id != null) {
       final l = lessonById(id);
       if (l != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _open(context, l));
+        WidgetsBinding.instance.addPostFrameCallback((_) => _open2(context, l));
       }
     }
   }
@@ -125,7 +125,7 @@ class _LearnScreenState extends State<LearnScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => target));
   }
 
-  void _open(BuildContext context, Map<String, dynamic> lesson) {
+  void _open2(BuildContext context, Map<String, dynamic> lesson) {
     final typed = lessonFromMap(lesson);
     // Opening is NOT finishing. This used to mark the lesson read here, so
     // tapping a card and backing straight out counted as learned forever and
@@ -154,6 +154,13 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
+  /// Which track sections are open. Tracks start collapsed so the catalog is
+  /// four cards rather than a scroll of 22, which is the whole point of the
+  /// change; the recommended one opens itself so a first visit lands on
+  /// something to read rather than on a menu.
+  final Set<String> _open = {};
+  bool _openInitialised = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,70 +177,51 @@ class _LearnScreenState extends State<LearnScreen> {
           listenable: widget.store,
           builder: (context, _) {
             final progress = widget.store.lessonProgress;
-            final read = {
-              for (final e in progress.entries)
-                if (isDone(e.value)) e.key,
+            final doneCount = lessons
+                .where(
+                  (l) => isDone(progress[l['id']] ?? LessonState.notStarted),
+                )
+                .length;
+            final rec = recommendedTrack(widget.store.data, DateTime.now());
+            final stats = {
+              for (final t in courseTracks)
+                t['key'] as String: trackProgress(
+                  trackId: t['key'] as String,
+                  lessonIds: [
+                    for (final l in lessonsForTrack(t['key'] as String))
+                      l['id'] as String,
+                  ],
+                  minutesById: {
+                    for (final l in lessons)
+                      l['id'] as String: l['minutes'] as int,
+                  },
+                  progress: progress,
+                ),
             };
-            final readCount = read.length;
-            final featured = lessonOfTheDay(DateTime.now());
+            if (!_openInitialised) {
+              _openInitialised = true;
+              _open.add(rec.trackId);
+            }
+            final tracksDone = stats.values.where((t) => t.isComplete).length;
+            final minutesLeft = stats.values.fold<int>(
+              0,
+              (a, t) => a + t.minutesLeft,
+            );
+
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('YOUR PROGRESS', style: Barako.kickerStyle),
-                        const SizedBox(height: 6),
-                        Text(
-                          '$readCount of ${lessons.length} lessons done',
-                          style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: lessons.isEmpty
-                                ? 0
-                                : readCount / lessons.length,
-                            minHeight: 8,
-                            backgroundColor: Barako.border,
-                            color: Barako.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Four short courses. Every lesson ends with one '
-                          'real step in the app. Always free.',
-                          style: TextStyle(color: Barako.muted, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('LESSON OF THE DAY', style: Barako.kickerStyle),
-                const SizedBox(height: 8),
-                _lessonCard(
-                  featured,
-                  read.contains(featured['id']),
-                  featured: true,
-                ),
+                _header(doneCount, tracksDone, minutesLeft),
+                const SizedBox(height: 18),
                 for (final track in courseTracks) ...[
-                  const SizedBox(height: 20),
-                  _trackHeader(track, read),
-                  const SizedBox(height: 8),
-                  for (final l in lessonsForTrack(track['key'] as String))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _lessonCard(l, read.contains(l['id'])),
-                    ),
+                  _trackCard(
+                    track,
+                    stats[track['key']]!,
+                    progress,
+                    recommended: track['key'] == rec.trackId,
+                    reason: rec.reason,
+                  ),
+                  const SizedBox(height: 10),
                 ],
               ],
             );
@@ -243,158 +231,350 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
-  Widget _trackHeader(Map<String, dynamic> track, Set<String> read) {
-    final all = lessonsForTrack(track['key'] as String);
-    final done = all.where((l) => read.contains(l['id'])).length;
+  Widget _header(int doneCount, int tracksDone, int minutesLeft) {
+    final total = lessons.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              track['emoji'] as String,
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                (track['title'] as String).toUpperCase(),
-                style: Barako.kickerStyle,
-              ),
-            ),
-            Text(
-              '$done of ${all.length}',
-              style: TextStyle(
-                color: done == all.length ? Barako.primaryText : Barako.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
         Text(
-          track['outcome'] as String,
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+          'Learn one money skill, then use it in Salapify.',
+          style: TextStyle(
+            fontFamily: Barako.displayFont,
+            color: Barako.text,
+            fontSize: 22,
+            height: 1.2,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 14),
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
-            value: all.isEmpty ? 0 : done / all.length,
-            minHeight: 4,
+            value: total == 0 ? 0 : doneCount / total,
+            minHeight: 8,
             backgroundColor: Barako.border,
             color: Barako.primary,
           ),
+        ),
+        const SizedBox(height: 8),
+        // Wrap, not Row: three facts at a large font scale would overflow.
+        Wrap(
+          spacing: 14,
+          runSpacing: 4,
+          children: [
+            Text(
+              '$doneCount of $total lessons',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              '$tracksDone of ${courseTracks.length} courses',
+              style: TextStyle(color: Barako.muted, fontSize: 13),
+            ),
+            if (minutesLeft > 0)
+              Text(
+                'about $minutesLeft min left',
+                style: TextStyle(color: Barako.muted, fontSize: 13),
+              ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _lessonCard(
-    Map<String, dynamic> l,
-    bool isRead, {
-    bool featured = false,
+  Widget _trackCard(
+    Map<String, dynamic> track,
+    TrackProgress stat,
+    Map<String, LessonState> progress, {
+    required bool recommended,
+    required String reason,
   }) {
-    final isPH = l['region'] == 'PH';
-    return PressableScale(
-      child: Card(
-        color: featured ? Barako.surfaceRaised : null,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => _open(context, l),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+    final key = track['key'] as String;
+    final isOpen = _open.contains(key);
+    final trackLessons = lessonsForTrack(key);
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: recommended ? Barako.primary : Barako.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (recommended) ...[
+              Row(
+                children: [
+                  Icon(Icons.star_rounded, size: 15, color: Barako.primary),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'RECOMMENDED',
+                      style: Barako.kickerStyle.copyWith(
+                        color: Barako.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l['emoji'] as String,
-                  style: const TextStyle(fontSize: 26),
+                  track['emoji'] as String,
+                  style: const TextStyle(fontSize: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (featured) ...[
-                        Text(
-                          'TODAY',
-                          style: Barako.kickerStyle.copyWith(
-                            color: Barako.primaryText,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                      ],
                       Text(
-                        l['title'] as String,
+                        track['title'] as String,
                         style: TextStyle(
                           color: Barako.text,
-                          fontSize: 15,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        l['summary'] as String,
-                        style: TextStyle(color: Barako.muted, fontSize: 12),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          // Flexible so the PHILIPPINES chip can never push
-                          // this row into an overflow on a narrow phone.
-                          Flexible(
-                            child: Text(
-                              '${l['minutes']} min read',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Barako.faint,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          if (isPH) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Barako.border),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'PHILIPPINES',
-                                style: TextStyle(
-                                  color: Barako.muted,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                        track['outcome'] as String,
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  transitionBuilder: (child, anim) =>
-                      FadeTransition(opacity: anim, child: child),
-                  child: Icon(
-                    isRead ? Icons.check_circle : Icons.chevron_right,
-                    key: ValueKey<bool>(isRead),
-                    color: isRead ? Barako.primary : Barako.faint,
-                    size: isRead ? 20 : 22,
+              ],
+            ),
+            if (recommended) ...[
+              const SizedBox(height: 8),
+              // The reason is always visible. A recommendation the user
+              // cannot see the basis for is just the app being bossy.
+              Text(
+                reason,
+                style: TextStyle(
+                  color: Barako.primaryText,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: stat.fraction,
+                minHeight: 5,
+                backgroundColor: Barako.border,
+                color: stat.isComplete ? Barako.celebrate : Barako.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                Text(
+                  '${stat.done} of ${stat.total} done',
+                  style: TextStyle(
+                    color: stat.isComplete ? Barako.primaryText : Barako.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+                Text(
+                  stat.status,
+                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                ),
+                if (stat.minutesLeft > 0)
+                  Text(
+                    '${stat.minutesLeft} min left',
+                    style: TextStyle(color: Barako.faint, fontSize: 12),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      final nextId =
+                          stat.nextLessonId ??
+                          (trackLessons.isNotEmpty
+                              ? trackLessons.first['id'] as String
+                              : null);
+                      if (nextId == null) return;
+                      final l = lessonById(nextId);
+                      if (l != null) _open2(context, l);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      stat.actionLabel,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => setState(() {
+                    if (isOpen) {
+                      _open.remove(key);
+                    } else {
+                      _open.add(key);
+                    }
+                  }),
+                  child: Text(isOpen ? 'Hide lessons' : 'All lessons'),
                 ),
               ],
             ),
-          ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: isOpen
+                  ? Column(
+                      children: [
+                        const SizedBox(height: 6),
+                        for (var i = 0; i < trackLessons.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: _lessonRow(
+                              trackLessons[i],
+                              i + 1,
+                              trackLessons.length,
+                              progress[trackLessons[i]['id']] ??
+                                  LessonState.notStarted,
+                            ),
+                          ),
+                      ],
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lessonRow(
+    Map<String, dynamic> l,
+    int position,
+    int outOf,
+    LessonState state,
+  ) {
+    final done = isDone(state);
+    final started = state != LessonState.notStarted && !done;
+    final isPH = l['region'] == 'PH';
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _open2(context, l),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              done
+                  ? Icons.check_circle
+                  : started
+                  ? Icons.pause_circle_outline
+                  : Icons.circle_outlined,
+              size: 18,
+              color: done
+                  ? Barako.primary
+                  : started
+                  ? Barako.primaryText
+                  : Barako.faint,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l['title'] as String,
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l['summary'] as String,
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '$position of $outOf',
+                        style: TextStyle(color: Barako.faint, fontSize: 11),
+                      ),
+                      Text(
+                        '${l['minutes']} min',
+                        style: TextStyle(color: Barako.faint, fontSize: 11),
+                      ),
+                      if (started)
+                        Text(
+                          'Continue',
+                          style: TextStyle(
+                            color: Barako.primaryText,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      if (isPH)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Barako.border),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'PHILIPPINES',
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

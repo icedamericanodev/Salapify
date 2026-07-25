@@ -28,12 +28,15 @@ enum LessonState {
   /// check. This is the first rung that means anything.
   understood,
 
-  /// Took the lesson's action into the app. The rarest and most valuable
-  /// signal, because it is the only one that changed something real.
-  applied,
-
   /// Reached the end of the lesson having understood it.
   completed,
+
+  /// Took the lesson's action into the app. The TOP rung, not a step below
+  /// completed: acting on a lesson is a stronger signal of learning than
+  /// tapping a finish button, so someone who read a lesson and went and did
+  /// the thing has done more, not less. Ranking it lower meant they were not
+  /// counted as done at all, which was simply wrong.
+  applied,
 }
 
 /// Rank for the never-go-backwards rule. Ordered by how much the learner did,
@@ -42,12 +45,12 @@ int _rank(LessonState s) => switch (s) {
   LessonState.notStarted => 0,
   LessonState.viewed => 1,
   LessonState.understood => 2,
-  LessonState.applied => 3,
-  LessonState.completed => 4,
+  LessonState.completed => 3,
+  LessonState.applied => 4,
 };
 
-/// Everything from [LessonState.understood] up counts as done for the
-/// progress figure. Applying or completing implies understanding.
+/// Completed or applied counts as done for the progress figure. Viewing and
+/// understanding are real progress but not a finished lesson.
 bool isDone(LessonState s) => _rank(s) >= _rank(LessonState.completed);
 
 /// Read the per-lesson progress map out of settings, junk-safe.

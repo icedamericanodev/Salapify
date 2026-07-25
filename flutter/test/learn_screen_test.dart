@@ -39,33 +39,31 @@ void main() {
     await tester.tap(find.text('Money courses'));
     await tester.pumpAndSettle();
 
-    expect(find.text('YOUR PROGRESS'), findsOneWidget);
-    expect(find.text('0 of ${lessons.length} lessons done'), findsOneWidget);
+    // The catalog is now four track cards, not a scroll of 22 lessons.
+    expect(find.text('0 of ${lessons.length} lessons'), findsOneWidget);
+    expect(find.text('RECOMMENDED'), findsOneWidget);
+    // An empty store has no debt and little income, so the starting track is
+    // recommended, with its reason visible.
+    expect(find.textContaining('Recommended as the place to start'),
+        findsOneWidget);
 
-    // The featured card sits above the full list, so its title's first match
-    // is the featured card. Computing it here keeps the tap deterministic.
-    final featured = lessonOfTheDay(DateTime.now());
-    await tester.tap(find.text(featured['title'] as String).first);
+    // Start opens the first unfinished lesson of that track.
+    await tester.tap(find.text('Start').first);
     await tester.pumpAndSettle();
-
-    // The reader opened: the hero shows the title, and the personal insight
-    // line is always present, either a real observation or the honest
-    // "not enough logged yet" line. This store is empty, so it is the latter.
     expect(find.textContaining('Nothing here is a guess'), findsOneWidget);
 
-    // Backing out WITHOUT reaching the end must not count. This is the whole
-    // point of the change: the old screen marked the lesson read the moment it
-    // opened, so the figure counted taps rather than learning.
+    // Backing out WITHOUT reaching the end must not count. The old screen
+    // marked a lesson read the moment it opened, so the figure counted taps.
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(
-      find.text('0 of ${lessons.length} lessons done'),
+      find.text('0 of ${lessons.length} lessons'),
       findsOneWidget,
       reason: 'a lesson opened and abandoned is not a lesson learned',
     );
 
-    // Now read it properly: open, reach the end, finish.
-    await tester.tap(find.text(featured['title'] as String).first);
+    // Now read it properly.
+    await tester.tap(find.text('Start').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Finish this lesson'), 250);
     await tester.pumpAndSettle();
@@ -73,6 +71,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('1 of ${lessons.length} lessons done'), findsOneWidget);
+    expect(find.text('1 of ${lessons.length} lessons'), findsOneWidget);
+    // And the track button becomes Continue now that it is started.
+    expect(find.text('Continue'), findsWidgets);
   });
 }
