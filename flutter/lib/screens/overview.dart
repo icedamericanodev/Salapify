@@ -352,6 +352,18 @@ class OverviewScreen extends StatelessWidget {
         : tone == 'nudge'
         ? Barako.muted
         : Barako.primary;
+    // When the coach has somewhere specific to send you, the card goes there.
+    // When it does NOT (the calm all-clear), the card used to be completely
+    // inert: Pan says something friendly and tapping it does nothing at all,
+    // which is the moment a character stops feeling like someone you can talk
+    // to. Falling through to Ask Pan continues the conversation he just
+    // started, and it can never shadow a real decision because it only
+    // applies where there was no destination in the first place.
+    onTap ??= () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanScreen(store: store, onSwitchTab: onSwitchTab),
+      ),
+    );
     final Widget card = Card(
       child: InkWell(
         onTap: onTap,
@@ -364,12 +376,21 @@ class OverviewScreen extends StatelessWidget {
               // Pan sits with the check-in, reflecting its mood, so the same cup
               // face reacts to the top coach item here and to chat replies in
               // Ask Pan. Same widget, same mood engine.
+              // Bare, NOT Flexible. It used to share a Row with Pan, where
+              // Flexible stopped it overflowing at the largest font scale. It
+              // now sits alone on its own line inside a Column, and a flex
+              // child in a vertical Column of unbounded height (this is inside
+              // a ListView) throws instead of laying out.
+              _kicker('MONEY CHECK-IN'),
+              const SizedBox(height: Gap.md),
+              // Pan STANDS BESIDE what he says, rather than sitting in the
+              // corner as an ornament over text the app narrates. The bubble
+              // and its tail are what make the words his; a panel of text next
+              // to a picture reads as the app talking with a mascot stuck on
+              // the side, which is what this was.
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Flexible, not bare: the kicker grows with the system font
-                  // scale and overflowed this Row at the largest setting.
-                  Flexible(child: _kicker('MONEY CHECK-IN')),
-                  const Spacer(),
                   // Tapping Pan opens Ask Pan. He was decoration until now,
                   // and a character who reacts to your money but does nothing
                   // when you reach for him teaches that he is scenery.
@@ -421,65 +442,90 @@ class OverviewScreen extends StatelessWidget {
                                 DateTime.now(),
                               ) ??
                               panMoodForCoachKind(c['kind'] as String?),
-                          size: 44,
+                          size: 56,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  // The all-clear wears a quiet check, not the attention dot,
-                  // so calm reads softer than a real decision.
-                  if (good)
-                    Icon(
-                      Icons.check_circle_outline,
-                      color: Barako.primary,
-                      size: 16,
-                    )
-                  else
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: dotColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: Gap.sm),
                   Expanded(
-                    child: Text(
-                      c['title'] as String,
-                      style: TextStyle(
-                        color: titleColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      decoration: ShapeDecoration(
+                        color: Barako.background,
+                        shape: _BubbleBorder(border: Barako.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              // The all-clear wears a quiet check, not the
+                              // attention dot, so calm reads softer than a
+                              // real decision.
+                              if (good)
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  color: Barako.primary,
+                                  size: 16,
+                                )
+                              else
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: dotColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  c['title'] as String,
+                                  style: TextStyle(
+                                    color: titleColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.25,
+                                  ),
+                                ),
+                              ),
+                              // Always shown now, because the card always has
+                              // somewhere to go: the coach's destination, or
+                              // Ask Pan when there is not one.
+                              Icon(
+                                Icons.chevron_right,
+                                color: Barako.faint,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            c['message'] as String,
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  if (onTap != null)
-                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                c['message'] as String,
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
               ),
             ],
           ),
         ),
       ),
     );
-    // Only the tappable states get the press feel; the calm all-clear (no
-    // action) stays still, so press feedback never lies about interactivity.
-    return onTap == null ? card : PressableScale(child: card);
+    // Every state gets the press feel now, because every state is genuinely
+    // tappable. The old rule (press feel only where there was an action) was
+    // right for as long as the calm card was a dead end, and keeping it after
+    // that changed would make the press feedback lie in the opposite
+    // direction: a card that responds to a tap but looks like it will not.
+    return PressableScale(child: card);
   }
 
   /// Payday morning, the three-minute ritual: log the salary (one tap to the
@@ -1068,6 +1114,77 @@ class _NameAskState extends State<_NameAsk> {
       ),
     );
   }
+}
+
+/// A rounded speech bubble with a tail pointing left, at Pan.
+///
+/// A ShapeBorder rather than a Stack with a triangle in it, because the tail
+/// has to be part of the SAME path as the body: drawn as two overlapping
+/// shapes, the border stroke runs straight through the join and the seam is
+/// visible on any theme with a border colour.
+///
+/// The tail is what turns a panel into speech. Without it this is just a box
+/// of text sitting next to a picture, and the whole point is that the words
+/// are Pan's rather than the app's.
+class _BubbleBorder extends ShapeBorder {
+  final double radius;
+  final double tail;
+
+  final Color border;
+
+  /// Distance from the top of the bubble to the tail's point.
+  ///
+  /// Measured from the TOP rather than centred, so it lands beside Pan's face.
+  /// Centring it would drift the tail down to the middle of a bubble whose
+  /// height depends entirely on how much the coach had to say, and on a long
+  /// message it would end up pointing at his handle.
+  static const double tailTop = 20;
+
+  const _BubbleBorder({required this.border, this.radius = 16, this.tail = 7});
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.only(left: tail);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final body = Rect.fromLTRB(
+      rect.left + tail,
+      rect.top,
+      rect.right,
+      rect.bottom,
+    );
+    // Clamped so a very short bubble cannot put the tail outside its own body.
+    final y = rect.top + tailTop.clamp(radius + tail, body.height - tail);
+    return Path.combine(
+      PathOperation.union,
+      Path()
+        ..addRRect(RRect.fromRectAndRadius(body, Radius.circular(radius))),
+      Path()..addPolygon([
+        Offset(rect.left, y),
+        Offset(body.left + 1, y - tail),
+        Offset(body.left + 1, y + tail),
+      ], true),
+    );
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    canvas.drawPath(
+      getOuterPath(rect, textDirection: textDirection),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = border,
+    );
+  }
+
+  @override
+  ShapeBorder scale(double t) =>
+      _BubbleBorder(border: border, radius: radius * t, tail: tail * t);
 }
 
 class ExportScreen extends StatefulWidget {

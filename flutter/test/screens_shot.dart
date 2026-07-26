@@ -318,6 +318,42 @@ void main() {
     );
   });
 
+  testWidgets('Pan speaking on Home, which needs data to appear at all', (
+    tester,
+  ) async {
+    // The default Home shot renders a BRAND NEW store, so it never shows the
+    // check-in card, and the card is where Pan actually talks. Changing his
+    // layout and reviewing only the empty screen would be reviewing the one
+    // state the change does not touch.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.addEntry({
+      'type': 'expense',
+      'amount': 250.0,
+      'category': 'Food',
+      'date': DateTime.now().toIso8601String(),
+    });
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/home-pan-speaking-dark.png'),
+    );
+  });
+
   testWidgets('Pan is the same colour on every theme', (tester) async {
     // The visual half of the signature rule. pan_signature_test.dart proves
     // the mechanism (no filter, baked fallback palette); this proves the
