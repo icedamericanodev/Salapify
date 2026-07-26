@@ -387,8 +387,23 @@ class OverviewScreen extends StatelessWidget {
                         ),
                       ),
                       child: ExcludeSemantics(
+                        // A reaction to what the user JUST did wins over the
+                        // ambient coach mood, briefly. Logging an expense is
+                        // the most common thing anyone does in this app and it
+                        // used to change Pan's face not at all.
+                        //
+                        // The override expires by itself, so Pan cannot end up
+                        // grinning about an old log while the coach is trying
+                        // to say a bill is due. That would read as a bug, not
+                        // as warmth.
                         child: PanMascot(
-                          mood: panMoodForCoachKind(c['kind'] as String?),
+                          mood:
+                              panMoodForRecentAction(
+                                store.lastActionKind,
+                                store.lastActionAt,
+                                DateTime.now(),
+                              ) ??
+                              panMoodForCoachKind(c['kind'] as String?),
                           size: 44,
                         ),
                       ),

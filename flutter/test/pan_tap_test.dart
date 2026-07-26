@@ -18,8 +18,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/pan.dart';
+import 'package:salapify/screens/utang.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -91,5 +93,70 @@ void main() {
           'regression dressed as a feature.',
     );
     handle.dispose();
+  });
+
+  testWidgets('Pan greets a new user on the empty tab screens', (
+    tester,
+  ) async {
+    // The narrow rule: Pan appears on the empty state of a TAB, because that
+    // is where a brand new user meets the app with nothing else on screen to
+    // build any warmth. He must NOT appear on a filtered empty state, which
+    // is a search result rather than a first meeting. A character on every
+    // blank surface is wallpaper, and wallpaper is invisible within a day.
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: UtangScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(PanMascot),
+      findsOneWidget,
+      reason:
+          'the empty Utang tab is a first meeting, and it showed only an icon',
+    );
+  });
+
+  testWidgets('Pan stays away from a filtered empty state', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.addEntry({
+      'type': 'expense',
+      'amount': 99.0,
+      'category': 'Food',
+      'date': DateTime.now().toIso8601String(),
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: HistoryScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Filter to something that matches nothing, which is the "no entries
+    // match" state rather than the first-meeting state.
+    await tester.enterText(find.byType(TextField).first, 'zzzznothingmatches');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('No entries match'),
+      findsOneWidget,
+      reason: 'the filtered empty state should be showing',
+    );
+    expect(
+      find.byType(PanMascot),
+      findsNothing,
+      reason:
+          'a failed search is not a first meeting. Pan on every blank surface '
+          'is wallpaper, and wallpaper stops being noticed within a day.',
+    );
   });
 }

@@ -221,6 +221,25 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
 }
 
 class SalapifyStore extends ChangeNotifier {
+  /// What the user just did, and when, so Pan can react to the ACTION rather
+  /// than only to the ambient state the coach computes.
+  ///
+  /// Deliberately IN MEMORY ONLY. It is never written to salapify_data_v2 and
+  /// never appears in a backup. Two reasons, and the second is the important
+  /// one. It is worthless after a restart, since a reaction to something you
+  /// did before closing the app is not a reaction. And every field added to
+  /// the stored blob is a field the migration and the backup have to carry
+  /// forever, which is far too high a price for a six second smile.
+  String? lastActionKind;
+  DateTime? lastActionAt;
+
+  /// Record something worth reacting to. Safe to call from anywhere; the
+  /// mood engine decides whether the kind means anything.
+  void noteAction(String kind, {DateTime? at}) {
+    lastActionKind = kind;
+    lastActionAt = at ?? DateTime.now();
+  }
+
   Map<String, dynamic> data = sanitizeData({});
   bool loaded = false;
   String? loadError;
@@ -495,6 +514,9 @@ class SalapifyStore extends ChangeNotifier {
         : {...tx, 'id': _genId('txn')};
     final previous = data;
     data = ledger.addTransaction(data, withId);
+    // Marked BEFORE the save so Pan reacts even if the write is slow. The
+    // user did the thing; whether the disk has caught up is not their concern.
+    noteAction('log');
     try {
       await _save();
     } catch (e) {
