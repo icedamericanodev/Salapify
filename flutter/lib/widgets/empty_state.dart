@@ -19,12 +19,27 @@
 
 import 'package:flutter/material.dart';
 
+import '../money/pan_mood.dart';
 import '../theme.dart';
+import 'pan_mascot.dart';
 import 'salapify_icon.dart';
 
 class EmptyState extends StatelessWidget {
   /// Semantic icon name, resolved by salapify_icon.dart.
   final String icon;
+
+  /// Show Pan instead of the icon.
+  ///
+  /// The rule, narrow on purpose: Pan appears on the empty state of a TAB,
+  /// which is where a brand new user meets the app before they have any data.
+  /// That is the moment a character earns its keep, because there is nothing
+  /// else on screen to build any warmth.
+  ///
+  /// He does NOT appear on a filtered empty state ("no entries match"), which
+  /// is a search result rather than a first meeting, and not on pushed
+  /// screens. A character who turns up on every blank surface is wallpaper,
+  /// and wallpaper is invisible within a day.
+  final bool showPan;
 
   /// Reassuring, never scolding. "Nothing here yet, and that is okay" beats
   /// "No data".
@@ -54,6 +69,7 @@ class EmptyState extends StatelessWidget {
     required this.body,
     this.actionLabel,
     this.onAction,
+    this.showPan = false,
   });
 
   @override
@@ -64,7 +80,13 @@ class EmptyState extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SalapifyGlyph(icon, size: 24),
+            if (showPan)
+              // Calm, deliberately. An empty screen is not a problem to be
+              // worried about, and it is the first thing a new user sees, so
+              // the app's own character should look at ease with it.
+              ExcludeSemantics(child: PanMascot(mood: PanMood.calm, size: 56))
+            else
+              SalapifyGlyph(icon, size: 24),
             const SizedBox(height: 8),
             Text(
               title,

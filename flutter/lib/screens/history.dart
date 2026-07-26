@@ -293,6 +293,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       trulyEmpty
           ? EmptyState(
               icon: 'receipt',
+                showPan: true,
               title: 'Nothing here yet',
               body:
                   'Every expense and every peso in shows up here, newest '

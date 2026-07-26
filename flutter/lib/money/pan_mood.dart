@@ -66,3 +66,48 @@ PanMood panMoodForReplyMood(String? mood) {
       return PanMood.calm;
   }
 }
+
+/// How long Pan stays reacting to something the user just DID, before falling
+/// back to the ambient mood the coach computes.
+///
+/// Short on purpose. A reaction that outstays the action stops being a
+/// reaction and becomes a lie: Pan grinning about a log from ten minutes ago
+/// while the coach is trying to say a bill is due reads as a bug, not warmth.
+const Duration panReactionWindow = Duration(seconds: 6);
+
+/// Pan's reaction to something the user just did, or null when there is
+/// nothing recent enough to react to.
+///
+/// This exists because Pan reacted only to the ambient state: he mirrored the
+/// coach's top item and was otherwise indifferent to the person using the app.
+/// Logging an expense, the single most common thing anyone does here, changed
+/// his face not at all. Reaction to ACTION is what makes a character feel
+/// present; idle animation does not.
+///
+/// Pure and clock-injected so it is testable and cannot drift from the
+/// ambient mapping above.
+PanMood? panMoodForRecentAction(
+  String? kind,
+  DateTime? at,
+  DateTime now,
+) {
+  if (kind == null || at == null) return null;
+  final elapsed = now.difference(at);
+  // A negative elapsed means the stamp is in the future, which happens when a
+  // phone's clock jumps back. Treat it as stale rather than pinning Pan in a
+  // reaction forever.
+  if (elapsed.isNegative || elapsed > panReactionWindow) return null;
+  switch (kind) {
+    // The things worth a genuine smile: money kept, or a promise cleared.
+    case 'goal':
+    case 'debtpaid':
+    case 'utangpaid':
+      return PanMood.happy;
+    // Logging is the habit the whole app rests on, so it is acknowledged
+    // warmly every single time, never graded. Pan does not judge the amount.
+    case 'log':
+      return PanMood.happy;
+    default:
+      return null;
+  }
+}

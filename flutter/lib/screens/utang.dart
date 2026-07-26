@@ -70,6 +70,7 @@ class UtangScreen extends StatelessWidget {
             if (people.isEmpty)
               EmptyState(
                 icon: 'handshake',
+                showPan: true,
                 title: 'Nobody owes you right now',
                 body:
                     'When someone borrows, tap New utang to log it, so it '

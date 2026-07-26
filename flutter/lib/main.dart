@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.40 \u00b7 Cleaner titles and headings everywhere, and colours no longer stick after a theme switch.';
+    'f2.41 \u00b7 Pan is alive: tap him on Home, he reacts when you log, and he greets you on empty screens.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
