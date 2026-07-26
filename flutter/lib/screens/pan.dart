@@ -122,7 +122,7 @@ class _PanScreenState extends State<PanScreen> {
           children: [
             // The mascot cup reacts to the latest reply's mood, the same widget
             // and mood engine the Home check-in uses.
-            PanMascot(mood: panMoodForReplyMood(mood), size: 36),
+            PanMascot(mood: panMoodForReplyMood(mood), size: 48),
             const SizedBox(width: 10),
             Text('Pan',
                 style: TextStyle(

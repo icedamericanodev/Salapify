@@ -84,7 +84,7 @@ class EmptyState extends StatelessWidget {
               // Calm, deliberately. An empty screen is not a problem to be
               // worried about, and it is the first thing a new user sees, so
               // the app's own character should look at ease with it.
-              ExcludeSemantics(child: PanMascot(mood: PanMood.calm, size: 56))
+              ExcludeSemantics(child: PanMascot(mood: PanMood.calm, size: 76))
             else
               SalapifyGlyph(icon, size: 24),
             const SizedBox(height: 8),

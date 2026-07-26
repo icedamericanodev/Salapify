@@ -442,7 +442,7 @@ class OverviewScreen extends StatelessWidget {
                                 DateTime.now(),
                               ) ??
                               panMoodForCoachKind(c['kind'] as String?),
-                          size: 56,
+                          size: 80,
                         ),
                       ),
                     ),
@@ -1138,7 +1138,10 @@ class _BubbleBorder extends ShapeBorder {
   /// Centring it would drift the tail down to the middle of a bubble whose
   /// height depends entirely on how much the coach had to say, and on a long
   /// message it would end up pointing at his handle.
-  static const double tailTop = 20;
+  ///
+  /// Tuned against a render: Pan's eyes sit about this far below the top of
+  /// his box, so at 20 the tail pointed at his rim and the steam above it.
+  static const double tailTop = 34;
 
   const _BubbleBorder({required this.border, this.radius = 16, this.tail = 7});
 
