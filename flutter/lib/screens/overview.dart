@@ -19,6 +19,7 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/section.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
@@ -207,7 +208,7 @@ class OverviewScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _kicker('MY MONEY'),
+                        Kicker('MY MONEY'),
                         const SizedBox(height: 6),
                         for (final a in accounts)
                           Padding(
@@ -260,7 +261,7 @@ class OverviewScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _kicker('THIS MONTH'),
+                      Kicker('THIS MONTH'),
                       const SizedBox(height: 6),
                       _line(
                         'Income earned',
@@ -292,15 +293,6 @@ class OverviewScreen extends StatelessWidget {
 
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
 
-  Widget _kicker(String text) => Text(
-    text,
-    style: TextStyle(
-      color: Barako.muted,
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 2,
-    ),
-  );
 
   // The bottom tabs a check-in action can jump straight to. Routes that are
   // not tabs (/debts, /goals) are handled by a push in _checkInCard; /learn is
@@ -381,7 +373,7 @@ class OverviewScreen extends StatelessWidget {
               // now sits alone on its own line inside a Column, and a flex
               // child in a vertical Column of unbounded height (this is inside
               // a ListView) throws instead of laying out.
-              _kicker('MONEY CHECK-IN'),
+              Kicker('MONEY CHECK-IN'),
               const SizedBox(height: Gap.md),
               // Pan STANDS BESIDE what he says, rather than sitting in the
               // corner as an ornament over text the app narrates. The bubble
@@ -550,7 +542,7 @@ class OverviewScreen extends StatelessWidget {
               children: [
                 Icon(Icons.payments_outlined, color: Barako.primary, size: 18),
                 const SizedBox(width: 8),
-                _kicker('PAYDAY'),
+                Kicker('PAYDAY'),
               ],
             ),
             const SizedBox(height: 8),
@@ -706,7 +698,7 @@ class OverviewScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _kicker('YOUR NUMBER'),
+                      Kicker('YOUR NUMBER'),
                       const Spacer(),
                       Icon(Icons.chevron_right, color: Barako.faint, size: 18),
                     ],
@@ -779,7 +771,7 @@ class OverviewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('NET WORTH'),
+            Kicker('NET WORTH'),
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -836,7 +828,7 @@ class OverviewScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _kicker('WELCOME'),
+          Kicker('WELCOME'),
           const SizedBox(height: 8),
           Text(
             'Nothing here yet, and that is okay.',

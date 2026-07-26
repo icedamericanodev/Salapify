@@ -20,6 +20,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
+import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
@@ -232,7 +233,7 @@ class InsightsScreen extends StatelessWidget {
               subtitle: 'What your money is telling you, and what to do next',
             ),
             if (candidates.isNotEmpty) ...[
-              _kicker('DO NEXT'),
+              Kicker('DO NEXT'),
               SizedBox(height: 8),
               for (final c in candidates.take(3)) _decisionCard(c),
             ] else
@@ -354,15 +355,6 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _kicker(String text) => Text(
-    text,
-    style: TextStyle(
-      color: Barako.muted,
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 2,
-    ),
-  );
 
   Widget _decisionCard(Map<String, dynamic> c) {
     final tone = c['tone'] as String;
@@ -662,7 +654,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('STEADY PAY · YOUR OWN SALARY'),
+            Kicker('STEADY PAY · YOUR OWN SALARY'),
             const SizedBox(height: 8),
             body,
           ],
@@ -684,7 +676,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('SAFE TO SPEND UNTIL PAYDAY'),
+            Kicker('SAFE TO SPEND UNTIL PAYDAY'),
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -745,7 +737,7 @@ class InsightsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _kicker('SPOKEN FOR EACH MONTH'),
+              Kicker('SPOKEN FOR EACH MONTH'),
               const SizedBox(height: 8),
               Text(
                 'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your salary is.',
@@ -812,7 +804,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('SPOKEN FOR EACH MONTH'),
+            Kicker('SPOKEN FOR EACH MONTH'),
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -987,7 +979,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('WHERE YOUR NEXT PESO SHOULD GO'),
+            Kicker('WHERE YOUR NEXT PESO SHOULD GO'),
             const SizedBox(height: 6),
             Text(
               title,
@@ -1115,7 +1107,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('MONEY HEALTH'),
+            Kicker('MONEY HEALTH'),
             const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1193,7 +1185,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('LAST 6 MONTHS'),
+            Kicker('LAST 6 MONTHS'),
             const SizedBox(height: 10),
             SizedBox(
               height: 120,
@@ -1251,7 +1243,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('WHERE YOUR MONEY WENT THIS MONTH'),
+            Kicker('WHERE YOUR MONEY WENT THIS MONTH'),
             const SizedBox(height: 4),
             Text(
               '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
@@ -1323,7 +1315,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('EMERGENCY RUNWAY'),
+            Kicker('EMERGENCY RUNWAY'),
             const SizedBox(height: 6),
             Text(
               runwayLabel(months, capped),

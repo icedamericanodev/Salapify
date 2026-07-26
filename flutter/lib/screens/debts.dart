@@ -14,6 +14,7 @@ import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
+import '../widgets/section.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney;
 
@@ -195,7 +196,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _kicker('TOTAL DEBT'),
+                              Kicker('TOTAL DEBT'),
                               const SizedBox(height: 4),
                               FittedBox(
                                 fit: BoxFit.scaleDown,
@@ -231,7 +232,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _kicker('PAYOFF PLAN'),
+                              Kicker('PAYOFF PLAN'),
                               const SizedBox(height: 10),
                               Wrap(
                                 spacing: 8,
@@ -308,13 +309,13 @@ class _DebtsScreenState extends State<DebtsScreen> {
                       ),
                       if (shortTerm.isNotEmpty) ...[
                         const SizedBox(height: 16),
-                        _kicker('SHORT TERM'),
+                        Kicker('SHORT TERM'),
                         const SizedBox(height: 6),
                         for (final d in shortTerm) _debtCard(context, d),
                       ],
                       if (longTerm.isNotEmpty) ...[
                         const SizedBox(height: 16),
-                        _kicker('LONG TERM'),
+                        Kicker('LONG TERM'),
                         const SizedBox(height: 6),
                         for (final d in longTerm) _debtCard(context, d),
                       ],
@@ -326,7 +327,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
     );
   }
 
-  Widget _kicker(String text) => Text(text, style: Barako.kickerStyle);
 
   Widget _line(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),

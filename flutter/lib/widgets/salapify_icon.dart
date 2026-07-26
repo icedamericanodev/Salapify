@@ -55,6 +55,17 @@ const Map<String, IconData> _icons = {
   'search': Icons.search_outlined,
   'chart': Icons.bar_chart_outlined,
   'celebrate': Icons.celebration_outlined,
+
+  // Navigation destinations. Added when Menu became a tile grid, where the
+  // icon does more work than it does in a row: with the explanatory blurbs
+  // gone, the glyph and the label are the only things telling you where a
+  // tile goes.
+  'wallet': Icons.account_balance_wallet_outlined,
+  'flow': Icons.waterfall_chart_outlined,
+  'group': Icons.groups_outlined,
+  'tools': Icons.handyman_outlined,
+  'share': Icons.ios_share_outlined,
+  'phone': Icons.phone_iphone_outlined,
 };
 
 /// The glyph for a name. An unknown name draws a neutral marker rather than
