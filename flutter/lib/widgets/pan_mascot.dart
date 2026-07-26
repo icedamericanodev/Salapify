@@ -39,8 +39,14 @@ const String kPanRivAsset = 'assets/pan/pan.riv';
 
 /// The rendered face for a mood.
 ///
-/// One file per mood rather than a sprite sheet: four 13KB PNGs are simpler to
-/// swap, and a sheet would have to be re-cut every time a face is redrawn.
+/// One file per mood rather than a sprite sheet: four small PNGs are simpler
+/// to swap, and a sheet would have to be re-cut every time a face is redrawn.
+///
+/// All four are rendered on one 360px canvas with the cup at an IDENTICAL
+/// width, centre, and baseline, so swapping moods changes the face and
+/// nothing else. Per-image cropping would resize Pan between moods, and a
+/// character who grows when he smiles reads as a glitch rather than a
+/// reaction.
 String panAssetFor(PanMood mood) => switch (mood) {
   PanMood.calm => 'assets/pan/pan-calm.png',
   PanMood.nudge => 'assets/pan/pan-nudge.png',

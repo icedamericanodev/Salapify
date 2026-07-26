@@ -1,7 +1,7 @@
 name: salapify
 description: "A new Flutter project."
 publish_to: 'none'
-# Bumped for Pan's rendered artwork (assets/pan/, four mood faces, 53KB).
+# Bumped for Pan's redrawn artwork (assets/pan/, four mood faces, ~145KB).
 # Shorebird patches carry Dart code, NOT assets, and refuse a patch that
 # touches them, so adding an image is a native-level change: a fresh base APK
 # that the founder installs once by hand. Everything after that install goes
@@ -9,7 +9,7 @@ publish_to: 'none'
 #
 # The previous bump was flutter_local_notifications + timezone on top of
 # local_auth for App Lock.
-version: 0.6.1+10
+version: 0.6.2+11
 
 environment:
   sdk: ^3.12.2
