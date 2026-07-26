@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.49 \u00b7 Menu is a grid now, so you can see everything without scrolling. Pan is bigger too.';
+    'f2.50 \u00b7 Home now shows what your money is made of, not just the totals.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

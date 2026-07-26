@@ -29,6 +29,14 @@ class CycleStatus {
   final String payday; // ISO date of the next payday
   final double available;
 
+  /// Spendable cash BEFORE bills and minimums are set aside.
+  ///
+  /// Carried alongside [available] so the screen can show what is already
+  /// spoken for, which is `liquid - available`, without recomputing anything.
+  /// Both come from the same golden-locked safeToSpend call, so the two halves
+  /// can never disagree the way two separate reads could.
+  final double liquid;
+
   /// Null when paydayProjection stays silent (thin logging); otherwise
   /// whether the recent discretionary pace fits the number.
   final bool? onTrack;
@@ -48,6 +56,7 @@ class CycleStatus {
     this.daysLeft = 0,
     this.payday = '',
     this.available = 0,
+    this.liquid = 0,
     this.onTrack,
     this.dailyPace = 0,
     this.easeOff = 0,
@@ -400,6 +409,7 @@ CycleStatus cycleStatus(dynamic data, DateTime ref) {
     daysLeft: s['daysLeft'] as int,
     payday: (s['payday'] ?? '').toString(),
     available: available,
+    liquid: liquid,
     onTrack: pp == null ? null : pp['onTrack'] as bool,
     dailyPace: pp == null ? 0 : pp['dailyPace'] as double,
     easeOff: pp == null ? 0 : pp['easeOff'] as double,

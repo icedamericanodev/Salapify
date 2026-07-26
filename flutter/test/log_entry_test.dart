@@ -36,7 +36,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Net worth starts at 6,000 and Cash shows 1,000.
-    expect(find.text('₱6,000'), findsOneWidget);
+    //
+    // findsWidgets, not findsOneWidget: with no debts, net worth EQUALS total
+    // assets, so the same figure legitimately appears twice, once as the hero
+    // and once in the assets column beneath it. Pinning "exactly one" was
+    // pinning the absence of a breakdown rather than the number itself.
+    expect(find.text('₱6,000'), findsWidgets);
     expect(find.text('₱1,000'), findsOneWidget);
 
     await tester.tap(find.text('Log'));
@@ -50,8 +55,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Cash 1,000 - 250 = 750; net worth 5,750; this month spending 250.
+    // Same reason as above: no debts means net worth and total assets are the
+    // same figure, shown twice on purpose.
     expect(find.text('₱750'), findsOneWidget);
-    expect(find.text('₱5,750'), findsOneWidget);
+    expect(find.text('₱5,750'), findsWidgets);
     expect(find.text('₱250'), findsWidgets);
 
     // And it persisted: a brand new store instance reads the same state.
