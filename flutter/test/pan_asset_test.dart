@@ -86,9 +86,13 @@ void main() {
   });
 
   test('the set stays small enough to be worth an install', () {
+    // Sums the DIRECTORY, not the four known paths. pubspec declares
+    // `- assets/pan/` as a whole directory, so the bundle is whatever is in
+    // that folder, and a guard that only measures the files it already knows
+    // about cannot see the thing most likely to go wrong.
     var total = 0;
-    for (final mood in PanMood.values) {
-      total += File(panAssetFor(mood)).lengthSync();
+    for (final f in Directory('assets/pan').listSync().whereType<File>()) {
+      total += f.lengthSync();
     }
     expect(
       total,
@@ -97,6 +101,38 @@ void main() {
           'Pan is ${(total / 1024).round()}KB. The originals were 3.4MB and '
           'were cut to about 53KB; a jump back means someone dropped a '
           'full-resolution render in without processing it.',
+    );
+  });
+
+  test('nothing but Pan lives in the Pan folder', () {
+    // The near miss that earned this test: working out the theme tint meant
+    // writing eight intermediate PNGs, and the obvious place to put them was
+    // next to the art they came from. They were cleaned up by memory alone.
+    //
+    // Had they survived, every one would have shipped, because pubspec
+    // declares the DIRECTORY. Worse, the size guard above would still have
+    // passed, and the first symptom would have arrived days later as a
+    // Shorebird patch refusing to build against a changed asset bundle. That
+    // is a long way from the mistake, in a message that says nothing about
+    // stray files.
+    final declared = PanMood.values.map(panAssetFor).toSet();
+    final found = Directory('assets/pan')
+        .listSync()
+        .whereType<File>()
+        // Normalise separators so this reads the same on a Windows checkout.
+        .map((f) => f.path.replaceAll(r'\', '/'))
+        .toSet();
+    final strays = found.difference(declared);
+    expect(
+      strays,
+      isEmpty,
+      reason:
+          'Unexpected file(s) in assets/pan: ${strays.join(', ')}.\n'
+          'pubspec declares the whole directory, so these WILL ship. Either '
+          'delete them, or if one is a real new asset (pan.riv, say), add it '
+          'to the declared set here on purpose. Note a genuinely new asset '
+          'also means a new base APK and a manual install, so this failing is '
+          'the cheap moment to find that out.',
     );
   });
 }
