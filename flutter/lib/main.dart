@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.39 \u00b7 New Copy diagnostics button in Menu, for when something looks wrong.';
+    'f2.40 \u00b7 Cleaner titles and headings everywhere, and colours no longer stick after a theme switch.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
