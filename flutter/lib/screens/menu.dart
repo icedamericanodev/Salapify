@@ -12,6 +12,10 @@ import '../money/greeting.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
 import '../widgets/lock_gate.dart' show BiometricAuthenticator;
+import '../widgets/section.dart';
+import '../widgets/pan_mascot.dart';
+import '../money/pan_mood.dart';
+import '../widgets/nav_tile.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
@@ -52,191 +56,169 @@ class MenuScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
               ScreenHeader('Menu'),
-              _navRow(
-                icon: Icons.search,
-                title: 'Search',
-                blurb: 'Find any entry, account, or IOU by name or amount.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        SearchScreen(store: store, onSwitchTab: onSwitchTab),
+              _askPanBanner(context),
+              const SizedBox(height: 20),
+              Kicker('MONEY'),
+              const SizedBox(height: Gap.md),
+              // A grid, not sixteen stacked rows. The old shape reached the
+              // eighth destination before running off the screen, so half the
+              // app sat behind a scroll with nothing hinting it was there.
+              NavTileGrid(
+                tiles: [
+                  NavTile(
+                    icon: 'search',
+                    label: 'Search',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SearchScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  NavTile(
+                    icon: 'wallet',
+                    label: 'Accounts',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AccountsScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'flow',
+                    label: 'Cash flow',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CashFlowScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'card',
+                    label: 'Debts',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DebtsScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'savings',
+                    label: 'Goals',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => GoalsScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'group',
+                    label: 'Paluwagan',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PaluwaganScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'repeat',
+                    label: 'Recurring',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecurringScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'chart',
+                    label: 'Reports',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ReportsScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Payday joins MONEY rather than keeping a section of its
+                  // own: a lone half-width tile under its own heading reads as
+                  // a layout mistake. Still gated on canWrite, as before.
+                  if (store.canWrite)
+                    NavTile(
+                      icon: 'calendar',
+                      label: 'Payday',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PaydayScreen(store: store),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 20),
-              _kicker('MONEY'),
-              const SizedBox(height: 8),
-              _navRow(
-                icon: Icons.account_balance_wallet_outlined,
-                title: 'Accounts',
-                blurb: 'Your wallets, banks, and assets, all in one place.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AccountsScreen(store: store),
+              Kicker('HELPERS'),
+              const SizedBox(height: Gap.md),
+              NavTileGrid(
+                tiles: [
+                  NavTile(
+                    icon: 'tools',
+                    label: 'Tools',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ToolsScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.calendar_month_outlined,
-                title: 'Cash flow',
-                blurb:
-                    'Your month ahead day by day: salary in, bills out, and the days your cash runs tight.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CashFlowScreen(store: store),
+                  NavTile(
+                    icon: 'gift',
+                    label: 'Earn your treats',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TreatsScreen(store: store),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.credit_card_outlined,
-                title: 'Debts',
-                blurb:
-                    'Cards and loans, payments split into interest and principal.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.savings_outlined,
-                title: 'Goals',
-                blurb:
-                    'Savings goals with progress bars and an honest monthly pace.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => GoalsScreen(store: store)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.groups_outlined,
-                title: 'Paluwagan',
-                blurb:
-                    'Your rotating savings groups, with your payout date and an honest read on your turn.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PaluwaganScreen(store: store),
+                  NavTile(
+                    icon: 'share',
+                    label: 'Share your month',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecapShareScreen(store: store),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.event_repeat_outlined,
-                title: 'Recurring',
-                blurb:
-                    'Bills and income that log themselves every month, on their day.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => RecurringScreen(store: store),
+                  NavTile(
+                    icon: 'celebrate',
+                    label: 'Share a win',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MilestoneShareScreen(store: store),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.bar_chart_outlined,
-                title: 'Reports',
-                blurb:
-                    'Your net worth, monthly income, and cash flow as three plain statements.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ReportsScreen(store: store, onSwitchTab: onSwitchTab),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _kicker('HELPERS'),
-              const SizedBox(height: 8),
-              _navRow(
-                icon: Icons.chat_bubble_outline,
-                title: 'Ask Pan',
-                blurb:
-                    'Your money questions, answered from your own data, right on your phone. No cloud AI.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PanScreen(store: store, onSwitchTab: onSwitchTab),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.handyman_outlined,
-                title: 'Tools',
-                blurb:
-                    'Loan, tax, and take-home calculators, currency converter, notes, and lessons.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ToolsScreen(store: store, onSwitchTab: onSwitchTab),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.emoji_events_outlined,
-                title: 'Earn your treats',
-                blurb:
-                    'Pair a treat with a healthy habit and earn it guilt free. No pesos counted.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => TreatsScreen(store: store)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.ios_share_outlined,
-                title: 'Share your month',
-                blurb:
-                    'Turn this month into a card you can post or send. You choose if amounts show.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => RecapShareScreen(store: store),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _navRow(
-                icon: Icons.celebration_outlined,
-                title: 'Share a win',
-                blurb:
-                    'Paid off a debt, funded a goal, or got paid back? That deserves a card.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MilestoneShareScreen(store: store),
-                  ),
-                ),
+                ],
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
-                _kicker('YOUR PAYDAY'),
-                const SizedBox(height: 8),
-                _navRow(
-                  icon: Icons.event_available_outlined,
-                  title: 'Payday',
-                  blurb:
-                      'Tell Salapify when you actually get paid, or that your '
-                      'pay has no fixed date.',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PaydayScreen(store: store),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _kicker('PERSONALIZE'),
+                Kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceCard(context),
                 const SizedBox(height: 20),
-                _kicker('YOUR NAME'),
+                Kicker('YOUR NAME'),
                 const SizedBox(height: 8),
                 _nameCard(context),
                 const SizedBox(height: 20),
-                _kicker('REMINDERS'),
+                Kicker('REMINDERS'),
                 const SizedBox(height: 8),
                 _remindersCard(context),
                 const SizedBox(height: 20),
-                _kicker('SECURITY'),
+                Kicker('SECURITY'),
                 const SizedBox(height: 8),
                 _appLockCard(context),
               ],
@@ -245,7 +227,7 @@ class MenuScreen extends StatelessWidget {
               // failed to load is exactly the user most likely to want to
               // check what the app can reach on the network.
               const SizedBox(height: 20),
-              _kicker('PRIVACY'),
+              Kicker('PRIVACY'),
               const SizedBox(height: 8),
               _navRow(
                 icon: Icons.verified_user_outlined,
@@ -257,7 +239,7 @@ class MenuScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _kicker('YOUR DATA'),
+              Kicker('YOUR DATA'),
               const SizedBox(height: 8),
               _backupCard(context),
               _undoImportCard(context),
@@ -290,13 +272,85 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _kicker(String text) => Text(
-    text,
-    style: TextStyle(
-      color: Barako.muted,
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 2,
+
+  /// Ask Pan, promoted out of the list into a filled banner at the top.
+  ///
+  /// It used to be the ninth of sixteen identical rows, which put the one
+  /// place you can ASK the app something below the fold and made it look like
+  /// a screen rather than a conversation. Filled rather than outlined because
+  /// it is the only thing on Menu that is an invitation instead of a
+  /// destination, and it keeps its subtitle for the same reason: every other
+  /// label says where you land, this one has to say what it is FOR.
+  Widget _askPanBanner(BuildContext context) => PressableScale(
+    child: Card(
+      color: Barako.primary,
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.lg),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PanScreen(store: store, onSwitchTab: onSwitchTab),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.lg),
+          child: Row(
+            children: [
+              // The disc is not decoration. Pan is a fixed orange and this
+              // banner is filled with the accent, which on Barako is the SAME
+              // orange, so without something behind him he dissolves into his
+              // own background. A dark disc is what gives him an edge, and it
+              // works on every theme because the fill is always the accent and
+              // the disc is always darker than it.
+              //
+              // Excluded from semantics: the whole banner is already one
+              // button announcing Ask Pan, so letting the mascot announce his
+              // mood here would add a second, competing label to the same
+              // target.
+              ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Barako.background.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: PanMascot(mood: PanMood.calm, size: 56),
+                ),
+              ),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ask Pan',
+                      style: TextStyle(
+                        color: Barako.onPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      // Short on purpose. The title already says this is where
+                      // you ask, so the subtitle only has to carry the thing
+                      // the title cannot: that the answers never leave here.
+                      'Answered from your own data, right on this phone.',
+                      style: TextStyle(
+                        color: Barako.onPrimary.withValues(alpha: 0.82),
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              Icon(Icons.chevron_right, color: Barako.onPrimary, size: 20),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 
@@ -375,7 +429,7 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('COLOR THEME'),
+            Kicker('COLOR THEME'),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -409,7 +463,7 @@ class MenuScreen extends StatelessWidget {
               style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
             ),
             const SizedBox(height: 16),
-            _kicker('APPEARANCE'),
+            Kicker('APPEARANCE'),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -819,7 +873,7 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('EXPORT'),
+            Kicker('EXPORT'),
             const SizedBox(height: 8),
             Text(
               'Save your entries as a spreadsheet, or this month as a PDF report. '
@@ -1023,7 +1077,7 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker('START FRESH'),
+            Kicker('START FRESH'),
             const SizedBox(height: 8),
             Text(
               'Erase everything Salapify keeps on this phone and begin again '
@@ -1073,7 +1127,7 @@ class MenuScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _kicker('AFTER AN IMPORT'),
+                  Kicker('AFTER AN IMPORT'),
                   const SizedBox(height: 8),
                   Text(
                     'Salapify kept a copy of the data your last import '
@@ -1166,7 +1220,7 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _kicker(store.hasData ? 'BACKUP' : 'BRING YOUR DATA OVER'),
+            Kicker(store.hasData ? 'BACKUP' : 'BRING YOUR DATA OVER'),
             const SizedBox(height: 8),
             Text(
               store.hasData

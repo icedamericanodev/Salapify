@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../data/fx_service.dart';
 import '../theme.dart';
+import '../widgets/section.dart';
 
 const _months = [
   'Jan',
@@ -77,7 +78,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           children: [
             _promiseCard(),
             const SizedBox(height: 20),
-            _kicker('EVERY CONNECTION THIS APP CAN MAKE'),
+            Kicker('EVERY CONNECTION THIS APP CAN MAKE'),
             const SizedBox(height: 8),
             _connectionCard(
               Icons.currency_exchange,
@@ -100,11 +101,11 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             const SizedBox(height: 10),
             _wholeListCard(),
             const SizedBox(height: 20),
-            _kicker('EVERY PERMISSION, AND WHY'),
+            Kicker('EVERY PERMISSION, AND WHY'),
             const SizedBox(height: 8),
             _permissionsCard(),
             const SizedBox(height: 20),
-            _kicker('RECENT RATE FETCHES'),
+            Kicker('RECENT RATE FETCHES'),
             const SizedBox(height: 8),
             _fetchLogCard(),
             const SizedBox(height: 20),
@@ -115,15 +116,6 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
     );
   }
 
-  Widget _kicker(String text) => Text(
-    text,
-    style: TextStyle(
-      color: Barako.muted,
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 2,
-    ),
-  );
 
   Widget _promiseCard() {
     return Card(

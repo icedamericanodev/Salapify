@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.47 \u00b7 Pan has a new face and now speaks to you in a bubble on Home. Tap him to reply.';
+    'f2.49 \u00b7 Menu is a grid now, so you can see everything without scrolling. Pan is bigger too.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

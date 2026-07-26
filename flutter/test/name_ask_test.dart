@@ -147,8 +147,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(find.text('Not set'), 300);
-      await tester.tap(find.widgetWithText(TextButton, 'Set'));
+      // Scroll to the BUTTON, not to the label above it. The name card puts
+      // its actions on a line BELOW the text, so scrolling the label into view
+      // says nothing about whether the button came with it, and a taller
+      // section kicker was enough to leave it just off-screen.
+      final set = find.widgetWithText(TextButton, 'Set');
+      await tester.scrollUntilVisible(set, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(set);
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).first, 'Ana');
@@ -171,8 +177,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(find.text('Ana'), 300);
-      await tester.tap(find.widgetWithText(TextButton, 'Remove'));
+      final remove = find.widgetWithText(TextButton, 'Remove');
+      await tester.scrollUntilVisible(remove, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(remove);
       await tester.pumpAndSettle();
 
       expect(store.displayName, isNull);
@@ -196,8 +204,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(find.text('Ana'), 300);
-      await tester.tap(find.widgetWithText(TextButton, 'Change'));
+      final change = find.widgetWithText(TextButton, 'Change');
+      await tester.scrollUntilVisible(change, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(change);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'Bea');
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
