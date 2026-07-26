@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.41 \u00b7 Pan is alive: tap him on Home, he reacts when you log, and he greets you on empty screens.';
+    'f2.42 \u00b7 Pan has a real face now. This one needed a new install, so you are on the newest base build.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

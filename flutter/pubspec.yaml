@@ -1,11 +1,15 @@
 name: salapify
 description: "A new Flutter project."
 publish_to: 'none'
-# Native change (adds flutter_local_notifications + timezone for on-device
-# reminders, on top of local_auth for App Lock), so this bumps the version: it
-# forces a fresh base APK the founder installs once. JS/Dart only changes keep
-# the version and patch over the air.
-version: 0.5.0+8
+# Bumped for Pan's rendered artwork (assets/pan/, four mood faces, 53KB).
+# Shorebird patches carry Dart code, NOT assets, and refuse a patch that
+# touches them, so adding an image is a native-level change: a fresh base APK
+# that the founder installs once by hand. Everything after that install goes
+# back to patching over the air.
+#
+# The previous bump was flutter_local_notifications + timezone on top of
+# local_auth for App Lock.
+version: 0.6.0+9
 
 environment:
   sdk: ^3.12.2
@@ -34,6 +38,10 @@ flutter:
   uses-material-design: true
   assets:
     - shorebird.yaml
+    # Pan's four mood faces. Listed as a directory so a fifth mood is a file
+    # drop rather than another pubspec edit, which is the kind of edit that
+    # gets forgotten and ships a missing asset.
+    - assets/pan/
   fonts:
     - family: Fraunces
       fonts:

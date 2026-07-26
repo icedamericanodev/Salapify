@@ -7,6 +7,16 @@
 // battery. Colors come from the active Barako palette.
 //
 // ==========================================================================
+// Pan is drawn from four rendered PNGs (assets/pan/), one per mood. The
+// code-drawn PanCupPainter is NOT dead: it is the errorBuilder fallback here,
+// and the share cards still paint through it with a baked brand palette so an
+// exported image never inherits the sender's theme.
+//
+// The cost of the artwork, stated plainly because it is permanent: the cup is
+// now a fixed orange and no longer reskins with the theme. On Barako that is
+// right. On Tidal or Mint the cup stays warm while the screen goes cold.
+// Accepted deliberately by the founder, who uses Barako.
+//
 // RIVE SWAP POINT (the ONE place to swap in the real animated Pan later):
 // When a rigged Pan.riv exists, add the `rive` package, drop the file at
 // [kPanRivAsset], declare it under flutter/assets in pubspec, and replace the
@@ -26,6 +36,17 @@ import '../theme.dart';
 
 /// The single source of truth for where the real Pan Rive file will live.
 const String kPanRivAsset = 'assets/pan/pan.riv';
+
+/// The rendered face for a mood.
+///
+/// One file per mood rather than a sprite sheet: four 13KB PNGs are simpler to
+/// swap, and a sheet would have to be re-cut every time a face is redrawn.
+String panAssetFor(PanMood mood) => switch (mood) {
+  PanMood.calm => 'assets/pan/pan-calm.png',
+  PanMood.nudge => 'assets/pan/pan-nudge.png',
+  PanMood.worried => 'assets/pan/pan-worried.png',
+  PanMood.happy => 'assets/pan/pan-happy.png',
+};
 
 class PanMascot extends StatefulWidget {
   final PanMood mood;
@@ -71,8 +92,20 @@ class _PanMascotState extends State<PanMascot>
             height: widget.size,
             child: Transform.translate(
               offset: Offset(0, -lift),
-              child: CustomPaint(
-                painter: PanCupPainter(mood: widget.mood, wisp: t),
+              // The rendered artwork, with the code-drawn cup as the safety
+              // net. A missing or corrupt asset must never leave a hole where
+              // the app's character should be, and errorBuilder is the only
+              // thing standing between that and a blank box.
+              child: Image.asset(
+                panAssetFor(widget.mood),
+                width: widget.size,
+                height: widget.size,
+                // Pan is small on screen and the source is 360px, so filtering
+                // quality matters more than usual here.
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (context, error, stack) => CustomPaint(
+                  painter: PanCupPainter(mood: widget.mood, wisp: t),
+                ),
               ),
             ),
           );
