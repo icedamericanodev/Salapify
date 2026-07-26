@@ -79,7 +79,15 @@ class SalapifyGlyph extends StatelessWidget {
   /// point: these follow the palette, and the old emoji could not.
   final Color? color;
 
-  const SalapifyGlyph(
+  // NOT const on purpose. Every colour below is a mutable Barako getter
+  // read in build(). Dart canonicalizes const instances, so a const call
+  // site makes two builds compare equal and Element.updateChild skips
+  // build() entirely, freezing this widget in the previous palette after
+  // a theme switch or a night-mode flip. Removing const from the
+  // CONSTRUCTOR is what makes the mistake impossible at every call site,
+  // rather than something each caller has to remember.
+  // ignore: prefer_const_constructors_in_immutables
+  SalapifyGlyph(
     this.name, {
     super.key,
     this.size = 24,

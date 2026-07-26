@@ -149,7 +149,7 @@ class InsightsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           ScreenHeader(
-            'INSIGHTS',
+            'Insights',
             subtitle: 'What your money is telling you, and what to do next',
           ),
           Card(
@@ -158,7 +158,7 @@ class InsightsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SalapifyGlyph('chart', size: 24),
+                  SalapifyGlyph('chart', size: 24),
                   const SizedBox(height: 8),
                   Text(
                     'Nothing to read yet, and that is fine',
@@ -228,7 +228,7 @@ class InsightsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           children: [
             ScreenHeader(
-              'INSIGHTS',
+              'Insights',
               subtitle: 'What your money is telling you, and what to do next',
             ),
             if (candidates.isNotEmpty) ...[

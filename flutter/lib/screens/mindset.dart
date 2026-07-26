@@ -343,7 +343,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
-          const SalapifyGlyph('celebrate', size: 18, boxed: false),
+          SalapifyGlyph('celebrate', size: 18, boxed: false),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

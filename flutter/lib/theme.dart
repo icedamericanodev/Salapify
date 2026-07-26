@@ -514,17 +514,75 @@ class Barako {
   static Color get positiveBorder => current.positiveBorder;
   static Color get overlay => current.overlay;
 
-  /// The display serif for big peso amounts (Fraunces).
+  /// The display serif, and the ONE rule that governs it.
+  ///
+  /// Fraunces marks THE ONE NUMBER on a screen, at 30 or larger, and nothing
+  /// else. Two hard limits decide this rather than taste:
+  ///
+  /// 1. Fraunces ships no `tnum` table, verified with fontTools. So its digits
+  ///    are proportional: zero is 44% wider than one. It can NEVER align in a
+  ///    column, which rules it out of every list, legend, and table row. Every
+  ///    `FontFeature.tabularFigures()` paired with this family was a silent no
+  ///    op. Plus Jakarta Sans DOES have tnum, so amounts in rows use Jakarta
+  ///    and get real alignment.
+  /// 2. Only w600 and w700 ship, so it cannot reach the w800 a heading wants.
+  ///
+  /// A heading is scanned and skipped, so it wants the neutral workhorse. A
+  /// hero number is meant to be looked at, and a different family says "this
+  /// is the headline" without spending more size to say it.
   static const displayFont = 'Fraunces';
 
-  /// The one section-label style for the little uppercase kicker above a
-  /// card's content. Not const: it carries the mood-driven muted color.
+  /// The section kicker: the small uppercase label above a card's content.
+  ///
+  /// 12/w600/1.2 rather than the old 11/w700/2. The old tracking was 0.18em,
+  /// which shouts; 1.2 at 12 is 0.10em, which is what an overline wants. The
+  /// new style is very slightly NARROWER per character (8.6 against 8.8), so
+  /// nothing that fitted before can overflow now.
   static TextStyle get kickerStyle => TextStyle(
         color: current.muted,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 2,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
       );
+
+  /// The kicker for a label INSIDE a card, in the warm accent rather than
+  /// muted. Splitting the two is what stops a screen of cards reading
+  /// utilitarian: the outside label orients, the inside label belongs to its
+  /// card. Contrast was checked across all sixteen palettes; caramel on card
+  /// ranges 5.42 to 9.75, so every one clears AA for small text.
+  static TextStyle get cardKickerStyle => kickerStyle.copyWith(
+        color: current.caramel,
+      );
+}
+
+/// The spacing ladder. Anything outside it is a bug.
+///
+/// Ported from the React Native app's scale so the two stay in step. Before
+/// this the Flutter app hand typed 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22
+/// and 24, plus a literal 12.5 font size, so there was no rhythm to read.
+class Gap {
+  const Gap._();
+  static const double xxs = 2;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+
+  /// The standard gap between cards. Was 12 in 95 places, which is most of
+  /// what "the other app feels more generous" actually was.
+  static const double lg = 16;
+  static const double xl = 24;
+  static const double xxl = 32;
+}
+
+/// Corner radii. Heroes get more than flat cards, so the eye can tell the
+/// headline from the supporting cast without reading it.
+class Radii {
+  const Radii._();
+  static const double sm = 10;
+  static const double md = 14;
+  static const double lg = 20;
+  static const double xl = 26;
+  static const double pill = 999;
 }
 
 /// The theme for one palette (one theme in one brightness).

@@ -194,7 +194,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               if (!widget.pushed) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'HISTORY',
+                  'History',
                   style: TextStyle(
                     color: Barako.text,
                     fontSize: 26,
@@ -291,7 +291,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
     children: [
       trulyEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: 'receipt',
               title: 'Nothing here yet',
               body:

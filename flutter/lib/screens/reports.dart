@@ -92,7 +92,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               children: [
                 ScreenHeader(
-                  'REPORTS',
+                  'Reports',
                   subtitle: 'Your money as three simple statements',
                 ),
                 if (_isEmpty)
@@ -1320,7 +1320,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SalapifyGlyph('chart', size: 26),
+            SalapifyGlyph('chart', size: 26),
             const SizedBox(height: 8),
             Text(
               'Your reports build themselves',

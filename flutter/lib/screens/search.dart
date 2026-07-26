@@ -208,7 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SalapifyGlyph('search', size: 28),
+          SalapifyGlyph('search', size: 28),
           const SizedBox(height: 10),
           Text(
             'No matches',
