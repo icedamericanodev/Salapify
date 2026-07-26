@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.42 \u00b7 Pan has a real face now. This one needed a new install, so you are on the newest base build.';
+    'f2.43 \u00b7 Pan has a real face, and his cup now takes your theme colour. Needs a one time install.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
