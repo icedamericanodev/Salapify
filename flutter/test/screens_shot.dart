@@ -250,6 +250,41 @@ void main() {
     );
   });
 
+  testWidgets('the name row in Menu, with a name set', (tester) async {
+    // The Menu shot above only reaches the top of a long list, so this row
+    // would otherwise ship having never been looked at. It is rendered with a
+    // name SET because that is the state carrying the most to get wrong: two
+    // text buttons competing for room beside a value, on a row that also has
+    // to explain itself.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.setDisplayName('Ana');
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: MenuScreen(store: store, onSwitchTab: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('YOUR NAME'), 300);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/menu-name-dark.png'),
+    );
+  });
+
   testWidgets('Pan, all four moods, through the real widget', (tester) async {
     // Not the PNGs on disk: the actual PanMascot widget, so this proves the
     // asset wiring AND that the errorBuilder fallback is not silently
