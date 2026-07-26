@@ -23,12 +23,14 @@
 // inside tester.runAsync. Without the real fonts every glyph renders as a box,
 // which is worse than no screenshot at all because it looks like a bug.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/pan_mood.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
@@ -37,6 +39,7 @@ import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/utang.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _fonts = {
@@ -86,6 +89,41 @@ String? _walkUpToFlutterRoot(String exe) {
   return null;
 }
 
+/// Decode Pan's four faces before anything is pumped.
+///
+/// Same trap as the fonts, and it bit for the same reason: Image.asset decodes
+/// ASYNCHRONOUSLY, and testWidgets runs on a fake clock where that never
+/// completes. Without this, Pan rendered only when the image cache happened to
+/// be warm from an earlier test in the same run, so one shot showed him and
+/// the next showed nothing. A harness that renders by luck is worse than no
+/// harness, because it makes "I looked at it" mean nothing.
+///
+/// Resolving the ImageStream primes the same global cache the widget reads,
+/// and unlike precacheImage it needs no BuildContext, so it can run before
+/// anything is pumped.
+Future<void> loadPanFaces(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final mood in PanMood.values) {
+      final provider = AssetImage(panAssetFor(mood));
+      final completer = Completer<void>();
+      final stream = provider.resolve(ImageConfiguration.empty);
+      late ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (image, sync) {
+          if (!completer.isCompleted) completer.complete();
+          stream.removeListener(listener);
+        },
+        onError: (e, st) {
+          if (!completer.isCompleted) completer.completeError(e);
+          stream.removeListener(listener);
+        },
+      );
+      stream.addListener(listener);
+      await completer.future;
+    }
+  });
+}
+
 Future<void> loadRealFonts(WidgetTester tester) async {
   // runAsync is the whole trick: real file reads cannot complete in the fake
   // async zone testWidgets installs.
@@ -128,6 +166,7 @@ Future<void> shoot(
   required Brightness brightness,
 }) async {
   await loadRealFonts(tester);
+    await loadPanFaces(tester);
   SharedPreferences.setMockInitialValues({});
   final store = SalapifyStore();
   await store.load();
@@ -181,6 +220,7 @@ void main() {
     // Worth its own shot: this is the one screen that shows data leaving the
     // phone, so what it says has to be readable and honest at a glance.
     await loadRealFonts(tester);
+    await loadPanFaces(tester);
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await store.load();
@@ -210,12 +250,46 @@ void main() {
     );
   });
 
+  testWidgets('Pan, all four moods, through the real widget', (tester) async {
+    // Not the PNGs on disk: the actual PanMascot widget, so this proves the
+    // asset wiring AND that the errorBuilder fallback is not silently
+    // standing in for a face that failed to load.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    tester.view.physicalSize = const Size(900, 300);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final m in PanMood.values) PanMascot(mood: m, size: 64),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/pan-moods-dark.png'),
+    );
+  });
+
   testWidgets('a lesson, opened the way a reader opens it', (tester) async {
     // Navigated into rather than constructed, because the reader is private
     // and, more usefully, because tapping is what a person actually does. A
     // screen built directly in a test can look right while the route into it
     // is broken.
     await loadRealFonts(tester);
+    await loadPanFaces(tester);
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await store.load();
