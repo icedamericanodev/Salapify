@@ -20,6 +20,7 @@ import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
@@ -263,22 +264,37 @@ class OverviewScreen extends StatelessWidget {
                     children: [
                       Kicker('THIS MONTH'),
                       const SizedBox(height: 6),
-                      _line(
-                        'Income earned',
-                        formatMoney(istmt['income'] as double),
+                      // The ANSWER first, its two parts underneath. This was
+                      // three equal rows and a divider, which made the reader
+                      // do the subtraction with their eyes before learning
+                      // whether the month was up or down. The net is the only
+                      // figure most people want, so it gets the headline.
+                      Builder(
+                        builder: (context) {
+                          final net = istmt['netIncome'] as double;
+                          return Text(
+                            // The sign is explicit on a gain. Without it a
+                            // good month and a bad month look identical until
+                            // you notice the minus.
+                            '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                            style: TextStyle(
+                              fontFamily: Barako.displayFont,
+                              color: net >= 0 ? Barako.primary : Barako.warning,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                      _line(
-                        'Spending',
-                        formatMoney(istmt['expenses'] as double),
-                      ),
-                      const Divider(),
-                      _line(
-                        'Net income',
-                        formatMoney(istmt['netIncome'] as double),
-                        strong: true,
-                        color: (istmt['netIncome'] as double) >= 0
-                            ? Barako.primary
-                            : Barako.warning,
+                      const SizedBox(height: Gap.md),
+                      StatPair(
+                        leftLabel: 'Money in',
+                        leftValue: formatMoney(istmt['income'] as double),
+                        leftColor: Barako.primary,
+                        rightLabel: 'Money out',
+                        rightValue: formatMoney(istmt['expenses'] as double),
                       ),
                     ],
                   ),
@@ -736,6 +752,23 @@ class OverviewScreen extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                  // What is already spoken for, drawn rather than described.
+                  // Both figures come from the SAME safeToSpend call that
+                  // produced the per-day number above, so the bar can never
+                  // disagree with the headline; committed is simply the part
+                  // of the cash that is not free.
+                  //
+                  // Only when there is something committed. A full-width bar
+                  // labelled "committed ₱0" is a chart of nothing, and it
+                  // would appear for every user with no bills at all.
+                  if (s.liquid > s.available) ...[
+                    const SizedBox(height: Gap.md),
+                    SpokenForBar(
+                      committed: s.liquid - s.available,
+                      free: s.available,
+                      format: formatMoney,
+                    ),
+                  ],
                   if (paceLine != null) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -789,14 +822,33 @@ class OverviewScreen extends StatelessWidget {
                   color: nw < 0 ? Barako.text : Barako.primary,
                   fontSize: 40,
                   fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                  // No tabularFigures here, deliberately. theme.dart records
+                  // that Fraunces has NO tnum table, which the font file
+                  // confirms (it ships liga and rvrn only), so asking for
+                  // tabular figures on the display family was a silent no op
+                  // pretending to be an alignment guarantee. The StatPair
+                  // below inherits Jakarta, which does have tnum, and that is
+                  // where digit alignment actually matters: a lone hero
+                  // number has no column to line up with.
                 ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Assets ${formatMoney(parts['assets'] as double)}  ·  Owed ${formatMoney(parts['liabilities'] as double)}',
-              style: TextStyle(color: Barako.muted, fontSize: 13),
+            const SizedBox(height: Gap.md),
+            // Net worth is one number made of two, so both halves get a name
+            // and a column. This was a single 13pt muted caption reading
+            // "Assets X  ·  Owed Y": present, and unreadable, because a middle
+            // dot is not a column and grey is not a label.
+            StatPair(
+              leftLabel: 'Total assets',
+              leftValue: formatMoney(parts['assets'] as double),
+              leftColor: Barako.primary,
+              rightLabel: 'Total owed',
+              rightValue: formatMoney(parts['liabilities'] as double),
+              // Warning, not plain ink, because owed money is the half that
+              // should catch the eye. The HEADLINE stays calm on a negative
+              // net worth (see above); colouring one component is a different
+              // thing from colouring the verdict.
+              rightColor: Barako.warning,
             ),
             if (nw < 0) ...[
               const SizedBox(height: 8),
@@ -967,46 +1019,6 @@ class OverviewScreen extends StatelessWidget {
     ),
   );
 
-  Widget _line(
-    String label,
-    String value, {
-    bool strong = false,
-    Color? color,
-  }) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    // Both sides flex: at the largest Android font scale the label and the
-    // peso value each need room, and a fixed Row overflowed by up to 94px on
-    // a 320px phone. The amount keeps priority, the label wraps.
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: strong ? Barako.text : Barako.muted,
-              fontSize: 15,
-              fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              color: color ?? Barako.textSecondary,
-              fontSize: 15,
-              fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 /// The optional "what should we call you" ask, shown once inside the welcome

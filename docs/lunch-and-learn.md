@@ -10,6 +10,639 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-26, session 5: the release that published and then threw its own APK away
+
+### What we believed / What was true
+
+Five beliefs. Two were true, three were not, and the most expensive one is the
+one that looked most obviously true.
+
+**Believed: every stamp shipped today reached the phone. TRUE.** Read from
+`git show origin/main:docs/delivery-log.md`, not assumed: f2.40 patch 34 at
+01:53 UTC, f2.41 patch 35 at 03:11, f2.44 release 0.6.1+10 at 04:42, f2.47
+release 0.6.2+11 at 07:00, f2.49 patch 1 on 0.6.2+11 at 09:51.
+`flutter/pubspec.yaml` is 0.6.2+11, which matches the last release, and f2.49
+patched onto it cleanly. The founder installed both base APKs and confirmed on
+the phone. The installed base is not stranded.
+
+**Believed: the five missing stamps are all the same benign thing. FALSE for
+one of them, and that one is this session.** f2.42, f2.43, f2.45, f2.46 and
+f2.48 have no delivery row. Four are benign: 1a5a097 (f2.42) was superseded by
+0bc35a4 (f2.43) inside pull request #199, 989e667 (f2.45) and d76080b (f2.46)
+were superseded by 3a2a91c (f2.47) inside #203, and 830b021 (f2.48) was
+superseded by 75c1b37 (f2.49) inside #204. None of those stamps ever existed on
+main. f2.43 did. It was the stamp on merge commit 4697ef2, which landed on main
+at 04:00 UTC and delivered nothing at all.
+
+That gives a clean reading rule for the next person looking at a gap in the
+log: **a missing stamp is benign when it only ever existed on a working branch,
+and it is an incident when it reached main.** Establishing which of the two it
+was today took reading four commits, and that is a finding in itself (Lesson 2).
+
+**Believed: a successful Shorebird publish means the founder has something to
+install. FALSE.** Release 0.6.0+9 published fine and the step then failed
+anyway. From the log, quoted in 4d2fbba:
+
+    Published Release 0.6.0+9!
+    ##[error]Process completed with exit code 1.
+
+**Believed: the Pan asset size guard measured what ships. FALSE.** It summed
+four named files. `flutter/pubspec.yaml` declares `- assets/pan/`, a whole
+directory, so the bundle is whatever sits in that folder.
+
+**Believed: the typography refresh changed the kicker everywhere. FALSE.**
+`_kicker` existed as five private copies. theme.dart and debts.dart moved to
+12/w600/1.2. menu, overview, insights and privacy_receipt kept a hand rolled
+11/w700/2. The same label rendered two different ways for an unknown length of
+time with the whole suite green.
+
+### Timeline (with evidence)
+
+All times UTC. Merge commits carry +0800 committer times in git, converted
+here. Delivery times are the publisher's own timestamps in docs/delivery-log.md.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| 01:43 | Merge #197 (3ac59da), stamp f2.40 | git log |
+| 01:53 | f2.40 patch 34 delivered, 10 minutes | delivery row |
+| 03:01 | Merge #198 (a11ab83), stamp f2.41 | git log |
+| 03:07 | 1a5a097 stamp f2.42, pubspec 0.5.0+8 to **0.6.0+9**. First native bump since 07-22 | git show 1a5a097:flutter/pubspec.yaml |
+| 03:11 | f2.41 patch 35 delivered, 10 minutes. The last patch on 0.5.0+8 | delivery row |
+| 03:18 | 0e66c38, "The screenshot harness was showing Pan by luck, not by loading" | git log |
+| 03:39 | 0bc35a4 stamp f2.43, the per theme cup tint | git log |
+| ~03:54 | **Asset near miss.** Eight intermediate PNGs written into assets/pan while working out the tint, then removed by memory alone | dbbae7e commit message; assets/pan directory mtime 03:54 |
+| 03:56 | dbbae7e, the folder guard, proven to fail first | git show dbbae7e |
+| **04:00** | **Merge #199 (4697ef2), stamp f2.43, release 0.6.0+9. DIVERGENCE.** Shorebird published, the step then exited 1, no APK was uploaded to the flutter-preview tag and no delivery row was written | no row between f2.41 and f2.44; failure quoted in 4d2fbba |
+| ~04:0x | Claude tells the founder the APK is building. It had already failed. The founder asks for the link twice | session record |
+| 04:24 | 4d2fbba, `\|\| true` on the grep, reproduced on both log shapes, pubspec 0.6.0+9 to **0.6.1+10** on purpose | git show 4d2fbba |
+| 04:31 | Merge #201 (5e73391), stamp f2.44 | git log |
+| 04:42 | f2.44 release 0.6.1+10 delivered, 11 minutes. **Manual install one** | delivery row |
+| 05:14 | assets/pan/*.png replaced with the founder's Nano Banana renders | file mtimes |
+| 05:20 | 989e667 stamp f2.45, pubspec 0.6.1+10 to **0.6.2+11** | git show 989e667:flutter/pubspec.yaml |
+| 05:42 | d76080b stamp f2.46. pan_tint_test.dart deleted, pan_signature_test.dart added, guarding the opposite property | git show d76080b --stat |
+| 06:09 | 3a2a91c stamp f2.47, Pan speaks in a bubble | git log |
+| 06:49 | Merge #203 (c858b12) | git log |
+| 07:00 | f2.47 release 0.6.2+11 delivered, 11 minutes. **Manual install two** | delivery row |
+| after 07:00 | **Founder installs and reports Pan looks "super small"** | founder message |
+| 07:36 | 830b021 stamp f2.48. Sizes 56 to 80, 56 to 76, 36 to 48. Fixed in Dart, not by re-cropping, so it patches | git show 830b021 |
+| 09:34 | 75c1b37 stamp f2.49. Menu becomes a grid, five kickers become one | git show 75c1b37 --stat |
+| 09:40 | Merge #204 (d0f3688) | git log |
+| 09:51 | f2.49 patch 1 on 0.6.2+11 delivered, 11 minutes | delivery row |
+
+Merge to delivery row, measured across five merges: 10, 10, **never**, 11, 11,
+11. The pipeline is boringly consistent. The one that broke did not break
+slowly, it broke completely, and it looked identical to the others for the
+first ten minutes.
+
+### Divergence points
+
+**One, 04:00 UTC, merge 4697ef2.** The delivered stamp stopped matching the
+built stamp. It was closed at 04:42, not by re-running the build but by bumping
+to a fresh version, and that choice was correct: 0.6.0+9 already existed
+server side, so a re-run would have taken the PATCH branch and patched a
+release that was on nobody's phone. It cost the founder no extra install
+because they had never received the first one.
+
+**Two, invisible and much older.** The line
+`PATCH=$(grep -oE 'Published Patch [0-9]+' ship.log | ...)` was correct for
+every patch run and had succeeded 35 times. Its divergence point is not a date,
+it is a SHAPE: the first release build after the line was added. Today was that
+build. This is the classic form of a latent fault, a thing that is not wrong
+until an input arrives that nobody thought about, and the input in this case
+was the project's own most important event.
+
+**Three, the typography refresh.** Whenever the kicker moved to 12/w600/1.2 in
+theme.dart, four screens stopped agreeing with it and nothing said so. The
+refresh believed it had changed "the kicker". It had changed one of five
+definitions of the kicker.
+
+### Root cause
+
+Four of today's five technical faults are one fault wearing four costumes.
+Each is a guard or a calculation that measured a STAND-IN for the thing that
+matters, where the stand-in was simply the thing easiest to reach from where
+the author was standing, and the stand-in agreed with reality right up until it
+did not:
+
+- `grep 'Published Patch'` measured the shape of a PATCH log as a stand-in for
+  any ship log. Agreed 35 times.
+- The size test summed four named files as a stand-in for the asset bundle.
+  Agreed until a stray file existed.
+- The typography refresh edited theme.dart as a stand-in for "the kicker".
+  Agreed until the copies drifted.
+- The widget size was used as a stand-in for how big Pan looks. Agreed while
+  the artwork had no transparent margin, and the artwork has 22%.
+
+The general counter move, and the thing to carry forward: **make the guard
+measure the artifact that ships, not the declaration of it.** The folder sum
+beats the file list. The bundle beats pubspec. The rendered ink beats the
+widget box. One shared widget beats five agreeing copies.
+
+There is a second, separate root cause, and it is session 4's returning
+unchanged: **a channel that goes silent when it fails, where silence reads as
+progress.** That covers the monitor with `except: pass` and it covers Claude
+reporting "building" for a build that had already failed. Session 4 named this
+exact shape after the 91 minute queue stall. It came back in a different place
+within a day, which tells us the guard written for it (the delivery watchdog)
+addressed the instance, not the class.
+
+### Lessons and guards
+
+**Lesson 1. A post publish step can undo a publish, and the publish step is the
+one place where "the step failed" does not mean "nothing happened".**
+
+The damage was not a red tick. The grep runs inside the same step as the
+`shorebird release` command, after it, under `bash -e` with `pipefail`. grep
+exits 1 when it matches nothing, and a failing command substitution kills the
+step. So the step reported failure AFTER Shorebird had already published, and
+both `if: success()` steps that matter were skipped: the APK upload to the
+flutter-preview tag, and the delivery log row.
+
+**Guard, SHIPPED, workflow change, strong for the instance.**
+.github/workflows/flutter-preview.yml:124 now ends `... | tail -1 || true`,
+with a sixteen line comment above it explaining what the two words cost.
+Reproduced on both log shapes before fixing, quoted in 4d2fbba:
+
+    release log -> exit=1     patch log -> PATCH=[35], exit=0
+
+**Honest ranking: this fixes the instance, not the class.** The class is that
+publishing and reading the log live in ONE step, so any future failure in the
+reading half will again be reported as a failure of the publishing half and
+will again suppress the APK upload and the row. See Open 8.
+
+**Lesson 2. A run that publishes nothing leaves no trace in the repository, and
+once the next merge lands the gap becomes unreadable.**
+
+Anyone reading docs/delivery-log.md today sees f2.41 then f2.44 and cannot tell
+whether f2.42 and f2.43 were branch only stamps or a failed delivery. It took
+reading four commits and three pull requests to establish which. The delivery
+log is explicitly the file the "three commands" check tells us to trust, and it
+records only successes.
+
+**Existing partial guard:** the `if: failure()` step at flutter-preview.yml:220
+opens an issue titled "Preview build failed, nothing shipped to the phone". It
+is loud at the moment of failure and it leaves nothing behind in the
+repository, which is where the next session looks.
+
+**Guard, OPEN, proposed, automated tier.** Have the failure step also append a
+row to docs/delivery-log.md with mode `FAILED` and no patch number. The
+publisher already has `contents: write` and already has a rebase and push loop
+at flutter-preview.yml:206. See Open 9.
+
+**Lesson 3. A guard that counts the files it already knows about cannot see the
+file it does not.**
+
+The near miss: working out the theme tint meant writing eight intermediate PNGs
+into assets/pan, and they were cleaned up from memory alone. Had they survived,
+all eight would have shipped (pubspec declares the directory), the size guard
+would still have PASSED, and the first symptom would have arrived days later as
+Shorebird refusing to patch against a changed asset bundle, in an error message
+that says nothing about stray files.
+
+**Guard, SHIPPED, test, strongest tier, and re-proven in this session.**
+flutter/test/pan_asset_test.dart:88 now sums `Directory('assets/pan')`, and
+flutter/test/pan_asset_test.dart:108 adds "nothing but Pan lives in the Pan
+folder". Proven to fail before it was trusted, message quoted in dbbae7e. I did
+not take that on trust: I copied one extra PNG into assets/pan and ran the
+suite, which gave
+
+    Unexpected file(s) in assets/pan: assets/pan/zz-stray-probe.png.
+    00:00 +5 -1: Some tests failed.
+
+then removed it and confirmed the folder is back to four faces. **Sufficient.**
+
+**Lesson 4. A private copy of a style is invisible to every test.**
+
+Five `_kicker` definitions, two of them updated by the typography refresh and
+four not, 750 plus tests green throughout. Nothing failed because nothing could:
+a private const inside a screen file is not reachable by any assertion.
+
+**Guard, SHIPPED, partial.** One shared `Kicker` widget at
+flutter/lib/widgets/section.dart, and all five call sites moved onto it. It is
+deliberately NOT const, with a comment explaining that a const call site would
+let `Element.updateChild` skip build and freeze the label in the previous
+theme's colour. That removes today's divergence. **It does not stop the sixth
+copy.**
+
+**Guard, OPEN, proposed, automated tier.** A source scanning test that reads
+`Directory('lib')` and fails on any `TextStyle` with `letterSpacing` at or
+above 1.5 outside theme.dart, which is the signature of a hand rolled kicker.
+Note there is no precedent for a lib scanning test in this suite yet, so it
+needs proving by breaking it, like any other. See Open 11.
+
+This lesson and Lesson 3 are the same lesson. Both measured the declaration
+instead of the thing that ships.
+
+**Lesson 5. Rendering the screen caught two real bugs, and it caught them
+because it looks at the artifact rather than at a description of it.**
+
+Two defects, neither of which any test would have found:
+
+- A disposed `TextEditingController`. Disposing it as soon as `showDialog`
+  returns looks right and throws "A TextEditingController was used after being
+  disposed" every single time, because the exit animation still rebuilds the
+  field. That is a crash, caught before the merge.
+- Pan dissolving into his own background on the new Ask Pan banner. Pan is a
+  fixed orange, the banner is filled with the accent, and on Barako those are
+  the same orange. Invisible in the code, obvious in the shot. He now sits on a
+  darker disc.
+
+What made it work is specific and worth naming: it was run BEFORE the merge, on
+the screens that changed, at both brightnesses, and someone actually looked at
+the dark ones. The CLAUDE.md rule names that moment precisely, which is why it
+fired.
+
+**Guard: already in place and sufficient for what it can cover.**
+.github/workflows/flutter-check.yml runs screens_shot.dart with
+`--update-goldens`, which proves the harness still renders. It cannot prove
+somebody looked, and no guard can.
+
+**Lesson 6. A render shows you what is WRONG. It does not show you what is the
+wrong SIZE, because a render has no reference beside it.**
+
+Pan shipped at 56 logical pixels on Home. The artwork carries 22% transparent
+margin inside its own canvas, so the cup actually drew 43 pixels there and 28
+in the Ask Pan header. Every one of those renders was looked at and passed,
+because 28 pixels of cup looks like a small character rather than like a bug.
+The founder installed 0.6.2+11 and said Pan looks super small.
+
+Root cause: the margin was inherited from matching the previous drawn cup's
+framing exactly, which was the right call for visual consistency and quietly
+capped how large Pan could ever appear. After that, nothing ever compared the
+drawn cup against the box it sits in. **Widget size was a stand-in for cup
+size, and it was wrong by 22% forever.**
+
+The fix at 830b021 deserves credit for the part it got right: it changed the
+SIZES rather than re-cropping the PNGs, specifically because assets cannot be
+patched and re-cropping would have cost the founder a third manual install in
+one day. Pure Dart ships over the air.
+
+**Guard, OPEN, proposed, automated tier.** The fix is three numbers with no
+test behind it, so the next person tuning a size can undo it silently. Either
+a test that loads each face, finds the opaque bounding box, and asserts the ink
+covers a minimum fraction of the canvas; or, cheaper and more honest, name the
+margin as a constant in pan_mascot.dart so every call site is written in CUP
+size and the widget box is computed from it. The second is a code change with
+no test, so it is medium. See Open 10.
+
+**Lesson 7. The rule "finished means delivered" existed, was correct, and did
+not fire, because it forbids a narrower sentence than the one that was said.**
+
+CLAUDE.md says: "Never tell the founder a stamp is live until a row for it
+exists." Claude did not say live. Claude said the APK was building, which the
+founder heard as "it is on its way", and it was not, it had already failed. The
+founder then had to ask for the link twice.
+
+Why no automated guard covered it, precisely:
+
+- The `if: failure()` issue step at flutter-preview.yml:220 is designed to fire
+  here. I cannot confirm from this sandbox that it did: the GitHub API returns
+  403 through the proxy and there is no `gh` CLI, so I am stating what the
+  workflow does, not what I observed. That limit is itself worth recording.
+- The delivery watchdog did NOT fire, and that was CORRECT. f2.43 sat
+  undelivered on main from 04:00 to 04:31, which is 31 minutes, inside the 45
+  minute grace window set by `GRACE_SECONDS: '2700'`. So the watchdog stayed
+  silent when it should stay silent, which is the exact half that was broken on
+  its first version. Good news about the watchdog, and no help whatsoever here.
+- Both of those report asynchronously, into GitHub Issues. The wrong sentence
+  was said within minutes of the merge, in chat.
+
+**Root cause, structural: nothing forces the delivery log to be READ in the
+same turn as the sentence that describes a build.** Every automated signal is a
+backstop measured in tens of minutes. The report to the founder happens in
+seconds.
+
+**Guard, MEDIUM, and I will not dress it up.** Broaden the CLAUDE.md ban from
+"live" to any statement about a build's FATE, including "building", "on its
+way", and "should land shortly", unless
+`git show origin/main:docs/delivery-log.md | tail -1` was run in that same turn
+and the result quoted. Medium because it depends on being read at the right
+moment. The evidence that this tier is genuinely weaker is sitting in this very
+lesson: a correct rule was present and did not bite, because it named a
+narrower thing than the failure. **No test can stop a sentence, so this lesson
+does not get a strong guard, and it should be re-checked every session until
+it survives a real temptation.**
+
+**Lesson 8. A monitor that swallows its errors is a monitor that reports
+success.**
+
+A monitoring loop written during this session used a bare `except: pass`, so a
+total failure of the thing it watched would have looked exactly like "still
+running". It was rewritten to report failure. It was never committed, and there
+is no Python anywhere in the repository, which is itself the finding: **the
+tool that was meant to detect the outage was throwaway, so its bug got no
+review and its lesson has nowhere to live.**
+
+**Guard: the standing rule already covers this exactly.** CLAUDE.md's alarm
+rule says to prove both halves, that it fires when it should and stays silent
+when it should, and that an alarm which cries wolf gets its battery taken out.
+It was written for committed alarms and was simply not applied to a five line
+script.
+
+**Guard, MEDIUM to WEAK, proposed.** State in CLAUDE.md that the alarm rule
+applies to throwaway tooling too, since throwaway tooling is the one kind that
+gets no review. The genuinely strong version of this lesson is not a new guard
+at all: **do not write ad hoc monitors, read docs/delivery-log.md**, which the
+three commands already say and which needs no code.
+
+**Lesson 9. Two manual installs in one day, both for the same feature, plus one
+release nobody could install.**
+
+pubspec went 0.5.0+8, then 0.6.0+9 at 03:07 (published to Shorebird, never
+installable), then 0.6.1+10 at 04:24 (installed), then 0.6.2+11 at 05:20
+(installed). Two hand installs five hours apart, both for Pan's face. Assets
+cannot be patched, so the four PNGs forced a release; then the artwork was
+replaced with a better set three hours later, which forced a second one.
+
+**Guard for the DANGER, existing, sufficient, and it worked.** The
+`mode == 'release'` step at flutter-preview.yml:245 opens an issue titled
+"Install the new APK by hand, or the phone stops receiving updates". The
+founder installed both, and f2.49 landed as patch 1 on 0.6.2+11, which proves
+the phone is on the current release. Nobody was stranded.
+
+**Guard for the COST, OPEN and honestly WEAK.** Nothing stops a second release
+on the same day. The rule would be: settle the artwork before the release that
+carries it, because every asset change costs the founder a manual install. That
+is a habit, the weakest tier, and I am saying so out loud rather than promoting
+it. It is worth writing down anyway because the counter example is already in
+the log: at 07:36 the size fix was deliberately made in Dart rather than by
+re-cropping, precisely to avoid a third install. The judgement is present. It
+just is not enforceable.
+
+**Lesson 10. A test was deleted and replaced by one asserting the opposite, and
+this is NOT the usual case. Naming the difference is the point.**
+
+flutter/test/pan_tint_test.dart was deleted at d76080b. It had asserted, among
+eleven tests, that Pan MUST recolour per theme:
+
+    test('a different theme really does recolour the cup', () {
+      final m = panTintMatrix(...);
+      expect(m, isNotNull, reason: 'Mint is nowhere near orange');
+      ...
+      reason: 'the matrix exists but leaves the cup orange');
+
+Session 3's standing rule is that a test which had to change for a fix to pass
+was asserting the bug. **That rule does not apply here, and saying so plainly
+matters more than applying it reflexively.** This test was not defending a
+defect. It correctly guarded a design decision that the founder reversed the
+same day: Pan keeps one signature colour rather than following the wallpaper
+(founder, 2026-07-26). The machinery was built, measured across all eight
+palettes, rendered, and then removed on purpose.
+
+The distinction to keep: **a test that changes because the CODE was wrong is
+evidence of a defended bug. A test that changes because the DECISION changed is
+evidence of a decision that is now held by something.** Both get quoted in the
+entry. Only the first is a finding.
+
+**Guard, SHIPPED, strong.** flutter/test/pan_signature_test.dart replaces it
+and names the three realistic ways the old behaviour returns: wrapping the
+artwork in a `ColorFiltered` again, giving `PanCupPainter`'s palette a live
+Barako default again, or reading a Barako getter inside `PanMascot.build`. I
+ran it in this session, four tests, all pass.
+
+**Lesson 11. CLAUDE.md fact check: one false claim, third session in a row.**
+
+Checked as a step of the session, not as a favour. What still matches:
+
+- flutter/shorebird.yaml, flutter/test/update_stamp_test.dart,
+  flutter/test/screens_shot.dart, flutter/lib/widgets/salapify_icon.dart and
+  docs/delivery-log.md all exist exactly where they are named.
+- /opt/flutter exists and reports "Flutter 3.44.6 stable", matching the version
+  the rules name.
+- All five skills named in the Skills section exist in .claude/skills.
+- The 120 character stamp cap is real and enforced,
+  flutter/test/update_stamp_test.dart:20, `lessThanOrEqualTo(120)`. Four tests,
+  all pass.
+- flutter-check.yml triggers on `'claude/**'`, exactly as rule 1 says.
+- The three delivery commands run as written and returned f2.49 patch 1.
+- mobile/ still holds salapify_data_v2 (mobile/lib/storage.js).
+- The screenshot harness output goes to test/shots/ as documented, and the
+  directory listing is the count, as the rule insists.
+
+**FALSE: "Develop on the branch claude/salapify-v2 and open PRs to main"**
+(Development workflow, item 1). That branch does not exist. `git branch -a`
+returns only `main` and `claude/salapify-continuation-3i8jup`, and
+`git ls-remote --heads origin` returns `main` alone. All of today's work
+happened on claude/salapify-continuation-3i8jup.
+
+**Stale in the same way:** Flutter rule 1 says pushes to "main or
+claude/salapify-v2" that touch flutter/ run the preview publisher, and
+.github/workflows/flutter-preview.yml:13 still lists `claude/salapify-v2` in
+its branch trigger.
+
+How bad is it today: **harmless, in the safe direction.** The working branch
+does not match the publisher's trigger, so branch pushes published nothing,
+which is exactly what rule 1 wants. The Flutter check did run on every branch
+push, because `claude/**` matches. No delivery was affected.
+
+Why it still matters: it is precisely the trap this session is instructed to
+hunt. Both sentences name a real thing that has MOVED, so no checker can catch
+them, and a beginner founder reading item 1 would push to a branch that is not
+there. It is also a live trap in one direction: if anyone ever recreates a
+branch called claude/salapify-v2, pushes to it would begin publishing to the
+founder's phone from a working branch, which is the thing rule 1 exists to
+prevent.
+
+**Guard, MEDIUM.** Fix the two CLAUDE.md sentences to name the working branch
+PATTERN (`claude/**`) rather than one branch name, and decide deliberately
+whether flutter-preview.yml:13 keeps a dead branch in its trigger. See Open 12.
+
+**The pattern, stated honestly: three consecutive sessions, three false factual
+claims in CLAUDE.md, all the same kind, a name that was true when written. The
+rate is not falling.** The only thing catching them is this fact check, which
+means the fact check is now load bearing and must not be skipped when a session
+is short.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+repository half is watched every 30 minutes. The phone half was closed twice
+today, once by the founder installing an APK and once by the founder reporting
+Pan was small, and both times the founder was the detector. That is the
+architecture, not a defect. It cost one round.
+
+**Open 6, the watchdog is written but not yet OBSERVED running: STILL OPEN, and
+I cannot close it from here.** The GitHub API returns 403 through this
+sandbox's proxy and there is no `gh` CLI, so run history is unreadable. What I
+can say from the delivery log is that it did not fire spuriously, and that its
+grace window correctly covered the one 31 minute gap today. Closing this needs
+one observed scheduled run.
+
+**Open 7, a merge that touches flutter/ without bumping the stamp is invisible
+to the watchdog: STILL OPEN, and today adds a second blind spot to it.** The
+watchdog compares main's CURRENT stamp against the last delivered one. When
+f2.43 failed and f2.44 replaced it 31 minutes later, the watchdog's answer
+became "ok" and the failed delivery became invisible to it forever. **It is a
+stall detector, not an audit trail.** Open 9 is the fix for that half.
+
+**NEW Open 8: split the publish step from the log scraping step in
+flutter-preview.yml,** so a failure while READING the log can never suppress
+the APK upload or the delivery row. Automated tier. Not done.
+
+**NEW Open 9: record failed publishes in docs/delivery-log.md** with mode
+`FAILED`, so a gap in the log is self explaining instead of needing four
+commits of archaeology. Automated tier. Not done.
+
+**NEW Open 10: nothing holds Pan's rendered size.** Three tuned numbers, no
+test. Automated tier available. Not done.
+
+**NEW Open 11: nothing stops a sixth private kicker.** The five were merged
+into one widget; the pattern that created them is untouched. Automated tier
+available, with no precedent in this suite for scanning lib/. Not done.
+
+**NEW Open 12: CLAUDE.md names a branch that does not exist,** in two places,
+plus one dead entry in flutter-preview.yml's trigger. Medium tier. Not done.
+
+### Guard status re-check
+
+Read, not assumed. Nothing has been quietly deleted or routed around.
+
+- flutter-check.yml on `'claude/**'`: PRESENT, and it covered today's branch
+  even though that branch is not the one CLAUDE.md names.
+  .github/workflows/flutter-check.yml:20.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:220.
+- The release install shout: PRESENT and it fired twice today by design,
+  flutter-preview.yml:245.
+- The auto-close on recovery: PRESENT, flutter-preview.yml:262.
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:173.
+- The publisher watching its own definition (session 2's finding): PRESENT,
+  flutter-preview.yml:23. It earned its keep today: 4d2fbba edited only the
+  workflow and a Dart file, and the workflow being in its own paths filter is
+  what guarantees a publisher edit exercises the publisher.
+- The concurrency group with `cancel-in-progress: false`: PRESENT,
+  flutter-preview.yml:31.
+- The delivery watchdog: PRESENT, .github/workflows/delivery-watchdog.yml,
+  including the `--first-parent` fix and the 2700 second grace.
+- The stamp cap: PRESENT and passing, four tests.
+- The screenshot harness in CI with `--update-goldens`: PRESENT.
+- pan_tint_test.dart: DELETED on purpose, replaced by pan_signature_test.dart
+  guarding the opposite property. Lesson 10.
+
+### What it cost, and what it did not
+
+Cost: one merge that delivered nothing and had to be re-shipped under a new
+version number, roughly 40 minutes plus one round of the founder asking twice
+for a link that did not exist. Two manual APK installs in one day for one
+feature. One round where the founder was the detector for a size problem. And
+about three hours of build, measure and render work on Pan's per theme colour
+that was deliberately deleted the same day, which is not waste, that is a
+decision being made properly with the evidence in front of it.
+
+Did not cost: any wrong number, any lost data, any stranded install, any real
+stray asset shipped. Every stamp that reached the phone was the right one,
+patch 1 landed cleanly on 0.6.2+11, and the near miss with the eight PNGs was
+caught by the person who made it and turned into a test the same hour.
+
+### For the founder, in plain English
+
+Some words first, so the rest reads straight.
+
+A **patch** is a small update the app downloads by itself when you reopen it.
+A **release** is a whole new app file, an APK, that you have to install by
+hand. Patches can only be applied on top of the exact release they were built
+for, and anything involving pictures has to be a release, because patches
+cannot carry pictures.
+
+**What happened.** Five updates reached your phone today and all five were
+correct. One did not, and you noticed before we told you, which is the part
+worth fixing.
+
+At 04:00 in the morning we merged the batch with Pan's real face. That one
+needed a new app file, because it contains pictures. The publishing robot did
+its job, made the release, and then tripped over its own shoelace on the very
+last instruction. Here is the shoelace, and it is almost funny. After
+publishing, the robot reads its own log to find out which patch number it just
+shipped, so it can write that number down for you. On a normal update the log
+says "Published Patch 35" and the robot finds it. On a NEW APP FILE the log
+never says that, because there is no patch number, there is a version number.
+The robot searched, found nothing, and the tool it searches with treats
+"found nothing" as an error. So the robot declared failure, and everything
+after that point was skipped: it never uploaded the app file for you to
+download, and it never wrote the row that tells us something shipped.
+
+The cruel part is the order. It failed AFTER succeeding. The release existed on
+the server, so from every angle except your phone it looked done. And I told
+you the APK was building. It was not building. It was already dead. You asked
+for the link twice, and both times there was no link to give, because the file
+had never been uploaded.
+
+**Why it happened.** That one line had worked 35 times in a row. It only ever
+sees normal updates, and normal updates always have the word it is looking for.
+The first time it met a new app file, it broke. Nothing was rushed and nobody
+was careless. A thing that had never been tested against a rare input met that
+input for the first time, and the rare input happened to be the most important
+event we have.
+
+The same shape caused three other things today. A test that checked the size of
+Pan's picture folder was actually only adding up four files by name, while the
+app ships the whole folder, so eight leftover files I made while experimenting
+would have shipped invisibly and broken future updates days later. A style used
+across the app turned out to be written out five separate times, and two of
+them had been updated and three had not, so the same little heading looked
+different depending on the screen. And Pan looked tiny to you because his
+picture has empty space built into its edges, 22% of it, so asking for 56
+pixels of Pan gave you 43 pixels of actual cup.
+
+All four are the same mistake: we measured something CLOSE to the real thing
+instead of the real thing itself, and the close thing agreed with reality until
+the day it did not.
+
+**What now makes it impossible.**
+
+The publishing robot no longer treats "found nothing" as an error, and there is
+a long comment above that line explaining what it cost, so nobody tidies it
+away.
+
+The picture folder test now weighs the actual folder, and a second test fails
+if there is anything in there that is not one of Pan's four faces. I did not
+take that on trust: I put a fake stray file in the folder during this session
+and watched the test go red with the file's name in the message, then removed
+it.
+
+The five copies of that heading style are now one.
+
+**What it costs if a guard is removed.** Take the two words `|| true` out of
+the publishing robot and the next new app file publishes to the server and
+never reaches you, silently, exactly as it did this morning. Take the stray
+file test out and the next stray picture ships, and the symptom arrives days
+later as updates mysteriously refusing to install, in an error message that
+mentions nothing about stray files.
+
+**Three things I want to be straight with you about.**
+
+First, the guard that failed today was not a piece of code, it was me. The rule
+"never say it shipped until the log says it shipped" was already written down
+and it was right. It says do not say "live". I said "building", which is not
+the banned word but meant the same thing to you. I am tightening the rule to
+cover any sentence about a build at all, and I want to be honest that a written
+rule is a weaker guard than a test. A test works when nobody is watching. A
+rule only works when it is read at the right moment, and this one was not.
+
+Second, you had to install the app by hand twice in one day, five hours apart,
+for the same feature. That is more than it should have been. The first install
+was needed because pictures cannot be patched. The second was needed because we
+replaced the pictures with better ones afterwards. Settling the artwork first
+would have cost you one install instead of two. When you said Pan looked too
+small, we deliberately fixed it by changing numbers in the code rather than
+re-cropping the pictures, specifically so it could reach you over the air with
+no third install. That part went right.
+
+Third, and this is a small thing that will otherwise confuse you: your Update
+stamp row now shows **patch 1**, after showing patch 35 this morning. That is
+not a step backwards. The patch counter starts again at 1 for every new app
+file, and you installed two new app files today. Patch 1 on version 0.6.2+11 is
+newer than patch 35 on version 0.5.0+8.
+
+One last note, since it is the sort of thing you should be told rather than
+left to find. Our own rules file tells us to work on a branch called
+`claude/salapify-v2`. That branch does not exist any more. It has not caused
+any harm, and today's work still got checked properly, but it is the third time
+in three of these sessions that our rules file has confidently stated something
+that is no longer true. A wrong rule is worse than no rule, because it gets
+read with authority. It is on the list to fix.
+
+---
+
 ## 2026-07-25, session 4: the wall, the boxes, and ninety one minutes of nothing
 
 ### What we believed / What was true

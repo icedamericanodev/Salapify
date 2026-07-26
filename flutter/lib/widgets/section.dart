@@ -84,3 +84,89 @@ class SectionHeader extends StatelessWidget {
     );
   }
 }
+
+/// The two halves of a headline figure, side by side under it.
+///
+/// Net worth is one number made of two, and so is a month: the useful question
+/// is never just "how much" but "made of what". Home used to answer that in a
+/// single muted caption, `Assets ₱88,560  ·  Owed ₱46,000`, at 13pt in the
+/// quietest colour on the card. Both halves were there and neither was
+/// readable, because a middle dot is not a column and grey is not a label.
+///
+/// Two labelled columns give each side a name and let the amounts be coloured
+/// against each other, so the shape of the number is legible at a glance
+/// rather than after parsing a sentence.
+class StatPair extends StatelessWidget {
+  final String leftLabel;
+  final String leftValue;
+  final String rightLabel;
+  final String rightValue;
+
+  /// Tints for the two amounts. Default to the accent on the left and the
+  /// plain ink on the right; pass `Barako.warning` for money owed.
+  final Color? leftColor;
+  final Color? rightColor;
+
+  // ignore: prefer_const_constructors_in_immutables
+  StatPair({
+    super.key,
+    required this.leftLabel,
+    required this.leftValue,
+    required this.rightLabel,
+    required this.rightValue,
+    this.leftColor,
+    this.rightColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _side(leftLabel, leftValue, leftColor, false)),
+        const SizedBox(width: Gap.md),
+        Expanded(child: _side(rightLabel, rightValue, rightColor, true)),
+      ],
+    );
+  }
+
+  Widget _side(String label, String value, Color? color, bool alignRight) {
+    final align = alignRight ? TextAlign.right : TextAlign.left;
+    return Column(
+      crossAxisAlignment: alignRight
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          textAlign: align,
+          style: TextStyle(color: Barako.muted, fontSize: 13),
+        ),
+        const SizedBox(height: 2),
+        // scaleDown, not ellipsis: a truncated peso figure is worse than a
+        // small one, because "₱1,234..." reads as a different amount rather
+        // than as a rendering limit. Money never gets cut off here.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignRight
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          child: Text(
+            value,
+            maxLines: 1,
+            textAlign: align,
+            style: TextStyle(
+              color: color ?? Barako.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              // Tabular figures so the two columns line up digit for digit.
+              // Without it a 5 and a 1 are different widths and the pair reads
+              // as ragged even when both are correct.
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
