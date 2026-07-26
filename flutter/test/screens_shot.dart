@@ -318,34 +318,54 @@ void main() {
     );
   });
 
-  testWidgets('Pan wearing each theme, through the real colour filter', (
+  testWidgets('Pan speaking on Home, which needs data to appear at all', (
     tester,
   ) async {
-    // The tint maths was modelled in a script first, and a script cannot
-    // answer the question that matters: whether the ENGINE agrees. A colour
-    // matrix meets premultiplied alpha somewhere between the widget and the
-    // GPU, so the only honest proof is a real render of the real widget.
-    //
-    // Barako is deliberately first and is the control: it takes no filter at
-    // all, so if it ever stops looking like the artwork on disk, the tint has
-    // started touching something it promised to leave alone.
-    //
-    // This strip drives ColorFiltered directly rather than through PanMascot,
-    // and that is a limitation of the HARNESS rather than a shortcut. Barako.
-    // current is a mutable static, so eight themes cannot coexist in one tree:
-    // the first version of this shot set the palette inside eight sibling
-    // Builders and rendered eight IDENTICAL green cups, because PanMascot's
-    // bob animation rebuilds each mascot on every tick, long after all eight
-    // Builders have run, leaving every one of them reading the last theme set.
-    // It looked like a tint bug and was a test bug. PanMascot's own wiring is
-    // covered by pan-moods-dark.png and by pan_tint_test.dart; what this shot
-    // is for is the one question a script cannot answer, whether the ENGINE
-    // applies the matrix the way the maths predicts once premultiplied alpha
-    // is in play.
+    // The default Home shot renders a BRAND NEW store, so it never shows the
+    // check-in card, and the card is where Pan actually talks. Changing his
+    // layout and reviewing only the empty screen would be reviewing the one
+    // state the change does not touch.
     await loadRealFonts(tester);
     await loadPanFaces(tester);
-    // Eight cups at 72 logical px need 576 plus breathing room, so the width
-    // is set from the row rather than guessed at.
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.addEntry({
+      'type': 'expense',
+      'amount': 250.0,
+      'category': 'Food',
+      'date': DateTime.now().toIso8601String(),
+    });
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/home-pan-speaking-dark.png'),
+    );
+  });
+
+  testWidgets('Pan is the same colour on every theme', (tester) async {
+    // The visual half of the signature rule. pan_signature_test.dart proves
+    // the mechanism (no filter, baked fallback palette); this proves the
+    // RESULT, which is the thing a person would actually notice.
+    //
+    // Eight identical cups is the passing picture here. That reads as a
+    // boring shot and it is the entire point: Pan is meant to be the one
+    // fixed thing on a screen the user can repaint. If a future change
+    // reintroduces theming, this strip turns into a rainbow and says so at a
+    // glance.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
     tester.view.physicalSize = const Size(2100, 300);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -358,23 +378,20 @@ void main() {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 for (final theme in barakoThemes)
-                  () {
-                    // Resolved eagerly, per theme, so nothing depends on what
-                    // a mutable static happens to hold at paint time.
-                    final tint = panTintMatrix(theme.dark.primary);
-                    final face = Image.asset(
-                      panAssetFor(PanMood.calm),
-                      width: 72,
-                      height: 72,
-                      filterQuality: FilterQuality.medium,
-                    );
-                    return tint == null
-                        ? face
-                        : ColorFiltered(
-                            colorFilter: ColorFilter.matrix(tint),
-                            child: face,
-                          );
-                  }(),
+                  Builder(
+                    builder: (context) {
+                      // The palette IS set per cell, deliberately, so the shot
+                      // would expose a Pan that reacts to it.
+                      Barako.currentTheme = theme;
+                      Barako.current = theme.resolve(Brightness.dark);
+                      return Image.asset(
+                        panAssetFor(PanMood.calm),
+                        width: 72,
+                        height: 72,
+                        filterQuality: FilterQuality.medium,
+                      );
+                    },
+                  ),
               ],
             ),
           ),

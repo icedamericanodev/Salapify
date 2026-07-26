@@ -4,7 +4,7 @@
 // with a slow wisp, nudge leans in attentive, worried goes wide-eyed with a
 // bead of sweat, happy beams with lively steam. Motion is change-driven, a short
 // one-shot bob when the mood actually changes, never a constant loop, to protect
-// battery. Colors come from the active Barako palette.
+// battery. His colour is his own and never comes from the active palette.
 //
 // ==========================================================================
 // Pan is drawn from four rendered PNGs (assets/pan/), one per mood. The
@@ -12,10 +12,16 @@
 // and the share cards still paint through it with a baked brand palette so an
 // exported image never inherits the sender's theme.
 //
-// The cup DOES still reskin with the theme, through a hue rotation of the
-// artwork (see [panTintMatrix]). On Barako, the colour it was drawn in, no
-// filter is applied at all and the pixels are exactly what the founder
-// approved.
+// Pan is ONE colour on every theme, and that is a decision rather than a
+// limitation (founder, 2026-07-26). The machinery to reskin him per theme was
+// built, tested, and looked at across all eight palettes, and then removed on
+// purpose: a character whose colour follows the wallpaper is wearing a
+// costume, while a character with a fixed colour is recognisably himself. The
+// signature is worth more than the colour coordination.
+//
+// Practically, that means NOTHING here may read a live Barako getter, or Pan
+// starts drifting with the theme again through the back door. The fallback
+// painter below is handed a baked palette for exactly that reason.
 //
 // RIVE SWAP POINT (the ONE place to swap in the real animated Pan later):
 // When a rigged Pan.riv exists, add the `rive` package, drop the file at
@@ -32,15 +38,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../money/pan_mood.dart';
-import '../theme.dart';
 
 /// The single source of truth for where the real Pan Rive file will live.
 const String kPanRivAsset = 'assets/pan/pan.riv';
 
 /// The rendered face for a mood.
 ///
-/// One file per mood rather than a sprite sheet: four 13KB PNGs are simpler to
-/// swap, and a sheet would have to be re-cut every time a face is redrawn.
+/// One file per mood rather than a sprite sheet: four small PNGs are simpler
+/// to swap, and a sheet would have to be re-cut every time a face is redrawn.
+///
+/// All four are rendered on one 360px canvas with the cup at an IDENTICAL
+/// width, centre, and baseline, so swapping moods changes the face and
+/// nothing else. Per-image cropping would resize Pan between moods, and a
+/// character who grows when he smiles reads as a glitch rather than a
+/// reaction.
 String panAssetFor(PanMood mood) => switch (mood) {
   PanMood.calm => 'assets/pan/pan-calm.png',
   PanMood.nudge => 'assets/pan/pan-nudge.png',
@@ -48,86 +59,44 @@ String panAssetFor(PanMood mood) => switch (mood) {
   PanMood.happy => 'assets/pan/pan-happy.png',
 };
 
-/// The colour Pan's clay was actually rendered in, which is exactly Barako's
-/// primary. Every tint below is a rotation away from THIS, so the reference
-/// has to stay in step with the Barako palette or the founder's own theme
-/// stops being the free case.
-const Color panArtColor = Color(0xFFFF8A3D);
-
-/// A colour matrix that recolours Pan's clay to [target], or null meaning
-/// "draw the artwork untouched".
+/// Pan's signature colour, and the ONLY colour he is ever drawn in.
 ///
-/// This is a hue ROTATION, not a multiply, and the difference is the whole
-/// reason the cup still looks like clay. The obvious approach, splitting the
-/// art into a grayscale cup and multiplying a flat theme colour through it,
-/// was built and measured first: mean error 13/255 against the original, and
-/// crucially that error was not noise. It sat almost entirely in the shadow,
-/// which is exactly where the form lives, so the cup came out visibly flat and
-/// lost its speckled texture. A rotation preserves luminance by construction,
-/// so every bit of shading, texture and highlight survives the recolour.
-///
-/// Barako returns NULL rather than an identity matrix, and that is a promise
-/// rather than an optimisation: on the founder's own theme the artwork is the
-/// bytes they approved, never a float round-trip that happens to land close.
-List<double>? panTintMatrix(Color target) {
-  final ref = HSVColor.fromColor(panArtColor);
-  final want = HSVColor.fromColor(target);
-  var turn = (want.hue - ref.hue) % 360;
-  if (turn < 0) turn += 360;
-  final sat = ref.saturation == 0 ? 1.0 : want.saturation / ref.saturation;
-  // Near enough to the artwork's own colour that filtering would change
-  // nothing except the number of passes over every pixel.
-  if ((turn < 0.5 || turn > 359.5) && (sat - 1).abs() < 0.01) return null;
+/// It matches Barako's primary because Barako is the Salapify look, but the
+/// two are now independent on purpose: if Barako is ever retuned, Pan does
+/// NOT follow. That is the whole point of a signature. Change this only when
+/// deliberately restyling the character, and expect to redraw the artwork to
+/// match, because the PNGs carry this colour baked in.
+const Color panSignatureColor = Color(0xFFFF8A3D);
 
-  final a = turn * math.pi / 180;
-  final c = math.cos(a), s = math.sin(a);
-  // Hue rotation and saturation, both from the SVG filter spec, composed so
-  // the image is touched once. Luminance weights are the spec's.
-  final h = <List<double>>[
-    [
-      0.213 + c * 0.787 - s * 0.213,
-      0.715 - c * 0.715 - s * 0.715,
-      0.072 - c * 0.072 + s * 0.928,
-    ],
-    [
-      0.213 - c * 0.213 + s * 0.143,
-      0.715 + c * 0.285 + s * 0.140,
-      0.072 - c * 0.072 - s * 0.283,
-    ],
-    [
-      0.213 - c * 0.213 - s * 0.787,
-      0.715 - c * 0.715 + s * 0.715,
-      0.072 + c * 0.928 + s * 0.072,
-    ],
-  ];
-  final v = <List<double>>[
-    [0.213 + 0.787 * sat, 0.715 - 0.715 * sat, 0.072 - 0.072 * sat],
-    [0.213 - 0.213 * sat, 0.715 + 0.285 * sat, 0.072 - 0.072 * sat],
-    [0.213 - 0.213 * sat, 0.715 - 0.715 * sat, 0.072 + 0.928 * sat],
-  ];
-  double m(int r, int col) =>
-      v[r][0] * h[0][col] + v[r][1] * h[1][col] + v[r][2] * h[2][col];
-  return <double>[
-    m(0, 0), m(0, 1), m(0, 2), 0, 0, //
-    m(1, 0), m(1, 1), m(1, 2), 0, 0, //
-    m(2, 0), m(2, 1), m(2, 2), 0, 0, //
-    0, 0, 0, 1, 0, //
-  ];
-}
+/// The palette the fallback cup is drawn with when an asset fails to load.
+///
+/// Baked, never live. If this read the active Barako palette, a missing asset
+/// would produce a Pan that DOES change colour with the theme, which is the
+/// one behaviour the signature exists to prevent, showing up only in the rare
+/// case nobody looks at.
+const PanPalette kPanSignaturePalette = PanPalette(
+  cup: panSignatureColor,
+  face: Color(0xFF3B2415),
+  calm: Color(0xFFF0E2D8),
+  nudge: panSignatureColor,
+  worried: Color(0xFFE8B14C),
+  happy: Color(0xFFF0E2D8),
+);
 
 class PanMascot extends StatefulWidget {
   final PanMood mood;
   final double size;
 
-  // NOT const on purpose, and this one is load-bearing. build() below reads
-  // Barako.primary to tint the cup. Dart canonicalizes const instances, so a
-  // const call site would make two builds compare equal, Element.updateChild
-  // would skip build() entirely, and Pan would keep the OLD theme's colour
-  // after a theme switch while every other pixel on screen changed. Removing
-  // const from the CONSTRUCTOR is what makes that impossible at every call
-  // site rather than something each caller has to remember.
-  // ignore: prefer_const_constructors_in_immutables
-  PanMascot({super.key, required this.mood, this.size = 64});
+  /// Const is SAFE here only because Pan reads no live palette at all: his
+  /// colour is baked into the artwork and into [kPanSignaturePalette].
+  ///
+  /// If anything in build() below ever reads a mutable Barako getter again,
+  /// this const must come off. Dart canonicalizes const instances, so a const
+  /// call site would make two builds compare equal, Element.updateChild would
+  /// skip build() entirely, and Pan would be frozen in the previous palette
+  /// while every other pixel on screen moved on. That footgun has bitten this
+  /// codebase twice.
+  const PanMascot({super.key, required this.mood, this.size = 64});
 
   @override
   State<PanMascot> createState() => _PanMascotState();
@@ -163,9 +132,6 @@ class _PanMascotState extends State<PanMascot>
           // A small settle: bob up a touch then ease home, once per mood change.
           final t = Curves.easeOut.transform(_bob.value);
           final lift = math.sin(t * math.pi) * (widget.size * 0.06);
-          // Read fresh on every build, never cached: this is what lets a
-          // theme switch reach Pan at all.
-          final tint = panTintMatrix(Barako.primary);
           return SizedBox(
             width: widget.size,
             height: widget.size,
@@ -182,17 +148,16 @@ class _PanMascotState extends State<PanMascot>
                 // Pan is small on screen and the source is 360px, so filtering
                 // quality matters more than usual here.
                 filterQuality: FilterQuality.medium,
-                // The tint goes on frameBuilder, NOT around the whole Image,
-                // and the reason is the fallback below. frameBuilder wraps
-                // only the decoded artwork; errorBuilder short-circuits before
-                // it. Wrapping the Image itself would rotate the fallback too,
-                // and the painter already reads the live Barako palette, so it
-                // would come out rotated twice and land on a colour belonging
-                // to no theme at all.
-                frameBuilder: (context, child, frame, wasSync) =>
-                    tint == null ? child : _tinted(tint, child),
+                // The baked palette, NOT the live one. A missing asset must
+                // fall back to a Pan the same colour as the real Pan; letting
+                // this read Barako would reintroduce theme-following colour in
+                // precisely the case nobody ever looks at.
                 errorBuilder: (context, error, stack) => CustomPaint(
-                  painter: PanCupPainter(mood: widget.mood, wisp: t),
+                  painter: PanCupPainter(
+                    mood: widget.mood,
+                    wisp: t,
+                    palette: kPanSignaturePalette,
+                  ),
                 ),
               ),
             ),
@@ -201,9 +166,6 @@ class _PanMascotState extends State<PanMascot>
       ),
     );
   }
-
-  Widget _tinted(List<double> matrix, Widget child) =>
-      ColorFiltered(colorFilter: ColorFilter.matrix(matrix), child: child);
 
   String _moodWord(PanMood m) => switch (m) {
     PanMood.calm => 'calm',
@@ -242,24 +204,23 @@ class PanCupPainter extends CustomPainter {
   final PanMood mood;
   final double wisp; // 0..1 one-shot progress, for a gentle steam settle
 
-  /// null = live Barako, read fresh on every paint. Two cautions for future
-  /// callers: shouldRepaint compares palettes by IDENTITY, so pass a const
-  /// (like the share card does) or a cached instance, never a fresh object per
-  /// build; and do not wrap Pan in his own RepaintBoundary, a theme switch
-  /// is invisible to shouldRepaint and would leave him in stale colors.
-  final PanPalette? palette;
-  PanCupPainter({required this.mood, required this.wisp, this.palette});
+  /// REQUIRED, and deliberately so. This used to default to the live Barako
+  /// palette, which is a back door onto the one behaviour Pan's signature
+  /// exists to prevent: a cup whose colour follows the theme. Every caller now
+  /// has to name the palette it wants, so nobody can reintroduce
+  /// theme-following colour by simply omitting an argument.
+  ///
+  /// One caution: shouldRepaint compares palettes by IDENTITY, so pass a const
+  /// (as every caller does) or a cached instance, never a fresh object per
+  /// build.
+  final PanPalette palette;
+  PanCupPainter({
+    required this.mood,
+    required this.wisp,
+    required this.palette,
+  });
 
-  PanPalette get _colors =>
-      palette ??
-      PanPalette(
-        cup: Barako.primary,
-        face: Barako.onPrimary,
-        calm: Barako.faint,
-        nudge: Barako.primary,
-        worried: Barako.warningStrong,
-        happy: Barako.celebrate,
-      );
+  PanPalette get _colors => palette;
 
   @override
   void paint(Canvas canvas, Size size) {

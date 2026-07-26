@@ -98,9 +98,10 @@ void main() {
       total,
       lessThan(300 * 1024),
       reason:
-          'Pan is ${(total / 1024).round()}KB. The originals were 3.4MB and '
-          'were cut to about 53KB; a jump back means someone dropped a '
-          'full-resolution render in without processing it.',
+          'Pan is ${(total / 1024).round()}KB. The 1024px sources are several '
+          'megabytes and are cut to roughly 145KB for the four of them; a '
+          'jump back means someone dropped a full-resolution render in '
+          'without processing it.',
     );
   });
 
