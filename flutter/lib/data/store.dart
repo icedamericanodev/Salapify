@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:math';
 
+import '../money/greeting.dart';
 import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
@@ -1310,6 +1311,33 @@ class SalapifyStore extends ChangeNotifier {
     final settings = ((d['settings'] as Map?) ?? const {})
         .cast<String, dynamic>();
     final next = {...settings}..remove('steadyPay');
+    return {...d, 'settings': next};
+  });
+
+  /// How the app addresses the user on Home, or null if they never said.
+  ///
+  /// Read through normalizeDisplayName rather than raw, so a hand-edited
+  /// backup carrying a number, a list, or four thousand characters is treated
+  /// as "no name" instead of reaching the screen.
+  String? get displayName =>
+      normalizeDisplayName((data['settings'] as Map?)?['displayName']);
+
+  /// Set or clear the greeting name. A conditional settings key, the same
+  /// shape as steadyPay above: a real name writes it, and anything that
+  /// normalizes to nothing REMOVES it, so a backup that never had the key
+  /// never gains an empty one.
+  ///
+  /// Clearing has to be a first-class outcome, not an error. This is the one
+  /// field in the app that is purely about being addressed by name, and a
+  /// user who changes their mind must be able to take it back without
+  /// deleting anything else.
+  Future<void> setDisplayName(String? value) => _mutate((d) {
+    final settings = ((d['settings'] as Map?) ?? const {})
+        .cast<String, dynamic>();
+    final clean = normalizeDisplayName(value);
+    final next = clean == null
+        ? ({...settings}..remove('displayName'))
+        : {...settings, 'displayName': clean};
     return {...d, 'settings': next};
   });
 

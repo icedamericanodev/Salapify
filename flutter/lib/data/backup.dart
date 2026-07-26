@@ -13,6 +13,8 @@
 
 import 'dart:convert' show JsonEncoder;
 
+import '../money/greeting.dart' show normalizeDisplayName;
+
 const int schemaVersion = 12;
 
 const List<Map<String, dynamic>> defaultCategories = [
@@ -505,6 +507,22 @@ Map<String, dynamic> sanitizeData(
         };
       } else {
         s.remove('steadyPay');
+      }
+      // The greeting name, Flutter-era and CONDITIONAL for the same reason as
+      // the two above: RN-generated golden fixtures never carry it and must
+      // not gain the key here.
+      //
+      // Normalized rather than passed through, because a backup file is the
+      // one input a user can hand-edit. A number, a list, or a pasted
+      // paragraph all arrive here looking like data, and normalizeDisplayName
+      // turns each of them into "no name" instead of something that reaches
+      // the top of Home. Anything it rejects removes the key outright, so a
+      // restore can clear a name but never invent one.
+      final who = normalizeDisplayName(settings['displayName']);
+      if (who != null) {
+        s['displayName'] = who;
+      } else {
+        s.remove('displayName');
       }
       final cur = s['currency'];
       if (cur is! String || cur.isEmpty) s.remove('currency');

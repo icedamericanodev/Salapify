@@ -106,7 +106,22 @@ jobs:
             shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
             echo "mode=release" >> "$GITHUB_OUTPUT"
           fi
-          PATCH=$(grep -oE 'Published Patch [0-9]+' ship.log | grep -oE '[0-9]+' | tail -1)
+          # `|| true` is load-bearing, and its absence cost a whole delivery.
+          #
+          # grep EXITS 1 when it matches nothing, this step runs under bash -e
+          # with pipefail, and a failing command substitution kills the step.
+          # On a PATCH run the log always contains "Published Patch N", so this
+          # line succeeded 35 times in a row and looked fine. On a RELEASE run
+          # there is no such line ANYWHERE in the log, so it exited 1 the first
+          # time a release was ever built after this line was added.
+          #
+          # The damage was not a red tick. It failed AFTER Shorebird had
+          # already published the release, so the two steps that matter were
+          # both skipped: the base APK was never uploaded to the flutter-preview
+          # tag, and no delivery-log row was written. The founder was left with
+          # a release that existed everywhere except on their phone, and no way
+          # to install it.
+          PATCH=$(grep -oE 'Published Patch [0-9]+' ship.log | grep -oE '[0-9]+' | tail -1 || true)
           echo "patch=${PATCH:-}" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 

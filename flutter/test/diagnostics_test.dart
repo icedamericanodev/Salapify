@@ -21,6 +21,13 @@ const _forbidden = {
   'Kuya Mark': "another person's name",
   'lunch with mom': 'a private note',
   'Groceries': 'a spending category',
+  // The user's OWN name, added the day the greeting was built. Every other
+  // entry above identifies what someone did; this one identifies WHO they
+  // are, which makes an otherwise anonymous report attributable the moment it
+  // is pasted anywhere. It is guarded here rather than trusted to stay out,
+  // because the report is counts-only today and the whole risk is a future
+  // line that dumps settings for something that looked harmless.
+  'Lala': 'the name of the person using the app',
 };
 
 Map<String, dynamic> _incriminatingStore() => {
@@ -48,6 +55,7 @@ Map<String, dynamic> _incriminatingStore() => {
   'categories': [
     {'id': 'c1', 'name': 'Groceries'},
   ],
+  'settings': {'displayName': 'Lala'},
 };
 
 void main() {

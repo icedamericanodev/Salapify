@@ -15,6 +15,7 @@ import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/cycle.dart';
+import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
@@ -146,6 +147,22 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            // The greeting sits under the wordmark rather than replacing it,
+            // so the app still says what it is on the screen a new user opens
+            // first. It reads fine with no name, which is the DEFAULT: the
+            // ask is skippable and every existing user has none.
+            const SizedBox(height: 4),
+            Text(
+              // The build's own clock, not a second DateTime.now(). One frame
+              // must never mix two readings of the time, which is the same
+              // reason `now` is captured once at the top of build.
+              greetingFor(now, name: store.displayName),
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 15,
+                height: 1.3,
+              ),
             ),
             const SizedBox(height: 20),
             if (store.loadError != null)
@@ -765,6 +782,8 @@ class OverviewScreen extends StatelessWidget {
   /// jump to the one thing they came for), and keeps the "bring your data over"
   /// path as a quiet link for the tester migrating from the old app, rather
   /// than as the loud primary button a new user cannot use.
+  Widget _nameAsk(BuildContext context) => _NameAsk(store: store);
+
   Widget _welcomeCard(BuildContext context) => Card(
     child: Padding(
       padding: const EdgeInsets.all(20),
@@ -818,6 +837,23 @@ class OverviewScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
             ),
           ),
+          // The name ask lives INSIDE the welcome card, not on a screen of its
+          // own in front of the app. A first-run wall asking for personal
+          // details before showing anything is the highest-friction thing a
+          // finance app can do, and this one genuinely does not need the
+          // answer: everything works without it.
+          //
+          // It sits BELOW the three lanes on purpose. "What do you want to
+          // start with?" is a question and the lanes are its answers, so a
+          // text field wedged between the two reads as though the field is
+          // the answer. Optional and secondary, placed like it.
+          //
+          // It disappears once answered, and never appears again once there
+          // is data, so it cannot become a nag.
+          if (store.displayName == null) ...[
+            const SizedBox(height: 16),
+            _nameAsk(context),
+          ],
           const SizedBox(height: 16),
           // Quiet migration path for a tester bringing data from the old app.
           Align(
@@ -933,6 +969,105 @@ class OverviewScreen extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The optional "what should we call you" ask, shown once inside the welcome
+/// card and never again after that.
+///
+/// Its own widget because a text field needs a controller with a real
+/// lifecycle, and OverviewScreen is stateless. Keeping it here rather than in
+/// a first-run flow is the point: Salapify works completely without a name,
+/// so it must never stand between someone and the app.
+class _NameAsk extends StatefulWidget {
+  final SalapifyStore store;
+  const _NameAsk({required this.store});
+
+  @override
+  State<_NameAsk> createState() => _NameAskState();
+}
+
+class _NameAskState extends State<_NameAsk> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final typed = _controller.text;
+    // normalizeDisplayName turns whitespace into null, so tapping Save on an
+    // empty field quietly does nothing rather than storing a blank.
+    if (normalizeDisplayName(typed) == null) return;
+    await widget.store.setDisplayName(typed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Barako.background,
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'What should Pan call you?',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            // Said plainly because this is a money app asking for a personal
+            // detail, and "it stays on this phone" is both the honest answer
+            // and the reassuring one. Salapify has no server to send it to.
+            'Optional, and it never leaves this phone.',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: Gap.md),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  textCapitalization: TextCapitalization.words,
+                  maxLength: displayNameMaxLength,
+                  onSubmitted: (_) => _save(),
+                  decoration: const InputDecoration(
+                    hintText: 'Your name',
+                    isDense: true,
+                    // The character counter is noise on a name field: the cap
+                    // is a layout guard, not a rule the reader needs told.
+                    counterText: '',
+                  ),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                ),
+                onPressed: _save,
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class ExportScreen extends StatefulWidget {

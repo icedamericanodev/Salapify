@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../data/export_files.dart';
 import '../data/store.dart';
+import '../money/greeting.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
 import '../widgets/lock_gate.dart' show BiometricAuthenticator;
@@ -226,6 +227,10 @@ class MenuScreen extends StatelessWidget {
                 _kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceCard(context),
+                const SizedBox(height: 20),
+                _kicker('YOUR NAME'),
+                const SizedBox(height: 8),
+                _nameCard(context),
                 const SizedBox(height: 20),
                 _kicker('REMINDERS'),
                 const SizedBox(height: 8),
@@ -553,6 +558,106 @@ class MenuScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Set, change, or remove the greeting name.
+  ///
+  /// This row is what makes the Home ask genuinely skippable. Without it the
+  /// only chance to give a name would be the welcome card, which disappears
+  /// the moment there is any data, so skipping once would mean never being
+  /// able to change your mind. Removing has to be as easy as setting: it is
+  /// the one field here that is purely about how the app addresses a person.
+  Widget _nameCard(BuildContext context) {
+    final current = store.displayName;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        // The text gets the full width and the actions sit beneath it. Side by
+        // side, two buttons squeezed the blurb into a narrow column that wrapped
+        // across three ragged lines, which was obvious the moment it was
+        // rendered and invisible in the code.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              current ?? 'Not set',
+              style: TextStyle(
+                color: current == null ? Barako.muted : Barako.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'How Pan greets you on Home. It never leaves this phone.',
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+            ),
+            const SizedBox(height: Gap.sm),
+            Row(
+              children: [
+                if (current != null) ...[
+                  TextButton(
+                    onPressed: () => store.setDisplayName(null),
+                    child: const Text('Remove'),
+                  ),
+                  const SizedBox(width: Gap.sm),
+                ],
+                TextButton(
+                  onPressed: () => _editName(context, current),
+                  child: Text(current == null ? 'Set' : 'Change'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editName(BuildContext context, String? current) async {
+    // TextFormField rather than a TextField with a controller of our own, and
+    // the reason is a real crash rather than a preference. Disposing a
+    // controller as soon as showDialog returns looks correct and is not: the
+    // dialog's exit ANIMATION is still running, the field still rebuilds
+    // during it, and Flutter throws "A TextEditingController was used after
+    // being disposed" every single time someone sets a name. TextFormField
+    // owns its controller and tears it down on the right frame, which removes
+    // the whole class of mistake instead of timing it correctly by hand.
+    var typed = current ?? '';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Your name'),
+        content: TextFormField(
+          initialValue: current ?? '',
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          maxLength: displayNameMaxLength,
+          decoration: const InputDecoration(
+            hintText: 'Your name',
+            counterText: '',
+          ),
+          onChanged: (v) => typed = v,
+          onFieldSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(typed),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    // A cancel returns null and must change nothing. Clearing is done with
+    // Remove, deliberately, so an accidental Save on an emptied field cannot
+    // silently wipe a name the user meant to keep.
+    if (result == null) return;
+    if (normalizeDisplayName(result) == null) return;
+    await store.setDisplayName(result);
   }
 
   Widget _appLockCard(BuildContext context) {
