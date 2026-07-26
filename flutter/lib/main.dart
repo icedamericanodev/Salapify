@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.50 \u00b7 Home now shows what your money is made of, not just the totals.';
+    'f2.51 \u00b7 Home now names the bills before payday, and the countdown no longer hides.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

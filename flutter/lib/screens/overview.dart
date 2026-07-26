@@ -14,12 +14,14 @@ import '../data/backup.dart';
 import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
+import '../money/commitments.dart' show upcomingCommitments;
 import '../money/cycle.dart';
 import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/pressable_scale.dart';
@@ -54,6 +56,37 @@ String formatMoney(num value) {
   return '${negative ? '-' : ''}₱$buf$centsPart';
 }
 
+/// An ISO date as a short human day, "Jul 27".
+///
+/// Hoisted out of _yourNumberCard, where it was a local closure, the moment a
+/// second card needed the same format. Two copies of a date formatter drift
+/// the same way two copies of a money formatter do, and the bills list sits
+/// directly under the card that used to own this one.
+///
+/// Junk in, junk out ON PURPOSE: an unparseable date returns unchanged rather
+/// than throwing, so a hand-edited backup cannot take Home down.
+String prettyDay(String iso) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  if (iso.length < 10) return iso;
+  final m = int.tryParse(iso.substring(5, 7));
+  final day = int.tryParse(iso.substring(8, 10));
+  if (m == null || day == null || m < 1 || m > 12) return iso;
+  return '${months[m - 1]} $day';
+}
+
 class OverviewScreen extends StatelessWidget {
   final SalapifyStore store;
   final void Function(int)? onSwitchTab;
@@ -79,6 +112,14 @@ class OverviewScreen extends StatelessWidget {
     // Your Number: the one figure to carry until payday, from the same
     // safeToSpend the coach and Insights read, so the three never disagree.
     final cycle = cycleStatus(data, now);
+    // The bills and the payday date, from the SAME engine call safeToSpend
+    // builds the per-day number on. Computed once here and shared by the
+    // countdown and the bills list, so the two can never name different days.
+    final dues = upcomingCommitments(data, now);
+    final bills = ((dues['bills'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((b) => b.cast<String, dynamic>())
+        .toList();
     // When the check-in itself is the payday warning, its message already
     // carries the pace and easing figures; repeating them on the card below
     // (with different rounding) would put two versions of one number on
@@ -187,6 +228,28 @@ class OverviewScreen extends StatelessWidget {
             ],
             if (cycle.show) ...[
               _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
+              const SizedBox(height: 12),
+            ] else if (hasStarted && dues['daysLeft'] is int) ...[
+              // The countdown used to live ONLY inside Your Number, which
+              // hides whenever there is nothing positive to spend. So the
+              // answer to "how long do I have to hold out" disappeared exactly
+              // when money was tight, which is the one time anybody asks it.
+              // Shown only in that gap: when Your Number renders, it already
+              // says how many days are left, and two countdowns on one screen
+              // is worse than none.
+              _daysToPaydayCard(dues),
+              const SizedBox(height: 12),
+            ],
+            // What the committed money is actually FOR. The bar above says how
+            // much is spoken for; this says to whom. Both read the same
+            // upcomingCommitments call, so they cannot disagree.
+            if (hasStarted && bills.isNotEmpty) ...[
+              BillsBeforePayday(
+                bills: bills,
+                total: (dues['total'] as num?)?.toDouble() ?? 0,
+                format: formatMoney,
+                formatDay: prettyDay,
+              ),
               const SizedBox(height: 12),
             ],
             // On a brand-new device the ₱0 hero would just compete with the
@@ -646,6 +709,46 @@ class OverviewScreen extends StatelessWidget {
     );
   }
 
+  /// The countdown on its own, for the case where Your Number stays quiet.
+  ///
+  /// Deliberately says the number of days and nothing else. Your Number is
+  /// silent precisely when there is no positive figure to show, which means
+  /// money is tight, and that is the wrong moment to add a second card with
+  /// an opinion in it. The coach's check-in above already owns the message;
+  /// this only answers "how long".
+  Widget _daysToPaydayCard(Map<String, dynamic> dues) {
+    final days = dues['daysLeft'] as int;
+    final payday = (dues['payday'] ?? '').toString();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Kicker('DAYS TO PAYDAY'),
+            const SizedBox(height: 6),
+            Text(
+              '$days ${days == 1 ? 'day' : 'days'}',
+              style: TextStyle(
+                fontFamily: Barako.displayFont,
+                color: Barako.text,
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (payday.length >= 10) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Until ${prettyDay(payday)}.',
+                style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Your Number: the daily figure to carry until payday, straight from
   /// safeToSpend's perDay via the cycle composer. Shows only when positive
   /// (crunch belongs to the check-in above). The pace line speaks only when
@@ -657,33 +760,12 @@ class OverviewScreen extends StatelessWidget {
     CycleStatus s, {
     bool hidePace = false,
   }) {
-    String pretty(String iso) {
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      if (iso.length < 10) return iso;
-      final m = int.tryParse(iso.substring(5, 7));
-      final day = int.tryParse(iso.substring(8, 10));
-      if (m == null || day == null || m < 1 || m > 12) return iso;
-      return '${months[m - 1]} $day';
-    }
 
     final sub = s.comeback
         ? 'Welcome back, life happens. Fresh from your real balances: '
               '${s.daysLeft} ${s.daysLeft == 1 ? 'day' : 'days'} to your '
-              '${pretty(s.payday)} payday.'
-        : 'until your ${pretty(s.payday)} payday, ${s.daysLeft} '
+              '${prettyDay(s.payday)} payday.'
+        : 'until your ${prettyDay(s.payday)} payday, ${s.daysLeft} '
               '${s.daysLeft == 1 ? 'day' : 'days'} away.';
     // Whole pesos, matching the coach's formatter, so the check-in and this
     // line can never show two roundings of the same engine figure. A sub-peso
@@ -844,11 +926,14 @@ class OverviewScreen extends StatelessWidget {
               leftColor: Barako.primary,
               rightLabel: 'Total owed',
               rightValue: formatMoney(parts['liabilities'] as double),
-              // Warning, not plain ink, because owed money is the half that
-              // should catch the eye. The HEADLINE stays calm on a negative
-              // net worth (see above); colouring one component is a different
-              // thing from colouring the verdict.
-              rightColor: Barako.warning,
+              // Warning ONLY when something is actually owed. Owing nothing is
+              // good news, and rendering "₱0" in the alarm colour makes the
+              // best possible state look like a problem. Same rule the
+              // headline above already follows: colour is reserved for a fact
+              // that warrants attention, not for a category of number.
+              rightColor: (parts['liabilities'] as double) > 0
+                  ? Barako.warning
+                  : Barako.text,
             ),
             if (nw < 0) ...[
               const SizedBox(height: 8),
