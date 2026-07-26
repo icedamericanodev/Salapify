@@ -1,9 +1,11 @@
 // The Salapify theme system. Ported to match the live React Native app: each
 // THEME carries a light and a dark palette, and a separate appearance mode
 // (light | dark | system) picks which one shows. system follows the phone, so
-// the app goes dark at night on its own. The eight themes and their exact hex
-// values come straight from mobile/theme.js (generated, so the colors match the
-// AA-checked RN values to the byte).
+// the app goes dark at night on its own. The eight themes started as a copy of
+// mobile/theme.js, so most hex values still match the AA-checked RN ones to the
+// byte, but the two files are now siblings rather than generator and output:
+// the light Forest palette and the whole label and hint set are fixed here and
+// deliberately not carried back to RN, which stays frozen for testers.
 //
 // Barako stays the color namespace every screen reads (Barako.text and so on),
 // but the members are getters over the ACTIVE palette, resolved from the chosen
@@ -354,29 +356,46 @@ const _forestDark = BarakoPalette(
   positiveBorder: Color(0xFF4A6247),
   overlay: Color.fromRGBO(8, 14, 9, 0.62),
 );
+// Retuned 2026-07-26, because Forest in light mode WAS Barako. Thirteen of the
+// seventeen tokens differed by 10 or less out of 255, four were identical to
+// the byte, and the two backgrounds differed by 1. Nobody could see any of it.
+// Forest's identity lived entirely in its dark palette, so a light-mode user
+// picked "Warm orange on deep green", got cream, and reasonably concluded the
+// picker was broken.
+//
+// The fix moves the SURFACES green (the tokens that cover most of the screen)
+// and the win color to a deep olive, the light-mode answer to the dark
+// palette's lime. The orange primary is deliberately unchanged: warm orange on
+// green IS the theme, and it is what the name promises.
+//
+// Distance was checked against every other light palette, not just Barako. The
+// background is now 14 away from Barako per channel and the win color 77, which
+// puts this pair in line with the most distinct pairs the system already has
+// (the whole light range spans about 23). Every contrast pair clears AA; faint
+// on background is 4.77, above the 4.50 floor Orchid Gold light already sets.
 const _forestLight = BarakoPalette(
   brightness: Brightness.light,
-  background: Color(0xFFF6F1E7),
-  card: Color(0xFFFFFCF5),
+  background: Color(0xFFE9F1E1),
+  card: Color(0xFFFAFDF6),
   surfaceRaised: Color(0xFFFFFFFF),
-  border: Color(0xFFE3DBC9),
-  // Darkened from RN's #B4581E, which was 4.28 on this background (below AA)
-  // as small money text. #A85018 clears it (about 4.88 on bg, 5.36 on card).
+  border: Color(0xFFD6E1C8),
+  // Darkened from RN's #B4581E, which was 4.28 on the old background (below AA)
+  // as small money text. #A85018 clears it (4.74 on bg, 5.34 on card).
   // RN has the same too-light value; tracked as a separate RN follow-up.
   primary: Color(0xFFA85018),
   primaryText: Color(0xFFA85018),
-  caramel: Color(0xFF7A5A2E),
-  text: Color(0xFF221E15),
-  textSecondary: Color(0xFF4A443A),
-  muted: Color(0xFF6E675C),
-  faint: Color(0xFF726B60),
+  caramel: Color(0xFF5C6B3A),
+  text: Color(0xFF1B2116),
+  textSecondary: Color(0xFF3E4A34),
+  muted: Color(0xFF616B55),
+  faint: Color(0xFF626C56),
   warning: Color(0xFFB01E38),
   warningStrong: Color(0xFF8C1329),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF8A6200),
-  positiveSurface: Color(0xFFEFE9D3),
-  positiveBorder: Color(0xFFD8CCA8),
-  overlay: Color.fromRGBO(30, 24, 12, 0.45),
+  celebrate: Color(0xFF3D6B14),
+  positiveSurface: Color(0xFFDFEBD2),
+  positiveBorder: Color(0xFFC2D4A8),
+  overlay: Color.fromRGBO(16, 26, 14, 0.45),
 );
 const _mintDark = BarakoPalette(
   brightness: Brightness.dark,
@@ -421,25 +440,51 @@ const _mintLight = BarakoPalette(
   overlay: Color.fromRGBO(10, 20, 15, 0.45),
 );
 
-/// Every theme, brand first (trust and fun trio next, greens last). Each
-/// carries a light and a dark palette. Generated from mobile/theme.js.
+/// Every theme, ordered as a HUE WALK that starts at the brand and circles back
+/// to it: orange, coral, magenta, violet, blue, aqua, green, green with orange.
+///
+/// The order is not decoration. The eye can only compare swatches that sit next
+/// to each other, so the previous order (brand first, then a "trust and fun
+/// trio", then greens) hid the very comparisons a picker exists to make: the
+/// three warm themes sat at positions 1, 5 and 7, so Ember was never next to
+/// Barako and read as "Barako again, I think". Every near twin is now adjacent,
+/// which turns a suspicion into a visible difference. First position still
+/// reads as "recommended", which is why Barako stays there.
+///
+/// Labels carry NO emoji. They used to, which broke the icon rule in CLAUDE.md
+/// (emoji are for icons the USER picked; a theme name is ours), announced as
+/// "hot beverage Barako" to a screen reader, rendered as boxes in the review
+/// harness so this row could never be looked at, and, worst, left the emoji at
+/// its own fixed colors on the SELECTED chip while the label flipped to
+/// onPrimary, so the selected theme read half broken on the one screen whose
+/// whole job is being credible about color. The color preview is the icon now.
+///
+/// Hints are short enough to sit on two lines in a tile column, and each one
+/// tries to answer "how is this different from the one beside it" rather than
+/// to sound nice. Ember names Barako directly, because that is the only
+/// question anyone has about Ember.
+///
+/// NO LONGER generated from mobile/theme.js. The two drifted (order, and the
+/// mint hint) before this change and have now diverged deliberately: the light
+/// Forest palette below is fixed here and left alone in RN, which stays frozen
+/// for testers. Treat the RN file as a sibling, not a source.
 const List<BarakoTheme> barakoThemes = [
-  BarakoTheme(key: 'barako', label: '☕ Barako', hint: 'Roasted orange on dark-roast coffee. The Salapify look.',
+  BarakoTheme(key: 'barako', label: 'Barako', hint: 'Roasted orange on dark coffee.',
       light: _barakoLight, dark: _barakoDark),
-  BarakoTheme(key: 'tidal', label: '🌊 Tidal', hint: 'Deep navy with a vivid aqua pop.',
-      light: _tidalLight, dark: _tidalDark),
-  BarakoTheme(key: 'ultraviolet', label: '🔮 Ultraviolet', hint: 'Midnight violet with an electric-lime glow.',
-      light: _ultravioletLight, dark: _ultravioletDark),
-  BarakoTheme(key: 'voltage', label: '⚡ Voltage', hint: 'Ink black with an electric-blue current.',
-      light: _voltageLight, dark: _voltageDark),
-  BarakoTheme(key: 'ember', label: '🔥 Ember', hint: 'Warm charcoal with a sunrise coral.',
+  BarakoTheme(key: 'ember', label: 'Ember', hint: 'Coral on charcoal. Barako, hotter.',
       light: _emberLight, dark: _emberDark),
-  BarakoTheme(key: 'orchidgold', label: '🏆 Orchid Gold', hint: 'Berry plum with gold trophies.',
+  BarakoTheme(key: 'orchidgold', label: 'Orchid Gold', hint: 'Berry plum, gold for wins.',
       light: _orchidgoldLight, dark: _orchidgoldDark),
-  BarakoTheme(key: 'forest', label: '🌲 Forest', hint: 'Warm orange on deep green.',
-      light: _forestLight, dark: _forestDark),
-  BarakoTheme(key: 'mint', label: '🌿 Mint', hint: 'Fresh spring green with a honey-gold win.',
+  BarakoTheme(key: 'ultraviolet', label: 'Ultraviolet', hint: 'Midnight violet, electric lime.',
+      light: _ultravioletLight, dark: _ultravioletDark),
+  BarakoTheme(key: 'voltage', label: 'Voltage', hint: 'Ink black, blue, hot pink wins.',
+      light: _voltageLight, dark: _voltageDark),
+  BarakoTheme(key: 'tidal', label: 'Tidal', hint: 'Deep navy, vivid aqua.',
+      light: _tidalLight, dark: _tidalDark),
+  BarakoTheme(key: 'mint', label: 'Mint', hint: 'Spring green, honey gold.',
       light: _mintLight, dark: _mintDark),
+  BarakoTheme(key: 'forest', label: 'Forest', hint: 'Deep green, warm orange.',
+      light: _forestLight, dark: _forestDark),
 ];
 
 /// The appearance modes, matching the RN app.

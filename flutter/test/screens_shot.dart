@@ -26,6 +26,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +37,7 @@ import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/utang.dart';
@@ -203,6 +206,7 @@ void main() {
     'insights': (s) => InsightsScreen(store: s, onSwitchTab: (_) {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
+    'appearance': (s) => AppearanceScreen(store: s),
   };
 
   for (final entry in screens.entries) {
@@ -213,6 +217,47 @@ void main() {
       });
     }
   }
+
+  testWidgets('appearance, with a non-Barako theme selected, dark', (
+    tester,
+  ) async {
+    // The default shots open on Barako, where the selected tile, the ring and
+    // the check badge are all the same orange as the rest of the app, so they
+    // prove almost nothing. This one picks Voltage: the ring and badge become
+    // electric blue against seven other palettes, which is the only frame that
+    // actually shows selection reading as selection.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': <Map<String, dynamic>>[],
+        'transactions': <Map<String, dynamic>>[],
+        'settings': {'themeKey': 'voltage', 'themeMode': 'dark'},
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.currentTheme = themeForKey('voltage');
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: AppearanceScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/appearance-voltage-dark.png'),
+    );
+    Barako.currentTheme = themeForKey('barako');
+    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+  });
 
   testWidgets('the diagnostics dialog, before anything is copied', (
     tester,
