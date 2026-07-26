@@ -23,6 +23,7 @@ import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
+import 'pan.dart';
 import 'search.dart';
 
 String formatMoney(num value) {
@@ -352,14 +353,45 @@ class OverviewScreen extends StatelessWidget {
                   // scale and overflowed this Row at the largest setting.
                   Flexible(child: _kicker('MONEY CHECK-IN')),
                   const Spacer(),
-                  // Decorative here: the check-in card already announces the
-                  // situation, so keep Pan out of the screen reader on Home (his
-                  // descriptive label stays on the Ask Pan header, where it adds
-                  // information).
-                  ExcludeSemantics(
-                    child: PanMascot(
-                      mood: panMoodForCoachKind(c['kind'] as String?),
-                      size: 44,
+                  // Tapping Pan opens Ask Pan. He was decoration until now,
+                  // and a character who reacts to your money but does nothing
+                  // when you reach for him teaches that he is scenery.
+                  //
+                  // He is NO LONGER hidden from the screen reader. He used to
+                  // be, correctly, because a purely decorative image that
+                  // repeats what the card already says is noise. The moment he
+                  // became tappable that reversed: an interactive target that
+                  // announces nothing is a control a blind user cannot find or
+                  // know exists.
+                  //
+                  // The label names the DESTINATION rather than the mood. The
+                  // mood is already spoken by the card's own title underneath,
+                  // so repeating it here would be the noise the old
+                  // ExcludeSemantics was avoiding.
+                  Semantics(
+                    // container: true is load-bearing. Without it this widget
+                    // only ANNOTATES the nearest semantics node, and the
+                    // ExcludeSemantics below removes the only candidate, so
+                    // the label attached to nothing and the button was
+                    // invisible to a screen reader while looking correct in
+                    // the code.
+                    container: true,
+                    button: true,
+                    label: 'Ask Pan',
+                    child: InkResponse(
+                      radius: 32,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              PanScreen(store: store, onSwitchTab: onSwitchTab),
+                        ),
+                      ),
+                      child: ExcludeSemantics(
+                        child: PanMascot(
+                          mood: panMoodForCoachKind(c['kind'] as String?),
+                          size: 44,
+                        ),
+                      ),
                     ),
                   ),
                 ],
