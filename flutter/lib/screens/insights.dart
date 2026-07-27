@@ -159,54 +159,65 @@ class InsightsScreen extends StatelessWidget {
 
   // Shown before there is any data, in place of the full analytics wall.
   Widget _emptyInsights(BuildContext context) => SafeArea(
-    child: ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // onMenu here too: this branch is what a brand new user sees, and
         // Menu is the only door to 16 destinations. It was missing once, so
         // the emptiest account had the fewest ways out of the screen, and
-        // only a geometry probe noticed.
-        ScreenHeader(
-          'Insights',
-          subtitle: 'What your money is telling you, and what to do next',
-          onMenu: onMenu,
+        // only a geometry probe noticed. Pinned above the list, like every
+        // tab since the founder's call.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: ScreenHeader(
+            'Insights',
+            subtitle: 'What your money is telling you, and what to do next',
+            onMenu: onMenu,
+          ),
         ),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SalapifyGlyph('chart', size: 24),
-                const SizedBox(height: 8),
-                Text(
-                  'Nothing to read yet, and that is fine',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SalapifyGlyph('chart', size: 24),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Nothing to read yet, and that is fine',
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 14,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Barako.primary,
+                          foregroundColor: Barako.onPrimary,
+                        ),
+                        onPressed: () => onSwitchTab?.call(Destination.home),
+                        child: const Text('Start logging'),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary,
-                  ),
-                  onPressed: () => onSwitchTab?.call(Destination.home),
-                  child: const Text('Start logging'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -240,132 +251,145 @@ class InsightsScreen extends StatelessWidget {
     final plan = surplus.nextPesoPlan(data, ref);
     final load = commitmentload.commitmentLoad(data, ref);
 
+    // Header pinned above the list on every tab (founder's call). Insights
+    // is the longest screen in the app, roughly ten cards, so this is the
+    // tab where losing Menu to a scroll cost the most.
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ScreenHeader(
-            'Insights',
-            subtitle: 'What your money is telling you, and what to do next',
-            onMenu: onMenu,
-          ),
-          if (candidates.isNotEmpty) ...[
-            Kicker('DO NEXT'),
-            SizedBox(height: 8),
-            for (final c in candidates.take(3)) _decisionCard(c),
-          ] else
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You are on track',
-                      style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Nothing needs a money decision right now. Keep logging and enjoy the calm.',
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: ScreenHeader(
+              'Insights',
+              subtitle: 'What your money is telling you, and what to do next',
+              onMenu: onMenu,
             ),
-          if (win != null) ...[
-            const SizedBox(height: 10),
-            Row(
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
               children: [
-                Icon(
-                  Icons.celebration_outlined,
-                  color: Barako.primary,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    win['text'] as String,
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                if (candidates.isNotEmpty) ...[
+                  Kicker('DO NEXT'),
+                  SizedBox(height: 8),
+                  for (final c in candidates.take(3)) _decisionCard(c),
+                ] else
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'You are on track',
+                            style: TextStyle(
+                              color: Barako.primaryText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Nothing needs a money decision right now. Keep logging and enjoy the calm.',
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                if (win != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.celebration_outlined,
+                        color: Barako.primary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          win['text'] as String,
+                          style: TextStyle(
+                            color: Barako.primaryText,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 18),
+                _safeToSpendCard(sts),
+                // Steady Pay: safe-to-spend's sibling for swing income. Shows with
+                // an accepted draw, a real suggestion (three or more full income
+                // months), or a building state once ANY income month exists, so a
+                // user sent here by the course lesson lands on an honest progress
+                // line instead of nothing. Only a truly income-less store hides it.
+                ...(() {
+                  final accepted = steadypay.acceptedSteadyPay(data);
+                  final suggestion = steadypay.steadyPaySuggestion(data, ref);
+                  // A first income logged THIS month counts as a start too (the
+                  // suggestion window drops the current partial month on
+                  // purpose), so the course lesson's button lands on the
+                  // in-progress line from day one.
+                  if (accepted == null &&
+                      suggestion.weeklyDraw == null &&
+                      suggestion.activeMonths == 0 &&
+                      !steadypay.incomeThisMonth(data, ref)) {
+                    return const <Widget>[];
+                  }
+                  return [
+                    const SizedBox(height: 12),
+                    _steadyPayCard(context, data, ref, accepted, suggestion),
+                  ];
+                })(),
+                if (plan['applicable'] == true) ...[
+                  const SizedBox(height: 12),
+                  _nextPesoCard(plan, focusGoal),
+                ],
+                // "Kaya mo ba ito?" always shows: it is a tool anyone can reach for
+                // before a purchase, not a reflection of the current month, so it
+                // does not gate on having debt or a goal.
+                const SizedBox(height: 12),
+                AffordCard(data: data, ref: ref),
+                // The windfall planner is the same kind of always-available tool,
+                // for the other side of a big money moment: a lump landing at once.
+                const SizedBox(height: 12),
+                WindfallCard(data: data, ref: ref),
+                if (_hasActiveDebt(data['debts'])) ...[
+                  const SizedBox(height: 12),
+                  _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
+                ],
+                if (focusGoal != null) ...[
+                  const SizedBox(height: 12),
+                  _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
+                ],
+                // Spoken-For is a structural, reflective gauge, so it sits with the
+                // "understand your situation" band, not the do-next cards up top. It
+                // leads the band because commitment load feeds the debt-load health.
+                if (load['applicable'] == true) ...[
+                  const SizedBox(height: 12),
+                  _spokenForCard(load),
+                ],
+                const SizedBox(height: 12),
+                _healthCard(health),
+                const SizedBox(height: 12),
+                _trendCard(series),
+                const SizedBox(height: 12),
+                if (cats.any((c) => (c['now'] as double) > 0))
+                  _categoriesCard(cats, forecast),
+                const SizedBox(height: 12),
+                _runwayCard(runway),
+                const SizedBox(height: 24),
               ],
             ),
-          ],
-          const SizedBox(height: 18),
-          _safeToSpendCard(sts),
-          // Steady Pay: safe-to-spend's sibling for swing income. Shows with
-          // an accepted draw, a real suggestion (three or more full income
-          // months), or a building state once ANY income month exists, so a
-          // user sent here by the course lesson lands on an honest progress
-          // line instead of nothing. Only a truly income-less store hides it.
-          ...(() {
-            final accepted = steadypay.acceptedSteadyPay(data);
-            final suggestion = steadypay.steadyPaySuggestion(data, ref);
-            // A first income logged THIS month counts as a start too (the
-            // suggestion window drops the current partial month on
-            // purpose), so the course lesson's button lands on the
-            // in-progress line from day one.
-            if (accepted == null &&
-                suggestion.weeklyDraw == null &&
-                suggestion.activeMonths == 0 &&
-                !steadypay.incomeThisMonth(data, ref)) {
-              return const <Widget>[];
-            }
-            return [
-              const SizedBox(height: 12),
-              _steadyPayCard(context, data, ref, accepted, suggestion),
-            ];
-          })(),
-          if (plan['applicable'] == true) ...[
-            const SizedBox(height: 12),
-            _nextPesoCard(plan, focusGoal),
-          ],
-          // "Kaya mo ba ito?" always shows: it is a tool anyone can reach for
-          // before a purchase, not a reflection of the current month, so it
-          // does not gate on having debt or a goal.
-          const SizedBox(height: 12),
-          AffordCard(data: data, ref: ref),
-          // The windfall planner is the same kind of always-available tool,
-          // for the other side of a big money moment: a lump landing at once.
-          const SizedBox(height: 12),
-          WindfallCard(data: data, ref: ref),
-          if (_hasActiveDebt(data['debts'])) ...[
-            const SizedBox(height: 12),
-            _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
-          ],
-          if (focusGoal != null) ...[
-            const SizedBox(height: 12),
-            _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
-          ],
-          // Spoken-For is a structural, reflective gauge, so it sits with the
-          // "understand your situation" band, not the do-next cards up top. It
-          // leads the band because commitment load feeds the debt-load health.
-          if (load['applicable'] == true) ...[
-            const SizedBox(height: 12),
-            _spokenForCard(load),
-          ],
-          const SizedBox(height: 12),
-          _healthCard(health),
-          const SizedBox(height: 12),
-          _trendCard(series),
-          const SizedBox(height: 12),
-          if (cats.any((c) => (c['now'] as double) > 0))
-            _categoriesCard(cats, forecast),
-          const SizedBox(height: 12),
-          _runwayCard(runway),
-          const SizedBox(height: 24),
+          ),
         ],
       ),
     );

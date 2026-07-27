@@ -90,6 +90,12 @@ void main() {
             'The ask survived being answered. A question that keeps asking '
             'after you have answered it is the definition of a nag.',
       );
+      // The greeting lives at the top of the list, and the save left us
+      // scrolled down. Since the header pin, the greeting scrolls with the
+      // content (only the wordmark row is fixed), so scroll back up the way
+      // a person would before reading it.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 800));
+      await tester.pumpAndSettle();
       expect(find.textContaining('Ana'), findsWidgets);
     });
 
