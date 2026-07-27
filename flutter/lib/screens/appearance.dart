@@ -321,7 +321,12 @@ class ThemeTile extends StatelessWidget {
                     const SizedBox(height: Gap.sm),
                     Text(
                       theme.label,
-                      maxLines: 1,
+                      // Two lines, not one. At 1.4x system font on a 320dp
+                      // phone "Orchid Gold" truncated to "Orchid G...", and a
+                      // theme whose NAME is unreadable is worse than a tall
+                      // tile. Nothing wraps at normal size, so this costs
+                      // nothing until it is needed.
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Barako.text,

@@ -218,6 +218,42 @@ void main() {
     }
   }
 
+  testWidgets('appearance at 1.4x system font on a narrow phone', (
+    tester,
+  ) async {
+    // The one screen in the app whose content is mostly long text in narrow
+    // columns, so it is the one most likely to clip when someone turns the
+    // system font up. This frame caught a real defect on its first run: at
+    // 1.4x on a 320dp phone the theme NAME truncated to "Orchid G...", which
+    // no amount of passing tests would have shown, because nothing was
+    // overflowing. It was merely unreadable.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(960, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
+        child: MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          home: AppearanceScreen(store: store),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/appearance-large-font-dark.png'),
+    );
+  });
+
   testWidgets('appearance, with a non-Barako theme selected, dark', (
     tester,
   ) async {
