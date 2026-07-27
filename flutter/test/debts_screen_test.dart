@@ -38,9 +38,19 @@ Map<String, dynamic> blob() => {
 };
 
 Future<void> openDebts(WidgetTester tester, SalapifyStore store) async {
+  // Tall viewport: the tab stacks the screen header and the segment control
+  // above the same content the pushed screen used to show, so the debt rows
+  // sit lower and the default 600 tall test window cut them off.
+  tester.view.physicalSize = const Size(1200, 2600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(SalapifyApp(store: store));
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Debts');
+  // The Menu tile is gone; the Utang tab's "I owe" segment is the one home
+  // of debts now, and it opens on that segment by default. Same DebtsView,
+  // same features, reached the way a user reaches it. One body change, and
+  // every test below kept working, which is the seam doing its job again.
+  await goToTab(tester, 'Utang');
 }
 
 void main() {
@@ -113,7 +123,10 @@ void main() {
     final store = SalapifyStore();
     await openDebts(tester, store);
 
-    await tester.tap(find.text('Add debt'));
+    // The tab's create action is the header New button (the pushed screen's
+    // "Add debt" FAB went with the screen); the sheet it opens still titles
+    // itself "Add debt".
+    await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, 'Name, like BPI card or a family loan'),

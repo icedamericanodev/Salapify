@@ -103,6 +103,10 @@ class OverviewScreen extends StatelessWidget {
   /// no Migs anywhere on it. Falls back to onSwitchTab when absent.
   final VoidCallback? onOpenReceivables;
 
+  /// The mirror jump: the Utang tab with "I owe" showing, for a due-soon
+  /// debt check-in. Falls back to pushing the standalone screen when absent.
+  final VoidCallback? onOpenPayables;
+
   /// The clock, injectable so a test can pin the date.
   ///
   /// This seam exists because three fixture rewrites in a row failed to make a
@@ -120,6 +124,7 @@ class OverviewScreen extends StatelessWidget {
     this.onSwitchTab,
     this.onMenu,
     this.onOpenReceivables,
+    this.onOpenPayables,
     this.clock = DateTime.now,
   });
 
@@ -229,6 +234,7 @@ class OverviewScreen extends StatelessWidget {
                       store: store,
                       onSwitchTab: onSwitchTab,
                       onOpenReceivables: onOpenReceivables,
+                      onOpenPayables: onOpenPayables,
                     ),
                   ),
                 ),
@@ -496,9 +502,14 @@ class OverviewScreen extends StatelessWidget {
       onTap = onOpenReceivables;
     } else if (tab != null && onSwitchTab != null) {
       onTap = () => onSwitchTab!(tab);
+    } else if (route == '/debts' && onOpenPayables != null) {
+      // A due-soon decision means the user's own debts: the "I owe" segment
+      // of the Utang tab, where the bottom bar still works. Pushing the
+      // standalone DebtsScreen here stranded the user on a copy of the tab.
+      onTap = onOpenPayables;
     } else if (route == '/debts') {
-      // Debts is not a bottom tab; a due-soon decision is prio 92, so it must
-      // not be a dead end. Push the screen Home already imports.
+      // Fallback for hosts that do not wire the richer callback: still not a
+      // dead end.
       onTap = () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => DebtsScreen(store: store)));

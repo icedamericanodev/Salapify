@@ -15,7 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/cashflow.dart';
-import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/milestone_share.dart';
@@ -41,7 +40,8 @@ final _destinations = <String, Type>{
   'Search': SearchScreen,
   'Accounts': AccountsScreen,
   'Cash flow': CashFlowScreen,
-  'Debts': DebtsScreen,
+  // Debts has no tile since Phase 2 batch 1: the Utang tab's "I owe" segment
+  // is its one home, and money_tab_test guards that route.
   'Goals': GoalsScreen,
   'Paluwagan': PaluwaganScreen,
   'Recurring': RecurringScreen,

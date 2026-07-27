@@ -156,6 +156,19 @@ class _ShellScreenState extends State<ShellScreen> {
     });
   }
 
+  /// Land on the Utang tab with the "I owe" segment showing.
+  ///
+  /// The mirror of _openReceivables, for taps that mean the user's own debts:
+  /// a due-soon check-in, a Pan "Open debts" reply, a search hit on a debt.
+  /// Before this existed those pushed a standalone DebtsScreen over the shell,
+  /// stranding the user on a copy of the tab with no bottom bar.
+  void _openPayables() {
+    _select(Destination.utang);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _moneyKey.currentState?.showSegment(MoneySegment.owe);
+    });
+  }
+
   void _openMenu() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -163,6 +176,7 @@ class _ShellScreenState extends State<ShellScreen> {
           store: widget.store,
           onSwitchTab: _select,
           onOpenReceivables: _openReceivables,
+          onOpenPayables: _openPayables,
         ),
       ),
     );
@@ -173,6 +187,7 @@ class _ShellScreenState extends State<ShellScreen> {
       store: widget.store,
       onSwitchTab: _select,
       onOpenReceivables: _openReceivables,
+      onOpenPayables: _openPayables,
       onMenu: _openMenu,
     ),
     Destination.budget => BudgetScreen(store: widget.store, onMenu: _openMenu),
@@ -189,6 +204,7 @@ class _ShellScreenState extends State<ShellScreen> {
       store: widget.store,
       onSwitchTab: _select,
       onOpenReceivables: _openReceivables,
+      onOpenPayables: _openPayables,
       onMenu: _openMenu,
     ),
   };

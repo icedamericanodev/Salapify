@@ -146,6 +146,7 @@ class InsightsScreen extends StatelessWidget {
   /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
   /// there specifically; plain onSwitchTab would open the "I owe" segment.
   final VoidCallback? onOpenReceivables;
+  final VoidCallback? onOpenPayables;
   final VoidCallback? onMenu;
   const InsightsScreen({
     super.key,
@@ -153,6 +154,7 @@ class InsightsScreen extends StatelessWidget {
     this.onSwitchTab,
     this.onMenu,
     this.onOpenReceivables,
+    this.onOpenPayables,
   });
 
   // Shown before there is any data, in place of the full analytics wall.
@@ -377,18 +379,23 @@ class InsightsScreen extends StatelessWidget {
         ? Barako.text
         : Barako.textSecondary;
     final utang = c['kind'] == 'utang';
+    final debt = c['kind'] == 'debtdue';
+    // Both owing directions land on the Utang tab, each on its own segment
+    // when the host wires the richer jump, falling back to the plain tab
+    // switch when it does not. An utang decision is money owed TO the user;
+    // a debtdue decision is the user's own debt, which used to be an inert
+    // card here.
+    final fallback = onSwitchTab != null
+        ? () => onSwitchTab!(Destination.utang)
+        : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        // An utang decision is about money owed TO the user, so it lands on
-        // the "Owed to me" segment when the host wires the richer jump, and
-        // falls back to the plain tab switch when it does not.
-        onTap: !utang
-            ? null
-            : onOpenReceivables ??
-                  (onSwitchTab != null
-                      ? () => onSwitchTab!(Destination.utang)
-                      : null),
+        onTap: utang
+            ? (onOpenReceivables ?? fallback)
+            : debt
+            ? (onOpenPayables ?? fallback)
+            : null,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

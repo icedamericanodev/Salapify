@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.59 \u00b7 The Menu and search buttons look like buttons now, and sit exactly on the edge.';
+    'f2.60 \u00b7 Every log shows a receipt with Undo, and debt taps land on the Utang tab.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

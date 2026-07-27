@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/menu.dart';
@@ -86,11 +87,13 @@ void main() {
     expect(find.text('STILL OUT'), findsOneWidget);
   });
 
-  testWidgets('a due-soon check-in is not a dead end, it opens Debts',
+  testWidgets('a due-soon check-in lands on the Utang tab, bottom bar intact',
       (tester) async {
     // A card due today (dueDay = today) is a debtdue decision at prio 92, the
-    // top of the check-in here. Its route is /debts, which is not a bottom
-    // tab, so the card must push the Debts screen instead of doing nothing.
+    // top of the check-in here. Its route is /debts, whose home is the Utang
+    // tab's "I owe" segment. It used to push a standalone DebtsScreen, which
+    // showed the right content with NO bottom bar: a copy of the tab the
+    // user could not tab away from.
     final dueDay = DateTime.now().day;
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
@@ -114,8 +117,18 @@ void main() {
     expect(find.textContaining('due soon'), findsOneWidget);
     await tester.tap(find.textContaining('due soon'));
     await tester.pumpAndSettle();
-    // The Debts screen pushed over Home shows its payoff-plan section.
+    // The debts content is showing. PAYOFF PLAN alone cannot tell the tab
+    // from the old pushed copy (both render DebtsView), so the assertion
+    // that carries the fix is the NavigationBar: visible on the tab,
+    // covered by a pushed route.
     expect(find.text('PAYOFF PLAN'), findsOneWidget);
+    expect(
+      find.byType(NavigationBar),
+      findsOneWidget,
+      reason:
+          'The check-in must land on the Utang tab, not push a standalone '
+          'copy of it with no bottom bar.',
+    );
   });
 
   testWidgets('a fresh empty app shows no money check-in yet', (tester) async {
