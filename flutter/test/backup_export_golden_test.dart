@@ -15,6 +15,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 dynamic normalize(dynamic v) {
   if (v is num) return v.toDouble();
   if (v is Map) return v.map((k, x) => MapEntry(k.toString(), normalize(x)));
@@ -170,18 +172,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.text('Import backup'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Import backup'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Import backup');
 
     await tester.enterText(
       find.byType(TextField),
@@ -214,18 +205,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.text('Export backup'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Export backup'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Export backup');
 
     expect(find.textContaining('"app": "salapify"'), findsOneWidget);
     expect(find.textContaining('2 accounts, 4 entries'), findsOneWidget);

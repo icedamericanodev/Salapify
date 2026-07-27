@@ -20,6 +20,7 @@ import 'contribution_calculator.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
+import 'shell.dart';
 
 class _Msg {
   final String role; // 'user' or 'pan'
@@ -29,7 +30,7 @@ class _Msg {
 
 class PanScreen extends StatefulWidget {
   final SalapifyStore store;
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const PanScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
@@ -97,15 +98,19 @@ class _PanScreenState extends State<PanScreen> {
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
-          Navigator.of(context).pop();
-          onSwitchTab(4);
+          // popUntil, not pop. Menu is a pushed route now, so a screen
+          // reached through it sits TWO deep, and a single pop would land the
+          // user back on Menu with the tab quietly changed behind it. Popping
+          // to the root is correct from any depth.
+          Navigator.of(context).popUntil((r) => r.isFirst);
+          onSwitchTab(Destination.insights);
         };
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
-          Navigator.of(context).pop();
-          onSwitchTab(3);
+          Navigator.of(context).popUntil((r) => r.isFirst);
+          onSwitchTab(Destination.utang);
         };
       default:
         return null;

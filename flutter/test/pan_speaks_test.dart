@@ -18,6 +18,8 @@ import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<SalapifyStore> _storeWithSomeMoney() async {
   SharedPreferences.setMockInitialValues({});
   final store = SalapifyStore();
@@ -35,7 +37,7 @@ Widget _home(SalapifyStore store) => ListenableBuilder(
   listenable: store,
   builder: (context, _) => MaterialApp(
     theme: salapifyTheme(Barako.current),
-    home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+    home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
   ),
 );
 

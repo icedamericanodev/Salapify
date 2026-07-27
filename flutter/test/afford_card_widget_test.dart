@@ -12,6 +12,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 String _iso(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -48,7 +50,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('CAN YOU AFFORD IT?'), 300,
         scrollable: find.byType(Scrollable).first);

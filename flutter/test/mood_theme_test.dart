@@ -7,9 +7,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/menu.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/app_harness.dart';
 
 void main() {
   setUp(() {
@@ -76,15 +79,13 @@ void main() {
     expect(beforeApp.theme!.scaffoldBackgroundColor,
         themeForKey('barako').light.background);
 
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-
     // The picker moved off Menu and onto its own screen, so the row is the way
     // in now. Its blurb doubles as the current choice, which is the whole
-    // reason the row carries state instead of a description.
-    await tester.scrollUntilVisible(find.text('Appearance'), 100,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
+    // reason the row carries state instead of a description. Assert the blurb
+    // before opening, because it is only visible from Menu.
+    await openMenu(tester);
+    await scrollTo(tester, find.text('Appearance'),
+        scope: find.byType(MenuScreen), delta: 100);
     expect(find.text('Barako, System'), findsOneWidget);
     await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();

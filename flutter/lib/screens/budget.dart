@@ -23,7 +23,11 @@ const List<({String label, num amount})> _defaultQuickAdds = [
 
 class BudgetScreen extends StatelessWidget {
   final SalapifyStore store;
-  const BudgetScreen({super.key, required this.store});
+
+  /// Opens Menu. Menu left the bottom bar, so every primary screen carries
+  /// the way in.
+  final VoidCallback? onMenu;
+  const BudgetScreen({super.key, required this.store, this.onMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +38,11 @@ class BudgetScreen extends StatelessWidget {
     final rows = (went['rows'] as List).cast<Map<String, dynamic>>();
     final max = went['max'] as double;
 
-    final rawQuickAdds = (data['settings'] is Map
-            ? (data['settings'] as Map)['quickAdds']
-            : null) as List?;
+    final rawQuickAdds =
+        (data['settings'] is Map
+                ? (data['settings'] as Map)['quickAdds']
+                : null)
+            as List?;
     // Only positive finite amounts become chips: a hand-edited backup with a
     // negative quick add would otherwise log money BACK on every tap.
     final quickAdds = <({String label, num amount})>[
@@ -50,84 +56,88 @@ class BudgetScreen extends StatelessWidget {
     ];
     final adds = quickAdds.isNotEmpty ? quickAdds : _defaultQuickAdds;
 
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            ScreenHeader('Budget'),
-            _limitCard(context, summary),
-            if (store.canWrite) ...[
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('QUICK ADD',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final q in adds)
-                            ActionChip(
-                              label: Text(
-                                  '${q.label}  ${formatMoney(q.amount)}'),
-                              backgroundColor: Barako.background,
-                              labelStyle: TextStyle(
-                                  color: Barako.text,
-                                  fontWeight: FontWeight.w600),
-                              side:
-                                  BorderSide(color: Barako.border),
-                              onPressed: () => _quickAdd(context, q),
-                            ),
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+        children: [
+          ScreenHeader('Budget', onMenu: onMenu),
+          _limitCard(context, summary),
+          if (store.canWrite) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'QUICK ADD',
+                      style: TextStyle(
+                        color: Barako.muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final q in adds)
                           ActionChip(
-                            label: const Text('+ Custom'),
+                            label: Text('${q.label}  ${formatMoney(q.amount)}'),
                             backgroundColor: Barako.background,
                             labelStyle: TextStyle(
-                                color: Barako.primaryText,
-                                fontWeight: FontWeight.w700),
+                              color: Barako.text,
+                              fontWeight: FontWeight.w600,
+                            ),
                             side: BorderSide(color: Barako.border),
-                            onPressed: () => showLogSheet(context, store),
+                            onPressed: () => _quickAdd(context, q),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ActionChip(
+                          label: const Text('+ Custom'),
+                          backgroundColor: Barako.background,
+                          labelStyle: TextStyle(
+                            color: Barako.primaryText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          side: BorderSide(color: Barako.border),
+                          onPressed: () => showLogSheet(context, store),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-            if (rows.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('WHERE IT WENT',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
-                      const SizedBox(height: 10),
-                      for (final w in rows) _catRow(w, max),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
+            ),
           ],
-        ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'WHERE IT WENT',
+                      style: TextStyle(
+                        color: Barako.muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    for (final w in rows) _catRow(w, max),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }
@@ -148,12 +158,15 @@ class BudgetScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('THIS MONTH',
-                      style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2)),
+                  child: Text(
+                    'THIS MONTH',
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
                 ),
                 if (store.canWrite)
                   InkWell(
@@ -161,12 +174,17 @@ class BudgetScreen extends StatelessWidget {
                     child: Padding(
                       // A real 44dp tap target, not just the text.
                       padding: const EdgeInsets.symmetric(
-                          vertical: 14, horizontal: 4),
-                      child: Text(limit > 0 ? 'Change limit' : 'Set a limit',
-                          style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700)),
+                        vertical: 14,
+                        horizontal: 4,
+                      ),
+                      child: Text(
+                        limit > 0 ? 'Change limit' : 'Set a limit',
+                        style: TextStyle(
+                          color: Barako.primaryText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -180,23 +198,25 @@ class BudgetScreen extends StatelessWidget {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(formatMoney(spent),
-                          maxLines: 1,
-                          style: TextStyle(
-                              fontFamily: Barako.displayFont,
-                              color: over ? Barako.warning : Barako.text,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ])),
+                      child: Text(
+                        formatMoney(spent),
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontFamily: Barako.displayFont,
+                          color: over ? Barako.warning : Barako.text,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5, left: 6),
-                    child: Text('of ${formatMoney(limit)}',
-                        style: TextStyle(
-                            color: Barako.muted, fontSize: 13)),
+                    child: Text(
+                      'of ${formatMoney(limit)}',
+                      style: TextStyle(color: Barako.muted, fontSize: 13),
+                    ),
                   ),
                 ],
               ),
@@ -215,29 +235,34 @@ class BudgetScreen extends StatelessWidget {
                 over
                     ? 'Over by ${formatMoney(spent - limit)}. No shame, just ease the biggest category below.'
                     : '${formatMoney(remaining)} left this month.'
-                        '${carried > 0 ? ' Includes ${formatMoney(carried)} carried over from last month\'s unspent budget.' : ''}',
+                          '${carried > 0 ? ' Includes ${formatMoney(carried)} carried over from last month\'s unspent budget.' : ''}',
                 style: TextStyle(
-                    color: over ? Barako.warning : Barako.muted,
-                    fontSize: 13,
-                    height: 1.4),
+                  color: over ? Barako.warning : Barako.muted,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
             ] else ...[
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(formatMoney(spent),
-                    maxLines: 1,
-                    style: TextStyle(
-                        color: Barako.text,
-                        fontFamily: Barako.displayFont,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+                child: Text(
+                  formatMoney(spent),
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontFamily: Barako.displayFont,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                  'Spent so far this month. Set a monthly limit and the bar will keep you honest.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13)),
+                'Spent so far this month. Set a monthly limit and the bar will keep you honest.',
+                style: TextStyle(color: Barako.muted, fontSize: 13),
+              ),
             ],
           ],
         ),
@@ -261,20 +286,23 @@ class BudgetScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(w['label'] as String,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        TextStyle(color: Barako.text, fontSize: 13)),
+                child: Text(
+                  w['label'] as String,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Barako.text, fontSize: 13),
+                ),
               ),
               Text(
-                  cap > 0
-                      ? '${formatMoney(amount)} of ${formatMoney(cap)} cap'
-                      : formatMoney(amount),
-                  style: TextStyle(
-                      color: overCap ? Barako.warning : Barako.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
+                cap > 0
+                    ? '${formatMoney(amount)} of ${formatMoney(cap)} cap'
+                    : formatMoney(amount),
+                style: TextStyle(
+                  color: overCap ? Barako.warning : Barako.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -293,16 +321,20 @@ class BudgetScreen extends StatelessWidget {
   }
 
   Future<void> _quickAdd(
-      BuildContext context, ({String label, num amount}) item) async {
+    BuildContext context,
+    ({String label, num amount}) item,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     final data = store.data;
     final def = (data['settings'] is Map
         ? (data['settings'] as Map)['defaultAccountId']
         : null);
-    final hasDefault = def is String &&
+    final hasDefault =
+        def is String &&
         def.isNotEmpty &&
-        (data['accounts'] as List? ?? const [])
-            .any((a) => a is Map && a['id'] == def);
+        (data['accounts'] as List? ?? const []).any(
+          (a) => a is Map && a['id'] == def,
+        );
     String? categoryId;
     for (final c in (data['categories'] as List? ?? const [])) {
       if (c is Map && c['name'] == item.label) {
@@ -319,50 +351,55 @@ class BudgetScreen extends StatelessWidget {
       'amount': item.amount,
       'date': now.toIso8601String().substring(0, 10),
       if (hasDefault) 'accountId': def,
-      if (categoryId != null && categoryId.isNotEmpty)
-        'categoryId': categoryId,
+      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
     };
     try {
       await store.addEntry(tx);
-      messenger.showSnackBar(SnackBar(
-        content: Text('${item.label} ${formatMoney(item.amount)} logged.'),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () async {
-            try {
-              await store.removeEntry(id);
-            } catch (e) {
-              messenger.showSnackBar(SnackBar(
-                  content:
-                      Text('Could not undo, the entry is still logged. $e')));
-            }
-          },
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${item.label} ${formatMoney(item.amount)} logged.'),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              try {
+                await store.removeEntry(id);
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not undo, the entry is still logged. $e',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
         ),
-      ));
+      );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text('Could not log, nothing was changed. $e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not log, nothing was changed. $e')),
+      );
     }
   }
 
   Future<void> _editLimit(BuildContext context) async {
-    final settings =
-        store.data['settings'] is Map ? store.data['settings'] as Map : const {};
+    final settings = store.data['settings'] is Map
+        ? store.data['settings'] as Map
+        : const {};
     final current = settings['monthlyLimit'];
     final controller = TextEditingController(
-        text: current is num && current > 0
-            ? (current % 1 == 0
-                ? current.toInt().toString()
-                : current.toString())
-            : '');
+      text: current is num && current > 0
+          ? (current % 1 == 0 ? current.toInt().toString() : current.toString())
+          : '',
+    );
     final messenger = ScaffoldMessenger.of(context);
     final value = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Monthly limit',
-            style: TextStyle(color: Barako.text)),
+        title: Text('Monthly limit', style: TextStyle(color: Barako.text)),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -378,21 +415,24 @@ class BudgetScreen extends StatelessWidget {
         actions: [
           if (current is num && current > 0)
             TextButton(
-                // 0 clears the limit; the store treats it as none set.
-                onPressed: () => Navigator.of(dialogContext).pop(0.0),
-                child: Text('Remove limit',
-                    style: TextStyle(color: Barako.warning))),
+              // 0 clears the limit; the store treats it as none set.
+              onPressed: () => Navigator.of(dialogContext).pop(0.0),
+              child: Text(
+                'Remove limit',
+                style: TextStyle(color: Barako.warning),
+              ),
+            ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child:
-                  Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () {
-                final v = parseAmount(controller.text);
-                if (v != null) Navigator.of(dialogContext).pop(v);
-              },
-              child: Text('Save',
-                  style: TextStyle(color: Barako.primary))),
+            onPressed: () {
+              final v = parseAmount(controller.text);
+              if (v != null) Navigator.of(dialogContext).pop(v);
+            },
+            child: Text('Save', style: TextStyle(color: Barako.primary)),
+          ),
         ],
       ),
     );
@@ -404,8 +444,11 @@ class BudgetScreen extends StatelessWidget {
     try {
       await store.setMonthlyLimit(value);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text('Could not save the limit, nothing was changed. $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not save the limit, nothing was changed. $e'),
+        ),
+      );
     }
   }
 }

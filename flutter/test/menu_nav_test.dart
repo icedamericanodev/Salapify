@@ -11,6 +11,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 void main() {
   testWidgets('dashboard is status-only; Menu tab holds the destinations', (
     tester,
@@ -42,12 +44,25 @@ void main() {
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
 
-    // Both the Insights and the Menu bottom tabs exist.
-    expect(find.text('Menu'), findsOneWidget);
-    expect(find.text('Insights'), findsOneWidget); // kept as a bottom tab
+    // Five destinations, and Menu is NOT one of them. A bottom bar is for
+    // places you go often; Menu is a drawer of everything else and it was
+    // taking a sixth of the most valuable strip on the screen. The bar's own
+    // theme had been shrunk below Material's defaults specifically to fit six.
+    //
+    // Scoped to the NavigationBar rather than searching the whole tree, because
+    // the mounted destinations render their own headers with the same words.
+    expect(navDestination('Menu'), findsNothing);
+    expect(navDestination('Insights'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byType(NavigationDestination),
+      ),
+      findsNWidgets(5),
+    );
 
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
+    // And Menu is still one tap away, from the header.
+    await openMenu(tester);
 
     // The hub holds the moved destinations (some are below the fold). Insights
     // is NOT here; it stayed a bottom tab.
@@ -72,7 +87,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
     expect(find.textContaining('What your money is telling'), findsOneWidget);
   });

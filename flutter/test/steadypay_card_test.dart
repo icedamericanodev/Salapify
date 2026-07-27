@@ -12,6 +12,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 String _monthsAgo(int months) {
   final n = DateTime.now();
   final d = DateTime(n.year, n.month - months, 10);
@@ -48,7 +50,7 @@ Map<String, dynamic> _gigSeed() => {
 };
 
 Future<void> _openInsights(WidgetTester tester) async {
-  await tester.tap(find.text('Insights'));
+  await goToTab(tester, 'Insights');
   await tester.pumpAndSettle();
 }
 

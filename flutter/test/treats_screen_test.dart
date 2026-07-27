@@ -10,18 +10,10 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<void> _openTreats(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('Earn your treats'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.ensureVisible(find.text('Earn your treats'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Earn your treats'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Earn your treats');
 }
 
 List _treats(SalapifyStore store) =>

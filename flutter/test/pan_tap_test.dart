@@ -26,6 +26,8 @@ import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<SalapifyStore> _storeWithSomeMoney() async {
   SharedPreferences.setMockInitialValues({});
   final store = SalapifyStore();
@@ -47,7 +49,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+        home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
       ),
     );
     await tester.pumpAndSettle();
@@ -79,7 +81,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+        home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
       ),
     );
     await tester.pumpAndSettle();
@@ -110,7 +112,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: UtangScreen(store: store),
+        home: tabHost(UtangScreen(store: store)),
       ),
     );
     await tester.pumpAndSettle();
@@ -136,7 +138,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: HistoryScreen(store: store),
+        home: tabHost(HistoryScreen(store: store)),
       ),
     );
     await tester.pumpAndSettle();

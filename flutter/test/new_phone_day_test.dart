@@ -12,18 +12,10 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<void> _openNewPhoneDay(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('New phone day'),
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.ensureVisible(find.text('New phone day'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('New phone day'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'New phone day', delta: 300);
 }
 
 void main() {

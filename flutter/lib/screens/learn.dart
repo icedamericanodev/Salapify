@@ -30,12 +30,17 @@ import 'recurring.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
+import 'shell.dart';
 
 // The bottom tabs a lesson action can jump to (same indexes as Home's map).
-const Map<String, int> _tabRoutes = {
-  'budget-tab': 1,
-  'utang-tab': 3,
-  'insights-tab': 4,
+// A lesson's call to action can land the reader on a tab. Named, for the same
+// reason as overview.dart's _routeTabs: 'budget-tab': 1 was only true while
+// Budget happened to be second, and a reorder would have sent every lesson
+// button somewhere else without failing anything.
+const Map<String, Destination> _tabRoutes = {
+  'budget-tab': Destination.budget,
+  'utang-tab': Destination.utang,
+  'insights-tab': Destination.insights,
 };
 
 class LearnScreen extends StatefulWidget {
@@ -47,7 +52,7 @@ class LearnScreen extends StatefulWidget {
   /// Lets a lesson action jump to a bottom tab (Budget, Utang, Insights).
   /// When absent, those actions fall back to hidden; every push action still
   /// works.
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const LearnScreen({
     super.key,
     required this.store,

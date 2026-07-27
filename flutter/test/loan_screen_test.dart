@@ -7,6 +7,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -18,15 +20,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Menu'));
-
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('Tools'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tools'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Tools');
     await tester.tap(find.text('Loan calculator'));
     await tester.pumpAndSettle();
 
@@ -63,13 +57,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Tools'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tools'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Tools');
     await tester.tap(find.text('Loan calculator'));
     await tester.pumpAndSettle();
 
@@ -89,13 +77,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Tools'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tools'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Tools');
     await tester.tap(find.text('Loan calculator'));
     await tester.pumpAndSettle();
 
@@ -129,13 +111,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Tools'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tools'));
-    await tester.pumpAndSettle();
+    await openFromMenu(tester, 'Tools');
     await tester.tap(find.text('Loan calculator'));
     await tester.pumpAndSettle();
 

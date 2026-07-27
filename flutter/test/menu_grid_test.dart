@@ -33,6 +33,8 @@ import 'package:salapify/widgets/nav_tile.dart';
 import 'package:salapify/widgets/salapify_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 /// Label to the screen it must open. Kept as data so adding a destination
 /// without adding it here is itself a visible omission.
 final _destinations = <String, Type>{
@@ -68,7 +70,7 @@ Future<SalapifyStore> _store() async {
 Widget _menu(SalapifyStore store, {Key? key}) => MaterialApp(
   key: key,
   theme: salapifyTheme(Barako.current),
-  home: MenuScreen(store: store, onSwitchTab: (_) {}),
+  home: tabHost(MenuScreen(store: store, onSwitchTab: (_) {})),
 );
 
 void main() {

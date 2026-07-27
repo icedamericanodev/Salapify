@@ -13,6 +13,8 @@ import 'package:salapify/money/receivables.dart' as engine;
 import 'package:salapify/screens/utang.dart' show openUtangFor;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Map<String, dynamic> blob() => {
   'schemaVersion': 12,
   'accounts': [
@@ -142,7 +144,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Utang'));
+    await goToTab(tester, 'Utang');
     await tester.pumpAndSettle();
     expect(find.text('Migs'), findsOneWidget);
 
@@ -273,9 +275,9 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Utang'));
+    await goToTab(tester, 'Utang');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('New utang'));
+    await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -301,9 +303,9 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Utang'));
+    await goToTab(tester, 'Utang');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('New utang'));
+    await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
 
     await tester.enterText(

@@ -10,6 +10,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 String _monthKey() {
   final n = DateTime.now();
   return '${n.year}-${n.month.toString().padLeft(2, '0')}';
@@ -19,14 +21,7 @@ List _txns(SalapifyStore s) => s.data['transactions'] as List;
 List _recur(SalapifyStore s) => s.data['recurring'] as List;
 
 Future<void> _openRecurring(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('Recurring'), 200,
-      scrollable: find.byType(Scrollable).first);
-  await tester.ensureVisible(find.text('Recurring'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Recurring'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Recurring');
 }
 
 void main() {

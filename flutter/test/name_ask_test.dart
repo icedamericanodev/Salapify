@@ -16,6 +16,8 @@ import 'package:salapify/screens/overview.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<SalapifyStore> _fresh() async {
   SharedPreferences.setMockInitialValues({});
   final store = SalapifyStore();
@@ -31,7 +33,7 @@ Widget _home(SalapifyStore store) => ListenableBuilder(
   listenable: store,
   builder: (context, _) => MaterialApp(
     theme: salapifyTheme(Barako.current),
-    home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+    home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
   ),
 );
 
@@ -142,7 +144,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
-          home: MenuScreen(store: store, onSwitchTab: (_) {}),
+          home: tabHost(MenuScreen(store: store, onSwitchTab: (_) {})),
         ),
       );
       await tester.pumpAndSettle();
@@ -172,7 +174,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
-          home: MenuScreen(store: store, onSwitchTab: (_) {}),
+          home: tabHost(MenuScreen(store: store, onSwitchTab: (_) {})),
         ),
       );
       await tester.pumpAndSettle();
@@ -199,7 +201,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
-          home: MenuScreen(store: store, onSwitchTab: (_) {}),
+          home: tabHost(MenuScreen(store: store, onSwitchTab: (_) {})),
         ),
       );
       await tester.pumpAndSettle();

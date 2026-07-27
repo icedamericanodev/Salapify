@@ -17,13 +17,14 @@ import 'notes.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
+import 'shell.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
 
   /// Threaded through to Money courses so a lesson action can jump to a
   /// bottom tab (Budget, Utang, Insights).
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const ToolsScreen({super.key, required this.store, this.onSwitchTab});
 
   @override

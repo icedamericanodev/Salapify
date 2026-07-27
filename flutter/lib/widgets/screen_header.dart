@@ -7,11 +7,16 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'salapify_icon.dart';
 
 class ScreenHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? trailing;
+
+  /// Opens the Menu. Present on every primary destination, because Menu left
+  /// the bottom bar and this is now the only way in.
+  final VoidCallback? onMenu;
 
   /// The gap above the title. Defaults to 12; the whole header carries a fixed
   /// 20 gap below so content starts at the same place on every tab.
@@ -24,7 +29,11 @@ class ScreenHeader extends StatelessWidget {
   // that is exactly the footgun we are avoiding, so we opt out here.
   // ignore: prefer_const_constructors_in_immutables
   ScreenHeader(this.title,
-      {super.key, this.subtitle, this.trailing, this.topGap = 12});
+      {super.key,
+      this.subtitle,
+      this.trailing,
+      this.onMenu,
+      this.topGap = 12});
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +55,30 @@ class ScreenHeader extends StatelessWidget {
             fontWeight: FontWeight.w800,
             height: 1.2,
             letterSpacing: 0));
+    // One Row whenever there is anything beside the title, rather than a
+    // trailing-only special case. Menu now sits here on every primary screen,
+    // and Utang carries a create button as well, so "title alone" stopped
+    // being the common shape.
+    //
+    // Flexible on the title, never on the actions: when the text is long or
+    // the system font is large, the TITLE should shrink and wrap. Letting an
+    // action shrink instead would give a user a button too small to hit at
+    // exactly the font size they chose because things were hard to see.
+    final hasActions = trailing != null || onMenu != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: topGap),
-        if (trailing != null)
+        if (hasActions)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [Flexible(child: titleText), trailing!],
+            children: [
+              Flexible(child: titleText),
+              const Spacer(),
+              ?trailing,
+              if (trailing != null && onMenu != null)
+                const SizedBox(width: Gap.sm),
+              if (onMenu != null) MenuAction(onTap: onMenu!),
+            ],
           )
         else
           titleText,
@@ -68,4 +93,28 @@ class ScreenHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The way into Menu, in one place.
+///
+/// One widget rather than an IconButton copied onto five screens, so the icon,
+/// the tooltip and the tap target cannot drift apart. The tooltip is not
+/// decoration: it is the only text a screen reader has to work with, and
+/// labeledTapTargetGuideline fails without it.
+class MenuAction extends StatelessWidget {
+  final VoidCallback onTap;
+
+  // ignore: prefer_const_constructors_in_immutables
+  MenuAction({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        onPressed: onTap,
+        tooltip: 'Menu',
+        icon: Icon(salapifyIcon('menu'), color: Barako.text),
+        // 48, the Android floor. IconButton's default padded tap target is
+        // already 48, but stating it means a future density change cannot
+        // quietly shrink the one control that reaches half the app.
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      );
 }

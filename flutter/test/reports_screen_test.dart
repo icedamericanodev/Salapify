@@ -9,6 +9,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 String _thisMonth(int day) {
   final n = DateTime.now();
   return '${n.year}-${n.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
@@ -21,14 +23,7 @@ String _monthsAgo(int months, int day) {
 }
 
 Future<void> _openReports(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('Reports'), 200,
-      scrollable: find.byType(Scrollable).first);
-  await tester.ensureVisible(find.text('Reports'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Reports'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Reports');
 }
 
 void main() {
@@ -101,7 +96,7 @@ void main() {
     await tester.pumpAndSettle();
     // The pushed History route shows its back-capable app bar and pre-fills
     // the filter with the category name.
-    expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Activity'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
   });
 

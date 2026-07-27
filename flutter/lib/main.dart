@@ -9,12 +9,7 @@ import 'package:flutter/material.dart';
 import 'data/store.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
-import 'screens/budget.dart';
-import 'screens/history.dart';
-import 'screens/insights.dart';
-import 'screens/menu.dart';
-import 'screens/overview.dart';
-import 'screens/utang.dart';
+import 'screens/shell.dart';
 import 'theme.dart';
 import 'widgets/lock_gate.dart';
 
@@ -30,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.52 \u00b7 Appearance is its own screen, each theme previews itself, and Forest is finally green.';
+    'f2.53 \u00b7 Five tabs, Menu moved to the top, Log on every screen, and tabs stop forgetting.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -84,8 +79,6 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     }
   }
 
-  int tab = 0;
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -121,66 +114,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
           // overlay covers pushed screens too, not just the home tab.
           builder: (context, child) =>
               LockGate(store: widget.store, child: child ?? const SizedBox()),
-          home: Scaffold(
-            body: switch (tab) {
-              1 => BudgetScreen(store: widget.store),
-              2 => HistoryScreen(store: widget.store),
-              3 => UtangScreen(store: widget.store),
-              4 => InsightsScreen(
-                store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
-              ),
-              5 => MenuScreen(
-                store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
-              ),
-              _ => OverviewScreen(
-                store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
-              ),
-            },
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (i) => setState(() => tab = i),
-              backgroundColor: Barako.card,
-              indicatorColor: Barako.primary,
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.savings_outlined),
-                  selectedIcon: Icon(Icons.savings, color: Barako.onPrimary),
-                  label: 'Budget',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(
-                    Icons.receipt_long,
-                    color: Barako.onPrimary,
-                  ),
-                  label: 'History',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.handshake_outlined),
-                  selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
-                  label: 'Utang',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.insights_outlined),
-                  selectedIcon: Icon(Icons.insights, color: Barako.onPrimary),
-                  label: 'Insights',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view, color: Barako.onPrimary),
-                  label: 'Menu',
-                ),
-              ],
-            ),
-          ),
+          // The tab state, the nav bar, the Log button and the per-tab scroll
+          // positions all live in the shell now. This file keeps what only it
+          // can do: resolving the palette before anything reads it, and the
+          // lifecycle observers.
+          home: ShellScreen(store: widget.store),
         );
       },
     );

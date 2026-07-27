@@ -13,6 +13,8 @@ import 'package:salapify/screens/history.dart'
     show isDeletable, dateHeader, ledgerLinkedTxnIds;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Map<String, dynamic> blob() => {
       'schemaVersion': 12,
       'accounts': [
@@ -181,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // History tab: both rows under their date headers.
-    await tester.tap(find.text('History'));
+    await goToTab(tester, 'Activity');
     await tester.pumpAndSettle();
     expect(find.text('Groceries'), findsOneWidget);
     expect(find.text('To savings'), findsOneWidget);
@@ -194,7 +196,7 @@ void main() {
     expect(find.text('Groceries'), findsOneWidget);
 
     // Utang tab: Migs owes 1,500 after the partial payment, overdue.
-    await tester.tap(find.text('Utang'));
+    await goToTab(tester, 'Utang');
     await tester.pumpAndSettle();
     expect(find.text('Migs'), findsOneWidget);
     expect(find.text('₱1,500'), findsWidgets);
