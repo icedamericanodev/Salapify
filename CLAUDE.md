@@ -14,7 +14,7 @@ Flutter track:
 1. Delivery has TWO actions, and confusing them cost thirteen undelivered
    stamps once already. Pushes to a claude/** branch run the "Flutter check"
    action (.github/workflows/flutter-check.yml): analyze and test only, on a
-   real runner, nothing published. Only pushes to main or claude/salapify-v2
+   real runner, nothing published. Only pushes to main
    that touch flutter/ run the "Flutter preview APK" action
    (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
    flutter test, then Shorebird ships it. So a push touching flutter/ on the
@@ -154,7 +154,9 @@ free forever, free during early access, and early users keep Pro free.
 
 ## Development workflow
 
-1. Develop on the branch claude/salapify-v2 and open PRs to main.
+1. Develop on the session's assigned claude/** working branch and open PRs
+   to main. (The old fixed branch claude/salapify-v2 is retired; each session
+   gets its own branch now, and the Flutter check runs on all of them.)
 2. Compile check every changed file with the Expo Babel preset before
    committing (run node with babel.transformFileSync from mobile/).
 3. Commit per milestone with a clear message explaining the why. Push in
