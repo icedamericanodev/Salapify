@@ -10,7 +10,10 @@ name: Flutter preview APK
 on:
   push:
     branches:
-      - claude/salapify-v2
+      # Main only, on purpose. The old fixed working branch claude/salapify-v2
+      # used to be listed here too, which meant a second door to the publisher.
+      # It is retired; sessions now work on per-session claude/** branches,
+      # those run the Flutter check only, and delivery happens at the merge.
       - main
     paths:
       - 'flutter/**'
