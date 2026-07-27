@@ -10,6 +10,449 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-27, session 6: the bug only light mode could see
+
+### What we believed / What was true
+
+Six beliefs this round. Two were true, and the delivery pipeline was one of
+them, twice.
+
+**Believed: both batches reached the phone. TRUE, and confirmed in person.**
+Read from `git show origin/main:docs/delivery-log.md`, then confirmed by the
+founder on the phone, which is the only proof that counts: f2.53 patch 5 at
+12:06 UTC (run 30263887813, merge 8e9fba0c) and f2.57 patch 6 at 13:38 UTC
+(run 30270358216, merge 81a32e04). Both mode `patch` on 0.6.2+11,
+flutter/pubspec.yaml still 0.6.2+11, so no base APK was stranded. Merge to
+delivery row: 10 minutes and 11 minutes, inside the 9 to 11 minute norm
+measured in session 4. The founder read f2.57 patch 6 off the Update stamp
+row and it matched the last delivery row exactly. This entry is not about a
+delivery failure. There were two deliveries today and both were boring, which
+is what a delivery should be.
+
+The gap in the log is benign by session 5's reading rule: f2.54, f2.55 and
+f2.56 have no rows because they only ever existed on the working branch,
+superseded inside pull request #209. None of them reached main. A missing
+stamp is an incident only when it reached main, and none of these did.
+
+**Believed: batch 1 was visually checked before merging, so what shipped
+looked right. FALSE for light mode, and a real bug reached the phone.** When
+Menu moved off the bottom bar it became a pushed route, and its Scaffold was
+stripped along with the other destinations' Scaffolds during the shell
+refactor. The five destinations render inside the SHELL's Scaffold. A pushed
+route does not, so Menu rendered with no background surface at all. In dark
+mode that happened to look almost right, and dark is what the founder uses
+and what gets looked at first, per the standing rule. In light mode the Menu
+title rendered at a contrast of 1.21 to 1, where 4.5 to 1 is the floor. It
+was live from f2.53 until f2.57, about 92 minutes by the log. No eye caught
+it. The new textContrastGuideline test caught it, by number, in batch 2
+(commit 6b35e90; the fix and the measurement are quoted in
+flutter/lib/screens/menu.dart:61).
+
+**Believed, three separate times: the new accessibility suite's first green
+was proof. FALSE all three times, and each false green looked identical to a
+true one.** (a) The shared segmented control wrapped each segment in
+`Semantics(button: true)` around `ExcludeSemantics`, which strips the
+InkWell's tap ACTION along with its label, and Flutter's tap target guideline
+skips any node with neither a tap nor a longPress action. So the control was
+invisible to the exact test meant to measure it, and, worse, genuinely
+unreachable by screen readers, a real bug that had already shipped inside
+Appearance. (b) The guideline skips nodes touching the view edge, so a
+full-bleed test harness exempted the whole control. (c) Guidelines measure
+only BUILT widgets, a lazy ListView builds only the viewport, and certifying
+the top and bottom of Menu skipped the entire middle band, where a control
+deliberately shrunk to 40 pixels still passed. All three were found by the
+prove-it-fails discipline, not by luck, and the failure lines are quoted in
+commits 84e3f46 and 6b35e90.
+
+**Believed: the committed-amount duplication test guarded its fix. TRUE only
+on some calendar dates, which is FALSE.** Its widget half ran through the
+live clock and excused itself with markTestSkipped whenever the fixture
+produced no committed money, which was most days of the month, because
+store.load() posts due recurring bills and stamps lastPosted, so the test and
+the widget were examining different data. Three fixture rewrites failed
+instructively before the real fix, a clock seam (commit 17532be, the three
+failures written out in its message).
+
+**Believed, in the plan: IndexedStack would make finders ambiguous across the
+mounted tabs. FALSE, disproven with a test rather than argued away.** The
+SDK's `_IndexedStackElement` overrides the onstage walk and visits only the
+selected child, so inactive destinations never reach a default finder. The
+proof test found 1, not 2. The plan doc was corrected and the behaviour is
+now pinned in flutter/test/nav_ambiguity_test.dart, including a third test
+that flips the index so the first two cannot pass by accident.
+
+**Believed, briefly: a silent CI watcher meant a build still running. FALSE.**
+The first watcher this session queried the GitHub API, got 403s (documented
+as unreadable from this sandbox in sessions 4 and 5), and reported nothing,
+and that silence read as progress. It was replaced with a watcher that reads
+docs/delivery-log.md over git and explicitly reports BOTH outcomes, a
+new-row line and a loud no-row-after-35-minutes line. This is session 5's
+Lesson 8 recurring once and then being followed.
+
+### Timeline (with evidence)
+
+All times UTC, from `git show -s --format=%cI` and from the publisher's own
+timestamps in docs/delivery-log.md.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| 03:05 | 75eaf19, one navigation seam for the widget suite (test/support/app_harness.dart), and the IndexedStack assumption corrected with a proof test | git log; nav_ambiguity_test.dart |
+| 06:13 | 84e3f46, the shared segmented control, and the first accessibility test found measuring nothing three ways, one of them a shipped screen reader bug | commit message, guideline source quoted |
+| 06:44 | 8208cc8, one shell owns the navigation, tabs stop forgetting | git log |
+| 11:50 | **Divergence.** 6432323, Menu moves to the top and becomes a pushed route with no Scaffold. From here the light mode Menu has no background surface, and nothing knows | git show 6432323; menu.dart:61 comment |
+| 11:56 | Merge #208 (8e9fba0c), stamp f2.53 | git log |
+| 12:06 | f2.53 patch 5 delivered, 10 minutes | delivery row |
+| 12:06 to 13:38 | The contrast bug is live on the phone. Invisible in dark mode, which is what the founder uses | menu.dart:61 |
+| 12:01 to 12:41 | 9766af7 one committed figure not two, a209653 Home leads with the number, 17532be the clock seam after three failed fixtures, a700de2 three presentation levels | git log |
+| 12:54 | 6b35e90, the accessibility suite. textContrastGuideline samples the pushed Menu title at 1.21 to 1 and fails. Fixed in the same commit, with three more real findings | commit message, failure lines quoted |
+| 13:20 | 23a405d, Utang and Debts merge into one tab, two segments, stamp f2.57 | git log |
+| 13:27 | Merge #209 (81a32e04) | git log |
+| 13:38 | f2.57 patch 6 delivered, 11 minutes | delivery row |
+| after | **Founder confirms f2.57 patch 6 on the phone, in person** | founder |
+
+Verified on the checkout at the time of writing: `flutter analyze` reports
+"No issues found", `flutter test` reports **814 tests passing** (up from 775),
+run in this session, not quoted from memory.
+
+### Divergence point
+
+**11:50 UTC, commit 6432323.** That is where "the screens were rendered and
+looked at" stopped being the same fact as "the screens are right". The
+render discipline was followed as written: every changed screen, both
+brightnesses, dark first. The bug sat precisely in the discipline's stated
+blind spot, because dark first is a priority order for HUMAN attention, and
+the one brightness a human deprioritises is exactly where a surface bug can
+live alone. The divergence closed at 12:54 when a numeric check that has no
+brightness preference measured the title and said 1.21.
+
+Worth stating the shape: this is the first session where the founder found
+zero bugs and the tests found several, including one that was already on the
+phone. The direction of detection reversed. That is what every guard in this
+log has been trying to buy.
+
+### Root cause
+
+**The shipped contrast bug.** The shell refactor changed two things in one
+move: the five destinations gave up their Scaffolds to the shell, and Menu
+changed CATEGORY, from destination to pushed route, in the same batch. A
+pushed route needs what the destinations no longer do, and nothing in the
+type system or the suite distinguished "renders inside the shell's Scaffold"
+from "renders alone". The human check then missed it for a structural reason,
+not an attention reason: the rule says dark first because dark is what the
+founder uses, and a missing Material surface in dark happened to sit on a
+dark window anyway. A review order optimised for the common case is blind in
+the uncommon one, by construction. The fix for that is not "look harder at
+light mode", it is a check that does not have a favourite brightness.
+
+**The three silent greens.** A new test's first green is a recording of its
+author's mental model, not evidence, which is session 3's Lesson 3 wearing
+accessibility clothes. What is new this round is HOW MANY silent-pass modes
+one honest suite turned out to contain: skipped actionless nodes, skipped
+edge-touching nodes, unmeasured unbuilt widgets. All three are documented
+behaviours of the guideline machinery, none is a bug in Flutter, and every
+one of them converts "passed" into "did not look". The only thing that
+distinguished measuring from not measuring was breaking the app on purpose
+and demanding the failure.
+
+**The self-skipping test.** A test that conditions its own execution on the
+live clock is an alarm that removes its own battery on most days, and it had
+been proven-to-fail on one date, which hid that it checked nothing on the
+others. Proving a test can fail on one input does not prove it RUNS on all of
+them. The structural fix was a seam, not a cleverer fixture, because some
+real dates genuinely have no committed money and the app is right about that.
+
+**The silent watcher.** Same class as session 5's Lesson 8, an uncommitted
+monitor whose failure mode is indistinguishable from good news. The standing
+answer, read the delivery log instead of asking the API, already existed and
+was applied on the second attempt. The cost of the rule not being in
+CLAUDE.md was measured this round: one silent watcher, replaced within the
+session.
+
+### Lessons and guards
+
+**Lesson 1. A dark-first eye has a light-mode blind spot, and the contrast
+guideline does not care which brightness anyone prefers.**
+
+The render discipline stays, and stays dark first, because it catches what
+only eyes can catch, prose walls, missing ticks, a mascot dissolving into his
+background. What it structurally cannot promise is the brightness the human
+deprioritised, and this round produced the proof: a 1.21 to 1 title, live on
+the phone, invisible to a dark-first review, caught by a number.
+
+**Guard, SHIPPED, strongest tier.** flutter/test/a11y_test.dart runs
+textContrastGuideline (plus both tap target guidelines and the label
+guideline) over all five destinations, the Utang second segment, Menu
+screenful by screenful, the log sheet, the Activity filter state, and the
+welcome state, at test/a11y_test.dart:96. It runs in the Flutter check on
+every branch push and in the preview publisher before anything ships. It
+caught this exact bug before batch 2 merged, which is the guard demonstrating
+its value in the same session it was written.
+
+**Lesson 2. An accessibility suite can pass while measuring nothing, in at
+least three distinct ways, and only a deliberate failure tells them apart.**
+
+The three silent-pass modes, named so the next suite author can check them by
+name: a node with no tap action is SKIPPED by the tap target guideline, so a
+widget made semantically inert passes precisely because it is broken; a node
+touching the view edge is skipped, so a full-bleed harness certifies nothing;
+and guidelines measure only built widgets, so a lazy list is only certified
+for the screenfuls actually scrolled through. Mode (a) was not just a test
+gap, it was a shipped bug: the segmented control advertised "button,
+selected" to screen readers with no way to activate it.
+
+**Guards, SHIPPED, layered.** The widget fix gives the Semantics its own
+onTap, with the reason written at flutter/lib/widgets/segmented.dart:80 so it
+cannot be tidied away. The Menu sweep walks every screenful and then asserts
+it covered at least three of them (test/a11y_test.dart:161), so the sweep
+itself cannot silently shrink back into a top-and-bottom pair, a guard on the
+guard, automated. And the proof-of-failure lines are quoted in the commits
+that landed the suite, per the standing CLAUDE.md rule:
+
+    expected tap target size of at least Size(48.0, 48.0), but found Size(318.0, 40.0)
+    androidTapTargetGuideline on Menu, screenful 4
+
+The standing rule needs no strengthening, it needs exactly what happened
+here: application. Three silent-pass modes found in one suite in one day is
+the strongest evidence yet that the rule is load bearing.
+
+**Lesson 3. A test that can skip itself on most calendar dates is an alarm
+with its battery out, and proving it fails on one date does not prove it runs
+on the others.**
+
+**Guard, SHIPPED, strongest tier.** OverviewScreen takes an injectable clock
+defaulting to DateTime.now (flutter/lib/screens/overview.dart:116, with the
+three failed fixture attempts recorded in the doc comment), the test pins
+DateTime(2026, 7, 26) and drives its precondition through the store, and the
+markTestSkipped escape hatch is gone, so the test now hard-fails instead of
+abstaining.
+
+**Guard for the class, MEDIUM, stated plainly.** The rule worth carrying: a
+widget test may not gate its own execution on the live clock. If the scenario
+depends on the date, the screen takes a clock and the test picks the date.
+This is a rule, not a check, and it is recorded here rather than promoted to
+CLAUDE.md because one instance is not yet a pattern; if a second self-skipping
+test ever appears, promote it.
+
+**Lesson 4. Per session 5's Lesson 10 convention, the tests that changed this
+round are reported, and none was defending a bug.** The duplication test's
+markTestSkipped was removed so it fails instead of abstaining, an assertion
+was added, none inverted. The first a11y versions were replaced by versions
+that measure MORE, with the old blind spots quoted in the commits. No
+assertion changed sides. Nothing to quote as a defended defect, and saying so
+plainly is the convention.
+
+**Lesson 5. A disproven plan assumption should end as a pinning test, not as
+a corrected sentence.** The IndexedStack ambiguity worry was reasonable,
+predicted in the plan, and wrong. The correction is now held by
+flutter/test/nav_ambiguity_test.dart, which quotes the SDK element it depends
+on, explains that the assumption is imported from the SDK rather than owned
+by this app, and fails first if a future Flutter release changes the onstage
+walk, at which point dozens of tests would otherwise silently target the
+wrong screen.
+
+**Guard, SHIPPED, strong.** The pinning test, including the index-flip test
+that keeps the other two honest. Related and worth recording as a pattern
+that paid for itself: the single navigation seam
+(flutter/test/support/app_harness.dart) meant moving Menu off the bottom bar
+cost a 2 line change in one file instead of edits across 24 test files, and
+its openMenu finder is byTooltip, so the finder breaking would itself signal
+a real accessibility regression.
+
+**Lesson 6. Existing tests caught a real navigation bug mid-refactor, and a
+guard firing is the process working.** Three screens used a single pop()
+before switching tabs, which stranded the user on the now-pushed Menu with
+the tab changed silently behind it. Fixed with popUntil isFirst, reasons
+written at the call sites (flutter/lib/screens/pan.dart:120,
+search.dart:81, reports.dart:1348). No new guard, the suite already held.
+
+**Lesson 7. CLAUDE.md fact check, run as a step of the session, not as a
+favour.** What still matches, checked against the repository: every path the
+file names exists where it says (flutter/shorebird.yaml,
+flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+flutter/lib/widgets/salapify_icon.dart, docs/delivery-log.md); /opt/flutter
+reports Flutter 3.44.6 stable; all five skills exist in .claude/skills; the
+120 character stamp cap is enforced at update_stamp_test.dart:20;
+flutter-check.yml triggers on `claude/**` at line 20; mobile/lib/storage.js
+still holds salapify_data_v2; the three delivery commands ran as written and
+returned f2.57 patch 6; and the screenshot harness still covers Menu and the
+tabs after the restructure.
+
+**No NEW false claim was found this session, which breaks a three session
+streak. The OLD one is still there.** CLAUDE.md:17 and CLAUDE.md:157 still
+name the branch claude/salapify-v2, which does not exist, and
+flutter-preview.yml:13 still lists it as a publish trigger. That is session
+5's Open 12, found, written down, and not yet fixed, now surviving its second
+session as a known false sentence read with authority. It is a five minute
+edit. It should not survive a third session, and if anyone ever recreates a
+branch by that name, pushes to it begin publishing to the founder's phone
+from a working branch. Still open, and now overdue rather than merely open.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design, and this
+round it cost zero.** The founder confirmed f2.57 patch 6 in person and it
+matched the last delivery row exactly. The phone half of the comparison is
+still a human, and this session that human had nothing to report, which is
+the cheap case.
+
+**Open 6, the watchdog has never been OBSERVED running a scheduled pass:
+STILL OPEN.** The GitHub API still returns 403 from this sandbox, so run
+history is unreadable, same limit as sessions 4 and 5. What the log shows is
+that it did not fire spuriously today, and both merge-to-row gaps (10 and 11
+minutes) were far inside its 2700 second grace. Closes on one observed run.
+
+**Open 7, the watchdog is a stall detector, not an audit trail: STILL OPEN.**
+Nothing changed. Open 9 remains the fix for the audit half.
+
+**Open 8, split the publish step from the log scraping step: STILL OPEN,
+verified.** The grep still runs inside the same step as the shorebird
+commands (flutter-preview.yml, the ship step around line 100 to 125), so a
+future failure in the reading half would again suppress the APK upload and
+the delivery row. The `|| true` protects the one known shape only.
+
+**Open 9, record failed publishes as FAILED rows in docs/delivery-log.md:
+STILL OPEN, verified.** No FAILED mode exists in the workflow and no such row
+exists in the log.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN, verified.** No ink
+fraction test and no named margin constant exist; the three tuned numbers
+from 830b021 are still unguarded.
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN, with a note in
+its favour.** No lib scanning test exists yet. This session did make the same
+class of move again in the right direction, two hand-rolled segment controls
+became one shared widget (flutter/lib/widgets/segmented.dart) for exactly the
+five-kickers reason, so the pattern is being resisted by habit. Habit is the
+weakest tier, which is why this stays open.
+
+**Open 12, CLAUDE.md names a branch that does not exist: STILL OPEN and now
+OVERDUE.** See Lesson 7. Two sentences in CLAUDE.md plus one dead trigger
+entry in flutter-preview.yml:13. Second session in a row as a known false
+claim.
+
+### Guard status re-check
+
+Read, not assumed. Nothing has been quietly deleted, disabled, or routed
+around.
+
+- The `|| true` on the ship log scrape: PRESENT with its sixteen line
+  comment, flutter-preview.yml:124.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:221.
+- The release install shout: PRESENT, flutter-preview.yml:246, and correctly
+  silent today, both rows were patches.
+- The auto-close on recovery: PRESENT, flutter-preview.yml:263.
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:176.
+- The publisher watching its own path, and concurrency with
+  `cancel-in-progress: false`: PRESENT, flutter-preview.yml:15 and :33.
+- The delivery watchdog with `--first-parent` and the 2700 second grace:
+  PRESENT, delivery-watchdog.yml:43 and :99.
+- flutter-check.yml on `claude/**`, the screenshot harness step with
+  `--update-goldens`, and the branch-stamp-versus-delivered step: PRESENT,
+  lines 20, 80, 91.
+- The stamp cap: PRESENT and passing, update_stamp_test.dart:20.
+- The Pan folder sum and the nothing-but-Pan test: PRESENT,
+  pan_asset_test.dart:94 and :120.
+- pan_signature_test.dart: PRESENT.
+- The shared Kicker widget: PRESENT, flutter/lib/widgets/section.dart:28.
+- The whole suite: 814 tests green and analyze clean, run in this session.
+
+New guards added this round, for the next session to re-check:
+flutter/test/a11y_test.dart (four guidelines, the Menu sweep with its
+three-screenful floor), flutter/test/nav_ambiguity_test.dart, the clock seam
+at overview.dart:116, and test/support/app_harness.dart as the suite's single
+navigation seam.
+
+### What it cost, and what it did not
+
+Cost: one light-mode-only contrast bug live on the phone for about 92
+minutes, almost certainly never seen because the founder uses dark mode.
+Three rounds of rewriting an accessibility suite before it measured anything,
+which is labour that a naive first green would have skipped and regretted.
+Three failed fixture rewrites before the clock seam. One silent throwaway
+watcher, replaced within the hour.
+
+Did not cost: any delivery failure, any wrong number, any manual install, any
+founder-reported bug, any founder round spent as the detector. Both merges
+delivered on the normal schedule, the founder's phone matched the log on the
+first read, and every real bug found this round, the contrast surface, the
+unreachable segmented control, the unlabeled switches, the stranded-on-Menu
+pop, the duplicated committed figure, was found by a test or by the
+prove-it-fails discipline before the founder could meet it.
+
+### For the founder, in plain English
+
+A few words first. **Contrast** is how strongly text stands out from what is
+behind it, written as a ratio; 4.5 to 1 is the accepted floor for body text,
+and 1.21 to 1 is barely darker than the background. A **screen reader** is
+the phone feature that reads the screen aloud for people who cannot see it
+well, and an **accessibility test** checks, with numbers, that buttons are
+big enough to tap, labelled, and readable.
+
+**What happened.** Both updates reached your phone and you confirmed the
+second one yourself, f2.57, patch 6. The pipeline was boring twice, ten and
+eleven minutes each, which is exactly what we want from it.
+
+One real bug did ship in between, and I want to tell you about it even
+though you almost certainly never saw it. When we moved Menu from the bottom
+bar to the top right corner, Menu lost its background layer. In dark mode,
+the mode you use, that accident happened to look nearly right. In light mode
+the Menu title was almost the same shade as the empty space behind it, 1.21
+to 1 where 4.5 to 1 is the floor. My habit is to look at the dark
+screenshots first because dark is what you use, and that habit is exactly
+why no eye caught this: the one mode a person deprioritises is the one mode
+a bug like this can live in alone. It was live for about an hour and a half
+and was fixed in the second batch.
+
+What caught it was not a person. The second batch added a set of automated
+accessibility checks that measure every screen with numbers: is every button
+at least 48 pixels tall, does every control have a name a screen reader can
+speak, does every piece of text clear the contrast floor. Numbers do not
+have a favourite brightness. The contrast check measured the Menu title,
+said 1.21, and failed, and that failure is the whole reason you never saw
+this bug get worse.
+
+**The part I most want you to understand.** When I first wrote those
+accessibility checks, they all passed immediately, and that is exactly when
+I trusted them least. We have a standing rule: before trusting a new test,
+break the app on purpose and watch the test notice. Doing that revealed,
+three separate times, that the checks were passing while measuring nothing.
+The most serious case was also a real bug: the little two-way switch we use
+on some screens had been built in a way that made it completely invisible to
+screen readers, no name, no way to press it, and invisible to the checker
+for the very same reason. A blind user could not have used it at all. It is
+fixed, and the checker now genuinely measures it. A test that passes on its
+first try has proven nothing yet. Breaking things on purpose is how a green
+light earns the right to be believed.
+
+Two smaller things from the round. Home briefly showed the same committed
+amount twice, in two cards, because two correct changes met each other; that
+is fixed, and the test that guards it now picks its own date on the
+calendar, because it used to quietly excuse itself from running on most days
+of the month, and a smoke alarm that takes its own battery out is not an
+alarm. And an early version of my build-watching script failed silently, so
+silence looked like a build still running; it now reads the delivery log
+directly and says something loud in both directions, update arrived or
+nothing after 35 minutes.
+
+**What it costs if a guard is removed.** Delete the accessibility test file
+and the next missing-background bug ships in whichever mode you do not use,
+silently, and the next unlabelled control ships unusable to screen reader
+users, which will matter at launch far beyond you and me. Shrink the Menu
+part of that test and the middle of the Menu screen goes unmeasured; there is
+an assertion that fails if the sweep ever covers less than three screenfuls,
+specifically so that cannot happen quietly.
+
+**One thing I owe you straight.** Last session I found that our own rules
+file names a work branch that no longer exists, in two places. It is still
+not fixed. It has caused no harm, and it is a five minute edit, but a rules
+file that states something false gets read with authority, so I am flagging
+that it is now overdue rather than letting it fade. Beyond that, this was
+the round we have been building toward since session 1: two clean
+deliveries, and every bug found by a test before it could reach you, instead
+of by you after it did.
+
+---
+
 ## 2026-07-26, session 5: the release that published and then threw its own APK away
 
 ### What we believed / What was true
