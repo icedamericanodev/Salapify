@@ -15,6 +15,7 @@ import 'debts.dart';
 import 'goals.dart';
 import 'history.dart';
 import 'notes.dart';
+import 'shell.dart';
 
 const _groupIcon = <String, IconData>{
   'transactions': Icons.receipt_long_outlined,
@@ -36,7 +37,7 @@ class SearchScreen extends StatefulWidget {
   /// Switch a bottom tab (used to open the Entries and Utang tabs, which live
   /// in the tab bar rather than as pushed routes). Null when the host has no
   /// tab switcher, in which case those groups just close search.
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const SearchScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
@@ -69,7 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
         break;
       case 'utang':
         Navigator.of(context).pop();
-        widget.onSwitchTab?.call(3);
+        widget.onSwitchTab?.call(Destination.utang);
         break;
       case 'debts':
         Navigator.of(context).push(

@@ -20,6 +20,7 @@ import 'contribution_calculator.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
+import 'shell.dart';
 
 class _Msg {
   final String role; // 'user' or 'pan'
@@ -29,7 +30,7 @@ class _Msg {
 
 class PanScreen extends StatefulWidget {
   final SalapifyStore store;
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const PanScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
@@ -98,14 +99,14 @@ class _PanScreenState extends State<PanScreen> {
         if (onSwitchTab == null) return null;
         return () {
           Navigator.of(context).pop();
-          onSwitchTab(4);
+          onSwitchTab(Destination.insights);
         };
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
           Navigator.of(context).pop();
-          onSwitchTab(3);
+          onSwitchTab(Destination.utang);
         };
       default:
         return null;

@@ -38,13 +38,14 @@ import 'reports.dart';
 import 'tools.dart';
 import 'treats.dart';
 import 'update_card.dart';
+import 'shell.dart';
 
 class MenuScreen extends StatelessWidget {
   final SalapifyStore store;
 
   /// Switch a bottom tab. A pushed screen that wants to jump to a tab (Insights
   /// to Utang, a search result to Utang) pops back to Menu first, then switches.
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const MenuScreen({super.key, required this.store, this.onSwitchTab});
 
   @override

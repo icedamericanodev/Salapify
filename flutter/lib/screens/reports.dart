@@ -21,6 +21,7 @@ import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'history.dart';
 import 'overview.dart' show formatMoney;
+import 'shell.dart';
 
 const _months = [
   'January',
@@ -46,7 +47,7 @@ String _monthYear(String iso) {
 
 class ReportsScreen extends StatefulWidget {
   final SalapifyStore store;
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const ReportsScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
@@ -1345,7 +1346,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               onPressed: () {
                 if (widget.onSwitchTab != null) {
                   Navigator.of(context).pop();
-                  widget.onSwitchTab!(0);
+                  widget.onSwitchTab!(Destination.home);
                 } else {
                   Navigator.of(context).pop();
                 }

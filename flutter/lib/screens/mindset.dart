@@ -11,6 +11,7 @@ import '../theme.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
 import 'learn.dart';
+import 'shell.dart';
 
 // The impulse check questions, verbatim from the RN screen.
 const _questions = [
@@ -22,7 +23,7 @@ const _questions = [
 class MindsetScreen extends StatefulWidget {
   /// Threaded through to Money courses so lesson actions that jump to a
   /// bottom tab keep working when courses are opened from here.
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   final SalapifyStore store;
   const MindsetScreen({super.key, required this.store, this.onSwitchTab});
 

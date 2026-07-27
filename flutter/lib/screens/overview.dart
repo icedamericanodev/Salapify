@@ -30,6 +30,7 @@ import 'goals.dart';
 import 'log_sheet.dart';
 import 'pan.dart';
 import 'search.dart';
+import 'shell.dart';
 
 String formatMoney(num value) {
   // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
@@ -89,7 +90,7 @@ String prettyDay(String iso) {
 
 class OverviewScreen extends StatelessWidget {
   final SalapifyStore store;
-  final void Function(int)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const OverviewScreen({super.key, required this.store, this.onSwitchTab});
 
   @override
@@ -376,11 +377,15 @@ class OverviewScreen extends StatelessWidget {
   // The bottom tabs a check-in action can jump straight to. Routes that are
   // not tabs (/debts, /goals) are handled by a push in _checkInCard; /learn is
   // simply not tappable from here.
-  static const Map<String, int> _routeTabs = {
-    '/': 0,
-    '/budget': 1,
-    '/receivables': 3,
-    '/insights': 4,
+  //
+  // Named rather than numbered, because this map is exactly where a tab
+  // reorder used to go wrong: '/budget': 1 was correct only for as long as
+  // Budget happened to be second, and nothing would have failed if it moved.
+  static const Map<String, Destination> _routeTabs = {
+    '/': Destination.home,
+    '/budget': Destination.budget,
+    '/receivables': Destination.utang,
+    '/insights': Destination.insights,
   };
 
   /// The single most important money decision right now, or a calm all-clear,
@@ -788,7 +793,7 @@ class OverviewScreen extends StatelessWidget {
         child: Card(
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: onSwitchTab == null ? null : () => onSwitchTab!(4),
+            onTap: onSwitchTab == null ? null : () => onSwitchTab!(Destination.insights),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1000,7 +1005,7 @@ class OverviewScreen extends StatelessWidget {
             Icons.handshake_outlined,
             'See who owes me',
             'Keep a who-owes-you list that adds itself up',
-            () => onSwitchTab?.call(3),
+            () => onSwitchTab?.call(Destination.utang),
           ),
           const SizedBox(height: 10),
           _lane(

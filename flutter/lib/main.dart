@@ -14,6 +14,7 @@ import 'screens/history.dart';
 import 'screens/insights.dart';
 import 'screens/menu.dart';
 import 'screens/overview.dart';
+import 'screens/shell.dart';
 import 'screens/utang.dart';
 import 'theme.dart';
 import 'widgets/lock_gate.dart';
@@ -84,7 +85,7 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     }
   }
 
-  int tab = 0;
+  Destination tab = Destination.home;
 
   @override
   Widget build(BuildContext context) {
@@ -122,26 +123,30 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
           builder: (context, child) =>
               LockGate(store: widget.store, child: child ?? const SizedBox()),
           home: Scaffold(
+            // Exhaustive on purpose. A switch over the enum with no default
+            // means adding a destination is a compile error here rather than a
+            // tab that silently renders Home.
             body: switch (tab) {
-              1 => BudgetScreen(store: widget.store),
-              2 => HistoryScreen(store: widget.store),
-              3 => UtangScreen(store: widget.store),
-              4 => InsightsScreen(
+              Destination.home => OverviewScreen(
                 store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
+                onSwitchTab: (d) => setState(() => tab = d),
               ),
-              5 => MenuScreen(
+              Destination.budget => BudgetScreen(store: widget.store),
+              Destination.history => HistoryScreen(store: widget.store),
+              Destination.utang => UtangScreen(store: widget.store),
+              Destination.insights => InsightsScreen(
                 store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
+                onSwitchTab: (d) => setState(() => tab = d),
               ),
-              _ => OverviewScreen(
+              Destination.menu => MenuScreen(
                 store: widget.store,
-                onSwitchTab: (i) => setState(() => tab = i),
+                onSwitchTab: (d) => setState(() => tab = d),
               ),
             },
             bottomNavigationBar: NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (i) => setState(() => tab = i),
+              selectedIndex: tab.index,
+              onDestinationSelected: (i) =>
+                  setState(() => tab = Destination.values[i]),
               backgroundColor: Barako.card,
               indicatorColor: Barako.primary,
               destinations: [

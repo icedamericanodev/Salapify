@@ -26,6 +26,7 @@ import '../widgets/screen_header.dart';
 import 'afford_card.dart';
 import 'overview.dart' show formatMoney;
 import 'windfall_card.dart';
+import 'shell.dart';
 
 const List<String> _monthsShort = [
   'Jan',
@@ -140,7 +141,7 @@ String runwayLabel(dynamic months, bool capped) {
 
 class InsightsScreen extends StatelessWidget {
   final SalapifyStore store;
-  final void Function(int tab)? onSwitchTab;
+  final void Function(Destination)? onSwitchTab;
   const InsightsScreen({super.key, required this.store, this.onSwitchTab});
 
   // Shown before there is any data, in place of the full analytics wall.
@@ -184,7 +185,7 @@ class InsightsScreen extends StatelessWidget {
                       backgroundColor: Barako.primary,
                       foregroundColor: Barako.onPrimary,
                     ),
-                    onPressed: () => onSwitchTab?.call(0),
+                    onPressed: () => onSwitchTab?.call(Destination.home),
                     child: const Text('Start logging'),
                   ),
                 ],
@@ -368,7 +369,7 @@ class InsightsScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         // Tab 3 is Utang (Overview, Budget, History, Utang, Insights).
-        onTap: utang && onSwitchTab != null ? () => onSwitchTab!(3) : null,
+        onTap: utang && onSwitchTab != null ? () => onSwitchTab!(Destination.utang) : null,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
