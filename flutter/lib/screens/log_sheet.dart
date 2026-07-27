@@ -310,7 +310,6 @@ class _LogSheetState extends State<LogSheet> {
         fontWeight: FontWeight.w600,
       ),
       side: BorderSide(color: Barako.border),
-      visualDensity: VisualDensity.compact,
     );
   }
 

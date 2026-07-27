@@ -1123,10 +1123,14 @@ class OverviewScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton(
               style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
+                // Left-aligned and quiet, but never small. This was 36 with a
+                // shrinkwrapped target, below both platform floors, on the one
+                // link every migrating tester has to hit. Zero horizontal
+                // padding keeps the quiet left-aligned look; the height does
+                // the accessibility work.
+                padding: const EdgeInsets.symmetric(horizontal: 0),
                 foregroundColor: Barako.muted,
-                minimumSize: const Size(0, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 48),
               ),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => ImportScreen(store: store)),
