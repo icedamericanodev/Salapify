@@ -73,13 +73,13 @@ void main() {
 
     // The hub holds the moved destinations (some are below the fold). Insights
     // is NOT here; it stayed a bottom tab.
-    for (final row in const [
-      'Accounts',
-      'Debts',
-      'Goals',
-      'Ask Pan',
-      'Tools',
-    ]) {
+    // Debts is deliberately absent: its home is the Utang tab now. The MONEY
+    // grid where its tile lived renders at the top of Menu, on screen right
+    // here, so this findsNothing is measuring the real place and not an
+    // unbuilt corner of a lazy list.
+    expect(find.text('Debts'), findsNothing,
+        reason: 'The Debts tile came back. Its one home is the Utang tab.');
+    for (final row in const ['Accounts', 'Goals', 'Ask Pan', 'Tools']) {
       await tester.scrollUntilVisible(
         find.text(row),
         100,

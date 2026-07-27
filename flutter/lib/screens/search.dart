@@ -42,11 +42,13 @@ class SearchScreen extends StatefulWidget {
   /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
   /// there specifically; plain onSwitchTab would open the "I owe" segment.
   final VoidCallback? onOpenReceivables;
+  final VoidCallback? onOpenPayables;
   const SearchScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onOpenReceivables,
+    this.onOpenPayables,
   });
 
   @override
@@ -89,9 +91,18 @@ class _SearchScreenState extends State<SearchScreen> {
         }
         break;
       case 'debts':
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
-        );
+        // A search hit on a debt means the "I owe" segment of the Utang tab.
+        // Same popUntil reasoning as the utang case above.
+        if (widget.onOpenPayables != null) {
+          Navigator.of(context).popUntil((r) => r.isFirst);
+          widget.onOpenPayables!();
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DebtsScreen(store: widget.store),
+            ),
+          );
+        }
         break;
       case 'goals':
         Navigator.of(context).push(

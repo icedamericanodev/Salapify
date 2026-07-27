@@ -1,7 +1,8 @@
 // Menu: the hub that keeps the dashboard clean. Everything that is not
-// glance-level status lives here, grouped: the money screens (Accounts, Debts,
+// glance-level status lives here, grouped: the money screens (Accounts,
 // Goals, the deeper Insights), the helpers (Ask Pan, Tools), personalize
-// (mood), and your data (backup, build stamp). Reached as the last bottom tab.
+// (mood), and your data (backup, build stamp). Reached from the header key
+// on every tab. Debts has no tile here: it lives on the Utang tab.
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -21,7 +22,6 @@ import 'accounts.dart';
 import 'appearance.dart';
 import 'cashflow.dart';
 import 'csv_import.dart';
-import 'debts.dart';
 import 'goals.dart';
 import 'milestone_share.dart';
 import 'new_phone_day.dart';
@@ -49,11 +49,13 @@ class MenuScreen extends StatelessWidget {
   /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
   /// there specifically; plain onSwitchTab would open the "I owe" segment.
   final VoidCallback? onOpenReceivables;
+  final VoidCallback? onOpenPayables;
   const MenuScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onOpenReceivables,
+    this.onOpenPayables,
   });
 
   @override
@@ -122,15 +124,11 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  NavTile(
-                    icon: 'card',
-                    label: 'Debts',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => DebtsScreen(store: store),
-                      ),
-                    ),
-                  ),
+                  // No Debts tile: the Utang tab's "I owe" segment is the one
+                  // home of that content since the Phase 1 merge, and a
+                  // second door from Menu opened a pushed copy with no bottom
+                  // bar. Founder approved the removal. Bonus: the MONEY grid
+                  // is 8 tiles again, four clean rows.
                   NavTile(
                     icon: 'savings',
                     label: 'Goals',
@@ -317,6 +315,7 @@ class MenuScreen extends StatelessWidget {
               store: store,
               onSwitchTab: onSwitchTab,
               onOpenReceivables: onOpenReceivables,
+              onOpenPayables: onOpenPayables,
             ),
           ),
         ),

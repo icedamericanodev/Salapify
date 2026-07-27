@@ -35,11 +35,13 @@ class PanScreen extends StatefulWidget {
   /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
   /// there specifically; plain onSwitchTab would open the "I owe" segment.
   final VoidCallback? onOpenReceivables;
+  final VoidCallback? onOpenPayables;
   const PanScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onOpenReceivables,
+    this.onOpenPayables,
   });
 
   @override
@@ -88,6 +90,16 @@ class _PanScreenState extends State<PanScreen> {
     final route = (cta['route'] ?? '').toString();
     switch (route) {
       case '/debts':
+        // The Utang tab's "I owe" segment is the canonical home of debts
+        // now. Pop to the root first (Pan can sit two deep, under Menu) and
+        // jump; the pushed screen is only the fallback for unwired hosts.
+        final openPayables = widget.onOpenPayables;
+        if (openPayables != null) {
+          return () {
+            Navigator.of(context).popUntil((r) => r.isFirst);
+            openPayables();
+          };
+        }
         return () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
         );

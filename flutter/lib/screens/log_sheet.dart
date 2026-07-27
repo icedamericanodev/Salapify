@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quickadd.dart';
 import '../theme.dart';
+import 'overview.dart' show formatMoney;
 
 final Random _rand = Random();
 
@@ -125,19 +126,51 @@ class _LogSheetState extends State<LogSheet> {
     setState(() => saving = true);
     final label = labelController.text.trim();
     final now = DateTime.now();
+    final shownLabel = label.isEmpty
+        ? (type == 'income' ? 'Income' : 'Expense')
+        : label;
+    final id = newEntryId(now);
     final tx = <String, dynamic>{
-      'id': newEntryId(now),
+      'id': id,
       'type': type,
-      'label': label.isEmpty
-          ? (type == 'income' ? 'Income' : 'Expense')
-          : label,
+      'label': shownLabel,
       'amount': amount,
       'date': now.toIso8601String().substring(0, 10),
       if (accountId != null) 'accountId': accountId,
     };
+    // Captured before the await and the pop: this sheet's own context dies
+    // with the pop, and the messenger lives on the root Scaffold, so the
+    // receipt outlives the sheet. Same shape as the Budget quick add.
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await widget.store.addEntry(tx);
       if (mounted) Navigator.of(context).pop();
+      // The receipt, and the escape hatch. The most used write path in the
+      // app saved in silence while the Budget quick add showed both; a
+      // fat-fingered ₱25000 for ₱2500 deserves the same 4 second Undo
+      // everywhere money is written.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$shownLabel ${formatMoney(amount)} logged.'),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              try {
+                await widget.store.removeEntry(id);
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not undo, the entry is still logged. $e',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
     } catch (e) {
       // The store rolled the entry back, so nothing was half-applied. Say so.
       if (mounted) {
