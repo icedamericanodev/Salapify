@@ -79,23 +79,31 @@ void main() {
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
 
-    // Pick the Tidal theme. scrollUntilVisible can land a chip flush against a
+    // The picker moved off Menu and onto its own screen, so the row is the way
+    // in now. Its blurb doubles as the current choice, which is the whole
+    // reason the row carries state instead of a description.
+    await tester.scrollUntilVisible(find.text('Appearance'), 100,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Barako, System'), findsOneWidget);
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+
+    // Pick the Tidal theme. scrollUntilVisible can land a tile flush against a
     // fold, so lift it into view before tapping to keep its center tappable.
-    await tester.scrollUntilVisible(find.text('🌊 Tidal'), 100,
+    await tester.scrollUntilVisible(find.text('Tidal'), 100,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('🌊 Tidal'));
+    await tester.tap(find.text('Tidal'));
     await tester.pumpAndSettle();
     expect(Barako.currentTheme.key, 'tidal');
     expect(Barako.current.brightness, Brightness.light);
 
     // Switch appearance to Dark.
-    await tester.scrollUntilVisible(find.text('Dark'), 100,
+    await tester.scrollUntilVisible(find.text('Dark'), -100,
         scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();

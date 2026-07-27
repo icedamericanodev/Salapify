@@ -19,6 +19,7 @@ import '../widgets/nav_tile.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
+import 'appearance.dart';
 import 'cashflow.dart';
 import 'csv_import.dart';
 import 'debts.dart';
@@ -208,7 +209,7 @@ class MenuScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 Kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
-                _appearanceCard(context),
+                _appearanceRow(context),
                 const SizedBox(height: 20),
                 Kicker('YOUR NAME'),
                 const SizedBox(height: 8),
@@ -399,100 +400,21 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  static const _modeLabels = {
-    'system': 'System',
-    'light': 'Light',
-    'dark': 'Dark',
-  };
-
-  Widget _appearanceCard(BuildContext context) {
+  /// Appearance lives on its own screen now, and this row is what is left.
+  ///
+  /// The blurb slot carries STATE, not a description: "Barako, System". Before
+  /// this, nothing anywhere in the app could tell you which theme you were on
+  /// without counting highlighted chips.
+  Widget _appearanceRow(BuildContext context) {
     final (rawKey, currentMode) = resolveThemeChoice(store.data['settings']);
-    // Highlight the theme actually in effect: an unknown or future key renders
-    // as Barako (themeForKey falls back), so the chip should show Barako too.
-    final currentKey = themeForKey(rawKey).key;
-    Future<void> save(Future<void> Function() action) async {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        await action();
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Could not save that, nothing was changed. $e'),
-          ),
-        );
-      }
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Kicker('COLOR THEME'),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final t in barakoThemes)
-                  ChoiceChip(
-                    // A two-tone swatch previews each theme: its own background
-                    // field with its brand color inside. This separates the
-                    // warm trio (Barako brown, Ember charcoal, Forest green
-                    // fields) that all shared a near-identical orange dot.
-                    avatar: _ThemeSwatch(t.resolve(Barako.current.brightness)),
-                    label: Text(t.label),
-                    selected: currentKey == t.key,
-                    onSelected: (_) => save(() => store.setThemeKey(t.key)),
-                    selectedColor: Barako.primary,
-                    backgroundColor: Barako.background,
-                    labelStyle: TextStyle(
-                      color: currentKey == t.key
-                          ? Barako.onPrimary
-                          : Barako.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    side: BorderSide(color: Barako.border),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              themeForKey(currentKey).hint,
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
-            ),
-            const SizedBox(height: 16),
-            Kicker('APPEARANCE'),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final m in appearanceModes)
-                  ChoiceChip(
-                    label: Text(_modeLabels[m] ?? m),
-                    selected: currentMode == m,
-                    onSelected: (_) => save(() => store.setThemeMode(m)),
-                    selectedColor: Barako.primary,
-                    backgroundColor: Barako.background,
-                    labelStyle: TextStyle(
-                      color: currentMode == m
-                          ? Barako.onPrimary
-                          : Barako.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    side: BorderSide(color: Barako.border),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'System follows your phone, going dark at night on its own.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.3),
-            ),
-          ],
-        ),
+    final label = themeForKey(rawKey).label;
+    final mode = appearanceModeLabels[currentMode] ?? currentMode;
+    return _navRow(
+      icon: Icons.palette_outlined,
+      title: 'Appearance',
+      blurb: '$label, $mode',
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => AppearanceScreen(store: store)),
       ),
     );
   }
@@ -1298,33 +1220,3 @@ class MenuScreen extends StatelessWidget {
   }
 }
 
-// The theme picker swatch: the theme's own background field with its brand
-// color inside, so each of the 8 chips reads as its own little app. Takes a
-// resolved palette (passed in, not a live getter), so a const swatch is safe.
-class _ThemeSwatch extends StatelessWidget {
-  final BarakoPalette palette;
-  const _ThemeSwatch(this.palette);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: palette.background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: palette.border),
-      ),
-      child: Center(
-        child: Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: palette.primary,
-            shape: BoxShape.circle,
-          ),
-        ),
-      ),
-    );
-  }
-}

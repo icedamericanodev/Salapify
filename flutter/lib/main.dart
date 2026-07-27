@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.51 \u00b7 Home now names the bills before payday, and the countdown no longer hides.';
+    'f2.52 \u00b7 Appearance is its own screen, each theme previews itself, and Forest is finally green.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -106,6 +106,16 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
         return MaterialApp(
           title: 'Salapify Preview',
           theme: salapifyTheme(Barako.current),
+          // Snap the theme, do not tween it. MaterialApp otherwise lerps every
+          // Theme.of-derived colour over 200ms (the scaffold, every Card fill,
+          // button colours) while everything reading a Barako.* getter changes
+          // instantly, because those are plain static reads and not animatable.
+          // So a switch from Barako light to Tidal dark showed near-white text
+          // sitting on a half-faded cream card for a fifth of a second. Half an
+          // animation reads as lag, not polish, and it is worst on the cheap
+          // Android this app is built for, where repainting a long list under a
+          // colour tween is where frames actually go.
+          themeAnimationStyle: AnimationStyle.noAnimation,
           debugShowCheckedModeBanner: false,
           // LockGate wraps the whole navigator (via builder), so the lock
           // overlay covers pushed screens too, not just the home tab.
