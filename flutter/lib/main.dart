@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.61 \u00b7 The header stays put when you scroll, so Menu is always one tap away.';
+    'f2.62 \u00b7 Log any day: Today, Yesterday, or pick a date. Due dates come from a picker.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
