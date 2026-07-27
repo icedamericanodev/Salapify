@@ -46,6 +46,8 @@ import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 const _fonts = {
   'Fraunces': ['assets/fonts/Fraunces-Bold.ttf'],
   'Jakarta': [
@@ -343,6 +345,66 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/money-owed-dark.png'),
+    );
+  });
+
+  testWidgets('the two write sheets, dark', (tester) async {
+    // The Log sheet (with its date chips) and the New utang sheet (with its
+    // tap-to-pick due date). Both are write paths whose UI changed in Phase
+    // 2 batch 3, and neither had a render before, which is exactly how the
+    // header chrome gap happened.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 250,
+            'date': '2026-07-20',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: ShellScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Log'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/log-sheet-dark.png'),
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await tester.tap(navDestination('Utang'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Owed to me'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'New'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/utang-new-sheet-dark.png'),
     );
   });
 

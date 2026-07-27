@@ -917,11 +917,41 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               decoration: _decor('0.00', prefix: '₱ '),
             ),
             const SizedBox(height: 10),
+            // Read only, tap to pick. This used to ask a phone keyboard for
+            // hand-typed ISO 8601, on a field that later drives overdue
+            // math; any typo was silent until "why is this not overdue".
+            // The picker writes the same YYYY-MM-DD string the store
+            // expects, so a stored date can no longer be malformed.
             TextField(
               controller: dueController,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               style: TextStyle(color: Barako.text, fontSize: 16),
-              decoration: _decor('Due date, like 2026-08-01 (optional)'),
+              decoration: _decor('Due date (optional), tap to pick').copyWith(
+                suffixIcon: dueController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear due date',
+                        icon: Icon(Icons.close, size: 18, color: Barako.muted),
+                        onPressed: () => setState(() => dueController.clear()),
+                      ),
+              ),
+              onTap: () async {
+                final now = DateTime.now();
+                final current = DateTime.tryParse(dueController.text);
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: current ?? now.add(const Duration(days: 7)),
+                  firstDate: now.subtract(const Duration(days: 1)),
+                  lastDate: DateTime(now.year + 5),
+                );
+                if (picked != null) {
+                  setState(
+                    () => dueController.text = picked
+                        .toIso8601String()
+                        .substring(0, 10),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 8),
             Wrap(
