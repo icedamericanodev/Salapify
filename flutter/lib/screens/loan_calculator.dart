@@ -45,8 +45,11 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
 
   String _pct(num x) => '${(x * 100).toStringAsFixed(2)}%';
 
-  Widget _seg(List<(String, String)> options, String value,
-      void Function(String) onChange) {
+  Widget _seg(
+    List<(String, String)> options,
+    String value,
+    void Function(String) onChange,
+  ) {
     return Wrap(
       spacing: 8,
       children: [
@@ -58,24 +61,26 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             selectedColor: Barako.primary,
             backgroundColor: Barako.background,
             labelStyle: TextStyle(
-                color: value == o.$1
-                    ? Barako.onPrimary
-                    : Barako.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600),
+              color: value == o.$1 ? Barako.onPrimary : Barako.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
       ],
     );
   }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 6),
-        child: Text(text,
-            style: TextStyle(
-                color: Barako.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700)),
-      );
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: Barako.muted,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +106,20 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
     final addon = method == 'addon';
 
     final r = ready
-        ? loanSummary(amountNum, rateNum, months,
-            method: method, rateBasis: rateBasis)
+        ? loanSummary(
+            amountNum,
+            rateNum,
+            months,
+            method: method,
+            rateBasis: rateBasis,
+          )
         : null;
     // The payoff nugget uses the EXACT rate, not the display-rounded
     // quotedMonthlyRate, or its balance would contradict the schedule row
     // shown on the same screen (bank officer finding).
-    final exactMonthlyRate =
-        rateBasis == 'annual' ? rateNum / 100 / 12 : rateNum / 100;
+    final exactMonthlyRate = rateBasis == 'annual'
+        ? rateNum / 100 / 12
+        : rateNum / 100;
     final payoff = r != null
         ? payoffSaving(amountNum, exactMonthlyRate, months, months ~/ 2)
         : null;
@@ -117,28 +128,32 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Loan calculator',
-            style:
-                TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Loan calculator',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             Text(
-                'See the real monthly payment and the true cost of a loan. If your lender quoted an add-on rate, this shows what it really works out to.',
-                style: TextStyle(
-                    color: Barako.muted, fontSize: 13, height: 1.4)),
+              'See the real monthly payment and the true cost of a loan. If your lender quoted an add-on rate, this shows what it really works out to.',
+              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+            ),
             _label('LOAN AMOUNT'),
             TextField(
               controller: amount,
               onChanged: (_) => setState(() {}),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               autofocus: true,
               style: TextStyle(color: Barako.text),
               decoration: InputDecoration(
-                  prefixText: '₱ ', hintText: 'e.g. 100,000'),
+                prefixText: '₱ ',
+                hintText: 'e.g. 100,000',
+              ),
             ),
             _label('TERM'),
             Row(
@@ -154,8 +169,11 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _seg(const [('months', 'Months'), ('years', 'Years')],
-                    termUnit, (v) => termUnit = v),
+                _seg(
+                  const [('months', 'Months'), ('years', 'Years')],
+                  termUnit,
+                  (v) => termUnit = v,
+                ),
               ],
             ),
             _label('INTEREST RATE'),
@@ -166,55 +184,68 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   child: TextField(
                     controller: rate,
                     onChanged: (_) => setState(() {}),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     style: TextStyle(color: Barako.text),
-                    decoration:
-                        InputDecoration(hintText: 'e.g. 1.5', suffixText: '%'),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 1.5',
+                      suffixText: '%',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                _seg(const [('monthly', 'Per month'), ('annual', 'Per year')],
-                    rateBasis, (v) => rateBasis = v),
+                _seg(
+                  const [('monthly', 'Per month'), ('annual', 'Per year')],
+                  rateBasis,
+                  (v) => rateBasis = v,
+                ),
               ],
             ),
             _label('HOW THE INTEREST IS CHARGED'),
-            _seg(const [
-              ('diminishing', 'Diminishing'),
-              ('addon', 'Add-on'),
-            ], method, (v) => method = v),
+            _seg(
+              const [('diminishing', 'Diminishing'), ('addon', 'Add-on')],
+              method,
+              (v) => method = v,
+            ),
             const SizedBox(height: 6),
             Text(
-                addon
-                    ? 'Add-on charges interest on the ORIGINAL amount for the whole term, common in in-house and informal financing. It looks cheap and is not.'
-                    : 'Diminishing charges interest only on what you still owe, the way banks amortize.',
-                style: TextStyle(
-                    color: Barako.muted, fontSize: 12, height: 1.4)),
+              addon
+                  ? 'Add-on charges interest on the ORIGINAL amount for the whole term, common in in-house and informal financing. It looks cheap and is not.'
+                  : 'Diminishing charges interest only on what you still owe, the way banks amortize.',
+              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+            ),
             if (termClamped)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                    'Term capped at $maxMonths months, no consumer loan runs a century.',
-                    style: TextStyle(color: Barako.warning, fontSize: 12)),
+                  'Term capped at $maxMonths months, no consumer loan runs a century.',
+                  style: TextStyle(color: Barako.warning, fontSize: 12),
+                ),
               ),
             if (badInput)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Text('Amounts and rates cannot be negative.',
-                    style: TextStyle(color: Barako.warning, fontSize: 13)),
+                child: Text(
+                  'Amounts and rates cannot be negative.',
+                  style: TextStyle(color: Barako.warning, fontSize: 13),
+                ),
               )
             else if (needTerm)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Text('Enter the term and the numbers appear.',
-                    style: TextStyle(color: Barako.muted, fontSize: 13)),
+                child: Text(
+                  'Enter the term and the numbers appear.',
+                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                ),
               )
             else if (!ready)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                    'Enter the loan amount, term, and interest rate and the numbers appear.',
-                    style: TextStyle(color: Barako.muted, fontSize: 13)),
+                  'Enter the loan amount, term, and interest rate and the numbers appear.',
+                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                ),
               ),
             if (r != null) ...[
               const SizedBox(height: 16),
@@ -224,48 +255,66 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('MONTHLY PAYMENT',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
+                      Text(
+                        'MONTHLY PAYMENT',
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(_m(r['payment'] as double),
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 30,
-                              fontFamily: Barako.displayFont,
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        _m(r['payment'] as double),
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 30,
+                          fontFamily: Barako.displayFont,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Total interest',
-                                style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 13)),
-                          ),
-                          Text(_m(r['totalInterest'] as double),
+                            child: Text(
+                              'Total interest',
                               style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600)),
+                                color: Barako.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _m(r['totalInterest'] as double),
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
                       ),
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Total to pay',
-                                style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 13)),
-                          ),
-                          Text(_m(r['totalPaid'] as double),
+                            child: Text(
+                              'Total to pay',
                               style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600)),
+                                color: Barako.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _m(r['totalPaid'] as double),
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -280,55 +329,69 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TRUE COST',
-                          style: TextStyle(
-                              color:
-                                  addon ? Barako.warning : Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
+                      Text(
+                        'TRUE COST',
+                        style: TextStyle(
+                          color: addon ? Barako.warning : Barako.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Quoted rate per year',
-                                style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 13)),
-                          ),
-                          Text(_pct(r['nominalAnnualRate'] as double),
+                            child: Text(
+                              'Quoted rate per year',
                               style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 13)),
+                                color: Barako.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _pct(r['nominalAnnualRate'] as double),
+                            style: TextStyle(
+                              color: Barako.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Effective interest per year',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                          Text(_pct(r['effectiveAnnualRate'] as double),
+                            child: Text(
+                              'Effective interest per year',
                               style: TextStyle(
-                                  color: addon
-                                      ? Barako.warning
-                                      : Barako.text,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800)),
+                                color: Barako.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _pct(r['effectiveAnnualRate'] as double),
+                            style: TextStyle(
+                              color: addon ? Barako.warning : Barako.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                          addon
-                              ? 'Your ${rateBasis == 'annual' ? '${_pct(r['nominalAnnualRate'] as double)} a year' : '${_pct(r['quotedMonthlyRate'] as double)} a month'} add-on really works out to about ${_pct(r['effectiveAnnualRate'] as double)} a year, once you account for paying interest on money you have already returned.'
-                              : 'For a diminishing loan the quoted and effective rates differ only because of monthly compounding. At normal bank rates they stay close.',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 12,
-                              height: 1.4)),
+                        addon
+                            ? 'Your ${rateBasis == 'annual' ? '${_pct(r['nominalAnnualRate'] as double)} a year' : '${_pct(r['quotedMonthlyRate'] as double)} a month'} add-on really works out to about ${_pct(r['effectiveAnnualRate'] as double)} a year, once you account for paying interest on money you have already returned.'
+                            : 'For a diminishing loan the quoted and effective rates differ only because of monthly compounding. At normal bank rates they stay close.',
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -342,21 +405,24 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                        'Make your first ${months ~/ 2} payments, then pay the remaining ${_m(payoff['balanceCleared'] as double)} in one go, and you skip about ${_m(payoff['interestSaved'] as double)} of the remaining interest, if there is no pre-termination fee.',
-                        style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 13,
-                            height: 1.4)),
+                      'Make your first ${months ~/ 2} payments, then pay the remaining ${_m(payoff['balanceCleared'] as double)} in one go, and you skip about ${_m(payoff['interestSaved'] as double)} of the remaining interest, if there is no pre-termination fee.',
+                      style: TextStyle(
+                        color: Barako.textSecondary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
                 ),
               ],
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () =>
-                    setState(() => showSchedule = !showSchedule),
-                child: Text(showSchedule
-                    ? 'Hide the month by month schedule'
-                    : 'Show the month by month schedule'),
+                onPressed: () => setState(() => showSchedule = !showSchedule),
+                child: Text(
+                  showSchedule
+                      ? 'Hide the month by month schedule'
+                      : 'Show the month by month schedule',
+                ),
               ),
               if (showSchedule)
                 Card(
@@ -364,35 +430,43 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       children: [
-                        for (final row in (r['schedule'] as List)
-                            .cast<Map<String, dynamic>>())
+                        for (final row
+                            in (r['schedule'] as List)
+                                .cast<Map<String, dynamic>>())
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 3),
+                            padding: const EdgeInsets.symmetric(vertical: 3),
                             child: Row(
                               children: [
                                 SizedBox(
                                   width: 34,
-                                  child: Text('${row['period']}',
-                                      style: TextStyle(
-                                          color: Barako.muted,
-                                          fontSize: 12)),
+                                  child: Text(
+                                    '${row['period']}',
+                                    style: TextStyle(
+                                      color: Barako.muted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ),
                                 Expanded(
                                   child: Text(
-                                      '${_m(row['interest'] as double)} interest · ${_m(row['principal'] as double)} principal',
-                                      style: TextStyle(
-                                          color: Barako.textSecondary,
-                                          fontSize: 12)),
-                                ),
-                                Text(_m(row['balance'] as double),
+                                    '${_m(row['interest'] as double)} interest · ${_m(row['principal'] as double)} principal',
                                     style: TextStyle(
-                                        color: Barako.textSecondary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures()
-                                        ])),
+                                      color: Barako.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  _m(row['balance'] as double),
+                                  style: TextStyle(
+                                    color: Barako.textSecondary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -402,9 +476,13 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 ),
               const SizedBox(height: 12),
               Text(
-                  'This is an estimate from the numbers you typed, not a loan offer. Real contracts add fees, insurance, and penalties, and a pre-termination charge can reduce the saving from paying early. Read the disclosure statement before signing. If a lender will not tell you the effective interest rate, that is a warning sign.',
-                  style: TextStyle(
-                      color: Barako.faint, fontSize: 11, height: 1.4)),
+                'This is an estimate from the numbers you typed, not a loan offer. Real contracts add fees, insurance, and penalties, and a pre-termination charge can reduce the saving from paying early. Read the disclosure statement before signing. If a lender will not tell you the effective interest rate, that is a warning sign.',
+                style: TextStyle(
+                  color: Barako.faint,
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
             ],
           ],
         ),

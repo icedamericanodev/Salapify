@@ -46,14 +46,20 @@ class GoalsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Goals',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Goals',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         actions: [
           TextButton(
             onPressed: () => _openSheet(context, null),
-            child: Text('+ Add',
-                style: TextStyle(
-                    color: Barako.primaryText, fontWeight: FontWeight.w700)),
+            child: Text(
+              '+ Add',
+              style: TextStyle(
+                color: Barako.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -75,69 +81,81 @@ class GoalsScreen extends StatelessWidget {
   }
 
   List<Widget> _emptyState(BuildContext context) => [
-        const SizedBox(height: 8),
-        Center(
-          child: Column(
-            children: [
-              SalapifyGlyph('target', size: 30),
-              const SizedBox(height: 10),
-              Text('No goals yet',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text('Start with a classic, or tap + Add for your own.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Barako.muted, fontSize: 13)),
-            ],
+    const SizedBox(height: 8),
+    Center(
+      child: Column(
+        children: [
+          SalapifyGlyph('target', size: 30),
+          const SizedBox(height: 10),
+          Text(
+            'No goals yet',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        for (final t in _templates)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PressableScale(
-              child: Card(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => _openSheet(context, null,
-                      name: t['name'] as String,
-                      target: (t['target'] as double)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Text(t['icon'] as String,
-                            style: const TextStyle(fontSize: 28)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t['name'] as String,
-                                  style: TextStyle(
-                                      color: Barako.text,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 2),
-                              Text(
-                                  'Suggested start: ${formatMoneyText(t['target'] as double)}. Change anything.',
-                                  style: TextStyle(
-                                      color: Barako.muted, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right,
-                            color: Barako.faint, size: 20),
-                      ],
+          const SizedBox(height: 4),
+          Text(
+            'Start with a classic, or tap + Add for your own.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Barako.muted, fontSize: 13),
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: 20),
+    for (final t in _templates)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: PressableScale(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _openSheet(
+                context,
+                null,
+                name: t['name'] as String,
+                target: (t['target'] as double),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Text(
+                      t['icon'] as String,
+                      style: const TextStyle(fontSize: 28),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t['name'] as String,
+                            style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Suggested start: ${formatMoneyText(t['target'] as double)}. Change anything.',
+                            style: TextStyle(color: Barako.muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                  ],
                 ),
               ),
             ),
           ),
-      ];
+        ),
+      ),
+  ];
 
   Widget _goalCard(BuildContext context, Map<String, dynamic> g) {
     final pace = analytics.goalPace(g, DateTime.now());
@@ -164,21 +182,27 @@ class GoalsScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(g['name']?.toString() ?? 'Goal',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800)),
+                        child: Text(
+                          g['name']?.toString() ?? 'Goal',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Barako.text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text('$pct%',
-                          style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              fontFeatures: _tabular)),
+                      Text(
+                        '$pct%',
+                        style: TextStyle(
+                          color: Barako.primaryText,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          fontFeatures: _tabular,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -196,19 +220,22 @@ class GoalsScreen extends StatelessWidget {
                     '${formatMoneyText(saved)} of ${formatMoneyText(target)}'
                     '${targetDate.isNotEmpty ? ' · by $targetDate' : ''}',
                     style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 13,
-                        fontFeatures: _tabular),
+                      color: Barako.muted,
+                      fontSize: 13,
+                      fontFeatures: _tabular,
+                    ),
                   ),
                   if (isActive && perMonth > 0) ...[
                     const SizedBox(height: 4),
                     Text(
-                        'Save ${formatMoneyText(perMonth)} a month and you make it.',
-                        style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: _tabular)),
+                      'Save ${formatMoneyText(perMonth)} a month and you make it.',
+                      style: TextStyle(
+                        color: Barako.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: _tabular,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -219,8 +246,12 @@ class GoalsScreen extends StatelessWidget {
     );
   }
 
-  void _openSheet(BuildContext context, Map<String, dynamic>? goal,
-      {String? name, double? target}) {
+  void _openSheet(
+    BuildContext context,
+    Map<String, dynamic>? goal, {
+    String? name,
+    double? target,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -278,16 +309,19 @@ class _GoalSheetState extends State<_GoalSheet> {
     super.initState();
     final g = widget.goal;
     _name = TextEditingController(
-        text: g != null ? (g['name']?.toString() ?? '') : (widget.prefillName ?? ''));
+      text: g != null
+          ? (g['name']?.toString() ?? '')
+          : (widget.prefillName ?? ''),
+    );
     _target = TextEditingController(
-        text: g != null
-            ? _numStr(g['target'])
-            : (widget.prefillTarget != null
-                ? _numStr(widget.prefillTarget)
-                : ''));
+      text: g != null
+          ? _numStr(g['target'])
+          : (widget.prefillTarget != null ? _numStr(widget.prefillTarget) : ''),
+    );
     _saved = TextEditingController(text: g != null ? _numStr(g['saved']) : '');
     _date = TextEditingController(
-        text: g != null ? (g['targetDate']?.toString() ?? '') : '');
+      text: g != null ? (g['targetDate']?.toString() ?? '') : '',
+    );
   }
 
   @override
@@ -320,19 +354,33 @@ class _GoalSheetState extends State<_GoalSheet> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       if (id is String) {
-        await widget.store.updateGoal(id,
-            name: name, target: target, saved: saved, targetDate: date);
+        await widget.store.updateGoal(
+          id,
+          name: name,
+          target: target,
+          saved: saved,
+          targetDate: date,
+        );
       } else {
-        await widget.store
-            .addGoal(name: name, target: target, saved: saved, targetDate: date);
+        await widget.store.addGoal(
+          name: name,
+          target: target,
+          saved: saved,
+          targetDate: date,
+        );
       }
     } catch (_) {
       if (!mounted) return;
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-            content: Text('That did not save. Please check the amounts and '
-                'try again.')));
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'That did not save. Please check the amounts and '
+              'try again.',
+            ),
+          ),
+        );
       return;
     }
     if (mounted) nav.pop();
@@ -362,8 +410,11 @@ class _GoalSheetState extends State<_GoalSheet> {
       if (!mounted) return;
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-            content: Text('That did not save, so nothing was added.')));
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('That did not save, so nothing was added.'),
+          ),
+        );
       return;
     }
     if (!mounted) return;
@@ -372,9 +423,13 @@ class _GoalSheetState extends State<_GoalSheet> {
     FocusScope.of(context).unfocus();
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
+      ..showSnackBar(
+        SnackBar(
           content: Text(
-              'Added ${formatMoneyText(amt)}. Saved is now ${formatMoneyText(newSaved)}.')));
+            'Added ${formatMoneyText(amt)}. Saved is now ${formatMoneyText(newSaved)}.',
+          ),
+        ),
+      );
   }
 
   /// The goal's currently stored saved value, read before the pending write
@@ -407,21 +462,24 @@ class _GoalSheetState extends State<_GoalSheet> {
       // list does, rather than losing it silently on a stray tap.
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: const Text('Goal deleted'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              if (widget.store.canWrite) {
-                widget.store.addGoal(
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Goal deleted'),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () {
+                if (widget.store.canWrite) {
+                  widget.store.addGoal(
                     name: name == null || name.isEmpty ? 'Goal' : name,
                     target: target,
                     saved: saved,
-                    targetDate: date);
-              }
-            },
+                    targetDate: date,
+                  );
+                }
+              },
+            ),
           ),
-        ));
+        );
     }
     Navigator.of(context).pop();
   }
@@ -429,9 +487,13 @@ class _GoalSheetState extends State<_GoalSheet> {
   void _offBanner() {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(
+      ..showSnackBar(
+        const SnackBar(
           content: Text(
-              'Saving is off because your data could not be read. Import a backup to recover first.')));
+            'Saving is off because your data could not be read. Import a backup to recover first.',
+          ),
+        ),
+      );
   }
 
   @override
@@ -446,27 +508,48 @@ class _GoalSheetState extends State<_GoalSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         constraints: BoxConstraints(
-            maxHeight:
-                (MediaQuery.of(context).size.height - bottomInset) * 0.9),
+          maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.9,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_isEdit ? 'Edit goal' : 'Add goal',
-                  style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              _field('Name', _name,
-                  hint: 'e.g. Emergency fund', action: TextInputAction.next),
-              _field('Target amount', _target,
-                  hint: '0', number: true, action: TextInputAction.next),
-              _field('Saved so far', _saved,
-                  hint: '0', number: true, action: TextInputAction.next),
-              _field('Target date (optional)', _date,
-                  hint: 'e.g. 2026-12-31', action: TextInputAction.done),
+              Text(
+                _isEdit ? 'Edit goal' : 'Add goal',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              _field(
+                'Name',
+                _name,
+                hint: 'e.g. Emergency fund',
+                action: TextInputAction.next,
+              ),
+              _field(
+                'Target amount',
+                _target,
+                hint: '0',
+                number: true,
+                action: TextInputAction.next,
+              ),
+              _field(
+                'Saved so far',
+                _saved,
+                hint: '0',
+                number: true,
+                action: TextInputAction.next,
+              ),
+              _field(
+                'Target date (optional)',
+                _date,
+                hint: 'e.g. 2026-12-31',
+                action: TextInputAction.done,
+              ),
               if (_isEdit) ...[
                 const SizedBox(height: 18),
                 Divider(color: Barako.border, height: 1),
@@ -474,8 +557,9 @@ class _GoalSheetState extends State<_GoalSheet> {
                 Text('ADD TO SAVINGS', style: Barako.kickerStyle),
                 const SizedBox(height: 6),
                 Text(
-                    'This only updates the goal number. It does not move money out of any account.',
-                    style: TextStyle(color: Barako.faint, fontSize: 12)),
+                  'This only updates the goal number. It does not move money out of any account.',
+                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -487,10 +571,14 @@ class _GoalSheetState extends State<_GoalSheet> {
                         backgroundColor: Barako.primary,
                         foregroundColor: Barako.onPrimary,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 14),
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
                       ),
-                      child: const Text('Add',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      child: const Text(
+                        'Add',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),
@@ -504,14 +592,18 @@ class _GoalSheetState extends State<_GoalSheet> {
                       onPressed: _delete,
                       style: _confirmDel
                           ? TextButton.styleFrom(
-                              backgroundColor:
-                                  Barako.warningStrong.withValues(alpha: 0.12))
+                              backgroundColor: Barako.warningStrong.withValues(
+                                alpha: 0.12,
+                              ),
+                            )
                           : null,
                       child: Text(
-                          _confirmDel ? 'Tap again to delete' : 'Delete',
-                          style: TextStyle(
-                              color: Barako.warningStrong,
-                              fontWeight: FontWeight.w600)),
+                        _confirmDel ? 'Tap again to delete' : 'Delete',
+                        style: TextStyle(
+                          color: Barako.warningStrong,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   else
                     const SizedBox.shrink(),
@@ -519,8 +611,10 @@ class _GoalSheetState extends State<_GoalSheet> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel',
-                            style: TextStyle(color: Barako.textSecondary)),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Barako.textSecondary),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -529,10 +623,14 @@ class _GoalSheetState extends State<_GoalSheet> {
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 14),
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                         ),
-                        child: const Text('Save',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
@@ -545,8 +643,13 @@ class _GoalSheetState extends State<_GoalSheet> {
     );
   }
 
-  Widget _field(String label, TextEditingController c,
-      {String? hint, bool number = false, TextInputAction? action}) {
+  Widget _field(
+    String label,
+    TextEditingController c, {
+    String? hint,
+    bool number = false,
+    TextInputAction? action,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -558,8 +661,12 @@ class _GoalSheetState extends State<_GoalSheet> {
     );
   }
 
-  Widget _rawInput(TextEditingController c,
-      {String? hint, bool number = false, TextInputAction? action}) {
+  Widget _rawInput(
+    TextEditingController c, {
+    String? hint,
+    bool number = false,
+    TextInputAction? action,
+  }) {
     return TextField(
       controller: c,
       keyboardType: number
@@ -575,8 +682,10 @@ class _GoalSheetState extends State<_GoalSheet> {
         hintStyle: TextStyle(color: Barako.faint),
         filled: true,
         fillColor: Barako.card,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Barako.border),

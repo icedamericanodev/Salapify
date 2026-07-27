@@ -78,15 +78,73 @@ String _longDate(String iso) {
   return '${_monthsShort[m - 1]} $d';
 }
 
-class DebtsScreen extends StatefulWidget {
+/// The pushed shape: Scaffold, AppBar, its own Add debt button.
+///
+/// Six places push this screen (Menu, Search, Ask Pan, a lesson, and two Home
+/// cards), and they keep pushing it: a push preserves the back stack the user
+/// expects, and redirecting to the tab would lose their place. The tab shape
+/// is [DebtsView] inside the Money tab, and both wrap the same body, so the
+/// two can never drift apart.
+class DebtsScreen extends StatelessWidget {
   final SalapifyStore store;
   const DebtsScreen({super.key, required this.store});
 
   @override
-  State<DebtsScreen> createState() => _DebtsScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Barako.background,
+        foregroundColor: Barako.text,
+        title: Text(
+          'Debts',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
+      ),
+      floatingActionButton: store.canWrite
+          ? FloatingActionButton.extended(
+              onPressed: () => showDebtFormSheet(context, store),
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'Add debt',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            )
+          : null,
+      body: SafeArea(child: DebtsView(store: store)),
+    );
+  }
 }
 
-class _DebtsScreenState extends State<DebtsScreen> {
+/// The whole picture of what is owed, as a plain body.
+///
+/// Everything the old DebtsScreen rendered, minus the Scaffold chrome, so it
+/// can live inside the Money tab's segment as well as inside the pushed
+/// wrapper above. The strategy switch is State here, which is what lets it
+/// survive both segment switches and tab switches when mounted in the shell's
+/// IndexedStack.
+class DebtsView extends StatefulWidget {
+  final SalapifyStore store;
+
+  /// Set by the Money tab, which owns one controller per segment because its
+  /// inner IndexedStack mounts two scrollables at once and the ambient
+  /// PrimaryScrollController cannot be attached to both.
+  final ScrollController? controller;
+
+  /// The tab shape clears the shell's Log button with 96; the pushed shape
+  /// clears its own FAB with 90, as before.
+  final EdgeInsets padding;
+  const DebtsView({
+    super.key,
+    required this.store,
+    this.controller,
+    this.padding = const EdgeInsets.fromLTRB(20, 8, 20, 90),
+  });
+
+  @override
+  State<DebtsView> createState() => _DebtsViewState();
+}
+
+class _DebtsViewState extends State<DebtsView> {
   String strategy = 'snowball';
 
   @override
@@ -136,197 +194,175 @@ class _DebtsScreenState extends State<DebtsScreen> {
         final shortTerm = debts.where((d) => _isShortTerm(d['type'])).toList();
         final longTerm = debts.where((d) => !_isShortTerm(d['type'])).toList();
 
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Barako.background,
-            foregroundColor: Barako.text,
-            title: Text(
-              'Debts',
-              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-            ),
-          ),
-          floatingActionButton: widget.store.canWrite
-              ? FloatingActionButton.extended(
-                  onPressed: () => showDebtFormSheet(context, widget.store),
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'Add debt',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+        return debts.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'No debts tracked',
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Track a card, a loan, or money you owe a person, and every '
+                        'payment splits into interest and principal '
+                        'honestly.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
-                )
-              : null,
-          body: SafeArea(
-            child: debts.isEmpty
-                ? Center(
+                ),
+              )
+            : ListView(
+                controller: widget.controller,
+                padding: widget.padding,
+                children: [
+                  Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'No debts tracked',
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                          Kicker('TOTAL DEBT'),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              formatMoney(totalDebt),
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Barako.text,
+                                fontSize: 30,
+                                fontFamily: Barako.displayFont,
+                                fontWeight: FontWeight.w700,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Track a card, a loan, or money you owe a person, and every '
-                            'payment splits into interest and principal '
-                            'honestly.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
+                          const SizedBox(height: 8),
+                          _line('Monthly minimums', formatMoney(totalMin)),
+                          _line(
+                            'Interest cost per month',
+                            formatMoney(totalInterest),
                           ),
                         ],
                       ),
                     ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 90),
-                    children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Kicker('TOTAL DEBT'),
-                              const SizedBox(height: 4),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  formatMoney(totalDebt),
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 30,
-                                    fontFamily: Barako.displayFont,
-                                    fontWeight: FontWeight.w700,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _line('Monthly minimums', formatMoney(totalMin)),
-                              _line(
-                                'Interest cost per month',
-                                formatMoney(totalInterest),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Kicker('PAYOFF PLAN'),
-                              const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 8,
-                                children: [
-                                  for (final s in const [
-                                    ('snowball', 'Snowball'),
-                                    ('avalanche', 'Avalanche'),
-                                  ])
-                                    ChoiceChip(
-                                      label: Text(s.$2),
-                                      selected: strategy == s.$1,
-                                      onSelected: (_) =>
-                                          setState(() => strategy = s.$1),
-                                      selectedColor: Barako.primary,
-                                      backgroundColor: Barako.background,
-                                      labelStyle: TextStyle(
-                                        color: strategy == s.$1
-                                            ? Barako.onPrimary
-                                            : Barako.textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                strategy == 'snowball'
-                                    ? 'Smallest balance first, for quick wins that keep you going.'
-                                    : 'Highest interest first, the cheapest path in pesos.',
-                                style: TextStyle(
-                                  color: Barako.muted,
-                                  fontSize: 12,
-                                  height: 1.4,
-                                ),
-                              ),
-                              if (focus != null &&
-                                  amountOf(focus['remaining']) > 0) ...[
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Focus: ${focus['name']} at ${formatMoney(amountOf(focus['remaining']))}',
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                              if (projection != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  (projection['months'] as int) == 0
-                                      ? 'Only centavos left. Log the last payments and you are debt free.'
-                                      : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
-                                  style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ] else if (totalDebt > 0) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'The minimums never win against the interest here. Any extra amount changes that.',
-                                  style: TextStyle(
-                                    color: Barako.warning,
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (shortTerm.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Kicker('SHORT TERM'),
-                        const SizedBox(height: 6),
-                        for (final d in shortTerm) _debtCard(context, d),
-                      ],
-                      if (longTerm.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Kicker('LONG TERM'),
-                        const SizedBox(height: 6),
-                        for (final d in longTerm) _debtCard(context, d),
-                      ],
-                    ],
                   ),
-          ),
-        );
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Kicker('PAYOFF PLAN'),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final s in const [
+                                ('snowball', 'Snowball'),
+                                ('avalanche', 'Avalanche'),
+                              ])
+                                ChoiceChip(
+                                  label: Text(s.$2),
+                                  selected: strategy == s.$1,
+                                  onSelected: (_) =>
+                                      setState(() => strategy = s.$1),
+                                  selectedColor: Barako.primary,
+                                  backgroundColor: Barako.background,
+                                  labelStyle: TextStyle(
+                                    color: strategy == s.$1
+                                        ? Barako.onPrimary
+                                        : Barako.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            strategy == 'snowball'
+                                ? 'Smallest balance first, for quick wins that keep you going.'
+                                : 'Highest interest first, the cheapest path in pesos.',
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                          ),
+                          if (focus != null &&
+                              amountOf(focus['remaining']) > 0) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              'Focus: ${focus['name']} at ${formatMoney(amountOf(focus['remaining']))}',
+                              style: TextStyle(
+                                color: Barako.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                          if (projection != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              (projection['months'] as int) == 0
+                                  ? 'Only centavos left. Log the last payments and you are debt free.'
+                                  : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
+                              style: TextStyle(
+                                color: Barako.textSecondary,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ] else if (totalDebt > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'The minimums never win against the interest here. Any extra amount changes that.',
+                              style: TextStyle(
+                                color: Barako.warning,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (shortTerm.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Kicker('SHORT TERM'),
+                    const SizedBox(height: 6),
+                    for (final d in shortTerm) _debtCard(context, d),
+                  ],
+                  if (longTerm.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Kicker('LONG TERM'),
+                    const SizedBox(height: 6),
+                    for (final d in longTerm) _debtCard(context, d),
+                  ],
+                ],
+              );
       },
     );
   }
-
 
   Widget _line(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),

@@ -96,11 +96,31 @@ class OverviewScreen extends StatelessWidget {
   /// Opens Menu. Home keeps its wordmark instead of adopting ScreenHeader, so
   /// it wires MenuAction into its own row rather than getting it for free.
   final VoidCallback? onMenu;
+
+  /// Jumps to the Utang tab with the "Owed to me" segment showing. A check-in
+  /// like "Follow up Migs" is about money owed TO the user, and plain
+  /// onSwitchTab would land it on the default "I owe" segment, a screen with
+  /// no Migs anywhere on it. Falls back to onSwitchTab when absent.
+  final VoidCallback? onOpenReceivables;
+
+  /// The clock, injectable so a test can pin the date.
+  ///
+  /// This seam exists because three fixture rewrites in a row failed to make a
+  /// Home test hold on every calendar date through the LIVE clock, and each
+  /// failure was legitimate app behaviour: recurring bills get posted and
+  /// stamped on load, and banking adjustment can push a due date past a
+  /// weekend payday. Some real dates genuinely have no committed money, so a
+  /// test that needs committed money must pick its date rather than inherit
+  /// whatever day the suite runs. The app never passes this; it defaults to
+  /// the real clock.
+  final DateTime Function() clock;
   const OverviewScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onMenu,
+    this.onOpenReceivables,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -108,7 +128,7 @@ class OverviewScreen extends StatelessWidget {
     final data = store.data;
     // One clock for the whole build, so a midnight straddle can never show
     // the check-in for one day and the number for the next in the same frame.
-    final now = DateTime.now();
+    final now = clock();
     final parts = netWorthParts(data);
     final istmt = incomeStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
@@ -142,6 +162,14 @@ class OverviewScreen extends StatelessWidget {
     final ritual = store.canWrite
         ? paydayRitual(data, now)
         : const PaydayRitual(isPayday: false, salaryLogged: false);
+
+    // Whether Your Number's bar is about to print the committed figure. This
+    // is deliberately ONE expression rather than two that happen to agree:
+    // it is the guard on the bar itself (overview.dart, `s.liquid > s.available`)
+    // conjoined with the guard on the card that contains it. Computed apart,
+    // the two would drift the first time either condition changed and the
+    // duplicate would come back silently.
+    final committedShown = cycle.show && cycle.liquid > cycle.available;
 
     // A body now, not a Scaffold. The shell owns the one Scaffold, the nav bar
     // and the Log button, so Home is just its content.
@@ -195,8 +223,11 @@ class OverviewScreen extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        SearchScreen(store: store, onSwitchTab: onSwitchTab),
+                    builder: (_) => SearchScreen(
+                      store: store,
+                      onSwitchTab: onSwitchTab,
+                      onOpenReceivables: onOpenReceivables,
+                    ),
                   ),
                 ),
               ),
@@ -234,11 +265,28 @@ class OverviewScreen extends StatelessWidget {
                 ),
               ),
             ),
-          if (ritual.isPayday) ...[
+          // Home answers one question above the fold: how much can I safely
+          // spend. Everything below is ordered around protecting that.
+          //
+          // The payday ritual comes first ONLY while the salary is unlogged,
+          // because logging it changes every number underneath. Once logged it
+          // drops below, since it is then a receipt rather than a task. It was
+          // unconditionally first, and on payday that pushed Your Number to
+          // roughly 530 logical pixels down a 800pt screen, right at the fold.
+          if (ritual.isPayday && !ritual.salaryLogged) ...[
             _paydayCard(context, ritual, numberShows: cycle.show),
             const SizedBox(height: 12),
           ],
-          if (checkIn != null) ...[
+          // An URGENT check-in outranks the number.
+          //
+          // Worth writing down, because it looks like dead code and is not:
+          // the coach's only urgent tone is 'crunch', fired when
+          // liquid > 0 && available <= 0, and cycleStatus hides Your Number on
+          // exactly that condition. So in practice this card sits above
+          // _daysToPaydayCard, never above Your Number, and the two can never
+          // both be on screen. Deleting this branch would still look correct
+          // right up until the coach grows a second urgent kind.
+          if (checkIn != null && checkIn['tone'] == 'urgent') ...[
             _checkInCard(context, checkIn),
             const SizedBox(height: 12),
           ],
@@ -265,12 +313,28 @@ class OverviewScreen extends StatelessWidget {
               total: (dues['total'] as num?)?.toDouble() ?? 0,
               format: formatMoney,
               formatDay: prettyDay,
+              committedShownAbove: committedShown,
             ),
             const SizedBox(height: 12),
           ],
-          // On a brand-new device the ₱0 hero would just compete with the
-          // welcome card, so the hero only appears once there is data.
-          if (hasStarted) ...[_netWorthHero(parts), const SizedBox(height: 16)],
+          // The payday ritual once the salary IS logged: below the number it
+          // just refreshed, because at that point it reports rather than asks.
+          if (ritual.isPayday && ritual.salaryLogged) ...[
+            _paydayCard(context, ritual, numberShows: cycle.show),
+            const SizedBox(height: 12),
+          ],
+          // A normal, positive or informational check-in, AFTER the number.
+          //
+          // This is the change that actually moves Your Number up the screen.
+          // weeklyCheckIn always returns something, falling back to a cheerful
+          // "You are on track this week", so this card was an unconditional
+          // 180 to 210 logical pixels paid BEFORE the number on every populated
+          // Home. A user in perfect financial health read two hundred pixels of
+          // good news before reaching the figure they opened the app for.
+          if (checkIn != null && checkIn['tone'] != 'urgent') ...[
+            _checkInCard(context, checkIn),
+            const SizedBox(height: 12),
+          ],
           // Only invite a fresh start when the store really is empty. After a
           // failed read the data looks empty but is not, writes are blocked,
           // and the error banner above already explains it, so the welcome
@@ -278,60 +342,6 @@ class OverviewScreen extends StatelessWidget {
           if (!hasStarted) ...[
             if (store.loadError == null) _welcomeCard(context),
           ] else ...[
-            if (accounts.isNotEmpty) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Kicker('MY MONEY'),
-                      const SizedBox(height: 6),
-                      for (final a in accounts)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  a['name'] as String? ?? 'Account',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // A big balance scales down instead of
-                              // overflowing the row on a narrow phone.
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    formatMoney(amount(a['balance'])),
-                                    style: TextStyle(
-                                      color: Barako.textSecondary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures(),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -375,6 +385,71 @@ class OverviewScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            if (accounts.isNotEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Kicker('MY MONEY'),
+                      const SizedBox(height: 6),
+                      // Flat rows with hairline separators, the same content
+                      // treatment as Utang's people list. Rows in a card, not
+                      // a card per row.
+                      for (final (i, a) in accounts.indexed) ...[
+                        if (i > 0) Divider(height: 1, color: Barako.border),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  a['name'] as String? ?? 'Account',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // A big balance scales down instead of
+                              // overflowing the row on a narrow phone.
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    formatMoney(amount(a['balance'])),
+                                    style: TextStyle(
+                                      color: Barako.textSecondary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // The month, then what it is made of, then the whole picture.
+            // Net worth is the least urgent figure on Home and the slowest
+            // to change, so it reads as a footer rather than a headline.
+            const SizedBox(height: 12),
+            _netWorthHero(parts),
           ],
         ],
       ),
@@ -407,7 +482,12 @@ class OverviewScreen extends StatelessWidget {
     final route = action is Map ? action['route'] as String? : null;
     final tab = route != null ? _routeTabs[route] : null;
     VoidCallback? onTap;
-    if (tab != null && onSwitchTab != null) {
+    if (route == '/receivables' && onOpenReceivables != null) {
+      // Receivables means the "Owed to me" segment specifically, and the
+      // shell knows how to land there. Plain onSwitchTab is the fallback
+      // below, for hosts that do not wire the richer callback.
+      onTap = onOpenReceivables;
+    } else if (tab != null && onSwitchTab != null) {
       onTap = () => onSwitchTab!(tab);
     } else if (route == '/debts') {
       // Debts is not a bottom tab; a due-soon decision is prio 92, so it must
@@ -798,14 +878,19 @@ class OverviewScreen extends StatelessWidget {
       child: Semantics(
         button: onSwitchTab != null,
         hint: onSwitchTab != null ? 'Opens Insights' : null,
+        // The one raised surface on Home. surfaceRaised used to belong to net
+        // worth, which made the calmest, slowest-moving figure on the screen
+        // look like the headline. The hero treatment follows the question the
+        // screen exists to answer.
         child: Card(
+          color: Barako.surfaceRaised,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onSwitchTab == null
                 ? null
                 : () => onSwitchTab!(Destination.insights),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -825,7 +910,7 @@ class OverviewScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Fraunces',
                             color: Barako.text,
-                            fontSize: 28,
+                            fontSize: 34,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -894,10 +979,13 @@ class OverviewScreen extends StatelessWidget {
   /// golden-locked netWorthParts, this only restyles them.
   Widget _netWorthHero(Map<String, dynamic> parts) {
     final nw = parts['netWorth'] as double;
+    // A supporting card now, not the hero. It had the raised surface, 20 of
+    // padding and the biggest type on the screen, which crowned the figure
+    // that changes slowest and demands nothing. The hero surface moved to
+    // Your Number; this matches THIS MONTH, its neighbour in the tail.
     return Card(
-      color: Barako.surfaceRaised,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -917,7 +1005,7 @@ class OverviewScreen extends StatelessWidget {
                   // on the screen. Red is reserved for urgent, time-bound
                   // things like an overdue utang.
                   color: nw < 0 ? Barako.text : Barako.primary,
-                  fontSize: 40,
+                  fontSize: 30,
                   fontWeight: FontWeight.w700,
                   // No tabularFigures here, deliberately. theme.dart records
                   // that Fraunces has NO tnum table, which the font file
@@ -1050,10 +1138,14 @@ class OverviewScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton(
               style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
+                // Left-aligned and quiet, but never small. This was 36 with a
+                // shrinkwrapped target, below both platform floors, on the one
+                // link every migrating tester has to hit. Zero horizontal
+                // padding keeps the quiet left-aligned look; the height does
+                // the accessibility work.
+                padding: const EdgeInsets.symmetric(horizontal: 0),
                 foregroundColor: Barako.muted,
-                minimumSize: const Size(0, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 48),
               ),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => ImportScreen(store: store)),

@@ -236,6 +236,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ? null
                     : IconButton(
                         icon: Icon(Icons.close, color: Barako.muted, size: 18),
+                        tooltip: 'Clear filter',
                         onPressed: () => setState(() => _query.clear()),
                       ),
                 filled: true,

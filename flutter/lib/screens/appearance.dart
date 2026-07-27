@@ -46,7 +46,9 @@ class AppearanceScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
-        final (rawKey, currentMode) = resolveThemeChoice(store.data['settings']);
+        final (rawKey, currentMode) = resolveThemeChoice(
+          store.data['settings'],
+        );
         // Highlight the theme actually in effect. An unknown or future key
         // renders as Barako (themeForKey falls back), so Barako is what should
         // show as selected.
@@ -93,7 +95,8 @@ class AppearanceScreen extends StatelessWidget {
                       SegmentOption(
                         value: m,
                         label: appearanceModeLabels[m] ?? m,
-                        semanticLabel: '${appearanceModeLabels[m] ?? m} appearance',
+                        semanticLabel:
+                            '${appearanceModeLabels[m] ?? m} appearance',
                       ),
                   ],
                 ),
@@ -406,12 +409,7 @@ class _PalettePreview extends StatelessWidget {
               ],
             ),
           ),
-          if (selected)
-            Positioned(
-              right: -4,
-              top: -4,
-              child: _CheckBadge(),
-            ),
+          if (selected) Positioned(right: -4, top: -4, child: _CheckBadge()),
         ],
       ),
     );

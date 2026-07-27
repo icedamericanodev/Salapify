@@ -37,10 +37,63 @@ List<Map<String, dynamic>> openUtangFor(
   return out;
 }
 
+/// The tab shape as it existed before the merge: header plus body. Kept as a
+/// widget because tests and the shell's transition period mount it directly;
+/// the Money tab mounts [UtangBody] under its own shared header instead.
 class UtangScreen extends StatelessWidget {
   final SalapifyStore store;
   final VoidCallback? onMenu;
   const UtangScreen({super.key, required this.store, this.onMenu});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: UtangBody(
+        store: store,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+        header: ScreenHeader(
+          'Utang',
+          subtitle: 'Money owed to you, oldest first',
+          onMenu: onMenu,
+          trailing: store.canWrite ? newUtangButton(context, store) : null,
+        ),
+      ),
+    );
+  }
+}
+
+/// The filled create action, shared by the standalone header and the Money
+/// tab's "Owed to me" segment so the two cannot drift.
+Widget newUtangButton(BuildContext context, SalapifyStore store) =>
+    FilledButton.icon(
+      onPressed: () => showAddUtangSheet(context, store),
+      icon: const Icon(Icons.add, size: 18),
+      label: const Text('New'),
+      style: FilledButton.styleFrom(
+        backgroundColor: Barako.primary,
+        foregroundColor: Barako.onPrimary,
+        // Filled, and at the 48 floor. A create action demoted from a FAB
+        // must not also become a small grey word.
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.md),
+      ),
+    );
+
+/// Who owes you, as a plain scrolling body with no header of its own.
+class UtangBody extends StatelessWidget {
+  final SalapifyStore store;
+  final ScrollController? controller;
+  final EdgeInsets padding;
+
+  /// Rendered as the first child when present, so it scrolls with the list.
+  final Widget? header;
+  const UtangBody({
+    super.key,
+    required this.store,
+    this.controller,
+    this.padding = const EdgeInsets.fromLTRB(20, 12, 20, 96),
+    this.header,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,130 +103,97 @@ class UtangScreen extends StatelessWidget {
     final overdueTotal = aging['overdueTotal'] as double;
     final overdueCount = aging['overdueCount'] as int;
 
-    // A body now, not a Scaffold: the shell owns the one Scaffold and the one
-    // FAB, and that FAB is Log.
-    //
-    // So "New utang" moves into the header. This is a real trade and worth
-    // naming: a FloatingActionButton is the strongest create affordance Android
-    // has, and a header button is weaker. It is worth it because logging
-    // happens many times a week and adding an utang happens rarely, and the
-    // frequent action is the one that should be reachable from everywhere. The
-    // empty state below names the button so a first-time user is not left
-    // hunting for it.
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-        children: [
-          ScreenHeader(
-            'Utang',
-            subtitle: 'Money owed to you, oldest first',
-            onMenu: onMenu,
-            trailing: store.canWrite
-                ? FilledButton.icon(
-                    onPressed: () => showAddUtangSheet(context, store),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('New'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      // Filled, and at the 48 floor. A create action demoted
-                      // from a FAB must not also become a small grey word.
-                      minimumSize: const Size(0, 48),
-                      padding: const EdgeInsets.symmetric(horizontal: Gap.md),
+    return ListView(
+      controller: controller,
+      padding: padding,
+      children: [
+        ?header,
+        if (people.isEmpty)
+          EmptyState(
+            icon: 'handshake',
+            showPan: true,
+            title: 'Nobody owes you right now',
+            // Names the button by its label and its place. The button moved
+            // from a FAB in the corner to the top of the screen, and an
+            // empty state that still said "tap New utang" would be sending a
+            // first-time user to look for something that is not there.
+            body:
+                'When someone borrows, tap New at the top to log it, so it '
+                'never gets awkward later. Salapify keeps the running '
+                'total and the date, so you never have to be the one '
+                'who remembers.',
+          )
+        else ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STILL OUT',
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
                     ),
-                  )
-                : null,
-          ),
-          if (people.isEmpty)
-            EmptyState(
-              icon: 'handshake',
-              showPan: true,
-              title: 'Nobody owes you right now',
-              // Names the button by its label and its place. The button moved
-              // from a FAB in the corner to the top of the screen, and an
-              // empty state that still said "tap New utang" would be sending a
-              // first-time user to look for something that is not there.
-              body:
-                  'When someone borrows, tap New at the top to log it, so it '
-                  'never gets awkward later. Salapify keeps the running '
-                  'total and the date, so you never have to be the one '
-                  'who remembers.',
-            )
-          else ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'STILL OUT',
+                  ),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      formatMoney(total),
+                      maxLines: 1,
                       style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 11,
+                        fontFamily: Barako.displayFont,
+                        color: Barako.primary,
+                        fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatMoney(total),
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontFamily: Barako.displayFont,
-                          color: Barako.primary,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    overdueCount > 0
+                        ? '${formatMoney(overdueTotal)} of it is overdue with $overdueCount ${overdueCount == 1 ? 'person' : 'people'}. Follow up gently, oldest first.'
+                        : 'Nothing is overdue yet, so a gentle reminder is enough.',
+                    style: TextStyle(
+                      color: overdueCount > 0 ? Barako.warning : Barako.muted,
+                      fontSize: 13,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      overdueCount > 0
-                          ? '${formatMoney(overdueTotal)} of it is overdue with $overdueCount ${overdueCount == 1 ? 'person' : 'people'}. Follow up gently, oldest first.'
-                          : 'Nothing is overdue yet, so a gentle reminder is enough.',
-                      style: TextStyle(
-                        color: overdueCount > 0 ? Barako.warning : Barako.muted,
-                        fontSize: 13,
-                        height: 1.4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _splitsSection(),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Column(
+                children: [
+                  for (var i = 0; i < people.length; i++) ...[
+                    if (i > 0) Divider(height: 1, color: Barako.border),
+                    _PersonRow(
+                      person: people[i],
+                      onTap: () => showPersonSheet(
+                        context,
+                        store,
+                        people[i]['name'] as String,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            _splitsSection(),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < people.length; i++) ...[
-                      if (i > 0) Divider(height: 1, color: Barako.border),
-                      _PersonRow(
-                        person: people[i],
-                        onTap: () => showPersonSheet(
-                          context,
-                          store,
-                          people[i]['name'] as String,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 

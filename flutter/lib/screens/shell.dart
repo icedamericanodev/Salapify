@@ -25,8 +25,8 @@ import 'history.dart';
 import 'insights.dart';
 import 'log_sheet.dart';
 import 'menu.dart';
+import 'money.dart';
 import 'overview.dart';
-import 'utang.dart';
 
 enum Destination {
   home(label: 'Home', icon: 'home'),
@@ -80,6 +80,11 @@ class ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<ShellScreen> {
   Destination tab = Destination.home;
 
+  /// Reaches into the Money tab for the two things only it knows: which
+  /// segment is active (for scroll-to-top) and how to show a specific one
+  /// (for taps that mean receivables in particular).
+  final _moneyKey = GlobalKey<MoneyScreenState>();
+
   /// Destinations that have ever been shown.
   ///
   /// A plain IndexedStack builds every child on the first frame, which would
@@ -119,8 +124,12 @@ class _ShellScreenState extends State<ShellScreen> {
       return;
     }
     // Tapping the tab you are already on scrolls it back to the top, the
-    // convention every phone user already knows from other apps.
-    final c = _controllers[d];
+    // convention every phone user already knows from other apps. The Money
+    // tab owns its own controllers (its two segments cannot share the
+    // ambient one), so it is asked rather than assumed.
+    final c = d == Destination.utang
+        ? _moneyKey.currentState?.activeController
+        : _controllers[d];
     if (c == null || !c.hasClients || c.offset <= 0) return;
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (reduce) {
@@ -134,10 +143,27 @@ class _ShellScreenState extends State<ShellScreen> {
     }
   }
 
+  /// Land on the Utang tab with the "Owed to me" segment showing.
+  ///
+  /// A check-in like "Follow up Migs" is about money owed TO the user, and
+  /// landing it on the default "I owe" segment would open a screen with no
+  /// Migs anywhere on it. The segment flip happens after the frame so the
+  /// Money tab exists even when this is its first visit.
+  void _openReceivables() {
+    _select(Destination.utang);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _moneyKey.currentState?.showSegment(MoneySegment.owed);
+    });
+  }
+
   void _openMenu() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => MenuScreen(store: widget.store, onSwitchTab: _select),
+        builder: (_) => MenuScreen(
+          store: widget.store,
+          onSwitchTab: _select,
+          onOpenReceivables: _openReceivables,
+        ),
       ),
     );
   }
@@ -146,14 +172,23 @@ class _ShellScreenState extends State<ShellScreen> {
     Destination.home => OverviewScreen(
       store: widget.store,
       onSwitchTab: _select,
+      onOpenReceivables: _openReceivables,
       onMenu: _openMenu,
     ),
     Destination.budget => BudgetScreen(store: widget.store, onMenu: _openMenu),
-    Destination.history => HistoryScreen(store: widget.store, onMenu: _openMenu),
-    Destination.utang => UtangScreen(store: widget.store, onMenu: _openMenu),
+    Destination.history => HistoryScreen(
+      store: widget.store,
+      onMenu: _openMenu,
+    ),
+    Destination.utang => MoneyScreen(
+      key: _moneyKey,
+      store: widget.store,
+      onMenu: _openMenu,
+    ),
     Destination.insights => InsightsScreen(
       store: widget.store,
       onSwitchTab: _select,
+      onOpenReceivables: _openReceivables,
       onMenu: _openMenu,
     ),
   };

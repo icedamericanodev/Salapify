@@ -38,10 +38,10 @@ import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
+import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
-import 'package:salapify/screens/utang.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -206,7 +206,7 @@ void main() {
     'overview': (s) => OverviewScreen(store: s, onSwitchTab: (_) {}),
     'budget': (s) => BudgetScreen(store: s),
     'history': (s) => HistoryScreen(store: s),
-    'utang': (s) => UtangScreen(store: s),
+    'utang': (s) => MoneyScreen(store: s),
     'insights': (s) => InsightsScreen(store: s, onSwitchTab: (_) {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
@@ -267,6 +267,72 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/shell-dark.png'),
+    );
+  });
+
+  testWidgets('the Money tab, both segments', (tester) async {
+    // The merge's two faces: I owe (the debts picture) and Owed to me (the
+    // receivables list), one frame each, dark, seeded with both kinds of
+    // owing so neither renders its empty state.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+        ],
+        'debts': [
+          {
+            'id': 'd1',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 12000,
+            'monthlyRate': 3,
+            'minPayment': 500,
+            'dueDay': 28,
+          },
+        ],
+        'people': [
+          {'id': 'p1', 'name': 'Migs'},
+        ],
+        'receivables': [
+          {
+            'id': 'r1',
+            'personId': 'p1',
+            'person': 'Migs',
+            'amount': 1500,
+            'payments': <Map<String, dynamic>>[],
+            'paid': false,
+            'dueDate': '2026-08-15',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(body: MoneyScreen(store: store)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/money-owe-dark.png'),
+    );
+
+    await tester.tap(find.text('Owed to me'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/money-owed-dark.png'),
     );
   });
 

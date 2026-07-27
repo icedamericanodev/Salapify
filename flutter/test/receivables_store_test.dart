@@ -144,7 +144,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await goToTab(tester, 'Utang');
+    await goToOwedToMe(tester);
     await tester.pumpAndSettle();
     expect(find.text('Migs'), findsOneWidget);
 
@@ -275,7 +275,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await goToTab(tester, 'Utang');
+    await goToOwedToMe(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
@@ -303,7 +303,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await goToTab(tester, 'Utang');
+    await goToOwedToMe(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();

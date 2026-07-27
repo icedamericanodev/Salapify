@@ -1,0 +1,187 @@
+// Home's order, pinned.
+//
+// This is the first test in the repo that asserts WHERE a card is rather than
+// whether it exists, and it is the only kind that could have caught the
+// problem it guards.
+//
+// coach.weeklyCheckIn always returns something. When nothing needs attention it
+// falls back to a cheerful "You are on track this week". That card sat above
+// Your Number unconditionally, so a user in perfect financial health paid 180
+// to 210 logical pixels of good news before reaching the figure they opened the
+// app for. On a 360x800 phone the number landed near the vertical midpoint, and
+// on payday the ritual card pushed it to roughly 530, right at the fold.
+//
+// Nothing was broken. Every card rendered, every number was right, and the
+// screen looked fine in a screenshot. It was simply answering the second
+// question first.
+//
+// Clock-free, following home_bills_test's discipline: OverviewScreen reads
+// DateTime.now() internally, so any fixture that needs a particular day passes
+// for two weeks and then blames whoever pushed on the 28th.
+
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/store.dart';
+import 'package:salapify/money/coach.dart' as coach;
+import 'package:salapify/money/cycle.dart';
+import 'package:salapify/screens/overview.dart';
+import 'package:salapify/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/app_harness.dart';
+
+/// Healthy: money to spend, nothing overdue, no debts. The coach has nothing
+/// to say, so it says the all-clear, which is exactly the state where the
+/// check-in used to displace the number.
+Map<String, dynamic> _healthy() => {
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 40000},
+  ],
+  'transactions': [
+    {
+      'id': 't1',
+      'type': 'expense',
+      'amount': 250,
+      'date': '2026-07-05',
+      'accountId': 'cash',
+    },
+  ],
+};
+
+/// Crunch: committed money has eaten everything spendable. This is the ONLY
+/// state that produces an urgent check-in, and it is also the state where
+/// cycleStatus hides Your Number.
+Map<String, dynamic> _crunch() => {
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 900},
+  ],
+  'transactions': [
+    {
+      'id': 't1',
+      'type': 'expense',
+      'amount': 100,
+      'date': '2026-07-05',
+      'accountId': 'cash',
+    },
+  ],
+  'debts': [
+    {
+      'id': 'd1',
+      'name': 'BPI card',
+      'type': 'credit card',
+      'remaining': 40000,
+      'monthlyRate': 3,
+      'minPayment': 4000,
+      'dueDay': 28,
+    },
+  ],
+};
+
+Future<void> _pump(WidgetTester tester, Map<String, dynamic> blob) async {
+  tester.view.physicalSize = const Size(1200, 4600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+  final store = SalapifyStore();
+  await store.load();
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: salapifyTheme(Barako.current),
+      home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+double _y(WidgetTester tester, String text) =>
+    tester.getTopLeft(find.text(text)).dy;
+
+void main() {
+  group('the number comes first', () {
+    testWidgets('a positive check-in sits BELOW Your Number', (tester) async {
+      await _pump(tester, _healthy());
+      expect(find.text('YOUR NUMBER'), findsOneWidget);
+      expect(find.text('MONEY CHECK-IN'), findsOneWidget);
+      expect(
+        _y(tester, 'YOUR NUMBER'),
+        lessThan(_y(tester, 'MONEY CHECK-IN')),
+        reason:
+            'The all-clear card is above the number again. weeklyCheckIn never '
+            'returns null, so this card is an unconditional 200 pixel tax paid '
+            'before the one figure Home exists to show.',
+      );
+    });
+
+    testWidgets('and so does This month, My money and Net worth', (
+      tester,
+    ) async {
+      await _pump(tester, _healthy());
+      final n = _y(tester, 'YOUR NUMBER');
+      for (final below in ['THIS MONTH', 'MY MONEY', 'NET WORTH']) {
+        expect(find.text(below), findsOneWidget, reason: '$below vanished');
+        expect(_y(tester, below), greaterThan(n), reason: '$below is above it');
+      }
+    });
+
+    testWidgets('the tail reads month, then accounts, then net worth', (
+      tester,
+    ) async {
+      await _pump(tester, _healthy());
+      expect(_y(tester, 'THIS MONTH'), lessThan(_y(tester, 'MY MONEY')));
+      expect(
+        _y(tester, 'MY MONEY'),
+        lessThan(_y(tester, 'NET WORTH')),
+        reason:
+            'Net worth is the slowest figure on Home to change and the least '
+            'urgent, so it closes the screen rather than opening it.',
+      );
+    });
+  });
+
+  group('an urgent warning still outranks everything', () {
+    test('crunch is the only urgent tone, and it hides Your Number', () {
+      // The PRECONDITION for the whole reorder being safe. If a second urgent
+      // kind ever appears that does NOT hide the number, the widget test below
+      // stops covering the case it was written for.
+      final s = cycleStatus(_crunch(), DateTime(2026, 7, 26));
+      final c = coach.weeklyCheckIn(_crunch(), DateTime(2026, 7, 26));
+      expect(c['tone'], 'urgent');
+      expect(
+        s.show,
+        isFalse,
+        reason:
+            'An urgent check-in and a visible Your Number are meant to be '
+            'mutually exclusive: crunch fires on available <= 0, which is '
+            'exactly the condition cycleStatus hides the number on. That is '
+            'what makes demoting the normal check-in safe.',
+      );
+    });
+
+    testWidgets('an urgent check-in is the first card on the screen', (
+      tester,
+    ) async {
+      await _pump(tester, _crunch());
+      expect(find.text('MONEY CHECK-IN'), findsOneWidget);
+      expect(
+        find.text('YOUR NUMBER'),
+        findsNothing,
+        reason: 'Crunch means there is no positive number to show.',
+      );
+      // Above the countdown, which is what actually renders in this state.
+      expect(find.text('DAYS TO PAYDAY'), findsOneWidget);
+      expect(
+        _y(tester, 'MONEY CHECK-IN'),
+        lessThan(_y(tester, 'DAYS TO PAYDAY')),
+        reason:
+            'When money is tight the warning must lead. This is the half of '
+            'the rule that a reorder could silently break, because the other '
+            'half looks correct on a healthy screen.',
+      );
+    });
+  });
+}

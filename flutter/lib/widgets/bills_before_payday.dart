@@ -34,6 +34,22 @@ class BillsBeforePayday extends StatelessWidget {
   /// Formats an ISO date as a short human day. Injected for the same reason.
   final String Function(String) formatDay;
 
+  /// Whether the same figure is already on screen just above this card.
+  ///
+  /// [total] is not merely similar to Your Number's "Committed" figure, it is
+  /// arithmetically the SAME number. safeToSpend defines
+  /// `available = liquid - committed` where `committed` is exactly this total,
+  /// so `s.liquid - s.available` and `dues['total']` are one value written two
+  /// ways. Both render through the same formatter in the same warning colour,
+  /// in adjacent cards, whenever there is committed money and bills to show.
+  ///
+  /// Nothing is lost by suppressing it here: the bar above shows the figure
+  /// AND its free-to-spend other half, and every line below is still itemised
+  /// with its day and its amount. When the bar is absent, which is the crunch
+  /// case and the no-commitments case, the total comes back and this card is
+  /// the only place it appears.
+  final bool committedShownAbove;
+
   // ignore: prefer_const_constructors_in_immutables
   BillsBeforePayday({
     super.key,
@@ -41,6 +57,7 @@ class BillsBeforePayday extends StatelessWidget {
     required this.total,
     required this.format,
     required this.formatDay,
+    this.committedShownAbove = false,
   });
 
   @override
@@ -56,7 +73,7 @@ class BillsBeforePayday extends StatelessWidget {
             // followed by a sum the reader has to do themselves.
             SectionHeader(
               'BILLS BEFORE PAYDAY',
-              trailing: format(total),
+              trailing: committedShownAbove ? null : format(total),
               trailingColor: Barako.warning,
             ),
             const SizedBox(height: Gap.md),

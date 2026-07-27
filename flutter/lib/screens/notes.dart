@@ -31,9 +31,9 @@ class NotesScreen extends StatelessWidget {
         ];
         final indexed = List.generate(notes.length, (i) => (notes[i], i));
         indexed.sort((a, b) {
-          final c = (b.$1['updatedAt'] ?? '')
-              .toString()
-              .compareTo((a.$1['updatedAt'] ?? '').toString());
+          final c = (b.$1['updatedAt'] ?? '').toString().compareTo(
+            (a.$1['updatedAt'] ?? '').toString(),
+          );
           return c != 0 ? c : a.$2.compareTo(b.$2);
         });
         final sorted = [for (final e in indexed) e.$1];
@@ -42,16 +42,19 @@ class NotesScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Barako.background,
             foregroundColor: Barako.text,
-            title: Text('Notes',
-                style: TextStyle(
-                    color: Barako.text, fontWeight: FontWeight.w800)),
+            title: Text(
+              'Notes',
+              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+            ),
           ),
           floatingActionButton: store.canWrite
               ? FloatingActionButton.extended(
                   onPressed: () => _openNew(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('New note',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'New note',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 )
               : null,
           body: SafeArea(
@@ -62,20 +65,25 @@ class NotesScreen extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('No notes yet',
-                              style: TextStyle(
-                                  color: Barako.text,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700)),
+                          Text(
+                            'No notes yet',
+                            style: TextStyle(
+                              color: Barako.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Text(
-                              'Jot anything. Lines with amounts add themselves '
-                              'up, like a receipt: lunch 120, jeep 24 + 24.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Barako.muted,
-                                  fontSize: 13,
-                                  height: 1.4)),
+                            'Jot anything. Lines with amounts add themselves '
+                            'up, like a receipt: lunch 120, jeep 24 + 24.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -83,8 +91,7 @@ class NotesScreen extends StatelessWidget {
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 90),
                     itemCount: sorted.length,
-                    itemBuilder: (context, i) =>
-                        _noteCard(context, sorted[i]),
+                    itemBuilder: (context, i) => _noteCard(context, sorted[i]),
                   ),
           ),
         );
@@ -97,11 +104,17 @@ class NotesScreen extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final id = await store.addNote();
-      navigator.push(MaterialPageRoute(
-          builder: (_) => NoteEditor(store: store, noteId: id)));
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => NoteEditor(store: store, noteId: id),
+        ),
+      );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text('Could not create a note, nothing was changed. $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not create a note, nothing was changed. $e'),
+        ),
+      );
     }
   }
 
@@ -123,9 +136,12 @@ class NotesScreen extends StatelessWidget {
       child: Card(
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => NoteEditor(
-                  store: store, noteId: (n['id'] ?? '').toString()))),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  NoteEditor(store: store, noteId: (n['id'] ?? '').toString()),
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -134,33 +150,38 @@ class NotesScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       if (preview.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text(preview,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Barako.muted, fontSize: 12)),
+                        Text(
+                          preview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Barako.muted, fontSize: 12),
+                        ),
                       ],
                     ],
                   ),
                 ),
                 if (hasMath)
-                  Text(formatMoney(calc['total'] as double),
-                      style: TextStyle(
-                          color: Barako.primaryText,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [
-                            FontFeature.tabularFigures()
-                          ])),
+                  Text(
+                    formatMoney(calc['total'] as double),
+                    style: TextStyle(
+                      color: Barako.primaryText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -243,15 +264,19 @@ class _NoteEditorState extends State<NoteEditor> {
       _closing = false;
       // Saving keeps failing (disk full, storage broken). The editor must
       // never become a trap, so offer a way out that skips the save.
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(
+        SnackBar(
           content: Text('Could not save the note, it is still open. $e'),
           action: SnackBarAction(
-              label: 'Leave anyway',
-              onPressed: () {
-                if (_closing) return;
-                _closing = true;
-                navigator.pop();
-              })));
+            label: 'Leave anyway',
+            onPressed: () {
+              if (_closing) return;
+              _closing = true;
+              navigator.pop();
+            },
+          ),
+        ),
+      );
     }
   }
 
@@ -261,18 +286,20 @@ class _NoteEditorState extends State<NoteEditor> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Delete this note?',
-            style: TextStyle(color: Barako.text)),
-        content: Text('This cannot be undone.',
-            style: TextStyle(color: Barako.textSecondary)),
+        title: Text('Delete this note?', style: TextStyle(color: Barako.text)),
+        content: Text(
+          'This cannot be undone.',
+          style: TextStyle(color: Barako.textSecondary),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Cancel', style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child:
-                  Text('Delete', style: TextStyle(color: Barako.warning))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Delete', style: TextStyle(color: Barako.warning)),
+          ),
         ],
       ),
     );
@@ -284,8 +311,9 @@ class _NoteEditorState extends State<NoteEditor> {
       navigator.pop();
     } catch (e) {
       _closing = false;
-      messenger.showSnackBar(SnackBar(
-          content: Text('Could not delete, nothing was changed. $e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete, nothing was changed. $e')),
+      );
     }
   }
 
@@ -311,14 +339,18 @@ class _NoteEditorState extends State<NoteEditor> {
           backgroundColor: Barako.background,
           foregroundColor: Barako.text,
           leading: IconButton(
-              icon: const Icon(Icons.arrow_back), onPressed: _close),
-          title: Text('Note',
-              style: TextStyle(
-                  color: Barako.text, fontWeight: FontWeight.w800)),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _close,
+          ),
+          title: Text(
+            'Note',
+            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+          ),
           actions: [
             IconButton(
-                icon: Icon(Icons.delete_outline, color: Barako.muted),
-                onPressed: _delete),
+              icon: Icon(Icons.delete_outline, color: Barako.muted),
+              onPressed: _delete,
+            ),
           ],
         ),
         body: SafeArea(
@@ -336,12 +368,14 @@ class _NoteEditorState extends State<NoteEditor> {
                     textAlignVertical: TextAlignVertical.top,
                     keyboardType: TextInputType.multiline,
                     style: TextStyle(
-                        color: Barako.text, fontSize: 16, height: 1.5),
+                      color: Barako.text,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
                     decoration: InputDecoration(
                       hintText:
                           'Jot anything. Amounts add themselves up:\nlunch 120\njeep 24 + 24\ngrab 250',
-                      hintStyle:
-                          TextStyle(color: Barako.faint, height: 1.5),
+                      hintStyle: TextStyle(color: Barako.faint, height: 1.5),
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -363,12 +397,15 @@ class _NoteEditorState extends State<NoteEditor> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('CALCULATIONS',
-                          style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2)),
+                      Text(
+                        'CALCULATIONS',
+                        style: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       for (final row in rows)
                         Padding(
@@ -376,22 +413,27 @@ class _NoteEditorState extends State<NoteEditor> {
                           child: Row(
                             children: [
                               Expanded(
-                                child: Text(row['label'] as String,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: Barako.textSecondary,
-                                        fontSize: 12)),
+                                child: Text(
+                                  row['label'] as String,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Barako.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
                               Text(
-                                  formatMoney(row['value'] as double),
-                                  style: TextStyle(
-                                      color: Barako.textSecondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures()
-                                      ])),
+                                formatMoney(row['value'] as double),
+                                style: TextStyle(
+                                  color: Barako.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -399,20 +441,26 @@ class _NoteEditorState extends State<NoteEditor> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Total',
-                                style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                          Text(formatMoney(calc['total'] as double),
+                            child: Text(
+                              'Total',
                               style: TextStyle(
-                                  color: Barako.primaryText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures()
-                                  ])),
+                                color: Barako.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            formatMoney(calc['total'] as double),
+                            style: TextStyle(
+                              color: Barako.primaryText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ],

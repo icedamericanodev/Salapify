@@ -38,7 +38,16 @@ class SearchScreen extends StatefulWidget {
   /// in the tab bar rather than as pushed routes). Null when the host has no
   /// tab switcher, in which case those groups just close search.
   final void Function(Destination)? onSwitchTab;
-  const SearchScreen({super.key, required this.store, this.onSwitchTab});
+
+  /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
+  /// there specifically; plain onSwitchTab would open the "I owe" segment.
+  final VoidCallback? onOpenReceivables;
+  const SearchScreen({
+    super.key,
+    required this.store,
+    this.onSwitchTab,
+    this.onOpenReceivables,
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -72,7 +81,12 @@ class _SearchScreenState extends State<SearchScreen> {
         // popUntil: Search can be reached from Home directly or from Menu,
         // so its depth is not fixed. A single pop was right for one of those.
         Navigator.of(context).popUntil((r) => r.isFirst);
-        widget.onSwitchTab?.call(Destination.utang);
+        // A search hit on a receivable means the "Owed to me" segment.
+        if (widget.onOpenReceivables != null) {
+          widget.onOpenReceivables!();
+        } else {
+          widget.onSwitchTab?.call(Destination.utang);
+        }
         break;
       case 'debts':
         Navigator.of(context).push(
