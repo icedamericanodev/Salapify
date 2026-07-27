@@ -242,11 +242,28 @@ class OverviewScreen extends StatelessWidget {
                 ),
               ),
             ),
-          if (ritual.isPayday) ...[
+          // Home answers one question above the fold: how much can I safely
+          // spend. Everything below is ordered around protecting that.
+          //
+          // The payday ritual comes first ONLY while the salary is unlogged,
+          // because logging it changes every number underneath. Once logged it
+          // drops below, since it is then a receipt rather than a task. It was
+          // unconditionally first, and on payday that pushed Your Number to
+          // roughly 530 logical pixels down a 800pt screen, right at the fold.
+          if (ritual.isPayday && !ritual.salaryLogged) ...[
             _paydayCard(context, ritual, numberShows: cycle.show),
             const SizedBox(height: 12),
           ],
-          if (checkIn != null) ...[
+          // An URGENT check-in outranks the number.
+          //
+          // Worth writing down, because it looks like dead code and is not:
+          // the coach's only urgent tone is 'crunch', fired when
+          // liquid > 0 && available <= 0, and cycleStatus hides Your Number on
+          // exactly that condition. So in practice this card sits above
+          // _daysToPaydayCard, never above Your Number, and the two can never
+          // both be on screen. Deleting this branch would still look correct
+          // right up until the coach grows a second urgent kind.
+          if (checkIn != null && checkIn['tone'] == 'urgent') ...[
             _checkInCard(context, checkIn),
             const SizedBox(height: 12),
           ],
@@ -277,9 +294,24 @@ class OverviewScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-          // On a brand-new device the ₱0 hero would just compete with the
-          // welcome card, so the hero only appears once there is data.
-          if (hasStarted) ...[_netWorthHero(parts), const SizedBox(height: 16)],
+          // The payday ritual once the salary IS logged: below the number it
+          // just refreshed, because at that point it reports rather than asks.
+          if (ritual.isPayday && ritual.salaryLogged) ...[
+            _paydayCard(context, ritual, numberShows: cycle.show),
+            const SizedBox(height: 12),
+          ],
+          // A normal, positive or informational check-in, AFTER the number.
+          //
+          // This is the change that actually moves Your Number up the screen.
+          // weeklyCheckIn always returns something, falling back to a cheerful
+          // "You are on track this week", so this card was an unconditional
+          // 180 to 210 logical pixels paid BEFORE the number on every populated
+          // Home. A user in perfect financial health read two hundred pixels of
+          // good news before reaching the figure they opened the app for.
+          if (checkIn != null && checkIn['tone'] != 'urgent') ...[
+            _checkInCard(context, checkIn),
+            const SizedBox(height: 12),
+          ],
           // Only invite a fresh start when the store really is empty. After a
           // failed read the data looks empty but is not, writes are blocked,
           // and the error banner above already explains it, so the welcome
@@ -287,6 +319,50 @@ class OverviewScreen extends StatelessWidget {
           if (!hasStarted) ...[
             if (store.loadError == null) _welcomeCard(context),
           ] else ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Kicker('THIS MONTH'),
+                    const SizedBox(height: 6),
+                    // The ANSWER first, its two parts underneath. This was
+                    // three equal rows and a divider, which made the reader
+                    // do the subtraction with their eyes before learning
+                    // whether the month was up or down. The net is the only
+                    // figure most people want, so it gets the headline.
+                    Builder(
+                      builder: (context) {
+                        final net = istmt['netIncome'] as double;
+                        return Text(
+                          // The sign is explicit on a gain. Without it a
+                          // good month and a bad month look identical until
+                          // you notice the minus.
+                          '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                          style: TextStyle(
+                            fontFamily: Barako.displayFont,
+                            color: net >= 0 ? Barako.primary : Barako.warning,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: Gap.md),
+                    StatPair(
+                      leftLabel: 'Money in',
+                      leftValue: formatMoney(istmt['income'] as double),
+                      leftColor: Barako.primary,
+                      rightLabel: 'Money out',
+                      rightValue: formatMoney(istmt['expenses'] as double),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (accounts.isNotEmpty) ...[
               Card(
                 child: Padding(
@@ -341,49 +417,11 @@ class OverviewScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Kicker('THIS MONTH'),
-                    const SizedBox(height: 6),
-                    // The ANSWER first, its two parts underneath. This was
-                    // three equal rows and a divider, which made the reader
-                    // do the subtraction with their eyes before learning
-                    // whether the month was up or down. The net is the only
-                    // figure most people want, so it gets the headline.
-                    Builder(
-                      builder: (context) {
-                        final net = istmt['netIncome'] as double;
-                        return Text(
-                          // The sign is explicit on a gain. Without it a
-                          // good month and a bad month look identical until
-                          // you notice the minus.
-                          '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                          style: TextStyle(
-                            fontFamily: Barako.displayFont,
-                            color: net >= 0 ? Barako.primary : Barako.warning,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            fontFeatures: const [],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: Gap.md),
-                    StatPair(
-                      leftLabel: 'Money in',
-                      leftValue: formatMoney(istmt['income'] as double),
-                      leftColor: Barako.primary,
-                      rightLabel: 'Money out',
-                      rightValue: formatMoney(istmt['expenses'] as double),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // The month, then what it is made of, then the whole picture.
+            // Net worth is the least urgent figure on Home and the slowest
+            // to change, so it reads as a footer rather than a headline.
+            const SizedBox(height: 12),
+            _netWorthHero(parts),
           ],
         ],
       ),

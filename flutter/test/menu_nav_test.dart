@@ -39,7 +39,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Home shows status, not the nav cards that used to clutter it.
-    expect(find.text('NET WORTH'), findsOneWidget);
+    //
+    // YOUR NUMBER rather than NET WORTH as the "populated dashboard" marker.
+    // Net worth used to sit fourth and now closes the screen, so in a default
+    // test viewport it falls below the fold and the lazy ListView never builds
+    // it. That is the reorder working, not a regression: this assertion only
+    // ever meant "the real dashboard rendered", and the safe-to-spend number
+    // is what leads it now.
+    expect(find.text('YOUR NUMBER'), findsOneWidget);
     expect(find.text('Tools'), findsNothing);
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
