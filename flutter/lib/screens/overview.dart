@@ -96,11 +96,24 @@ class OverviewScreen extends StatelessWidget {
   /// Opens Menu. Home keeps its wordmark instead of adopting ScreenHeader, so
   /// it wires MenuAction into its own row rather than getting it for free.
   final VoidCallback? onMenu;
+
+  /// The clock, injectable so a test can pin the date.
+  ///
+  /// This seam exists because three fixture rewrites in a row failed to make a
+  /// Home test hold on every calendar date through the LIVE clock, and each
+  /// failure was legitimate app behaviour: recurring bills get posted and
+  /// stamped on load, and banking adjustment can push a due date past a
+  /// weekend payday. Some real dates genuinely have no committed money, so a
+  /// test that needs committed money must pick its date rather than inherit
+  /// whatever day the suite runs. The app never passes this; it defaults to
+  /// the real clock.
+  final DateTime Function() clock;
   const OverviewScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onMenu,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -108,7 +121,7 @@ class OverviewScreen extends StatelessWidget {
     final data = store.data;
     // One clock for the whole build, so a midnight straddle can never show
     // the check-in for one day and the number for the next in the same frame.
-    final now = DateTime.now();
+    final now = clock();
     final parts = netWorthParts(data);
     final istmt = incomeStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();

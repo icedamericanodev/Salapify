@@ -14,6 +14,17 @@
 //
 // A reader seeing a figure twice does not think "same number". They think
 // "there must be two of these", and start looking for the difference.
+//
+// THE CLOCK IS PINNED, and that took three failed fixtures to learn. Each try
+// at making a fixture hold "on every date" through the live clock failed on a
+// real calendar behaviour: a bill on day 28 let the test skip silently on most
+// dates; bills spread six days apart missed a two-day semimonthly window on
+// Jan 28; and a bill pinned to its payday held on the raw blob but not through
+// the store, because load() posts due recurring bills and stamps lastPosted,
+// which excludes them from the window. Some real dates genuinely have no
+// committed money, so no fixture can hold on all of them. OverviewScreen now
+// takes an injectable clock, this file passes a fixed date, and the whole
+// class of calendar flakiness is gone rather than patched.
 
 import 'dart:convert';
 
@@ -23,15 +34,23 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/money/commitments.dart' show upcomingCommitments;
 import 'package:salapify/money/cycle.dart';
 import 'package:salapify/screens/overview.dart';
-import 'package:salapify/widgets/bills_before_payday.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/bills_before_payday.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/app_harness.dart';
 
-/// Cash, plus a recurring bill due before the next payday, which is what
-/// creates committed money AND a bills list at the same time. That overlap is
-/// the only state where the duplication can appear.
+/// The pinned date. A Sunday, five days before the default semimonthly payday
+/// on Jul 31, with the debt's due day landing on the Tuesday in between.
+final _today = DateTime(2026, 7, 26);
+
+/// Cash plus a DEBT minimum due before payday, which is what creates committed
+/// money and a bills list at once.
+///
+/// A debt rather than a recurring bill on purpose: store.load() posts due
+/// recurring bills and stamps lastPosted, rewriting the data the widget sees.
+/// Debt minimums have no posting machinery, so what this fixture declares is
+/// what the screen renders.
 Map<String, dynamic> _withCommittedBills() => {
   'schemaVersion': 12,
   'accounts': [
@@ -46,14 +65,15 @@ Map<String, dynamic> _withCommittedBills() => {
       'accountId': 'cash',
     },
   ],
-  'recurring': [
+  'debts': [
     {
-      'id': 'r1',
-      'name': 'Internet',
-      'type': 'expense',
-      'amount': 1699,
-      'dayOfMonth': 28,
-      'active': true,
+      'id': 'd1',
+      'name': 'Internet plan',
+      'type': 'credit card',
+      'remaining': 8000,
+      'monthlyRate': 3,
+      'minPayment': 1699,
+      'dueDay': 28,
     },
   ],
 };
@@ -73,21 +93,23 @@ Future<void> _pump(WidgetTester tester, SalapifyStore store) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: salapifyTheme(Barako.current),
-      home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
+      home: tabHost(
+        OverviewScreen(store: store, onSwitchTab: (_) {}, clock: () => _today),
+      ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
-  test('the two figures really are the same number', () {
-    // The PRECONDITION. If the engine ever stops defining available as
-    // liquid minus committed, there is no duplication to suppress and the
-    // widget test below is guarding nothing.
-    final data = _withCommittedBills();
-    final now = DateTime(2026, 7, 26);
-    final cycle = cycleStatus(data, now);
-    final dues = upcomingCommitments(data, now);
+  test('the two figures really are the same number, through the store', () async {
+    // The PRECONDITION, on the data AS THE STORE LOADS IT. An earlier version
+    // proved this on the raw blob while the widget saw store-rewritten data,
+    // which is how a precondition test and the test it protects diverge.
+    final store = await _seed(_withCommittedBills());
+    final cycle = cycleStatus(store.data, _today);
+    final dues = upcomingCommitments(store.data, _today);
+    expect(cycle.show, isTrue);
     expect(
       cycle.liquid - cycle.available,
       closeTo((dues['total'] as num).toDouble(), 0.005),
@@ -96,25 +118,27 @@ void main() {
           'bills card takes it straight from upcomingCommitments. These are '
           'meant to be one value.',
     );
+    expect(
+      cycle.liquid - cycle.available,
+      greaterThan(0),
+      reason:
+          'The fixture must produce committed money on the pinned date, or '
+          'the widget test below renders neither the bar nor the bills card '
+          'and asserts nothing.',
+    );
   });
 
   testWidgets('the committed figure appears exactly once on Home', (
     tester,
   ) async {
-    final data = _withCommittedBills();
-    final cycle = cycleStatus(data, DateTime.now());
-    final dues = upcomingCommitments(data, DateTime.now());
+    final store = await _seed(_withCommittedBills());
+    final cycle = cycleStatus(store.data, _today);
+    await _pump(tester, store);
 
-    // Only meaningful in the state where both would render. Skip rather than
-    // pass vacuously, so a fixture that stops producing the overlap is loud
-    // instead of quietly green.
-    if (!cycle.show || cycle.liquid <= cycle.available) {
-      markTestSkipped('fixture produced no committed money on this date');
-      return;
-    }
-
-    await _pump(tester, await _seed(data));
     final committed = formatMoney(cycle.liquid - cycle.available);
+    // Both cards are on screen, and the figure appears in exactly one of them.
+    expect(find.text('BILLS BEFORE PAYDAY'), findsOneWidget);
+    expect(find.text('Committed'), findsOneWidget);
     expect(
       find.text(committed),
       findsOneWidget,
@@ -124,8 +148,6 @@ void main() {
           'so a reader assumes they are two different things and goes looking '
           'for the difference.',
     );
-    expect(find.text(formatMoney((dues['total'] as num).toDouble())),
-        findsOneWidget);
   });
 
   testWidgets('and comes back when the bar is not there to show it', (
@@ -139,12 +161,23 @@ void main() {
       MaterialApp(
         theme: salapifyTheme(Barako.current),
         home: tabHost(
-          Builder(
-            builder: (_) => ListView(
-              children: [
-                BillsBeforePaydayForTest.build(committedShownAbove: false),
-              ],
-            ),
+          ListView(
+            children: [
+              BillsBeforePayday(
+                bills: const [
+                  {
+                    'name': 'Internet plan',
+                    'kind': 'minimum',
+                    'date': '2026-07-28',
+                    'amount': 1699.0,
+                  },
+                ],
+                total: 1699,
+                format: formatMoney,
+                formatDay: prettyDay,
+                committedShownAbove: false,
+              ),
+            ],
           ),
         ),
       ),
@@ -152,23 +185,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('₱1,699'), findsOneWidget);
   });
-}
-
-/// A fixed bills card, so the "total comes back" case does not depend on a
-/// clock or on which day the suite happens to run.
-class BillsBeforePaydayForTest {
-  static Widget build({required bool committedShownAbove}) => BillsBeforePayday(
-    bills: const [
-      {
-        'name': 'Internet',
-        'kind': 'bill',
-        'date': '2026-07-28',
-        'amount': 1699.0,
-      },
-    ],
-    total: 1699,
-    format: formatMoney,
-    formatDay: prettyDay,
-    committedShownAbove: committedShownAbove,
-  );
 }
