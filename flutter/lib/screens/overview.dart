@@ -143,6 +143,14 @@ class OverviewScreen extends StatelessWidget {
         ? paydayRitual(data, now)
         : const PaydayRitual(isPayday: false, salaryLogged: false);
 
+    // Whether Your Number's bar is about to print the committed figure. This
+    // is deliberately ONE expression rather than two that happen to agree:
+    // it is the guard on the bar itself (overview.dart, `s.liquid > s.available`)
+    // conjoined with the guard on the card that contains it. Computed apart,
+    // the two would drift the first time either condition changed and the
+    // duplicate would come back silently.
+    final committedShown = cycle.show && cycle.liquid > cycle.available;
+
     // A body now, not a Scaffold. The shell owns the one Scaffold, the nav bar
     // and the Log button, so Home is just its content.
     //
@@ -265,6 +273,7 @@ class OverviewScreen extends StatelessWidget {
               total: (dues['total'] as num?)?.toDouble() ?? 0,
               format: formatMoney,
               formatDay: prettyDay,
+              committedShownAbove: committedShown,
             ),
             const SizedBox(height: 12),
           ],
