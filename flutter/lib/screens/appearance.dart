@@ -24,6 +24,7 @@ import '../data/store.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/section.dart';
+import '../widgets/segmented.dart';
 
 const Map<String, String> appearanceModeLabels = {
   'system': 'System',
@@ -84,9 +85,17 @@ class AppearanceScreen extends StatelessWidget {
               children: [
                 Kicker('MODE'),
                 const SizedBox(height: Gap.md),
-                _ModeSegments(
+                Segmented<String>(
                   current: currentMode,
                   onPick: (m) => save(() => store.setThemeMode(m)),
+                  options: [
+                    for (final m in appearanceModes)
+                      SegmentOption(
+                        value: m,
+                        label: appearanceModeLabels[m] ?? m,
+                        semanticLabel: '${appearanceModeLabels[m] ?? m} appearance',
+                      ),
+                  ],
                 ),
                 const SizedBox(height: Gap.sm),
                 Text(
@@ -181,83 +190,6 @@ class _ThemeGrid extends StatelessWidget {
           children: rows,
         );
       },
-    );
-  }
-}
-
-/// The three way light/dark/system control.
-///
-/// Hand rolled rather than SegmentedButton, which arrives with a stadium shape,
-/// vertical dividers and its own checkmark, and would need six style overrides
-/// to lose them. This is shorter than the overrides would be.
-class _ModeSegments extends StatelessWidget {
-  final String current;
-  final void Function(String) onPick;
-
-  // ignore: prefer_const_constructors_in_immutables
-  _ModeSegments({required this.current, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Barako.card,
-        border: Border.all(color: Barako.border),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      padding: const EdgeInsets.all(Gap.xxs),
-      child: Row(
-        children: [
-          for (final m in appearanceModes)
-            Expanded(
-              child: Semantics(
-                button: true,
-                selected: current == m,
-                label: '${appearanceModeLabels[m] ?? m} appearance',
-                child: ExcludeSemantics(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        onPick(m);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        curve: Curves.easeOut,
-                        // 44 is the floor a thumb needs. The consequence of a
-                        // mis-tap here is the whole app repainting, which is
-                        // the loudest possible outcome for a small aiming
-                        // error, so this is not a place to shave pixels.
-                        constraints: const BoxConstraints(minHeight: 44),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: current == m
-                              ? Barako.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(Radii.sm),
-                        ),
-                        child: Text(
-                          appearanceModeLabels[m] ?? m,
-                          style: TextStyle(
-                            color: current == m
-                                ? Barako.onPrimary
-                                : Barako.textSecondary,
-                            fontSize: 14,
-                            fontWeight: current == m
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
