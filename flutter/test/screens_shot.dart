@@ -420,6 +420,69 @@ void main() {
     );
   });
 
+  testWidgets('Insights with real data, banded, dark', (tester) async {
+    // The per-tab insights shot seeds an empty store, so it renders the
+    // empty-state invitation and the BANDS are invisible to it. This frame
+    // seeds enough data that DO NEXT, TOOLS (folded launchers), and THE
+    // BIGGER PICTURE all render; without it the batch 5 restructure would
+    // have shipped with no render showing it, the session 7 lesson again.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 500,
+            'date': '2026-07-10',
+            'accountId': 'cash',
+          },
+        ],
+        'debts': [
+          {
+            'id': 'd1',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 12000,
+            'monthlyRate': 3,
+            'minPayment': 500,
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    // Tall frame so the whole banded column fits in one look.
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          body: InsightsScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/insights-full-dark.png'),
+    );
+  });
+
   testWidgets('appearance at 1.4x system font on a narrow phone', (
     tester,
   ) async {
