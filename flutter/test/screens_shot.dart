@@ -74,7 +74,9 @@ String? _materialIconFont() {
     _walkUpToFlutterRoot(Platform.resolvedExecutable) ?? '',
   }..remove('');
   for (final root in roots) {
-    final f = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    final f = File(
+      '$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    );
     if (f.existsSync()) return f.path;
   }
   return null;
@@ -145,13 +147,13 @@ Future<void> loadRealFonts(WidgetTester tester) async {
       // Say so rather than silently rendering boxes. A quiet fallback here
       // would put the reviewer right back to guessing.
       // ignore: avoid_print
-      print('WARNING: Material icon font not found, icons will render as boxes');
+      print(
+        'WARNING: Material icon font not found, icons will render as boxes',
+      );
       return;
     }
     final iconLoader = FontLoader('MaterialIcons')
-      ..addFont(
-        File(icons).readAsBytes().then((b) => ByteData.view(b.buffer)),
-      );
+      ..addFont(File(icons).readAsBytes().then((b) => ByteData.view(b.buffer)));
     await iconLoader.load();
   });
 }
@@ -170,7 +172,7 @@ Future<void> shoot(
   required Brightness brightness,
 }) async {
   await loadRealFonts(tester);
-    await loadPanFaces(tester);
+  await loadPanFaces(tester);
   SharedPreferences.setMockInitialValues({});
   final store = SalapifyStore();
   await store.load();
@@ -202,12 +204,18 @@ Future<void> shoot(
 }
 
 void main() {
+  // onMenu is wired on every tab, as the shell wires it. It was omitted once
+  // and every per-tab shot then rendered WITHOUT the Menu button, so the
+  // founder was looking at a header on the phone that no render had ever
+  // shown. A shot of a tab must carry the chrome the tab really has.
   final screens = <String, Widget Function(SalapifyStore)>{
-    'overview': (s) => OverviewScreen(store: s, onSwitchTab: (_) {}),
-    'budget': (s) => BudgetScreen(store: s),
-    'history': (s) => HistoryScreen(store: s),
-    'utang': (s) => MoneyScreen(store: s),
-    'insights': (s) => InsightsScreen(store: s, onSwitchTab: (_) {}),
+    'overview': (s) =>
+        OverviewScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
+    'budget': (s) => BudgetScreen(store: s, onMenu: () {}),
+    'history': (s) => HistoryScreen(store: s, onMenu: () {}),
+    'utang': (s) => MoneyScreen(store: s, onMenu: () {}),
+    'insights': (s) =>
+        InsightsScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
     'appearance': (s) => AppearanceScreen(store: s),
@@ -319,7 +327,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: Scaffold(body: MoneyScreen(store: store)),
+        home: Scaffold(
+          body: MoneyScreen(store: store, onMenu: () {}),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -432,7 +442,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: Scaffold(body: MenuScreen(store: store, onSwitchTab: (_) {})),
+        home: Scaffold(
+          body: MenuScreen(store: store, onSwitchTab: (_) {}),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -470,7 +482,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: Scaffold(body: MenuScreen(store: store, onSwitchTab: (_) {})),
+        home: Scaffold(
+          body: MenuScreen(store: store, onSwitchTab: (_) {}),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -543,7 +557,13 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: Scaffold(body: OverviewScreen(store: store, onSwitchTab: (_) {})),
+        home: Scaffold(
+          body: OverviewScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
