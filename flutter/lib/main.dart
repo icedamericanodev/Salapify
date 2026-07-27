@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.54 \u00b7 Home leads with your number, and one committed figure instead of two.';
+    'f2.55 \u00b7 Your Number is the hero card now, and net worth calms down to close the screen.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

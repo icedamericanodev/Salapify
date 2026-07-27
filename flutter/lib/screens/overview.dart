@@ -385,9 +385,13 @@ class OverviewScreen extends StatelessWidget {
                     children: [
                       Kicker('MY MONEY'),
                       const SizedBox(height: 6),
-                      for (final a in accounts)
+                      // Flat rows with hairline separators, the same content
+                      // treatment as Utang's people list. Rows in a card, not
+                      // a card per row.
+                      for (final (i, a) in accounts.indexed) ...[
+                        if (i > 0) Divider(height: 1, color: Barako.border),
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -424,6 +428,7 @@ class OverviewScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -858,14 +863,19 @@ class OverviewScreen extends StatelessWidget {
       child: Semantics(
         button: onSwitchTab != null,
         hint: onSwitchTab != null ? 'Opens Insights' : null,
+        // The one raised surface on Home. surfaceRaised used to belong to net
+        // worth, which made the calmest, slowest-moving figure on the screen
+        // look like the headline. The hero treatment follows the question the
+        // screen exists to answer.
         child: Card(
+          color: Barako.surfaceRaised,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onSwitchTab == null
                 ? null
                 : () => onSwitchTab!(Destination.insights),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -885,7 +895,7 @@ class OverviewScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Fraunces',
                             color: Barako.text,
-                            fontSize: 28,
+                            fontSize: 34,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -954,10 +964,13 @@ class OverviewScreen extends StatelessWidget {
   /// golden-locked netWorthParts, this only restyles them.
   Widget _netWorthHero(Map<String, dynamic> parts) {
     final nw = parts['netWorth'] as double;
+    // A supporting card now, not the hero. It had the raised surface, 20 of
+    // padding and the biggest type on the screen, which crowned the figure
+    // that changes slowest and demands nothing. The hero surface moved to
+    // Your Number; this matches THIS MONTH, its neighbour in the tail.
     return Card(
-      color: Barako.surfaceRaised,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -977,7 +990,7 @@ class OverviewScreen extends StatelessWidget {
                   // on the screen. Red is reserved for urgent, time-bound
                   // things like an overdue utang.
                   color: nw < 0 ? Barako.text : Barako.primary,
-                  fontSize: 40,
+                  fontSize: 30,
                   fontWeight: FontWeight.w700,
                   // No tabularFigures here, deliberately. theme.dart records
                   // that Fraunces has NO tnum table, which the font file
