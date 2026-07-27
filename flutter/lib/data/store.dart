@@ -1646,4 +1646,66 @@ class SalapifyStore extends ChangeNotifier {
     notifyListeners();
     return removed;
   });
+
+  /// Edit a logged entry honestly: the old version's effect on its linked
+  /// account is reversed and the new version's applied, through the golden
+  /// tested ledger engine (the same reverse-then-apply the RN app uses), so
+  /// a changed amount, type, or account can never drift a balance.
+  ///
+  /// A null VALUE in [patch] means "remove this key": the engine's merge is
+  /// spread semantics and cannot delete, so the store strips null-valued
+  /// keys from the edited row after the update. That is how unlinking an
+  /// account, dropping a stale categoryId, or clearing an origCurrency pair
+  /// is expressed. Nulls never reach the stored JSON.
+  ///
+  /// Returns the entry exactly as it was BEFORE the edit (or null when the
+  /// id is unknown), so the caller can offer a real Undo by patching the
+  /// changed keys back.
+  Future<Map<String, dynamic>?> updateEntry(
+    String id,
+    Map<String, dynamic> patch,
+  ) => _serialized(() async {
+    if (!canWrite) {
+      throw StateError(
+        'Saving is off because your stored data could not be read. '
+        'Import a backup to recover first.',
+      );
+    }
+    // Same guard as addEntry: one NaN can zero an account for good.
+    if (patch.containsKey('amount')) {
+      final amt = patch['amount'];
+      if (amt is! num || !amt.isFinite || amt <= 0) {
+        throw ArgumentError('That amount is not a normal number.');
+      }
+    }
+    final txs = (data['transactions'] as List).cast<Map<String, dynamic>>();
+    final idx = txs.indexWhere((t) => t['id'] == id);
+    if (idx < 0) return null;
+    final before = Map<String, dynamic>.from(txs[idx]);
+    final previous = data;
+    data = ledger.updateTransaction(data, id, patch);
+    if (patch.values.any((v) => v == null)) {
+      final updated = (data['transactions'] as List)
+          .cast<Map<String, dynamic>>();
+      data = {
+        ...data,
+        'transactions': [
+          for (final t in updated)
+            t['id'] == id
+                ? (Map<String, dynamic>.from(t)
+                    ..removeWhere((k, v) => v == null))
+                : t,
+        ],
+      };
+    }
+    try {
+      await _save();
+    } catch (e) {
+      data = previous;
+      notifyListeners();
+      rethrow;
+    }
+    notifyListeners();
+    return before;
+  });
 }

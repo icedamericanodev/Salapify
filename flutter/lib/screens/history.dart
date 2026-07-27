@@ -13,7 +13,7 @@ import '../theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'overview.dart' show formatMoney;
-import 'split_expense.dart' show showSplitSheet;
+import 'edit_sheet.dart' show showEntrySheet;
 
 const _filters = [
   ('all', 'All'),
@@ -351,6 +351,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         t['type'] == 'expense' &&
         amount > 0 &&
         t['debtId'] == null;
+    // Editable under the exact gate delete uses: a plain unlocked income or
+    // expense. Everything else opens a read-only explainer, which is one
+    // step STRICTER than RN (whose type-only rule let legacy utang legs
+    // through into the editor by accident).
+    final editable = isDeletable(t, lockedIds: locked);
     // Advertise the split affordance only on rows not yet split; an already
     // split expense stays tappable (to split the remainder) but without the
     // loud hint, so the list does not repeat the CTA on every single row.
@@ -373,8 +378,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   )
                 else if (showSplitHint)
                   Text(
-                    'Tap to split with friends',
+                    'Tap to edit or split with friends',
                     style: TextStyle(color: Barako.muted, fontSize: 11),
+                  )
+                else if (editable)
+                  Text(
+                    'Tap to edit',
+                    style: TextStyle(color: Barako.faint, fontSize: 11),
                   ),
               ],
             ),
@@ -406,22 +416,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
 
+    // Every row is tappable, RN semantics: editable rows open the edit form
+    // (with split reachable inside it), record and utang-linked rows open a
+    // read-only explainer saying why not and where to manage them.
     final row = Card(
       margin: const EdgeInsets.symmetric(vertical: 3),
-      child: splittable
-          ? Semantics(
-              button: true,
-              label: 'Split $label',
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => showSplitSheet(context, widget.store, t),
-                child: rowContent,
-              ),
-            )
-          : rowContent,
+      child: Semantics(
+        button: true,
+        label: editable ? 'Edit $label' : 'About $label',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => showEntrySheet(
+            context,
+            widget.store,
+            t,
+            editable: editable,
+            splittable: splittable,
+          ),
+          child: rowContent,
+        ),
+      ),
     );
 
-    if (!isDeletable(t, lockedIds: locked)) return row;
+    if (!editable) return row;
 
     // The delete runs inside confirmDismiss, so the row only leaves the tree
     // AFTER the store really removed and persisted it. Doing the work in

@@ -406,6 +406,18 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/utang-new-sheet-dark.png'),
     );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // The edit sheet, opened from a real Activity row, prefilled.
+    await tester.tap(navDestination('Activity'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Groceries'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/edit-sheet-dark.png'),
+    );
   });
 
   testWidgets('appearance at 1.4x system font on a narrow phone', (
