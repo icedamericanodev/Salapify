@@ -56,87 +56,103 @@ class BudgetScreen extends StatelessWidget {
     ];
     final adds = quickAdds.isNotEmpty ? quickAdds : _defaultQuickAdds;
 
+    // The header is pinned above the list, the money.dart shape, so Menu
+    // stays one tap away at any scroll depth. Founder approved for every
+    // tab; Activity and Utang already worked this way and the app was split
+    // down the middle.
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ScreenHeader('Budget', onMenu: onMenu),
-          _limitCard(context, summary),
-          if (store.canWrite) ...[
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'QUICK ADD',
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final q in adds)
-                          ActionChip(
-                            label: Text('${q.label}  ${formatMoney(q.amount)}'),
-                            backgroundColor: Barako.background,
-                            labelStyle: TextStyle(
-                              color: Barako.text,
-                              fontWeight: FontWeight.w600,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: ScreenHeader('Budget', onMenu: onMenu),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+              children: [
+                _limitCard(context, summary),
+                if (store.canWrite) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'QUICK ADD',
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
                             ),
-                            side: BorderSide(color: Barako.border),
-                            onPressed: () => _quickAdd(context, q),
                           ),
-                        ActionChip(
-                          label: const Text('+ Custom'),
-                          backgroundColor: Barako.background,
-                          labelStyle: TextStyle(
-                            color: Barako.primaryText,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final q in adds)
+                                ActionChip(
+                                  label: Text(
+                                    '${q.label}  ${formatMoney(q.amount)}',
+                                  ),
+                                  backgroundColor: Barako.background,
+                                  labelStyle: TextStyle(
+                                    color: Barako.text,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  side: BorderSide(color: Barako.border),
+                                  onPressed: () => _quickAdd(context, q),
+                                ),
+                              ActionChip(
+                                label: const Text('+ Custom'),
+                                backgroundColor: Barako.background,
+                                labelStyle: TextStyle(
+                                  color: Barako.primaryText,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                side: BorderSide(color: Barako.border),
+                                onPressed: () => showLogSheet(context, store),
+                              ),
+                            ],
                           ),
-                          side: BorderSide(color: Barako.border),
-                          onPressed: () => showLogSheet(context, store),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          if (rows.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'WHERE IT WENT',
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    for (final w in rows) _catRow(w, max),
-                  ],
-                ),
-              ),
+                  ),
+                ],
+                if (rows.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'WHERE IT WENT',
+                            style: TextStyle(
+                              color: Barako.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          for (final w in rows) _catRow(w, max),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+              ],
             ),
-          ],
-          const SizedBox(height: 24),
+          ),
         ],
       ),
     );

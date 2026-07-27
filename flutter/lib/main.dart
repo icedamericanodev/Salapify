@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.60 \u00b7 Every log shows a receipt with Undo, and debt taps land on the Utang tab.';
+    'f2.61 \u00b7 The header stays put when you scroll, so Menu is always one tap away.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

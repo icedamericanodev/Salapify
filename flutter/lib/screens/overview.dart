@@ -188,282 +188,304 @@ class OverviewScreen extends StatelessWidget {
     // 96 of bottom padding, not 20, so the last card clears the Log button.
     // Home has had a FAB and 20 of padding all along, which means its final
     // card has been sitting under that button since the day it was added.
+    //
+    // The wordmark row (Search and Menu keys) is PINNED above the list, the
+    // same shape as every other tab since the founder's call. Only the 48dp
+    // key row pins; the greeting scrolls with the content, which keeps the
+    // fixed band as short as it can be.
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                '₱',
-                style: TextStyle(
-                  color: Barako.primary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w800,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              children: [
+                Text(
+                  '₱',
+                  style: TextStyle(
+                    color: Barako.primary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              SizedBox(width: 10),
-              // Flexible + scaleDown: on a very narrow phone the wordmark
-              // shrinks a touch instead of pushing the search button off the
-              // edge (the old fixed Text overflowed by ~30px at 330 wide).
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'SALAPIFY',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3,
+                SizedBox(width: 10),
+                // Flexible + scaleDown: on a very narrow phone the wordmark
+                // shrinks a touch instead of pushing the search button off the
+                // edge (the old fixed Text overflowed by ~30px at 330 wide).
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'SALAPIFY',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Search wears the same raised key as Menu so the pair reads as
-              // one set of controls; a bare glyph next to a bordered square
-              // would look like one button and one leftover.
-              HeaderAction(
-                icon: 'search',
-                tooltip: 'Search',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SearchScreen(
-                      store: store,
-                      onSwitchTab: onSwitchTab,
-                      onOpenReceivables: onOpenReceivables,
-                      onOpenPayables: onOpenPayables,
+                // Search wears the same raised key as Menu so the pair reads as
+                // one set of controls; a bare glyph next to a bordered square
+                // would look like one button and one leftover.
+                HeaderAction(
+                  icon: 'search',
+                  tooltip: 'Search',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SearchScreen(
+                        store: store,
+                        onSwitchTab: onSwitchTab,
+                        onOpenReceivables: onOpenReceivables,
+                        onOpenPayables: onOpenPayables,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // An explicit gap: two bordered containers must not touch the
-              // way two padded IconButtons could.
-              if (onMenu != null) ...[
-                const SizedBox(width: Gap.sm),
-                // Home keeps the wordmark rather than adopting ScreenHeader,
-                // so the same MenuAction the other four get from their header
-                // is placed by hand here. One widget, one tooltip, one tap
-                // target, five screens.
-                MenuAction(onTap: onMenu!),
+                // An explicit gap: two bordered containers must not touch the
+                // way two padded IconButtons could.
+                if (onMenu != null) ...[
+                  const SizedBox(width: Gap.sm),
+                  // Home keeps the wordmark rather than adopting ScreenHeader,
+                  // so the same MenuAction the other four get from their header
+                  // is placed by hand here. One widget, one tooltip, one tap
+                  // target, five screens.
+                  MenuAction(onTap: onMenu!),
+                ],
               ],
-            ],
-          ),
-          // The greeting sits under the wordmark rather than replacing it,
-          // so the app still says what it is on the screen a new user opens
-          // first. It reads fine with no name, which is the DEFAULT: the
-          // ask is skippable and every existing user has none.
-          const SizedBox(height: 4),
-          Text(
-            // The build's own clock, not a second DateTime.now(). One frame
-            // must never mix two readings of the time, which is the same
-            // reason `now` is captured once at the top of build.
-            greetingFor(now, name: store.displayName),
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 15,
-              height: 1.3,
             ),
           ),
-          const SizedBox(height: 20),
-          if (store.loadError != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Your saved data could not be read, so nothing was overwritten. ${store.loadError}',
-                  style: TextStyle(color: Barako.warning),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+              children: [
+                // The greeting sits under the wordmark rather than replacing it,
+                // so the app still says what it is on the screen a new user opens
+                // first. It reads fine with no name, which is the DEFAULT: the
+                // ask is skippable and every existing user has none. It scrolls
+                // with the content on purpose: the pinned band stays 48dp.
+                Text(
+                  // The build's own clock, not a second DateTime.now(). One frame
+                  // must never mix two readings of the time, which is the same
+                  // reason `now` is captured once at the top of build.
+                  greetingFor(now, name: store.displayName),
+                  style: TextStyle(
+                    color: Barako.textSecondary,
+                    fontSize: 15,
+                    height: 1.3,
+                  ),
                 ),
-              ),
-            ),
-          // Home answers one question above the fold: how much can I safely
-          // spend. Everything below is ordered around protecting that.
-          //
-          // The payday ritual comes first ONLY while the salary is unlogged,
-          // because logging it changes every number underneath. Once logged it
-          // drops below, since it is then a receipt rather than a task. It was
-          // unconditionally first, and on payday that pushed Your Number to
-          // roughly 530 logical pixels down a 800pt screen, right at the fold.
-          if (ritual.isPayday && !ritual.salaryLogged) ...[
-            _paydayCard(context, ritual, numberShows: cycle.show),
-            const SizedBox(height: 12),
-          ],
-          // An URGENT check-in outranks the number.
-          //
-          // Worth writing down, because it looks like dead code and is not:
-          // the coach's only urgent tone is 'crunch', fired when
-          // liquid > 0 && available <= 0, and cycleStatus hides Your Number on
-          // exactly that condition. So in practice this card sits above
-          // _daysToPaydayCard, never above Your Number, and the two can never
-          // both be on screen. Deleting this branch would still look correct
-          // right up until the coach grows a second urgent kind.
-          if (checkIn != null && checkIn['tone'] == 'urgent') ...[
-            _checkInCard(context, checkIn),
-            const SizedBox(height: 12),
-          ],
-          if (cycle.show) ...[
-            _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
-            const SizedBox(height: 12),
-          ] else if (hasStarted && dues['daysLeft'] is int) ...[
-            // The countdown used to live ONLY inside Your Number, which
-            // hides whenever there is nothing positive to spend. So the
-            // answer to "how long do I have to hold out" disappeared exactly
-            // when money was tight, which is the one time anybody asks it.
-            // Shown only in that gap: when Your Number renders, it already
-            // says how many days are left, and two countdowns on one screen
-            // is worse than none.
-            _daysToPaydayCard(dues),
-            const SizedBox(height: 12),
-          ],
-          // What the committed money is actually FOR. The bar above says how
-          // much is spoken for; this says to whom. Both read the same
-          // upcomingCommitments call, so they cannot disagree.
-          if (hasStarted && bills.isNotEmpty) ...[
-            BillsBeforePayday(
-              bills: bills,
-              total: (dues['total'] as num?)?.toDouble() ?? 0,
-              format: formatMoney,
-              formatDay: prettyDay,
-              committedShownAbove: committedShown,
-            ),
-            const SizedBox(height: 12),
-          ],
-          // The payday ritual once the salary IS logged: below the number it
-          // just refreshed, because at that point it reports rather than asks.
-          if (ritual.isPayday && ritual.salaryLogged) ...[
-            _paydayCard(context, ritual, numberShows: cycle.show),
-            const SizedBox(height: 12),
-          ],
-          // A normal, positive or informational check-in, AFTER the number.
-          //
-          // This is the change that actually moves Your Number up the screen.
-          // weeklyCheckIn always returns something, falling back to a cheerful
-          // "You are on track this week", so this card was an unconditional
-          // 180 to 210 logical pixels paid BEFORE the number on every populated
-          // Home. A user in perfect financial health read two hundred pixels of
-          // good news before reaching the figure they opened the app for.
-          if (checkIn != null && checkIn['tone'] != 'urgent') ...[
-            _checkInCard(context, checkIn),
-            const SizedBox(height: 12),
-          ],
-          // Only invite a fresh start when the store really is empty. After a
-          // failed read the data looks empty but is not, writes are blocked,
-          // and the error banner above already explains it, so the welcome
-          // lanes (which would be dead or misleading) are suppressed.
-          if (!hasStarted) ...[
-            if (store.loadError == null) _welcomeCard(context),
-          ] else ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Kicker('THIS MONTH'),
-                    const SizedBox(height: 6),
-                    // The ANSWER first, its two parts underneath. This was
-                    // three equal rows and a divider, which made the reader
-                    // do the subtraction with their eyes before learning
-                    // whether the month was up or down. The net is the only
-                    // figure most people want, so it gets the headline.
-                    Builder(
-                      builder: (context) {
-                        final net = istmt['netIncome'] as double;
-                        return Text(
-                          // The sign is explicit on a gain. Without it a
-                          // good month and a bad month look identical until
-                          // you notice the minus.
-                          '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                          style: TextStyle(
-                            fontFamily: Barako.displayFont,
-                            color: net >= 0 ? Barako.primary : Barako.warning,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            fontFeatures: const [],
-                          ),
-                        );
-                      },
+                const SizedBox(height: 20),
+                if (store.loadError != null)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'Your saved data could not be read, so nothing was overwritten. ${store.loadError}',
+                        style: TextStyle(color: Barako.warning),
+                      ),
                     ),
-                    const SizedBox(height: Gap.md),
-                    StatPair(
-                      leftLabel: 'Money in',
-                      leftValue: formatMoney(istmt['income'] as double),
-                      leftColor: Barako.primary,
-                      rightLabel: 'Money out',
-                      rightValue: formatMoney(istmt['expenses'] as double),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (accounts.isNotEmpty) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Kicker('MY MONEY'),
-                      const SizedBox(height: 6),
-                      // Flat rows with hairline separators, the same content
-                      // treatment as Utang's people list. Rows in a card, not
-                      // a card per row.
-                      for (final (i, a) in accounts.indexed) ...[
-                        if (i > 0) Divider(height: 1, color: Barako.border),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  a['name'] as String? ?? 'Account',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 16,
-                                  ),
+                  ),
+                // Home answers one question above the fold: how much can I safely
+                // spend. Everything below is ordered around protecting that.
+                //
+                // The payday ritual comes first ONLY while the salary is unlogged,
+                // because logging it changes every number underneath. Once logged it
+                // drops below, since it is then a receipt rather than a task. It was
+                // unconditionally first, and on payday that pushed Your Number to
+                // roughly 530 logical pixels down a 800pt screen, right at the fold.
+                if (ritual.isPayday && !ritual.salaryLogged) ...[
+                  _paydayCard(context, ritual, numberShows: cycle.show),
+                  const SizedBox(height: 12),
+                ],
+                // An URGENT check-in outranks the number.
+                //
+                // Worth writing down, because it looks like dead code and is not:
+                // the coach's only urgent tone is 'crunch', fired when
+                // liquid > 0 && available <= 0, and cycleStatus hides Your Number on
+                // exactly that condition. So in practice this card sits above
+                // _daysToPaydayCard, never above Your Number, and the two can never
+                // both be on screen. Deleting this branch would still look correct
+                // right up until the coach grows a second urgent kind.
+                if (checkIn != null && checkIn['tone'] == 'urgent') ...[
+                  _checkInCard(context, checkIn),
+                  const SizedBox(height: 12),
+                ],
+                if (cycle.show) ...[
+                  _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
+                  const SizedBox(height: 12),
+                ] else if (hasStarted && dues['daysLeft'] is int) ...[
+                  // The countdown used to live ONLY inside Your Number, which
+                  // hides whenever there is nothing positive to spend. So the
+                  // answer to "how long do I have to hold out" disappeared exactly
+                  // when money was tight, which is the one time anybody asks it.
+                  // Shown only in that gap: when Your Number renders, it already
+                  // says how many days are left, and two countdowns on one screen
+                  // is worse than none.
+                  _daysToPaydayCard(dues),
+                  const SizedBox(height: 12),
+                ],
+                // What the committed money is actually FOR. The bar above says how
+                // much is spoken for; this says to whom. Both read the same
+                // upcomingCommitments call, so they cannot disagree.
+                if (hasStarted && bills.isNotEmpty) ...[
+                  BillsBeforePayday(
+                    bills: bills,
+                    total: (dues['total'] as num?)?.toDouble() ?? 0,
+                    format: formatMoney,
+                    formatDay: prettyDay,
+                    committedShownAbove: committedShown,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                // The payday ritual once the salary IS logged: below the number it
+                // just refreshed, because at that point it reports rather than asks.
+                if (ritual.isPayday && ritual.salaryLogged) ...[
+                  _paydayCard(context, ritual, numberShows: cycle.show),
+                  const SizedBox(height: 12),
+                ],
+                // A normal, positive or informational check-in, AFTER the number.
+                //
+                // This is the change that actually moves Your Number up the screen.
+                // weeklyCheckIn always returns something, falling back to a cheerful
+                // "You are on track this week", so this card was an unconditional
+                // 180 to 210 logical pixels paid BEFORE the number on every populated
+                // Home. A user in perfect financial health read two hundred pixels of
+                // good news before reaching the figure they opened the app for.
+                if (checkIn != null && checkIn['tone'] != 'urgent') ...[
+                  _checkInCard(context, checkIn),
+                  const SizedBox(height: 12),
+                ],
+                // Only invite a fresh start when the store really is empty. After a
+                // failed read the data looks empty but is not, writes are blocked,
+                // and the error banner above already explains it, so the welcome
+                // lanes (which would be dead or misleading) are suppressed.
+                if (!hasStarted) ...[
+                  if (store.loadError == null) _welcomeCard(context),
+                ] else ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Kicker('THIS MONTH'),
+                          const SizedBox(height: 6),
+                          // The ANSWER first, its two parts underneath. This was
+                          // three equal rows and a divider, which made the reader
+                          // do the subtraction with their eyes before learning
+                          // whether the month was up or down. The net is the only
+                          // figure most people want, so it gets the headline.
+                          Builder(
+                            builder: (context) {
+                              final net = istmt['netIncome'] as double;
+                              return Text(
+                                // The sign is explicit on a gain. Without it a
+                                // good month and a bad month look identical until
+                                // you notice the minus.
+                                '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                                style: TextStyle(
+                                  fontFamily: Barako.displayFont,
+                                  color: net >= 0
+                                      ? Barako.primary
+                                      : Barako.warning,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w700,
+                                  fontFeatures: const [],
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // A big balance scales down instead of
-                              // overflowing the row on a narrow phone.
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    formatMoney(amount(a['balance'])),
-                                    style: TextStyle(
-                                      color: Barako.textSecondary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures(),
-                                      ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: Gap.md),
+                          StatPair(
+                            leftLabel: 'Money in',
+                            leftValue: formatMoney(istmt['income'] as double),
+                            leftColor: Barako.primary,
+                            rightLabel: 'Money out',
+                            rightValue: formatMoney(
+                              istmt['expenses'] as double,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (accounts.isNotEmpty) ...[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Kicker('MY MONEY'),
+                            const SizedBox(height: 6),
+                            // Flat rows with hairline separators, the same content
+                            // treatment as Utang's people list. Rows in a card, not
+                            // a card per row.
+                            for (final (i, a) in accounts.indexed) ...[
+                              if (i > 0)
+                                Divider(height: 1, color: Barako.border),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        a['name'] as String? ?? 'Account',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Barako.text,
+                                          fontSize: 16,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    // A big balance scales down instead of
+                                    // overflowing the row on a narrow phone.
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          formatMoney(amount(a['balance'])),
+                                          style: TextStyle(
+                                            color: Barako.textSecondary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            fontFeatures: const [
+                                              FontFeature.tabularFigures(),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            // The month, then what it is made of, then the whole picture.
-            // Net worth is the least urgent figure on Home and the slowest
-            // to change, so it reads as a footer rather than a headline.
-            const SizedBox(height: 12),
-            _netWorthHero(parts),
-          ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // The month, then what it is made of, then the whole picture.
+                  // Net worth is the least urgent figure on Home and the slowest
+                  // to change, so it reads as a footer rather than a headline.
+                  const SizedBox(height: 12),
+                  _netWorthHero(parts),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
