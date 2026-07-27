@@ -60,9 +60,15 @@ class ScreenHeader extends StatelessWidget {
     // and Utang carries a create button as well, so "title alone" stopped
     // being the common shape.
     //
-    // Flexible on the title, never on the actions: when the text is long or
-    // the system font is large, the TITLE should shrink and wrap. Letting an
-    // action shrink instead would give a user a button too small to hit at
+    // Expanded on the title, never on the actions, and no Spacer. The first
+    // version used Flexible plus Spacer, which is TWO flex children: the row
+    // split its free space between them, and on a short title ("Budget") the
+    // title's unused share became dead space at the END of the row, parking
+    // the Menu key 19dp off the content edge on some tabs and flush on
+    // others. A single tight Expanded title owns all the free space, so the
+    // actions land on the edge on every tab. When the text is long or the
+    // system font is large, the TITLE is still the thing that wraps; letting
+    // an action shrink instead would give a user a button too small to hit at
     // exactly the font size they chose because things were hard to see.
     final hasActions = trailing != null || onMenu != null;
     return Column(
@@ -72,8 +78,7 @@ class ScreenHeader extends StatelessWidget {
         if (hasActions)
           Row(
             children: [
-              Flexible(child: titleText),
-              const Spacer(),
+              Expanded(child: titleText),
               ?trailing,
               if (trailing != null && onMenu != null)
                 const SizedBox(width: Gap.sm),
@@ -95,12 +100,67 @@ class ScreenHeader extends StatelessWidget {
   }
 }
 
+/// A header action drawn as a raised key: a 48 square on Barako.surfaceRaised
+/// with a hairline Barako.border edge, the same physical language as the
+/// app's cards.
+///
+/// The container is the point, not decoration. As a bare glyph this control
+/// floated in empty space and read as ink, not as a button, and the founder
+/// called it out; beside the orange New pill on Utang it disappeared
+/// entirely. The edge and the surface are what "pressable" already means in
+/// this app, so the fix borrows that instead of borrowing orange. Neutral ink
+/// on a raised neutral surface keeps the action color (Log, New) as the only
+/// orange in the row: same height as the pill says peer control, different
+/// fill says different job.
+///
+/// The border is load bearing, not optional: in the palest light palettes
+/// surfaceRaised sits on a near white background and the 1dp edge is the only
+/// thing that makes the button exist, exactly like every card there.
+///
+/// The visual square IS the tap target, 48, the Android floor. The tooltip is
+/// not decoration either: it is the only text a screen reader has to work
+/// with, and labeledTapTargetGuideline fails without it.
+class HeaderAction extends StatelessWidget {
+  final String icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  // ignore: prefer_const_constructors_in_immutables
+  HeaderAction(
+      {super.key,
+      required this.icon,
+      required this.tooltip,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        onPressed: onTap,
+        tooltip: tooltip,
+        // 22, the size the bottom bar icons use, so chrome icons stay one
+        // size app wide.
+        icon: Icon(salapifyIcon(icon), size: 22, color: Barako.text),
+        style: IconButton.styleFrom(
+          backgroundColor: Barako.surfaceRaised,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.md),
+            side: BorderSide(color: Barako.border),
+          ),
+          // fixedSize pins the drawn square to the tap target, so the shape
+          // users see is exactly the thing they can hit.
+          fixedSize: const Size(48, 48),
+          minimumSize: const Size(48, 48),
+          padding: EdgeInsets.zero,
+        ),
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      );
+}
+
 /// The way into Menu, in one place.
 ///
-/// One widget rather than an IconButton copied onto five screens, so the icon,
-/// the tooltip and the tap target cannot drift apart. The tooltip is not
-/// decoration: it is the only text a screen reader has to work with, and
-/// labeledTapTargetGuideline fails without it.
+/// A named wrapper rather than five call sites spelling HeaderAction out, so
+/// the icon, the tooltip and the tap target cannot drift apart across the
+/// five screens that carry it. The tooltip doubles as the seam the test
+/// suite navigates through (find.byTooltip in app_harness.dart).
 class MenuAction extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -108,13 +168,6 @@ class MenuAction extends StatelessWidget {
   MenuAction({super.key, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => IconButton(
-        onPressed: onTap,
-        tooltip: 'Menu',
-        icon: Icon(salapifyIcon('menu'), color: Barako.text),
-        // 48, the Android floor. IconButton's default padded tap target is
-        // already 48, but stating it means a future density change cannot
-        // quietly shrink the one control that reaches half the app.
-        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-      );
+  Widget build(BuildContext context) =>
+      HeaderAction(icon: 'menu', tooltip: 'Menu', onTap: onTap);
 }

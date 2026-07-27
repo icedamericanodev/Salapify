@@ -160,9 +160,14 @@ class InsightsScreen extends StatelessWidget {
     child: ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       children: [
+        // onMenu here too: this branch is what a brand new user sees, and
+        // Menu is the only door to 16 destinations. It was missing once, so
+        // the emptiest account had the fewest ways out of the screen, and
+        // only a geometry probe noticed.
         ScreenHeader(
           'Insights',
           subtitle: 'What your money is telling you, and what to do next',
+          onMenu: onMenu,
         ),
         Card(
           child: Padding(

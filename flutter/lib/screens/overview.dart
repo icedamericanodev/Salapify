@@ -20,7 +20,7 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
-import '../widgets/screen_header.dart' show MenuAction;
+import '../widgets/screen_header.dart' show HeaderAction, MenuAction;
 import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
@@ -217,11 +217,13 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.search, color: Barako.text),
+              // Search wears the same raised key as Menu so the pair reads as
+              // one set of controls; a bare glyph next to a bordered square
+              // would look like one button and one leftover.
+              HeaderAction(
+                icon: 'search',
                 tooltip: 'Search',
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                onPressed: () => Navigator.of(context).push(
+                onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => SearchScreen(
                       store: store,
@@ -231,11 +233,16 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // Home keeps the wordmark rather than adopting ScreenHeader, so
-              // the same MenuAction the other four get from their header is
-              // placed by hand here. One widget, one tooltip, one tap target,
-              // five screens.
-              if (onMenu != null) MenuAction(onTap: onMenu!),
+              // An explicit gap: two bordered containers must not touch the
+              // way two padded IconButtons could.
+              if (onMenu != null) ...[
+                const SizedBox(width: Gap.sm),
+                // Home keeps the wordmark rather than adopting ScreenHeader,
+                // so the same MenuAction the other four get from their header
+                // is placed by hand here. One widget, one tooltip, one tap
+                // target, five screens.
+                MenuAction(onTap: onMenu!),
+              ],
             ],
           ),
           // The greeting sits under the wordmark rather than replacing it,

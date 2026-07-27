@@ -31,7 +31,12 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.search));
+    // byTooltip, not byIcon: the glyph is resolved through salapify_icon.dart
+    // and may change; the tooltip is the control's stable name, and it is
+    // what a screen reader gets, so this seam breaking would mean a real
+    // accessibility regression too. Same reasoning as openMenu in the
+    // harness.
+    await tester.tap(find.byTooltip('Search'));
     await tester.pumpAndSettle();
 
     // Empty query shows the hint.
