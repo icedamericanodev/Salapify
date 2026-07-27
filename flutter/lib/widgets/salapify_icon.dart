@@ -66,6 +66,38 @@ const Map<String, IconData> _icons = {
   'tools': Icons.handyman_outlined,
   'share': Icons.ios_share_outlined,
   'phone': Icons.phone_iphone_outlined,
+
+  // The bottom bar. These were raw Icons.* constants sitting in main.dart,
+  // which is the one place in the app that never went through this file, on
+  // the one row of icons every user sees on every screen.
+  //
+  // Some of these glyphs are already in the map above under a different name:
+  // 'handshake' and 'utang' are both the handshake, 'savings' and 'budget' are
+  // both the piggy bank. That is not a mistake to clean up. Names here are
+  // MEANINGS, and two meanings are allowed to share a picture; collapsing them
+  // would mean the Utang tab and a lesson about lending had to keep the same
+  // glyph forever, which is exactly the coupling this file exists to prevent.
+  'home': Icons.home_outlined,
+  'budget': Icons.savings_outlined,
+  'activity': Icons.receipt_long_outlined,
+  'utang': Icons.handshake_outlined,
+  'insights': Icons.insights_outlined,
+  'menu': Icons.grid_view_outlined,
+};
+
+/// The filled twin of a destination icon, for the selected tab.
+///
+/// A separate map rather than a naming convention like 'home-filled', because
+/// only the bottom bar has a selected state and inventing a suffix would imply
+/// every icon has one. A name with no filled twin falls back to its outlined
+/// form, which is the honest answer for the other thirty.
+const Map<String, IconData> _filled = {
+  'home': Icons.home,
+  'budget': Icons.savings,
+  'activity': Icons.receipt_long,
+  'utang': Icons.handshake,
+  'insights': Icons.insights,
+  'menu': Icons.grid_view,
 };
 
 /// The glyph for a name. An unknown name draws a neutral marker rather than
@@ -73,6 +105,14 @@ const Map<String, IconData> _icons = {
 /// and a blank space would hide the mistake instead of showing it.
 IconData salapifyIcon(String name) =>
     _icons[name] ?? Icons.label_important_outline;
+
+/// The glyph for a name in its selected state, for a navigation destination.
+///
+/// Falls back to the outlined form rather than to the neutral marker, so a name
+/// with no filled twin simply does not change when selected. That is a
+/// deliberate difference from [salapifyIcon]: an unknown NAME is a typo worth
+/// showing, but a missing filled variant is a normal, correct state.
+IconData salapifyIconSelected(String name) => _filled[name] ?? salapifyIcon(name);
 
 /// A Salapify icon, in the theme's accent, optionally inside a soft tinted
 /// disc. The disc is what makes a row of these read as one family: it gives

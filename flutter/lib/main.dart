@@ -18,6 +18,7 @@ import 'screens/shell.dart';
 import 'screens/utang.dart';
 import 'theme.dart';
 import 'widgets/lock_gate.dart';
+import 'widgets/salapify_icon.dart';
 
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
@@ -149,40 +150,21 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
                   setState(() => tab = Destination.values[i]),
               backgroundColor: Barako.card,
               indicatorColor: Barako.primary,
+              // Every glyph resolves by NAME through salapify_icon.dart, the
+              // same as the rest of the app's own icons. This row was the one
+              // place still reaching for raw Icons.* constants, which meant a
+              // restyle of Salapify's icon set would have changed every screen
+              // except the one strip visible on all of them.
               destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home, color: Barako.onPrimary),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.savings_outlined),
-                  selectedIcon: Icon(Icons.savings, color: Barako.onPrimary),
-                  label: 'Budget',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(
-                    Icons.receipt_long,
-                    color: Barako.onPrimary,
+                for (final d in Destination.values)
+                  NavigationDestination(
+                    icon: Icon(salapifyIcon(d.icon)),
+                    selectedIcon: Icon(
+                      salapifyIconSelected(d.icon),
+                      color: Barako.onPrimary,
+                    ),
+                    label: d.label,
                   ),
-                  label: 'History',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.handshake_outlined),
-                  selectedIcon: Icon(Icons.handshake, color: Barako.onPrimary),
-                  label: 'Utang',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.insights_outlined),
-                  selectedIcon: Icon(Icons.insights, color: Barako.onPrimary),
-                  label: 'Insights',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view, color: Barako.onPrimary),
-                  label: 'Menu',
-                ),
               ],
             ),
           ),
