@@ -11,18 +11,10 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<void> _openWins(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('Share a win'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.ensureVisible(find.text('Share a win'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Share a win'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Share a win');
 }
 
 void main() {

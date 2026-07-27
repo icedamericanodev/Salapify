@@ -11,6 +11,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 void main() {
   testWidgets('dashboard is status-only; Menu tab holds the destinations', (
     tester,
@@ -43,11 +45,15 @@ void main() {
     expect(find.text('Goals'), findsNothing);
 
     // Both the Insights and the Menu bottom tabs exist.
-    expect(find.text('Menu'), findsOneWidget);
-    expect(find.text('Insights'), findsOneWidget); // kept as a bottom tab
+    //
+    // Scoped to the NavigationBar rather than searching the whole tree. Once
+    // the destinations are mounted together, 'Insights' also matches the
+    // Insights screen's own header, and an unscoped findsOneWidget would fail
+    // for a reason that has nothing to do with the tab bar.
+    expect(navDestination('Menu'), findsOneWidget);
+    expect(navDestination('Insights'), findsOneWidget); // kept as a bottom tab
 
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
+    await openMenu(tester);
 
     // The hub holds the moved destinations (some are below the fold). Insights
     // is NOT here; it stayed a bottom tab.

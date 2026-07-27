@@ -11,6 +11,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Map<String, dynamic> blob() => {
   'schemaVersion': 12,
   'accounts': [
@@ -38,16 +40,7 @@ Map<String, dynamic> blob() => {
 Future<void> openDebts(WidgetTester tester, SalapifyStore store) async {
   await tester.pumpWidget(SalapifyApp(store: store));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('Debts'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Debts'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Debts');
 }
 
 void main() {

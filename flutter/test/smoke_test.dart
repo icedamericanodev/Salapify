@@ -4,11 +4,13 @@
 
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/menu.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/app_harness.dart';
 
 String _today(int day) {
   final now = DateTime.now();
@@ -31,10 +33,9 @@ void main() {
     expect(find.text('Coming from the old app? Import a backup'), findsOneWidget);
     // The stamp and the full import screen now live under the Menu tab, off
     // the decluttered dashboard.
-    await tester.tap(find.text('Menu'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Update stamp'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await openMenu(tester);
+    await scrollTo(tester, find.text('Update stamp'),
+        scope: find.byType(MenuScreen));
     expect(find.text('Update stamp'), findsOneWidget);
     expect(find.textContaining(RegExp(r'f\d+\.')), findsOneWidget);
     expect(find.text('Import backup'), findsOneWidget);

@@ -12,18 +12,10 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<void> _openReceipt(WidgetTester tester) async {
-  await tester.tap(find.text('Menu'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('Privacy receipt'),
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.ensureVisible(find.text('Privacy receipt'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Privacy receipt'));
-  await tester.pumpAndSettle();
+  await openFromMenu(tester, 'Privacy receipt', delta: 300);
 }
 
 void main() {
