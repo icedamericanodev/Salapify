@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quickadd.dart';
 import '../theme.dart';
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, prettyDay;
 
 final Random _rand = Random();
 
@@ -90,6 +90,19 @@ class _LogSheetState extends State<LogSheet> {
   String? error;
   bool saving = false;
 
+  /// The day this entry is for, defaulting to today. Backdating is the whole
+  /// point: evening batch-logging and "I missed Tuesday" are how this
+  /// audience actually logs, and until this existed every entry was stamped
+  /// with the moment of typing, permanently. The date field itself has been
+  /// on every transaction since schema day one; this only lets the user set
+  /// it.
+  DateTime logDay = DateTime.now();
+
+  String get _logIso => logDay.toIso8601String().substring(0, 10);
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   @override
   void initState() {
     super.initState();
@@ -130,12 +143,13 @@ class _LogSheetState extends State<LogSheet> {
         ? (type == 'income' ? 'Income' : 'Expense')
         : label;
     final id = newEntryId(now);
+    final backdated = !_sameDay(logDay, now);
     final tx = <String, dynamic>{
       'id': id,
       'type': type,
       'label': shownLabel,
       'amount': amount,
-      'date': now.toIso8601String().substring(0, 10),
+      'date': _logIso,
       if (accountId != null) 'accountId': accountId,
     };
     // Captured before the await and the pop: this sheet's own context dies
@@ -149,9 +163,15 @@ class _LogSheetState extends State<LogSheet> {
       // app saved in silence while the Budget quick add showed both; a
       // fat-fingered ₱25000 for ₱2500 deserves the same 4 second Undo
       // everywhere money is written.
+      // A backdated save names the day, so the receipt reports what really
+      // happened rather than implying "today".
       messenger.showSnackBar(
         SnackBar(
-          content: Text('$shownLabel ${formatMoney(amount)} logged.'),
+          content: Text(
+            backdated
+                ? '$shownLabel ${formatMoney(amount)} logged for ${prettyDay(_logIso)}.'
+                : '$shownLabel ${formatMoney(amount)} logged.',
+          ),
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: 'Undo',
@@ -252,6 +272,18 @@ class _LogSheetState extends State<LogSheet> {
                 children: [for (final label in recents) _recentChip(label)],
               ),
             ],
+            const SizedBox(height: 14),
+            Text(
+              'WHEN',
+              style: TextStyle(
+                color: Barako.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: _dayChips()),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text(
@@ -376,5 +408,44 @@ class _LogSheetState extends State<LogSheet> {
       ),
       side: BorderSide(color: Barako.border),
     );
+  }
+
+  /// Today, Yesterday, and a picker for any other day, one selected at a
+  /// time. When a picked day is neither of the quick two, the picker chip
+  /// itself shows the chosen date, so the selection is always readable on
+  /// the sheet and never hidden inside a dialog that already closed.
+  List<Widget> _dayChips() {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isToday = _sameDay(logDay, now);
+    final isYesterday = _sameDay(logDay, yesterday);
+    final custom = !isToday && !isYesterday;
+    Widget chip(String label, bool on, VoidCallback pick) => ChoiceChip(
+      label: Text(label),
+      selected: on,
+      onSelected: (_) => pick(),
+      selectedColor: Barako.primary,
+      backgroundColor: Barako.card,
+      labelStyle: TextStyle(
+        color: on ? Barako.onPrimary : Barako.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+      side: BorderSide(color: Barako.border),
+    );
+    return [
+      chip('Today', isToday, () => setState(() => logDay = now)),
+      chip('Yesterday', isYesterday, () => setState(() => logDay = yesterday)),
+      chip(custom ? prettyDay(_logIso) : 'Pick a date', custom, () async {
+        // No future dates: this sheet records money that already moved.
+        // Recurring bills and planned spending have their own screens.
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: logDay.isAfter(now) ? now : logDay,
+          firstDate: DateTime(2015),
+          lastDate: now,
+        );
+        if (picked != null) setState(() => logDay = picked);
+      }),
+    ];
   }
 }
