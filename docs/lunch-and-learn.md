@@ -10,6 +10,377 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-27, session 7: the screenshots were missing the button under review
+
+Second sitting of the day, after session 6, and it has to open with an
+uncomfortable sentence about session 6 itself: this morning's entry reported
+"every changed screen rendered and looked at", and that was said in good
+faith about renders that were missing the header chrome the founder sees
+every time the app opens. Both sittings today are the same finding wearing
+different clothes, and that is the headline.
+
+### What we believed / What was true
+
+**Believed: both stamps reached the phone. TRUE, and confirmed in person.**
+Read from `git show origin/main:docs/delivery-log.md`, then confirmed by the
+founder on the phone: f2.58 patch 7 at 14:18 UTC (run 30273557933, merge
+2b24a761) and f2.59 patch 8 at 14:47 UTC (run 30275837111, merge b491c6d8).
+Both mode `patch` on 0.6.2+11, pubspec unchanged, no base APK stranded.
+Merge to row: 11 and 12 minutes, inside the norm. The founder read f2.59
+patch 8 off the Update stamp row. Four clean deliveries today across two
+sittings, zero delivery incidents. The gap between f2.57 and f2.58 in the
+log is the session 6 write-up itself, merge #210 at 13:59, docs only, so the
+publisher's paths filter correctly stayed silent and the absence of a row is
+the system working.
+
+**Believed, by the render discipline: the shot harness shows what the
+founder sees. FALSE, for every per-tab render, since this morning's shell
+refactor.** The harness mounts each tab screen with a hand-written
+constructor call, and none of those calls passed `onMenu`, so every per-tab
+shot rendered WITHOUT the header actions. The Menu key, the only door to 16
+destinations, had never appeared in a single per-tab screenshot. The founder
+was the first person to actually review it, and said it "looks a bit
+awkward". The discipline ran exactly as written, on renders that were
+structurally less than production.
+
+**Believed: 814 green tests plus rendered screens meant the header was
+right. FALSE three ways, none previously visible.** Making the key visible
+(a raised 48 square instead of a bare glyph) exposed two latent defects a
+bare glyph had hidden, found by a geometry probe measuring rects rather than
+by eyes: the Menu key floated 19dp off the content edge on Budget while
+sitting flush on Activity, because the header row had TWO flex children (a
+loose Flexible title plus a Spacer) splitting the free space, so a short
+title's unused share became dead space at the END of the row; and the
+empty-state branch of Insights never passed `onMenu` at all, so a brand new
+user had NO way into Menu from that tab. The probe found that one by
+throwing "Bad state: No element" on an empty store.
+
+**Believed since session 5, flagged as overdue in session 6: CLAUDE.md and
+the publisher name a dead branch. NOW FIXED, on the Flutter path.** f2.58
+was that fix, merged 19 minutes after session 6 called it overdue.
+
+### Timeline (with evidence)
+
+All times UTC.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| 13:38 | f2.57 patch 6 delivered, session 6's ground truth | delivery row |
+| 13:52 | 05c4ace, session 6 written | git log |
+| 13:59 | Merge #210, docs only, publisher correctly silent | no row, paths filter |
+| 14:00 | cf5c6a7, Open 12 fix: claude/salapify-v2 out of flutter-preview.yml's trigger, both CLAUDE.md sentences rewritten to the per-session claude/** reality. Stamp bumped to f2.58 ON PURPOSE for a housekeeping change, reasoning in the commit message | git show cf5c6a7 |
+| 14:07 | Merge #211 (2b24a761) | git log |
+| 14:18 | f2.58 patch 7 delivered, 11 minutes | delivery row |
+| after | **Founder: the header Menu icon "looks a bit awkward"** | founder message |
+| 14:27 | 880c41e, HeaderAction raised keys, the harness gets onMenu on every tab mount, the 19dp and empty-Insights bugs found and fixed, both guards proven failing first, failure lines quoted in the commit | git show 880c41e |
+| 14:35 | Merge #212 (b491c6d8) | git log |
+| 14:47 | f2.59 patch 8 delivered, 12 minutes | delivery row |
+| after | **Founder confirms f2.59 patch 8 on the phone, in person** | founder |
+
+Verified on the checkout at the time of writing, run fresh, not quoted:
+`flutter analyze` reports "No issues found", `flutter test` reports **816
+tests passing**.
+
+### Divergence point
+
+**11:50 UTC this morning, commit 6432323, the same commit as session 6's
+divergence.** When Menu moved into the header, the shot harness's hand-written
+mounts did not gain the new `onMenu` parameter, so from that moment every
+per-tab render silently stopped matching production chrome. Session 6's
+review, and session 6's own write-up, sat downstream of that gap without
+knowing it. The gap was closed at 14:27 when the harness was wired to mount
+tabs the way the shell mounts them.
+
+Said plainly, because the coordinator asked and because it is true: **session
+6 and session 7 are one shape.** In the morning, a human review with a
+documented dark-first priority missed a light-only bug. In the afternoon, a
+render harness with a hand-copied mounting missed the header entirely. Both
+times the discipline ran as written and verified a STAND-IN for the artifact,
+and both times the catch came from measurement, a contrast ratio in the
+morning, a rect probe in the afternoon. This is session 5's root cause
+sentence, "make the guard measure the artifact that ships, not the
+declaration of it", landing twice in one day on the checking tools
+themselves.
+
+### Root cause
+
+**The missing chrome in the shots.** The harness mounts screens through a
+private copy of the shell's wiring, and a copy has no way to know when the
+original changes, which is session 4's Lesson 5 verbatim, applied to the
+harness instead of to CLAUDE.md. The shell gained `onMenu`; the copy did
+not; nothing failed, because a screen without a header action is a perfectly
+valid widget tree. The a11y suite, by contrast, boots the REAL app
+(`SalapifyApp`) and measured the real header, which is why it caught the
+contrast bug this morning while the shots showed nothing. The harnesses
+differ in exactly the dimension that mattered.
+
+**The 19dp drift.** Two flex children in one row means the layout DIVIDES
+free space rather than assigning it, so alignment became a function of title
+width. It shipped with the header rework and was invisible while the control
+was a bare glyph, because nothing gave the eye an edge to compare against.
+Making the control visible is what made the defect visible, which is worth a
+sentence: a bordered control is itself a kind of guard, it turns misalignment
+from a feeling into a measurable edge.
+
+**The empty Insights tab.** Every widget test seeds data, because tests are
+written to exercise features and features need data. So the empty state is
+systematically the least-tested state, while being the FIRST state every new
+user meets. The a11y suite already seeds rich data for the opposite reason,
+recorded in its own header: empty screens have fewer controls to measure.
+Both instincts are correct and each is blind to the other's defect class.
+The emptiest account had the fewest ways out of the screen, and nothing
+could have said so.
+
+**The deliberate stamp bump on a housekeeping merge.** Editing
+flutter-preview.yml triggers the publisher, because the publisher watches
+its own definition (session 2's guard, still earning). So the Open 12 merge
+was always going to ship a patch. An unbumped stamp would have hit the
+duplicate stamp refusal at flutter-preview.yml:178, which fails AFTER
+publishing, on purpose, so the run would have shipped patch 7 and then
+written no row and opened a failure issue, reproducing session 5's
+published-but-unrecorded shape by the guard's own design. Bumping to f2.58
+was the correct move and the reasoning is in cf5c6a7's message.
+
+### Lessons and guards
+
+**Lesson 1. A render harness that mounts screens with less chrome than
+production verifies a stand-in, and every review built on it inherits the
+gap, including this log's own entries.**
+
+**Guard, SHIPPED, medium, and honestly ranked.** The harness now wires
+`onMenu` on every tab mount, including the two bespoke mounts, with the
+omission recorded in a comment at flutter/test/screens_shot.dart:207. This
+fixes the instance. It does not fix the class: the mounts are still a
+hand-written copy of the shell's wiring, and the next constructor parameter
+the shell gains can be omitted the same way, silently. The automated version
+would be mounting per-tab shots through the shell itself, or asserting the
+header chrome is present in each per-tab render. Neither exists yet. **New
+Open 13.**
+
+**Lesson 2. The header key sits on the content edge on every tab, and that
+is now a measurement, not an impression.**
+
+**Guard, SHIPPED, strongest tier, proven failing first.**
+flutter/test/header_action_test.dart boots the real app and asserts the Menu
+key's right edge lands at exactly 390 minus 20 on all five tabs, plus its 48
+square size. The failure it was born catching is quoted in 880c41e:
+
+    Expected: <370.0>  Actual: <351.0>
+
+The fix is structural, one tight Expanded title instead of Flexible plus
+Spacer, so free space has exactly one owner. Note what kind of bug this
+guards against: title-width-DEPENDENT layout, the kind that passes on the
+screen someone happens to look at.
+
+**Lesson 3. The empty state is the least-tested state and the first one a
+new user meets. Seed empty on purpose, at least once per screen with
+chrome.**
+
+**Guard, SHIPPED, strongest tier, proven failing first.** The second test in
+header_action_test.dart boots an EMPTY store, goes to Insights, and asserts
+the Menu tooltip exists, failure quoted in 880c41e: "Found 0 widgets". The
+a11y suite's welcome-state test already covers Home's empty state for
+guidelines; this adds the chrome-presence angle. The class rule, medium and
+stated as such: when a screen has an empty branch, the empty branch renders
+the same chrome as the full one, and a test seeds empty to prove it. One
+screen is guarded; the rule is what covers the rest until it is needed
+again.
+
+**Lesson 4. When an infrastructure change forces a publish, the patch gets
+its own name.** The duplicate stamp refusal already enforces this loudly and
+after the fact, which is the expensive way to learn it. The cheap way is the
+corollary now on record: CLAUDE.md rule 2 says bump the stamp on every push,
+and "every push" includes pushes whose only Flutter-relevant content is the
+publisher's own definition, because the publisher watches its own path.
+**Guard: existing (the refusal at flutter-preview.yml:178) plus this
+sentence. Medium for the prevention half, strong for the detection half, and
+the detection half was designed in session 3 and did not need to fire today
+because the prevention half was followed.**
+
+**Lesson 5. Tests that changed this round, reported per the session 5
+convention.** flutter/test/search_screen_test.dart stopped tapping
+`find.byIcon(Icons.search)` and now taps `find.byTooltip('Search')`
+(search_screen_test.dart:34). It changed because the glyph moved into the
+salapify_icon map, not because an assertion was wrong: the finder was
+coupled to the control's implementation instead of its meaning, the same
+seam reasoning as openMenu in app_harness.dart, where the tooltip is also
+the screen reader's name for the control, so this finder breaking would
+signal a real regression. No assertion changed sides. Nothing was defending
+a bug.
+
+**Lesson 6. CLAUDE.md fact check, and this sitting found a new stale claim,
+created by today's own fix.** What was checked and now matches: the two
+rewritten branch sentences are true (CLAUDE.md:158 describes the retired
+branch and the per-session claude/** reality; flutter-preview.yml triggers
+on main only, with the retirement reasoning in a comment at lines 13 to 16).
+The RN remnant is recorded as deliberate: build-apk.yml:14 and
+eas-update.yml:18 still name claude/salapify-v2, left alone because the RN
+track is frozen and its delivery path was out of scope for a Flutter
+housekeeping pass.
+
+**The new stale claim:** Development workflow item 4 says "every push to the
+branch that touches mobile/ triggers the Publish OTA update GitHub Action".
+When item 1 said the branch was claude/salapify-v2, that was true. Item 1
+now says each session gets its own claude/** branch, and eas-update.yml
+triggers ONLY on the dead branch, so a push to a session branch touching
+mobile/ triggers nothing. One sentence was fixed and its neighbour went
+false, which is a new instance of the exact shape sessions 2 through 5
+documented. Harm today: none, and in the safe direction, nothing publishes
+from a branch. Harm later: the first session that resumes RN work will
+believe OTA publishing is automatic and it will not be. **Guard, MEDIUM,
+open: reconcile item 4 and the eas-update trigger with the per-session
+branch reality, deliberately, when RN work resumes or sooner. Folded into
+the reopened half of Open 12 below as Open 14.** The pattern count, stated
+honestly: the fact check has now found a false or stale factual claim in
+five consecutive sittings, and today's was CREATED by a fix. Editing one
+sentence of CLAUDE.md means re-reading its neighbours.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.59 patch 8 in person. The founder was also the detector
+for the awkward-looking key, which is the acceptable cost of Open 13 having
+existed: design judgement reached the founder because no render had shown
+the control to anyone else first.
+
+**Open 6, the watchdog has never been observed running a scheduled pass:
+STILL OPEN.** API still unreadable from this sandbox, no spurious issues in
+evidence, all four of today's gaps well inside grace.
+
+**Open 7, the watchdog is a stall detector, not an audit trail: STILL
+OPEN.**
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,
+re-verified after today's workflow edit,** the scrape still lives inside the
+ship step, `|| true` intact at flutter-preview.yml:127.
+
+**Open 9, FAILED rows in the delivery log: STILL OPEN.**
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.** Today added a
+point in the pattern's favour again: HeaderAction is one shared widget with
+a named wrapper, not two hand-rolled call sites.
+
+**Open 12, CLAUDE.md and the publisher name a dead branch: CLOSED for the
+Flutter path, this session, 19 minutes after being called overdue.**
+Verified by reading: the trigger is main only, both CLAUDE.md sentences are
+rewritten and true. The RN-side remnant (build-apk.yml:14, eas-update.yml:18)
+is deliberate and recorded so no future session rediscovers it as a finding.
+
+**NEW Open 13: the shot harness mounts screens through a private copy of the
+shell's wiring.** Today that copy omitted onMenu and every per-tab render
+lost its header chrome without anything failing. The instance is fixed; the
+class is not. Automated tier available: mount tab shots through the shell,
+or assert chrome presence in the harness. Not done.
+
+**NEW Open 14: CLAUDE.md workflow item 4 and eas-update.yml's trigger
+describe a branch arrangement that no longer exists.** Safe direction today,
+a trap the day RN work resumes. Medium tier. Not done.
+
+### Guard status re-check
+
+Read, not assumed, after a session that edited the publisher's own file.
+
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127 with its
+  comment.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:224.
+- The release install shout: PRESENT, flutter-preview.yml:249, correctly
+  silent today.
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:178, and it
+  shaped today's correct behaviour without firing, which is a guard's best
+  day, see Lesson 4.
+- The publisher watching its own path: PRESENT, and it earned its keep
+  today, cf5c6a7 edited the workflow and the merge exercised the publisher.
+- Concurrency `cancel-in-progress: false`: PRESENT, flutter-preview.yml:36.
+- The delivery watchdog with `--first-parent` and 2700 grace: PRESENT,
+  untouched today.
+- flutter-check.yml on `claude/**`, screenshot harness step with
+  `--update-goldens`, branch-stamp-versus-delivered step: PRESENT,
+  untouched.
+- The stamp cap, the Pan folder tests, pan_signature_test, the shared
+  Kicker: PRESENT, untouched today, verified this morning.
+- Session 6's new guards, first re-check: a11y_test.dart PRESENT and
+  passing, including the Menu sweep floor; nav_ambiguity_test.dart PRESENT;
+  the clock seam PRESENT at overview.dart:116; app_harness.dart PRESENT and
+  it absorbed today's search finder change exactly as designed.
+- New today: header_action_test.dart, two tests, both proven failing before
+  trusted, both passing now. 816 tests green, analyze clean, run in this
+  sitting.
+
+### What it cost, and what it did not
+
+Cost: one round of founder feedback spent on a control no screenshot had
+ever shown, which is the render discipline's first known blind render since
+it was built. A 19dp misalignment and a missing Menu door on empty Insights,
+both shipped since this morning's batch 1, both invisible to 814 tests and
+to every render. One stale CLAUDE.md sentence created while fixing another.
+
+Did not cost: any delivery failure, any wrong number, any manual install,
+any lost data. Four for four on deliveries today, all inside the normal
+window, and the founder's phone matched the log on both reads. Open 12 went
+from overdue to closed in 19 minutes. And the two real bugs the new key
+exposed were caught by a probe and turned into proven tests inside the same
+commit that found them.
+
+### For the founder, in plain English
+
+Second write-up today, and it is about the two small updates you confirmed
+this afternoon, plus something I owe you about my screenshots.
+
+**What happened.** The first patch was housekeeping: our instructions file
+and the publishing robot both still mentioned an old work branch that no
+longer exists, this morning's write-up called that overdue, and it is now
+fixed. Because the publishing robot rebuilds whenever its own instructions
+change, even that cleanup shipped as a patch, and it got its own stamp,
+f2.58, so the row on your phone would name what it actually was.
+
+The second patch came from you. You said the Menu icon looked a bit awkward,
+and you were right. It was a bare symbol floating in space, and next to the
+orange New button it nearly disappeared. It is now a proper raised key, a 48
+pixel square with a fine border, the same look as the app's cards, and the
+search button on Home matches it.
+
+**The part I owe you.** Here is why that awkward icon reached you at all. My
+screenshot tool builds each screen for the picture the way a stagehand
+assembles a set, from its own copy of the instructions. When we moved Menu
+into the header this morning, the app's real instructions changed and my
+copy did not, so every screenshot of your tabs was quietly missing the
+header buttons. I was looking at screens without the very control in
+question, and this morning's write-up said "every screen was looked at"
+believing it. That is the second time TODAY a checking tool of mine verified
+something slightly different from what you actually see; this morning it was
+my eyes preferring dark mode, this afternoon it was my camera missing a
+button. The pattern is now written down in both entries: a check must look
+at the real thing, not a copy of it. The screenshot tool now wires the
+header buttons in everywhere, and there is an open item to make it
+impossible to drift again rather than merely fixed.
+
+**What making the button visible uncovered.** Two real bugs had been hiding
+behind that bare icon. The Menu key was sitting 19 pixels off the edge that
+everything else on the screen lines up to, but only on some tabs, because of
+how leftover space was being split inside the header. And on the Insights
+tab, a brand new user with no data yet had no Menu button at all, on the one
+screen arrangement every new user starts with, and Menu is the only door to
+sixteen other screens. Both are fixed, and both now have tests that I broke
+on purpose first and watched fail, one saying the key was 19 pixels adrift,
+the other saying the button was simply not there.
+
+**What it costs if a guard is removed.** Delete those two header tests and
+the key can drift off its edge tab by tab, and the next screen with an
+empty state can quietly lose its way out, and no picture will show either,
+because pictures are exactly what missed them the first time.
+
+**One thing to be straight about.** While fixing the two outdated sentences
+in our rules file, the fix made a nearby sentence wrong instead: the rules
+still describe automatic publishing for the OLD React Native app from a
+branch arrangement that no longer exists. It causes no harm now because
+that app is frozen, and nothing can publish by accident, but it is written
+down as an open item so the day we touch the old app again, nobody trusts a
+sentence that stopped being true today.
+
+---
+
 ## 2026-07-27, session 6: the bug only light mode could see
 
 ### What we believed / What was true
