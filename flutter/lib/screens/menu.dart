@@ -45,7 +45,16 @@ class MenuScreen extends StatelessWidget {
   /// Switch a bottom tab. A pushed screen that wants to jump to a tab (Insights
   /// to Utang, a search result to Utang) pops back to Menu first, then switches.
   final void Function(Destination)? onSwitchTab;
-  const MenuScreen({super.key, required this.store, this.onSwitchTab});
+
+  /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
+  /// there specifically; plain onSwitchTab would open the "I owe" segment.
+  final VoidCallback? onOpenReceivables;
+  const MenuScreen({
+    super.key,
+    required this.store,
+    this.onSwitchTab,
+    this.onOpenReceivables,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +313,11 @@ class MenuScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.lg),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => PanScreen(store: store, onSwitchTab: onSwitchTab),
+            builder: (_) => PanScreen(
+              store: store,
+              onSwitchTab: onSwitchTab,
+              onOpenReceivables: onOpenReceivables,
+            ),
           ),
         ),
         child: Padding(

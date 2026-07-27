@@ -44,7 +44,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
       final h = rows.first;
       return [
         for (var i = 0; i < cols; i++)
-          (i < h.length && h[i].isNotEmpty) ? h[i] : 'Column ${i + 1}'
+          (i < h.length && h[i].isNotEmpty) ? h[i] : 'Column ${i + 1}',
       ];
     }
     return [for (var i = 0; i < cols; i++) 'Column ${i + 1}'];
@@ -120,7 +120,15 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
 
     _dateCol ??= find(['date', 'petsa']);
     _amountCol ??= find(['amount', 'amt', 'halaga', 'debit', 'value']);
-    _descCol ??= find(['desc', 'detail', 'narration', 'particular', 'remarks', 'label', 'memo']);
+    _descCol ??= find([
+      'desc',
+      'detail',
+      'narration',
+      'particular',
+      'remarks',
+      'label',
+      'memo',
+    ]);
     _typeCol ??= find(['type', 'category']);
   }
 
@@ -137,7 +145,8 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
 
   ImportResult? get _preview {
     if (_dateCol == null || _amountCol == null) return null;
-    final key = '$_fileName|${_rows?.length}|$_firstRowHeader|$_dateCol|'
+    final key =
+        '$_fileName|${_rows?.length}|$_firstRowHeader|$_dateCol|'
         '$_amountCol|$_descCol|$_typeCol|$_dateFmt|$_negIsExpense';
     if (key == _previewKey && _previewCache != null) return _previewCache;
     final result = buildImport(
@@ -181,59 +190,94 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text('Import CSV',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800)),
+        title: Text(
+          'Import CSV',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-                'Bring in entries from a bank, GCash, or spreadsheet CSV. Choose the '
-                'file, tell me which column is which, check the preview, then import. '
-                'Your existing entries are never touched.',
-                style: TextStyle(
-                    color: Barako.textSecondary, fontSize: 14, height: 1.4)),
+              'Bring in entries from a bank, GCash, or spreadsheet CSV. Choose the '
+              'file, tell me which column is which, check the preview, then import. '
+              'Your existing entries are never touched.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary),
+                backgroundColor: Barako.primary,
+                foregroundColor: Barako.onPrimary,
+              ),
               onPressed: _busy ? null : _pick,
               icon: const Icon(Icons.upload_file),
-              label: Text(_fileName == null ? 'Choose CSV file' : 'Choose a different file'),
+              label: Text(
+                _fileName == null
+                    ? 'Choose CSV file'
+                    : 'Choose a different file',
+              ),
             ),
             if (_fileName != null) ...[
               const SizedBox(height: 8),
-              Text(_fileName!,
-                  style: TextStyle(color: Barako.muted, fontSize: 12)),
+              Text(
+                _fileName!,
+                style: TextStyle(color: Barako.muted, fontSize: 12),
+              ),
             ],
             if (_rows != null) ...[
               const SizedBox(height: 20),
-              _switchRow('First row is a header', _firstRowHeader,
-                  (v) => setState(() {
-                        _firstRowHeader = v;
-                        _guessColumns();
-                      })),
+              _switchRow(
+                'First row is a header',
+                _firstRowHeader,
+                (v) => setState(() {
+                  _firstRowHeader = v;
+                  _guessColumns();
+                }),
+              ),
               const Divider(height: 24),
-              _colPicker('Date column', _dateCol, labels,
-                  (v) => setState(() => _dateCol = v)),
+              _colPicker(
+                'Date column',
+                _dateCol,
+                labels,
+                (v) => setState(() => _dateCol = v),
+              ),
               const SizedBox(height: 10),
               _dateFmtPicker(),
               const SizedBox(height: 14),
-              _colPicker('Amount column', _amountCol, labels,
-                  (v) => setState(() => _amountCol = v)),
+              _colPicker(
+                'Amount column',
+                _amountCol,
+                labels,
+                (v) => setState(() => _amountCol = v),
+              ),
               const SizedBox(height: 10),
-              _switchRow('Negative amount means an expense', _negIsExpense,
-                  (v) => setState(() => _negIsExpense = v)),
+              _switchRow(
+                'Negative amount means an expense',
+                _negIsExpense,
+                (v) => setState(() => _negIsExpense = v),
+              ),
               const SizedBox(height: 14),
-              _colPicker('Description column (optional)', _descCol, labels,
-                  (v) => setState(() => _descCol = v),
-                  optional: true),
+              _colPicker(
+                'Description column (optional)',
+                _descCol,
+                labels,
+                (v) => setState(() => _descCol = v),
+                optional: true,
+              ),
               const SizedBox(height: 10),
-              _colPicker('Type column (optional)', _typeCol, labels,
-                  (v) => setState(() => _typeCol = v),
-                  optional: true),
+              _colPicker(
+                'Type column (optional)',
+                _typeCol,
+                labels,
+                (v) => setState(() => _typeCol = v),
+                optional: true,
+              ),
               const SizedBox(height: 20),
               if (preview != null) _previewCard(preview),
             ],
@@ -247,8 +291,11 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
       Row(
         children: [
           Expanded(
-              child: Text(label,
-                  style: TextStyle(color: Barako.text, fontSize: 14))),
+            child: Text(
+              label,
+              style: TextStyle(color: Barako.text, fontSize: 14),
+            ),
+          ),
           Switch(
             value: value,
             onChanged: onChanged,
@@ -260,9 +307,13 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
         ],
       );
 
-  Widget _colPicker(String label, int? value, List<String> labels,
-      ValueChanged<int?> onChanged,
-      {bool optional = false}) {
+  Widget _colPicker(
+    String label,
+    int? value,
+    List<String> labels,
+    ValueChanged<int?> onChanged, {
+    bool optional = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -276,15 +327,18 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
           items: [
             if (optional)
               DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('None',
-                      style: TextStyle(color: Barako.muted))),
+                value: null,
+                child: Text('None', style: TextStyle(color: Barako.muted)),
+              ),
             for (var i = 0; i < labels.length; i++)
               DropdownMenuItem<int?>(
-                  value: i,
-                  child: Text(labels[i],
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Barako.text))),
+                value: i,
+                child: Text(
+                  labels[i],
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Barako.text),
+                ),
+              ),
           ],
           onChanged: onChanged,
         ),
@@ -293,42 +347,47 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
   }
 
   Widget _dateFmtPicker() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Date format', style: Barako.kickerStyle),
-          const SizedBox(height: 4),
-          DropdownButtonFormField<DateFormatChoice>(
-            initialValue: _dateFmt,
-            isExpanded: true,
-            decoration: _dropDecoration(),
-            dropdownColor: Barako.card,
-            items: const [
-              DropdownMenuItem(
-                  value: DateFormatChoice.iso, child: Text('2026-07-15 (year first)')),
-              DropdownMenuItem(
-                  value: DateFormatChoice.mdy, child: Text('07/15/2026 (month first)')),
-              DropdownMenuItem(
-                  value: DateFormatChoice.dmy, child: Text('15/07/2026 (day first)')),
-            ],
-            onChanged: (v) => setState(() => _dateFmt = v ?? DateFormatChoice.iso),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Date format', style: Barako.kickerStyle),
+      const SizedBox(height: 4),
+      DropdownButtonFormField<DateFormatChoice>(
+        initialValue: _dateFmt,
+        isExpanded: true,
+        decoration: _dropDecoration(),
+        dropdownColor: Barako.card,
+        items: const [
+          DropdownMenuItem(
+            value: DateFormatChoice.iso,
+            child: Text('2026-07-15 (year first)'),
+          ),
+          DropdownMenuItem(
+            value: DateFormatChoice.mdy,
+            child: Text('07/15/2026 (month first)'),
+          ),
+          DropdownMenuItem(
+            value: DateFormatChoice.dmy,
+            child: Text('15/07/2026 (day first)'),
           ),
         ],
-      );
+        onChanged: (v) => setState(() => _dateFmt = v ?? DateFormatChoice.iso),
+      ),
+    ],
+  );
 
   InputDecoration _dropDecoration() => InputDecoration(
-        filled: true,
-        fillColor: Barako.background,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-      );
+    filled: true,
+    fillColor: Barako.background,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Barako.border),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Barako.border),
+    ),
+  );
 
   Widget _previewCard(ImportResult r) {
     final sample = r.transactions.take(6).toList();
@@ -341,15 +400,17 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
             Text('PREVIEW', style: Barako.kickerStyle),
             const SizedBox(height: 8),
             Text(
-                r.imported == 0
-                    ? 'No rows could be read with this mapping. Check the date column and format.'
-                    : 'Will import ${r.imported} '
+              r.imported == 0
+                  ? 'No rows could be read with this mapping. Check the date column and format.'
+                  : 'Will import ${r.imported} '
                         '${r.imported == 1 ? 'entry' : 'entries'}'
                         '${r.skipped > 0 ? ', skip ${r.skipped} the app could not read' : ''}.',
-                style: TextStyle(
-                    color: r.imported == 0 ? Barako.warningStrong : Barako.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                color: r.imported == 0 ? Barako.warningStrong : Barako.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             if (sample.isNotEmpty) ...[
               const SizedBox(height: 12),
               for (final t in sample)
@@ -359,38 +420,45 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                            '${t['date']}  ${t['label']}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Barako.textSecondary, fontSize: 13)),
+                          '${t['date']}  ${t['label']}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Barako.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                          '${t['type'] == 'expense' ? '-' : '+'}'
-                          '${(t['amount'] as num).toStringAsFixed(2)}',
-                          style: TextStyle(
-                              color: t['type'] == 'expense'
-                                  ? Barako.warningStrong
-                                  : Barako.primary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
+                        '${t['type'] == 'expense' ? '-' : '+'}'
+                        '${(t['amount'] as num).toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: t['type'] == 'expense'
+                              ? Barako.warningStrong
+                              : Barako.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
             ],
             const SizedBox(height: 14),
             Text(
-                'Imported entries are added, not merged. Importing the same file '
-                'twice will add it twice.',
-                style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35)),
+              'Imported entries are added, not merged. Importing the same file '
+              'twice will add it twice.',
+              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary),
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                ),
                 onPressed: (_busy || r.imported == 0) ? null : _import,
                 child: Text(_busy ? 'Importing...' : 'Import ${r.imported}'),
               ),

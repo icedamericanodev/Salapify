@@ -97,6 +97,12 @@ class OverviewScreen extends StatelessWidget {
   /// it wires MenuAction into its own row rather than getting it for free.
   final VoidCallback? onMenu;
 
+  /// Jumps to the Utang tab with the "Owed to me" segment showing. A check-in
+  /// like "Follow up Migs" is about money owed TO the user, and plain
+  /// onSwitchTab would land it on the default "I owe" segment, a screen with
+  /// no Migs anywhere on it. Falls back to onSwitchTab when absent.
+  final VoidCallback? onOpenReceivables;
+
   /// The clock, injectable so a test can pin the date.
   ///
   /// This seam exists because three fixture rewrites in a row failed to make a
@@ -113,6 +119,7 @@ class OverviewScreen extends StatelessWidget {
     required this.store,
     this.onSwitchTab,
     this.onMenu,
+    this.onOpenReceivables,
     this.clock = DateTime.now,
   });
 
@@ -216,8 +223,11 @@ class OverviewScreen extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        SearchScreen(store: store, onSwitchTab: onSwitchTab),
+                    builder: (_) => SearchScreen(
+                      store: store,
+                      onSwitchTab: onSwitchTab,
+                      onOpenReceivables: onOpenReceivables,
+                    ),
                   ),
                 ),
               ),
@@ -472,7 +482,12 @@ class OverviewScreen extends StatelessWidget {
     final route = action is Map ? action['route'] as String? : null;
     final tab = route != null ? _routeTabs[route] : null;
     VoidCallback? onTap;
-    if (tab != null && onSwitchTab != null) {
+    if (route == '/receivables' && onOpenReceivables != null) {
+      // Receivables means the "Owed to me" segment specifically, and the
+      // shell knows how to land there. Plain onSwitchTab is the fallback
+      // below, for hosts that do not wire the richer callback.
+      onTap = onOpenReceivables;
+    } else if (tab != null && onSwitchTab != null) {
       onTap = () => onSwitchTab!(tab);
     } else if (route == '/debts') {
       // Debts is not a bottom tab; a due-soon decision is prio 92, so it must

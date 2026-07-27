@@ -51,13 +51,16 @@ class _UpdateCardState extends State<UpdateCard> {
   Future<void> _check() async {
     if (busy) return;
     if (kIsWeb) {
-      setState(() => status =
-          'The web preview updates by itself: just refresh the page.');
+      setState(
+        () => status =
+            'The web preview updates by itself: just refresh the page.',
+      );
       return;
     }
     if (!_updater.isAvailable) {
-      setState(() => status =
-          'Automatic updates are not active in this build.');
+      setState(
+        () => status = 'Automatic updates are not active in this build.',
+      );
       return;
     }
     setState(() {
@@ -84,14 +87,14 @@ class _UpdateCardState extends State<UpdateCard> {
           safeSet(() => status = 'Update ready.');
           await _offerRestart('The new build finished downloading.');
         case UpdateStatus.unavailable:
-          safeSet(() =>
-              status = 'Automatic updates are not active in this build.');
+          safeSet(
+            () => status = 'Automatic updates are not active in this build.',
+          );
       }
     } on UpdateException catch (e) {
       safeSet(() => status = 'Update failed, nothing changed: ${e.message}');
     } catch (e) {
-      safeSet(() =>
-          status = 'Could not check right now. Are you online? $e');
+      safeSet(() => status = 'Could not check right now. Are you online? $e');
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -103,8 +106,10 @@ class _UpdateCardState extends State<UpdateCard> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Switch to the new build?',
-            style: TextStyle(color: Barako.text)),
+        title: Text(
+          'Switch to the new build?',
+          style: TextStyle(color: Barako.text),
+        ),
         content: Text(
           '$detail The app switches to it the next time it starts. '
           'Close the app now and reopen it to finish.',
@@ -112,13 +117,16 @@ class _UpdateCardState extends State<UpdateCard> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Later',
-                  style: TextStyle(color: Barako.muted))),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Later', style: TextStyle(color: Barako.muted)),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text('Close app now',
-                  style: TextStyle(color: Barako.primary))),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Close app now',
+              style: TextStyle(color: Barako.primary),
+            ),
+          ),
         ],
       ),
     );
@@ -128,8 +136,10 @@ class _UpdateCardState extends State<UpdateCard> {
       closeApp();
     }
     if (mounted) {
-      setState(() =>
-          status = 'Update is ready. It applies the next time the app starts.');
+      setState(
+        () => status =
+            'Update is ready. It applies the next time the app starts.',
+      );
     }
   }
 
@@ -188,8 +198,7 @@ class _UpdateCardState extends State<UpdateCard> {
               await Diagnostics.clear();
               if (context.mounted) Navigator.pop(context, false);
             },
-            child: Text('Clear',
-                style: TextStyle(color: Barako.textSecondary)),
+            child: Text('Clear', style: TextStyle(color: Barako.textSecondary)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -220,8 +229,10 @@ class _UpdateCardState extends State<UpdateCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Update stamp',
-                    style: TextStyle(color: Barako.text, fontSize: 14)),
+                Text(
+                  'Update stamp',
+                  style: TextStyle(color: Barako.text, fontSize: 14),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   // Capped on purpose. A stamp is meant to answer one
@@ -231,14 +242,14 @@ class _UpdateCardState extends State<UpdateCard> {
                   // A test keeps the stamp short; this keeps the SCREEN safe
                   // even when something gets past it.
                   child: Text(
-                      patchNumber != null
-                          ? '$updateStamp (patch $patchNumber)'
-                          : updateStamp,
-                      textAlign: TextAlign.right,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: Barako.muted, fontSize: 12)),
+                    patchNumber != null
+                        ? '$updateStamp (patch $patchNumber)'
+                        : updateStamp,
+                    textAlign: TextAlign.right,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Barako.muted, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -249,15 +260,19 @@ class _UpdateCardState extends State<UpdateCard> {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.textSecondary),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.textSecondary,
+                  ),
                   onPressed: busy ? null : _check,
                   icon: busy
                       ? SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Barako.muted))
+                            strokeWidth: 2,
+                            color: Barako.muted,
+                          ),
+                        )
                       : const Icon(Icons.refresh, size: 16),
                   label: Text(busy ? 'Working...' : 'Check for update'),
                 ),
@@ -266,8 +281,9 @@ class _UpdateCardState extends State<UpdateCard> {
                 // the device without being seen.
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Barako.border),
-                      foregroundColor: Barako.textSecondary),
+                    side: BorderSide(color: Barako.border),
+                    foregroundColor: Barako.textSecondary,
+                  ),
                   onPressed: _copyDiagnostics,
                   icon: const Icon(Icons.bug_report_outlined, size: 16),
                   label: const Text('Copy diagnostics'),
@@ -276,9 +292,10 @@ class _UpdateCardState extends State<UpdateCard> {
             ),
             if (status != null) ...[
               const SizedBox(height: 8),
-              Text(status!,
-                  style:
-                      TextStyle(color: Barako.muted, fontSize: 12)),
+              Text(
+                status!,
+                style: TextStyle(color: Barako.muted, fontSize: 12),
+              ),
             ],
           ],
         ),

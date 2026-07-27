@@ -112,3 +112,15 @@ Future<void> openFromMenu(
 /// this is a nuisance rather than a hazard. It gets a helper anyway, so the next
 /// person adding a screen test copies the right thing.
 Widget tabHost(Widget destination) => Scaffold(body: destination);
+
+/// Open the Utang tab on its "Owed to me" segment.
+///
+/// The tab merged with Debts and now opens on "I owe" (the founder's call:
+/// what you owe is the more pressing half). Tests that assert on receivables
+/// content (STILL OUT, a person's name) come through here, so the next change
+/// to the segment control is one edit rather than a hunt.
+Future<void> goToOwedToMe(WidgetTester tester) async {
+  await goToTab(tester, 'Utang');
+  await tester.tap(find.text('Owed to me'));
+  await tester.pumpAndSettle();
+}

@@ -142,12 +142,17 @@ String runwayLabel(dynamic months, bool capped) {
 class InsightsScreen extends StatelessWidget {
   final SalapifyStore store;
   final void Function(Destination)? onSwitchTab;
+
+  /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
+  /// there specifically; plain onSwitchTab would open the "I owe" segment.
+  final VoidCallback? onOpenReceivables;
   final VoidCallback? onMenu;
   const InsightsScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onMenu,
+    this.onOpenReceivables,
   });
 
   // Shown before there is any data, in place of the full analytics wall.
@@ -370,10 +375,15 @@ class InsightsScreen extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        // Tab 3 is Utang (Overview, Budget, History, Utang, Insights).
-        onTap: utang && onSwitchTab != null
-            ? () => onSwitchTab!(Destination.utang)
-            : null,
+        // An utang decision is about money owed TO the user, so it lands on
+        // the "Owed to me" segment when the host wires the richer jump, and
+        // falls back to the plain tab switch when it does not.
+        onTap: !utang
+            ? null
+            : onOpenReceivables ??
+                  (onSwitchTab != null
+                      ? () => onSwitchTab!(Destination.utang)
+                      : null),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

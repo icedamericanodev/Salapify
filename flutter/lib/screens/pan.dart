@@ -31,7 +31,16 @@ class _Msg {
 class PanScreen extends StatefulWidget {
   final SalapifyStore store;
   final void Function(Destination)? onSwitchTab;
-  const PanScreen({super.key, required this.store, this.onSwitchTab});
+
+  /// Jumps to the Utang tab showing "Owed to me". Receivables taps land
+  /// there specifically; plain onSwitchTab would open the "I owe" segment.
+  final VoidCallback? onOpenReceivables;
+  const PanScreen({
+    super.key,
+    required this.store,
+    this.onSwitchTab,
+    this.onOpenReceivables,
+  });
 
   @override
   State<PanScreen> createState() => _PanScreenState();
@@ -64,9 +73,11 @@ class _PanScreenState extends State<PanScreen> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scroll.hasClients) {
-        scroll.animateTo(scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut);
+        scroll.animateTo(
+          scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -77,23 +88,31 @@ class _PanScreenState extends State<PanScreen> {
     final route = (cta['route'] ?? '').toString();
     switch (route) {
       case '/debts':
-        return () => Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)));
+        return () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
+        );
       case '/loan-calculator':
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const LoanCalculatorScreen()));
+        return () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LoanCalculatorScreen()));
       case '/salary-calculator':
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const SalaryCalculatorScreen()));
+        return () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SalaryCalculatorScreen()),
+        );
       case '/thirteenth-calculator':
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const ThirteenthCalculatorScreen()));
+        return () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ThirteenthCalculatorScreen()),
+        );
       case '/tax-calculator':
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const TaxCalculatorScreen()));
+        return () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const TaxCalculatorScreen()));
       case '/contribution-calculator':
-        return () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const ContributionCalculatorScreen()));
+        return () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const ContributionCalculatorScreen(),
+          ),
+        );
       case '/insights':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
@@ -106,11 +125,19 @@ class _PanScreenState extends State<PanScreen> {
           onSwitchTab(Destination.insights);
         };
       case '/receivables':
+        final openReceivables = widget.onOpenReceivables;
         final onSwitchTab = widget.onSwitchTab;
-        if (onSwitchTab == null) return null;
+        if (openReceivables == null && onSwitchTab == null) return null;
         return () {
           Navigator.of(context).popUntil((r) => r.isFirst);
-          onSwitchTab(Destination.utang);
+          // The segment-aware jump when the host wires it: this CTA is about
+          // money owed TO the user, and the plain tab switch would land on
+          // the "I owe" segment instead.
+          if (openReceivables != null) {
+            openReceivables();
+          } else {
+            onSwitchTab!(Destination.utang);
+          }
         };
       default:
         return null;
@@ -129,9 +156,10 @@ class _PanScreenState extends State<PanScreen> {
             // and mood engine the Home check-in uses.
             PanMascot(mood: panMoodForReplyMood(mood), size: 48),
             const SizedBox(width: 10),
-            Text('Pan',
-                style: TextStyle(
-                    color: Barako.text, fontWeight: FontWeight.w800)),
+            Text(
+              'Pan',
+              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
       ),
@@ -183,21 +211,22 @@ class _PanScreenState extends State<PanScreen> {
   }
 
   Widget _userBubble(String text) => Padding(
-        padding: const EdgeInsets.only(top: 10, left: 48),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Barako.primary,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Text(text,
-                style: TextStyle(color: Barako.onPrimary, fontSize: 14)),
-          ),
+    padding: const EdgeInsets.only(top: 10, left: 48),
+    child: Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Barako.primary,
+          borderRadius: BorderRadius.circular(18),
         ),
-      );
+        child: Text(
+          text,
+          style: TextStyle(color: Barako.onPrimary, fontSize: 14),
+        ),
+      ),
+    ),
+  );
 
   Widget _panBubble(Map<String, dynamic> reply, {bool greetingChips = false}) {
     final cta = reply['cta'];
@@ -218,9 +247,14 @@ class _PanScreenState extends State<PanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text((reply['text'] ?? '').toString(),
-                  style: TextStyle(
-                      color: Barako.text, fontSize: 14, height: 1.45)),
+              Text(
+                (reply['text'] ?? '').toString(),
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+              ),
               if (reminder is String && reminder.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -234,21 +268,29 @@ class _PanScreenState extends State<PanScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(reminder,
-                          style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                              height: 1.4,
-                              fontStyle: FontStyle.italic)),
+                      Text(
+                        reminder,
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 13,
+                          height: 1.4,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       TextButton.icon(
                         onPressed: () async {
                           final messenger = ScaffoldMessenger.of(context);
                           await Clipboard.setData(
-                              ClipboardData(text: reminder));
-                          messenger.showSnackBar(const SnackBar(
+                            ClipboardData(text: reminder),
+                          );
+                          messenger.showSnackBar(
+                            const SnackBar(
                               content: Text(
-                                  'Reminder copied. Paste it anywhere.')));
+                                'Reminder copied. Paste it anywhere.',
+                              ),
+                            ),
+                          );
                         },
                         icon: const Icon(Icons.copy, size: 14),
                         label: const Text('Copy reminder'),
@@ -271,9 +313,10 @@ class _PanScreenState extends State<PanScreen> {
                           onPressed: () => _send(c['example']!),
                           backgroundColor: Barako.background,
                           labelStyle: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
+                            color: Barako.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         )
                     else if (replySuggestions is List)
                       for (final s in replySuggestions)
@@ -282,9 +325,10 @@ class _PanScreenState extends State<PanScreen> {
                           onPressed: () => _send(s.toString()),
                           backgroundColor: Barako.background,
                           labelStyle: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
+                            color: Barako.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                   ],
                 ),
@@ -293,9 +337,13 @@ class _PanScreenState extends State<PanScreen> {
                 const SizedBox(height: 10),
                 OutlinedButton(
                   onPressed: action,
-                  child: Text((cta as Map)['label'].toString(),
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    (cta as Map)['label'].toString(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ],

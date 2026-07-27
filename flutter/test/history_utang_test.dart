@@ -196,7 +196,7 @@ void main() {
     expect(find.text('Groceries'), findsOneWidget);
 
     // Utang tab: Migs owes 1,500 after the partial payment, overdue.
-    await goToTab(tester, 'Utang');
+    await goToOwedToMe(tester);
     await tester.pumpAndSettle();
     expect(find.text('Migs'), findsOneWidget);
     expect(find.text('₱1,500'), findsWidgets);

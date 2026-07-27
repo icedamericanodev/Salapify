@@ -127,6 +127,9 @@ void main() {
       await goToTab(tester, label);
       await _meetsAll(tester, 'the $label tab');
     }
+    // Utang's second segment is a different screen wearing the same tab.
+    await goToOwedToMe(tester);
+    await _meetsAll(tester, 'the Utang tab, Owed to me segment');
   });
 
   testWidgets('Menu meets all four guidelines, every screenful', (

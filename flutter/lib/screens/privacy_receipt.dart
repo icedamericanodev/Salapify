@@ -116,7 +116,6 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
     );
   }
 
-
   Widget _promiseCard() {
     return Card(
       child: Padding(
