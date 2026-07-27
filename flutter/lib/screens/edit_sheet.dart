@@ -26,6 +26,7 @@ Future<void> showEntrySheet(
   Map<String, dynamic> t, {
   required bool editable,
   required bool splittable,
+  bool utangLinked = false,
 }) {
   if (editable) {
     return showModalBottomSheet<void>(
@@ -40,13 +41,18 @@ Future<void> showEntrySheet(
       ),
     );
   }
-  return _showRecordSheet(context, t);
+  return _showRecordSheet(context, t, utangLinked: utangLinked);
 }
 
 /// The RN read-only modal, adapted: what this row is, why it cannot be
 /// edited, and what deleting it would or would not do.
-Future<void> _showRecordSheet(BuildContext context, Map<String, dynamic> t) {
+Future<void> _showRecordSheet(
+  BuildContext context,
+  Map<String, dynamic> t, {
+  required bool utangLinked,
+}) {
   final type = (t['type'] ?? '').toString();
+  final source = (t['source'] ?? '').toString();
   final String note;
   if (type == 'adjustment') {
     note =
@@ -60,13 +66,26 @@ Future<void> _showRecordSheet(BuildContext context, Map<String, dynamic> t) {
     note =
         'This row is a record of $what, written the moment it happened. The '
         'balances already moved then, so the record cannot be edited.';
-  } else {
-    // An utang-linked or source-stamped leg: the delete gate refuses these
-    // too, and the fix lives where the utang lives.
+  } else if (utangLinked || source == 'receivable' || source == 'payable') {
     note =
         'This entry is part of an utang. To change or undo it, open the '
         'Utang tab and edit that utang there, so the balance and the utang '
         'stay in sync.';
+  } else if (source == 'interest') {
+    // QA caught this bucket reading the utang copy: a debt interest row sent
+    // the user to a tab with nothing relevant on it. Say what it really is.
+    note =
+        'This row records interest your debt added for the month, written '
+        'by the debt engine. It cannot be edited; the debt it belongs to '
+        'lives on the Utang tab, under I owe.';
+  } else if (source == 'import') {
+    note =
+        'This row came in through a CSV import and is kept as a faithful '
+        'copy of the imported file, so it cannot be edited here.';
+  } else {
+    // A row with no usable id, or a source this app does not know. Honest
+    // and generic beats confidently wrong.
+    note = 'This row cannot be edited here.';
   }
   final label = (t['label'] ?? '').toString().isEmpty
       ? type
@@ -220,7 +239,17 @@ class _EditSheetState extends State<EditSheet> {
     try {
       final before = await widget.store.updateEntry(id, patch);
       if (mounted) Navigator.of(context).pop();
-      if (before == null) return;
+      if (before == null) {
+        // The row vanished between opening the sheet and saving. A sheet
+        // that just closes reads as success, and QA called that quiet, not
+        // honest.
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('That entry no longer exists, nothing was changed.'),
+          ),
+        );
+        return;
+      }
       // The reverse patch restores exactly the keys the edit touched, with
       // null marking the ones the original never had.
       final revert = <String, dynamic>{
@@ -234,7 +263,19 @@ class _EditSheetState extends State<EditSheet> {
             label: 'Undo',
             onPressed: () async {
               try {
-                await widget.store.updateEntry(id, revert);
+                // null means the row is gone (deleted while the receipt was
+                // up). Saying nothing there let the user believe the
+                // original was back when the edited version stood.
+                final undone = await widget.store.updateEntry(id, revert);
+                if (undone == null) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Could not undo, the entry no longer exists.',
+                      ),
+                    ),
+                  );
+                }
               } catch (e) {
                 messenger.showSnackBar(
                   SnackBar(
@@ -420,10 +461,16 @@ class _EditSheetState extends State<EditSheet> {
       _choice('Today', isToday, () => setState(() => day = now)),
       _choice('Yesterday', isYesterday, () => setState(() => day = yesterday)),
       _choice(custom ? prettyDay(_iso) : 'Pick a date', custom, () async {
+        // BOTH bounds clamped around the row's own date. A restored RN
+        // backup can legally carry any date, and showDatePicker asserts
+        // initialDate inside [firstDate, lastDate]; the unclamped version
+        // crashed on a 2014 entry. Paluwagan learned this first
+        // (paluwagan.dart), and QA caught this sheet not copying the clamp.
+        final floor = DateTime(2015);
         final picked = await showDatePicker(
           context: context,
           initialDate: day.isAfter(now) ? now : day,
-          firstDate: DateTime(2015),
+          firstDate: day.isBefore(floor) ? day : floor,
           // No future dates, same rule as logging: this row records money
           // that already moved.
           lastDate: now,

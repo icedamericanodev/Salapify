@@ -61,41 +61,45 @@ void main() {
   });
 
   group('store.updateEntry', () {
-    test('an amount change adjusts the balance by exactly the difference',
-        () async {
-      final store = SalapifyStore();
-      await store.load();
-      expect(_cash(store), 1000);
-      await store.updateEntry('t1', {'amount': 400});
-      expect(
-        _cash(store),
-        850,
-        reason:
-            'Reverse-then-apply: +250 back, -400 out, so 1000 becomes 850. '
-            'Anything else means the edit drifted the balance.',
-      );
-    });
+    test(
+      'an amount change adjusts the balance by exactly the difference',
+      () async {
+        final store = SalapifyStore();
+        await store.load();
+        expect(_cash(store), 1000);
+        await store.updateEntry('t1', {'amount': 400});
+        expect(
+          _cash(store),
+          850,
+          reason:
+              'Reverse-then-apply: +250 back, -400 out, so 1000 becomes 850. '
+              'Anything else means the edit drifted the balance.',
+        );
+      },
+    );
 
-    test('a null value removes the key, and nulls never reach the JSON',
-        () async {
-      final store = SalapifyStore();
-      await store.load();
-      await store.updateEntry('t1', {'accountId': null});
-      final t1 = (store.data['transactions'] as List).firstWhere(
-        (t) => t['id'] == 't1',
-      );
-      expect(
-        t1.containsKey('accountId'),
-        isFalse,
-        reason: 'Unlinking must remove the key, not store a null.',
-      );
-      // And the unlink refunded the account, reverse-then-apply.
-      expect(_cash(store), 1250);
-      final raw = SharedPreferences.getInstance().then(
-        (p) => p.getString(storageKey)!,
-      );
-      expect(await raw, isNot(contains('null,')));
-    });
+    test(
+      'a null value removes the key, and nulls never reach the JSON',
+      () async {
+        final store = SalapifyStore();
+        await store.load();
+        await store.updateEntry('t1', {'accountId': null});
+        final t1 = (store.data['transactions'] as List).firstWhere(
+          (t) => t['id'] == 't1',
+        );
+        expect(
+          t1.containsKey('accountId'),
+          isFalse,
+          reason: 'Unlinking must remove the key, not store a null.',
+        );
+        // And the unlink refunded the account, reverse-then-apply.
+        expect(_cash(store), 1250);
+        final raw = SharedPreferences.getInstance().then(
+          (p) => p.getString(storageKey)!,
+        );
+        expect(await raw, isNot(contains('null,')));
+      },
+    );
 
     test('the amount guard refuses garbage before anything moves', () async {
       final store = SalapifyStore();
@@ -182,7 +186,8 @@ void main() {
       expect(
         t1['categoryId'],
         'c-food',
-        reason: 'A label matching a category name must adopt its id, the RN '
+        reason:
+            'A label matching a category name must adopt its id, the RN '
             'rule.',
       );
 
@@ -214,6 +219,115 @@ void main() {
         reason:
             'A transfer record must explain itself instead of opening the '
             'editor. Editing a record would desync the move it records.',
+      );
+    });
+
+    testWidgets('the picker survives an entry dated before 2015', (
+      tester,
+    ) async {
+      // A restored RN backup can legally carry any date, and showDatePicker
+      // asserts initialDate inside [firstDate, lastDate]. QA reproduced a
+      // crash on exactly this; both bounds are clamped now.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'accounts': [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
+          ],
+          'transactions': [
+            {
+              'id': 'old1',
+              'type': 'expense',
+              'label': 'Old jeep fare',
+              'amount': 8,
+              'date': '2014-12-31',
+              'accountId': 'cash',
+            },
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await tester.pumpWidget(SalapifyApp(store: store));
+      await tester.pumpAndSettle();
+      await goToTab(tester, 'Activity');
+      await tester.tap(find.text('Old jeep fare'));
+      await tester.pumpAndSettle();
+      // The custom chip shows the row's own pretty date.
+      await tester.tap(find.text('Dec 31'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(DatePickerDialog),
+        findsOneWidget,
+        reason:
+            'Opening the picker on a pre-2015 entry crashed on the '
+            'firstDate assertion before the clamp.',
+      );
+    });
+
+    testWidgets('a CSV import row is not told it is part of an utang', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'accounts': [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
+          ],
+          'transactions': [
+            {
+              'id': 'imp1',
+              'type': 'expense',
+              'label': 'Imported groceries',
+              'amount': 300,
+              'date': '2026-07-15',
+              'source': 'import',
+            },
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await tester.pumpWidget(SalapifyApp(store: store));
+      await tester.pumpAndSettle();
+      await goToTab(tester, 'Activity');
+      await tester.tap(find.text('Imported groceries'));
+      await tester.pumpAndSettle();
+      expect(find.text('EDIT ENTRY'), findsNothing);
+      expect(
+        find.textContaining('part of an utang'),
+        findsNothing,
+        reason:
+            'The explainer sent CSV imports to the Utang tab, where nothing '
+            'relevant exists. Honest and generic beats confidently wrong.',
+      );
+      expect(find.textContaining('CSV import'), findsOneWidget);
+    });
+
+    testWidgets('Undo says so when the entry was deleted meanwhile', (
+      tester,
+    ) async {
+      final store = await boot(tester);
+      await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+      final sheetFields = find.descendant(
+        of: find.byType(EditSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(sheetFields.at(0), '400');
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+      expect(find.text('Groceries updated.'), findsOneWidget);
+
+      // The row disappears while the receipt is still up.
+      await store.removeEntry('t1');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('no longer exists'),
+        findsOneWidget,
+        reason:
+            'A silent no-op here let the user believe the original was '
+            'back. The UI must say the entry is gone.',
       );
     });
   });

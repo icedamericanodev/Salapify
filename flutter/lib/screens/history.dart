@@ -432,6 +432,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             t,
             editable: editable,
             splittable: splittable,
+            // Tells the explainer WHY a plain-looking row is locked, so a
+            // CSV import or an interest row stops being told it is "part of
+            // an utang" (QA found exactly that).
+            utangLinked: locked.contains((t['id'] ?? '').toString()),
           ),
           child: rowContent,
         ),
