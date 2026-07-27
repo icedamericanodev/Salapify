@@ -113,6 +113,23 @@ Future<void> openFromMenu(
 /// person adding a screen test copies the right thing.
 Widget tabHost(Widget destination) => Scaffold(body: destination);
 
+/// Expand a folded Insights tool by its launcher line and settle.
+///
+/// The tools band renders each tool as a one-line launcher since Phase 2
+/// batch 5; a test that asserts on tool CONTENT comes through here first.
+/// Launcher titles: 'Can you afford it?', 'A lump sum is landing?',
+/// 'What if you paid a little extra', 'What if you saved each week'.
+Future<void> openInsightsTool(WidgetTester tester, String title) async {
+  final launcher = find.text(title);
+  await tester.scrollUntilVisible(
+    launcher,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(launcher);
+  await tester.pumpAndSettle();
+}
+
 /// Open the Utang tab on its "Owed to me" segment.
 ///
 /// The tab merged with Debts and now opens on "I owe" (the founder's call:

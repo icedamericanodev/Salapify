@@ -254,11 +254,7 @@ void main() {
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('WHAT IF YOU PAID A LITTLE EXTRA'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await openInsightsTool(tester, 'What if you paid a little extra');
     // Default is +500: the avalanche focus is the 3% card, 3 months sooner.
     // The next-peso card above also names BPI card (same debt, correctly), so
     // assert the phrase unique to the what-if support instead of the bare name.
@@ -312,11 +308,7 @@ void main() {
 
       // The whole card is one ListView child, so scrolling its kicker into view
       // builds every descendant, including the caveat below it.
-      await tester.scrollUntilVisible(
-        find.text('WHAT IF YOU PAID A LITTLE EXTRA'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await openInsightsTool(tester, 'What if you paid a little extra');
       expect(
         find.text(
           'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
@@ -352,11 +344,7 @@ void main() {
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('WHAT IF YOU SAVED EACH WEEK'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await openInsightsTool(tester, 'What if you saved each week');
     // The next-peso card above also names New phone (the same goal, correctly),
     // so assert the phrase unique to the savings what-if support.
     expect(find.textContaining('fund New phone'), findsOneWidget);
