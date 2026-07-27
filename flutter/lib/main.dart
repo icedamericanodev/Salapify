@@ -9,16 +9,9 @@ import 'package:flutter/material.dart';
 import 'data/store.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
-import 'screens/budget.dart';
-import 'screens/history.dart';
-import 'screens/insights.dart';
-import 'screens/menu.dart';
-import 'screens/overview.dart';
 import 'screens/shell.dart';
-import 'screens/utang.dart';
 import 'theme.dart';
 import 'widgets/lock_gate.dart';
-import 'widgets/salapify_icon.dart';
 
 /// Bump on EVERY push that touches flutter/, so the founder can confirm on
 /// the phone which build arrived. Format: `f<major>.<counter>`.
@@ -86,8 +79,6 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     }
   }
 
-  Destination tab = Destination.home;
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -123,51 +114,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
           // overlay covers pushed screens too, not just the home tab.
           builder: (context, child) =>
               LockGate(store: widget.store, child: child ?? const SizedBox()),
-          home: Scaffold(
-            // Exhaustive on purpose. A switch over the enum with no default
-            // means adding a destination is a compile error here rather than a
-            // tab that silently renders Home.
-            body: switch (tab) {
-              Destination.home => OverviewScreen(
-                store: widget.store,
-                onSwitchTab: (d) => setState(() => tab = d),
-              ),
-              Destination.budget => BudgetScreen(store: widget.store),
-              Destination.history => HistoryScreen(store: widget.store),
-              Destination.utang => UtangScreen(store: widget.store),
-              Destination.insights => InsightsScreen(
-                store: widget.store,
-                onSwitchTab: (d) => setState(() => tab = d),
-              ),
-              Destination.menu => MenuScreen(
-                store: widget.store,
-                onSwitchTab: (d) => setState(() => tab = d),
-              ),
-            },
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: tab.index,
-              onDestinationSelected: (i) =>
-                  setState(() => tab = Destination.values[i]),
-              backgroundColor: Barako.card,
-              indicatorColor: Barako.primary,
-              // Every glyph resolves by NAME through salapify_icon.dart, the
-              // same as the rest of the app's own icons. This row was the one
-              // place still reaching for raw Icons.* constants, which meant a
-              // restyle of Salapify's icon set would have changed every screen
-              // except the one strip visible on all of them.
-              destinations: [
-                for (final d in Destination.values)
-                  NavigationDestination(
-                    icon: Icon(salapifyIcon(d.icon)),
-                    selectedIcon: Icon(
-                      salapifyIconSelected(d.icon),
-                      color: Barako.onPrimary,
-                    ),
-                    label: d.label,
-                  ),
-              ],
-            ),
-          ),
+          // The tab state, the nav bar, the Log button and the per-tab scroll
+          // positions all live in the shell now. This file keeps what only it
+          // can do: resolving the palette before anything reads it, and the
+          // lifecycle observers.
+          home: ShellScreen(store: widget.store),
         );
       },
     );

@@ -170,6 +170,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
       items.add(_row(t, locked));
     }
 
+    // Two shapes, one screen. As a TAB it is a plain body inside the shell's
+    // Scaffold, like every other destination. Pushed from Search or Reports it
+    // still needs its own Scaffold and an AppBar to carry the back button.
+    //
+    // Keeping the Scaffold in the tab case would nest one inside the shell's
+    // for no reason, and its SafeArea would inset a second time under the nav
+    // bar.
+    if (!widget.pushed) return _body(items, txs, all);
     return Scaffold(
       appBar: widget.pushed
           ? AppBar(
@@ -184,100 +192,109 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             )
           : null,
-      body: SafeArea(
-        top: !widget.pushed,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!widget.pushed) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'History',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3,
-                  ),
-                ),
-              ],
+      body: _body(items, txs, all),
+    );
+  }
+
+  /// The screen's content, shared by the tab shape and the pushed shape.
+  ///
+  /// The three lists are passed rather than recomputed: they come from one
+  /// filter-and-sort pass in build(), and doing it twice would be both slower
+  /// and a chance for the two shapes to disagree.
+  Widget _body(
+    List<Widget> items,
+    List<Map<String, dynamic>> txs,
+    List<Map<String, dynamic>> all,
+  ) {
+    return SafeArea(
+      top: !widget.pushed,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!widget.pushed) ...[
               const SizedBox(height: 12),
-              TextField(
-                controller: _query,
-                onChanged: (_) => setState(() {}),
-                textInputAction: TextInputAction.search,
-                style: TextStyle(color: Barako.text, fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'Filter entries, like jollibee or 1500',
-                  hintStyle: TextStyle(color: Barako.faint),
-                  prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
-                  suffixIcon: _query.text.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: Barako.muted,
-                            size: 18,
-                          ),
-                          onPressed: () => setState(() => _query.clear()),
-                        ),
-                  filled: true,
-                  fillColor: Barako.card,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Barako.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Barako.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Barako.primary),
-                  ),
+              Text(
+                'History',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 3,
                 ),
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final (value, label) in _filters) ...[
-                      ChoiceChip(
-                        label: Text(label),
-                        selected: filter == value,
-                        onSelected: (_) => setState(() => filter = value),
-                        selectedColor: Barako.primary,
-                        backgroundColor: Barako.card,
-                        labelStyle: TextStyle(
-                          color: filter == value
-                              ? Barako.onPrimary
-                              : Barako.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        side: BorderSide(color: Barako.border),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
-              ),
-              Expanded(
-                child: txs.isEmpty
-                    ? _empty(all.isEmpty)
-                    : ListView(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        children: items,
-                      ),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _query,
+              onChanged: (_) => setState(() {}),
+              textInputAction: TextInputAction.search,
+              style: TextStyle(color: Barako.text, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'Filter entries, like jollibee or 1500',
+                hintStyle: TextStyle(color: Barako.faint),
+                prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
+                suffixIcon: _query.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: Icon(Icons.close, color: Barako.muted, size: 18),
+                        onPressed: () => setState(() => _query.clear()),
+                      ),
+                filled: true,
+                fillColor: Barako.card,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Barako.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Barako.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Barako.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final (value, label) in _filters) ...[
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: filter == value,
+                      onSelected: (_) => setState(() => filter = value),
+                      selectedColor: Barako.primary,
+                      backgroundColor: Barako.card,
+                      labelStyle: TextStyle(
+                        color: filter == value
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      side: BorderSide(color: Barako.border),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: txs.isEmpty
+                  ? _empty(all.isEmpty)
+                  : ListView(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      children: items,
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -293,7 +310,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       trulyEmpty
           ? EmptyState(
               icon: 'receipt',
-                showPan: true,
+              showPan: true,
               title: 'Nothing here yet',
               body:
                   'Every expense and every peso in shows up here, newest '

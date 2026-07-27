@@ -133,246 +133,239 @@ class OverviewScreen extends StatelessWidget {
         ? paydayRitual(data, now)
         : const PaydayRitual(isPayday: false, salaryLogged: false);
 
-    return Scaffold(
-      // No Log button until the store loaded cleanly: after a failed read,
-      // saving would overwrite data we could not read, so the write path
-      // stays closed (the store enforces it too; this hides the door).
-      floatingActionButton: store.canWrite
-          ? FloatingActionButton.extended(
-              backgroundColor: Barako.primary,
-              foregroundColor: Barako.onPrimary,
-              onPressed: () => showLogSheet(context, store),
-              icon: const Icon(Icons.add),
-              label: Text('Log', style: TextStyle(fontWeight: FontWeight.w700)),
-            )
-          : null,
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.all(20),
-          children: [
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Text(
-                  '₱',
-                  style: TextStyle(
-                    color: Barako.primary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                  ),
+    // A body now, not a Scaffold. The shell owns the one Scaffold, the nav bar
+    // and the Log button, so Home is just its content.
+    //
+    // The Log button used to live here, which is where it was invented rather
+    // than where it belongs. Logging is the thing people open this app to do,
+    // and it was reachable from one tab out of six. It is on every destination
+    // now, and the store's canWrite gate moved with it: after a failed read,
+    // saving would overwrite data we could not read, so the door stays hidden.
+    //
+    // 96 of bottom padding, not 20, so the last card clears the Log button.
+    // Home has had a FAB and 20 of padding all along, which means its final
+    // card has been sitting under that button since the day it was added.
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+        children: [
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                '₱',
+                style: TextStyle(
+                  color: Barako.primary,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
                 ),
-                SizedBox(width: 10),
-                // Flexible + scaleDown: on a very narrow phone the wordmark
-                // shrinks a touch instead of pushing the search button off the
-                // edge (the old fixed Text overflowed by ~30px at 330 wide).
-                Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'SALAPIFY',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.search, color: Barako.text),
-                  tooltip: 'Search',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          SearchScreen(store: store, onSwitchTab: onSwitchTab),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            // The greeting sits under the wordmark rather than replacing it,
-            // so the app still says what it is on the screen a new user opens
-            // first. It reads fine with no name, which is the DEFAULT: the
-            // ask is skippable and every existing user has none.
-            const SizedBox(height: 4),
-            Text(
-              // The build's own clock, not a second DateTime.now(). One frame
-              // must never mix two readings of the time, which is the same
-              // reason `now` is captured once at the top of build.
-              greetingFor(now, name: store.displayName),
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 15,
-                height: 1.3,
               ),
-            ),
-            const SizedBox(height: 20),
-            if (store.loadError != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              SizedBox(width: 10),
+              // Flexible + scaleDown: on a very narrow phone the wordmark
+              // shrinks a touch instead of pushing the search button off the
+              // edge (the old fixed Text overflowed by ~30px at 330 wide).
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
                   child: Text(
-                    'Your saved data could not be read, so nothing was overwritten. ${store.loadError}',
-                    style: TextStyle(color: Barako.warning),
-                  ),
-                ),
-              ),
-            if (ritual.isPayday) ...[
-              _paydayCard(context, ritual, numberShows: cycle.show),
-              const SizedBox(height: 12),
-            ],
-            if (checkIn != null) ...[
-              _checkInCard(context, checkIn),
-              const SizedBox(height: 12),
-            ],
-            if (cycle.show) ...[
-              _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
-              const SizedBox(height: 12),
-            ] else if (hasStarted && dues['daysLeft'] is int) ...[
-              // The countdown used to live ONLY inside Your Number, which
-              // hides whenever there is nothing positive to spend. So the
-              // answer to "how long do I have to hold out" disappeared exactly
-              // when money was tight, which is the one time anybody asks it.
-              // Shown only in that gap: when Your Number renders, it already
-              // says how many days are left, and two countdowns on one screen
-              // is worse than none.
-              _daysToPaydayCard(dues),
-              const SizedBox(height: 12),
-            ],
-            // What the committed money is actually FOR. The bar above says how
-            // much is spoken for; this says to whom. Both read the same
-            // upcomingCommitments call, so they cannot disagree.
-            if (hasStarted && bills.isNotEmpty) ...[
-              BillsBeforePayday(
-                bills: bills,
-                total: (dues['total'] as num?)?.toDouble() ?? 0,
-                format: formatMoney,
-                formatDay: prettyDay,
-              ),
-              const SizedBox(height: 12),
-            ],
-            // On a brand-new device the ₱0 hero would just compete with the
-            // welcome card, so the hero only appears once there is data.
-            if (hasStarted) ...[
-              _netWorthHero(parts),
-              const SizedBox(height: 16),
-            ],
-            // Only invite a fresh start when the store really is empty. After a
-            // failed read the data looks empty but is not, writes are blocked,
-            // and the error banner above already explains it, so the welcome
-            // lanes (which would be dead or misleading) are suppressed.
-            if (!hasStarted) ...[
-              if (store.loadError == null) _welcomeCard(context),
-            ] else ...[
-              if (accounts.isNotEmpty) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Kicker('MY MONEY'),
-                        const SizedBox(height: 6),
-                        for (final a in accounts)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    a['name'] as String? ?? 'Account',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Barako.text,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // A big balance scales down instead of
-                                // overflowing the row on a narrow phone.
-                                Flexible(
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      formatMoney(amount(a['balance'])),
-                                      style: TextStyle(
-                                        color: Barako.textSecondary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
+                    'SALAPIFY',
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 3,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
+              IconButton(
+                icon: Icon(Icons.search, color: Barako.text),
+                tooltip: 'Search',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SearchScreen(store: store, onSwitchTab: onSwitchTab),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // The greeting sits under the wordmark rather than replacing it,
+          // so the app still says what it is on the screen a new user opens
+          // first. It reads fine with no name, which is the DEFAULT: the
+          // ask is skippable and every existing user has none.
+          const SizedBox(height: 4),
+          Text(
+            // The build's own clock, not a second DateTime.now(). One frame
+            // must never mix two readings of the time, which is the same
+            // reason `now` is captured once at the top of build.
+            greetingFor(now, name: store.displayName),
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 15,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (store.loadError != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Your saved data could not be read, so nothing was overwritten. ${store.loadError}',
+                  style: TextStyle(color: Barako.warning),
+                ),
+              ),
+            ),
+          if (ritual.isPayday) ...[
+            _paydayCard(context, ritual, numberShows: cycle.show),
+            const SizedBox(height: 12),
+          ],
+          if (checkIn != null) ...[
+            _checkInCard(context, checkIn),
+            const SizedBox(height: 12),
+          ],
+          if (cycle.show) ...[
+            _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
+            const SizedBox(height: 12),
+          ] else if (hasStarted && dues['daysLeft'] is int) ...[
+            // The countdown used to live ONLY inside Your Number, which
+            // hides whenever there is nothing positive to spend. So the
+            // answer to "how long do I have to hold out" disappeared exactly
+            // when money was tight, which is the one time anybody asks it.
+            // Shown only in that gap: when Your Number renders, it already
+            // says how many days are left, and two countdowns on one screen
+            // is worse than none.
+            _daysToPaydayCard(dues),
+            const SizedBox(height: 12),
+          ],
+          // What the committed money is actually FOR. The bar above says how
+          // much is spoken for; this says to whom. Both read the same
+          // upcomingCommitments call, so they cannot disagree.
+          if (hasStarted && bills.isNotEmpty) ...[
+            BillsBeforePayday(
+              bills: bills,
+              total: (dues['total'] as num?)?.toDouble() ?? 0,
+              format: formatMoney,
+              formatDay: prettyDay,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // On a brand-new device the ₱0 hero would just compete with the
+          // welcome card, so the hero only appears once there is data.
+          if (hasStarted) ...[_netWorthHero(parts), const SizedBox(height: 16)],
+          // Only invite a fresh start when the store really is empty. After a
+          // failed read the data looks empty but is not, writes are blocked,
+          // and the error banner above already explains it, so the welcome
+          // lanes (which would be dead or misleading) are suppressed.
+          if (!hasStarted) ...[
+            if (store.loadError == null) _welcomeCard(context),
+          ] else ...[
+            if (accounts.isNotEmpty) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Kicker('THIS MONTH'),
+                      Kicker('MY MONEY'),
                       const SizedBox(height: 6),
-                      // The ANSWER first, its two parts underneath. This was
-                      // three equal rows and a divider, which made the reader
-                      // do the subtraction with their eyes before learning
-                      // whether the month was up or down. The net is the only
-                      // figure most people want, so it gets the headline.
-                      Builder(
-                        builder: (context) {
-                          final net = istmt['netIncome'] as double;
-                          return Text(
-                            // The sign is explicit on a gain. Without it a
-                            // good month and a bad month look identical until
-                            // you notice the minus.
-                            '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                            style: TextStyle(
-                              fontFamily: Barako.displayFont,
-                              color: net >= 0 ? Barako.primary : Barako.warning,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w700,
-                              fontFeatures: const [
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: Gap.md),
-                      StatPair(
-                        leftLabel: 'Money in',
-                        leftValue: formatMoney(istmt['income'] as double),
-                        leftColor: Barako.primary,
-                        rightLabel: 'Money out',
-                        rightValue: formatMoney(istmt['expenses'] as double),
-                      ),
+                      for (final a in accounts)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  a['name'] as String? ?? 'Account',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Barako.text,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // A big balance scales down instead of
+                              // overflowing the row on a narrow phone.
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    formatMoney(amount(a['balance'])),
+                                    style: TextStyle(
+                                      color: Barako.textSecondary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
             ],
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Kicker('THIS MONTH'),
+                    const SizedBox(height: 6),
+                    // The ANSWER first, its two parts underneath. This was
+                    // three equal rows and a divider, which made the reader
+                    // do the subtraction with their eyes before learning
+                    // whether the month was up or down. The net is the only
+                    // figure most people want, so it gets the headline.
+                    Builder(
+                      builder: (context) {
+                        final net = istmt['netIncome'] as double;
+                        return Text(
+                          // The sign is explicit on a gain. Without it a
+                          // good month and a bad month look identical until
+                          // you notice the minus.
+                          '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                          style: TextStyle(
+                            fontFamily: Barako.displayFont,
+                            color: net >= 0 ? Barako.primary : Barako.warning,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: Gap.md),
+                    StatPair(
+                      leftLabel: 'Money in',
+                      leftValue: formatMoney(istmt['income'] as double),
+                      leftColor: Barako.primary,
+                      rightLabel: 'Money out',
+                      rightValue: formatMoney(istmt['expenses'] as double),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
   double amount(dynamic v) => v is num ? v.toDouble() : 0;
-
 
   // The bottom tabs a check-in action can jump straight to. Routes that are
   // not tabs (/debts, /goals) are handled by a push in _checkInCard; /learn is
@@ -765,7 +758,6 @@ class OverviewScreen extends StatelessWidget {
     CycleStatus s, {
     bool hidePace = false,
   }) {
-
     final sub = s.comeback
         ? 'Welcome back, life happens. Fresh from your real balances: '
               '${s.daysLeft} ${s.daysLeft == 1 ? 'day' : 'days'} to your '
@@ -793,7 +785,9 @@ class OverviewScreen extends StatelessWidget {
         child: Card(
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: onSwitchTab == null ? null : () => onSwitchTab!(Destination.insights),
+            onTap: onSwitchTab == null
+                ? null
+                : () => onSwitchTab!(Destination.insights),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1108,7 +1102,6 @@ class OverviewScreen extends StatelessWidget {
       ),
     ),
   );
-
 }
 
 /// The optional "what should we call you" ask, shown once inside the welcome
@@ -1254,8 +1247,7 @@ class _BubbleBorder extends ShapeBorder {
     final y = rect.top + tailTop.clamp(radius + tail, body.height - tail);
     return Path.combine(
       PathOperation.union,
-      Path()
-        ..addRRect(RRect.fromRectAndRadius(body, Radius.circular(radius))),
+      Path()..addRRect(RRect.fromRectAndRadius(body, Radius.circular(radius))),
       Path()..addPolygon([
         Offset(rect.left, y),
         Offset(body.left + 1, y - tail),

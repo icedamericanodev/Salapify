@@ -50,230 +50,221 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: store,
-          builder: (context, _) => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            children: [
-              ScreenHeader('Menu'),
-              _askPanBanner(context),
-              const SizedBox(height: 20),
-              Kicker('MONEY'),
-              const SizedBox(height: Gap.md),
-              // A grid, not sixteen stacked rows. The old shape reached the
-              // eighth destination before running off the screen, so half the
-              // app sat behind a scroll with nothing hinting it was there.
-              NavTileGrid(
-                tiles: [
-                  NavTile(
-                    icon: 'search',
-                    label: 'Search',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SearchScreen(
-                          store: store,
-                          onSwitchTab: onSwitchTab,
-                        ),
-                      ),
+    return SafeArea(
+      child: ListenableBuilder(
+        listenable: store,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+          children: [
+            ScreenHeader('Menu'),
+            _askPanBanner(context),
+            const SizedBox(height: 20),
+            Kicker('MONEY'),
+            const SizedBox(height: Gap.md),
+            // A grid, not sixteen stacked rows. The old shape reached the
+            // eighth destination before running off the screen, so half the
+            // app sat behind a scroll with nothing hinting it was there.
+            NavTileGrid(
+              tiles: [
+                NavTile(
+                  icon: 'search',
+                  label: 'Search',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          SearchScreen(store: store, onSwitchTab: onSwitchTab),
                     ),
-                  ),
-                  NavTile(
-                    icon: 'wallet',
-                    label: 'Accounts',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AccountsScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'flow',
-                    label: 'Cash flow',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => CashFlowScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'card',
-                    label: 'Debts',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => DebtsScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'savings',
-                    label: 'Goals',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => GoalsScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'group',
-                    label: 'Paluwagan',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PaluwaganScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'repeat',
-                    label: 'Recurring',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RecurringScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'chart',
-                    label: 'Reports',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ReportsScreen(
-                          store: store,
-                          onSwitchTab: onSwitchTab,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Payday joins MONEY rather than keeping a section of its
-                  // own: a lone half-width tile under its own heading reads as
-                  // a layout mistake. Still gated on canWrite, as before.
-                  if (store.canWrite)
-                    NavTile(
-                      icon: 'calendar',
-                      label: 'Payday',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PaydayScreen(store: store),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Kicker('HELPERS'),
-              const SizedBox(height: Gap.md),
-              NavTileGrid(
-                tiles: [
-                  NavTile(
-                    icon: 'tools',
-                    label: 'Tools',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ToolsScreen(
-                          store: store,
-                          onSwitchTab: onSwitchTab,
-                        ),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'gift',
-                    label: 'Earn your treats',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TreatsScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'share',
-                    label: 'Share your month',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RecapShareScreen(store: store),
-                      ),
-                    ),
-                  ),
-                  NavTile(
-                    icon: 'celebrate',
-                    label: 'Share a win',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => MilestoneShareScreen(store: store),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (store.canWrite) ...[
-                const SizedBox(height: 20),
-                Kicker('PERSONALIZE'),
-                const SizedBox(height: 8),
-                _appearanceRow(context),
-                const SizedBox(height: 20),
-                Kicker('YOUR NAME'),
-                const SizedBox(height: 8),
-                _nameCard(context),
-                const SizedBox(height: 20),
-                Kicker('REMINDERS'),
-                const SizedBox(height: 8),
-                _remindersCard(context),
-                const SizedBox(height: 20),
-                Kicker('SECURITY'),
-                const SizedBox(height: 8),
-                _appLockCard(context),
-              ],
-              // Deliberately OUTSIDE the canWrite block. This screen is read
-              // only and touches no user data, and a user whose stored data
-              // failed to load is exactly the user most likely to want to
-              // check what the app can reach on the network.
-              const SizedBox(height: 20),
-              Kicker('PRIVACY'),
-              const SizedBox(height: 8),
-              _navRow(
-                icon: Icons.verified_user_outlined,
-                title: 'Privacy receipt',
-                blurb:
-                    'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => PrivacyReceiptScreen()),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Kicker('YOUR DATA'),
-              const SizedBox(height: 8),
-              _backupCard(context),
-              _undoImportCard(context),
-              // The save dialog and share sheet are native-only; on the web
-              // preview both would fail, so the export card hides there.
-              if (store.hasData && !kIsWeb) ...[
-                const SizedBox(height: 12),
-                _exportCard(context),
-              ],
-              const SizedBox(height: 12),
-              _navRow(
-                icon: Icons.phonelink_ring_outlined,
-                title: 'New phone day',
-                blurb:
-                    'Moving phones? A two minute guided handoff, no cloud in the middle.',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => NewPhoneDayScreen(store: store),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              _startFreshCard(context),
-              const SizedBox(height: 16),
-              UpdateCard(store: store),
+                NavTile(
+                  icon: 'wallet',
+                  label: 'Accounts',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AccountsScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'flow',
+                  label: 'Cash flow',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CashFlowScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'card',
+                  label: 'Debts',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => DebtsScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'savings',
+                  label: 'Goals',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GoalsScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'group',
+                  label: 'Paluwagan',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PaluwaganScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'repeat',
+                  label: 'Recurring',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => RecurringScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'chart',
+                  label: 'Reports',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ReportsScreen(store: store, onSwitchTab: onSwitchTab),
+                    ),
+                  ),
+                ),
+                // Payday joins MONEY rather than keeping a section of its
+                // own: a lone half-width tile under its own heading reads as
+                // a layout mistake. Still gated on canWrite, as before.
+                if (store.canWrite)
+                  NavTile(
+                    icon: 'calendar',
+                    label: 'Payday',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PaydayScreen(store: store),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Kicker('HELPERS'),
+            const SizedBox(height: Gap.md),
+            NavTileGrid(
+              tiles: [
+                NavTile(
+                  icon: 'tools',
+                  label: 'Tools',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ToolsScreen(store: store, onSwitchTab: onSwitchTab),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'gift',
+                  label: 'Earn your treats',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TreatsScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'share',
+                  label: 'Share your month',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => RecapShareScreen(store: store),
+                    ),
+                  ),
+                ),
+                NavTile(
+                  icon: 'celebrate',
+                  label: 'Share a win',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MilestoneShareScreen(store: store),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (store.canWrite) ...[
+              const SizedBox(height: 20),
+              Kicker('PERSONALIZE'),
+              const SizedBox(height: 8),
+              _appearanceRow(context),
+              const SizedBox(height: 20),
+              Kicker('YOUR NAME'),
+              const SizedBox(height: 8),
+              _nameCard(context),
+              const SizedBox(height: 20),
+              Kicker('REMINDERS'),
+              const SizedBox(height: 8),
+              _remindersCard(context),
+              const SizedBox(height: 20),
+              Kicker('SECURITY'),
+              const SizedBox(height: 8),
+              _appLockCard(context),
             ],
-          ),
+            // Deliberately OUTSIDE the canWrite block. This screen is read
+            // only and touches no user data, and a user whose stored data
+            // failed to load is exactly the user most likely to want to
+            // check what the app can reach on the network.
+            const SizedBox(height: 20),
+            Kicker('PRIVACY'),
+            const SizedBox(height: 8),
+            _navRow(
+              icon: Icons.verified_user_outlined,
+              title: 'Privacy receipt',
+              blurb:
+                  'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => PrivacyReceiptScreen())),
+            ),
+            const SizedBox(height: 20),
+            Kicker('YOUR DATA'),
+            const SizedBox(height: 8),
+            _backupCard(context),
+            _undoImportCard(context),
+            // The save dialog and share sheet are native-only; on the web
+            // preview both would fail, so the export card hides there.
+            if (store.hasData && !kIsWeb) ...[
+              const SizedBox(height: 12),
+              _exportCard(context),
+            ],
+            const SizedBox(height: 12),
+            _navRow(
+              icon: Icons.phonelink_ring_outlined,
+              title: 'New phone day',
+              blurb:
+                  'Moving phones? A two minute guided handoff, no cloud in the middle.',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => NewPhoneDayScreen(store: store),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _startFreshCard(context),
+            const SizedBox(height: 16),
+            UpdateCard(store: store),
+          ],
         ),
       ),
     );
   }
-
 
   /// Ask Pan, promoted out of the list into a filled banner at the top.
   ///
@@ -414,9 +405,9 @@ class MenuScreen extends StatelessWidget {
       icon: Icons.palette_outlined,
       title: 'Appearance',
       blurb: '$label, $mode',
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => AppearanceScreen(store: store)),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => AppearanceScreen(store: store))),
     );
   }
 
@@ -1220,4 +1211,3 @@ class MenuScreen extends StatelessWidget {
     );
   }
 }
-

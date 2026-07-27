@@ -78,7 +78,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
     expect(find.textContaining('What your money is telling'), findsOneWidget);
   });

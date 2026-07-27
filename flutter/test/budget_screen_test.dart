@@ -11,6 +11,8 @@ import 'package:salapify/main.dart';
 import 'package:salapify/money/budget.dart' as budget;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 String _today() {
   final now = DateTime.now();
   return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -56,7 +58,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Budget'));
+    await goToTab(tester, 'Budget');
     await tester.pumpAndSettle();
 
     // 1,200 of 8,000, not over (the amount also shows on the category row).
@@ -98,7 +100,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Budget'));
+    await goToTab(tester, 'Budget');
     await tester.pumpAndSettle();
     expect(find.textContaining('Neg'), findsNothing);
   });
@@ -107,7 +109,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Budget'));
+    await goToTab(tester, 'Budget');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Change limit'));
     await tester.pumpAndSettle();
@@ -126,7 +128,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Budget'));
+    await goToTab(tester, 'Budget');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Change limit'));
     await tester.pumpAndSettle();

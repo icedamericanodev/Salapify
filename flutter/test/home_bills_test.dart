@@ -30,6 +30,8 @@ import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/bills_before_payday.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<SalapifyStore> _seed(Map<String, dynamic> blob) async {
   SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
   final store = SalapifyStore();
@@ -69,7 +71,7 @@ Future<void> _pumpHome(WidgetTester tester, SalapifyStore store) async {
       listenable: store,
       builder: (context, _) => MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+        home: tabHost(OverviewScreen(store: store, onSwitchTab: (_) {})),
       ),
     ),
   );

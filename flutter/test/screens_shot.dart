@@ -38,6 +38,7 @@ import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
+import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/utang.dart';
@@ -185,7 +186,10 @@ Future<void> shoot(
   await tester.pumpWidget(
     MaterialApp(
       theme: salapifyTheme(Barako.current),
-      home: build(store),
+      // A destination is a body now, not a Scaffold. The shell supplies the
+      // Scaffold in the app, so the harness has to here, or every screen with
+      // a Material widget in it asserts before it can be photographed.
+      home: Scaffold(body: build(store)),
     ),
   );
   await tester.pumpAndSettle();
@@ -217,6 +221,54 @@ void main() {
       });
     }
   }
+
+  testWidgets('the shell, which is the app as the user meets it', (
+    tester,
+  ) async {
+    // The per-screen shots wrap a destination in a bare Scaffold, so they show
+    // the content and nothing else. This is the only frame with the bottom bar
+    // and the Log button in it, which means it is the only one that can show
+    // whether the last card clears that button.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 12450},
+        ],
+        'transactions': [
+          {
+            'id': 'e1',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 1200,
+            'date': '2026-07-20',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: ShellScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/shell-dark.png'),
+    );
+  });
 
   testWidgets('appearance at 1.4x system font on a narrow phone', (
     tester,
@@ -314,7 +366,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: MenuScreen(store: store, onSwitchTab: (_) {}),
+        home: Scaffold(body: MenuScreen(store: store, onSwitchTab: (_) {})),
       ),
     );
     await tester.pumpAndSettle();
@@ -352,7 +404,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: MenuScreen(store: store, onSwitchTab: (_) {}),
+        home: Scaffold(body: MenuScreen(store: store, onSwitchTab: (_) {})),
       ),
     );
     await tester.pumpAndSettle();
@@ -425,7 +477,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
-        home: OverviewScreen(store: store, onSwitchTab: (_) {}),
+        home: Scaffold(body: OverviewScreen(store: store, onSwitchTab: (_) {})),
       ),
     );
     await tester.pumpAndSettle();

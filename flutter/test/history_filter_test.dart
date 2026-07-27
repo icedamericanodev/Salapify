@@ -10,6 +10,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Future<SalapifyStore> _seed() async {
   SharedPreferences.setMockInitialValues({
     'salapify_data_v2': jsonEncode({
@@ -39,7 +41,7 @@ Future<SalapifyStore> _seed() async {
 void main() {
   testWidgets('typing in History narrows the list', (tester) async {
     final store = await _seed();
-    await tester.pumpWidget(MaterialApp(home: HistoryScreen(store: store)));
+    await tester.pumpWidget(MaterialApp(home: tabHost(HistoryScreen(store: store))));
     await tester.pumpAndSettle();
 
     expect(find.text('Jollibee lunch'), findsOneWidget);
@@ -55,7 +57,7 @@ void main() {
       (tester) async {
     final store = await _seed();
     await tester.pumpWidget(MaterialApp(
-        home: HistoryScreen(store: store, initialQuery: 'grab', pushed: true)));
+        home: tabHost(HistoryScreen(store: store, initialQuery: 'grab', pushed: true))));
     await tester.pumpAndSettle();
 
     // Only the matching row shows, and the pushed app bar title is present.
@@ -70,7 +72,7 @@ void main() {
     // without its own the dismissed row would stay in the tree (assert/ghost).
     final store = await _seed();
     await tester.pumpWidget(
-        MaterialApp(home: HistoryScreen(store: store, pushed: true)));
+        MaterialApp(home: tabHost(HistoryScreen(store: store, pushed: true))));
     await tester.pumpAndSettle();
 
     expect(find.text('Jollibee lunch'), findsOneWidget);

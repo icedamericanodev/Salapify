@@ -91,3 +91,17 @@ Future<void> openFromMenu(
   await tester.tap(target);
   await tester.pumpAndSettle();
 }
+
+/// Mount a primary destination the way the shell mounts it: as a body inside a
+/// Scaffold.
+///
+/// The five destinations stopped returning their own Scaffold when the shell
+/// took ownership of the one Scaffold, the nav bar and the Log button. That is
+/// the right shape for the app and it changes the contract for tests: a screen
+/// pumped as a bare `home:` now has no Material ancestor, and anything Material
+/// inside it (a ChoiceChip, a TextField's fill) asserts.
+///
+/// The failure is loud and the message is good ("No Material widget found"), so
+/// this is a nuisance rather than a hazard. It gets a helper anyway, so the next
+/// person adding a screen test copies the right thing.
+Widget tabHost(Widget destination) => Scaffold(body: destination);

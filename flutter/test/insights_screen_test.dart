@@ -13,6 +13,8 @@ import 'package:salapify/screens/insights.dart' show runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/app_harness.dart';
+
 Map<String, dynamic> blob() => {
   'schemaVersion': 12,
   'accounts': [
@@ -168,7 +170,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     expect(find.text('DO NEXT'), findsOneWidget);
@@ -249,7 +251,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -305,7 +307,7 @@ void main() {
       final store = SalapifyStore();
       await tester.pumpWidget(SalapifyApp(store: store));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Insights'));
+      await goToTab(tester, 'Insights');
       await tester.pumpAndSettle();
 
       // The whole card is one ListView child, so scrolling its kicker into view
@@ -347,7 +349,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -404,7 +406,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -471,7 +473,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
@@ -527,7 +529,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
     // The tab rendered without throwing, and the card fell back to the peso
@@ -551,7 +553,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Insights'));
+    await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
     // Before any data, Insights shows one warm invitation, not the analytics
     // wall of safe-to-spend 0, health 0 of 100, and empty charts.

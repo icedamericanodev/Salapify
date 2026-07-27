@@ -33,12 +33,19 @@ void main() {
     expect(find.text('Coming from the old app? Import a backup'), findsOneWidget);
     // The stamp and the full import screen now live under the Menu tab, off
     // the decluttered dashboard.
+    // Scrolled to separately, because they sit far apart in a long lazy list
+    // and asserting both after ONE scroll was really asserting that they
+    // happened to be on screen together. They are not, and a padding change
+    // was enough to prove it. What matters is that each is reachable.
     await openMenu(tester);
+    await scrollTo(tester, find.text('Import backup'),
+        scope: find.byType(MenuScreen));
+    expect(find.text('Import backup'), findsOneWidget);
+
     await scrollTo(tester, find.text('Update stamp'),
         scope: find.byType(MenuScreen));
     expect(find.text('Update stamp'), findsOneWidget);
     expect(find.textContaining(RegExp(r'f\d+\.')), findsOneWidget);
-    expect(find.text('Import backup'), findsOneWidget);
   });
 
   testWidgets('Home surfaces the top money decision and it jumps to its tab',

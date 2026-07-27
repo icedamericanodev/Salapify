@@ -34,7 +34,12 @@ final _paletteB = themeForKey('tidal').dark;
 
 Future<void> _pumpWith(WidgetTester tester, Widget child) async {
   await tester.pumpWidget(
-    MaterialApp(theme: salapifyTheme(Barako.current), home: child),
+    // Scaffold, because a destination is a body now and several of them
+    // contain Material widgets that assert without one above them.
+    MaterialApp(
+      theme: salapifyTheme(Barako.current),
+      home: Scaffold(body: child),
+    ),
   );
   await tester.pumpAndSettle();
 }
