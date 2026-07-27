@@ -50,7 +50,14 @@ Future<void> goToTab(WidgetTester tester, String label) async {
 /// its 24 callers are not. Today Menu is a bottom bar destination. Shortly it
 /// becomes a header action, and only these three lines move.
 Future<void> openMenu(WidgetTester tester) async {
-  await tester.tap(navDestination('Menu'));
+  // Menu left the bottom bar and became a header action on every primary
+  // screen. This is the whole payoff of the file: 24 test files reached Menu
+  // through here, and moving it cost exactly these two lines.
+  //
+  // byTooltip, because the action is an icon with no visible text. The tooltip
+  // is also the screen reader's only label for it, so a finder that stops
+  // working here means a real accessibility regression, not just a broken test.
+  await tester.tap(find.byTooltip('Menu'));
   await tester.pumpAndSettle();
 }
 

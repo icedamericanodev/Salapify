@@ -44,15 +44,24 @@ void main() {
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
 
-    // Both the Insights and the Menu bottom tabs exist.
+    // Five destinations, and Menu is NOT one of them. A bottom bar is for
+    // places you go often; Menu is a drawer of everything else and it was
+    // taking a sixth of the most valuable strip on the screen. The bar's own
+    // theme had been shrunk below Material's defaults specifically to fit six.
     //
-    // Scoped to the NavigationBar rather than searching the whole tree. Once
-    // the destinations are mounted together, 'Insights' also matches the
-    // Insights screen's own header, and an unscoped findsOneWidget would fail
-    // for a reason that has nothing to do with the tab bar.
-    expect(navDestination('Menu'), findsOneWidget);
-    expect(navDestination('Insights'), findsOneWidget); // kept as a bottom tab
+    // Scoped to the NavigationBar rather than searching the whole tree, because
+    // the mounted destinations render their own headers with the same words.
+    expect(navDestination('Menu'), findsNothing);
+    expect(navDestination('Insights'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byType(NavigationDestination),
+      ),
+      findsNWidgets(5),
+    );
 
+    // And Menu is still one tap away, from the header.
     await openMenu(tester);
 
     // The hub holds the moved destinations (some are below the fold). Insights

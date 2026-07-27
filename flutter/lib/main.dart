@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.52 \u00b7 Appearance is its own screen, each theme previews itself, and Forest is finally green.';
+    'f2.53 \u00b7 Five tabs, Menu moved to the top, Log on every screen, and tabs stop forgetting.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

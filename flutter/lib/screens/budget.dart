@@ -23,7 +23,11 @@ const List<({String label, num amount})> _defaultQuickAdds = [
 
 class BudgetScreen extends StatelessWidget {
   final SalapifyStore store;
-  const BudgetScreen({super.key, required this.store});
+
+  /// Opens Menu. Menu left the bottom bar, so every primary screen carries
+  /// the way in.
+  final VoidCallback? onMenu;
+  const BudgetScreen({super.key, required this.store, this.onMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +60,7 @@ class BudgetScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
         children: [
-          ScreenHeader('Budget'),
+          ScreenHeader('Budget', onMenu: onMenu),
           _limitCard(context, summary),
           if (store.canWrite) ...[
             const SizedBox(height: 12),

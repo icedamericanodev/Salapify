@@ -11,6 +11,7 @@ import '../data/store.dart';
 import '../money/search.dart' as search;
 import '../theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/screen_header.dart';
 import 'overview.dart' show formatMoney;
 import 'split_expense.dart' show showSplitSheet;
 
@@ -78,11 +79,13 @@ class HistoryScreen extends StatefulWidget {
   /// route rather than shown as the History tab.
   final String initialQuery;
   final bool pushed;
+  final VoidCallback? onMenu;
   const HistoryScreen({
     super.key,
     required this.store,
     this.initialQuery = '',
     this.pushed = false,
+    this.onMenu,
   });
 
   @override
@@ -184,7 +187,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               backgroundColor: Barako.background,
               foregroundColor: Barako.text,
               title: Text(
-                'History',
+                'Activity',
                 style: TextStyle(
                   color: Barako.text,
                   fontWeight: FontWeight.w800,
@@ -213,18 +216,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!widget.pushed) ...[
-              const SizedBox(height: 12),
-              Text(
-                'History',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 3,
-                ),
-              ),
-            ],
+            // The last hand-rolled title in the app. It was 26/w800 with 3 of
+            // letter spacing, the pre-ScreenHeader treatment that every other
+            // tab moved off, so "History" sat shouting above a sentence-case
+            // nav label saying the same word. Now it is the shared header,
+            // which also gives it the Menu action for free.
+            if (!widget.pushed) ScreenHeader('Activity', onMenu: widget.onMenu),
             const SizedBox(height: 12),
             TextField(
               controller: _query,

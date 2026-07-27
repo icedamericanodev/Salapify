@@ -98,14 +98,18 @@ class _PanScreenState extends State<PanScreen> {
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
-          Navigator.of(context).pop();
+          // popUntil, not pop. Menu is a pushed route now, so a screen
+          // reached through it sits TWO deep, and a single pop would land the
+          // user back on Menu with the tab quietly changed behind it. Popping
+          // to the root is correct from any depth.
+          Navigator.of(context).popUntil((r) => r.isFirst);
           onSwitchTab(Destination.insights);
         };
       case '/receivables':
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
-          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((r) => r.isFirst);
           onSwitchTab(Destination.utang);
         };
       default:

@@ -57,14 +57,14 @@ void main() {
     tester,
   ) async {
     await _boot(tester);
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     await tester.enterText(find.byType(TextField).first, 'Jollibee');
     await tester.pumpAndSettle();
     expect(find.textContaining('Sweldo'), findsNothing);
 
     await goToTab(tester, 'Budget');
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     expect(
       find.widgetWithText(TextField, 'Jollibee'),
@@ -81,13 +81,13 @@ void main() {
     tester,
   ) async {
     await _boot(tester);
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Income'));
     await tester.pumpAndSettle();
 
     await goToTab(tester, 'Insights');
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     final chip = tester.widget<ChoiceChip>(
       find.widgetWithText(ChoiceChip, 'Income'),
@@ -97,7 +97,7 @@ void main() {
 
   testWidgets('a tab keeps its scroll position', (tester) async {
     await _boot(tester);
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     // .last, not .first: Activity's filter chips are a horizontal
     // SingleChildScrollView that comes earlier in the tree, and dragging that
@@ -109,7 +109,7 @@ void main() {
     expect(scrolled, greaterThan(0));
 
     await goToTab(tester, 'Budget');
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
 
     expect(
       tester.widget<Scrollable>(find.byType(Scrollable).last).controller!.offset,
@@ -124,7 +124,7 @@ void main() {
     tester,
   ) async {
     await _boot(tester);
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
     final list = find.byType(Scrollable).last;
     await tester.drag(list, const Offset(0, -400));
     await tester.pumpAndSettle();
@@ -132,7 +132,7 @@ void main() {
 
     // The same destination again, which is a scroll-to-top rather than a
     // no-op. Every phone user already expects this from other apps.
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
     await tester.pumpAndSettle();
     expect(
       tester.widget<Scrollable>(find.byType(Scrollable).last).controller!.offset,
@@ -144,7 +144,7 @@ void main() {
     // The reason the FAB moved into the shell. It used to be on Home only,
     // which put the most frequent action in the app behind a tab change.
     await _boot(tester);
-    for (final label in ['Home', 'Budget', 'History', 'Utang', 'Insights']) {
+    for (final label in ['Home', 'Activity', 'Budget', 'Utang', 'Insights']) {
       await goToTab(tester, label);
       expect(
         find.widgetWithText(FloatingActionButton, 'Log'),

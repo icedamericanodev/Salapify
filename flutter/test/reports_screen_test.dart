@@ -96,7 +96,7 @@ void main() {
     await tester.pumpAndSettle();
     // The pushed History route shows its back-capable app bar and pre-fills
     // the filter with the category name.
-    expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Activity'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
   });
 

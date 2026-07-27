@@ -1345,7 +1345,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             FilledButton(
               onPressed: () {
                 if (widget.onSwitchTab != null) {
-                  Navigator.of(context).pop();
+                  // Reports is reached from Menu, so it is two deep now.
+                  Navigator.of(context).popUntil((r) => r.isFirst);
                   widget.onSwitchTab!(Destination.home);
                 } else {
                   Navigator.of(context).pop();

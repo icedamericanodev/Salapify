@@ -20,6 +20,7 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/screen_header.dart' show MenuAction;
 import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
@@ -91,7 +92,16 @@ String prettyDay(String iso) {
 class OverviewScreen extends StatelessWidget {
   final SalapifyStore store;
   final void Function(Destination)? onSwitchTab;
-  const OverviewScreen({super.key, required this.store, this.onSwitchTab});
+
+  /// Opens Menu. Home keeps its wordmark instead of adopting ScreenHeader, so
+  /// it wires MenuAction into its own row rather than getting it for free.
+  final VoidCallback? onMenu;
+  const OverviewScreen({
+    super.key,
+    required this.store,
+    this.onSwitchTab,
+    this.onMenu,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -182,6 +192,7 @@ class OverviewScreen extends StatelessWidget {
               IconButton(
                 icon: Icon(Icons.search, color: Barako.text),
                 tooltip: 'Search',
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) =>
@@ -189,6 +200,11 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              // Home keeps the wordmark rather than adopting ScreenHeader, so
+              // the same MenuAction the other four get from their header is
+              // placed by hand here. One widget, one tooltip, one tap target,
+              // five screens.
+              if (onMenu != null) MenuAction(onTap: onMenu!),
             ],
           ),
           // The greeting sits under the wordmark rather than replacing it,

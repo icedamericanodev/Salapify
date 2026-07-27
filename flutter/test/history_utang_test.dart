@@ -183,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // History tab: both rows under their date headers.
-    await goToTab(tester, 'History');
+    await goToTab(tester, 'Activity');
     await tester.pumpAndSettle();
     expect(find.text('Groceries'), findsOneWidget);
     expect(find.text('To savings'), findsOneWidget);

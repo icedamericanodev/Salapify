@@ -30,11 +30,10 @@ import 'utang.dart';
 
 enum Destination {
   home(label: 'Home', icon: 'home'),
+  history(label: 'Activity', icon: 'activity'),
   budget(label: 'Budget', icon: 'budget'),
-  history(label: 'History', icon: 'activity'),
   utang(label: 'Utang', icon: 'utang'),
-  insights(label: 'Insights', icon: 'insights'),
-  menu(label: 'Menu', icon: 'menu');
+  insights(label: 'Insights', icon: 'insights');
 
   const Destination({required this.label, required this.icon});
 
@@ -135,14 +134,28 @@ class _ShellScreenState extends State<ShellScreen> {
     }
   }
 
+  void _openMenu() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MenuScreen(store: widget.store, onSwitchTab: _select),
+      ),
+    );
+  }
+
   Widget _bodyFor(Destination d) => switch (d) {
-    Destination.home => OverviewScreen(store: widget.store, onSwitchTab: _select),
-    Destination.budget => BudgetScreen(store: widget.store),
-    Destination.history => HistoryScreen(store: widget.store),
-    Destination.utang => UtangScreen(store: widget.store),
-    Destination.insights =>
-      InsightsScreen(store: widget.store, onSwitchTab: _select),
-    Destination.menu => MenuScreen(store: widget.store, onSwitchTab: _select),
+    Destination.home => OverviewScreen(
+      store: widget.store,
+      onSwitchTab: _select,
+      onMenu: _openMenu,
+    ),
+    Destination.budget => BudgetScreen(store: widget.store, onMenu: _openMenu),
+    Destination.history => HistoryScreen(store: widget.store, onMenu: _openMenu),
+    Destination.utang => UtangScreen(store: widget.store, onMenu: _openMenu),
+    Destination.insights => InsightsScreen(
+      store: widget.store,
+      onSwitchTab: _select,
+      onMenu: _openMenu,
+    ),
   };
 
   @override

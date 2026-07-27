@@ -69,7 +69,9 @@ class _SearchScreenState extends State<SearchScreen> {
         );
         break;
       case 'utang':
-        Navigator.of(context).pop();
+        // popUntil: Search can be reached from Home directly or from Menu,
+        // so its depth is not fixed. A single pop was right for one of those.
+        Navigator.of(context).popUntil((r) => r.isFirst);
         widget.onSwitchTab?.call(Destination.utang);
         break;
       case 'debts':

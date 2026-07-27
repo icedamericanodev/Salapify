@@ -39,7 +39,8 @@ List<Map<String, dynamic>> openUtangFor(
 
 class UtangScreen extends StatelessWidget {
   final SalapifyStore store;
-  const UtangScreen({super.key, required this.store});
+  final VoidCallback? onMenu;
+  const UtangScreen({super.key, required this.store, this.onMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +67,7 @@ class UtangScreen extends StatelessWidget {
           ScreenHeader(
             'Utang',
             subtitle: 'Money owed to you, oldest first',
+            onMenu: onMenu,
             trailing: store.canWrite
                 ? FilledButton.icon(
                     onPressed: () => showAddUtangSheet(context, store),

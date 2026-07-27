@@ -142,7 +142,13 @@ String runwayLabel(dynamic months, bool capped) {
 class InsightsScreen extends StatelessWidget {
   final SalapifyStore store;
   final void Function(Destination)? onSwitchTab;
-  const InsightsScreen({super.key, required this.store, this.onSwitchTab});
+  final VoidCallback? onMenu;
+  const InsightsScreen({
+    super.key,
+    required this.store,
+    this.onSwitchTab,
+    this.onMenu,
+  });
 
   // Shown before there is any data, in place of the full analytics wall.
   Widget _emptyInsights(BuildContext context) => SafeArea(
@@ -229,6 +235,7 @@ class InsightsScreen extends StatelessWidget {
           ScreenHeader(
             'Insights',
             subtitle: 'What your money is telling you, and what to do next',
+            onMenu: onMenu,
           ),
           if (candidates.isNotEmpty) ...[
             Kicker('DO NEXT'),

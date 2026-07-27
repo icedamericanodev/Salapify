@@ -63,7 +63,7 @@ void main() {
     // Only the matching row shows, and the pushed app bar title is present.
     expect(find.text('Grab home'), findsOneWidget);
     expect(find.text('Jollibee lunch'), findsNothing);
-    expect(find.widgetWithText(AppBar, 'History'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Activity'), findsOneWidget);
   });
 
   testWidgets('swipe delete in pushed History rebuilds the list, no ghost',
