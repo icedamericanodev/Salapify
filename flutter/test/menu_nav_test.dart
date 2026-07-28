@@ -90,7 +90,7 @@ void main() {
   });
 
   testWidgets('the Insights tab opens the Insights screen', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 

@@ -19,7 +19,7 @@ Future<void> _openGoals(WidgetTester tester) async {
 void main() {
   testWidgets('add a goal from a template, fund it, then delete it',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

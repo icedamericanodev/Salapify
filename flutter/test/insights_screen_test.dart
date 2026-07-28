@@ -536,7 +536,7 @@ void main() {
   ) async {
     // The mock storage persists across tests in this file; clear it so this
     // store really loads empty.
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

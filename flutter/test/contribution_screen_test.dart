@@ -23,7 +23,7 @@ Future<void> openContrib(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('25,000 salary shows the contributions and totals',

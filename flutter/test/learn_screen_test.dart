@@ -15,7 +15,7 @@ void main() {
   testWidgets('opening does not finish a lesson; reaching the end does', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

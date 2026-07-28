@@ -4,6 +4,15 @@
 // account they last logged from so it is preselected. Pure and read-only; no
 // pesos, so covered by plain unit tests. Ordering matches the History screen
 // (newest by date, then by list position) so "recent" means the same thing.
+//
+// Sample rows are excluded from BOTH, the same rule as the chain: these
+// helpers exist to echo what the user actually did, and the seed is not
+// something they did. Skipping it here also stops the auto-opened first log
+// sheet preselecting a sample account, which QA caught funneling a new
+// user's first real entries into an account that "Remove sample data" then
+// deletes from under them.
+
+import 'sample_data.dart' show isSampleId, sampleTxIds;
 
 /// The user's most recent DISTINCT entry labels for [type] ('expense' or
 /// 'income'), newest first, up to [limit]. Skips blank labels and the generic
@@ -16,6 +25,7 @@ List<String> recentLabels(dynamic transactions, String type, {int limit = 6}) {
   for (var i = 0; i < list.length; i++) {
     final t = list[i];
     if (t is! Map) continue;
+    if (sampleTxIds.contains(t['id'])) continue;
     if (t['type'] != type) continue;
     final raw = t['label'];
     if (raw is! String) continue;
@@ -47,8 +57,12 @@ String? lastUsedAccountId(dynamic transactions, Set<String> validIds) {
   for (var i = 0; i < list.length; i++) {
     final t = list[i];
     if (t is! Map) continue;
+    if (sampleTxIds.contains(t['id'])) continue;
     final acct = t['accountId'];
     if (acct is! String || acct.isEmpty) continue;
+    // Never preselect a sample account, even off a real transaction the
+    // user pointed at one: preselection is an invitation to keep going.
+    if (isSampleId(acct)) continue;
     rows.add((date: (t['date'] ?? '').toString(), idx: i, acct: acct));
   }
   rows.sort((a, b) {

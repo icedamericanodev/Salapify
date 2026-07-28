@@ -13,6 +13,7 @@
 import 'analytics.dart';
 import 'commitments.dart';
 import 'ledger.dart' show amountOf;
+import 'sample_data.dart' show sampleTxIds;
 import 'statements.dart' show netWorthParts;
 import 'utang.dart';
 
@@ -302,9 +303,14 @@ List<Map<String, dynamic>> decisionCandidates(
   final hasStarted =
       (accounts is List && accounts.isNotEmpty) ||
       (transactions is List && transactions.isNotEmpty);
+  // Sample rows never count as logging, the same rule as the chain: the
+  // seed's clamped dates land on today early in the month, and a nudge
+  // silenced by demo data while the chain says "start your chain" would be
+  // the app disagreeing with itself.
   final loggedToday = _list(transactions).any(
     (t) =>
         (t['type'] == 'income' || t['type'] == 'expense') &&
+        !sampleTxIds.contains(t['id']) &&
         t['date'] == todayStr,
   );
   if (hasStarted && !loggedToday) {

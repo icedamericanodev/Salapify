@@ -19,7 +19,7 @@ Future<void> openBnpl(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('a real 0% reassures and a fee unmasks it', (tester) async {

@@ -42,6 +42,7 @@ import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -826,6 +827,98 @@ void main() {
     );
     Barako.currentTheme = themeForKey('barako');
     Barako.current = themeForKey('barako').resolve(Brightness.dark);
+  });
+
+  testWidgets('the onboarding flow, walked step by step', (tester) async {
+    // Walked, not constructed per step: tapping through is what a new user
+    // does, and a step reachable only by construction is a step the flow
+    // lost. Both brightnesses for the welcome (the first frame anyone ever
+    // sees of the app), dark for the rest, since dark is what the founder
+    // uses.
+    for (final b in [Brightness.dark, Brightness.light]) {
+      await loadRealFonts(tester);
+      await loadPanFaces(tester);
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(b);
+      // Keyed per brightness. Without this the second pump reuses the first
+      // iteration's State (same widget type, same slot), so the "welcome"
+      // shot silently rendered whatever step the previous walk ended on.
+      // The first light render proved it by photographing step 2.
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          home: OnboardingScreen(key: ValueKey(b.name), store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final mode = b == Brightness.dark ? 'dark' : 'light';
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/onboarding-welcome-$mode.png'),
+      );
+      if (b == Brightness.light) break;
+
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/onboarding-basics-dark.png'),
+      );
+
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/onboarding-start-dark.png'),
+      );
+    }
+  });
+
+  testWidgets('Home wearing the sample-data banner, dark', (tester) async {
+    // The state the "Explore the sample data first" choice lands on: the
+    // banner must read as a flag over borrowed data, not as another money
+    // card, and the one-tap removal must be visible without scrolling.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.completeOnboarding(
+      currencyCode: 'PHP',
+      currencySymbol: '₱',
+      monthlyLimit: 20000,
+      withSampleData: true,
+    );
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          body: OverviewScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/home-sample-banner-dark.png'),
+    );
   });
 
   testWidgets('a lesson, opened the way a reader opens it', (tester) async {

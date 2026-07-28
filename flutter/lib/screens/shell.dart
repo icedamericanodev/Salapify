@@ -80,6 +80,26 @@ class ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<ShellScreen> {
   Destination tab = Destination.home;
 
+  @override
+  void initState() {
+    super.initState();
+    // The first-log prompt: onboarding just finished (the settings patch set
+    // firstLogPrompt and the gate flipped to this shell), so open the log
+    // sheet once, unasked, on the day the habit should start. Cleared BEFORE
+    // showing, so a crash mid-sheet can never turn it into a nag. Guarded on
+    // onboarded too: a restored backup carrying a stray true from a phone
+    // that died mid-onboarding should not open a sheet over a stranger.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.store.canWrite) return;
+      final s = widget.store.data['settings'];
+      if (s is! Map || s['firstLogPrompt'] != true || s['onboarded'] != true) {
+        return;
+      }
+      widget.store.clearFirstLogPrompt();
+      showLogSheet(context, widget.store);
+    });
+  }
+
   /// Reaches into the Money tab for the two things only it knows: which
   /// segment is active (for scroll-to-top) and how to show a specific one
   /// (for taps that mean receivables in particular).

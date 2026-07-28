@@ -20,7 +20,7 @@ Future<void> openSalary(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('25,000 basic renders the honest breakdown and rescales',

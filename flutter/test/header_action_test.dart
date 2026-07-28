@@ -25,7 +25,7 @@ Future<void> _boot(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1170, 2532);
   tester.view.devicePixelRatio = 3.0;
   addTearDown(tester.view.reset);
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
   await tester.pumpAndSettle();
 }

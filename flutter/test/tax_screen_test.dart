@@ -22,7 +22,7 @@ Future<void> openTax(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('600k gross recommends the flat 8% and shows the saving',

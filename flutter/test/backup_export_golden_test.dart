@@ -89,7 +89,7 @@ void main() {
   test('hasData counts settings-era data too', () async {
     // An accepted Steady Pay lives under settings, not a top-level list, but
     // it is still data the replace-everything warning must protect.
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await store.load();
     expect(store.hasData, isFalse);

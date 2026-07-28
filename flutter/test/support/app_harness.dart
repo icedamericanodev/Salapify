@@ -24,19 +24,35 @@
 // Deliberately NOT named *_test.dart, so `flutter test` never collects it, the
 // same trick screens_shot.dart uses for the same reason.
 
+import 'dart:convert' show jsonEncode;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/store.dart' show storageKey;
 import 'package:salapify/screens/menu.dart';
+
+/// Mock storage for a booted, already-onboarded, otherwise empty app.
+///
+/// Since the first-run gate exists, an app booted with NOTHING stored shows
+/// the onboarding flow, not the shell. Every full-app test that is not about
+/// onboarding itself boots through this instead of `{}`: it is the same
+/// empty app those tests always meant, said precisely. The blob carries only
+/// the onboarded mark, so hasData stays false and every empty-state
+/// assertion still holds.
+Map<String, Object> onboardedEmptyStorage() => {
+  storageKey: jsonEncode({
+    'schemaVersion': 12,
+    'settings': {'onboarded': true},
+  }),
+};
 
 /// The bottom bar destination with this label.
 ///
 /// Scoped to the NavigationBar, which is what makes it survive every screen
 /// being mounted at once. `find.text('Budget')` is ambiguous the moment the
 /// Budget screen exists in the tree with its own header; this never is.
-Finder navDestination(String label) => find.descendant(
-  of: find.byType(NavigationBar),
-  matching: find.text(label),
-);
+Finder navDestination(String label) =>
+    find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
 
 /// Switch to a primary destination by its bottom bar label.
 Future<void> goToTab(WidgetTester tester, String label) async {

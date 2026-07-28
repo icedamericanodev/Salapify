@@ -28,7 +28,7 @@ Future<void> _openReports(WidgetTester tester) async {
 
 void main() {
   testWidgets('empty state invites the first log', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

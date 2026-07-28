@@ -18,7 +18,7 @@ Future<void> openThirteenth(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('a full year at 25,000 is tax free; big bonuses split it',

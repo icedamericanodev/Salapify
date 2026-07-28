@@ -16,7 +16,7 @@ import 'support/app_harness.dart';
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   test('themeForKey maps keys and falls back to Barako', () {
