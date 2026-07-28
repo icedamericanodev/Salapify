@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
+import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
 import 'screens/onboarding.dart';
@@ -52,8 +53,17 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Load, then refresh the reminder schedule from the loaded data. Both are
     // safe no-ops off a real phone (web, tests), so this never blocks startup.
+    HomeTile.attach(widget.store);
     widget.store.load().then((_) {
       Reminders.reschedule(widget.store.data, DateTime.now());
+      // Post-frame, so the first build has already resolved the palette and
+      // the base currency. Until this runs HomeTile.ready is false and every
+      // push is dropped, so the first thing ever written to the tile is never
+      // the default palette or a peso sign on a dollar user.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        HomeTile.ready = true;
+        HomeTile.push(widget.store);
+      });
     });
   }
 
@@ -73,8 +83,16 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   // lastPosted marker makes this idempotent, so an extra call is always safe.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // The user is on their way to the home screen RIGHT NOW, so this is the
+      // push that matters most. It is also the cheapest place to catch a day
+      // rollover: the tile is rewritten with today's date every time the app
+      // goes to the background.
+      HomeTile.push(widget.store);
+    }
     if (state == AppLifecycleState.resumed) {
-      widget.store.postDueRecurring();
+      // Recurring first, then push, so posted bills are already in the figure.
+      widget.store.postDueRecurring().then((_) => HomeTile.push(widget.store));
       // Refill the schedule on every foreground, so tonight's log nudge is
       // dropped once you have logged, and new bills/utang are picked up.
       Reminders.reschedule(widget.store.data, DateTime.now());

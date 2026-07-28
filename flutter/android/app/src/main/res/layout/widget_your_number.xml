@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The whole tile. RemoteViews only: LinearLayout and TextView, nothing else.
+     ConstraintLayout is allowed in RemoteViews from API 31 only, which would
+     split behaviour across Android versions for no gain here.
+
+     The android:text values below are NOT placeholders. They are what a tile
+     dragged out before the app has ever run actually shows, and they are also
+     what the widget picker previews. So a tile placed on a fresh install looks
+     intentional and says exactly what to do next. Kotlin's per-key fallbacks
+     match these strings, so a half written preferences file renders the same
+     way rather than blank. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/yn_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/yn_kicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="YOUR NUMBER"
+        android:textColor="#FFA99182"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.18"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/yn_headline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Salapify"
+        android:textColor="#FFFBF3E9"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/yn_sub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open the app once and your daily number appears here."
+        android:textColor="#FFA99182"
+        android:textSize="12sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/yn_asof"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:text=""
+        android:textColor="#FFA99182"
+        android:textSize="10sp"
+        android:maxLines="1"
+        android:visibility="gone" />
+
+    <!-- Pushes the bar to the bottom whatever the headline size does. -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/yn_bar"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/widget_bar_bg">
+
+        <TextView
+            android:id="@+id/yn_bar_plus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+"
+            android:textColor="#FFFF8A3D"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/yn_bar_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Log an expense"
+            android:textColor="#FFFF8A3D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1" />
+    </LinearLayout>
+</LinearLayout>
