@@ -22,6 +22,7 @@ import '../money/treats.dart' as treats;
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
+import '../money/categories.dart' as categories;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
@@ -1770,6 +1771,105 @@ class SalapifyStore extends ChangeNotifier {
     });
     return refusal;
   }
+
+  /// Add or update a category. Returns the refusal, or null when it saved.
+  ///
+  /// The monthly cap is Pro. That gate lives here rather than only on the
+  /// screen, so a cap can never be written by a path that forgot to check.
+  Future<String?> saveCategory({
+    String? id,
+    required String name,
+    required String icon,
+    required String capText,
+    String? parentId,
+  }) async {
+    final clean = name.trim();
+    if (clean.isEmpty) return 'Please enter a name.';
+    final capRaw = capText.trim().replaceAll(RegExp(r'[, ]'), '');
+    num cap = 0;
+    if (capRaw.isNotEmpty) {
+      final parsed = num.tryParse(capRaw);
+      if (parsed == null || !parsed.isFinite || parsed < 0) {
+        return 'Enter a valid monthly cap, or leave it empty.';
+      }
+      cap = parsed;
+    }
+    final settings = data['settings'];
+    final pro = settings is Map && settings['pro'] == true;
+    if (cap > 0 && !pro) {
+      return 'Monthly caps are a Pro feature. Unlock Pro in Menu, free '
+          'during early access.';
+    }
+    await _mutate((d) {
+      final list = [
+        for (final c in (d['categories'] as List? ?? const []))
+          if (c is Map) c.cast<String, dynamic>(),
+      ];
+      final row = <String, dynamic>{
+        'name': clean,
+        'icon': icon.trim().isEmpty ? '🏷️' : icon.trim(),
+        'monthlyCap': cap,
+        if (parentId != null && parentId.isNotEmpty) 'parentId': parentId,
+      };
+      final next = id == null
+          ? [
+              ...list,
+              {...row, 'id': _genId('categories')},
+            ]
+          : [
+              for (final c in list)
+                if (c['id'] == id)
+                  // The old parentId is dropped rather than merged, so
+                  // clearing a parent in the form actually clears it.
+                  {
+                    ...c,
+                    ...row,
+                    'id': id,
+                    ...(row.containsKey('parentId')
+                        ? const {}
+                        : {'parentId': null}),
+                  }
+                else
+                  c,
+            ];
+      return {
+        ...d,
+        'categories': normalizeCategoryTree([
+          for (final c in next)
+            {
+              for (final e in c.entries)
+                if (e.value != null) e.key: e.value,
+            },
+        ]),
+      };
+    });
+    return null;
+  }
+
+  /// Delete a category, moving every entry tagged with it to [reassignToId],
+  /// or clearing the tag when that is null.
+  ///
+  /// The founder's decision, taken before this was built: a delete must never
+  /// silently drop the connection between an entry and where the money went.
+  /// The screen asks where the entries should go and passes the answer here;
+  /// this method cannot be called without making that choice explicit.
+  Future<void> deleteCategory(String id, String? reassignToId) => _mutate((d) {
+    final to = (reassignToId != null && reassignToId.isNotEmpty)
+        ? reassignToId
+        : null;
+    return {
+      ...d,
+      'transactions': categories.recategorizeTransactions(
+        d['transactions'],
+        id,
+        to,
+      ),
+      'categories': [
+        for (final c in categories.promoteChildren(d['categories'], id))
+          if (c['id'] != id) c,
+      ],
+    };
+  });
 
   Future<String?> saveDebt(Map<String, dynamic> form) async {
     String? savedId;

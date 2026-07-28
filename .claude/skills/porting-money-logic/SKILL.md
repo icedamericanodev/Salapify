@@ -28,6 +28,22 @@ by golden vectors generated from the REAL RN code, never hand-written.
    a golden replay, and say so in the test (e.g. goalForecast, whatIfLadder's
    derived savings).
 
+## Audit the fixtures, not just the port
+
+A golden replay proves parity on the cases someone thought to include, and
+nothing at all about the rest. So after the replay goes green, BREAK the core
+semantic on purpose and require it to fail: swap _jsRound for Dart's .round(),
+drop the JS coercion branch, remove the sort tiebreak. A replay that still
+passes has told you the fixture set is incomplete, not that the port is right.
+
+This is not theory. On the transfers port, swapping the centavo rounding to
+.round() passed all 125 cases, because JS Math.round and Dart round() differ
+only on a NEGATIVE half centavo and no fixture reached one. The missing case
+existed in the real app (a transfer into an account with a sub-centavo
+negative balance) and was added; the guard then failed as it should. In the
+same batch, a coercion the goldens did not carry ("0x+10", which JS rejects
+and int.tryParse accepts) would have moved real money.
+
 ## Non-negotiables
 
 - Money math does not merge without matching test vectors. No exceptions:

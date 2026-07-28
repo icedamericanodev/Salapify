@@ -20,6 +20,7 @@ import '../money/pan_mood.dart';
 import '../widgets/nav_tile.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
+import 'categories.dart';
 import 'appearance.dart';
 import 'cashflow.dart';
 import 'csv_import.dart';
@@ -145,6 +146,15 @@ class MenuScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => PaluwaganScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'categories',
+                    label: 'Categories',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CategoriesScreen(store: store),
                       ),
                     ),
                   ),

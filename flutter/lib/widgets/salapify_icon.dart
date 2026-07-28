@@ -64,6 +64,7 @@ const Map<String, IconData> _icons = {
   'flow': Icons.waterfall_chart_outlined,
   'group': Icons.groups_outlined,
   'tools': Icons.handyman_outlined,
+  'categories': Icons.sell_outlined,
   'share': Icons.ios_share_outlined,
   'phone': Icons.phone_iphone_outlined,
 
