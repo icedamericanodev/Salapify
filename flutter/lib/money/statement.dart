@@ -26,6 +26,7 @@
 // text landing in someone's chat app, where the app's palette does not reach
 // and a Material icon cannot be typed.
 
+import 'accounts_calc.dart' show round2;
 import 'debtmath.dart' show formatMoneyText;
 import 'transfers.dart' show jsNumber;
 
@@ -234,7 +235,7 @@ String buildPersonStatement(
     );
   }
   final totalPaid = payments.fold(0.0, (s, e) => s + e.amount);
-  final open = (((totalLent - totalPaid) * 100) + 0.5).floorToDouble() / 100;
+  final open = round2(totalLent - totalPaid);
   final stillOpen = open > 0 ? open : 0.0;
   final fullyPaid = totalLent > 0 && stillOpen <= 0.005;
 

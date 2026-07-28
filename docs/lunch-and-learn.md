@@ -10,6 +10,714 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 14: the rule was written down, and the same shape came back anyway
+
+f2.73 delivered cleanly, was confirmed on the founder's phone, and nothing
+broken reached it. Seven clean deliveries in a row on the mechanical side, and
+the first round in this log where the pre-merge QA pass ran, found seven real
+defects, and every one of them was fixed before the merge instead of after.
+
+So the patch is clean and the session is not short, because the interesting
+material is entirely in how the batch got there.
+
+Three things stand out. The guard session 13 asked for was built two minutes
+after session 13 was written, and it failed the build on its first live use.
+The silent-zero shape session 13 had just named came back in the same round, in
+new code, which is worth understanding rather than scolding. And this session
+had to correct two confident claims made by the round it is reviewing: one in a
+commit message, one in session 13's own text. Both are corrected below with the
+evidence that settles them.
+
+### What we believed / What was true
+
+**Believed: f2.73 reached the phone. TRUE, and confirmed in person.** From
+`git show origin/main:docs/delivery-log.md | tail -1`:
+
+    | 2026-07-28 14:09 UTC | f2.73 | 23 | patch | 0.6.2+11 | 0e72729f (run 30366039823) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+flutter/pubspec.yaml:12 still reads `version: 0.6.2+11`, unchanged since
+session 5. The stamp in the tree at flutter/lib/main.dart:29 to :30 is
+`'f2.73 · Share a statement of account with anyone who owes you, and see every
+payment they made.'`, 95 characters against the 120 cap at
+flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified.**
+`git cat-file -p 0e72729` shows two parents, b61d451 and 8e319e8.
+
+**Believed: the suite is green on what shipped. TRUE, re-run this session.**
+`flutter analyze` reports "No issues found! (ran in 4.2s)" and `flutter test`
+reports "All tests passed!" at +958. One honest caveat, because this log
+measures rather than inherits: the working tree during this session also
+carried uncommitted work for the NEXT batch (flutter/lib/money/period.dart, a
+period selector widget, and flutter/test/period_golden_test.dart, which is 7 of
+those 958 on its own). The delivered commit therefore carries 951, up from 935
+at f2.72.
+
+**Believed: the QA pass ran BEFORE the merge this time. TRUE, and for the first
+time there is a record rather than a claim.** docs/qa-log.md carries a row for
+f2.73 naming 3 MUST FIX, 4 SHOULD FIX and 4 deferred findings. The row exists
+because flutter/test/qa_record_test.dart made the build fail without it.
+
+**Believed (commit 8e319e8, finding 2): the settled row read a stored amount of
+"2400" as zero and printed "₱0 paid" beside a statement saying ₱2,400, and this
+is "the silent-zero class that has now shipped twice". FALSE as stated, and
+proven false this session.** The code shape was really there. The input cannot
+be. Every load goes through `sanitizeData` at flutter/lib/data/store.dart:315,
+which routes receivables through `_utangList` at flutter/lib/data/backup.dart:432,
+which coerces every amount with `_num` at :587 and every payment amount at :592.
+Probed directly: a stored blob carrying `'amount': '2400'` arrives in the screen
+as `2400.0`, runtime type `double`. Then the pre-fix expression was put back and
+the same fixture rendered through the real sheet:
+
+    expect(find.text('₱2,400 paid'), findsOneWidget);
+    expect(find.text('₱0 paid'), findsNothing);
+    00:00 +1: All tests passed!
+
+against the BROKEN code. So two of the four assertions in the guarding test pass
+on the defect they are named for. The other half of that same finding, the
+₱2,000 utang marked paid printing "₱1,250 paid", is completely real and was
+genuinely proven to fail. This matters and it is Lesson 1.
+
+**Believed (finding 5): the same payment showed two different amounts on the
+same sheet in the shipped app.** Same correction applies to the reachability
+half: payment amounts are coerced by the same sanitizer on the same load path,
+so the `'0x10'` case cannot arrive at the screen either. The fix and the fixture
+extension are still correct and still valuable, because the golden lock is a
+parity contract over a PURE function and must hold for any input, not only for
+inputs the app can currently produce. The finding is right about the code and
+overstated about the phone.
+
+**Believed (session 13): "No shared centavo helper exists in flutter/lib/money/".
+FALSE.** `round2` has existed at flutter/lib/money/accounts_calc.dart:11, public
+and documented, since the accounts port. What is true is that nothing routes
+anyone to it, and this round's new code hand inlined it again at
+flutter/lib/money/statement.dart:237:
+
+    final open = (((totalLent - totalPaid) * 100) + 0.5).floorToDouble() / 100;
+
+which is `round2` spelled out. Open 23 is not "no helper exists". It is "a
+helper exists and nothing points at it", which is a different and much more
+fixable problem.
+
+**Believed: the 20 statement goldens still compare byte for byte after the
+formatter was made injectable. TRUE, verified by comparison, not by trust.** The
+`statements` and `reminders` arrays in flutter/test/goldens/statement_goldens.json
+are byte identical between 8824469 and the delivered tree, 20 and 9. Only the
+`history` fixtures changed, 7 to 9.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 13:19:12 | 8b3e2a4, session 13 written up. Names the silent-zero class and escalates Open 28, the missing QA record | commit |
+| 13:21:04 | ead214f builds Open 28's guard: docs/qa-log.md plus flutter/test/qa_record_test.dart, both halves proven | commit message |
+| 13:22:44 | 8824469 batch 7, the statement. **Deliberately does NOT bump the stamp**, because the guard now ties the stamp to a QA row | commit message: "The stamp and its docs/qa-log.md row land together with the QA round" |
+| between | Stamp bumped to f2.73. **The new guard fails the build.** The row is written | reported in 8e319e8; the guard re-proven live this session, below |
+| 13:46:38 | 8e319e8 QA round. 3 MUST FIX, 4 SHOULD FIX, 4 deferred, every guard with a failure line | commit message, docs/qa-log.md |
+| 13:58:13 | Merge #230 (0e72729), two parents | `git cat-file -p 0e72729` |
+| 14:09:35 | f2.73 patch 23 delivered, 11m22s after the merge | delivery row, d851266 |
+| after | **Founder confirms f2.73 on the phone** | founder |
+
+One thing the timeline cannot tell you, said plainly rather than smoothed over.
+The first three commits land inside three and a half minutes of each other,
+which means they were COMMITTED together, not that the code was written in that
+order. So this entry does not claim batch 7's code was written after session 13's
+lesson. It claims something narrower and checkable: session 13's lesson was in
+the repository before batch 7 was, and it did not stop the shape.
+
+### Divergence point
+
+There is no delivery divergence. Seven in a row.
+
+There is no correctness divergence that reached the phone either, which is the
+first time that sentence can be written about a round where seven real defects
+existed. Every one of them was caught before the merge by the pass CLAUDE.md
+requires, which ran because a test made not running it expensive.
+
+The belief divergence is small and worth naming exactly: **8e319e8's commit
+message and its docs/qa-log.md row both state, as fact, that a string amount
+printed ₱0 on the founder's screen.** It did not, it could not, and the test
+written to guard it passes against the broken code. Nothing was harmed by that
+sentence except the accuracy of the record, and the record is the thing this
+log is for.
+
+### Root cause
+
+**1. One sanitizer makes every raw money read in every screen safe, and nothing
+at any read site says so.**
+
+`sanitizeData` is a total function over stored data. It runs on load, on
+restore, and on snapshot rollback, and it coerces every money field to a finite
+double. That is a genuinely good design. Its cost is that a reader looking at
+`(r['amount'] is num) ? (r['amount'] as num).toDouble() : 0.0` in a screen file
+cannot tell whether it is a dangerous cast or a redundant one, because the thing
+that decides lives in another file entirely.
+
+So a QA pass reasoning from the read site files a real-sounding finding for an
+unreachable case, and a fix applied at one read site leaves the identical
+expression 117 lines away in the same class. Measured this session: 12 files
+under flutter/lib/screens/ contain `is num`, and
+flutter/lib/screens/utang.dart:959 still reads
+
+    final amount = (r['amount'] is num) ? (r['amount'] as num).toDouble() : 0.0;
+
+in `_utangCard`, which is the exact expression removed from `_settledRow` at
+:842 in the same commit. flutter/lib/screens/edit_sheet.dart:99 and
+flutter/lib/screens/history.dart:350 do the same to stored transaction amounts.
+All three are currently safe, and none of them says why.
+
+**2. The port contract is the only thing that forces a coercion decision, and it
+only reaches files that are ports.**
+
+The obvious reading of this round is that the same author applied the rule in
+flutter/lib/money/statement.dart and forgot it one file over. The code says
+otherwise. statement.dart's `_num` at :51 carries its own reason at :47 to :50:
+"JS `Number(x)`, with anything not finite folded to 0, exactly as statement.js
+does". It exists because the porting contract demands byte parity with a JS
+function that coerces, not because anyone remembered a lesson about zero. The
+screen file is not a port of anything, so nothing demanded anything.
+
+That is session 13's Open 29 arriving a second time from a different direction.
+Open 29 said a ported RULE written inside a screen escapes the golden contract.
+This round adds: a NON ported rule written inside a screen escapes every
+convention the contract carries with it, including how to read a stored number.
+
+**3. Proving a test can fail proves ONE assertion in it, and the commit records
+it as proving the test.**
+
+CLAUDE.md's prove-it-can-fail section is one of the strongest habits in this
+project and it ran seven times this round. What it produces is one failure line
+per FINDING. A test that makes four assertions gets one line, and the other
+three are never exercised against the broken code. Here two of the four were
+decorative, and the commit message and the QA log both read as though all four
+had been earned.
+
+Session 13 named the species "proving a test can fail proves the test is WIRED
+UP, it says nothing about whether the behaviour it pins is correct". This is the
+neighbouring species: **it says nothing about the assertions the failure line
+did not come from.**
+
+### Lessons and guards
+
+**Lesson 1. The silent-zero shape recurred, and the honest version is narrower
+and more useful than the headline.**
+
+What is true: `_settledRow` in flutter/lib/screens/utang.dart was written in
+this round with a raw `is num` cast on stored money, days after the class was
+named. What is not true: that it printed ₱0 to anybody. Proven above.
+
+What was really wrong in that row, and it was real, is the other half. The
+pre-fix expression at 8824469:flutter/lib/screens/utang.dart:727 to :729 was
+
+    final amount = engine.remainingOf(r) > 0
+        ? engine.remainingOf(r)
+        : ((r['amount'] is num) ? (r['amount'] as num).toDouble() : 0.0);
+
+on a row whose label reads "paid". A ₱2,000 utang marked paid with a ₱750
+logged payment printed "₱1,250 paid", which is what was LEFT. As the commit
+message puts it, the ternary had no correct case.
+
+**Guard for the instance: SHIPPED, strongest tier, genuinely proven failing.**
+flutter/test/person_sheet_test.dart:303, with the recorded failure line
+`Actual: Found 0 widgets with text "₱2,000 paid"`. Re-proven this session by
+restoring the old expression: the same line fails today.
+
+**Guard for the class: NOT WRITTEN. NEW Open 32.** The candidate is automatable
+and specific: **a test that fails when a file under flutter/lib/screens/ reads a
+stored money field with a raw `is num` cast instead of `ledger.amountOf`.**
+Strongest tier when written. It needs the same audit Open 29 needs first, which
+is the work; the check afterwards is easy. The cheap half that can be done today
+is a sentence at the top of flutter/lib/data/backup.dart's sanitize section
+saying which fields it guarantees are numbers, so a read site can be checked
+against something instead of guessed at.
+
+**Lesson 2. A name is not an identity. This one was real, reachable, and shipped
+nowhere.**
+
+QA reproduced a Statement of Account, a document that leaves the phone and lands
+in another person's chat app, billing one Ana for ₱7,000 of a different Ana's
+debt. Both gather functions keyed on the lowercased resolved name.
+
+Reachable from ordinary data, and the route is worth stating because it crosses
+apps: mobile/app/person.js:97 to :108, `saveEdit`, renames a person with no
+uniqueness check at all, so two people called Ana is a state the live RN app
+will happily produce. RN itself does not then show this bug, because its person
+screen filters by id at mobile/app/person.js:54 and :63. So this is a PORT
+defect and not a ported one: the Flutter sheet dropped an identity check the
+original had.
+
+**Guard: SHIPPED, strongest tier, proven failing.**
+flutter/test/person_sheet_test.dart:224, 'two people who share a name get two
+separate statements', asserting both directions:
+
+    expect(sent.single, contains('Ana one'));
+    expect(
+      sent.single,
+      isNot(contains('Ana two')),
+      reason: "billing one person for a different person's debt",
+    );
+
+The one deliberate difference from RN, that utang with no id at all are still
+included rather than dropped, is written into the code at
+flutter/lib/screens/utang.dart:45 to :48 with its reason: dropping them
+understates a real debt in a real document.
+
+**Lesson 3. Session 13's most valuable unbuilt guard was built two minutes
+later and failed the build on its first live use. First time in this log.**
+
+Session 13 escalated Open 28, the QA gate that leaves no artifact, and ranked it
+the highest value unwritten guard in the log. ead214f built it at 13:21:04:
+docs/qa-log.md, one row per shipped stamp, and flutter/test/qa_record_test.dart,
+which fails when the current `updateStamp` has no row.
+
+Both halves were proven at build time, which is the house rule for alarms:
+fires on a missing row, silent on a present one. **Re-proven live this session**
+rather than taken from the commit message. Setting the stamp to f9.99 in the
+delivered tree:
+
+    Stamp f9.99 has 0 rows in docs/qa-log.md, expected exactly one.
+      Expected: an object with length of <1>
+        Actual: []
+
+and restoring it: `00:00 +1: All tests passed!`
+
+Then it earned its keep the same day. Bumping the stamp to f2.73 failed the
+build until the row was written. And there is a second, quieter piece of
+evidence that it was already changing behaviour before it ever went red: batch 7
+was committed with NO stamp bump, and its message says why, that the stamp and
+its QA row land together with the pass "because a row written before the pass
+finishes is the exact false sentence that guard exists to make hard". A guard
+that reshapes how work is committed before it has fired once is doing more than
+its assertion.
+
+**What it cannot do, in its own words**, from the header of
+flutter/test/qa_record_test.dart:
+
+    // This cannot verify a pass really ran. Nothing automated can. What it does
+    // is make forgetting impossible and make skipping a sentence written down
+    // on purpose. SKIPPED is an accepted verdict here, and a far better outcome
+    // than silence.
+
+Two things to add to that, neither of which is a criticism of the guard.
+
+First, this session found the limit in practice, not in theory. The f2.73 row is
+detailed and honest, and two of its MUST FIX descriptions overstate what could
+reach a phone. A presence check cannot audit the contents of the sentence it
+forces someone to write. It was never going to, and the file says so.
+
+Second, and the founder should know this one: the same test also runs on the
+DELIVERY path, at .github/workflows/flutter-preview.yml:71. A missing QA row is
+now a red build, and a red build publishes nothing at all. That is the intended
+strength. It is also a way for a documentation mistake to strand the founder
+silently, and the backstop for that is the nothing-shipped failure issue at
+flutter-preview.yml:223, which is present and has never had to fire.
+
+**Lesson 4. An edit script that used unconditional replacements silently did
+nothing, and left the document contradicting itself. The event is reported; the
+mechanism and the symptom are corroborated by the diff.**
+
+Reported: a python heredoc script rewrote the statement's formatter call sites
+with `str.replace()` and no assert on the match count, `dart format` had already
+reflowed two of them, so those replacements silently did nothing while the rest
+fired. The result was worse than making no change at all: the statement's line
+items printed in whole pesos while its Total lent printed in centavos, so the
+document contradicted itself more visibly than before.
+
+**What this session can and cannot verify, stated plainly.** There is no
+committed artifact of the failed run. No intermediate commit exists (`git log
+--all` and the reflog show only the four commits of this round), and no script
+is in the tree. So the event itself remains reported.
+
+What the diff DOES establish is the mechanism and that the symptom fits nothing
+else. In the pre-fix file, `grep -n formatMoneyText
+8824469:flutter/lib/money/statement.dart` gives nine call sites. Exactly three of
+them, :216, :217 and :221, sit inside expressions `dart format` had wrapped
+across physical lines, and all three are the utang LINE ITEMS. The other six,
+including `'${t.totalLent}: ${formatMoneyText(totalLent)}'` at :261, are single
+line. A single-line search pattern misses exactly the wrapped ones and hits
+exactly the rest, which produces line items in whole pesos over a Total lent in
+centavos, and nothing else in that file produces that.
+
+It was caught by flutter/test/person_sheet_test.dart:326, written minutes
+earlier, asserting the exact expected text rather than a total:
+
+    expect(sent.single, contains('Jeep   ₱100.50'));
+
+**Guard: STILL NOT WRITTEN. Open 31 stands, with sharper wording available.**
+Session 13 proposed **verify before you write, never after, so a failed check
+leaves the file untouched.** This round adds the other half of the same
+sentence: **an edit script asserts its match count BEFORE writing, because a
+replacement that matches nothing is silent, and silence after a formatter has
+touched the file is the normal case, not the rare one.** Medium tier, because it
+is prose that has to be read at the right moment.
+
+Worth saying out loud: the thing that actually caught this was not a rule and
+would not have been. It was a test that pinned exact output text. That is the
+strongest available guard here and it already exists as a habit in this project.
+
+**Lesson 5. The first deliberate divergence from RN's OUTPUT in a golden locked
+area. The reasoning is sound, the lock is intact, and half of it is unguarded.**
+
+The finding: RN's whole peso formatter makes the shared statement visibly fail
+to add up. Two utang of ₱100.50 print as ₱101 and ₱101 over a total of ₱201, and
+the friend holding the document adds 101 and 101 and gets 202.
+
+The fix injects the formatter. The default stays RN's, so the golden replay
+still compares byte for byte; the screen passes the app's centavo formatter.
+
+**Is the reasoning sound? Yes, and for a reason worth writing down.** The golden
+lock exists to catch PORT errors: structure, ordering, arithmetic, the
+reconciling lines a transcription drops. It was never meant to freeze a display
+choice. A document whose own lines contradict its own total is worse than a
+document that differs from the old app, because the second is invisible to the
+person holding it and the first is the only thing they can see.
+
+**Is the lock actually intact? Yes, verified rather than asserted.** The
+`statements` and `reminders` arrays in
+flutter/test/goldens/statement_goldens.json are byte identical before and after,
+20 statements and 9 reminders. Only the `history` fixtures grew, 7 to 9, and
+that growth is a separate and good thing: the old junk fixtures only carried
+values that Dart's `double.tryParse` and JS `Number()` agree on, so the lock
+could not see a real coercion divergence. Extending them is Open 22's rule being
+applied, one round after session 12 closed it. Worth noting honestly that QA
+found the gap, not the rule.
+
+**Is it recorded well enough for a future reader? In three places out of four.**
+flutter/lib/money/statement.dart:10 to :22 explains it at length. The call site
+at flutter/lib/screens/utang.dart carries its own comment. The widget test at
+flutter/test/person_sheet_test.dart:309 explains it again. The file that does
+NOT mention it is flutter/test/statement_golden_test.dart, whose first test is
+named 'every statement matches the RN text byte for byte' and which says nothing
+about injection anywhere. That is the one file a future reader opens to learn
+what the lock covers, and it currently tells them something that is no longer
+true of the shipped app.
+
+**And one half of the divergence has no guard at all. Proven this session.**
+Deleting `money: formatMoney` from the Remind call in
+flutter/lib/screens/utang.dart leaves every test green:
+
+    00:02 +15: All tests passed!
+
+So a future reader "restoring RN parity" can silently put whole peso rounding
+back into a message that goes to a friend, and nothing anywhere will object. The
+statement half IS guarded: removing the same argument there breaks the ₱100.50
+test.
+
+**Guards, TWO, both strongest tier, both about three lines. NEW Open 34.**
+First, a reminder centavo test beside the statement one, so both halves of the
+divergence fail loudly when undone. Second, a test in
+flutter/test/statement_golden_test.dart that builds one centavo fixture both
+ways and asserts they differ by name, so the divergence is asserted in the file
+that would otherwise mislead, rather than described in three files a reader may
+never open.
+
+**Lesson 6. The stale test assertions after a copy change are NOT a lesson, and
+saying so is the finding.**
+
+Reported: looking at the render led to changing two labels, two test assertions
+went stale, running the single test file passed and only the full suite surfaced
+them.
+
+There is no repository artifact. Only flutter/test/person_sheet_test.dart and
+flutter/test/screens_shot.dart reference that sheet at all, and both were
+written in the same commit as the labels, so nothing can be reconstructed.
+
+The assessment, and it is a real result rather than a shrug: this is ordinary
+work, and the guard for it already exists and already worked. The Flutter check
+runs the WHOLE suite on a real runner on every push to a `claude/**` branch,
+with no paths filter, at .github/workflows/flutter-check.yml:20 and :61. A stale
+assertion cannot reach main whether or not anyone runs the full suite by hand.
+Running one test file was never a check and nothing in this project ever said it
+was. No new guard, and nothing carried forward.
+
+What IS worth keeping from it is the reason the labels changed: looking at the
+render caught a card printing raw ISO dates ("due 2026-06-30") directly above a
+history that formatted them properly, and a running total labelled "in total"
+while the column counts down as it is read. Both were invisible to a green
+suite. That is the render doing exactly the job CLAUDE.md gives it, for the
+third round running.
+
+**Lesson 7. The standing CLAUDE.md fact check. One rule changed, it is accurate,
+and everything else still matches.**
+
+Four consecutive sessions found a false factual claim in CLAUDE.md, which is why
+this is a step and not a favour. Sessions 12 and 13 found it clean. This round it
+is clean again, and the one new sentence checks out.
+
+`git log 8b3e2a4..origin/main --oneline -- .github/workflows/ CLAUDE.md .claude/`
+returns exactly one commit, ead214f, which touched CLAUDE.md only. Its new
+sentence claims flutter/test/qa_record_test.dart "fails on the runner when the
+current stamp has no row". Verified by reading the wiring, not just the test:
+flutter-check.yml sets `working-directory: flutter` at :47 and runs
+`flutter test` at :61, so the test's `File('../docs/qa-log.md')` resolves; the
+same test also runs at flutter-preview.yml:71. Re-verified everything else by
+reading and running regardless:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, mobile/app/(tabs)/more.js, and now docs/qa-log.md.
+- All five skills exist in .claude/skills and the file's description of them
+  (three adapted, two ours) still matches the directory.
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- mobile/package.json:11 still pins `"expo": "~54.0.0"`.
+- The 120 character stamp cap is live at update_stamp_test.dart:20; the shipped
+  stamp is 95.
+- flutter-check.yml:20 triggers on `claude/**` with no paths filter;
+  flutter-preview.yml:17 triggers on `main` with paths `flutter/**` at :19 and
+  its own definition at :26.
+- CI runs the shot harness separately with `--update-goldens`:
+  flutter-check.yml:80.
+- The local SDK claim holds: /opt/flutter reports Flutter 3.44.6 stable.
+- The three delivery commands ran as written and returned f2.73 patch 23.
+- The brightness sentence still matches the harness: the new person sheet shot
+  sets `Brightness.dark` at screens_shot.dart:405 and renders dark only, which
+  is what the corrected sentence says happens to screens that are not tabs.
+- The "directory listing is the count" sentence still holds; test/shots now
+  carries 50 files.
+
+**The correction this round is to session 13, not to CLAUDE.md**, and it is in
+the beliefs section above: `round2` at flutter/lib/money/accounts_calc.dart:11
+is a shared centavo helper and session 13 said none existed. Open 23 is restated
+accordingly below.
+
+**One thing the fact check can see and nobody filed.** The new person sheet shot
+mounts `PersonSheet(store: store, name: 'Migs')` at screens_shot.dart:412, with
+no `personId`. After the QA fix, that is the LEGACY id-less path; the app's own
+call at utang.dart:265 passes a personId. The photograph is real and the screen
+is right, and it is a photograph of the fallback rather than of what the founder
+sees. Filed under Open 13 rather than as a new item.
+
+**Lesson 8. Is the streak real? The delivery half yes, seven in a row. The
+correctness half produced its first clean round since the question was raised.**
+
+The DELIVERY half is mechanical and it works. f2.67 through f2.73 each have a
+row, each mode `patch`, each against an unchanged 0.6.2+11, each confirmed on
+the phone. Merge to row was 11m50s, 11m54s, 11m04s, 11m33s and now 11m22s.
+
+The CORRECTNESS half has been called unsolved in every entry since session 10,
+and session 13 recorded the failure it had been predicting. This round is the
+first evidence in the other direction: the gate ran before the merge, found
+seven real defects including one that would have sent a wrong document to
+another person, and none of them reached the phone. One round is not a trend and
+the gate is now backed by a test rather than by memory, which is the difference
+between this round and f2.71.
+
+The tally that has never moved still has not moved: **the automated suite has
+still never found a novel defect.** Every finding this round came from the QA
+pass, from looking at the render, or from a golden fixture someone chose to
+extend. What is new is that the suite now HOLDS more of them: seven new guards,
+six of them earned with a real failure line.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.73 in person, which remains the only proof that counts.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here. No spurious issue in evidence, and this round's 11m22s gap was well inside
+the 2700 second grace at delivery-watchdog.yml:43.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised, the merge bumped the stamp. Worth noting that batch 7 was
+committed deliberately without a stamp bump this round, which is exactly the
+shape Open 7 describes, on a branch rather than at a merge.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,**
+re-verified by reading, the scrape is still inside the ship step with `|| true`
+at flutter-preview.yml:127 and the load-bearing comment intact.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** The log now carries
+32 `patch` rows and 2 `release` rows and no failure rows at all, so the f2.73
+build that went red on the missing QA row left no trace in the file a reader is
+told to trust. That is the clearest instance of Open 9 yet: the log records what
+shipped and cannot distinguish "nothing was ready" from "something failed".
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the shell's
+wiring: STILL OPEN, and it grew again.** `MaterialApp(` sites in
+screens_shot.dart are now 21, up from 20. The new one hand-builds the person
+sheet at :407 and, as noted in Lesson 7, mounts the legacy no-personId path.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL OPEN,
+untouched, re-verified.** eas-update.yml:17 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7.
+
+**Open 15, the walk-keying and frame-asserting rule: STILL OPEN, and it slipped
+this round.** The new person sheet shot goes straight from `pumpAndSettle` to
+`expectLater` at screens_shot.dart:418 with no assertion about what is in front
+of the camera. Measured the same way as the last two sessions, 9 of 29
+`expectLater` sites are now preceded by such an assertion, down from 9 of 28.
+The MEDIUM tier is still not done: the screens_shot.dart header records three
+hard-won harness rules and asserting the frame is not one of them, which is
+precisely why it slips.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN.** `grep -n "git checkout\|restore" CLAUDE.md .claude/skills/*/SKILL.md`
+still returns only two unrelated hits about backup and restore as a product
+feature. This session broke the code three times to prove things and restored
+each time from a saved copy in the scratch directory, which is the third session
+running to invent the same workaround privately.
+
+**Open 17, nothing generalises the payday guard: STILL OPEN, re-verified.**
+`PlannedReminder` at flutter/lib/money/reminders.dart:25 to :29 still carries
+only title, body and when.
+
+**Open 18, the habit signal has five independent remembering events: STILL
+OPEN.** `sampleTxIds` is still filtered at quickadd.dart:28 and :60,
+reminders.dart:112, coach.dart:313 and chain.dart:69. No shared accessor.
+
+**Open 20, mobile/lib/notifications.js has the same sample-row defect Flutter
+fixed: STILL OPEN, re-verified.** `loggedToday` at :99 still does not exclude the
+sample ids.
+
+**Open 21, the balance label guards are example-shaped: STILL OPEN.**
+`grep -rn "never refused as an overdraft" flutter/test/` still returns nothing.
+
+**Open 22, the fixture audit rule: CLOSED in session 12, and this round shows it
+working.** The statement history fixtures were extended from 7 to 9 precisely
+because the junk cases only carried values both coercions agree on. Found by QA
+rather than by the rule, which is worth remembering when ranking it.
+
+**Open 23, the "*100 overflow" rule lives in prose and was walked into anyway:
+STILL OPEN, and RESTATED.** Session 13's wording was wrong. A shared centavo
+helper does exist, `round2` at flutter/lib/money/accounts_calc.dart:11. The real
+problem is that nothing points at it: statement.dart:237 hand inlined it again
+this round, and loan.dart:16 and debtmath.dart carry their own private copies.
+The guard is now cheap and concrete, which it was not while the item was
+mis-stated: move `round2` somewhere neutral and have the porting skill name it.
+
+**Open 25, nothing says that a test for a default must exercise the untouched
+path: STILL OPEN.** CLAUDE.md did not change on this point.
+
+**Open 26, a defect found by looking is not fixed until an assertion fails on
+the old behaviour: STILL OPEN, and this round gives it a sharper edge.** Six of
+the seven guards produced a real failure line. The seventh, the string amount
+half of finding 2, produced an assertion that passes against the old code, which
+is exactly what Open 26 exists to prevent and exactly what a per-finding failure
+line cannot catch. See NEW Open 33.
+
+**Open 27, whether to port a DISPLAY bug faithfully, and what to do about a
+defect found in the app being ported FROM: STILL OPEN, and this round supplies a
+gentler instance and a harder question.** mobile/app/person.js:97 renames a
+person with no uniqueness check, which is the DATA that made Lesson 2 possible,
+and RN survives it only because its own screen filters by id. Nothing in the
+repository records that. Separately, Lesson 5 is the first time the Flutter app
+has deliberately diverged from RN's OUTPUT in a golden locked area, which is the
+same question from the other end: this time the port is right and the original
+is wrong.
+
+**Open 28, the QA merge gate leaves no artifact: CLOSED, and it paid for itself
+in the same round.** docs/qa-log.md and flutter/test/qa_record_test.dart, built
+in ead214f, both halves proven then and re-proven live this session. The known
+limit stays on the record and is now demonstrated rather than theoretical: a
+presence check cannot audit the truth of the sentence it forces someone to
+write, and two of the f2.73 row's MUST FIX descriptions overstate what could
+reach a phone. Closing it anyway, because the failure it was built for, a stamp
+shipping with nobody having looked, is now impossible without a deliberate false
+sentence in a diff.
+
+**Open 29, nothing decides what counts as money math, so a ported rule written
+inside a screen escapes the golden contract: STILL OPEN, and widened.** This
+round adds the non-ported case: a rule written inside a screen also escapes the
+conventions the contract carries, including how a stored number is read. The
+audit it needs and the audit NEW Open 32 needs are the same audit.
+
+**Open 30, nothing distinguishes a test that asserts how the code behaves from a
+test that asserts a fact about the world: STILL OPEN.** Not exercised this round;
+no statutory claims were added.
+
+**Open 31, nothing says how to edit or undo safely: STILL OPEN, and Lesson 4 is
+its first instance with a corroborating diff.** Wording to add alongside
+session 13's: an edit script asserts its match count BEFORE writing, because a
+replacement that matches nothing is silent and a formatter reflowing the target
+is the normal case.
+
+**NEW Open 32: one sanitizer makes every raw money read in every screen safe,
+and nothing at any read site says so.** Measured: 12 files under
+flutter/lib/screens/ contain `is num`, including utang.dart:959, which is the
+identical expression to the one removed at :842 in the same commit. Candidate
+guard, strongest tier after an audit: no screen file reads a stored money field
+with a raw `is num` cast. Cheap half available today: state in
+flutter/lib/data/backup.dart which fields sanitizeData guarantees are numbers.
+
+**NEW Open 33: a proven-to-fail failure line proves ONE assertion, and the
+record presents it as proving the test.** Proven this session: two of the four
+assertions in 'the settled row shows the utang, not what is left of it' pass
+against the code they were written to catch. Candidate, medium tier: when a test
+makes several assertions about several findings, prove each one, or say in the
+commit which assertion the failure line came from. The strong version is a habit
+this project already has, one finding per test.
+
+**NEW Open 34: half of the first deliberate golden-lock divergence is
+unguarded.** Proven this session: removing `money: formatMoney` from the Remind
+call leaves all 15 person sheet tests green. Two three-line tests close it, one
+of them belonging in flutter/test/statement_golden_test.dart, which currently
+tells a reader the shipped statement matches RN byte for byte.
+
+### Guard status re-check
+
+Read and re-run, not assumed. `git log 8b3e2a4..origin/main -- .github/workflows/
+.claude/` returns NOTHING, so every workflow line number the last six entries
+recorded still stands. Verified by reading anyway:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:166 to :181.
+  Correctly silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127, comment intact.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:223 onward.
+  Not fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:240 to :256. Correctly
+  silent, the row reads `patch`.
+- The publisher watching its own definition: PRESENT at flutter-preview.yml:26.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT at :20, and the
+  separate shot harness run at :80.
+- The stamp cap: PRESENT, update_stamp_test.dart:20; the shipped stamp is 95 of
+  120 characters.
+- **The NEW QA record guard: PRESENT and PROVEN LIVE, both halves.** Fires with
+  the exact message quoted in Lesson 3 when the stamp has no row, silent when it
+  does. First guard in this log proven live by the retrospective that ranked it.
+- Session 12's guard, 'the DEFAULT is moving, not untagging': PRESENT at
+  flutter/test/categories_screen_test.dart:137.
+- Session 13's guard, 'a cap fires for an entry logged with the main Log button':
+  PRESENT at flutter/test/categories_screen_test.dart:234.
+- Sessions 6 through 11 guards: PRESENT, spot-checked by grep, none deleted.
+- The whole suite: 958 pass and analyze clean, re-run this session, with the
+  uncommitted next-batch caveat recorded in the beliefs section.
+
+**No guard was found deleted, disabled or routed around.** No test was deleted
+this round. One guard was found to be WEAKER than its record claims, which is
+the nearest thing to a bad finding here: two assertions inside a proven test pass
+against the broken code, and one half of the formatter divergence has no
+assertion at all. Both are proven above rather than suspected, and both cost
+three lines to close.
+
+### What it cost, and what it did not
+
+Cost: nothing on the phone. Seven defects were found before the merge, including
+one that would have sent a document to another person billing them for someone
+else's ₱7,000, and none of them shipped.
+
+Cost, in the record rather than in the product: two sentences in the repository
+state that a bug reached a screen when it could not. One is in a commit message,
+one is in docs/qa-log.md, and the second one matters more because that file was
+created this round specifically to be trusted. Correcting it here is the whole
+job of this log.
+
+Not cost: no data was lost, no stamp was stranded, the base APK is untouched,
+the founder owes no manual install, and f2.73 arrived exactly as reported.
+
+---
+
 ## 2026-07-28, session 13: the cap that never noticed anything
 
 Two deliveries in this round, f2.71 and f2.72, both with clean rows and both
