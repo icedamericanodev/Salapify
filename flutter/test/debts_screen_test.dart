@@ -103,9 +103,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Log ₱5,000 as a real payment'), findsOneWidget);
     await tester.tap(find.text('Pay it off'));
-    await tester.pumpAndSettle();
-
+    // The celebration is a self-dismissing overlay now, not a snackbar:
+    // pumpAndSettle would fast-forward straight through its timers and land
+    // on an empty screen. Sample the moment mid-celebration, then let the
+    // timers finish.
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.textContaining('paid off! Debt free.'), findsOneWidget);
+    await tester.pumpAndSettle(const Duration(seconds: 2));
     final debt = (store.data['debts'] as List)
         .cast<Map<String, dynamic>>()
         .single;

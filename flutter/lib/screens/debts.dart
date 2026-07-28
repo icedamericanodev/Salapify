@@ -14,6 +14,7 @@ import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
+import '../widgets/celebration.dart';
 import '../widgets/section.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney;
@@ -533,29 +534,10 @@ class _DebtSheetState extends State<DebtSheet> {
   }
 
   void _celebrate(String name) {
-    // The single most rewarding moment in the app, so it wears the win tokens:
-    // a celebrate-colored icon on the positive surface, not a plain snackbar.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Barako.positiveSurface,
-        content: Row(
-          children: [
-            Icon(Icons.celebration, color: Barako.celebrate, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '$name paid off! Debt free.',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    // The single most rewarding moment in the app finally looks like one:
+    // the confetti overlay (reduce-motion aware, auto-dismissing) instead of
+    // the snackbar this used to be. Same message, bigger moment.
+    showCelebration(context, '$name paid off! Debt free.');
   }
 
   Future<void> _logPayment(Map<String, dynamic> d) async {
