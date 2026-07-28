@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.65 \u00b7 Activity rows name their account and category, and Budget shows today at a glance.';
+    'f2.66 \u00b7 The logging chain and your treat live on Home, and a cleared debt gets confetti.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

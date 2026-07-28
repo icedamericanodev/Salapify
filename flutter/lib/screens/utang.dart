@@ -13,6 +13,7 @@ import '../money/receivables.dart' as engine;
 import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
+import '../widgets/celebration.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
@@ -406,6 +407,10 @@ class _PersonSheetState extends State<PersonSheet> {
       return;
     }
     final text = payController.text;
+    // Whether this payment settles the utang, decided BEFORE the write from
+    // the same numbers the engine will use, so the celebration can never
+    // fire on a still-open balance.
+    final settles = amount >= engine.remainingOf(r);
     await _run(() async {
       await widget.store.collectUtangPayment((r['id'] ?? '').toString(), text);
       // The sheet may have been dismissed while the save was in flight; the
@@ -414,6 +419,9 @@ class _PersonSheetState extends State<PersonSheet> {
       if (mounted) {
         payController.clear();
         payingFor = null;
+        if (settles) {
+          showCelebration(context, '${widget.name} paid you back in full.');
+        }
       }
     });
   }
@@ -442,7 +450,12 @@ class _PersonSheetState extends State<PersonSheet> {
       ),
     );
     if (ok != true) return;
+    // Only a real balance reaching zero celebrates; closing an already
+    // settled row is bookkeeping, the RN guard.
     await _run(() => widget.store.markUtangPaid((r['id'] ?? '').toString()));
+    if (mounted && remaining > 0) {
+      showCelebration(context, '${widget.name} paid you back in full.');
+    }
   }
 
   Future<void> _removePayment(

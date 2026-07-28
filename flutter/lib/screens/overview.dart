@@ -20,6 +20,8 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../widgets/treat_card.dart';
+import '../widgets/week_chain.dart';
 import '../widgets/screen_header.dart' show HeaderAction, MenuAction;
 import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
@@ -367,6 +369,17 @@ class OverviewScreen extends StatelessWidget {
                 if (!hasStarted) ...[
                   if (store.loadError == null) _welcomeCard(context),
                 ] else ...[
+                  // The habit layer, RN's Home order: the chain, then the
+                  // treat, then the month numbers. Habits sit above the
+                  // stats because the stats only improve when the habit
+                  // holds.
+                  WeekChainCard(
+                    transactions: data['transactions'],
+                    clock: clock,
+                  ),
+                  const SizedBox(height: 12),
+                  TreatCard(store: store, clock: clock),
+                  const SizedBox(height: 12),
                   // Tappable: THIS MONTH is made of Activity's rows, so the
                   // card leads there. It was a dead surface between two
                   // tappable siblings, the last cards on Home that informed
