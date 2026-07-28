@@ -55,12 +55,64 @@ void main() {
     expect(f.readAsStringSync(), contains('HomeWidgetProvider'));
   });
 
-  test('the receiver is exported, and points at its provider info', () {
+  /// The receiver block ONLY. Every assertion about the receiver has to be
+  /// scoped to it, because the manifest is full of other components: a
+  /// retrospective found the exported check passing because MainActivity is
+  /// exported, which meant deleting the attribute from the receiver left the
+  /// test green and the widget permanently dead.
+  /// OUR receiver block, found by name.
+  ///
+  /// The first version took indexOf('<receiver'), which lands on
+  /// flutter_local_notifications' receiver, not this widget's. So it was
+  /// scoped, and scoped to entirely the wrong component. That is the same
+  /// mistake one level down from the one it was written to fix, and the only
+  /// reason it surfaced is that the notifications receiver happens to declare
+  /// exported="false" and the assertion failed loudly instead of passing.
+  String receiverBlock() {
+    final short = HomeTile.providerClass.split('.').last;
+    final marker = manifest.indexOf('android:name=".$short"');
+    expect(marker, isNot(-1), reason: 'no receiver named $short');
+    final start = manifest.lastIndexOf('<receiver', marker);
+    final end = manifest.indexOf('</receiver>', marker);
+    expect(start, isNot(-1), reason: '$short is not inside a receiver');
+    expect(end, isNot(-1), reason: 'the receiver block is not closed');
+    return manifest.substring(start, end);
+  }
+
+  test('the RECEIVER is exported, and points at its provider info', () {
     // Not doctrine, a decision: OEM launchers have a history of only
     // honouring exported providers, and the cost of being wrong here is a
     // widget that never updates plus another manual install.
-    expect(manifest, contains('android:exported="true"'));
-    expect(manifest, contains('@xml/your_number_widget_info'));
+    expect(
+      receiverBlock(),
+      contains('android:exported="true"'),
+      reason:
+          'scoped to the receiver, because MainActivity is exported too '
+          'and satisfied this check on its own',
+    );
+    expect(receiverBlock(), contains('@xml/your_number_widget_info'));
+  });
+
+  test('the receiver actually listens for the update broadcast', () {
+    // Without this action the provider is declared, appears in no picker, and
+    // never receives a single update. It is the difference between a widget
+    // and a class nobody calls.
+    expect(
+      receiverBlock(),
+      contains('android.appwidget.action.APPWIDGET_UPDATE'),
+      reason: 'the receiver would never be told to draw anything',
+    );
+    expect(
+      receiverBlock(),
+      contains('android.appwidget.provider'),
+      reason: 'without this meta-data Android does not treat it as a widget',
+    );
+  });
+
+  test('the receiver carries its own label for the picker', () {
+    // Without it the picker inherits the app label, "Salapify Preview", which
+    // looks unfinished and is invisible until it is on a real phone.
+    expect(receiverBlock(), contains('android:label='));
   });
 
   test('the widget declares 4x2 both ways, and never on the lock screen', () {

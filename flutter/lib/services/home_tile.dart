@@ -98,32 +98,48 @@ class HomeTile {
   static String _hex(Color c) =>
       '#${c.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
 
+  /// Everything that gets written, as a plain map.
+  ///
+  /// Split out of [push] because a retrospective proved the design claim was
+  /// FALSE: "every decision lives in the tested pure function" was true of
+  /// widget_tile.dart and not of this file. Three decisions lived here,
+  /// untested, and breaking all three left 1026 tests green: which settings
+  /// key means app lock, which means hide the amount, and which palette
+  /// colour the Log bar takes. On a phone those are, in order, the daily
+  /// number showing on a locked phone's home screen, a privacy switch that
+  /// does nothing when it is flipped, and an invisible Log button.
+  ///
+  /// So the reads and the colour mapping are in here, where a test can drive
+  /// them, and [push] is left with nothing but plumbing.
+  static Map<String, String> buildValues(SalapifyStore store, DateTime now) {
+    final settings = (store.data['settings'] as Map?) ?? const {};
+    // formatMoneyText reads a mutable global for the currency symbol, set
+    // during main.dart's build. Resolving here too costs one call and stops a
+    // tile pushed from a background path carrying the wrong sign.
+    resolveBaseCurrency(settings);
+    return <String, String>{
+      ...widgetTileStrings(
+        store.data,
+        now,
+        canWrite: store.canWrite,
+        appLock: settings['appLock'] == true,
+        hideAmounts: settings['widgetHideAmount'] == true,
+        stamp: updateStamp.split(' ').first,
+      ),
+      // The palette follows the theme picker. Only TEXT colours cross: the
+      // background is fixed in XML, because a rounded background colour
+      // cannot be set from RemoteViews before API 31.
+      'yn_text': _hex(Barako.text),
+      'yn_muted': _hex(Barako.muted),
+      'yn_accent': _hex(Barako.primary),
+    };
+  }
+
   /// Recomputes and writes every string. Safe to call as often as you like.
   static Future<void> push(SalapifyStore store) async {
     if (!_supported || !ready) return;
     try {
-      final settings = (store.data['settings'] as Map?) ?? const {};
-      // formatMoneyText reads a mutable global for the currency symbol, and
-      // it is set during main.dart's build. Resolving here too costs one call
-      // and stops a tile pushed from a background path carrying the wrong
-      // sign.
-      resolveBaseCurrency(settings);
-      final values = <String, String>{
-        ...widgetTileStrings(
-          store.data,
-          DateTime.now(),
-          canWrite: store.canWrite,
-          appLock: settings['appLock'] == true,
-          hideAmounts: settings['widgetHideAmount'] == true,
-          stamp: updateStamp.split(' ').first,
-        ),
-        // The palette follows the theme picker. Only TEXT colours cross: the
-        // background is fixed in XML, because a rounded background colour
-        // cannot be set from RemoteViews before API 31.
-        'yn_text': _hex(Barako.text),
-        'yn_muted': _hex(Barako.muted),
-        'yn_accent': _hex(Barako.primary),
-      };
+      final values = buildValues(store, DateTime.now());
       for (final e in values.entries) {
         // deleteFile: false skips a read-back round trip per key that only
         // matters for stored file paths, which this never writes.
