@@ -27,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.70 \u00b7 Move money between your own accounts, in Accounts. It never touches your budget.';
+    'f2.71 \u00b7 Categories in Menu: rename, nest, set a monthly cap, and delete one without losing entries.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

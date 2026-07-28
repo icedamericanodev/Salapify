@@ -44,6 +44,7 @@ import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/categories.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -988,6 +989,88 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/transfer-sheet-dark.png'),
+    );
+  });
+
+  testWidgets('categories, and the delete question, dark', (tester) async {
+    // Two frames: the list with a cap being blown, and the sheet that asks
+    // where a deleted category's entries should go. The second one is a
+    // founder decision rendered, so it gets looked at before it ships.
+    await loadRealFonts(tester);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true, 'pro': true},
+        'categories': [
+          {'id': 'food', 'name': 'Food', 'icon': '🍚', 'monthlyCap': 3000},
+          {
+            'id': 'grocery',
+            'name': 'Groceries',
+            'icon': '🛒',
+            'monthlyCap': 0,
+            'parentId': 'food',
+          },
+          {'id': 'bills', 'name': 'Bills', 'icon': '💡', 'monthlyCap': 5000},
+          {'id': 'transpo', 'name': 'Transport', 'icon': '🚌', 'monthlyCap': 0},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'expense',
+            'label': 'Jollibee',
+            'amount': 3400,
+            'date': today,
+            'categoryId': 'food',
+          },
+          {
+            'id': 't2',
+            'type': 'expense',
+            'label': 'Meralco',
+            'amount': 1800,
+            'date': today,
+            'categoryId': 'bills',
+          },
+          {
+            'id': 't3',
+            'type': 'expense',
+            'label': 'Grab',
+            'amount': 240,
+            'date': today,
+            'categoryId': 'transpo',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: CategoriesScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('YOUR CATEGORIES'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/categories-dark.png'),
+    );
+
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('entry is tagged'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/category-delete-dark.png'),
     );
   });
 
