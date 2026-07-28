@@ -1,0 +1,119 @@
+{
+  "ref": "2026-07-15",
+  "categories": [
+    {
+      "id": "food",
+      "name": "Food"
+    },
+    {
+      "id": "bills",
+      "name": "Bills"
+    },
+    {
+      "id": "transpo",
+      "name": "Transport"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "t1",
+      "type": "expense",
+      "label": "Jollibee",
+      "amount": 250,
+      "date": "2026-07-02",
+      "categoryId": "food"
+    },
+    {
+      "id": "t2",
+      "type": "expense",
+      "label": "Food",
+      "amount": 3500,
+      "date": "2026-07-03"
+    },
+    {
+      "id": "t3",
+      "type": "expense",
+      "label": "food",
+      "amount": 90,
+      "date": "2026-07-04"
+    },
+    {
+      "id": "t4",
+      "type": "expense",
+      "label": "Bills",
+      "amount": 1800,
+      "date": "2026-07-05",
+      "categoryId": "ghost"
+    },
+    {
+      "id": "t5",
+      "type": "expense",
+      "label": "Food",
+      "amount": 400,
+      "date": "2026-07-06",
+      "categoryId": "bills"
+    },
+    {
+      "id": "t6",
+      "type": "income",
+      "label": "Food",
+      "amount": 9999,
+      "date": "2026-07-07"
+    },
+    {
+      "id": "t7",
+      "type": "expense",
+      "label": "Food",
+      "amount": 500,
+      "date": "2026-06-30"
+    },
+    {
+      "id": "t8",
+      "type": "expense",
+      "label": "Food",
+      "amount": 600,
+      "date": "2026-08-01"
+    },
+    {
+      "id": "t9",
+      "type": "expense",
+      "label": "Transport",
+      "amount": "abc",
+      "date": "2026-07-08"
+    },
+    {
+      "id": "t10",
+      "type": "expense",
+      "label": "Transport",
+      "amount": 120
+    },
+    {
+      "id": "t11",
+      "type": "transfer",
+      "label": "Food",
+      "amount": 1000,
+      "date": "2026-07-09"
+    },
+    {
+      "id": "t12",
+      "type": "debt",
+      "label": "Bills",
+      "amount": 700,
+      "date": "2026-07-09"
+    }
+  ],
+  "spent": [
+    {
+      "id": "food",
+      "amount": 3750
+    },
+    {
+      "id": "bills",
+      "amount": 2200
+    },
+    {
+      "id": "transpo",
+      "amount": 0
+    }
+  ]
+}

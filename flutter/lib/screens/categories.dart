@@ -29,25 +29,12 @@ class CategoriesScreen extends StatelessWidget {
       if (c is Map) c.cast<String, dynamic>(),
   ];
 
-  /// This month's spend per category id, so a cap can say whether it is being
-  /// kept. Only expenses count: income tagged with a category is not spending.
-  Map<dynamic, double> _spentThisMonth(DateTime now) {
-    final prefix =
-        '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}';
-    final out = <dynamic, double>{};
-    for (final t in (store.data['transactions'] as List? ?? const [])) {
-      if (t is! Map) continue;
-      if (t['type'] != 'expense') continue;
-      final date = t['date'];
-      if (date is! String || !date.startsWith(prefix)) continue;
-      final id = t['categoryId'];
-      if (id == null) continue;
-      out[id] = (out[id] ?? 0) + amountOf(t['amount']);
-    }
-    return out;
-  }
-
+  /// This month's spend per category, from the shared golden-locked rule.
+  ///
+  /// It used to be a local loop here that counted only tagged entries, which
+  /// made every monthly cap inert for anything logged with the main Log
+  /// button (that path writes no tag), and made this screen disagree with
+  /// Budget about the same category in the same month.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +51,11 @@ class CategoriesScreen extends StatelessWidget {
           listenable: store,
           builder: (context, _) {
             final rows = categoryTree(_categories);
-            final spent = _spentThisMonth(DateTime.now());
+            final spent = spentByCategory(
+              store.data['transactions'],
+              _categories,
+              DateTime.now(),
+            );
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
@@ -104,7 +95,7 @@ class CategoriesScreen extends StatelessWidget {
                     style: TextStyle(color: Barako.faint, fontSize: 13),
                   ),
                 for (final row in rows)
-                  _row(context, row, spent[row.cat['id']] ?? 0),
+                  _row(context, row, spent['${row.cat['id']}'] ?? 0),
               ],
             );
           },
@@ -114,7 +105,10 @@ class CategoriesScreen extends StatelessWidget {
   }
 
   Widget _row(BuildContext context, CategoryRow row, double spent) {
-    final cap = amountOf(row.cat['monthlyCap']);
+    // Gated the way budget.dart gates it. Without this a non-Pro user with a
+    // stored cap (an older backup, or Pro that lapsed) saw "of ₱3,000 cap.
+    // Over the cap." here and nothing at all on Budget.
+    final cap = _pro ? amountOf(row.cat['monthlyCap']) : 0.0;
     final over = cap > 0 && spent > cap;
     final name = '${row.cat['name'] ?? 'Category'}';
     return Padding(
@@ -212,6 +206,11 @@ class _CategoryFormState extends State<_CategoryForm> {
   bool get _isEdit => widget.item != null;
 
   String _initialCap() {
+    // Empty for a non-Pro user even when a cap is stored, so renaming a
+    // category does not fail with "Monthly caps are a Pro feature" on a cap
+    // they cannot see and did not touch. The stored value is preserved by
+    // the store, which only writes a cap when one is typed.
+    if (!widget.pro) return '';
     final v = amountOf(widget.item?['monthlyCap']);
     if (v <= 0) return '';
     return v == v.roundToDouble() ? v.toInt().toString() : v.toString();

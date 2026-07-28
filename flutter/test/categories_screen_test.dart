@@ -231,6 +231,94 @@ void main() {
     );
   });
 
+  testWidgets('a cap fires for an entry logged with the main Log button', (
+    tester,
+  ) async {
+    // QA's MUST FIX on the shipped batch, as the exact user path: the main
+    // Log sheet never writes a categoryId, so a cap set on Food never
+    // noticed anything logged that way. Categories said 0, Budget said
+    // 3,500, and the Pro feature the screen advertises did nothing.
+    final store = await _open(
+      tester,
+      blob: {
+        ..._blob(pro: true),
+        'transactions': [
+          {
+            'id': 'logged',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 3500,
+            'date': _today(),
+          },
+        ],
+      },
+    );
+    await store.saveCategory(
+      id: 'food',
+      name: 'Food',
+      icon: '🍚',
+      capText: '3000',
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('₱3,500 this month'), findsOneWidget);
+    expect(find.textContaining('Over the cap.'), findsOneWidget);
+  });
+
+  testWidgets('a non-Pro user can rename a category that carries a cap', (
+    tester,
+  ) async {
+    // QA: the cap field pre-filled from stored data regardless of Pro, so
+    // the save was refused with "Monthly caps are a Pro feature" on a cap
+    // the person could not see and had not touched.
+    final store = await _open(
+      tester,
+      blob: {
+        ..._blob(),
+        'categories': [
+          {'id': 'food', 'name': 'Food', 'icon': '🍚', 'monthlyCap': 3000},
+        ],
+      },
+    );
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Groceries');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final cat = _cats(store).firstWhere((c) => c['id'] == 'food');
+    expect(cat['name'], 'Groceries');
+    // And their stored cap survived the rename rather than being wiped by an
+    // empty field they were never shown.
+    expect(cat['monthlyCap'], 3000);
+  });
+
+  testWidgets('a stored cap is invisible without Pro, like on Budget', (
+    tester,
+  ) async {
+    await _open(
+      tester,
+      blob: {
+        ..._blob(),
+        'categories': [
+          {'id': 'food', 'name': 'Food', 'icon': '🍚', 'monthlyCap': 1},
+        ],
+        'transactions': [
+          {
+            'id': 'x',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 500,
+            'date': _today(),
+          },
+        ],
+      },
+    );
+    // Scoped to the ROW, because the screen's intro paragraph legitimately
+    // explains what a cap is whether or not the reader has Pro.
+    expect(find.textContaining('of ₱'), findsNothing);
+    expect(find.textContaining('Over the cap.'), findsNothing);
+  });
+
   testWidgets('a cap that is being blown says so on the row', (tester) async {
     final store = await _open(tester, blob: _blob(pro: true));
     await store.saveCategory(

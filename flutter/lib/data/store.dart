@@ -1772,6 +1772,22 @@ class SalapifyStore extends ChangeNotifier {
     return refusal;
   }
 
+  /// Write one plain settings key.
+  ///
+  /// For preferences that are a single flag with no money meaning and no
+  /// migration story, like which tax option a freelancer told us they are on.
+  /// Anything with rules of its own gets a named method instead, so the rules
+  /// live in one place rather than at each call site.
+  Future<void> setSetting(String key, dynamic value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        key: value,
+      },
+    },
+  );
+
   /// Add or update a category. Returns the refusal, or null when it saved.
   ///
   /// The monthly cap is Pro. That gate lives here rather than only on the
@@ -1786,7 +1802,19 @@ class SalapifyStore extends ChangeNotifier {
     final clean = name.trim();
     if (clean.isEmpty) return 'Please enter a name.';
     final capRaw = capText.trim().replaceAll(RegExp(r'[, ]'), '');
-    num cap = 0;
+    // A blank cap field means "leave the cap alone", not "clear it". A
+    // non-Pro user editing a name sees an empty cap field by design, and
+    // wiping their stored cap because of that would delete a Pro setting
+    // they never touched.
+    final existing = [
+      for (final c in (data['categories'] as List? ?? const []))
+        if (c is Map && c['id'] == id) c.cast<String, dynamic>(),
+    ];
+    num cap = capRaw.isEmpty && existing.isNotEmpty
+        ? (existing.first['monthlyCap'] is num
+              ? existing.first['monthlyCap'] as num
+              : 0)
+        : 0;
     if (capRaw.isNotEmpty) {
       final parsed = num.tryParse(capRaw);
       if (parsed == null || !parsed.isFinite || parsed < 0) {
@@ -1796,7 +1824,10 @@ class SalapifyStore extends ChangeNotifier {
     }
     final settings = data['settings'];
     final pro = settings is Map && settings['pro'] == true;
-    if (cap > 0 && !pro) {
+    // The Pro gate applies to a cap the person TYPED, never to one carried
+    // over from storage. Otherwise preserving a lapsed user's cap made it
+    // impossible for them to rename their own category.
+    if (cap > 0 && capRaw.isNotEmpty && !pro) {
       return 'Monthly caps are a Pro feature. Unlock Pro in Menu, free '
           'during early access.';
     }

@@ -10,6 +10,654 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 12: the screenshot caught the one thing the batch existed to protect
+
+One delivery, one clean row, confirmed on the phone by the founder. That is the
+fifth clean delivery in a row, f2.67 through f2.71, and the honest reading of
+the streak is unchanged from session 11 and repeated below because a streak is
+read as "everything is fine" the moment nobody repeats it.
+
+The finding this session exists for is this. Batch 5 is a category screen whose
+entire reason to exist is the founder's rule that deleting a category must MOVE
+its entries and never quietly untag them. The screen shipped that rule
+backwards: the delete sheet opened with "No category" already selected, so
+anyone tapping straight through would have untagged every entry. The test
+written in the same sitting to guard exactly that rule PASSED, because it
+asserted the words on the screen instead of which chip was lit.
+
+This is the second confirmed case in this log of a test certifying the bug it
+was written to prevent. Session 10 found the first, in the payday guard. Two is
+a pattern, and Lesson 1 gives it a name and a rule.
+
+It also closes Open 22 and Open 24, both verified by reading and by running
+rather than by trusting a commit message, and it opens a genuine design
+question about porting a DISPLAY bug faithfully that is recorded rather than
+answered.
+
+### What we believed / What was true
+
+**Believed: f2.71 reached the phone. TRUE, and confirmed in person.** Read from
+`git show origin/main:docs/delivery-log.md | tail -3`, the last row is:
+
+    | 2026-07-28 09:51 UTC | f2.71 | 21 | patch | 0.6.2+11 | c7b84f69 (run 30347547209) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+flutter/pubspec.yaml:12 still reads `version: 0.6.2+11`, unchanged since
+session 5, so the base APK the founder installed once is still the right one.
+The stamp in the tree, flutter/lib/main.dart:29 to :30, is `'f2.71 · Categories
+in Menu: rename, nest, set a monthly cap, and delete one without losing
+entries.'`, 99 characters, inside the 120 cap enforced at
+flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified.**
+`git cat-file -p c7b84f6` shows two parents, 4d03f13 and 102ef74.
+
+**Believed: the category delete sheet honoured the founder's rule when it was
+first written. FALSE. It did the exact opposite by default, and a test written
+for that rule said it was fine.** Lesson 1, reproduced from scratch while
+writing this entry.
+
+**Believed: 913 tests pass and analyze is clean on what shipped. TRUE,
+independently re-run.** `flutter analyze` reports "No issues found!" and
+`flutter test` reports "All tests passed!" at +913, run against a clean
+checkout of the delivered commit 9bc8fb8 in a throwaway git worktree under the
+scratchpad. The live working tree was not used, because another task is
+currently building tax deadline screens in it and a run there would measure
+that instead of the phone.
+
+**Believed: Open 22 (the fixture audit rule) was written into the porting
+skill. TRUE, and the wording is stronger than what session 11 drafted.**
+Lesson 3.
+
+**Believed: Open 24 (the transfer race test) was written. TRUE, and it is the
+shape session 11 specified.** Whether it fails against the old code is answered
+carefully in Lesson 4, including the part that cannot be confirmed.
+
+**Believed, implicitly, that the shot harness leaves an artifact a later build
+can be compared against. FALSE, and it changes what "look at the screen" can
+ever be.** flutter/test/shots/ is gitignored at .gitignore:7, so no PNG has
+ever been committed, and `matchesGoldenFile` under `--update-goldens` only
+writes. The render is a discovery tool with no memory. Lesson 2.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 08:28 | f2.70 patch 20 delivered, session 11's ground truth | delivery row, 4d03f13 |
+| 08:45:40 | 56bcf41 Phase 3 batch 5: categories, caps, and a delete that never loses entries. 912 green | commit message |
+| 08:45:40 | **The render step finds the batch's own core rule inverted before it ships**: the delete sheet opened with "No category" selected. Fixed inside the same commit, and the replacement guard proven by reverting the default | commit message, `Expected: not null / Actual: <null>` |
+| 08:45:40 | The categories golden generator executes the real mobile/lib/categories.js. 86 cases across normalizeCategoryTree (8), promoteChildren (40), categoryTree (8) and recategorizeTransactions (30) | flutter/test/goldens/categories_goldens.json, counted |
+| 08:53:47 | 102ef74 closes the two gaps session 11 named: the race test and the fixture audit rule. Carries the session 11 write-up. 913 green | commit message, diff |
+| 09:40:02 | Merge #228 (c7b84f6), two parents | `git cat-file -p c7b84f6` |
+| 09:51:06 | f2.71 patch 21 delivered, 11m04s after the merge | delivery row, 9bc8fb8 |
+| after | **Founder confirms f2.71 on the phone** | founder |
+
+Two commits in this round, and no third. The previous three rounds each carried
+a separate QA round commit immediately before the merge (63f5b19, fd43e25,
+e2186b0). This one does not. That is not an accusation and it is not evidence
+that no review happened; it is evidence that nothing in the record can tell us
+either way, which is Lesson 6.
+
+### Divergence point
+
+There is no delivery divergence this round. The stamp built, shipped, was
+logged, and matched the phone. Five in a row.
+
+The belief divergence is **inside 56bcf41, at the moment the delete sheet was
+written with `String? _toId;` and a test named 'untagging is a deliberate
+second choice' was written beside it and went green.**
+
+From that moment the branch contained a screen that did the opposite of the
+founder's decision, a passing test whose NAME described the correct behaviour,
+and a suite of 911 other green tests. Every automated signal in the project
+said the rule was honoured. The only thing in the system capable of noticing
+was a person looking at a picture of the sheet, and that is what noticed.
+
+The shape, and it is the same shape as session 10's payday case one level up:
+**a test written from the same mental model as the code cannot test the model,
+only the code's agreement with it.** The model here was "the sheet offers
+moving and offers untagging, and untagging is clearly the second choice". That
+sentence is true of the LAYOUT and false of the STATE. A test that reads text
+can only ever check the layout.
+
+### Root cause
+
+**1. The test asserted the presence of options, not the selection among them.**
+The distinction sounds pedantic and is worth 250 pesos of someone's grocery
+history. `find.text('No category')` finds the chip whether it is selected or
+not. `find.textContaining('They stay in your history with no category')` finds
+the explanation whether or not it describes what is about to happen. Neither
+finder can see `selected:`, which is the only property that decided the
+outcome. The chips are built at flutter/lib/screens/categories.dart:577 and
+:591, and the state that drives them is one field.
+
+The shipped version makes the default explicit and says why, at
+flutter/lib/screens/categories.dart:483 to :490:
+
+    /// Starts on a REAL category, not on "No category".
+    ///
+    /// The render caught this: the sheet opened with "No category" selected, so
+    /// the default outcome of tapping Delete was untagging every entry. That is
+    /// the exact opposite of the rule this screen exists to honour.
+    late String? _toId = _others.isEmpty ? null : '${_others.first['id']}';
+
+**2. Nothing in the suite could see a default, because no test tapped nothing.**
+Every category test taps a chip before asserting, which makes all of them
+correct and all of them blind to the starting state. Measured rather than
+argued: reverting the default in a scratch worktree and running the whole
+categories file failed exactly ONE test out of nine. The other eight, including
+'untagging happens only when it is chosen' and 'deleting a category MOVES its
+entries, keeping every peso', stayed green while a straight-through tap
+untagged everything.
+
+**3. The render has no memory, so its catches are leads and not guards.**
+flutter/test/shots/ is gitignored, CI runs the harness with `--update-goldens`
+so it only ever writes, and the PNGs are never committed. Nothing compares
+today's sheet to yesterday's. This is a deliberate design, documented in
+CLAUDE.md, and it is correct for its purpose, but it means the render can never
+protect anything on its own. Every render catch has to be converted into an
+assertion or it protects nothing after the day it happened.
+
+### Lessons and guards
+
+**Lesson 1. A test for a DEFAULT or a SELECTION must assert the selected state,
+not the presence of the options. This is the second time in three sessions that
+a test certified the bug it was written to prevent.**
+
+The old test was never committed, because it was rewritten inside the same
+commit that introduced it. That matters, so it is said plainly: the strongest
+evidence this log knows how to produce, a diff showing an assertion being
+inverted, DOES NOT EXIST for this case. What exists is the commit message of
+56bcf41, which wrote it down:
+
+    the test I had written asserted that untagging was "a deliberate second
+    choice" and passed, because it checked the words on screen and not which
+    chip was lit. A test written from the same mistaken picture as the code
+    certifies the mistake.
+
+and the comment kept in the replacement test, flutter/test/categories_screen_test.dart:143
+to :146:
+
+    // The first version of this test asserted that untagging was "a
+    // deliberate second choice" while the code made it the default. It
+    // passed. A test written from the same mistaken picture as the code
+    // certifies the mistake.
+
+Rather than take either on trust, both halves were reproduced in a detached
+worktree of the delivered commit. The buggy default was restored
+(`String? _toId;`), and the old test was reconstructed from the description
+above:
+
+    testWidgets('RECONSTRUCTED OLD: untagging is a deliberate second choice', (tester) async {
+      await _open(tester);
+      await _openDeleteFor(tester, 'Food');
+      expect(find.text('No category'), findsOneWidget);
+      await tester.tap(find.text('No category'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('They stay in your history with no category'), findsOneWidget);
+    });
+
+Result: the reconstruction PASSES against the buggy code, and the shipped guard
+fails against it with the exact line the commit message quoted:
+
+    Expected: not null
+      Actual: <null>
+    tapping straight through must not drop the tag
+
+So a test named for the rule, green, in the file for the feature, sat one line
+away from a screen that broke the rule. The reconstruction is labelled a
+reconstruction because it is one; the failure line is not, it came out of a
+real run this session.
+
+**Guard for the instance, SHIPPED, strongest tier, and independently proven
+this session rather than inherited.** flutter/test/categories_screen_test.dart:137,
+'the DEFAULT is moving, not untagging'. It opens the sheet, taps Delete
+immediately without touching a chip, and asserts the entry still has a
+`categoryId` and still has its 250 pesos. It is the only test in the file that
+taps nothing first, and it is the only one that fails when the default is
+wrong.
+
+**Guard for the class, NOT WRITTEN. NEW Open 25.** The rule is one sentence and
+it generalises past chips: **when a screen has a default, a test must exercise
+the path where the user changes nothing.** The natural home is CLAUDE.md beside
+the prove-it-can-fail section, because that section is already about tests that
+pass for the wrong reason, and this is the third named species of that (a test
+written from the same model, an alarm that never proved its silent half, and
+now a test that reads layout while the bug is in state). Medium tier when
+written, and it should be called medium, because nothing fails if it is
+forgotten. The stronger companion, and it is cheap, is a shared test helper
+that makes asserting selection easier than asserting text, so the lazy path and
+the correct path are the same path. Neither is written here; this session does
+not edit CLAUDE.md or flutter/test.
+
+**Lesson 2. Looking at the render is now the highest-yield defect finder in the
+project, and it is not a guard at all. It is a lead generator with no memory,
+and its whole value depends on each lead being converted into an assertion.**
+
+The record, verified against commit messages rather than recalled: batch 2
+(a9c152e, session 9), the harness photographed leftover state and labelled it
+fresh, found by looking. Batch 4 (0fdd121, session 11), the account chip printed
+a rounded balance the next tap refused, found by looking. Batch 5 (56bcf41,
+this session), the delete sheet defaulted to untagging, found by looking. Three
+catches in the last four batches, and the missing batch (a10041e, the nightly
+nudge) is the one where the QA pass found everything instead.
+
+Every one of those three was invisible to a fully green suite on a real runner:
+673 tests then, 893 then, 912 this time.
+
+So the honest ranking. Looking at the screen is a DISCOVERY method, and this
+log's guard tiers do not have a slot for discovery methods, because all three
+tiers are about what happens when nobody is watching, and this one only works
+when somebody is. The reason it keeps winning is not that it is strong; it is
+that it is the only step in the pipeline that inspects the actual artifact
+rather than a claim about it. Sessions 6 through 9 kept finding the same shape,
+a checking tool that verifies a stand-in, and looking at a PNG is the one step
+with no stand-in in it.
+
+What that implies about the automated tier is uncomfortable and should be
+written down: **the automated tier in this project has still never caught a
+defect that the author had not already thought of.** It catches regressions of
+known defects, reliably and cheaply, which is real value. It does not find
+anything new. Every new defect in five batches came from a render, a QA pass or
+a retrospective.
+
+**Guard, EXISTING and correctly ranked at last, plus a conversion rule that is
+already being followed and is not written down anywhere. NEW Open 26.**
+The existing guard is the CLAUDE.md rule to render every UI change before the
+merge, and CI running the harness so it cannot rot. The missing piece is the
+sentence that turns a lead into a guard: **a defect found by looking is not
+fixed until an assertion exists that fails on the old behaviour.** All three
+render catches did in fact produce one, so this is a habit being written into a
+rule before it lapses rather than after. Medium tier, honestly, and the reason
+it cannot be automated is worth recording so nobody proposes it again: the
+obvious automated version, fail a pull request that touches
+flutter/lib/screens/ without changing a file under flutter/test/shots/, is
+IMPOSSIBLE here, because .gitignore:7 excludes that whole directory and no shot
+has ever been committed. Committing them would turn every font or platform
+difference between the sandbox and the runner into a red build, which is how
+the harness got abandoned once before.
+
+**Lesson 3. Open 22 is closed, and the version that shipped is better than the
+version the retrospective drafted.**
+
+Verified by reading .claude/skills/porting-money-logic/SKILL.md, not the commit
+message. The file grew from 67 to 83 lines in 102ef74, and the new section at
+:31 is titled "Audit the fixtures, not just the port". Session 11 drafted an
+abstract instruction. What shipped keeps the instruction and adds both real
+cases underneath it, which is the difference between a rule someone nods at and
+a rule someone recognises:
+
+    A golden replay proves parity on the cases someone thought to include, and
+    nothing at all about the rest. So after the replay goes green, BREAK the core
+    semantic on purpose and require it to fail: swap _jsRound for Dart's .round(),
+    drop the JS coercion branch, remove the sort tiebreak. A replay that still
+    passes has told you the fixture set is incomplete, not that the port is right.
+
+**Guard, SHIPPED, medium tier and it must be called medium.** It is prose in a
+skill file. Session 11's Lesson 3 is the standing proof that prose in this exact
+file can be correct, nine days old, and walked into anyway. What makes this one
+better than average is that a golden port cannot proceed without reading the
+file, and the two examples are concrete enough to be recognised at the keyboard.
+**Open 22: CLOSED.**
+
+**Lesson 4. Open 24 is closed. The race test exists, it is the shape that was
+specified, and one thing about it cannot be confirmed and is said instead of
+smoothed over.**
+
+flutter/test/transfer_screen_test.dart:213, 'a write landing mid-transfer
+refuses instead of crashing'. It seeds Cash at 1000, starts a 1000 peso expense
+WITHOUT awaiting it, immediately asks to move 1000 out of the same account,
+then awaits both. It asserts the transfer comes back as an ordinary
+`TransferRefusal.overdraft`, and that both balances are exactly where the spend
+left them. That is session 11's specification, with 1000 instead of 3200.
+
+The mechanism is sound by reading, and the reading is in the code rather than
+in the test's own claims. `_serialized` at flutter/lib/data/store.dart:523
+defers through `_writes.then(...)`, so a write started first is still queued
+when the next caller's synchronous body runs. The old implementation at
+0fdd121:store.dart:1741 ran `applyTransfer` against `data` synchronously before
+its first `await`, saw 1000 pesos still there, approved, and then ran the engine
+a second time inside `_mutate` after the spend had landed, where it threw
+`StateError('the transfer became invalid mid-write')`.
+
+**What cannot be confirmed, and why.** The new test cannot be run verbatim
+against the old code, because the fix also changed the method's return type:
+0fdd121 returned `Future<String?>`, the shipped version returns
+`Future<transfers.TransferOutcome?>`, and the test reads `refusal!.refusal`. So
+"this exact test goes red on the old shape" is a reasoned claim here, not a
+measured one. It is not a bare guess either: session 11 staged the equivalent
+race in a worktree against the old code and recorded the output,
+`THROWN: Bad state: the transfer became invalid mid-write`. The honest summary
+is that the alarm's firing half was proven on the old code by a different
+harness, and its silent half was proven this session, since it is green in the
+913 run.
+
+**Guard, SHIPPED, strongest tier. Open 24: CLOSED.**
+
+**Lesson 5. The category port reproduces an RN DISPLAY bug on purpose, and
+whether that is right is an open question rather than a settled one. Recording
+the question, and the reasoning on both sides, because the next porter will hit
+it.**
+
+The bug is real and small. mobile/lib/categories.js:60 filters children with
+`c.parentId === pid`. When a category in the stored list has no `id` at all,
+`pid` is `undefined`, and every ordinary top level category also has
+`parentId === undefined`, so every one of them matches. The result is that each
+top level row renders twice: once as a phantom child of the id-less row, once
+at top level where it belongs.
+
+It is visible in the locked fixtures, so nobody has to take this on trust. The
+`junk` tree case in flutter/test/goldens/categories_goldens.json has the input
+`[null, { name: 'no id' }, { id: 'ok', name: 'Ok' }]` and the recorded RN output
+is three rows: the id-less row at depth 0, `ok` at depth 1, and `ok` again at
+depth 0.
+
+The Dart port reproduces it exactly, at flutter/lib/money/categories.dart:62,
+where `child['parentId'] == t['id']` compares null to null for the same reason
+`===` compares undefined to undefined. And the golden test compares the whole
+row list rather than filtering, with the reason recorded at
+flutter/test/categories_golden_test.dart:91 to :97. The commit message is
+explicit that the first version of the test filtered those rows out and hid the
+difference, and that it was changed to compare everything.
+
+**The question. For MONEY math, porting the bug is unambiguously right**, and
+CLAUDE.md and the porting skill both say so: the two apps must agree to the
+centavo, a "fix" in one of them is a divergence, and a user who restores a
+backup into the other app must see the same numbers. **For DISPLAY logic the
+argument does not obviously carry**, and here is both sides as fairly as this
+session can put them.
+
+For porting it faithfully: the golden lock is the only mechanism that keeps the
+two apps honest, and it works precisely because it has no exceptions to
+negotiate. The moment "port it exactly, unless it looks wrong to you" enters the
+rule, every future porter has a judgement call, and judgement calls are where
+divergences hide. The input that triggers this is corrupt data that normal
+loads never produce, since `normalizeCategoryTree` runs on load, so the cost of
+faithfulness is a duplicated row on data that is already broken. And a
+duplicated row is visible and harmless; the entries themselves are untouched.
+
+Against: a duplicated category row is a lie on screen, the founder's users see
+Flutter and not RN, and there is no user anywhere who benefits from two apps
+agreeing about how to render corrupt input. Money must match because money is
+compared across a restore. Pixels are never compared across a restore.
+
+**Guard: NONE, deliberately, and the lesson is OPEN. NEW Open 27.** This is a
+decision the founder or a session with that mandate should make, and it is one
+sentence in .claude/skills/porting-money-logic/SKILL.md once made. The candidate
+wording, so making the decision is a paste and not a project: **port the
+behaviour exactly for anything a user could compare across the two apps
+(amounts, dates, ordering, what is included), and for pure display of corrupt
+input, port it faithfully AND open an issue against mobile/, so the two apps
+converge by fixing RN rather than by diverging quietly.** That last clause is
+what makes it safe: it keeps the lock absolute and gives the tidier behaviour
+somewhere to go. It is written here and not applied.
+
+**Lesson 6. The pre-merge QA pass is the guard this log ranks highest among the
+medium tier, and it leaves no artifact, so nobody can tell whether it ran.**
+
+Facts only. CLAUDE.md's merge rules require that "a QA pass ran on the changed
+code (the qa-tester agent or equivalent) and every must fix finding was fixed
+and re-checked" before Claude merges. Batches 2, 3 and 4 each produced a commit
+that says so in its subject: 63f5b19 "Onboarding QA round", fd43e25 "Nudge QA
+round", e2186b0 "Transfers QA round". Between them they carried nine real
+defects that 673, 893 and 912 green tests could not see. Batch 5 has no such
+commit. `git log 4d03f13..origin/main --oneline` returns exactly two commits,
+the batch and the gap-closing follow-up, and the merge is 46 minutes after the
+last of them.
+
+What that does NOT establish: whether a QA pass ran. A pass that finds nothing
+correctly produces no commit. This round also had its major defect caught
+earlier, by the render, which is a plausible reason a later pass would find
+less.
+
+What it DOES establish, and this is the finding: **the record cannot answer the
+question.** A merge gate whose satisfaction leaves no trace is a gate that can
+be skipped on a busy day with nothing anywhere disagreeing, and the next
+retrospective will not be able to tell either. That is the same failure class
+as the delivery outage of session 1, where "merged" was believed to mean
+"delivered" because nothing wrote down which one had happened. The fix there
+was the publisher writing its own row into docs/delivery-log.md, and that fix
+ended the outage permanently.
+
+**Guard, NOT WRITTEN. NEW Open 28.** The cheap version is a required line in the
+pull request body or in one commit message per round, naming the QA pass and
+its findings, including "none". The strong version is the same thing checked
+automatically: a step on the Flutter check that fails when the head commit of a
+branch touching flutter/lib/ carries no QA record. Strongest tier for PRESENCE
+only, and that limit must be stated in the same breath, because a presence
+check can be satisfied by typing the words. Presence is nonetheless exactly
+what is missing: today there is no way to know, and a check that makes the
+absence visible converts a silent skip into a red X. Note this session did not
+find evidence that the gate was skipped, and it is not claiming that. It found
+that the question is unanswerable, which is a defect in the instrument.
+
+**Lesson 7. The standing CLAUDE.md fact check. Everything it claims still
+matches the repository this round, and the check is reported anyway.**
+
+Two consecutive sessions found a false factual claim in CLAUDE.md, which is why
+this is a step and not a favour. This round the answer is that it is clean, and
+saying so is the point of doing it.
+
+`git log 4d03f13..origin/main -- .github/workflows/ CLAUDE.md .claude/` returns
+exactly one commit, 102ef74, whose only change in that set is the sixteen line
+fixture audit section in the porting skill. No workflow changed and CLAUDE.md
+did not change. Re-verified by reading regardless:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, mobile/app/(tabs)/more.js.
+- All five skills exist in .claude/skills, and the file's description of them
+  (three adapted, two ours) still matches the directory.
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- mobile/package.json:11 still pins `"expo": "~54.0.0"`, matching the SDK 54
+  claim in the opening paragraph.
+- The 120 character stamp cap is live at update_stamp_test.dart:20; the live
+  stamp is 99 characters.
+- flutter-check.yml:20 triggers on `claude/**` with no paths filter;
+  flutter-preview.yml triggers on `main` with paths `flutter/**` plus its own
+  definition. Both still match rule 1 word for word.
+- The icon rule's named test exists: lessons_content_test.dart:215, 'every icon
+  name actually resolves to a glyph'.
+- The claim that CI runs the shot harness separately with `--update-goldens` is
+  true: flutter-check.yml:80.
+- The local SDK claim is true: /opt/flutter reports Flutter 3.44.6 stable.
+- The three delivery commands ran as written and returned f2.71 patch 21.
+- The render command in the "look at the screen" section ran as written this
+  session, in a worktree of the delivered commit, and passed at +33 in 15
+  seconds, writing 42 files into flutter/test/shots/.
+
+**One imprecision, named rather than left for session 13.** The "look at the
+screen" section says "The directory listing is the count", which is good advice
+and slightly misleading in one respect: the directory is gitignored
+(.gitignore:7), so the listing counts whatever the last local run happened to
+leave behind, not what the harness currently renders. The live checkout has 44
+files and a clean render of the delivered commit produces 42; the two extra
+(catalog.png, lesson.png) are leftovers from renamed shots that nothing ever
+cleans up. Nobody was misled this round. The accurate version of the sentence
+is that the harness is the count, and `ls` after a fresh run is how to read it.
+Not a new open item, because it is a refinement of the same wording Open 19
+already improved once, and this log has learned that rewriting one sentence
+repeatedly is its own failure mode.
+
+**Lesson 8. Is the five-delivery streak real? Same answer as last session, and
+it is worth repeating rather than assuming it was read.**
+
+The DELIVERY half is real and mechanical. f2.67 through f2.71 each have a row,
+each in mode `patch`, each against an unchanged 0.6.2+11, each confirmed on the
+phone. Merge to row was 11m50s, 11m54s and 11m04s in the last three rounds. The
+mechanism that produces those rows was built after it failed in session 1 and it
+is working.
+
+The CORRECTNESS half is not solved and this round makes that clearer, not less
+clear. In five batches, the automated suite has never once been the thing that
+found a new defect. This round it was green while the flagship behaviour of the
+batch was inverted. Delivery is solved. Correctness rests on a human-shaped pass
+and a human looking at pictures, both of which are medium tier by this log's own
+ranking, and Lesson 6 says the first of them cannot currently be shown to have
+happened.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.71 in person, which remains the only proof that counts.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here. No spurious issue in evidence, and this round's 11m04s gap was well
+inside the 2700 second grace at delivery-watchdog.yml:43.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised, the merge bumped the stamp.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,**
+re-verified by reading, the scrape is still inside the ship step with `|| true`
+at flutter-preview.yml:127 and the comment at :112 to :126 intact.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** The log carries 31
+`patch` rows and 2 `release` rows and no failure rows at all, so a build that
+ships nothing still leaves no trace in the file the delivery check reads.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the
+shell's wiring: STILL OPEN, and it grew.** The two new category shots build
+their own `MaterialApp` by hand at screens_shot.dart:1053 to :1058. The file now
+contains 18 hand-built `MaterialApp` sites.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL OPEN,
+untouched, re-verified.** eas-update.yml:18 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7.
+
+**Open 15, the walk-keying and frame-asserting rule: ADVANCED AGAIN, still
+open.** Both new shots assert their frame before photographing it
+(`expect(find.text('YOUR CATEGORIES'), findsOneWidget)` at screens_shot.dart:1060
+and `expect(find.textContaining('entry is tagged'), findsOneWidget)` at :1070).
+Measured coverage: 7 of 26 `expectLater` sites now assert what is in front of
+the camera, up from 5 of 24. The practice is being applied to every new shot,
+which is what this item wanted; the MEDIUM tier is still not done, since the
+screens_shot.dart header still records three hard-won harness rules and
+asserting the frame is not one of them.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN, and it earned its keep again.** Every break in this session ran in a
+detached worktree under the scratchpad rather than in the live tree, which was
+the only safe choice, because the live tree currently holds another task's
+uncommitted tax deadline work. `grep -n "restore\|git checkout" CLAUDE.md
+.claude/skills/*/SKILL.md` still returns only unrelated hits.
+
+**Open 17, nothing generalises the payday guard: STILL OPEN, re-verified.**
+`PlannedReminder` at flutter/lib/money/reminders.dart:25 still carries only
+title, body and when, with no `kind` field, so nothing can assert that every
+notification key onboarding writes is one the planner can act on.
+
+**Open 18, the habit signal has four independent remembering events: STILL
+OPEN, and it is five now.** `sampleTxIds` is imported and filtered at
+quickadd.dart:28 and :60, reminders.dart:112, coach.dart:313 and chain.dart:69.
+No shared accessor exists.
+
+**Open 20, mobile/lib/notifications.js has the same sample-row defect Flutter
+fixed: STILL OPEN, re-verified.** `loggedToday` at :99 still does not exclude
+the sample ids.
+
+**Open 21, the balance label guards are example-shaped and the property is
+already proven: STILL OPEN.** The property test session 11 specified is not in
+the tree; `grep -rn "never refused as an overdraft\|displayed figure" flutter/test/`
+returns nothing. The three example-shaped guards are all present and green.
+
+**Open 22, porting-money-logic says how to generate goldens and not how to find
+out whether they are enough: CLOSED.** Shipped in 102ef74 as the "Audit the
+fixtures, not just the port" section at SKILL.md:31, with both worked examples.
+See Lesson 3.
+
+**Open 23, the "*100 overflow" rule lives in prose and was walked into anyway:
+STILL OPEN.** No shared centavo helper exists in flutter/lib/money/; the inline
+`* 100` pattern still appears across accounts_calc.dart, budget.dart, coach.dart,
+cycle.dart, debtmath.dart and goals_calc.dart.
+
+**Open 24, nothing guards the transfer race: CLOSED.** Shipped in 102ef74 at
+transfer_screen_test.dart:213. See Lesson 4, including the one thing about it
+that is reasoned rather than measured.
+
+**NEW Open 25: nothing says that a test for a default must exercise the
+untouched path.** One sentence in CLAUDE.md beside prove-it-can-fail, plus the
+cheaper companion of a selection-asserting test helper. Medium tier when done.
+Two instances now, sessions 10 and 12.
+
+**NEW Open 26: a defect found by looking is not fixed until an assertion fails
+on the old behaviour, and that sentence is written nowhere.** All three render
+catches happened to produce one. Medium tier when written, and Lesson 2 records
+why the automated version is impossible while flutter/test/shots/ is
+gitignored.
+
+**NEW Open 27: whether to port a DISPLAY bug faithfully is undecided.** The
+category tree duplicates every top level row when a category has no id, in both
+apps, on purpose. Candidate wording is in Lesson 5, and it needs a decision
+rather than a guard.
+
+**NEW Open 28: the QA merge gate leaves no artifact, so nobody can tell whether
+it ran.** A required QA line per round, ideally checked by the Flutter check.
+Strongest tier for presence only, which is the honest limit and also exactly
+what is missing.
+
+### Guard status re-check
+
+Read and re-run, not assumed. `git log 4d03f13..origin/main -- .github/workflows/
+CLAUDE.md .claude/` returns only 102ef74, whose sole change in that set is the
+new skill section, so every workflow line number the last four entries recorded
+still stands. Verified by reading anyway:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:173 to :181.
+  Correctly silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127, comment intact.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:221 onward.
+  Not fired, correctly.
+- The release install shout: PRESENT. Correctly silent, the row reads `patch`.
+- The publisher watching its own definition: PRESENT in the paths filter.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43, load-bearing comments intact.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT at :20, and the
+  separate shot harness run at :80.
+- The stamp cap: PRESENT, update_stamp_test.dart:20, and the live stamp is 99
+  of 120 characters.
+- Session 6 and 7 guards (a11y_test.dart, nav_ambiguity_test.dart, the injected
+  clock, header_action_test.dart, app_harness.dart): PRESENT.
+- Session 8's guards: PRESENT and untouched.
+- Session 9's guards: PRESENT. onboarding_test.dart 'the QA round' group intact.
+- Session 10's guards: PRESENT. onboarding_test.dart 'the nudge QA round' group
+  intact, the `asking` latch, and the sample exclusion at reminders.dart:112.
+- Session 11's guards: PRESENT. The three transfer guards (the giant balance,
+  the refusal that never claims more than the account holds, the picker label)
+  are in transfer_screen_test.dart, and the race test now sits beside them.
+- The whole suite: 913 pass, analyze clean, re-run independently on the
+  delivered commit 9bc8fb8 in a detached worktree. Second session in a row that
+  the number is measured rather than inherited.
+
+**No guard was found deleted, disabled or routed around this round.** That is
+the plain answer and it is the first time in three sessions it has been the
+answer. The nearest thing to a route-around is Lesson 6, which is not a guard
+being bypassed but a guard that cannot be observed either way, and that is
+recorded as Open 28 rather than as a violation.
+
+### What it cost, and what it did not
+
+Cost: nothing reached the phone wrong. The delete sheet defect was found and
+fixed inside the commit that created it, and the shipped f2.71 behaves as the
+founder decided. The real cost is the one this log keeps measuring, which is how
+close the miss was: one green suite of 912 tests, one test named after the exact
+rule, and the only thing standing between the founder's grocery history and an
+untagging tap was somebody opening a PNG.
+
+Not cost: no data was lost, no stamp was stranded, the base APK is untouched,
+and the founder owes no manual install.
+
+---
+
 ## 2026-07-28, session 11: the fix that moved the lie one decimal place over
 
 One delivery, one clean row, confirmed on the phone by the founder. There is no
