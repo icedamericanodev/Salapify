@@ -11,7 +11,7 @@ import 'support/app_harness.dart';
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
   testWidgets('an add-on quote shows its true effective rate',

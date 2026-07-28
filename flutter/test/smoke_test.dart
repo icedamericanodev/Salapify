@@ -22,7 +22,7 @@ String _today(int day) {
 void main() {
   testWidgets('overview shows the brand, import path, and the update stamp',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -132,7 +132,7 @@ void main() {
   });
 
   testWidgets('a fresh empty app shows no money check-in yet', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

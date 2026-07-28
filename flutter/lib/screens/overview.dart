@@ -28,6 +28,7 @@ import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
+import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
@@ -293,6 +294,13 @@ class OverviewScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                // The sample-data banner keeps the onboarding promise: the
+                // seeded rows are clearly marked and leave in one tap. It sits
+                // above everything because every figure below it is partly
+                // fiction while sample rows exist, and it must never be
+                // mistakable for a card about the user's own money.
+                if (store.canWrite && hasSampleData(data))
+                  _sampleBanner(context),
                 // Home answers one question above the fold: how much can I safely
                 // spend. Everything below is ordered around protecting that.
                 //
@@ -581,6 +589,48 @@ class OverviewScreen extends StatelessWidget {
   /// rendered at the top of Home. Mirrors the Insights decision card so the two
   /// read the same; tapping goes where the action points, a bottom tab or the
   /// Debts screen.
+  /// The clearly-marked flag over seeded rows, and the one tap that removes
+  /// them all. Accent border, not the warning color: sample data is an
+  /// invitation, not a problem.
+  Widget _sampleBanner(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: Gap.lg),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Barako.card,
+      borderRadius: BorderRadius.circular(Radii.lg),
+      border: Border.all(color: Barako.primary),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Kicker('SAMPLE DATA'),
+        const SizedBox(height: 6),
+        Text(
+          'These accounts, debts, and entries are examples so you can look '
+          'around. Your own money is untouched, and none of this feeds your '
+          'chain.',
+          style: TextStyle(
+            color: Barako.textSecondary,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: Gap.md),
+        OutlinedButton(
+          onPressed: () => store.removeSampleData(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Barako.primaryText,
+            side: BorderSide(color: Barako.primary),
+          ),
+          child: const Text(
+            'Remove sample data',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _checkInCard(BuildContext context, Map<String, dynamic> c) {
     final tone = c['tone'] as String;
     final action = c['action'];

@@ -23,7 +23,7 @@ Future<void> _openMindset(WidgetTester tester) async {
 void main() {
   testWidgets('impulse check verdict flips only when all three are checked',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
     await _openMindset(tester);
@@ -45,7 +45,7 @@ void main() {
   });
 
   testWidgets('a small win can be added and removed', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

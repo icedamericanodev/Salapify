@@ -19,6 +19,7 @@ import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
+import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
@@ -280,6 +281,25 @@ class SalapifyStore extends ChangeNotifier {
     return false;
   }
 
+  /// True when load() found NOTHING stored: a genuinely fresh install.
+  ///
+  /// This is what gates onboarding, together with an explicit
+  /// settings.onboarded == false (a fresh user who quit mid-welcome). The RN
+  /// derivation is deliberate and this port keeps it: any successfully
+  /// loaded blob counts as onboarded unless the flag is literally false, so
+  /// an EXISTING user upgrading into the first build that has onboarding can
+  /// never be greeted like a stranger. That includes the founder's phone.
+  bool firstRun = false;
+
+  /// Whether the first-run flow should show right now.
+  bool get needsOnboarding {
+    if (loadError != null) return false;
+    final s = data['settings'];
+    if (s is Map && s['onboarded'] == false) return true;
+    if (s is Map && s['onboarded'] == true) return false;
+    return firstRun;
+  }
+
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -291,6 +311,8 @@ class SalapifyStore extends ChangeNotifier {
         data = ensureEntityIds(
           ensureUniqueTxnIds(sanitizeData(jsonDecode(raw), keepAppLock: true)),
         );
+      } else {
+        firstRun = true;
       }
       loadError = null;
     } catch (e) {
@@ -1339,6 +1361,77 @@ class SalapifyStore extends ChangeNotifier {
         ? ({...settings}..remove('displayName'))
         : {...settings, 'displayName': clean};
     return {...d, 'settings': next};
+  });
+
+  /// Finish onboarding: the one write the flow ends with, the RN patch
+  /// exactly (currency, currencyCode, monthlyLimit, onboarded: true,
+  /// firstLogPrompt: true), optionally seeding the sample set FIRST so a
+  /// cancel-by-crash can never leave sample rows with onboarding unfinished
+  /// half-marked.
+  Future<void> completeOnboarding({
+    required String currencyCode,
+    required String currencySymbol,
+    required num monthlyLimit,
+    required bool withSampleData,
+  }) => _mutate((d) {
+    var next = d;
+    if (withSampleData) {
+      final seed = sampleData(DateTime.now());
+      next = {
+        ...next,
+        for (final key in seed.keys)
+          key: [...(next[key] as List? ?? const []), ...seed[key] as List],
+      };
+    }
+    return {
+      ...next,
+      'settings': {
+        ...((next['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'currency': currencySymbol,
+        'currencyCode': currencyCode,
+        'monthlyLimit': monthlyLimit,
+        'onboarded': true,
+        'firstLogPrompt': true,
+      },
+    };
+  });
+
+  /// Clear the one-shot first-log flag; the shell calls this the moment it
+  /// acts on it, so the log sheet can never nag twice.
+  Future<void> clearFirstLogPrompt() => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'firstLogPrompt': false,
+      },
+    },
+  );
+
+  /// Remove every sample row, exactly, in one write. Possible because every
+  /// seeded row carries the sample_ id prefix, the improvement over RN,
+  /// where only transactions were tagged and the sample accounts became
+  /// permanent residents.
+  Future<void> removeSampleData() => _mutate((d) {
+    var next = d;
+    for (final key in [
+      'accounts',
+      'debts',
+      'transactions',
+      'receivables',
+      'people',
+    ]) {
+      final list = next[key];
+      if (list is! List) continue;
+      next = {
+        ...next,
+        key: [
+          for (final row in list)
+            if (row is! Map || !isSampleId(row['id'])) row,
+        ],
+      };
+    }
+    return next;
   });
 
   /// Set the display currency, the RN keys exactly (currency holds the

@@ -13,6 +13,8 @@
 // the palette cannot reach, so the lines here say the same things in plain
 // English with no emoji.
 
+import 'sample_data.dart' show sampleTxIds;
+
 String _iso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'
     '${d.month.toString().padLeft(2, '0')}-'
@@ -62,6 +64,9 @@ ChainState chainState(dynamic transactions, DateTime ref) {
   if (transactions is List) {
     for (final t in transactions) {
       if (t is! Map) continue;
+      // Sample rows never feed a habit feature, the RN three-place rule:
+      // a chain lit by demo data would be a lie the user did not tell.
+      if (sampleTxIds.contains(t['id'])) continue;
       final type = t['type'];
       if (type != 'income' && type != 'expense') continue;
       final date = t['date'];

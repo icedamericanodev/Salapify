@@ -10,6 +10,7 @@ import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
+import 'screens/onboarding.dart';
 import 'screens/shell.dart';
 import 'theme.dart';
 import 'widgets/lock_gate.dart';
@@ -26,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.67 \u00b7 Pick your currency in Menu. The sign changes, your numbers never do.';
+    'f2.68 \u00b7 New users get a proper welcome: pick a currency and budget, or explore sample data first.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -123,7 +124,16 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
           // positions all live in the shell now. This file keeps what only it
           // can do: resolving the palette before anything reads it, and the
           // lifecycle observers.
-          home: ShellScreen(store: widget.store),
+          //
+          // Until load() settles, a plain background: the RN app does the
+          // same, because flashing the shell at a user who is about to be
+          // routed to onboarding reads as a glitch. Load is a local read and
+          // settles in well under a frame's worth of patience.
+          home: !widget.store.loaded
+              ? Scaffold(backgroundColor: Barako.background)
+              : widget.store.needsOnboarding
+              ? OnboardingScreen(store: widget.store)
+              : ShellScreen(store: widget.store),
         );
       },
     );

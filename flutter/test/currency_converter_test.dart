@@ -17,6 +17,7 @@ import 'support/app_harness.dart';
 void main() {
   testWidgets('converts PHP to USD from cached rates', (tester) async {
     SharedPreferences.setMockInitialValues({
+      ...onboardedEmptyStorage(),
       // A fresh cache (fetchedAt = now) so FxService.load returns it without
       // any network call.
       FxService.cacheKey: jsonEncode({
