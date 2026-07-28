@@ -101,6 +101,61 @@ List<Map<String, dynamic>> recategorizeTransactions(
   ];
 }
 
+/// What each category has cost this month, keyed by category id.
+///
+/// The rule is RN's, both arms of it, and the second arm is the one this port
+/// originally dropped: an entry counts for a category when it carries that
+/// category's TAG, or when it has no usable tag and its LABEL is exactly the
+/// category name. That matters because the main Log button never writes a
+/// tag at all, so without the label arm a monthly cap was inert for the app's
+/// primary way of recording money. The Categories screen said 0 while Budget
+/// said 3,500 for the same category, in the same month.
+///
+/// The label match is case sensitive, matching the live app. Only expenses
+/// count: income tagged with a category is not spending, and transfers and
+/// debt rows are not either.
+Map<String, double> spentByCategory(
+  dynamic transactions,
+  dynamic categories,
+  DateTime ref,
+) {
+  final cats = categories is List
+      ? categories
+            .whereType<Map>()
+            .map((c) => c.cast<String, dynamic>())
+            .toList()
+      : <Map<String, dynamic>>[];
+  final validIds = {for (final c in cats) c['id']};
+  final prefix =
+      '${ref.year.toString().padLeft(4, '0')}-'
+      '${ref.month.toString().padLeft(2, '0')}';
+  final out = <String, double>{for (final c in cats) '${c['id']}': 0};
+  if (transactions is! List) return out;
+  for (final t in transactions) {
+    if (t is! Map) continue;
+    if (t['type'] != 'expense') continue;
+    final date = t['date'];
+    if (date is! String || !date.startsWith(prefix)) continue;
+    final tag = t['categoryId'];
+    final tagged = tag != null && validIds.contains(tag);
+    for (final c in cats) {
+      final id = '${c['id']}';
+      final hit = tagged ? tag == c['id'] : t['label'] == c['name'];
+      if (hit) {
+        out[id] = (out[id] ?? 0) + _amount(t['amount']);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+double _amount(dynamic v) {
+  if (v is num) return v.isFinite ? v.toDouble() : 0;
+  final parsed = double.tryParse('$v');
+  return (parsed == null || !parsed.isFinite) ? 0 : parsed;
+}
+
 /// How many entries carry this category's tag. The number the delete sheet
 /// shows, so nobody is ever asked to confirm a move of an unknown size.
 int taggedCount(dynamic transactions, dynamic categoryId) {

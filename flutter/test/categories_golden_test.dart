@@ -139,6 +139,35 @@ void main() {
     }
   });
 
+  test('category spend matches the RN rule, including the label arm', () {
+    // The arm this port originally dropped. The main Log button never writes
+    // a categoryId, so without it every monthly cap was inert for the app's
+    // primary way of recording money, and this screen said 0 while Budget
+    // said 3,500 about the same category in the same month.
+    final sg =
+        jsonDecode(
+              File(
+                'test/goldens/categoryspend_goldens.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+    final ref = DateTime.parse(sg['ref'] as String);
+    final got = spentByCategory(sg['transactions'], sg['categories'], ref);
+    for (final row in (sg['spent'] as List).cast<Map<String, dynamic>>()) {
+      expect(
+        got['${row['id']}'],
+        (row['amount'] as num).toDouble(),
+        reason: 'spend for ${row['id']}',
+      );
+    }
+    // Named explicitly so a regression says WHICH rule broke: an untagged
+    // entry labelled exactly like the category counts, a differently cased
+    // one does not, and a tag always beats a label.
+    expect(got['food'], 3750, reason: '250 tagged plus 3500 by label');
+    expect(got['bills'], 2200, reason: 'a dead tag falls back to the label');
+    expect(got['transpo'], 0, reason: 'junk amounts and no date count zero');
+  });
+
   test('taggedCount counts what the delete sheet promises', () {
     final txns = _rows(g['transactions']);
     expect(taggedCount(txns, 'food'), 2);
