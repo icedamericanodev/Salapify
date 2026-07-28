@@ -10,6 +10,702 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 13: the cap that never noticed anything
+
+Two deliveries in this round, f2.71 and f2.72, both with clean rows and both
+confirmed on the phone by the founder. That is six clean deliveries in a row on
+the mechanical side.
+
+And for the first time in this log, a delivery that was clean in every
+mechanical sense put a feature on the founder's phone that did not work.
+
+f2.71 shipped a Categories screen whose monthly spending cap could not see the
+entries the app's own main Log button creates. The screen said `₱0 this month`
+for a category the founder had spent 3,500 pesos in, while the Budget screen
+said 3,500 for the same category in the same month. It sat on the phone for two
+hours, from 09:51 to 11:51 UTC, and it was found by a QA pass that ran AFTER
+the merge, because the QA pass CLAUDE.md requires BEFORE the merge did not run.
+
+Session 12 looked at that exact merge, found no QA record, and wrote that the
+record could not answer whether the gate had been satisfied. It filed that as
+Open 28 and said explicitly that it was not accusing anyone of skipping it.
+This session has the answer, and the answer is that it was skipped, and the
+cost is now measurable rather than hypothetical. Open 28 stops being a
+housekeeping item.
+
+The other half of the round is the tax work, where a Philippine tax
+professional's review found the app stating filing positions it had no way to
+know. The evidence there is the strongest kind this log can produce, and unlike
+session 12's case it exists as committed diffs: the fix had to DELETE tests
+whose names asserted the dangerous behaviour, including one that had been
+proven-to-fail first, exactly as CLAUDE.md instructs.
+
+### What we believed / What was true
+
+**Believed: f2.72 reached the phone. TRUE, and confirmed in person.** Read from
+`git show origin/main:docs/delivery-log.md | tail -3`, the last row is:
+
+    | 2026-07-28 11:51 UTC | f2.72 | 22 | patch | 0.6.2+11 | 69cb2200 (run 30355725728) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+flutter/pubspec.yaml:12 still reads `version: 0.6.2+11`, unchanged since
+session 5, so the base APK the founder installed once is still the right one.
+The stamp in the tree, flutter/lib/main.dart:29 to :30, is `'f2.72 · Two new
+tools: your next BIR filing dates, and a year-end refund or shortfall
+estimate.'`, 95 characters, inside the 120 cap enforced at
+flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified.**
+`git cat-file -p 69cb220` shows two parents, 9bc8fb8 and 2d7a22c.
+
+**Believed: f2.71 delivered a working monthly cap. FALSE, and this one reached
+the phone.** The delivered code at 9bc8fb8:flutter/lib/screens/categories.dart:44
+contains one line that decides it:
+
+      final id = t['categoryId'];
+      if (id == null) continue;
+
+The main Log sheet never writes a `categoryId`. `grep -n "categoryId"
+flutter/lib/screens/log_sheet.dart` returns nothing at all, in the delivered
+tree and in the current one. So every entry logged with the big plus button was
+skipped, and the screen counted only entries tagged from the category picker.
+
+The RN rule this was ported from has two arms, at mobile/app/categories.js:52
+to :53:
+
+          (t.categoryId === c.id ||
+            ((!t.categoryId || !validIds.has(t.categoryId)) && t.label === c.name))
+
+Only the first arm made it across. Budget was correct all along because it
+groups by category OR by trimmed label, at flutter/lib/money/budget.dart:79 to
+:89, which is why the two screens disagreed about the same month.
+
+Worth stating precisely, because it changes who was affected: the cap itself is
+a Pro feature, but the spend figure is not. The delivered `_subtitle` at
+9bc8fb8:screens/categories.dart:171 to :173 builds `'${formatMoneyText(spent)}
+this month'` first and only then appends the cap. So EVERY user, Pro or not,
+saw a wrong number, and Pro users additionally had a cap that could never fire.
+
+**Believed: the categories golden lock covered the categories screen's money
+math. FALSE.** flutter/test/goldens/categories_goldens.json locks four pure
+tree helpers (normalizeCategoryTree, promoteChildren, categoryTree,
+recategorizeTransactions). The spend rule was never in flutter/lib/money/ at
+all, so the golden contract never looked at it. This is the structural root
+cause and it is Lesson 2.
+
+**Believed: the BIR dates screen was correct because its dates and arithmetic
+were correct. TRUE about the dates, and dangerously incomplete.** The tax
+professional confirmed every statutory date, the post TRAIN 1701Q dates and the
+correctly absent registration fee. What was wrong was that the screen made
+categorical statements about a person's filing obligations from one boolean.
+Lesson 3.
+
+**Believed: 935 tests pass and analyze is clean on what shipped. TRUE,
+independently re-run this session.** `flutter analyze` reports "No issues
+found! (ran in 27.8s)" and `flutter test` reports "All tests passed!" at +935,
+run against the live tree at the delivered commit b61d451 with `git status
+--porcelain` empty. Third session in a row the number is measured rather than
+inherited.
+
+**Believed (session 12, Open 28): the record cannot tell whether the pre-merge
+QA pass ran on batch 5. TRUE then, and answered now: it did not run.** Stated
+by the session that did the work, and corroborated by the record rather than
+taken on trust: 2d7a22c's own message opens "QA on the already-delivered
+categories batch (f2.71) found the feature inert on the app's main path". A
+pass that runs after delivery is not the gate CLAUDE.md describes.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 08:45:40 | 56bcf41 batch 5. `_spentThisMonth` is written with the tag arm only. 912 green | `git show 9bc8fb8:flutter/lib/screens/categories.dart`, line 44 |
+| 09:40:02 | Merge #228 (c7b84f6). **No QA round commit, and no QA pass** | `git log 4d03f13..9bc8fb8 --oneline` returns two commits, neither a QA round |
+| 09:51:06 | f2.71 patch 21 delivered. **An inert cap and a wrong spend figure are now on the phone** | delivery row, 9bc8fb8 |
+| 10:42:02 | e2a7abd batch 6, BIR dates and the year-end check. 926 green. Ships the 8% rule that deletes the January 2551Q, and stores the answer with no year | commit message, taxdeadlines.dart |
+| 10:43:50 | 4646a0d session 12 write-up, which files Open 28 about the unprovable QA gate | commit |
+| 11:08:22 | 5b37947 tax review round. Three MUST FIX findings, and three tests asserting the old behaviour are deleted or inverted | `git show 5b37947 -- flutter/test/` |
+| 11:34:27 | 2d7a22c caps fix, from a retroactive QA pass on the ALREADY DELIVERED f2.71. 935 green | commit message |
+| 11:40:23 | Merge #229 (69cb220), two parents | `git cat-file -p 69cb220` |
+| 11:51:56 | f2.72 patch 22 delivered, 11m33s after the merge | delivery row, b61d451 |
+| after | **Founder confirms f2.72 on the phone** | founder |
+
+The founder's window with a broken cap: 09:51:06 to 11:51:56, two hours and
+fifty seconds.
+
+### Divergence point
+
+There is no DELIVERY divergence this round. Both stamps built, shipped, were
+logged and matched the phone. Six in a row.
+
+The belief divergence is **08:45:40 on July 28, inside 56bcf41, at the line
+`if (id == null) continue;`**. That is where a two arm RN rule became a one arm
+Dart rule, and from that moment every signal in the project said the categories
+batch was correct: 912 green tests, a clean analyze, a golden file named
+`categories_goldens.json` sitting right there in the same directory, and a
+green Flutter check on a real runner.
+
+It is worth being exact about why the golden file was not evidence. It was
+real, it was generated by executing the real RN source, and it was completely
+correct. It just covered four different functions. A golden file cannot tell
+you which rules you failed to put in front of it. That is the same shape as
+Open 22 from session 11, one level up: session 11 asked whether the FIXTURES
+inside a golden set were enough, and this round asks whether the golden set
+covers the right FUNCTIONS at all.
+
+The moment anyone noticed was 11:34:27, one hour and forty nine minutes after
+the defect reached the phone, and the thing that noticed was a person doing a
+QA pass that should have happened before the merge.
+
+### Root cause
+
+**1. Money math that lives inside a screen file is outside every mechanism
+this project has for checking money math.**
+
+CLAUDE.md's Flutter rule 4 says "Money math ports do not merge without matching
+test vectors", and the porting-money-logic skill describes exactly how to
+generate and lock those vectors. Both are correct and neither could fire here,
+because nothing decides what counts as money math. The rule was ported into
+`_spentThisMonth`, a private method on a `State` class in
+flutter/lib/screens/categories.dart, and a private method on a State class is
+not something anyone thinks to golden lock.
+
+This is not a one-off. Measured this session across flutter/lib/screens/, the
+money helper `amountOf` is called from six screen files:
+
+    accounts.dart 9, categories.dart 2, debts.dart 22,
+    insights.dart 6, reports.dart 8, split_expense.dart 1
+
+Whether each of those is a ported RN rule or merely local display arithmetic
+was NOT audited here, and that is exactly the point: nothing in the project
+distinguishes the two, so nobody can tell without reading all forty eight call
+sites. The fix moved this one rule to flutter/lib/money/categories.dart:117 as
+`spentByCategory` and locked it, which is right, and it does nothing about the
+next one.
+
+**2. The pre-merge QA pass is the only step that has ever found this class of
+defect, and skipping it is invisible.**
+
+Session 12 ranked the QA pass as the strongest of the medium tier guards and
+noted that it leaves no artifact. This round supplies the missing half of that
+argument. The gate was skipped, every automated signal stayed green, the pull
+request looked clean, the merge went through, the publisher shipped, the
+delivery row was written, and a broken feature reached the phone. Not one
+mechanism anywhere disagreed at any point.
+
+**3. A test can assert a fact about the WORLD as confidently as it asserts a
+fact about the code, and nothing in the suite knows the difference.**
+
+The 8% filing tests were well built. They were named clearly, they exercised
+the real screen, and one of them was proven to fail first exactly as CLAUDE.md
+requires. What they asserted was a claim about Philippine tax law, and every
+one of the mechanisms this project uses to check tests is blind to whether such
+a claim is true.
+
+### Lessons and guards
+
+**Lesson 1. A skipped QA pass put a broken feature on the founder's phone. This
+is the first confirmed instance in this log of a delivery that was mechanically
+perfect and functionally wrong.**
+
+The facts, in order. CLAUDE.md's merge rules require, before Claude merges, "a
+QA pass ran on the changed code (the qa-tester agent or equivalent) and every
+must fix finding was fixed and re-checked". Batch 5 was merged without one.
+The QA pass ran two hours later against the delivered code and found, in its
+first sweep, three real defects: the inert cap, a cap line shown to non Pro
+users that Budget correctly hid, and a non Pro user being unable to rename a
+category because the cap field pre-filled from storage and then failed the Pro
+gate on a value they could neither see nor have typed.
+
+None of the three were visible to 913 green tests.
+
+**Guard for the instance, SHIPPED, strongest tier, and proven failing first.**
+flutter/test/categories_screen_test.dart:234 carries 'a cap fires for an entry
+logged with the main Log button', which walks the exact user path: one entry
+labelled Food with no `categoryId`, a 3,000 cap saved on Food, then
+
+    expect(find.textContaining('₱3,500 this month'), findsOneWidget);
+    expect(find.textContaining('Over the cap.'), findsOneWidget);
+
+and the failure line recorded in 2d7a22c before the fix was
+`Expected: exactly one matching candidate / Found 0 widgets with text
+containing "₱3,500 this month"`. The rule itself is now golden locked at
+flutter/test/goldens/categoryspend_goldens.json against the real RN predicate,
+which flutter/test/goldens/gen-catspend-goldens.js cuts out of
+mobile/app/categories.js by text and EXECUTES rather than transcribes, with a
+sanity check at :30 that the extracted text still mentions `categoryId` and
+`isThisMonth`. Twelve fixtures cover the cases that decide the rule, including
+the ones a transcription would get wrong: a differently cased label (RN's match
+is exact, so it counts for nothing), and a tag pointing at a deleted category
+falling back to the label.
+
+**Guard for the class, NOT WRITTEN, and it is now the highest value unwritten
+guard in this log. Open 28, ESCALATED.** Session 12 proposed it and ranked it
+"strongest tier for presence only". That ranking still holds and the priority
+does not. The cheap version is a required line in the pull request body or in
+one commit message per round naming the QA pass and its findings, including
+"none". The strong version is a step on the Flutter check that fails when a
+branch touching flutter/lib/ has no QA record on its head commit. A presence
+check can be satisfied by typing the words, and that limit must be said in the
+same breath. Presence is nonetheless exactly what was missing here: nothing
+anywhere was in a position to notice.
+
+**Lesson 2. The golden lock covered four functions in a file and none of the
+money math in the screen beside it, because nothing decides what counts as
+money math.**
+
+This is the finding with the longest reach. The porting contract is strong
+where it applies and there is no mechanism that decides where it applies. A
+rule that lives in an RN file gets ported and locked; the same rule written as
+a six line arrow function inside a React component, which is exactly what
+`spentFor` is at mobile/app/categories.js:46, gets ported into a Dart State
+class and locked by nothing.
+
+**Guard, PARTIAL. The instance is fixed, the class is NEW Open 29.** The
+candidate rule, one sentence for
+.claude/skills/porting-money-logic/SKILL.md: **a rule that reads transactions
+and produces a number goes in flutter/lib/money/ and gets a golden, even when
+it is three lines long and even when its RN original lives inside a component
+rather than in lib/.** Medium tier when written, because it is prose. There is
+a stronger companion available and it should be scoped honestly rather than
+promised: a test that fails when a file under flutter/lib/screens/ sums
+`amountOf` over `data['transactions']` would be a real automated guard, and it
+would need the six existing sites audited and either moved or explicitly
+allowed first. That audit is the work; the check is easy afterwards.
+
+**Lesson 3. Three tests asserted the dangerous tax behaviour, by name, and one
+of them had been proven to fail first. The diffs exist, and they are quoted
+here because this is the strongest evidence a retrospective in this project can
+produce.**
+
+Session 12 had to reconstruct its inverted test because it was never committed.
+This round does not. All three were shipped in e2a7abd and deleted or inverted
+in 5b37947, so `git diff e2a7abd 5b37947` is the proof.
+
+The most dangerous one, from e2a7abd:flutter/test/taxdeadlines_golden_test.dart:94:
+
+    test('the 8 percent option drops the percentage tax rows', () {
+      final rows = taxDeadlines(DateTime(2026, 1, 1), onEightPercent: true);
+      expect(rows.any((r) => r.form == '2551Q'), isFalse);
+
+Read that with the date in mind. On January 1 2026, with the 8% option on, the
+test asserts that NO percentage tax return appears. The January 25 2551Q covers
+October to December of the PREVIOUS year. The 8% election is per taxable year
+and irrevocable for that year only, so somebody on graduated rates last year
+still files it. The app told them it was not theirs to file, and the exposure
+for missing it is a 25% surcharge plus 12% interest.
+
+The second, from e2a7abd:flutter/test/tax_screens_test.dart:63, has the bug in
+its title:
+
+    testWidgets('the 8% choice drops the percentage tax rows and sticks', (
+    ...
+      // Remembered, so the same person is not asked again next month.
+      expect((store.data['settings'] as Map)['taxOnEightPercent'], true);
+
+"Sticks" and "not asked again next month" are the defect stated as a feature.
+The election has to be signified again every year, so one tap in 2026 silenced
+percentage tax rows for life.
+
+And here is the part that matters most for this project's habits. That exact
+assertion was proven-to-fail first, correctly, following CLAUDE.md. The e2a7abd
+commit message records the failure line:
+
+    Guards proven failing first: ... and the 8% choice not persisting
+    (Expected: <true> / Actual: <null>).
+
+So the prove-it-can-fail discipline ran, worked, and certified a bug. This is a
+NEW named species and it belongs beside the three already recorded in this log:
+**proving a test can fail proves the test is WIRED UP. It says nothing about
+whether the behaviour it pins is correct.** Every previous species in this log
+was about a test looking at the wrong thing. This one looked at exactly the
+right thing and had the wrong idea of what the right answer was.
+
+There was a third MUST FIX in the same review that no test asserted either way:
+a VAT registered filer was handed four rows telling them to file a 3%
+percentage tax. Section 116 applies only to persons who are NOT VAT registered,
+who file 2550Q and no 2551Q at all. A boolean cannot express that, which is why
+the fix is an enum.
+
+**Guard, SHIPPED, strongest tier, for the instances.**
+flutter/lib/money/taxdeadlines.dart:138 introduces
+`enum FilingBasis { regular, eightPercent, vatRegistered }`, the January row
+survives the 8% election at :173, and the screen expires a stored answer when
+the year turns at flutter/lib/screens/tax_deadlines.dart:73:
+
+    if (s['taxBasisYear'] != widget.clock().year) return FilingBasis.regular;
+
+The replacement assertions are the inverse of the deleted ones, at
+taxdeadlines_golden_test.dart:132 to :145: `expect(pct.first.date,
+DateTime(2026, 1, 25))`, `expect(pct.first.note, contains('LAST year'))`, and
+`expect(rows.any((r) => r.form == '2551Q' && r.date.month != 1), isFalse)` so
+the April, July and October rows are still genuinely replaced. Proven failing
+first, from 5b37947: `Expected: exactly one matching candidate / Found 0
+widgets with text "Percentage tax"`.
+
+The divergence from RN is deliberate and is asserted rather than hidden. The
+golden test compares 8% cases separately, with the reason at
+taxdeadlines_golden_test.dart:66 to :71, and inside our own window at :75 to
+:80 so that adding a row does not fail the comparison for the wrong reason.
+
+**Guard for the class, NONE. NEW Open 30.** Nothing distinguishes a test that
+asserts how the code behaves from a test that asserts a fact about the world.
+The only thing that found these was a domain specialist reading the screens,
+which is a discovery method and not a guard, the same category Lesson 2 of
+session 12 put "looking at the render" in. The candidate, and it is honestly
+weak, is a convention: **a test that encodes a legal, tax or statutory claim
+names its source in the test itself, so a later reader can re-check the claim
+rather than the code.** Medium tier at best. It does not make the claim true.
+It makes the claim visible as a claim, which is the difference between the
+January 2551Q assertion above and an assertion about string formatting, and
+nothing in the file marked that difference.
+
+**Lesson 4. The RN app has the January 2551Q defect and it was flagged to the
+founder rather than fixed. Verified this session, and one detail in the brief
+does not hold.**
+
+Confirmed by reading. mobile/lib/taxdeadlines.js:42 builds its list as
+
+    const specs = [ANNUAL, ...INCOME_QUARTERLY, ...(onEight ? [] : PERCENTAGE_QUARTERLY)];
+
+so the 8% option drops all four 2551Q rows including the January 25 one at :20.
+The live RN app has the dangerous behaviour, and the Flutter port deliberately
+does not copy it, documented at flutter/lib/money/taxdeadlines.dart:161 to :170.
+There is no VAT registered mode in RN either; mobile/app/tax-deadlines.js:105
+covers it with a sentence of prose telling VAT filers they have extra returns
+not listed.
+
+The detail that does NOT hold: the "remembered forever" half is Flutter only.
+RN holds the answer in `useState(false)` at mobile/app/tax-deadlines.js:32 and
+never persists it at all, so it resets every visit. Saying so matters because
+the two apps have DIFFERENT defects here, and a fix applied to RN from a
+Flutter description would fix the wrong one.
+
+**Guard: NONE, by decision, and the lesson is OPEN as part of Open 27.** This
+is the concrete instance of the question session 12 recorded and did not
+answer: what to do when a port finds a real defect in the app it is porting
+from. Session 12's candidate wording ("port it faithfully AND open an issue
+against mobile/") would resolve it, and this case is stronger than the one that
+prompted it, because that one was a duplicated row rendered from corrupt data
+and this one is a tax filing somebody could miss. The founder was told. Nothing
+in the repository records it, so nothing will remind anyone.
+
+**Lesson 5. Unreadable numeric input read silently as zero. Confirmed on the
+year-end screen with a proven guard. The second half of the claim, about the
+transfer flow, does NOT hold in the delivered tree, and correcting it changes
+the lesson.**
+
+The confirmed instance is real and was shipped inside this round rather than
+reaching the phone. flutter/lib/screens/year_end_tax.dart:46 to :51 records it
+in the code:
+
+    /// This used to map anything unreadable to zero silently, so pasting
+    /// "₱12,500" from a payslip made the screen announce "LIKELY STILL OWED"
+    /// to somebody who had actually overpaid, and typing "6 months" in the
+    /// months field became one month and overstated a refund twelvefold.
+
+The reader now returns three distinct things, empty, unreadable and a number,
+at :52 to :58, and the verdict is withheld while any field is unreadable.
+
+**Guard, SHIPPED, strongest tier.** flutter/test/tax_screens_test.dart:293
+enters `₱12,500` in the withheld field and asserts both halves at :295 to :301,
+that the screen names the field it cannot read AND that no verdict appears:
+
+    expect(find.textContaining('LIKELY'), findsNothing,
+        reason: 'no verdict may be built on a figure the app misread');
+
+then repeats it for the months field, then corrects the input and asserts at
+:313 that the warning goes away. That last part is the silent half, which this log has
+insisted on since the watchdog.
+
+**The correction.** The brief for this session said the same silent-zero bug
+was found in the transfer flow. Checked, and it is not there. Typed amounts go
+through `transferAmount` at flutter/lib/money/transfers.dart:67, which returns
+NaN for anything unreadable, and `applyTransfer` at :165 refuses it with "Enter
+an amount greater than 0." The nearest real thing is a different case: a stored
+BALANCE that is unreadable resolves to zero through `ledger.amountOf`, which is
+RN's `Number(from.balance) || 0` ported faithfully, and its consequence is a
+refusal rather than a confident wrong answer. It has been that way since batch
+4 (0fdd121) and it is documented at transfers.dart:154 to :156.
+
+So the honest shape of the lesson is narrower than the brief and more useful:
+the silent-zero defect was a ONE screen defect, on a screen that produces a
+VERDICT rather than performing an action. That is the distinguishing feature
+worth carrying forward. A screen that acts can fail safe by refusing. A screen
+that only tells you something has no refusal path unless someone builds one,
+and the year-end screen shipped without one.
+
+**Lesson 6. Two process near-misses were reported by the session that did the
+work. Neither can be verified from the repository, and that is said plainly
+rather than smoothed over.**
+
+Reported: python heredoc edit scripts that assert AFTER writing lose every edit
+in the script when the assert fires, which happened about four times; and
+`git checkout <file>` was used to undo an edit, which restored the last COMMIT
+and destroyed uncommitted QA fixes.
+
+What this session can verify is only the surrounding context, and it does
+support them being worth writing down. Open 16, filed in session 10, is exactly
+this territory: CLAUDE.md's prove-it-can-fail section says how to BREAK the
+code and never says how to restore it. Re-checked this round,
+`grep -n "git checkout\|restore" CLAUDE.md .claude/skills/*/SKILL.md` still
+returns only two unrelated hits, both about backup and restore as a product
+feature. Nothing anywhere in the project says how to undo a deliberate break
+safely. Sessions 12 and 13 both worked around it by hand, session 12 by using a
+detached worktree and this session by running the suite against a clean tree.
+
+**Guard, NOT WRITTEN. NEW Open 31, and Open 16 is its other half.** Two
+sentences, both cheap, both belonging beside prove-it-can-fail in CLAUDE.md:
+**verify before you write, never after, so a failed check leaves the file
+untouched**, and **undo a deliberate break with the text you saved, never with
+`git checkout`, which restores the last commit and takes uncommitted work with
+it.** Medium tier, and it must be called medium: it is prose that has to be
+read at the right moment. The stronger version exists in principle, a session
+level rule that every experimental break happens in a scratch worktree, and it
+is worth noting that this is already the practice two sessions running without
+being written down anywhere.
+
+**Lesson 7. The standing CLAUDE.md fact check. Everything it claims still
+matches the repository this round.**
+
+Three consecutive sessions found a false factual claim in CLAUDE.md, which is
+why this is a step and not a favour. Session 12 found it clean. This round it
+is clean again, and saying so is the point of doing it.
+
+`git log 9bc8fb8..HEAD --oneline -- .github/workflows/ CLAUDE.md .claude/`
+returns nothing at all: not one workflow, rule or skill changed between the two
+deliveries. Re-verified by reading and running regardless:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, mobile/app/(tabs)/more.js.
+- All five skills exist in .claude/skills, and the file's description of them
+  (three adapted, two ours) still matches the directory.
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- mobile/package.json:11 still pins `"expo": "~54.0.0"`.
+- The 120 character stamp cap is live at update_stamp_test.dart:20; the shipped
+  stamp is 95 characters.
+- flutter-check.yml:20 triggers on `claude/**` with no paths filter;
+  flutter-preview.yml:17 triggers on `main`, with paths `flutter/**` at :19 and
+  its own definition at :26. Both still match Flutter rule 1 word for word.
+- The claim that CI runs the shot harness separately with `--update-goldens` is
+  true: flutter-check.yml:80.
+- The local SDK claim is true: /opt/flutter reports Flutter 3.44.6 stable.
+- The three delivery commands ran as written and returned f2.72 patch 22.
+- The "look at the screen" section's brightness claim, which was false for five
+  sessions before session 11 corrected it, is now accurate against the harness:
+  the two new tax shots share the `Brightness.dark` palette set at
+  screens_shot.dart:1094 and render dark only, which is what the corrected
+  sentence says happens to screens that are not tabs.
+
+**One thing the fact check cannot see, recorded rather than filed as new.** The
+render step is documented as a pre-merge requirement for every UI change. The
+tax screens got shots in e2a7abd, and the tax review round 5b37947 then rebuilt
+those screens substantially (a three state chip row, a live region, new copy)
+without touching screens_shot.dart. That is not necessarily wrong, since the
+existing shot renders whatever the screen currently is, and the commit message
+mentions "the basis chips stop clipping at large font", which is a thing you
+learn by looking. But it is unprovable either way, for the same reason as
+Lesson 1: the render leaves no committed artifact, so nobody can tell whether
+it ran. That is Open 26 and Open 28 meeting each other, not a new item.
+
+**Lesson 8. Is the six-delivery streak real? The delivery half yes, and this
+round the correctness half finally produced the failure it has been predicting.**
+
+The DELIVERY half is real and mechanical. f2.67 through f2.72 each have a row,
+each in mode `patch`, each against an unchanged 0.6.2+11, each confirmed on the
+phone. Merge to row was 11m50s, 11m54s, 11m04s and now 11m33s. That mechanism
+was built after it failed in session 1 and it works.
+
+The CORRECTNESS half has been called unsolved in every entry since session 10,
+in increasingly plain language, and each time the miss was caught before the
+merge, which makes a warning easy to read as pessimism. This round it was not
+caught before the merge. A feature the founder was told had shipped did nothing
+for two hours. The prediction was correct, and the six clean rows are exactly
+as reassuring as they were before, which is to say they are about delivery only.
+
+The tally over six batches is unchanged and now longer: the automated suite has
+still never found a novel defect. Every new defect came from a QA pass, a
+specialist review, a render, or a retrospective. What is new this round is the
+second half of that sentence: on the one occasion the QA pass did not run, the
+defect shipped.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.72 in person, which remains the only proof that counts.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here (`which gh` returns nothing). No spurious issue in evidence, and this
+round's 11m33s gap was well inside the 2700 second grace at
+delivery-watchdog.yml:43.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised, the merge bumped the stamp.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,**
+re-verified by reading, the scrape is still inside the ship step with `|| true`
+at flutter-preview.yml:127 and the load-bearing comment at :112 to :126 intact.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** The log now
+carries 32 `patch` rows and 2 `release` rows and no failure rows at all.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the
+shell's wiring: STILL OPEN, and it grew again.** The two tax shots build their
+own `MaterialApp` by hand at screens_shot.dart:1096 and :1112. The file now
+contains 20 hand-built `MaterialApp` sites, up from 18.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL OPEN,
+untouched, re-verified.** eas-update.yml:18 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7.
+
+**Open 15, the walk-keying and frame-asserting rule: ADVANCED AGAIN, still
+open.** The BIR dates shot asserts its frame before photographing it
+(`expect(find.text('WHAT IS NEXT'), findsOneWidget)` at screens_shot.dart:1105)
+and the year-end shot asserts `find.textContaining('LIKELY')` at :1122.
+Measured the same way as last session, 9 of 28 `expectLater` sites are now
+preceded by an assertion about what is in front of the camera, up from 7 of 26.
+The MEDIUM tier is still not done: the screens_shot.dart header still records
+three hard-won harness rules and asserting the frame is not one of them.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN, and Lesson 6 gives it a second, sharper instance.** A `git checkout`
+undo reportedly destroyed uncommitted QA fixes in this round.
+`grep -n "git checkout\|restore" CLAUDE.md .claude/skills/*/SKILL.md` still
+returns only unrelated hits. See NEW Open 31, which is the same wound from the
+other side.
+
+**Open 17, nothing generalises the payday guard: STILL OPEN, re-verified.**
+`PlannedReminder` at flutter/lib/money/reminders.dart:25 to :30 still carries
+only title, body and when, with no `kind` field.
+
+**Open 18, the habit signal has five independent remembering events: STILL
+OPEN.** `sampleTxIds` is still imported and filtered at quickadd.dart:28 and
+:60, reminders.dart:112, coach.dart:313 and chain.dart:69. No shared accessor.
+
+**Open 20, mobile/lib/notifications.js has the same sample-row defect Flutter
+fixed: STILL OPEN, re-verified.** `loggedToday` at :99 still does not exclude
+the sample ids.
+
+**Open 21, the balance label guards are example-shaped and the property is
+already proven: STILL OPEN.** `grep -rn "never refused as an overdraft\|
+displayed figure" flutter/test/` still returns nothing.
+
+**Open 22, the fixture audit rule: CLOSED in session 12, and this round shows
+the shape it does NOT cover.** The rule asks whether the fixtures inside a
+golden set are enough. Lesson 2 is about whether the golden set covers the
+right functions at all, which is a different question and is NEW Open 29.
+
+**Open 23, the "*100 overflow" rule lives in prose and was walked into anyway:
+STILL OPEN.** No shared centavo helper exists in flutter/lib/money/.
+
+**Open 25, nothing says that a test for a default must exercise the untouched
+path: STILL OPEN.** CLAUDE.md did not change this round.
+
+**Open 26, a defect found by looking is not fixed until an assertion fails on
+the old behaviour: STILL OPEN.** Both fixes this round did produce such an
+assertion with the failure line pasted into the commit, so the habit held
+again. The sentence is still written nowhere.
+
+**Open 27, whether to port a DISPLAY bug faithfully, and what to do about a
+defect found in the app being ported FROM: STILL OPEN, and Lesson 4 makes it
+urgent.** The category duplicate-row case that prompted it was cosmetic. The
+new instance is a Philippine tax filing that RN's users can miss, carrying a
+25% surcharge plus 12% interest. Session 12's candidate wording, "port it
+faithfully AND open an issue against mobile/", would have created a record.
+There is no record.
+
+**Open 28, the QA merge gate leaves no artifact: STILL OPEN, and ESCALATED from
+an instrument defect to a confirmed cost.** Session 12 wrote that it found no
+evidence the gate was skipped and was not claiming it had been. This session
+has the evidence, and the cost is two hours of a broken feature on the phone
+and three defects that shipped. Everything session 12 wrote about the guard's
+design still stands, including that a presence check can be satisfied by typing
+the words. It should be built anyway.
+
+**NEW Open 29: nothing decides what counts as money math, so a ported rule
+written inside a screen escapes the golden contract entirely.** Measured: six
+screen files make forty eight `amountOf` calls, unaudited. One sentence for the
+porting skill (medium tier), and a genuinely automatable check after the audit
+that no screen sums `amountOf` over transactions (strongest tier).
+
+**NEW Open 30: nothing distinguishes a test that asserts how the code behaves
+from a test that asserts a fact about the world.** Three tax law assertions were
+wrong, well written, and one was proven-to-fail first. Candidate: a test
+encoding a statutory claim names its source. Weak, and honest about it: it makes
+the claim re-checkable, it does not make it true.
+
+**NEW Open 31: nothing says how to edit or undo safely.** Verify before writing,
+never after, so a failed check leaves the file untouched; and never undo a
+deliberate break with `git checkout`, which restores the last commit and takes
+uncommitted work with it. Both reported from this round, neither reconstructible
+from the repository. Medium tier when written. The other half of Open 16.
+
+### Guard status re-check
+
+Read and re-run, not assumed. `git log 9bc8fb8..HEAD -- .github/workflows/
+CLAUDE.md .claude/` returns NOTHING, so every workflow line number the last five
+entries recorded still stands. Verified by reading anyway:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:166 to :181, its
+  reasoning comment intact. Correctly silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127, comment intact.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:223 onward.
+  Not fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:240 to :256.
+  Correctly silent, the row reads `patch`.
+- The publisher watching its own definition: PRESENT at flutter-preview.yml:26,
+  with the comment at :20 to :25 explaining why.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43, load-bearing comments intact.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT at :20, and the
+  separate shot harness run at :80.
+- The stamp cap: PRESENT, update_stamp_test.dart:20; the shipped stamp is 95 of
+  120 characters.
+- Session 6 through 11 guards: PRESENT, spot-checked by grep, none deleted.
+- Session 12's guard, 'the DEFAULT is moving, not untagging': PRESENT at
+  flutter/test/categories_screen_test.dart:137, with the comment at :143 to :146
+  recording why the first version of it passed.
+- The whole suite: 935 pass, analyze clean, re-run this session on the delivered
+  commit b61d451 in a clean tree.
+
+**No guard was found deleted, disabled or routed around.** One guard was NOT
+RUN, which is a different and worse thing, and it is Lesson 1. A guard that is
+deleted leaves a diff. A guard that is skipped leaves nothing, which is why
+Open 28 matters more than its medium ranking suggests.
+
+Three tests were deleted this round and every one of them was asserting a
+defect. Those deletions are correct and they are quoted in Lesson 3 rather than
+being counted against the suite.
+
+### What it cost, and what it did not
+
+Cost: a real one, and the first of its kind here. For two hours and fifty
+seconds the founder's phone showed a Categories screen with a wrong number on
+every row and a Pro cap that could never fire, after being told f2.71 had
+shipped. Nobody lost money and no data was harmed. What was spent is the
+founder's ability to trust "it shipped", which is the one currency this log
+exists to protect.
+
+Also cost, though it never reached the phone: an app that told a freelancer a
+tax return was not theirs to file, on a screen built to be authoritative. That
+was caught by a specialist review one merge later, which is the system working,
+one round late.
+
+Not cost: no data was lost, no stamp was stranded, the base APK is untouched,
+the founder owes no manual install, and both stamps arrived exactly as
+reported.
+
+---
+
 ## 2026-07-28, session 12: the screenshot caught the one thing the batch existed to protect
 
 One delivery, one clean row, confirmed on the phone by the founder. That is the

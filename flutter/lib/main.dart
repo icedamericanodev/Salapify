@@ -27,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.72 \u00b7 Two new tools: your next BIR filing dates, and a year-end refund or shortfall estimate.';
+    'f2.73 \u00b7 Share a statement of account with anyone who owes you, and see every payment they made.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
