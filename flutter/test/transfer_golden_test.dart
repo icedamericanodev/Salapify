@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/money/ledger.dart' show amountOf;
 import 'package:salapify/money/transfers.dart';
 
 /// num to double, non-finite to null, so a golden NaN and a Dart NaN compare
@@ -32,9 +33,7 @@ void main() {
   final seedAccounts = (g['accounts'] as List).cast<Map<String, dynamic>>();
 
   Map<String, dynamic> freshData() => {
-    'accounts': [
-      for (final a in seedAccounts) Map<String, dynamic>.from(a),
-    ],
+    'accounts': [for (final a in seedAccounts) Map<String, dynamic>.from(a)],
     'transactions': <Map<String, dynamic>>[],
   };
 
@@ -72,9 +71,7 @@ void main() {
       expect(writes, hasLength(2), reason: label);
       for (final w in writes) {
         final id = w['id'];
-        final want = normalize(
-          (w['patch'] as Map<String, dynamic>)['balance'],
-        );
+        final want = normalize((w['patch'] as Map<String, dynamic>)['balance']);
         final got = (data['accounts'] as List)
             .cast<Map<String, dynamic>>()
             .firstWhere((a) => a['id'] == id)['balance'];
@@ -112,6 +109,60 @@ void main() {
         gotRow.containsKey('accountId'),
         isFalse,
         reason: 'the record row must not link an account: $label',
+      );
+    }
+  });
+
+  test('a signed radix literal is not a number, the way JS says', () {
+    // QA found this one, and the goldens could not: they carry "0x10" but no
+    // signed body, and int.tryParse accepts a sign INSIDE the digits. So
+    // "0x+10" parsed as 16 and moved 16 pesos where the live app refuses.
+    for (final bad in ['0x+10', '0x-10', '-0x10', '+0x10', '0x', '0b12']) {
+      expect(
+        transferAmount(bad).isNaN,
+        isTrue,
+        reason: 'JS Number("$bad") is NaN, so this must refuse',
+      );
+    }
+    // And the wide ones JS answers with a double rather than giving up.
+    expect(transferAmount('0xFFFFFFFFFFFFFFFF'), 1.8446744073709552e19);
+  });
+
+  test('a transfer never creates or destroys more than a rounding crumb', () {
+    // The engine rounds each side independently, exactly as RN does, so a
+    // balance carrying sub-centavo residue can shift the total by up to half
+    // a centavo. That is faithful, not a bug, and it is worth an assertion so
+    // a future edit cannot widen it into real money without saying so.
+    final seedAccounts = (g['accounts'] as List).cast<Map<String, dynamic>>();
+    // amountOf, not a cast: the fixture set deliberately carries a string
+    // balance and an unreadable one, which is the whole reason those rows
+    // exist. A cast here would fail on the fixtures rather than on the money.
+    double totalOf(List rows) => rows.cast<Map<String, dynamic>>().fold(
+      0.0,
+      (t, a) => t + amountOf(a['balance']),
+    );
+    final before = totalOf(seedAccounts);
+    for (final c in (g['cases'] as List).cast<Map<String, dynamic>>()) {
+      if ((c['out'] as Map<String, dynamic>)['error'] != '') continue;
+      final input = c['in'] as Map<String, dynamic>;
+      final out = applyTransfer(
+        {
+          'accounts': [
+            for (final a in seedAccounts) Map<String, dynamic>.from(a),
+          ],
+          'transactions': <Map<String, dynamic>>[],
+        },
+        fromId: input['fromId'],
+        toId: input['toId'],
+        amountText: input['amount'],
+        today: today,
+        genId: () => 'txn_fixed',
+      );
+      final after = totalOf(out.data!['accounts'] as List);
+      expect(
+        (after - before).abs(),
+        lessThanOrEqualTo(0.005001),
+        reason: 'total moved by more than a rounding crumb: $input',
       );
     }
   });

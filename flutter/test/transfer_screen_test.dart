@@ -138,6 +138,77 @@ void main() {
     expect(find.textContaining('Cash  ₱3,200.00'), findsNothing);
   });
 
+  testWidgets('a giant balance never takes the sheet down', (tester) async {
+    // QA MUST FIX: balanceLabel multiplied by 100 first, so any balance past
+    // ~1.79e306 overflowed to Infinity, NaN.toInt() threw, and the sheet
+    // failed to build. Every later tap of the button threw too, with nothing
+    // on screen to explain it. Reachable from a restored backup or a long
+    // typed number.
+    await _open(
+      tester,
+      blob: _blob(
+        accounts: [
+          {'id': 'whale', 'name': 'Whale', 'kind': 'cash', 'balance': 1e307},
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 100},
+        ],
+      ),
+    );
+    await _openSheet(tester);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Move money'), findsOneWidget);
+  });
+
+  testWidgets('the refusal never claims more than the account holds', (
+    tester,
+  ) async {
+    // QA MUST FIX: rounding the display moved the lie rather than removing
+    // it. An account holding 0.999 showed "1", and moving 1 was refused by a
+    // message that ALSO said "only has 1". The screen and the sentence agreed
+    // with each other and both contradicted the behaviour.
+    final store = await _open(
+      tester,
+      blob: _blob(
+        accounts: [
+          {'id': 'w', 'name': 'Wallet', 'kind': 'cash', 'balance': 0.999},
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 100},
+        ],
+      ),
+    );
+    await _openSheet(tester);
+    expect(find.textContaining('Wallet  ₱0.99'), findsWidgets);
+    expect(find.textContaining('Wallet  ₱1'), findsNothing);
+    await tester.enterText(find.byType(TextField), '1');
+    await tester.tap(find.text('Move it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Wallet only has ₱0.99.'), findsOneWidget);
+    expect(store.data['transactions'], isEmpty);
+  });
+
+  testWidgets('writes shut means the transfer door is not there', (
+    tester,
+  ) async {
+    // QA raised that a THROWN store failure left the button disabled forever
+    // with nothing on screen. The sheet now catches and says so, but the
+    // reachable half of that hazard is this: after an unreadable load the
+    // door is not offered at all, so nobody can try to move money the app
+    // cannot save.
+    //
+    // The catch itself stays as defense in depth for a failed disk write,
+    // which this suite cannot reach without mocking the platform channel.
+    // Saying that plainly beats a test that pretends to cover it.
+    SharedPreferences.setMockInitialValues({storageKey: '{broken'});
+    final store = SalapifyStore();
+    await store.load();
+    expect(store.canWrite, isFalse);
+    store.data['accounts'] = [
+      {'id': 'a', 'name': 'A', 'kind': 'cash', 'balance': 500},
+      {'id': 'b', 'name': 'B', 'kind': 'cash', 'balance': 100},
+    ];
+    await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
+    await tester.pumpAndSettle();
+    expect(find.text('Move money between accounts'), findsNothing);
+  });
+
   testWidgets('one account means no transfer button at all', (tester) async {
     // Offering it would be offering a dead end: there is nowhere to move to.
     await _open(

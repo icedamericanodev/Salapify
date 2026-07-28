@@ -1738,42 +1738,37 @@ class SalapifyStore extends ChangeNotifier {
   /// returned rather than thrown because all three of them are ordinary
   /// answers to an ordinary mistake (blank amount, same account twice, more
   /// than the account holds), not failures worth a stack trace.
-  Future<String?> transferBetweenAccounts({
+  Future<transfers.TransferOutcome?> transferBetweenAccounts({
     required dynamic fromId,
     required dynamic toId,
     required dynamic amountText,
   }) async {
-    // Validated BEFORE the write queue: _mutate throws on a refusal, and a
-    // thrown refusal would roll back and surface as an error banner instead
-    // of the sentence the person needs to read.
-    final dry = transfers.applyTransfer(
-      data,
-      fromId: fromId,
-      toId: toId,
-      amountText: amountText,
-      today: _todayISO(),
-      genId: () => _genId('transactions'),
-    );
-    if (!dry.ok) return dry.error;
-    await _mutate(
-      (d) =>
-          transfers
-              .applyTransfer(
-                d,
-                fromId: fromId,
-                toId: toId,
-                amountText: amountText,
-                today: _todayISO(),
-                genId: () => _genId('transactions'),
-              )
-              // The dry run above already proved this succeeds against the same
-              // data, and the write queue serializes, so the only way to be here
-              // with a refusal is a bug. Failing loudly beats writing nothing and
-              // reporting success.
-              .data ??
-          (throw StateError('the transfer became invalid mid-write')),
-    );
-    return null;
+    // ONE run, inside the write queue, capturing the refusal on the way out:
+    // the pattern logDebtPayment already uses. The first version validated
+    // once outside the queue and applied again inside it, and QA showed the
+    // two runs could disagree: a recurring bill posting between them turned a
+    // valid transfer into a "became invalid mid-write" crash that left the
+    // sheet dead. Running a money engine twice over data that can move
+    // between the runs is a race by construction, however tight the window
+    // looks. It also burned an id per attempt, which this drops too.
+    transfers.TransferOutcome? refusal;
+    await _mutate((d) {
+      final r = transfers.applyTransfer(
+        d,
+        fromId: fromId,
+        toId: toId,
+        amountText: amountText,
+        today: _todayISO(),
+        genId: () => _genId('txn'),
+      );
+      if (r.ok) return r.data!;
+      refusal = r;
+      // Nothing changed, so hand back the same map. The save that follows
+      // rewrites identical bytes, which costs one write and keeps this path
+      // to a single exit shape.
+      return d;
+    });
+    return refusal;
   }
 
   Future<String?> saveDebt(Map<String, dynamic> form) async {

@@ -13,7 +13,8 @@ import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../money/currencies.dart' show baseCurrencySymbol;
-import '../money/transfers.dart' show balanceLabel;
+import '../money/transfers.dart'
+    show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../theme.dart';
@@ -946,24 +947,64 @@ class _TransferSheetState extends State<_TransferSheet> {
       _saving = true;
       _err = null;
     });
-    final error = await widget.store.transferBetweenAccounts(
-      fromId: _fromId,
-      toId: _toId,
-      amountText: _amount.text,
-    );
-    if (!mounted) return;
-    if (error != null) {
+    TransferOutcome? refusal;
+    try {
+      refusal = await widget.store.transferBetweenAccounts(
+        fromId: _fromId,
+        toId: _toId,
+        amountText: _amount.text,
+      );
+    } catch (e) {
+      // A failed save, or writing shut after an unreadable load. Without this
+      // the button stayed disabled forever with nothing on screen, leaving
+      // the person unable to tell whether their money moved. Every other
+      // write on this screen already catches.
+      if (!mounted) return;
       setState(() {
         _saving = false;
-        _err = error;
+        _err = 'Could not move it, nothing was changed. $e';
+      });
+      return;
+    }
+    if (!mounted) return;
+    if (refusal != null) {
+      setState(() {
+        _saving = false;
+        _err = _honest(refusal!);
       });
       return;
     }
     Navigator.of(context).pop();
   }
 
+  /// The refusal as a sentence that cannot contradict itself.
+  ///
+  /// The engine's own overdraft message rounds the balance, because it is
+  /// locked to the RN wording, so an account holding 3,200.995 reports "only
+  /// has 3,201" and then refuses a transfer of 3,201: same figure, opposite
+  /// answers. The engine keeps its string so the two apps stay comparable,
+  /// and the screen says the truthful thing using the same truncated label
+  /// the picker chips show, so the sentence and the chips always agree.
+  String _honest(TransferOutcome r) => switch (r.refusal) {
+    TransferRefusal.overdraft =>
+      '${_nameOf(_fromId)} only has ${balanceLabel(r.available ?? 0)}.',
+    _ => r.error ?? 'Could not move it.',
+  };
+
+  String _nameOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return '${a['name'] ?? 'That account'}';
+    }
+    return 'That account';
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.store,
+    builder: (context, _) => _sheet(context),
+  );
+
+  Widget _sheet(BuildContext context) {
     final list = _accounts;
     return Padding(
       padding: EdgeInsets.only(
@@ -1041,9 +1082,15 @@ class _TransferSheetState extends State<_TransferSheet> {
               ),
               if (_err != null) ...[
                 const SizedBox(height: 10),
-                Text(
-                  _err!,
-                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                // liveRegion, so a screen reader announces the refusal.
+                // Without it a blind user taps "Move it", hears nothing, and
+                // has no signal that the money did not move.
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _err!,
+                    style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                  ),
                 ),
               ],
               const SizedBox(height: 20),

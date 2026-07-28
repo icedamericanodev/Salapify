@@ -31,8 +31,8 @@ double _round2(double x) => _jsRound(x * 100) / 100;
 double jsNumber(String raw) {
   final s = raw.trim();
   if (s.isEmpty) return 0;
-  final neg = s.startsWith('-');
-  final body = (neg || s.startsWith('+')) ? s.substring(1) : s;
+  final signed = s.startsWith('-') || s.startsWith('+');
+  final body = signed ? s.substring(1) : s;
   if (body.length > 2 && body[0] == '0') {
     final radix = switch (body[1]) {
       'x' || 'X' => 16,
@@ -41,10 +41,21 @@ double jsNumber(String raw) {
       _ => 0,
     };
     if (radix != 0) {
-      // A signed radix literal is NaN in JS ("-0x10" is not a number), so
-      // only the unsigned form parses.
-      if (neg || s.startsWith('+')) return double.nan;
-      final v = int.tryParse(body.substring(2), radix: radix);
+      // A signed radix literal is NaN in JS: "-0x10" and "0x+10" are both
+      // not numbers. The second one is the subtle half, because int.tryParse
+      // accepts a sign INSIDE the body, so "0x+10" parsed as 16 and moved
+      // ₱16 where the live app refuses. QA found it; the goldens could not,
+      // because they only carried the unsigned form.
+      if (signed) return double.nan;
+      final digits = body.substring(2);
+      if (digits.isEmpty || digits.startsWith('-') || digits.startsWith('+')) {
+        return double.nan;
+      }
+      // BigInt, not int: JS has no 64-bit ceiling, so 0xFFFFFFFFFFFFFFFF is
+      // 1.8446744073709552e19 there and null from int.tryParse here. Parsing
+      // wide and converting keeps the same answer, and keeps it the same on
+      // web, where a Dart int IS a double and the ceiling moves.
+      final v = BigInt.tryParse(digits, radix: radix);
       return v == null ? double.nan : v.toDouble();
     }
   }
@@ -60,34 +71,64 @@ double transferAmount(dynamic raw) {
   return _round2(n);
 }
 
-/// A balance for the account picker: whole pesos when it is whole, centavos
-/// when it has them.
+/// A balance to show beside a "you can move this much" control.
 ///
-/// formatMoneyText rounds to whole pesos, which is right nearly everywhere in
-/// the app and wrong here. The render showed why: an account holding 48,500.55
-/// displayed as "₱48,501", and moving 48,501 out of it is refused. A screen
-/// must not print a number the next tap contradicts.
+/// TRUNCATED, never rounded, and that is the whole point. formatMoneyText
+/// rounds to whole pesos, so an account holding 48,500.55 read as "₱48,501"
+/// and moving 48,501 out of it is refused: the screen printed a number the
+/// next tap contradicted. The first fix rounded the centavos instead, which
+/// only moved the lie two decimal places (0.999 read as "₱1", and moving 1
+/// was still refused). Rounding UP a balance can always overstate it.
+/// Truncating never can, so this is the shape the problem actually has.
 ///
-/// The refusal MESSAGE keeps the rounded RN wording on purpose. It is locked
-/// to the live app by goldens, and changing an engine string to fix a display
-/// problem is how the two apps start disagreeing about more than spelling.
+/// A balance too large for exact centavo arithmetic falls back to the whole
+/// peso formatter rather than inventing decimals: past 2^53 centavos the
+/// hundredths are noise, and a restored backup carrying 1e307 used to
+/// overflow to Infinity here and take the whole sheet down with it.
 String balanceLabel(num value) {
   final v = value.toDouble();
   if (!v.isFinite) return formatMoneyText(v);
-  final centavos = _jsRound(v.abs() * 100) % 100;
-  if (centavos == 0) return formatMoneyText(v);
+  final scaled = v.abs() * 100;
+  if (!scaled.isFinite || scaled >= 9007199254740992.0) {
+    return formatMoneyText(v);
+  }
+  final centavos = scaled.floorToDouble() % 100;
+  if (centavos == 0) return formatMoneyText(v.truncateToDouble());
   final whole = formatMoneyText(v.abs().floorToDouble());
   final cents = centavos.toInt().toString().padLeft(2, '0');
   return '${v < 0 ? '-' : ''}$whole.$cents';
 }
 
+/// Why a transfer was refused, so a screen can say the honest thing without
+/// the engine having to change the message it is golden-locked to.
+enum TransferRefusal { amount, accounts, overdraft }
+
 /// What a transfer attempt produced: either a message to show, or the new
 /// store data. Never both, and never neither.
 class TransferOutcome {
+  /// The refusal, worded exactly as the live RN app words it. Golden locked.
   final String? error;
+
+  /// Which refusal it was, so a screen can compose an honest sentence of its
+  /// own. The RN message rounds the balance ("only has ₱3,201" for an account
+  /// holding 3,200.995), and a rounded-up figure in a refusal is a number the
+  /// app will not honour. The engine keeps RN's string so the two apps stay
+  /// comparable; the screen uses [available] and says the truthful thing.
+  final TransferRefusal? refusal;
+
+  /// What the source account actually holds, on an overdraft refusal.
+  final double? available;
+
   final Map<String, dynamic>? data;
-  const TransferOutcome.failed(String this.error) : data = null;
-  const TransferOutcome.applied(Map<String, dynamic> this.data) : error = null;
+  const TransferOutcome.failed(
+    String this.error,
+    this.refusal, {
+    this.available,
+  }) : data = null;
+  const TransferOutcome.applied(Map<String, dynamic> this.data)
+    : error = null,
+      refusal = null,
+      available = null;
   bool get ok => error == null;
 }
 
@@ -123,25 +164,36 @@ TransferOutcome applyTransfer(
 }) {
   final amount = transferAmount(amountText);
   if (!amount.isFinite || amount <= 0) {
-    return const TransferOutcome.failed('Enter an amount greater than 0.');
+    return const TransferOutcome.failed(
+      'Enter an amount greater than 0.',
+      TransferRefusal.amount,
+    );
   }
   if (fromId == null ||
       toId == null ||
       '$fromId'.isEmpty ||
       '$toId'.isEmpty ||
       fromId == toId) {
-    return const TransferOutcome.failed('Pick two different accounts.');
+    return const TransferOutcome.failed(
+      'Pick two different accounts.',
+      TransferRefusal.accounts,
+    );
   }
   final accounts = _accounts(data);
   final from = _find(accounts, fromId);
   final to = _find(accounts, toId);
   if (from == null || to == null) {
-    return const TransferOutcome.failed('Pick two different accounts.');
+    return const TransferOutcome.failed(
+      'Pick two different accounts.',
+      TransferRefusal.accounts,
+    );
   }
   final fromBal = ledger.amountOf(from['balance']);
   if (amount > fromBal) {
     return TransferOutcome.failed(
       '${from['name']} only has ${formatMoneyText(fromBal)}.',
+      TransferRefusal.overdraft,
+      available: fromBal,
     );
   }
   final nextAccounts = [
