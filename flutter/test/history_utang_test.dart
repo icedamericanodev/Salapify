@@ -172,7 +172,11 @@ void main() {
     final now = DateTime(2026, 7, 16);
     expect(dateHeader('2026-07-16', now), 'Today');
     expect(dateHeader('2026-07-15', now), 'Yesterday');
-    expect(dateHeader('2026-07-01', now), '2026-07-01');
+    // Older days are human now, not raw ISO: weekday, then prettyDay.
+    expect(dateHeader('2026-07-01', now), 'Wed, Jul 1');
+    // Junk in, junk out, the prettyDay contract: unparseable dates render
+    // unchanged instead of throwing or guessing.
+    expect(dateHeader('20/07/2026', now), '20/07/2026');
   });
 
   testWidgets('history filters and utang aging render from real data',

@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.64 \u00b7 Insights reads in three bands: do next, tools you open on demand, the bigger picture.';
+    'f2.65 \u00b7 Activity rows name their account and category, and Budget shows today at a glance.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

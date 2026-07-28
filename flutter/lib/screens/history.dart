@@ -12,7 +12,7 @@ import '../money/search.dart' as search;
 import '../theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, prettyDay;
 import 'edit_sheet.dart' show showEntrySheet;
 
 const _filters = [
@@ -68,7 +68,14 @@ String dateHeader(String iso, DateTime now) {
       '${yesterdayDt.year.toString().padLeft(4, '0')}-${yesterdayDt.month.toString().padLeft(2, '0')}-${yesterdayDt.day.toString().padLeft(2, '0')}';
   if (iso == today) return 'Today';
   if (iso == yesterday) return 'Yesterday';
-  return iso;
+  // Human, not ISO: "Sat, Jul 12" instead of "2026-07-12". A date formatter
+  // existed one import away (prettyDay) the whole time this printed raw
+  // strings at people. Junk in, junk out, same contract as prettyDay: an
+  // unparseable date renders unchanged rather than throwing.
+  final d = DateTime.tryParse(iso);
+  if (d == null) return iso;
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return '${days[d.weekday - 1]}, ${prettyDay(iso)}';
 }
 
 class HistoryScreen extends StatefulWidget {
@@ -158,19 +165,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         items.add(
           Padding(
             padding: const EdgeInsets.only(top: 16, bottom: 6),
-            child: Text(
-              header,
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
-            ),
+            // The shared kicker voice, not a third hand-rolled variant. The
+            // sweep left exactly two uppercase treatments in the app: the
+            // outside kicker and the in-card caramel kicker.
+            child: Text(header, style: Barako.kickerStyle),
           ),
         );
       }
-      items.add(_row(t, locked));
+      items.add(_row(t, locked, maps));
     }
 
     // Two shapes, one screen. As a TAB it is a plain body inside the shell's
@@ -330,7 +332,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ],
   );
 
-  Widget _row(Map<String, dynamic> t, Set<String> locked) {
+  Widget _row(
+    Map<String, dynamic> t,
+    Set<String> locked,
+    ({Map<String, String> cat, Map<String, String> acct}) maps,
+  ) {
+    // The context line: which account and category this row belongs to,
+    // from the maps the text filter already computes. Two rows both named
+    // "Expense" for ₱500 were indistinguishable without it.
+    final rowContext = [
+      ?maps.acct[(t['accountId'] ?? '').toString()],
+      ?maps.cat[(t['categoryId'] ?? '').toString()],
+    ].join(' · ');
     final type = (t['type'] ?? '').toString();
     final isIncome = type == 'income';
     final record = type != 'income' && type != 'expense';
@@ -375,6 +388,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   Text(
                     'Record of a money move, read-only here',
                     style: TextStyle(color: Barako.faint, fontSize: 11),
+                  )
+                else if (rowContext.isNotEmpty)
+                  // The context beats the tap hint when both apply: "GCash ·
+                  // Food" tells you which row this is, and tappability is
+                  // one experiment away. The hints remain for rows with no
+                  // context to show.
+                  Text(
+                    rowContext,
+                    style: TextStyle(color: Barako.muted, fontSize: 11),
                   )
                 else if (showSplitHint)
                   Text(

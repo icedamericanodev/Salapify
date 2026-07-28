@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/budget.dart' as budget;
 import '../theme.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
 import 'overview.dart' show formatMoney;
@@ -81,15 +82,7 @@ class BudgetScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'QUICK ADD',
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
-                            ),
-                          ),
+                          Text('QUICK ADD', style: Barako.cardKickerStyle),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 8,
@@ -125,6 +118,76 @@ class BudgetScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                // A chip tap now has a visible consequence on this screen:
+                // today's entries, listed. A filter over the ledger, never a
+                // sum; arithmetic does not start living in screens.
+                ...(() {
+                  final today = DateTime.now().toIso8601String().substring(
+                    0,
+                    10,
+                  );
+                  final todays = (data['transactions'] as List? ?? const [])
+                      .whereType<Map>()
+                      .where(
+                        (t) =>
+                            t['date'] == today &&
+                            (t['type'] == 'expense' || t['type'] == 'income'),
+                      )
+                      .toList();
+                  if (todays.isEmpty) return const <Widget>[];
+                  return <Widget>[
+                    const SizedBox(height: 12),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('TODAY', style: Barako.cardKickerStyle),
+                            const SizedBox(height: 6),
+                            for (final t in todays)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        (t['label'] ?? '').toString().isEmpty
+                                            ? (t['type'] == 'income'
+                                                  ? 'Income'
+                                                  : 'Expense')
+                                            : (t['label']).toString(),
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Barako.text,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${t['type'] == 'income' ? '+' : '-'}${formatMoney(t['amount'] is num ? t['amount'] as num : 0)}',
+                                      style: TextStyle(
+                                        color: t['type'] == 'income'
+                                            ? Barako.primary
+                                            : Barako.textSecondary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ];
+                })(),
                 if (rows.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Card(
@@ -133,20 +196,24 @@ class BudgetScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'WHERE IT WENT',
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
-                            ),
-                          ),
+                          Text('WHERE IT WENT', style: Barako.cardKickerStyle),
                           const SizedBox(height: 10),
                           for (final w in rows) _catRow(w, max),
                         ],
                       ),
                     ),
+                  ),
+                ] else ...[
+                  // The 1st of the month is not a broken screen. WHERE IT
+                  // WENT simply has nothing to show yet, and this says so
+                  // instead of leaving 60 percent of the tab as a void.
+                  const SizedBox(height: 12),
+                  EmptyState(
+                    icon: 'chart',
+                    title: 'Nothing spent yet this month',
+                    body:
+                        'The chips above log your first one in a single tap, '
+                        'and this fills in as the month happens.',
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -174,15 +241,7 @@ class BudgetScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'THIS MONTH',
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2,
-                    ),
-                  ),
+                  child: Text('THIS MONTH', style: Barako.cardKickerStyle),
                 ),
                 if (store.canWrite)
                   InkWell(

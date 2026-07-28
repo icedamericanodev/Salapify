@@ -273,28 +273,12 @@ class _LogSheetState extends State<LogSheet> {
               ),
             ],
             const SizedBox(height: 14),
-            Text(
-              'WHEN',
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
-            ),
+            Text('WHEN', style: Barako.cardKickerStyle),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: _dayChips()),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text(
-                'FROM WHICH ACCOUNT',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
-              ),
+              Text('FROM WHICH ACCOUNT', style: Barako.cardKickerStyle),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,

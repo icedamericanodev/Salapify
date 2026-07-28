@@ -130,15 +130,7 @@ class UtangBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'STILL OUT',
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2,
-                    ),
-                  ),
+                  Text('STILL OUT', style: Barako.cardKickerStyle),
                   const SizedBox(height: 6),
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -208,15 +200,7 @@ class UtangBody extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            'SPLITS',
-            style: TextStyle(
-              color: Barako.muted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-            ),
-          ),
+          child: Text('SPLITS', style: Barako.cardKickerStyle),
         ),
         Card(
           child: Padding(
@@ -985,12 +969,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               const SizedBox(height: 14),
               Text(
                 'WHERE DID THE MONEY LEAVE FROM?',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
+                style: Barako.cardKickerStyle,
               ),
               const SizedBox(height: 4),
               Text(
