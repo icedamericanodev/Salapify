@@ -25,7 +25,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.62 \u00b7 Log any day: Today, Yesterday, or pick a date. Due dates come from a picker.';
+    'f2.63 \u00b7 Tap any entry in Activity to fix it: amount, label, day, or account, with Undo.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
