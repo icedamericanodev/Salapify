@@ -21,6 +21,7 @@ import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
+import '../money/transfers.dart' as transfers;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
@@ -1731,6 +1732,45 @@ class SalapifyStore extends ChangeNotifier {
   /// form map carries the same text fields as the RN screen. Throws
   /// ArgumentError with the exact RN validation sentence when refused.
   /// Returns the saved debt's id.
+  /// Move money between two accounts through the golden-locked engine.
+  ///
+  /// Returns the refusal message, or null when it went through. Refusals are
+  /// returned rather than thrown because all three of them are ordinary
+  /// answers to an ordinary mistake (blank amount, same account twice, more
+  /// than the account holds), not failures worth a stack trace.
+  Future<transfers.TransferOutcome?> transferBetweenAccounts({
+    required dynamic fromId,
+    required dynamic toId,
+    required dynamic amountText,
+  }) async {
+    // ONE run, inside the write queue, capturing the refusal on the way out:
+    // the pattern logDebtPayment already uses. The first version validated
+    // once outside the queue and applied again inside it, and QA showed the
+    // two runs could disagree: a recurring bill posting between them turned a
+    // valid transfer into a "became invalid mid-write" crash that left the
+    // sheet dead. Running a money engine twice over data that can move
+    // between the runs is a race by construction, however tight the window
+    // looks. It also burned an id per attempt, which this drops too.
+    transfers.TransferOutcome? refusal;
+    await _mutate((d) {
+      final r = transfers.applyTransfer(
+        d,
+        fromId: fromId,
+        toId: toId,
+        amountText: amountText,
+        today: _todayISO(),
+        genId: () => _genId('txn'),
+      );
+      if (r.ok) return r.data!;
+      refusal = r;
+      // Nothing changed, so hand back the same map. The save that follows
+      // rewrites identical bytes, which costs one write and keeps this path
+      // to a single exit shape.
+      return d;
+    });
+    return refusal;
+  }
+
   Future<String?> saveDebt(Map<String, dynamic> form) async {
     String? savedId;
     await _mutate((d) {

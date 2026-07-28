@@ -64,9 +64,14 @@ Future<void> _showRecordSheet(
     final what = type == 'transfer'
         ? 'a transfer between accounts'
         : 'a debt payment';
+    // Says "or deleted" out loud, unlike the first version. Swiping one of
+    // these does nothing at all (History only offers the swipe on income and
+    // expense rows), and a person swiping into silence assumes the app is
+    // broken rather than that they are being protected.
     note =
         'This row is a record of $what, written the moment it happened. The '
-        'balances already moved then, so the record cannot be edited.';
+        'balances already moved then, so the record cannot be edited or '
+        'deleted. To undo it, make the opposite move.';
   } else if (utangLinked || source == 'receivable' || source == 'payable') {
     note =
         'This entry is part of an utang. To change or undo it, open the '

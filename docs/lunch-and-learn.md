@@ -10,6 +10,734 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 10: the promise the port dropped and the copy kept
+
+One delivery, one clean row, confirmed on the phone by the founder. There is
+no delivery incident in this entry and none is manufactured.
+
+What this session has instead is a defect shape this log has not named before,
+and it is a shape that will keep happening for as long as the Flutter rebuild
+continues: a port where the BEHAVIOUR was deliberately changed and the SENTENCE
+describing that behaviour was carried across unchanged. The result was an app
+that promised something it had already decided not to do, in two places at
+once, one of which would have sat there being wrong forever.
+
+It also has the strongest single piece of evidence a retrospective here can
+produce. Two assertions had to be INVERTED before the fix could pass, and one
+test's own NAME asserted the defect. Both were written six hours earlier, by
+the same author, in the same sitting as the code.
+
+And the standing CLAUDE.md fact check found a false factual claim that has been
+sitting in the file since session 4's own commit, read with authority by five
+consecutive sessions, every one of which ran this same check and reported the
+file clean.
+
+### What we believed / What was true
+
+**Believed: f2.69 reached the phone. TRUE, and confirmed in person.** Read from
+`git show origin/main:docs/delivery-log.md | tail -3`, the last row is:
+
+    | 2026-07-28 06:41 UTC | f2.69 | 19 | patch | 0.6.2+11 | f1220f60 (run 30335017487) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+`git show origin/main:flutter/pubspec.yaml` still reads `version: 0.6.2+11`,
+unchanged since session 5, so the installed base APK is still the right one.
+The stamp in the tree, flutter/lib/main.dart:30, is
+`'f2.69 · New users can say yes or no to one quiet 8pm nudge during the
+welcome.'`, 78 characters, comfortably inside the 120 cap enforced at
+flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three. Merge at 06:30:06 UTC to row at 06:41:56
+UTC is 11 minutes 50 seconds, inside the norm every session since 4 has
+measured.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified rather
+than assumed.** `git cat-file -p f1220f6` shows two parents, 9a846f22 and
+fd43e256. CLAUDE.md's never-squash rule held.
+
+**Believed: the nudge step's copy described what the nudge step does. FALSE, in
+two places at once.** The step's paragraph, ported from the RN onboarding, read
+"One quiet reminder at 8pm, plus a heads up on payday", and
+`completeOnboarding` wrote `'payday': true` into settings.notifications. But
+the Flutter reminder planner refuses to emit a payday reminder unless a real
+payday schedule exists: flutter/lib/money/reminders.dart:124 gates on
+`on['payday'] == true && hasExplicitPaydaySchedule(data)`, and a brand new user
+has never set a schedule. So the sentence promised a notification that could
+not fire, AND the Menu screen showed a switch reading ON that could never ring,
+for as long as that user kept the app. The first untruth is read once. The
+second one is furniture.
+
+**Believed: the sample-data rule was fully honoured, because the comment said
+three places and three places honoured it. FALSE. There were four readers in
+Flutter, and the count in the comment was never about Flutter at all.** More
+on this in root cause 2, including a live defect of the same shape still
+sitting in the RN app the comment cites as its authority.
+
+**Believed: 880 green tests plus a green Flutter check on a real runner meant
+the batch was sound. FALSE, and the suite was not merely silent about the
+payday promise. It was certifying it, by name.**
+
+**Believed, as a standing fact since session 4: the shot harness renders a
+lesson and the diagnostics dialog at both brightnesses. FALSE, and it was false
+on the day that sentence was written into CLAUDE.md.** Details in Lesson 6.
+
+**Believed: session 9's Open 16 (never restore with `git checkout`, reverse the
+exact edit and assert the markers are back) is a practice with no home in any
+file. TRUE, and it still has no home, which is why it cannot be closed even
+though it worked perfectly this round.**
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 03:42 | f2.68 patch 18 delivered, session 9's ground truth | delivery row, 9a846f2 |
+| 06:03:42 | a10041e Phase 3 batch 3, the nightly nudge step. 880 green, analyze clean. Carries the session 9 write-up | commit message |
+| 06:03:42 | **Session 9's Open 15 strong tier lands in the same commit**: every frame in the onboarding walk now asserts what it is before it is photographed | screens_shot.dart:871, :880, :891, :902 |
+| 06:22:56 | fd43e25 QA round. **The qa-tester pass finds three user-facing untruths and one race**, all fixed, each guard proven failing first. 884 green | commit message |
+| 06:30:06 | Merge #226 (f1220f6), two parents | `git cat-file -p f1220f6` |
+| 06:41:56 | f2.69 patch 19 delivered, 11m50s | delivery row, 9400ebe |
+| after | **Founder confirms f2.69 on the phone** | founder |
+
+Test counts, and the same honest note session 9 had to make. The commits record
+880 green after the batch and 884 after the QA round, each with analyze clean.
+This entry does NOT quote a suite run made while writing it, because another
+task is editing flutter/ right now and a run would measure a half-edited tree.
+That is now two sessions in a row without an independently re-run baseline. It
+is a small debt, it is named here so it does not become invisible, and the next
+session that has flutter/ to itself should run the suite and record the real
+number rather than inheriting 884 on trust.
+
+### Divergence point
+
+There is no delivery divergence this round. The stamp built, shipped, was
+logged, and matched the phone.
+
+The belief divergence worth naming is **06:03:42 UTC, inside a10041e, at the
+moment the nudge step's paragraph was copied over from the RN step.** Not the
+moment the payday gate was written. The gate is old, deliberate, and correct,
+and flutter/lib/money/schedule.dart:8 to :16 explains itself at the site:
+
+    /// This distinction matters because the two uses are not equally forgiving.
+    /// Guessing 15/31 for a FORECAST is harmless: it says "your next payday is
+    /// probably around then". Guessing it for a CLAIM is not, because "it is
+    /// payday today" is either true or a lie, and it was a lie for every user
+    /// who never migrated a schedule from the old app.
+
+The divergence is the instant a sentence crossed a boundary that the behaviour
+had already been forbidden to cross. Both halves were written on purpose. The
+split is that nothing connected them.
+
+Name the shape, because it is new to this log and it will recur: **a port moves
+two artifacts at two different speeds.** Code gets ported with judgement, one
+function at a time, with a test vector at the end of it. Copy gets ported by
+reading and retyping, and it feels like the cheapest part of the job. But copy
+is a claim about behaviour, so copy carries the ORIGIN's behaviour into the
+port. Every deliberate divergence in the Flutter rebuild is therefore a place
+where the RN sentence is now a lie, and CLAUDE.md rule 4 (port order, money
+logic first with matching vectors) governs the code half and says nothing about
+the sentence half.
+
+### Root cause
+
+**1. The payday promise. RN keeps that promise only by doing the exact thing
+Flutter was written to stop doing.** This is the part that makes it more than a
+copy and paste slip. On RN, mobile/lib/notifications.js:115 calls
+`upcomingPaydays(now, data.settings && data.settings.paydaySchedule, 6)`, and
+`upcomingPaydays` (mobile/lib/format.js:220) runs the schedule through
+`normalizeSchedule`, which quietly falls back to the 15/31 default when the
+user never set one. So RN pushes a 9am "Sweldo day!" notification on a GUESSED
+date. The promise is kept, and it is kept by asserting something the app does
+not know. Flutter's `hasExplicitPaydaySchedule` exists precisely to refuse
+that. So the ported sentence was true in RN only because RN has the defect
+Flutter had already fixed. The copy did not just describe old behaviour, it
+described a bug, and it imported the bug's marketing without the bug.
+
+The root cause is not that someone forgot to reread the planner. It is that
+this project has a checklist for porting a FUNCTION (matching test vectors, no
+merge without them) and no checklist at all for porting a SENTENCE, even though
+a sentence in this app is a promise the code has to keep.
+
+**2. The count in the comment was a completeness receipt, and it was never a
+statement about Flutter.** flutter/lib/money/sample_data.dart:13 to :15 reads:
+
+    // The transaction ids keep the RN t1..t5 tail for the one contract that
+    // matters: sample rows must never feed a habit feature. chain.dart excludes
+    // exactly this set, the same three-place rule RN keeps.
+
+and flutter/lib/money/chain.dart:67 repeats it inline: "Sample rows never feed
+a habit feature, the RN three-place rule". Read literally, both sentences are
+TRUE. RN really does exclude the sample ids in exactly three places:
+mobile/components/WeekRecap.js:25, mobile/components/WeekChain.js:28, and
+mobile/app/(tabs)/budget.js:78. The trouble is what the number DOES to a reader
+who is standing in a Flutter file wondering whether their new code needs the
+rule. A number reads as a total. A total reads as a job that is finished.
+
+The Flutter readers, counted from the repository rather than from the comment,
+are four files and five call sites: chain.dart:69, coach.dart:313,
+quickadd.dart:28 and quickadd.dart:60, and now reminders.dart:112. The planner
+was the fourth, and it was the one that missed.
+
+The consequence was real and it was dated. sample_data.dart's `_day` helper
+clamps every seeded date to today or earlier, so on any install day from the
+1st to the 10th the seed contains a transaction dated TODAY. The planner's
+daily branch skipped tonight's 8pm nudge whenever anything was logged today.
+So a brand new user who said yes to the nightly nudge and then chose "explore
+the sample data" had their very first night silently cancelled, by a
+transaction they did not make, on the one night the habit is least established.
+
+And there is a second layer that is worth writing down because it is not in the
+commit message. **RN has the identical defect, in the identical place, right
+now.** mobile/lib/notifications.js:100 reads:
+
+    const loggedToday = (data.transactions || []).some((t) => t.date === todayISO());
+
+No sample exclusion. RN seeds its sample data on first run rather than on
+request, so RN's exposure is arguably wider than Flutter's was. The comment
+cited "the three-place rule RN keeps" as its authority for completeness, and
+the authority is itself incomplete in exactly the fourth place. A count copied
+from another codebase inherits that codebase's blind spots along with its
+number.
+
+**3. The permission race, which nobody has a category for yet.** Tapping "Yes"
+opened the OS permission dialog, an async call that takes a moment to appear,
+and both answer buttons stayed live and tappable underneath it for that
+moment. Tapping "No thanks" in that window and then having the granted answer
+land afterwards turned an explicit no into a yes. On the one step in the whole
+app whose stated design point is that a no must feel as fine as a yes,
+overriding the no is the worst available outcome. The root cause is that an
+async call to the OS has a duration and the UI treated it as instantaneous.
+There is no unit test in this project that would ever have looked, because the
+window only exists between two awaits.
+
+**4. Why the tests did not help.** They did worse than not help, and the
+evidence is in Lesson 5.
+
+### Lessons and guards
+
+**Lesson 1. Ported COPY makes a promise about the ORIGINAL's behaviour, and
+this port diverges from the original on purpose in many places. A sentence
+crossing that boundary needs the same scrutiny as a function crossing it.**
+
+**Guard for the instance, SHIPPED, strongest tier, proven failing first.**
+flutter/test/onboarding_test.dart:426, group 'the nudge QA round', test 'a yes
+never switches on a payday reminder that cannot ring', with the failure it was
+born catching quoted in fd43e25:
+
+    Expected: not <true> / Actual: <true>
+    reason: 'no schedule exists, so the switch must not claim it will ring'
+
+Both halves of the alarm are proven, as CLAUDE.md requires: the silent half is
+onboarding_test.dart:455, 'someone who already has a payday schedule does get
+it', which asserts the restored-backup user DOES get `payday: true`. That
+matters. A guard that only ever says no would have been satisfied by deleting
+the feature.
+
+**Guard for the class, NOT WRITTEN, and named here so it is not lost. NEW Open
+17.** The generalisation is a real test and it is worth writing: for every key
+`completeOnboarding` can write into settings.notifications, assert that
+`plannedReminders` actually produces a reminder of that kind given the same
+data. Then the next person who adds a key to the onboarding write cannot ship a
+switch that cannot ring, whatever the copy says. Honest cost, checked in the
+code rather than guessed: `PlannedReminder` (reminders.dart:25 to :30) carries
+only title, body and when, with no kind field, so today the test would have to
+match on the title strings ('Quick money check', 'Payday!'). That is a little
+brittle. The tidier version adds a `kind` field to `PlannedReminder`, which is
+a small change to lib and touches the plugin adapter. Either is a few minutes.
+Neither is written, because flutter/ is being edited by another task as this is
+written.
+
+**Lesson 2. A counted list inside a comment is read as a receipt that the job
+is finished, and the count is the part that rots first. This is the second
+independent confirmation in four days, in a different file.**
+
+CLAUDE.md already carries this exact meta-lesson, in the screenshot section:
+"Numbers in prose rot. ... The directory listing is the count." That was
+written about a stale shot count. It was true, it was general, and it did not
+transfer, because it was filed under screenshots rather than under comments.
+
+**Guard for the instance, SHIPPED, strongest tier, both halves proven.**
+flutter/test/onboarding_test.dart:479, 'sample rows never cancel tonight's
+nudge', failure quoted in fd43e25:
+
+    Expected: true / Actual: <false>
+    reason: 'the first night after saying yes must still be scheduled'
+
+and the silent half at :516, 'a real log today still means no nudge tonight',
+so the fix cannot be "never skip", which would nag someone who already logged.
+
+**Guard for the class, NOT WRITTEN, and the honest assessment includes an
+uncomfortable observation. NEW Open 18.** The fix added a THIRD counted comment
+to the codebase. reminders.dart:103 now reads "This is the fourth reader of the
+habit signal (chain, coach, quick-add are the others)". So the repository now
+contains three prose counts of the same list, at sample_data.dart:15
+(three, about RN), chain.dart:67 (three, about RN), and reminders.dart:103
+(four, about Flutter), and all three go stale the moment a fifth reader
+appears. Correcting a stale count by writing a fresher count is the same move
+that failed, one iteration later.
+
+Two things should happen and neither is done:
+
+1. **Structural, medium strength, and ranked honestly as medium rather than
+   strong.** Funnel the habit signal through one shared accessor in
+   sample_data.dart, something like `Iterable<Map> habitRows(dynamic
+   transactions)`, and have all four readers call it. That makes the correct
+   path the default path, which is a real improvement over four independent
+   remembering events. It is NOT strong, because nothing physically stops a
+   fifth author reading `data['transactions']` directly, and an honest ranking
+   has to say so. Cost, checked rather than assumed: three of the four call
+   sites are a plain `continue` inside a loop and would collapse cleanly, but
+   quickadd.dart:60 records `idx: i` as a stable-sort tie break into the
+   ORIGINAL list, so a pre-filtered iterable changes what that index means.
+   Relative order survives filtering, so the sort still behaves, but that needs
+   checking rather than believing.
+2. **Delete the numbers from all three comments** instead of updating them to
+   four. "Sample rows never feed a habit feature" is the durable sentence. The
+   count adds nothing except a false sense of completion.
+
+The strongest complement, if someone wants an automated tier here, is a single
+behavioural test over a store containing ONLY the seed, asserting that every
+habit surface reports nothing logged: chain empty, coach still offering the
+log-today nudge, quick-add chips empty, and tonight's reminder still scheduled.
+That catches a regression in any of the four at once. It still says nothing
+about a fifth reader nobody has written yet, and no test can.
+
+**Lesson 3. The qa-tester merge gate found every defect in this round, twice in
+a row now, against a fully green suite. This does not need a new guard. It
+needs to be recorded as the rule working exactly as written.**
+
+Evidence, and it is worth listing in full because "a QA pass ran" is the kind
+of line that decays into ceremony if nobody ever writes down what it caught. On
+PR #225 (session 9) it found the sample-account money trap. On PR #226 it found
+all three user-facing untruths in this round plus the race:
+
+- the payday promise the app could not keep,
+- the cancelled first night,
+- "No sounds" being false on Android, where the notification channel plays the
+  default sound. Fixed by changing the sentence rather than the code, because
+  silencing a channel properly is a native level change (Android locks channel
+  settings after creation) and CLAUDE.md forbids claiming what cannot be
+  backed,
+- the permission race described in root cause 3.
+
+880 tests were green at the time. Every one of those findings was invisible to
+all 880.
+
+**Guard: EXISTING, medium tier, and it FIRED.** The merge rules in CLAUDE.md
+require a QA pass on the changed code with every must-fix finding fixed and
+re-checked. Medium tier by this log's ranking, because it depends on someone
+running it at the right moment. Two consecutive rounds in which the medium
+guard caught what the strong guard missed is the argument for why the medium
+tier is not decoration.
+
+**Guard for the race instance, SHIPPED, strongest tier, both halves.**
+flutter/lib/screens/onboarding.dart:82 to :89 adds an `asking` latch with the
+reason at the site, both `_choice` calls pass null while it is set
+(onboarding.dart:405 and :407), and onboarding_test.dart:555 drives it with a
+`Completer` the test holds open, asserting 'the answers are inert until the
+phone replies' and then that the yes still lands after the gate completes.
+
+**Lesson 4. Tests that CHANGED this round, reported per the session 5
+convention, and this time the answer is not "none". Two assertions were
+defending the defect, and one test's NAME asserted it.**
+
+This is the single strongest piece of evidence a retrospective in this project
+can produce, so it is quoted exactly. In a10041e, six hours before the fix,
+flutter/test/onboarding_test.dart contained:
+
+    testWidgets('a granted yes turns the daily and payday reminders on', (
+      tester,
+    ) async {
+      ...
+      expect(notifs?['daily'], true);
+      expect(notifs?['payday'], true);
+
+and, in the restored-backup test:
+
+      expect(notifs?['bills'], true, reason: 'their own choice survives');
+      expect(notifs?['daily'], true);
+      expect(notifs?['payday'], true);
+
+In fd43e25 both had to be inverted before the fix could pass:
+
+      expect(notifs?['payday'], isNot(true));
+      expect(notifs?['payday'], isNot(true), reason: 'no schedule, no claim');
+
+and the test was renamed from 'a granted yes turns the daily and payday
+reminders on' to 'a granted yes turns the nightly reminder on'.
+
+Read that plainly. The suite did not merely fail to notice the false promise.
+It stated the false promise as the expected behaviour, in a test title, and
+then passed on a real GitHub runner via the Flutter check. Anyone reading that
+file to find out what the app does would have been told the wrong thing with a
+green tick next to it. This is the exact failure mode CLAUDE.md's
+prove-it-can-fail section already describes ("a test written from the same
+wrong mental model as the code passes for the wrong reason and reads as
+proof"), and it is its second recorded occurrence.
+
+**Guard: EXISTING and already correct, no new guard proposed.** The
+prove-it-can-fail rule cannot help here, because the wrong test WOULD have
+failed if the code were broken. It was a faithful test of a wrong belief. The
+only thing that catches a wrong belief is a different reader, which is Lesson
+3's gate, and it caught it. What is added here is the record, because the value
+of this observation is entirely in it being written down: three sessions from
+now, "the tests were green" will have to be read alongside "and once they were
+green because they agreed with the bug."
+
+**Lesson 5. Session 9's Open 16 paid off within hours, and the assert caught a
+real no-op. It still cannot be closed, because it lives nowhere but in this
+file.**
+
+Session 9 opened item 16 after `git checkout <file>` deleted a QA round's
+uncommitted fixes: the rule was to reverse the exact edit instead, and to end
+every restore by asserting the markers are back. This round every break and
+restore did exactly that, and one of them failed loudly rather than silently:
+the replace-back on flutter/lib/money/reminders.dart threw an AssertionError
+because `dart format` had rewrapped the target line between the break and the
+restore, so the text being replaced no longer existed byte for byte. A silent
+no-op became a visible error, which is precisely what the assert was for. The
+formatter-wrapped shape is still visible in the file at reminders.dart:110 to
+:112, where the `loggedToday` expression is broken across three lines.
+
+**Can Open 16 be closed? No, and the check was run rather than assumed.**
+`grep -n "restore\|git checkout\|replace-back\|commit the fix" CLAUDE.md
+.claude/skills/*/SKILL.md` returns only two unrelated hits, both about backup
+and restore as a product feature. CLAUDE.md's "Prove a new test can fail before
+trusting it" section says to break the code, watch it fail, and paste the
+failure line into the commit message, and it says nothing whatsoever about
+putting the code back. .claude/skills/systematic-debugging/SKILL.md covers
+reproducing and fixing, not this.
+
+So the state is: **a practice that worked twice, documented only in a
+retrospective log that nothing forces anyone to read before breaking a file.**
+That is the weak tier by this log's own ranking, and it stays weak until the
+rule is written where it is read at the right moment.
+
+**Guard, PROPOSED, medium tier if written, and NOT written by this session.**
+Three sentences appended to CLAUDE.md's prove-it-can-fail section: commit the
+fix first so `git checkout` is a correct restore by construction; if a break
+must happen over uncommitted work, reverse the exact edit rather than checking
+out; end every restore by asserting the markers are back, because the formatter
+can move the bytes underneath you. This session does not edit CLAUDE.md, on
+purpose. A lunch and learn agent writes its own log, and a change to the
+project's standing rules belongs to the founder or to a session with the
+mandate for it. **Open 16 stays open, with the exact text now named so closing
+it is a one paragraph edit.**
+
+**Lesson 6. The standing CLAUDE.md fact check found a false claim that five
+consecutive sessions missed, in the section about looking at screens.**
+
+The mechanical half first, and it is boring, which is the correct outcome.
+`git log a822666f..origin/main -- .github/workflows/ CLAUDE.md` returns
+nothing, so neither CLAUDE.md nor any workflow changed since session 9's ground
+truth. Re-verified by reading anyway:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, mobile/app/(tabs)/more.js.
+- All five skills exist in .claude/skills (brainstorming, flutter-ui-polish,
+  porting-money-logic, systematic-debugging, writing-skills).
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- The 120 character stamp cap is live at update_stamp_test.dart:20.
+- flutter-check.yml triggers on `claude/**` with no paths filter;
+  flutter-preview.yml triggers on `main` with paths `flutter/**` plus its own
+  definition. Both match rule 1 word for word.
+- The three delivery commands ran as written and returned f2.69 patch 19.
+
+**The false claim. CLAUDE.md:62 to :63 says:**
+
+    It renders every tab, a lesson, and the diagnostics dialog, at BOTH
+    brightnesses. Look at the dark ones first; that is what the founder uses.
+
+Every tab: TRUE. flutter/test/screens_shot.dart:228 loops seven screens over
+`[Brightness.light, Brightness.dark]` and `shoot` writes `shots/$name-$suffix
+.png` at :205.
+
+A lesson: FALSE. The lesson shot is dark only, hardcoded at
+screens_shot.dart:979 as `shots/lesson-dark.png`, preceded by an explicit
+`Barako.current = Barako.currentTheme.resolve(Brightness.dark)` at :965.
+
+The diagnostics dialog: FALSE. Same shape, `shots/diagnostics-dark.png` at
+:663, dark forced at :644.
+
+Counted from the file rather than from the sentence: 23 `expectLater` sites,
+of which 14 are the tab sweep across both brightnesses, 2 are the onboarding
+welcome across both, and the remaining 7 named shots plus the rest of the walk
+are dark only.
+
+**And it was false the day it was written.** `git log -S "at BOTH brightnesses"
+-- CLAUDE.md` points at b949f2a, the session 4 write-up commit, and
+`git show b949f2a:flutter/test/screens_shot.dart` already has
+`shots/diagnostics-dark.png` at line 209 and `shots/lesson-dark.png` at line
+241, both hardcoded. This was never a rule that went stale. It was wrong on
+arrival, and it has been read with authority through sessions 5, 6, 7, 8 and 9,
+every one of which ran this fact check and reported no false claim. Session 9
+wrote "No new false claim found this session. That is the second session in a
+row without one."
+
+Why it matters, beyond the tally. Session 6's entire subject was a bug that
+only light mode could see, live on the founder's phone for 92 minutes. The
+sentence that tells the next person the harness covers both brightnesses is
+the sentence that would stop them checking. For a lesson screen and for the
+diagnostics dialog there is no light render to look at second, and the file
+says there is.
+
+Why no checker would have caught it: every noun in the sentence is real. There
+IS a lesson shot. There IS a diagnostics shot. There ARE both brightnesses in
+the file. This is the third consecutive false-claim finding of the same
+character, after session 7's trigger rule and session 8's moved file. All three
+named real things and got the relationship between them wrong.
+
+**Guard: NOT WRITTEN, and the correction is one line. NEW Open 19.** The
+truthful version is "It renders every tab at BOTH brightnesses, plus a lesson,
+the diagnostics dialog, the sheets and the onboarding walk in dark." Better
+still, and consistent with the paragraph three lines below it that already says
+numbers in prose rot, name no coverage at all and point at the directory:
+`ls flutter/test/shots/` is the coverage, the same way the directory listing is
+already the count. This session does not edit CLAUDE.md, for the reason given
+in Lesson 5.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.69 in person, which remains the only proof that counts and
+the one thing only the founder can do.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here. No spurious issue in evidence, and this round's gap was well inside the
+2700 second grace.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised, the merge bumped the stamp.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,**
+re-verified by reading, the scrape is still inside the ship step with `|| true`
+at flutter-preview.yml:127 and the comment at :112 explaining that its absence
+once cost a whole delivery.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** No new
+archaeology case this round.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the
+shell's wiring: STILL OPEN.** The onboarding walk still builds its own
+MaterialApp by hand at screens_shot.dart:866.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL
+OPEN, untouched, re-verified.** eas-update.yml:18 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7. Harm today: none, and in the
+safe direction. Harm the day RN work resumes: someone believes publishing is
+automatic and it is not.
+
+**Open 15, the walk-keying and frame-asserting rule: MATERIALLY ADVANCED, still
+open, and the honest measurement is unflattering.** Session 9 named two tiers.
+The STRONG one now exists: a10041e added an assertion before every shot in the
+onboarding walk (screens_shot.dart:871, :880, :891, :902) with the reason
+recorded at :887 to :889, "A shot named for one step that renders another is
+the exact failure this walk already had once, and a name is not evidence."
+Measured coverage: 4 of 23 `expectLater` sites assert what is in front of the
+camera, and all four are in the one walk that already had the bug. The MEDIUM
+tier is still not done: the screens_shot.dart header (lines 1 to 24) still
+records exactly three hard-won harness rules, and neither keying repeated
+pumps nor asserting the frame is one of them.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN, and see Lesson 5 for why the practice working perfectly is not the
+same as the rule existing.** The exact three sentences that would close it are
+now written down above.
+
+**NEW Open 17: nothing generalises the payday guard.** A test asserting that
+every notifications key onboarding can write is one `plannedReminders` can
+actually act on. Needs either title matching or a `kind` field on
+`PlannedReminder`. Minutes of work, not written because flutter/ is occupied.
+
+**NEW Open 18: the habit signal has four independent remembering events and
+three prose counts of itself.** One shared accessor in sample_data.dart plus
+deleting the counts from sample_data.dart:15, chain.dart:67 and
+reminders.dart:103. Medium strength when done, and it should be called medium.
+
+**NEW Open 19: CLAUDE.md:62 to :63 claims a lesson and the diagnostics dialog
+render at both brightnesses, and both are dark only.** False since b949f2a.
+One line to correct, and the better correction removes the coverage claim
+entirely in favour of the directory listing.
+
+**NEW Open 20: mobile/lib/notifications.js:100 has the same sample-row defect
+Flutter just fixed, and nothing guards it.** `loggedToday` there does not
+exclude `SAMPLE_TX_IDS`, and RN seeds its sample data on first run rather than
+on request. Not fixed here: mobile/ is the shippable app and this session's
+scope was the Flutter round. Flagged because the comment that cited RN as the
+authority for completeness is pointing at code that is incomplete in exactly
+the place Flutter just repaired.
+
+### Guard status re-check
+
+Read, not assumed. `git log a822666f..origin/main -- .github/workflows/
+CLAUDE.md` proves no workflow and no CLAUDE.md line changed since session 9, so
+every line number that entry recorded still stands. Verified by reading anyway,
+because a guard quietly routed around is the most valuable thing this section
+can find:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:173 to :181,
+  including the comment explaining why it fails AFTER the publish. Correctly
+  silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:221 onward.
+  Not fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:249. Correctly
+  silent, the row reads mode `patch`.
+- The publisher watching its own definition: PRESENT in the paths filter.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43, with the load-bearing comments intact.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT, with its
+  header explaining that this exists because thirteen stamps of work once never
+  reached the phone.
+- The stamp cap: PRESENT, update_stamp_test.dart:20, and the live stamp is 78
+  characters.
+- Session 6 and 7 guards (a11y_test.dart, nav_ambiguity_test.dart, the injected
+  clock, header_action_test.dart, app_harness.dart): PRESENT.
+- Session 8's guards: PRESENT and untouched.
+- Session 9's new guards: PRESENT. onboarding_test.dart's 'the QA round' group
+  is still there at :565 onward with the sample-account funnel tests intact,
+  and the keyed onboarding walk survives at screens_shot.dart:858, now with
+  frame assertions added around it.
+- New this round for the next session to re-check: onboarding_test.dart's 'the
+  nudge QA round' group (:426 to :562, four tests, each proven failing first),
+  the `asking` latch at onboarding.dart:82, and the sample exclusion at
+  reminders.dart:112.
+
+**Nothing was found deleted, disabled, or routed around.** One guard was found
+to have been narrower than the documentation claimed from the day the
+documentation was written, which is Open 19, and that is a documentation
+failure rather than a routed-around guard.
+
+### What it cost, and what it did not
+
+Cost: three user-facing untruths and one race written into a branch, all caught
+before the merge. One test suite that spent six hours certifying a false
+promise by name. One restore that failed loudly and cost a minute. Two sessions
+in a row without an independently re-run suite baseline. One CLAUDE.md sentence
+that has been misleading readers since session 4 and was found only because
+this check is run as a step rather than as a favour.
+
+Did not cost: any delivery failure, any wrong number on the phone, any manual
+install, any lost user data, any founder-found bug. One delivery, one row, one
+confirmation, 11 minutes 50 seconds.
+
+### For the founder, in plain English
+
+f2.69 is on your phone and you confirmed it: new users now get asked, once,
+whether they want one quiet 8pm reminder, and either answer is fine. Just under
+twelve minutes from merge to arrival, which is the normal rhythm. Delivery went
+perfectly and I am not going to invent a problem to make this write-up feel
+earned.
+
+Three things are worth your lunch.
+
+**One: the app promised you something it had already decided not to do.** When
+I rebuild a screen from the old app into the new one, I move two things: the
+code, and the words on the screen. I move the code carefully, function by
+function, and I check the numbers match. I move the words by reading them and
+retyping them, and it feels like the easy part.
+
+The old app's reminder screen said "one quiet reminder at 8pm, plus a heads up
+on payday". I copied that sentence. But the new app has a deliberate rule the
+old app does not have: it will never send you a "it is payday today" alert
+unless you have actually told it when payday is. That rule exists because the
+old app guesses, it assumes the 15th and the end of the month, and it sends
+that alert on a guessed day to people who never told it anything. A push
+notification claiming today is payday is either true or a lie, so we stopped
+guessing.
+
+So the sentence was true in the old app only because the old app has a fault we
+fixed. A brand new user has never set a payday, which means the promise could
+never be kept. Worse, the app also switched ON a "payday reminders" toggle in
+Menu that could never ring. You would have seen a switch sitting on, doing
+nothing, forever.
+
+It is fixed. The sentence now promises the 8pm nudge and nothing else, the
+toggle is only switched on for someone who genuinely has a payday saved, and
+there is a test that fails loudly if either of those ever slips. The lesson I
+have written down is bigger than this one sentence: **words on a screen are a
+promise about behaviour, so when I change behaviour on purpose, the words that
+came with it are now wrong.** I have a careful checklist for moving code and I
+had none for moving words.
+
+**Two: a comment counted to three, and there were four.** There is a rule in
+this app that the demo data you can choose to explore must never be treated as
+real activity. Otherwise the app congratulates you for a streak you did not
+earn, or worse, thinks you already logged today when you have not.
+
+A comment in the code recorded that rule and said it was honoured in three
+places. That was accurate about the OLD app. In the new app there were four
+places, and the fourth was the reminders. So a new user who said yes to the
+nightly nudge and then tapped "explore the sample data" had their first night's
+reminder silently cancelled, because the demo data contains an entry dated
+today, and the app thought that was them. On the very first night, which is the
+night the habit is most fragile. That happened on any install day from the 1st
+to the 10th of the month.
+
+Fixed, with a test on both sides: the first night is still scheduled, and a
+real entry today still cancels it, because a reminder nagging you about
+something you already did is its own kind of broken.
+
+The interesting part is why the comment fooled anyone. The number three read
+like a finished job. If it had just said "demo rows never count as real
+activity" with no number, the next person would have gone and checked. **A
+count in a comment is a receipt, and receipts go out of date.** I already had
+that exact lesson written down about something else, filed in the wrong place,
+so it did not help. It is now filed here too.
+
+**Three: my own tests were on the bug's side.** This is the uncomfortable one
+and it is the most useful thing in this write-up. When I built the reminder
+step, I wrote tests for it. One of them was literally called "a granted yes
+turns the daily and payday reminders on", and it checked that the payday
+setting was switched on. It passed. It passed on a real build machine.
+
+That test was wrong. It was a faithful, careful, correctly written test of a
+false belief, because I wrote the test and the code in the same sitting from
+the same understanding. To fix the bug I had to invert that check and rename
+the test. Anyone reading that file to learn what the app does would have been
+told the wrong thing with a green tick beside it.
+
+Nothing about testing harder fixes that. The only thing that finds a wrong
+belief is a second reader with a different one, and that is the quality review
+pass we made a rule in July, where I go back over the changed code trying to
+break it rather than trying to confirm it. That review found all three of these
+problems plus a fourth I have not described (tapping "No thanks" at the exact
+moment the phone's permission popup appeared could have flipped your no into a
+yes). It found them while 880 tests were green. That is two rounds in a row
+where the review caught everything and the tests caught nothing.
+
+**One more, briefly, because it is about honesty rather than bugs.** Part of
+every one of these sessions is re-reading the project's own rulebook and
+checking its factual claims against the code. This time I found a sentence that
+has been wrong since the day it was written, four days ago: it says my
+screenshot tool photographs a lesson and the diagnostics screen in both light
+and dark mode. It only ever did dark for those two. Five sessions ran this same
+check and reported the rulebook clean. That matters because the whole reason we
+take screenshots in both modes is that a real bug once shipped to your phone
+that was invisible in dark mode and clearly broken in light. A sentence that
+tells me a check is already covered is a sentence that stops me looking. I have
+not edited the rulebook myself, deliberately, because standing rules are yours
+to change. I have written down the exact one line correction.
+
+**What it costs if these guards are removed.** Take out the payday test and the
+app goes back to promising notifications it cannot send, which is the fastest
+way to make someone stop trusting an app about money. Take out the demo data
+test and new users lose their first night's reminder on the night it matters
+most, silently, with everything green. Take out the quality review pass and you
+are relying on tests written by the same mind that wrote the bug, which this
+round proved does not work. And if the rulebook keeps a sentence claiming a
+check exists when it does not, it is worse than saying nothing at all, because
+it is read with authority.
+
+---
+
 ## 2026-07-28, session 9: the welcome screen that was photographed on step two
 
 Two deliveries, two clean rows, both confirmed on the phone by the founder.

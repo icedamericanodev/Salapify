@@ -1,9 +1,10 @@
-// Accounts: see, add, edit, and delete your accounts and assets, and change a
-// balance. Reached from the Overview. Ported from mobile/app/accounts.js, minus
-// the transfer modal (a follow-up), which is the only part with genuinely new
-// money math. A balance change to an existing account posts a recorded
-// adjustment through the golden-verified ledger (reversible, shows in History)
-// rather than silently overwriting the number.
+// Accounts: see, add, edit, and delete your accounts and assets, change a
+// balance, and move money between two accounts. Reached from the Overview,
+// ported from mobile/app/accounts.js. A balance change to an existing account
+// posts a recorded adjustment through the golden-verified ledger (reversible,
+// shows in History) rather than silently overwriting the number, and the
+// transfer sheet at the bottom of this file spends every peso decision
+// through money/transfers.dart, which is locked to the RN engine by goldens.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,9 @@ import 'package:flutter/services.dart';
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
+import '../money/currencies.dart' show baseCurrencySymbol;
+import '../money/transfers.dart'
+    show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../theme.dart';
@@ -102,6 +106,17 @@ class AccountsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Only with somewhere to move money from AND to. One account
+                // cannot transfer to itself, so offering the button then
+                // would be offering a dead end.
+                if (store.canWrite && accounts.length > 1) ...[
+                  const SizedBox(height: 10),
+                  _addButton(
+                    context,
+                    'Move money between accounts',
+                    () => _openTransfer(context),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 _section('CASH', sum(cash, 'balance'), [
                   for (final a in cash) _accountRow(context, a),
@@ -399,6 +414,16 @@ class AccountsScreen extends StatelessWidget {
     if (onTap == null) return body;
     return PressableScale(
       child: InkWell(onTap: onTap, child: body),
+    );
+  }
+
+  void _openTransfer(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TransferSheet(store: store),
     );
   }
 
@@ -868,4 +893,275 @@ class _AccountFormState extends State<_AccountForm> {
       ),
     );
   }
+}
+
+/// Move money between two accounts.
+///
+/// Every peso decision here belongs to money/transfers.dart, which is locked
+/// to the RN engine by golden vectors. This sheet collects three fields and
+/// shows whatever the engine says: it does no arithmetic of its own, on
+/// purpose, because a screen that computes a peso is how two versions of one
+/// number start to disagree.
+class _TransferSheet extends StatefulWidget {
+  final SalapifyStore store;
+  const _TransferSheet({required this.store});
+
+  @override
+  State<_TransferSheet> createState() => _TransferSheetState();
+}
+
+class _TransferSheetState extends State<_TransferSheet> {
+  final _amount = TextEditingController();
+  late String _fromId;
+  late String _toId;
+  bool _saving = false;
+  String? _err;
+
+  List<Map<String, dynamic>> get _accounts {
+    final raw = widget.store.data['accounts'];
+    return [
+      for (final a in (raw is List ? raw : const []))
+        if (a is Map) a.cast<String, dynamic>(),
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // The RN defaults: the first two accounts, so the common case is one tap
+    // and an amount.
+    final list = _accounts;
+    _fromId = list.isNotEmpty ? '${list[0]['id']}' : '';
+    _toId = list.length > 1 ? '${list[1]['id']}' : '';
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _err = null;
+    });
+    TransferOutcome? refusal;
+    try {
+      refusal = await widget.store.transferBetweenAccounts(
+        fromId: _fromId,
+        toId: _toId,
+        amountText: _amount.text,
+      );
+    } catch (e) {
+      // A failed save, or writing shut after an unreadable load. Without this
+      // the button stayed disabled forever with nothing on screen, leaving
+      // the person unable to tell whether their money moved. Every other
+      // write on this screen already catches.
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _err = 'Could not move it, nothing was changed. $e';
+      });
+      return;
+    }
+    if (!mounted) return;
+    if (refusal != null) {
+      setState(() {
+        _saving = false;
+        _err = _honest(refusal!);
+      });
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  /// The refusal as a sentence that cannot contradict itself.
+  ///
+  /// The engine's own overdraft message rounds the balance, because it is
+  /// locked to the RN wording, so an account holding 3,200.995 reports "only
+  /// has 3,201" and then refuses a transfer of 3,201: same figure, opposite
+  /// answers. The engine keeps its string so the two apps stay comparable,
+  /// and the screen says the truthful thing using the same truncated label
+  /// the picker chips show, so the sentence and the chips always agree.
+  String _honest(TransferOutcome r) => switch (r.refusal) {
+    TransferRefusal.overdraft =>
+      '${_nameOf(_fromId)} only has ${balanceLabel(r.available ?? 0)}.',
+    _ => r.error ?? 'Could not move it.',
+  };
+
+  String _nameOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return '${a['name'] ?? 'That account'}';
+    }
+    return 'That account';
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.store,
+    builder: (context, _) => _sheet(context),
+  );
+
+  Widget _sheet(BuildContext context) {
+    final list = _accounts;
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Barako.background,
+          border: Border.all(color: Barako.border),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight:
+              (MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).viewInsets.bottom) *
+              0.9,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Move money',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'This is not income and not spending, so it never touches '
+                'your budget. It just moves the balances.',
+                style: TextStyle(
+                  color: Barako.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              _label('From'),
+              _picker(list, _fromId, (v) => setState(() => _fromId = v)),
+              _label('To'),
+              _picker(list, _toId, (v) => setState(() => _toId = v)),
+              _label('Amount'),
+              TextField(
+                controller: _amount,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+                decoration: InputDecoration(
+                  hintText: '0',
+                  hintStyle: TextStyle(color: Barako.faint),
+                  prefixText: '$baseCurrencySymbol ',
+                  prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
+                  filled: true,
+                  fillColor: Barako.card,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderSide: BorderSide(color: Barako.border),
+                  ),
+                ),
+                onSubmitted: (_) => _save(),
+              ),
+              if (_err != null) ...[
+                const SizedBox(height: 10),
+                // liveRegion, so a screen reader announces the refusal.
+                // Without it a blind user taps "Move it", hears nothing, and
+                // has no signal that the money did not move.
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _err!,
+                    style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Barako.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                    ),
+                    child: const Text(
+                      'Move it',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _label(String t) => Padding(
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(t, style: TextStyle(color: Barako.muted, fontSize: 12)),
+  );
+
+  /// The account chips, each showing what it holds, because "can I move 5,000
+  /// out of GCash" is answered by seeing the balance, not by being told no
+  /// after typing.
+  Widget _picker(
+    List<Map<String, dynamic>> list,
+    String selected,
+    void Function(String) onPick,
+  ) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final a in list)
+        ChoiceChip(
+          label: Text(
+            '${a['name'] ?? 'Account'}  ${balanceLabel(amountOf(a['balance']))}',
+          ),
+          selected: selected == '${a['id']}',
+          onSelected: (_) => onPick('${a['id']}'),
+          selectedColor: Barako.primary,
+          backgroundColor: Barako.card,
+          labelStyle: TextStyle(
+            color: selected == '${a['id']}'
+                ? Barako.onPrimary
+                : Barako.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+          side: BorderSide(color: Barako.border),
+        ),
+    ],
+  );
 }
