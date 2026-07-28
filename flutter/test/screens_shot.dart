@@ -894,7 +894,10 @@ void main() {
         matchesGoldenFile('shots/onboarding-nudge-dark.png'),
       );
 
-      await tester.tap(find.text('No thanks'));
+      // The YES branch on purpose: it is the path that runs the injected
+      // permission seam, so the walk exercises it rather than photographing
+      // only the answer that touches nothing.
+      await tester.tap(find.text('Yes, remind me at night'));
       await tester.pumpAndSettle();
       expect(find.text('How do you want to start?'), findsOneWidget);
       await expectLater(

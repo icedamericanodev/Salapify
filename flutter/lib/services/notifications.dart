@@ -30,9 +30,8 @@ class Reminders {
   /// Whether this device can show reminders at all.
   ///
   /// Public so a screen can decide whether an opt-in step is worth showing:
-  /// asking the web preview to allow nightly nudges would be a question with
-  /// no honest answer, and the RN flow skips the same step for the same
-  /// reason.
+  /// asking a desktop VM to allow nightly nudges would be a question with no
+  /// honest answer, and the RN flow skips the same step for the same reason.
   static bool get supported => _supported;
 
   static Future<void> _init() async {

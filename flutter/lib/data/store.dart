@@ -20,6 +20,7 @@ import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/sample_data.dart' show isSampleId, sampleData;
+import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
@@ -1402,12 +1403,18 @@ class SalapifyStore extends ChangeNotifier {
     // last button, so a flow abandoned after the notification step leaves
     // nothing behind: no half-configured reminders on a phone whose owner
     // never finished saying hello.
+    // The payday reminder only ever fires once a payday schedule exists
+    // (money/reminders.dart will not assert "Payday!" on a guessed date), and
+    // a brand new user has never set one. Writing payday: true here would
+    // therefore leave a switch showing ON in Menu that can never ring, which
+    // is a lie told in two places at once. So it rides along only for
+    // someone who already has a schedule, which is the restored-backup case.
     final notifs = nightlyNudge
         ? {
             ...((settings['notifications'] as Map?) ?? const {})
                 .cast<String, dynamic>(),
             'daily': true,
-            'payday': true,
+            if (hasExplicitPaydaySchedule(next)) 'payday': true,
           }
         : null;
     return {

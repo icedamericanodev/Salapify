@@ -8,6 +8,7 @@
 // RN derivation ported on purpose: a successfully loaded blob counts as
 // onboarded unless the flag is literally false.
 
+import 'dart:async' show Completer;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/chain.dart';
 import 'package:salapify/money/sample_data.dart';
+import 'package:salapify/money/reminders.dart' show plannedReminders;
 import 'package:salapify/money/quickadd.dart';
 import 'package:salapify/money/coach.dart' as coach;
 import 'package:salapify/screens/log_sheet.dart' show LogSheet;
@@ -316,9 +318,7 @@ void main() {
       return store;
     }
 
-    testWidgets('a granted yes turns the daily and payday reminders on', (
-      tester,
-    ) async {
+    testWidgets('a granted yes turns the nightly reminder on', (tester) async {
       final asked = <String>[];
       final store = await pumpFlow(tester, granted: true, asked: asked);
       expect(find.text('STEP 2 OF 3'), findsOneWidget);
@@ -331,7 +331,9 @@ void main() {
       await tester.pumpAndSettle();
       final notifs = _settings(store)['notifications'] as Map?;
       expect(notifs?['daily'], true);
-      expect(notifs?['payday'], true);
+      // NOT payday: this user has no payday schedule, so a payday reminder
+      // could never ring and the switch must not claim otherwise.
+      expect(notifs?['payday'], isNot(true));
     });
 
     testWidgets('a refused yes switches nothing on, and never traps', (
@@ -417,7 +419,146 @@ void main() {
       final notifs = _settings(store)['notifications'] as Map?;
       expect(notifs?['bills'], true, reason: 'their own choice survives');
       expect(notifs?['daily'], true);
-      expect(notifs?['payday'], true);
+      expect(notifs?['payday'], isNot(true), reason: 'no schedule, no claim');
+    });
+  });
+
+  group('the nudge QA round', () {
+    test(
+      'a yes never switches on a payday reminder that cannot ring',
+      () async {
+        // MUST FIX: the copy promised a payday heads up and the write set
+        // payday: true, but the planner refuses to assert "Payday!" without a
+        // schedule, which a brand new user has never set. The result was a
+        // switch showing ON in Menu that could never fire.
+        SharedPreferences.setMockInitialValues({});
+        final store = SalapifyStore();
+        await store.load();
+        await store.completeOnboarding(
+          currencyCode: 'PHP',
+          currencySymbol: '₱',
+          monthlyLimit: 20000,
+          withSampleData: false,
+          nightlyNudge: true,
+        );
+        final notifs = _settings(store)['notifications'] as Map;
+        expect(notifs['daily'], true);
+        expect(
+          notifs['payday'],
+          isNot(true),
+          reason:
+              'no schedule exists, so the switch must not claim it will ring',
+        );
+      },
+    );
+
+    test('someone who already has a payday schedule does get it', () async {
+      // The other half: a restored backup with a real schedule. The reminder
+      // can ring, so the yes turns it on.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {
+            'onboarded': false,
+            'paydaySchedule': {'mode': 'monthly', 'day': 15},
+          },
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await store.completeOnboarding(
+        currencyCode: 'PHP',
+        currencySymbol: '₱',
+        monthlyLimit: 20000,
+        withSampleData: false,
+        nightlyNudge: true,
+      );
+      expect((_settings(store)['notifications'] as Map)['payday'], true);
+    });
+
+    test('sample rows never cancel tonight\'s nudge', () {
+      // MUST FIX: the seed clamps its dates to today, and the planner counted
+      // a sample row as "you already logged", so saying yes and then choosing
+      // the sample data silently cancelled the first night's reminder on any
+      // install day from the 1st to the 10th. This is the fourth reader of
+      // the habit signal and the only one that had missed the rule.
+      final now = DateTime(2026, 8, 3, 10);
+      final data = {
+        'settings': {
+          'notifications': {'daily': true},
+        },
+        'transactions': (sampleData(now)['transactions'] as List),
+      };
+      final tonight = DateTime(2026, 8, 3, 20);
+      final planned = plannedReminders(data, now);
+      expect(
+        planned.any((r) => r.when == tonight),
+        isTrue,
+        reason: 'the first night after saying yes must still be scheduled',
+      );
+      // And a REAL log today still silences tonight, which is the whole
+      // point of the rule the sample rows are exempt from.
+      final withReal = {
+        ...data,
+        'transactions': [
+          ...(data['transactions'] as List),
+          {
+            'id': 'txn_real',
+            'type': 'expense',
+            'amount': 90,
+            'date': '2026-08-03',
+          },
+        ],
+      };
+      expect(
+        plannedReminders(withReal, now).any((r) => r.when == tonight),
+        isFalse,
+        reason: 'a real log today still means no nudge tonight',
+      );
+    });
+
+    testWidgets('an explicit no cannot be overridden by a slow yes', (
+      tester,
+    ) async {
+      // MUST-adjacent race QA reproduced: both buttons stayed live while the
+      // OS dialog was opening, so tapping "No thanks" and then having the
+      // granted answer land turned the no into a yes.
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      final gate = Completer<bool>();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OnboardingScreen(
+            store: store,
+            showNudge: true,
+            askPermission: () => gate.future,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      // Yes tapped; the dialog is "open" and has not answered yet.
+      await tester.tap(find.text('Yes, remind me at night'));
+      await tester.pump();
+      // The user reaches for No while the dialog animates in. It must be
+      // dead, so their last answer cannot be silently reversed.
+      await tester.tap(find.text('No thanks'), warnIfMissed: false);
+      await tester.pump();
+      expect(
+        find.text('A 30 second nudge at night?'),
+        findsOneWidget,
+        reason: 'the answers are inert until the phone replies',
+      );
+      gate.complete(true);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      expect((_settings(store)['notifications'] as Map)['daily'], true);
     });
   });
 
