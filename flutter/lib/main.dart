@@ -27,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.69 \u00b7 New users can say yes or no to one quiet 8pm nudge during the welcome.';
+    'f2.70 \u00b7 Move money between your own accounts, in Accounts. It never touches your budget.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

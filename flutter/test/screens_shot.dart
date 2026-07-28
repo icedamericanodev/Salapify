@@ -43,6 +43,7 @@ import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
+import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -944,6 +945,49 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/home-sample-banner-dark.png'),
+    );
+  });
+
+  testWidgets('the transfer sheet, dark', (tester) async {
+    // A write path with money in it, so it gets looked at before it ships.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
+          {
+            'id': 'bpi',
+            'name': 'BPI Savings',
+            'kind': 'savings',
+            'balance': 48500.55,
+          },
+          {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 1750},
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: AccountsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move money between accounts'));
+    await tester.pumpAndSettle();
+    expect(find.text('Move money'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/transfer-sheet-dark.png'),
     );
   });
 

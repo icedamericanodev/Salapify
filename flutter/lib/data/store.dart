@@ -21,6 +21,7 @@ import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
+import '../money/transfers.dart' as transfers;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
@@ -1731,6 +1732,50 @@ class SalapifyStore extends ChangeNotifier {
   /// form map carries the same text fields as the RN screen. Throws
   /// ArgumentError with the exact RN validation sentence when refused.
   /// Returns the saved debt's id.
+  /// Move money between two accounts through the golden-locked engine.
+  ///
+  /// Returns the refusal message, or null when it went through. Refusals are
+  /// returned rather than thrown because all three of them are ordinary
+  /// answers to an ordinary mistake (blank amount, same account twice, more
+  /// than the account holds), not failures worth a stack trace.
+  Future<String?> transferBetweenAccounts({
+    required dynamic fromId,
+    required dynamic toId,
+    required dynamic amountText,
+  }) async {
+    // Validated BEFORE the write queue: _mutate throws on a refusal, and a
+    // thrown refusal would roll back and surface as an error banner instead
+    // of the sentence the person needs to read.
+    final dry = transfers.applyTransfer(
+      data,
+      fromId: fromId,
+      toId: toId,
+      amountText: amountText,
+      today: _todayISO(),
+      genId: () => _genId('transactions'),
+    );
+    if (!dry.ok) return dry.error;
+    await _mutate(
+      (d) =>
+          transfers
+              .applyTransfer(
+                d,
+                fromId: fromId,
+                toId: toId,
+                amountText: amountText,
+                today: _todayISO(),
+                genId: () => _genId('transactions'),
+              )
+              // The dry run above already proved this succeeds against the same
+              // data, and the write queue serializes, so the only way to be here
+              // with a refusal is a bug. Failing loudly beats writing nothing and
+              // reporting success.
+              .data ??
+          (throw StateError('the transfer became invalid mid-write')),
+    );
+    return null;
+  }
+
   Future<String?> saveDebt(Map<String, dynamic> form) async {
     String? savedId;
     await _mutate((d) {

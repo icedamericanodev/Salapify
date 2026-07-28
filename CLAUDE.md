@@ -59,8 +59,12 @@ prose as a wall of text, and lessons losing their completed tick. Both were
 obvious at a glance and invisible to 673 passing tests, because a test checks
 what someone thought to check.
 
-It renders every tab, a lesson, and the diagnostics dialog, at BOTH
-brightnesses. Look at the dark ones first; that is what the founder uses.
+It renders every tab at BOTH brightnesses, and a growing set of other screens,
+sheets and dialogs in dark only. Look at the dark ones first; that is what the
+founder uses. (This sentence used to claim everything was rendered at both
+brightnesses. It was false the day it was written, and five retrospectives
+repeated it while checking other claims. When a rule describes what a tool
+does, read the tool, not the rule.)
 Deliberately no count or timing here: the last version of this sentence said
 "fifteen shots in about eight seconds" and was stale within hours of being
 written, because two more shots were added the same day. Numbers in prose rot.

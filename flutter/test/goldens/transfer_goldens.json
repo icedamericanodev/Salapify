@@ -1,0 +1,5803 @@
+{
+  "today": "2026-07-28",
+  "accounts": [
+    {
+      "id": "cash",
+      "name": "Cash on hand",
+      "balance": 3200
+    },
+    {
+      "id": "bpi",
+      "name": "BPI Savings",
+      "balance": 48500.55
+    },
+    {
+      "id": "gcash",
+      "name": "GCash",
+      "balance": 0
+    },
+    {
+      "id": "odd",
+      "name": "Odd balance",
+      "balance": "1250.005"
+    },
+    {
+      "id": "junk",
+      "name": "Junk balance",
+      "balance": "not a number"
+    },
+    {
+      "id": "neg",
+      "name": "Negative",
+      "balance": -40
+    },
+    {
+      "id": "halfneg",
+      "name": "Half below zero",
+      "balance": -4.995
+    }
+  ],
+  "cases": [
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3100
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 100
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48400.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3300
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1150.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 100
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3100
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 60
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3100
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 95.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48400.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 95.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 100,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 1000
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 47500.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 4200
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 250.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 1000
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 960
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 995.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,000",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 47500.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 995.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 700
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 2500
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 2500,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 46000.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 5700
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 2500,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Odd balance only has ₱1,250.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 700
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 2460
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 2500,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 700
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 2495.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 2500,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": " 2 500 ",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 46000.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 2495.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 2500,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.9
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.1
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.45
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.1
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.91
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.1
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.9
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.9
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.9
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.9
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.1",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.45
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.9
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.1,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.99
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.54
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1250
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.99
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.99
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.99
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.99
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.005",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.54
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.99
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.01,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.98
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.02
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.53
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.02
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.99
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.02
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.98
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.98
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.98
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.98
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.015",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.53
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.98
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.02,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3197.32
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 2.68
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48497.87
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3202.68
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1247.33
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 2.68
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3197.32
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -37.32
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3197.32
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -2.31
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "2.675",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48497.87
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -2.31
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 2.68,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 0
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 3200
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 3200,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 45300.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 6400
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 3200,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Odd balance only has ₱1,250.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 0
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 3160
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 3200,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 0
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 3195.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 3200,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 45300.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 3195.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 3200,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 45300.54
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 6400.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 3200.01,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Odd balance only has ₱1,250.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "3200.01",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 45300.54
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 3195.02
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 3200.01,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 0
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 51700.55
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 48500.55,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Odd balance only has ₱1,250.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "48500.55",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 0
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 48495.56
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 48500.55,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "-5",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "abc",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 1000
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 47500.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 4200
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 250.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 1000
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 960
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 2200
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 995.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1e3",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 47500.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 995.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 1000,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.7
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.3
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.25
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.3
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.71
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.3
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.7
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.7
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.7
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.69
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.30000000000000004",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.25
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.69
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.3,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "BPI Savings only has ₱48,501.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Odd balance only has ₱1,250.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Cash on hand only has ₱3,200.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "99999999999",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "BPI Savings only has ₱48,501.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.5
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.05
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.51
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.5
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.5
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.49
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": ".5",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.05
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.49
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.5,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3195
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48495.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3205
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1245.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 5
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3195
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -35
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3195
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 0
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "5.",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48495.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 0
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 5,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "  ",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3184
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 16
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48484.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3216
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1234.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 16
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3184
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -24
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3184
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 11.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0x10",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48484.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 11.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 16,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "Infinity",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "Enter an amount greater than 0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3193
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 7
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48493.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3207
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1243.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 7
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3193
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -33
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3193
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 2.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "+7",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48493.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 2.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 7,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3077
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 123
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48377.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3323
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1127.01
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 123
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3077
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": 83
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3077
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 118.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "1,2,3",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48377.55
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": 118.01
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 123,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.97
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.03
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.52
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.03
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.98
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.03
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.97
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.97
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.97
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.96
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.03",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.52
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.96
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.03,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.96
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.04
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.51
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.04
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.97
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.04
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.96
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.96
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.96
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.95
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.04",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.51
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.95
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.04,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.95
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.05
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.5
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.05
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.96
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.05
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.95
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.95
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.95
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.94
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.05",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.5
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.94
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.05,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "cash",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.93
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.07
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to GCash",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "bpi",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.48
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3200.07
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Cash on hand",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "cash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "odd",
+        "toId": "gcash"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "odd",
+            "patch": {
+              "balance": 1249.94
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "gcash",
+            "patch": {
+              "balance": 0.07
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Odd balance to GCash",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "odd",
+            "transferToId": "gcash"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "junk",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Junk balance only has ₱0.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "neg",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Negative only has -₱40.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "cash",
+        "toId": "neg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.93
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "neg",
+            "patch": {
+              "balance": -39.93
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Negative",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "neg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "cash",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "cash",
+            "patch": {
+              "balance": 3199.93
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.92
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: Cash on hand to Half below zero",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "cash",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "0.07",
+        "fromId": "bpi",
+        "toId": "halfneg"
+      },
+      "out": {
+        "error": "",
+        "writes": [
+          {
+            "coll": "accounts",
+            "id": "bpi",
+            "patch": {
+              "balance": 48500.48
+            }
+          },
+          {
+            "coll": "accounts",
+            "id": "halfneg",
+            "patch": {
+              "balance": -4.92
+            }
+          }
+        ],
+        "added": [
+          {
+            "type": "transfer",
+            "label": "Transfer: BPI Savings to Half below zero",
+            "amount": 0.07,
+            "date": "2026-07-28",
+            "transferFromId": "bpi",
+            "transferToId": "halfneg"
+          }
+        ],
+        "closed": true
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Pick two different accounts.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Pick two different accounts.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": ""
+      },
+      "out": {
+        "error": "Pick two different accounts.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "ghost",
+        "toId": "cash"
+      },
+      "out": {
+        "error": "Pick two different accounts.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    },
+    {
+      "in": {
+        "amount": "100",
+        "fromId": "cash",
+        "toId": "ghost"
+      },
+      "out": {
+        "error": "Pick two different accounts.",
+        "writes": [],
+        "added": [],
+        "closed": false
+      }
+    }
+  ]
+}
