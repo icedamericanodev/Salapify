@@ -198,7 +198,12 @@ this file wins.
 Claude reviews and merges every PR itself, for all builds, when ALL of
 these hold:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
-  and every must fix finding was fixed and re-checked.
+  and every must fix finding was fixed and re-checked. Record it as a row in
+  docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when
+  the current stamp has no row. This rule sat unenforced for weeks and then
+  was simply skipped on f2.71, which put a monthly cap that could not see the
+  app's own Log entries on the founder's phone for two hours. SKIPPED is an
+  accepted verdict in that file. A missing row is not.
 - The over the air publish check on the PR head commit is green (the
   "Publish OTA update" GitHub Action). If that mechanism is ever blocked
   by billing or infrastructure rather than by the code, that condition is
