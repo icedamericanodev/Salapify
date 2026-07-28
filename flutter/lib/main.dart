@@ -27,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.71 \u00b7 Categories in Menu: rename, nest, set a monthly cap, and delete one without losing entries.';
+    'f2.72 \u00b7 Two new tools: your next BIR filing dates, and a year-end refund or shortfall estimate.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

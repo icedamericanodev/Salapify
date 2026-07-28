@@ -1772,6 +1772,22 @@ class SalapifyStore extends ChangeNotifier {
     return refusal;
   }
 
+  /// Write one plain settings key.
+  ///
+  /// For preferences that are a single flag with no money meaning and no
+  /// migration story, like which tax option a freelancer told us they are on.
+  /// Anything with rules of its own gets a named method instead, so the rules
+  /// live in one place rather than at each call site.
+  Future<void> setSetting(String key, dynamic value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        key: value,
+      },
+    },
+  );
+
   /// Add or update a category. Returns the refusal, or null when it saved.
   ///
   /// The monthly cap is Pro. That gate lives here rather than only on the

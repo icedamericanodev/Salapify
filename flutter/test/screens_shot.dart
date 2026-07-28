@@ -45,6 +45,8 @@ import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/tax_deadlines.dart';
+import 'package:salapify/screens/year_end_tax.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1071,6 +1073,56 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/category-delete-dark.png'),
+    );
+  });
+
+  testWidgets('the two tax screens, dark', (tester) async {
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: TaxDeadlinesScreen(
+          store: store,
+          clock: () => DateTime(2026, 4, 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('WHAT IS NEXT'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/bir-dates-dark.png'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: YearEndTaxScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '25000');
+    await tester.enterText(find.byType(TextField).at(3), '25000');
+    await tester.enterText(find.byType(TextField).at(4), '30000');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('LIKELY'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/year-end-tax-dark.png'),
     );
   });
 

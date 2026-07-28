@@ -16,6 +16,8 @@ import 'mindset.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
+import 'tax_deadlines.dart';
+import 'year_end_tax.dart';
 import 'thirteenth_calculator.dart';
 import 'shell.dart';
 
@@ -94,6 +96,29 @@ class ToolsScreen extends StatelessWidget {
                   'Freelancers and pros: the flat 8% versus graduated, compared.',
               open: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const TaxCalculatorScreen()),
+              ),
+            ),
+            _tool(
+              context,
+              icon: Icons.event_available_outlined,
+              title: 'BIR dates',
+              blurb:
+                  'The next filing deadlines for a freelancer, counted from today.',
+              open: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TaxDeadlinesScreen(store: store),
+                ),
+              ),
+            ),
+            _tool(
+              context,
+              icon: Icons.fact_check_outlined,
+              title: 'Year-end tax check',
+              blurb: 'Employees: a refund coming, or still something to pay?',
+              open: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => YearEndTaxScreen(store: store),
+                ),
               ),
             ),
             _tool(
