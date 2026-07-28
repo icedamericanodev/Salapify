@@ -1310,6 +1310,23 @@ class SalapifyStore extends ChangeNotifier {
   /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
   /// disables it automatically if the phone has no biometrics enrolled, so this
   /// can never lock the owner out.
+  /// Whether the home screen tile hides the peso figure.
+  ///
+  /// Separate from [setAppLock] on purpose. App lock already forces the tile's
+  /// private face, because the home screen is visible before any unlock. This
+  /// is for the much more common person who does not want a lock on the whole
+  /// app but also does not want their daily number readable over a shoulder
+  /// on the LRT.
+  Future<void> setWidgetHideAmount(bool value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'widgetHideAmount': value,
+      },
+    },
+  );
+
   Future<void> setAppLock(bool value) => _mutate(
     (d) => {
       ...d,

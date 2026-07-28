@@ -257,6 +257,8 @@ class MenuScreen extends StatelessWidget {
                 Kicker('SECURITY'),
                 const SizedBox(height: 8),
                 _appLockCard(context),
+                const SizedBox(height: 12),
+                _widgetPrivacyCard(context),
               ],
               // Deliberately OUTSIDE the canWrite block. This screen is read
               // only and touches no user data, and a user whose stored data
@@ -816,6 +818,77 @@ class MenuScreen extends StatelessWidget {
                     Text(
                       'Ask for your fingerprint or face to open Salapify. Your '
                       'money stays private if someone else picks up your phone.',
+                      style: TextStyle(
+                        color: Barako.muted,
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: on,
+                onChanged: toggle,
+                activeThumbColor: Barako.onPrimary,
+                activeTrackColor: Barako.primary,
+                inactiveThumbColor: Barako.faint,
+                inactiveTrackColor: Barako.border,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The home screen tile's own privacy switch.
+  ///
+  /// It ships in the SAME release as the tile, never later, and that is a
+  /// deliberate ordering rather than a nicety. The founder installs the APK,
+  /// drags the tile onto the home screen, and their daily number is sitting
+  /// there in public BEFORE any follow up patch could offer an off switch.
+  /// That is not recoverable by shipping quickly afterwards.
+  Widget _widgetPrivacyCard(BuildContext context) {
+    final on = (store.data['settings'] as Map?)?['widgetHideAmount'] == true;
+    Future<void> toggle(bool value) async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await store.setWidgetHideAmount(value);
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Could not save that, nothing changed. $e')),
+        );
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: MergeSemantics(
+          child: Row(
+            children: [
+              Icon(Icons.visibility_off, color: Barako.primary, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hide the amount on the home screen',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'The Salapify tile shows days to payday instead of pesos, '
+                      'so nobody reads your money over your shoulder. The Log '
+                      'button still works. App lock already does this on its '
+                      'own.',
                       style: TextStyle(
                         color: Barako.muted,
                         fontSize: 12,
