@@ -353,31 +353,56 @@ class InsightsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _nextPesoCard(plan, focusGoal),
                 ],
-                // "Kaya mo ba ito?" always shows: it is a tool anyone can reach for
-                // before a purchase, not a reflection of the current month, so it
-                // does not gate on having debt or a goal.
-                const SizedBox(height: 12),
-                AffordCard(data: data, ref: ref),
-                // The windfall planner is the same kind of always-available tool,
-                // for the other side of a big money moment: a lump landing at once.
-                const SizedBox(height: 12),
-                WindfallCard(data: data, ref: ref),
+                // The TOOLS band: things a user reaches for on purpose, not
+                // reflections of the month. They used to render fully open,
+                // two permanent screenfuls of input fields whether or not
+                // anyone came to use them; folded to one line each, the
+                // screen answers "what should I do next" in one screenful
+                // and the tools stop being scroll tax. Values inside are
+                // untouched, only which pixels are open by default changed.
+                const SizedBox(height: 18),
+                Kicker('TOOLS'),
+                const SizedBox(height: 8),
+                // "Kaya mo ba ito?" always shows: a tool anyone can reach
+                // for before a purchase, so it does not gate on having debt
+                // or a goal.
+                _CollapsibleTool(
+                  title: 'Can you afford it?',
+                  child: AffordCard(data: data, ref: ref),
+                ),
+                const SizedBox(height: 8),
+                _CollapsibleTool(
+                  title: 'A lump sum is landing?',
+                  child: WindfallCard(data: data, ref: ref),
+                ),
                 if (_hasActiveDebt(data['debts'])) ...[
-                  const SizedBox(height: 12),
-                  _DebtWhatIfCard(debts: data['debts'], sts: sts, ref: ref),
+                  const SizedBox(height: 8),
+                  _CollapsibleTool(
+                    title: 'What if you paid a little extra',
+                    child: _DebtWhatIfCard(
+                      debts: data['debts'],
+                      sts: sts,
+                      ref: ref,
+                    ),
+                  ),
                 ],
                 if (focusGoal != null) ...[
-                  const SizedBox(height: 12),
-                  _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
+                  const SizedBox(height: 8),
+                  _CollapsibleTool(
+                    title: 'What if you saved each week',
+                    child: _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
+                  ),
                 ],
+                const SizedBox(height: 18),
+                Kicker('THE BIGGER PICTURE'),
+                const SizedBox(height: 8),
                 // Spoken-For is a structural, reflective gauge, so it sits with the
                 // "understand your situation" band, not the do-next cards up top. It
                 // leads the band because commitment load feeds the debt-load health.
                 if (load['applicable'] == true) ...[
-                  const SizedBox(height: 12),
                   _spokenForCard(load),
+                  const SizedBox(height: 12),
                 ],
-                const SizedBox(height: 12),
                 _healthCard(health),
                 const SizedBox(height: 12),
                 _trendCard(series),
@@ -1395,6 +1420,72 @@ class InsightsScreen extends StatelessWidget {
 /// from debtmath.whatIfLadder, which composes the golden locked
 /// debtFreeProjection, so nothing here is invented and it matches the live
 /// app to the peso. Only renders when there is real debt to project.
+/// A tool folded to one tappable line until asked for.
+///
+/// Plain setState and no animation, so reduce motion needs nothing. The
+/// open state lives in this widget's State, which survives tab flips the
+/// same way the strategy switch does: the whole subtree stays mounted in
+/// the shell's IndexedStack.
+///
+/// The launcher is an InkWell whose only content is the visible title, so
+/// its semantics node carries the title as its label and a real tap action;
+/// no hand-rolled Semantics wrapper, which is exactly how the segmented
+/// control once stripped its own tap action.
+class _CollapsibleTool extends StatefulWidget {
+  final String title;
+  final Widget child;
+
+  // ignore: prefer_const_constructors_in_immutables
+  _CollapsibleTool({required this.title, required this.child});
+
+  @override
+  State<_CollapsibleTool> createState() => _CollapsibleToolState();
+}
+
+class _CollapsibleToolState extends State<_CollapsibleTool> {
+  bool open = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => open = !open),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ExcludeSemantics(
+                    child: Icon(
+                      open ? Icons.expand_less : Icons.expand_more,
+                      color: Barako.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (open) ...[const SizedBox(height: 8), widget.child],
+    ],
+  );
+}
+
 class _DebtWhatIfCard extends StatefulWidget {
   final dynamic debts;
   final Map<String, dynamic> sts;

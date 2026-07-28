@@ -52,8 +52,7 @@ void main() {
 
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('CAN YOU AFFORD IT?'), 300,
-        scrollable: find.byType(Scrollable).first);
+    await openInsightsTool(tester, 'Can you afford it?');
     await tester.pumpAndSettle();
 
     // A finite ~1e300 amount (300 digits), not coerced to 0.
