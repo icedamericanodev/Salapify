@@ -7,9 +7,11 @@
 // never both silent and permanent.
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/store.dart';
 import '../money/receivables.dart' as engine;
+import '../money/statement.dart';
 import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
@@ -17,7 +19,8 @@ import '../widgets/celebration.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, prettyDay;
+import '../widgets/section.dart' show Kicker;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The open receivables behind one aging row. utangAging folds rows by the
@@ -37,6 +40,36 @@ List<Map<String, dynamic>> openUtangFor(
     if (engine.nameOf(data, r).trim().toLowerCase() == key) out.add(r);
   }
   return out;
+}
+
+/// EVERY utang for one person, settled ones included, oldest row order kept.
+///
+/// The action hub used to gather only what was still open, which was right for
+/// the buttons and wrong for everything else: a statement built from open rows
+/// alone silently drops the utang they already paid, so it can neither prove
+/// they paid nor add up to the total ever lent. The same rule folds personId
+/// rows and legacy name rows together, so a person's whole history arrives.
+List<Map<String, dynamic>> allUtangFor(Map<String, dynamic> data, String name) {
+  final key = name.trim().toLowerCase();
+  final out = <Map<String, dynamic>>[];
+  for (final r
+      in (data['receivables'] as List? ?? []).cast<Map<String, dynamic>>()) {
+    if (engine.nameOf(data, r).trim().toLowerCase() == key) out.add(r);
+  }
+  return out;
+}
+
+/// The stored person record behind a name, when there is one. Legacy utang
+/// carry only a name string, so this is allowed to come back null and every
+/// caller falls back to the resolved display name.
+Map<String, dynamic>? personRecordFor(Map<String, dynamic> data, String name) {
+  final key = name.trim().toLowerCase();
+  for (final p
+      in (data['people'] as List? ?? []).cast<Map<String, dynamic>>()) {
+    final n = p['name'];
+    if (n is String && n.trim().toLowerCase() == key) return p;
+  }
+  return null;
 }
 
 /// The tab shape as it existed before the merge: header plus body. Kept as a
@@ -338,11 +371,26 @@ class _PersonRow extends StatelessWidget {
 // payment updates the sheet in place.
 // ---------------------------------------------------------------------------
 
+/// How a built statement or reminder leaves the app. Injectable so a test can
+/// assert the EXACT text that would reach someone's chat app: a test that only
+/// proves a Share button exists proves nothing about the document it sends,
+/// and the document is the whole feature.
+typedef ShareText = Future<void> Function(String text);
+
+Future<void> _shareViaOs(String text) async {
+  try {
+    await Share.share(text);
+  } catch (_) {
+    // Closing the share sheet is not an error worth surfacing.
+  }
+}
+
 Future<void> showPersonSheet(
   BuildContext context,
   SalapifyStore store,
-  String name,
-) {
+  String name, {
+  ShareText? share,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -354,7 +402,7 @@ Future<void> showPersonSheet(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: PersonSheet(store: store, name: name),
+      child: PersonSheet(store: store, name: name, share: share),
     ),
   );
 }
@@ -362,7 +410,13 @@ Future<void> showPersonSheet(
 class PersonSheet extends StatefulWidget {
   final SalapifyStore store;
   final String name;
-  const PersonSheet({super.key, required this.store, required this.name});
+  final ShareText? share;
+  const PersonSheet({
+    super.key,
+    required this.store,
+    required this.name,
+    this.share,
+  });
 
   @override
   State<PersonSheet> createState() => _PersonSheetState();
@@ -496,12 +550,73 @@ class _PersonSheetState extends State<PersonSheet> {
     );
   }
 
+  /// Ask which language the message should be written in, then hand the built
+  /// text to the OS. The picker itself is English, like the rest of the app;
+  /// the choice is about a message the user SENDS to someone else, in whatever
+  /// language the two of them actually talk in.
+  Future<void> _shareWithLanguage(
+    String title,
+    String Function(StatementLang) build,
+  ) async {
+    final lang = await showDialog<StatementLang>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text(title, style: TextStyle(color: Barako.text)),
+        content: Text(
+          'Which language should the message be in?',
+          style: TextStyle(color: Barako.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(StatementLang.tl),
+            child: Text('Tagalog', style: TextStyle(color: Barako.primary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(StatementLang.en),
+            child: Text('English', style: TextStyle(color: Barako.primary)),
+          ),
+        ],
+      ),
+    );
+    if (lang == null) return;
+    await (widget.share ?? _shareViaOs)(build(lang));
+  }
+
+  Future<void> _shareStatement(List<Map<String, dynamic>> all) {
+    final person =
+        personRecordFor(widget.store.data, widget.name) ??
+        {'name': widget.name};
+    return _shareWithLanguage(
+      'Share statement',
+      (lang) =>
+          buildPersonStatement(person, all, lang: lang, asOf: DateTime.now()),
+    );
+  }
+
+  Future<void> _remind(double owed) {
+    final person =
+        personRecordFor(widget.store.data, widget.name) ??
+        {'name': widget.name};
+    return _shareWithLanguage(
+      'Send a reminder',
+      (lang) => buildPersonReminder(person, owed, lang: lang),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.store,
       builder: (context, _) {
         final items = openUtangFor(widget.store.data, widget.name);
+        final all = allUtangFor(widget.store.data, widget.name);
+        final settled = all.where((r) => !items.contains(r)).toList();
+        final history = engine.personPaymentHistory(all);
         final total = items.fold(0.0, (t, r) => t + engine.remainingOf(r));
         return SingleChildScrollView(
           child: Padding(
@@ -539,6 +654,7 @@ class _PersonSheetState extends State<PersonSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (all.isNotEmpty) _actionRow(all, total),
                 for (final r in items) _utangCard(r),
                 if (error != null) ...[
                   const SizedBox(height: 8),
@@ -547,11 +663,145 @@ class _PersonSheetState extends State<PersonSheet> {
                     style: TextStyle(color: Barako.warning, fontSize: 13),
                   ),
                 ],
+                if (settled.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Kicker('SETTLED'),
+                  const SizedBox(height: 8),
+                  for (final r in settled) _settledRow(r),
+                ],
+                if (history.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Kicker('PAYMENT HISTORY'),
+                  const SizedBox(height: 8),
+                  for (final p in history) _paymentRow(p),
+                ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// Remind, and the statement. Remind only appears while something is
+  /// actually owed: a reminder about nothing is just an accusation.
+  Widget _actionRow(List<Map<String, dynamic>> all, double owed) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          if (owed > 0) ...[
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Barako.primary),
+                foregroundColor: Barako.primary,
+                minimumSize: const Size(0, 44),
+              ),
+              onPressed: busy ? null : () => _remind(owed),
+              icon: const Icon(Icons.send_outlined, size: 16),
+              label: const Text('Remind'),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Barako.primary,
+                foregroundColor: Barako.onPrimary,
+                minimumSize: const Size(0, 44),
+              ),
+              onPressed: busy ? null : () => _shareStatement(all),
+              icon: const Icon(Icons.description_outlined, size: 16),
+              label: const Text('Share statement'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A settled utang, shown but not actionable. It is here so the person's
+  /// history is complete and the statement's total lent can be checked against
+  /// what is on screen, not so anything can be done to it.
+  Widget _settledRow(Map<String, dynamic> r) {
+    final amount = engine.remainingOf(r) > 0
+        ? engine.remainingOf(r)
+        : ((r['amount'] is num) ? (r['amount'] as num).toDouble() : 0.0);
+    final note = (r['note'] ?? '').toString();
+    return Semantics(
+      label: '${note.isEmpty ? 'Utang' : note}, ${formatMoney(amount)}, paid',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Barako.muted, size: 15),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                note.isEmpty ? 'Utang' : note,
+                style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              '${formatMoney(amount)} paid',
+              style: TextStyle(
+                color: Barako.muted,
+                fontSize: 13,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// One payment, with the running total received as of that payment. Reading
+  /// down the list the running figure counts DOWN, because the newest payment
+  /// is the one they have paid the most by.
+  Widget _paymentRow(engine.PaymentRow p) {
+    final when = p.date.isEmpty ? '' : '${prettyDay(p.date)} · ';
+    return Semantics(
+      label:
+          '${formatMoney(p.amount)} received'
+          '${p.date.isEmpty ? '' : ' on ${prettyDay(p.date)}'} for ${p.from}. '
+          '${formatMoney(p.running)} paid back in total by then.',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: formatMoney(p.amount),
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '  $when${p.from}',
+                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+                style: const TextStyle(fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${formatMoney(p.running)} paid by then',
+              style: TextStyle(color: Barako.faint, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -589,7 +839,7 @@ class _PersonSheetState extends State<PersonSheet> {
                   ),
                 ),
                 Text(
-                  due.isNotEmpty ? 'due $due' : 'no due date',
+                  due.isNotEmpty ? 'due ${prettyDay(due)}' : 'no due date',
                   style: TextStyle(color: Barako.muted, fontSize: 12),
                 ),
               ],
@@ -617,7 +867,7 @@ class _PersonSheetState extends State<PersonSheet> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          '${formatMoney((p['amount'] as num?)?.toDouble() ?? 0)} on ${(p['date'] ?? '').toString()}',
+                          '${formatMoney((p['amount'] as num?)?.toDouble() ?? 0)} on ${prettyDay((p['date'] ?? '').toString())}',
                           style: TextStyle(
                             color: Barako.textSecondary,
                             fontSize: 12,

@@ -39,6 +39,7 @@ import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/money.dart';
+import 'package:salapify/screens/utang.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
@@ -350,6 +351,73 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/money-owed-dark.png'),
+    );
+  });
+
+  testWidgets('the person sheet, now that it is a statement too', (
+    tester,
+  ) async {
+    // The sheet grew a statement, a reminder, a settled list and a payment
+    // history in one batch. Four new blocks stacked into a bottom sheet is
+    // exactly the shape that reads fine in code and looks like a wall on a
+    // phone, so it gets looked at before it ships.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'people': [
+          {'id': 'p1', 'name': 'Migs'},
+        ],
+        'receivables': [
+          {
+            'id': 'r1',
+            'personId': 'p1',
+            'person': 'Migs',
+            'amount': 5000,
+            'note': 'Emergency',
+            'dueDate': '2026-06-30',
+            'payments': [
+              {'id': 'pay1', 'amount': 1500, 'date': '2026-07-10'},
+            ],
+          },
+          {
+            'id': 'r2',
+            'personId': 'p1',
+            'person': 'Migs',
+            'amount': 800,
+            'note': 'Load',
+            'paid': true,
+            'payments': [
+              {'id': 'pay2', 'amount': 800, 'date': '2026-05-20'},
+            ],
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: SingleChildScrollView(
+            child: PersonSheet(store: store, name: 'Migs'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/person-sheet-dark.png'),
     );
   });
 

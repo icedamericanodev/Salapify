@@ -1,0 +1,740 @@
+{
+  "asOf": "2026-07-28",
+  "history": [
+    {
+      "name": "two utang, payments interleaved by date",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "Emergency",
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 500,
+              "date": "2026-06-05"
+            },
+            {
+              "id": "p3",
+              "amount": 1000,
+              "date": "2026-07-10"
+            }
+          ]
+        },
+        {
+          "id": "r2",
+          "note": "Load",
+          "payments": [
+            {
+              "id": "p2",
+              "amount": 250,
+              "date": "2026-06-20"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p3",
+          "rid": "r1",
+          "amount": 1000,
+          "date": "2026-07-10",
+          "from": "Emergency",
+          "running": 1750
+        },
+        {
+          "id": "p2",
+          "rid": "r2",
+          "amount": 250,
+          "date": "2026-06-20",
+          "from": "Load",
+          "running": 750
+        },
+        {
+          "id": "p1",
+          "rid": "r1",
+          "amount": 500,
+          "date": "2026-06-05",
+          "from": "Emergency",
+          "running": 500
+        }
+      ]
+    },
+    {
+      "name": "the same payment id on two different utang",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A",
+          "payments": [
+            {
+              "id": "p",
+              "amount": 10,
+              "date": "2026-01-01"
+            }
+          ]
+        },
+        {
+          "id": "r2",
+          "note": "B",
+          "payments": [
+            {
+              "id": "p",
+              "amount": 20,
+              "date": "2026-01-02"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p",
+          "rid": "r2",
+          "amount": 20,
+          "date": "2026-01-02",
+          "from": "B",
+          "running": 30
+        },
+        {
+          "id": "p",
+          "rid": "r1",
+          "amount": 10,
+          "date": "2026-01-01",
+          "from": "A",
+          "running": 10
+        }
+      ]
+    },
+    {
+      "name": "no note falls back to Utang",
+      "receivables": [
+        {
+          "id": "r1",
+          "payments": [
+            {
+              "id": "p",
+              "amount": 5,
+              "date": "2026-03-03"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p",
+          "rid": "r1",
+          "amount": 5,
+          "date": "2026-03-03",
+          "from": "Utang",
+          "running": 5
+        }
+      ]
+    },
+    {
+      "name": "no payments at all",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A"
+        },
+        {
+          "id": "r2",
+          "note": "B",
+          "payments": []
+        }
+      ],
+      "rows": []
+    },
+    {
+      "name": "junk amounts and missing dates",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A",
+          "payments": [
+            {
+              "id": "p1",
+              "amount": "abc",
+              "date": ""
+            },
+            {
+              "id": "p2",
+              "amount": "300",
+              "date": "2026-02-02"
+            },
+            {
+              "id": "p3",
+              "amount": null
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p2",
+          "rid": "r1",
+          "amount": 300,
+          "date": "2026-02-02",
+          "from": "A",
+          "running": 300
+        },
+        {
+          "id": "p3",
+          "rid": "r1",
+          "amount": 0,
+          "date": "",
+          "from": "A",
+          "running": 0
+        },
+        {
+          "id": "p1",
+          "rid": "r1",
+          "amount": 0,
+          "date": "",
+          "from": "A",
+          "running": 0
+        }
+      ]
+    },
+    {
+      "name": "two payments on the same day keep their order",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A",
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 100,
+              "date": "2026-05-05"
+            },
+            {
+              "id": "p2",
+              "amount": 200,
+              "date": "2026-05-05"
+            },
+            {
+              "id": "p3",
+              "amount": 300,
+              "date": "2026-05-05"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p3",
+          "rid": "r1",
+          "amount": 300,
+          "date": "2026-05-05",
+          "from": "A",
+          "running": 600
+        },
+        {
+          "id": "p2",
+          "rid": "r1",
+          "amount": 200,
+          "date": "2026-05-05",
+          "from": "A",
+          "running": 300
+        },
+        {
+          "id": "p1",
+          "rid": "r1",
+          "amount": 100,
+          "date": "2026-05-05",
+          "from": "A",
+          "running": 100
+        }
+      ]
+    },
+    {
+      "name": "no receivables",
+      "receivables": [],
+      "rows": []
+    }
+  ],
+  "statements": [
+    {
+      "name": "one open utang, no payments",
+      "lang": "en",
+      "person": {
+        "name": "Ana"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 1500,
+          "note": "Lunch money",
+          "dueDate": "2026-07-15"
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Ana\nAs of Jul 28, 2026\n\nUTANG\nDue Jul 15, 2026   Lunch money   ₱1,500\nTotal lent: ₱1,500\n\nSTILL OPEN: ₱1,500\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "the same statement in Tagalog",
+      "lang": "tl",
+      "person": {
+        "name": "Ana"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 1500,
+          "note": "Lunch money",
+          "dueDate": "2026-07-15"
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nPara kay: Ana\nAs of Jul 28, 2026\n\nUTANG\nDue Jul 15, 2026   Lunch money   ₱1,500\nKabuuang inutang: ₱1,500\n\nNATITIRA: ₱1,500\n\nWalang pressure ha, record ko lang ito para malinaw sa ating dalawa. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "partial payments, oldest payment first",
+      "lang": "en",
+      "person": {
+        "name": "Ben Cruz"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 5000,
+          "note": "Emergency",
+          "dueDate": "2026-06-30",
+          "payments": [
+            {
+              "id": "p2",
+              "amount": 1000,
+              "date": "2026-07-10"
+            },
+            {
+              "id": "p1",
+              "amount": 500,
+              "date": "2026-06-05"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Ben Cruz\nAs of Jul 28, 2026\n\nUTANG\nDue Jun 30, 2026   Emergency   ₱5,000 · ₱1,500 of ₱5,000 paid\nTotal lent: ₱5,000\n\nPAYMENTS RECEIVED\nJun 5, 2026   ₱500\nJul 10, 2026   ₱1,000\nTotal paid: ₱1,500\n\nSTILL OPEN: ₱3,500\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "marked paid with no logged payment, the reconciling line",
+      "lang": "en",
+      "person": {
+        "name": "Ben Cruz"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 2000,
+          "note": "Groceries",
+          "paid": true
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Ben Cruz\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Groceries   ₱2,000 · paid\nTotal lent: ₱2,000\n\nPAYMENTS RECEIVED\nMarked paid   Groceries   ₱2,000\nTotal paid: ₱2,000\n\nFULLY PAID\n\nFully paid na, salamat! Keeping this just for our record. 🙌\nMade with Salapify."
+    },
+    {
+      "name": "marked paid with a short logged payment",
+      "lang": "en",
+      "person": {
+        "name": "Ben"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 2000,
+          "note": "Groceries",
+          "paid": true,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 750,
+              "date": "2026-07-01"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Ben\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Groceries   ₱2,000 · paid\nTotal lent: ₱2,000\n\nPAYMENTS RECEIVED\nJul 1, 2026   ₱750\nMarked paid   Groceries   ₱1,250\nTotal paid: ₱2,000\n\nFULLY PAID\n\nFully paid na, salamat! Keeping this just for our record. 🙌\nMade with Salapify."
+    },
+    {
+      "name": "marked paid in Tagalog",
+      "lang": "tl",
+      "person": {
+        "name": "Ben"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 2000,
+          "paid": true
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nPara kay: Ben\nAs of Jul 28, 2026\n\nUTANG\nWalang due date   Utang   ₱2,000 · bayad na\nKabuuang inutang: ₱2,000\n\nMGA NABAYARAN NA\nMinarkahang bayad   Utang   ₱2,000\nKabuuang bayad: ₱2,000\n\nBAYAD NA LAHAT\n\nBayad na lahat, salamat! Record lang natin ito. 🙌\nMade with Salapify."
+    },
+    {
+      "name": "several utang, one paid one open",
+      "lang": "en",
+      "person": {
+        "name": "Carla"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 800,
+          "note": "Load",
+          "dueDate": "2026-05-01",
+          "paid": true,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 800,
+              "date": "2026-05-20"
+            }
+          ]
+        },
+        {
+          "id": "r2",
+          "amount": 1200,
+          "dueDate": "2026-08-01"
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Carla\nAs of Jul 28, 2026\n\nUTANG\nDue May 1, 2026   Load   ₱800 · paid\nDue Aug 1, 2026   Utang   ₱1,200\nTotal lent: ₱2,000\n\nPAYMENTS RECEIVED\nMay 20, 2026   ₱800\nTotal paid: ₱800\n\nSTILL OPEN: ₱1,200\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "fully paid across every utang",
+      "lang": "en",
+      "person": {
+        "name": "Carla"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 800,
+          "paid": true,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 800,
+              "date": "2026-05-20"
+            }
+          ]
+        },
+        {
+          "id": "r2",
+          "amount": 200,
+          "paid": true,
+          "payments": [
+            {
+              "id": "p2",
+              "amount": 200,
+              "date": "2026-06-02"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Carla\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱800 · paid\nNo due date   Utang   ₱200 · paid\nTotal lent: ₱1,000\n\nPAYMENTS RECEIVED\nMay 20, 2026   ₱800\nJun 2, 2026   ₱200\nTotal paid: ₱1,000\n\nFULLY PAID\n\nFully paid na, salamat! Keeping this just for our record. 🙌\nMade with Salapify."
+    },
+    {
+      "name": "overpaid never goes negative",
+      "lang": "en",
+      "person": {
+        "name": "Dan"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 500,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 400,
+              "date": "2026-07-01"
+            },
+            {
+              "id": "p2",
+              "amount": 300,
+              "date": "2026-07-02"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Dan\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱500 · ₱700 of ₱500 paid\nTotal lent: ₱500\n\nPAYMENTS RECEIVED\nJul 1, 2026   ₱400\nJul 2, 2026   ₱300\nTotal paid: ₱700\n\nFULLY PAID\n\nFully paid na, salamat! Keeping this just for our record. 🙌\nMade with Salapify."
+    },
+    {
+      "name": "a payment with no date sorts after dated ones",
+      "lang": "en",
+      "person": {
+        "name": "Elle"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 3000,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 100,
+              "date": ""
+            },
+            {
+              "id": "p2",
+              "amount": 200,
+              "date": "2026-07-04"
+            },
+            {
+              "id": "p3",
+              "amount": 300,
+              "date": "2026-01-04"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Elle\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱3,000 · ₱600 of ₱3,000 paid\nTotal lent: ₱3,000\n\nPAYMENTS RECEIVED\nJan 4, 2026   ₱300\nJul 4, 2026   ₱200\n₱100\nTotal paid: ₱600\n\nSTILL OPEN: ₱2,400\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "junk amounts and junk dates",
+      "lang": "en",
+      "person": {
+        "name": "Fred"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": "abc",
+          "note": "   ",
+          "dueDate": "2026-13-05"
+        },
+        {
+          "id": "r2",
+          "amount": "1,200",
+          "dueDate": "tomorrow"
+        },
+        {
+          "id": "r3",
+          "amount": "2400",
+          "dueDate": "2026-02-29"
+        },
+        {
+          "id": "r4",
+          "amount": null,
+          "payments": [
+            {
+              "id": "p",
+              "amount": "x",
+              "date": 5
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Fred\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱0\nNo due date   Utang   ₱0\nDue Feb 29, 2026   Utang   ₱2,400\nNo due date   Utang   ₱0\nTotal lent: ₱2,400\n\nPAYMENTS RECEIVED\n₱0\nTotal paid: ₱0\n\nSTILL OPEN: ₱2,400\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "centavos in the total",
+      "lang": "en",
+      "person": {
+        "name": "Gina"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 1000.55,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 0.5,
+              "date": "2026-07-02"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Gina\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱1,001 · ₱1 of ₱1,001 paid\nTotal lent: ₱1,001\n\nPAYMENTS RECEIVED\nJul 2, 2026   ₱1\nTotal paid: ₱1\n\nSTILL OPEN: ₱1,000\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "a hair under the settled threshold still counts as open",
+      "lang": "en",
+      "person": {
+        "name": "Hana"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 100,
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 99.99,
+              "date": "2026-07-02"
+            }
+          ]
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Hana\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱100 · ₱100 of ₱100 paid\nTotal lent: ₱100\n\nPAYMENTS RECEIVED\nJul 2, 2026   ₱100\nTotal paid: ₱100\n\nSTILL OPEN: ₱0\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "no receivables at all",
+      "lang": "en",
+      "person": {
+        "name": "Iris"
+      },
+      "receivables": [],
+      "text": "SALAPIFY · Statement of Account\nFor: Iris\nAs of Jul 28, 2026\n\nUTANG\nTotal lent: ₱0\n\nSTILL OPEN: ₱0\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "a nameless person falls back to Someone",
+      "lang": "en",
+      "person": {
+        "name": "   "
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 100
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Someone\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱100\nTotal lent: ₱100\n\nSTILL OPEN: ₱100\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "no person object at all",
+      "lang": "en",
+      "person": null,
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 100
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Someone\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱100\nTotal lent: ₱100\n\nSTILL OPEN: ₱100\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "a name that is not a string",
+      "lang": "en",
+      "person": {
+        "name": 42
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 100
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Someone\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Utang   ₱100\nTotal lent: ₱100\n\nSTILL OPEN: ₱100\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "receivables that are not a list",
+      "lang": "en",
+      "person": {
+        "name": "Jun"
+      },
+      "receivables": null,
+      "text": "SALAPIFY · Statement of Account\nFor: Jun\nAs of Jul 28, 2026\n\nUTANG\nTotal lent: ₱0\n\nSTILL OPEN: ₱0\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "a negative utang",
+      "lang": "en",
+      "person": {
+        "name": "Kai"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": -750,
+          "note": "Refunded"
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Kai\nAs of Jul 28, 2026\n\nUTANG\nNo due date   Refunded   -₱750\nTotal lent: -₱750\n\nSTILL OPEN: ₱0\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    },
+    {
+      "name": "an unknown language falls back to English",
+      "lang": "es",
+      "person": {
+        "name": "Lia"
+      },
+      "receivables": [
+        {
+          "id": "r1",
+          "amount": 100,
+          "dueDate": "2026-12-25"
+        }
+      ],
+      "text": "SALAPIFY · Statement of Account\nFor: Lia\nAs of Jul 28, 2026\n\nUTANG\nDue Dec 25, 2026   Utang   ₱100\nTotal lent: ₱100\n\nSTILL OPEN: ₱100\n\nNo pressure at all, this is just my own record so we are both on the same page. Salamat!\nMade with Salapify."
+    }
+  ],
+  "reminders": [
+    {
+      "name": "plain English reminder",
+      "lang": "en",
+      "person": {
+        "name": "Ana"
+      },
+      "owed": 1500,
+      "text": "Hi Ana! Friendly reminder about the ₱1,500 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "Tagalog reminder",
+      "lang": "tl",
+      "person": {
+        "name": "Ana"
+      },
+      "owed": 1500,
+      "text": "Hi Ana! Paalala lang sa ₱1,500 na total ng utang. Walang pressure, para lang di natin makalimutan. Salamat! 🙏"
+    },
+    {
+      "name": "nameless",
+      "lang": "en",
+      "person": {
+        "name": "  "
+      },
+      "owed": 200,
+      "text": "Hi Someone! Friendly reminder about the ₱200 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "no person",
+      "lang": "en",
+      "person": null,
+      "owed": 200,
+      "text": "Hi Someone! Friendly reminder about the ₱200 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "junk owed",
+      "lang": "en",
+      "person": {
+        "name": "Ben"
+      },
+      "owed": "abc",
+      "text": "Hi Ben! Friendly reminder about the ₱0 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "string owed",
+      "lang": "en",
+      "person": {
+        "name": "Ben"
+      },
+      "owed": "2400.60",
+      "text": "Hi Ben! Friendly reminder about the ₱2,401 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "zero owed",
+      "lang": "en",
+      "person": {
+        "name": "Ben"
+      },
+      "owed": 0,
+      "text": "Hi Ben! Friendly reminder about the ₱0 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "negative owed",
+      "lang": "en",
+      "person": {
+        "name": "Ben"
+      },
+      "owed": -50,
+      "text": "Hi Ben! Friendly reminder about the -₱50 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    },
+    {
+      "name": "unknown language falls back to English",
+      "lang": "es",
+      "person": {
+        "name": "Ben"
+      },
+      "owed": 100,
+      "text": "Hi Ben! Friendly reminder about the ₱100 total you still owe. No rush, just so we both remember. Thank you! 🙏"
+    }
+  ]
+}
