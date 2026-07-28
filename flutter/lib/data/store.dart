@@ -19,6 +19,7 @@ import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
+import '../money/quick_adds.dart';
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
@@ -1787,6 +1788,69 @@ class SalapifyStore extends ChangeNotifier {
       },
     },
   );
+
+  /// The quick add presets as stored, or the shipped defaults when the person
+  /// has never touched them.
+  ///
+  /// The distinction matters the moment they CAN touch them. Before the
+  /// editor existed, an empty stored list could only mean "never set", so
+  /// falling back to the defaults was right. With an editor, deleting the last
+  /// button would have made four different ones reappear, which reads as the
+  /// app refusing to be changed. So opening the editor writes the defaults
+  /// down first (see [seedQuickAdds]), and after that an empty list means
+  /// exactly what it says.
+  List<QuickAdd> get quickAdds {
+    final stored = readQuickAdds((data['settings'] as Map?)?['quickAdds']);
+    if (stored.isNotEmpty) return stored;
+    return _quickAddsSeeded ? const [] : defaultQuickAdds;
+  }
+
+  /// Whether the person has ever opened the editor.
+  ///
+  /// NOT "the stored list is non empty", which was the first version and could
+  /// never represent a deliberately empty list: delete the last button and the
+  /// signal flips back to "never set", so the four defaults returned. This
+  /// flag is the only thing that tells "never touched" from "emptied on
+  /// purpose".
+  bool get _quickAddsSeeded =>
+      (data['settings'] as Map?)?['quickAddsEdited'] == true;
+
+  /// Write the current visible presets down, so an empty list afterwards is a
+  /// choice rather than an absence. Called when the editor opens; a no-op once
+  /// anything is stored.
+  Future<void> seedQuickAdds() async {
+    if (_quickAddsSeeded) return;
+    // The list AS SHOWN, not the constant: someone who already has a stored
+    // list must not have it replaced by the defaults just for opening the
+    // editor. Both keys move in ONE mutate, so a crash between them cannot
+    // leave the flag set with no list behind it.
+    final current = quickAdds;
+    await _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'quickAdds': [for (final q in current) q.toJson()],
+          'quickAddsEdited': true,
+        },
+      },
+    );
+  }
+
+  /// Append a preset. Returns the refusal sentence, or null when it saved.
+  Future<String?> addQuickAddPreset(String label, String amountText) async {
+    final result = addQuickAdd(quickAdds, label, amountText);
+    if (result.error != null) return result.error;
+    await setSetting('quickAdds', [for (final q in result.list!) q.toJson()]);
+    return null;
+  }
+
+  /// Drop the preset at [index]. Deleting the last one is allowed and is
+  /// remembered: the card then says so rather than quietly refilling.
+  Future<void> removeQuickAddPreset(int index) async {
+    final next = removeQuickAdd(quickAdds, index);
+    await setSetting('quickAdds', [for (final q in next) q.toJson()]);
+  }
 
   /// Add or update a category. Returns the refusal, or null when it saved.
   ///
