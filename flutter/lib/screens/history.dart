@@ -9,7 +9,9 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/search.dart' as search;
+import '../money/period.dart';
 import '../theme.dart';
+import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'overview.dart' show formatMoney, prettyDay;
@@ -101,6 +103,12 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String filter = 'all';
+
+  /// The time slice. Opens on ALL TIME rather than this month, deliberately:
+  /// Activity has always shown everything, and starting it filtered would make
+  /// entries the person logged last month look deleted. The selector is an
+  /// addition to the screen, not a new default for it.
+  Period period = const Period.all();
   late final TextEditingController _query = TextEditingController(
     text: widget.initialQuery,
   );
@@ -143,7 +151,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               : t['type'] == filter);
       final keepText =
           q.trim().isEmpty || search.txMatches(t, q, maps.cat, maps.acct);
-      if (keepType && keepText) indexed.add((t, i));
+      final keepDate = inPeriod(t['date'], period);
+      if (keepType && keepText && keepDate) indexed.add((t, i));
     }
     indexed.sort((a, b) {
       final byDate = (b.$1['date'] ?? '').toString().compareTo(
@@ -260,6 +269,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   borderSide: BorderSide(color: Barako.primary),
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            PeriodSelector(
+              period: period,
+              allowAll: true,
+              onChange: (p) => setState(() => period = p),
             ),
             const SizedBox(height: 12),
             SingleChildScrollView(
