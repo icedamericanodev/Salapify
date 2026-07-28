@@ -10,6 +10,759 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 15: the words were accurate and the founder still went looking
+
+f2.74 delivered cleanly, was confirmed on the founder's phone, and nothing
+broken reached it. Eighth clean delivery in a row on the mechanical side, and
+the second round running where the pre-merge QA pass ran, found real defects,
+and every must-fix was fixed before the merge instead of after.
+
+The patch is clean. The session is not short, because the headline is not a code
+failure at all. Between f2.73 and f2.74 the founder went to the phone, tapped
+check for update, and found nothing new. They were right: f2.74 was sitting
+unmerged on the working branch at that moment. The message that sent them there
+was accurate in every word. CLAUDE.md predicts this exact event, by name, in the
+section written to prevent it. So the interesting question is not who was
+careless. It is why a rule can describe an event precisely and still not stop it.
+
+Three other things are worth the time. A set of tests shipped with a fuse in
+them, four days from turning the branch check red, while a file written in the
+same commit by the same author states the exact rule they broke. A user
+interface collision that no test caught was caught by looking at the render, and
+the one automated warning that did exist was silenced by the person who received
+it. And a scripted edit silently did nothing for the second time in one day,
+this time WITH the assert session 14 recommended already in place.
+
+### What we believed / What was true
+
+**Believed: f2.74 reached the phone. TRUE, and confirmed in person.** From
+`git show origin/main:docs/delivery-log.md | tail -1`:
+
+    | 2026-07-28 15:34 UTC | f2.74 | 24 | patch | 0.6.2+11 | 22f15d85 (run 30373019870) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+flutter/pubspec.yaml:12 still reads `version: 0.6.2+11`, unchanged since
+session 5. The stamp in the tree at flutter/lib/main.dart:30 is
+`'f2.74 · Activity can now show just one month, one year, or any date range you
+pick.'`, 83 characters against the 120 cap at
+flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified.**
+`git cat-file -p 22f15d8` shows two parents, d851266 and 52da033.
+
+**Believed: the suite is green on what shipped. TRUE, re-run in a clean
+checkout.** A throwaway worktree at 0f10b11, the delivered tip, reports
+`flutter analyze` clean and `flutter test` at **+982: All tests passed!**, up
+from 951 at f2.73. The caveat is stated rather than smoothed over, because this
+log measures rather than inherits: the working tree this session sat in was also
+being used to write the NEXT batch while the session ran, and batch 9 was
+committed as 6988747 at 16:39 UTC partway through. Every number in this entry
+that describes what shipped was therefore measured in the clean worktree, not in
+the live tree.
+
+**Believed: the QA pass ran BEFORE the merge. TRUE, with a record.**
+docs/qa-log.md:34 carries an f2.74 row naming 3 MUST FIX, 5 SHOULD FIX and 2
+deferred findings. The row exists because flutter/test/qa_record_test.dart made
+the build fail without it, for the second consecutive round.
+
+**Believed: three of the new tests were going to start failing on 1 August 2026.
+NOT EXACTLY. Two would have failed on 1 August. Measured, not assumed.** The
+fuse is completely real and this correction does not soften it. Method: a
+throwaway worktree at 6c8ecfb, the pre-fix commit, with the selector's default
+clock at flutter/lib/widgets/period_selector.dart:42 (`clock ?? DateTime.now`)
+simulated forward, because the fixtures cannot move and the calendar can. At
+1 August 2026, 2 of the 10 tests in that file fail, with exactly the two failure
+lines the commit message quotes:
+
+    Actual: Found 0 widgets with text "ThisMonth" descending from widgets
+    00:01 +1 -1: picking Month narrows the list to this month [E]
+    Actual: Found 0 widgets with text "June 2026": []
+    00:02 +4 -2: stepping back a month shows that month, and its name [E]
+    00:03 +8 -2: Some tests failed.
+
+At 1 January 2027 it is four, adding 'picking Year keeps this year and drops the
+one before' and 'the period and the text filter both apply'. So the honest
+statement is that the fuse was lit for two tests in four days and for four tests
+in five months. Both the commit message and the docs/qa-log.md row say three.
+
+**Believed: the two orange chips both saying "All" reached a commit. FALSE, and
+this matters for how the event is read.** The collision was caught during batch 8
+and fixed before that batch was committed. The pre-fix commit 6c8ecfb already
+carries `if (allowAll) (PeriodMode.all, 'All time')` at
+flutter/lib/widgets/period_selector.dart:101, and already carries the guard test
+'the two chip rows do not both say All'. So this is not a defect that shipped and
+was retrofitted. It is a defect that existed for the length of one work session
+and never left the branch. Everything else about the account holds, and the
+repository corroborates the mechanism, below.
+
+**Believed: f2.74 was unmerged at the moment the founder checked the phone.
+CONSISTENT with the timeline, and the words themselves are not in the
+repository.** The stamp was bumped to f2.74 inside 52da033 at 14:56:32 UTC. The
+merge landed at 15:22:06 UTC. The delivery row was written at 15:34:17 UTC. So
+there is a 26 minute window in which a build named f2.74 existed in the
+repository and on no phone, preceded by a 20 minute window in which the batch
+existed with the old stamp. What was actually said in chat leaves no artifact
+here, so this entry treats the wording as reported and the timing as proven.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 14:09:35 | f2.73 patch 23 delivered, confirmed on the phone | d851266 |
+| 14:34:52 | f4753ea, session 14 written up. Also carries two code fixes it recommended, announced in its own commit message | commit stat: statement.dart and person_sheet_test.dart |
+| 14:36:04 | 6c8ecfb batch 8, the period selector. 3913 lines added. **No stamp bump**, deliberately, so the stamp lands with the QA row | commit message |
+| between | **The founder checks the phone and finds nothing new.** f2.74 does not exist yet, then exists only on the branch | reported; window proven above |
+| 14:56:32 | 52da033 QA round. Stamp bumped to f2.74. 3 MUST FIX, 5 SHOULD FIX | commit message, docs/qa-log.md:34 |
+| 15:22:06 | Merge #231 (22f15d8), two parents | `git cat-file -p 22f15d8` |
+| 15:34:17 | f2.74 patch 24 delivered, 12m11s after the merge | delivery row, 0f10b11 |
+| after | **Founder confirms f2.74 on the phone** | founder |
+| 16:39:37 | Batch 9 committed on the branch while this session ran | 6988747 |
+
+### Divergence point
+
+**There is no delivery divergence. Eight in a row.** There is no correctness
+divergence that reached the phone either, for the second round running.
+
+The divergence this round is between what was true and what the founder had
+reason to believe, and it can be dated exactly. It is **14:56:32 UTC**, the
+moment the string `f2.74` entered the repository. From that moment there existed
+a name for something the founder could look for, and no row anywhere saying it
+had arrived. The founder looked. Nothing was there. Twenty six minutes later it
+was.
+
+Worth saying plainly: the split was not caused by anything untrue. Every
+individual sentence in the report was correct. The divergence was created by
+naming a build before it existed anywhere the founder could reach.
+
+### Root cause
+
+**1. The rule governs the ACT of merging. The failure was in the WORDS about not
+having merged yet.**
+
+CLAUDE.md's "Finished means delivered" section, at CLAUDE.md:253 to :259, reads:
+
+    Concretely, before answering any new question or starting any new work:
+    - If a pull request is open with finished work in it, merge it or say out
+      loud, to the founder, why it is waiting. Never silently move on.
+    - After merging, watch the build through and report the patch number from
+      docs/delivery-log.md.
+    - The founder should never have to tap "check for update" to discover whether
+      something was finished. If they are asking, the reporting already failed.
+
+Read it as an instruction and it was followed. The work was not silently moved
+on from. The reason for waiting was said out loud, and it was the true reason.
+Read it as a promise to the founder and it was broken, because the third bullet
+is not addressed to the same actor as the first two. The first two tell Claude
+what to DO. The third describes a state of the FOUNDER, and nothing in between
+connects the doing to the state.
+
+So this is not a gap in the rule's coverage. The rule names the event with
+uncomfortable precision. It is a gap in what the rule attaches to: it attaches to
+merging, and the harmful act was speaking.
+
+**2. "Ready" and "waiting on the check" are true sentences whose effect on a
+beginner is a phone check.**
+
+The founder is not a release engineer and does not hold a model of the pipeline.
+Given "f2.74 is ready", the reasonable inference is that a thing exists with that
+name. The word "ready" is doing something the speaker did not intend and the
+listener could not be expected to discount. Naming the stamp made it worse and is
+the specific, fixable part: a stamp name is exactly the token the founder is
+trained to compare against the phone. CLAUDE.md itself trains them to do that, at
+the delivery check section, which tells them the row and the phone can be
+compared directly and that this comparison is the one thing they can do that
+Claude cannot.
+
+**3. The mechanical half already exists, and it points at the log instead of the
+founder.**
+
+.github/workflows/flutter-check.yml:91 to :105 already computes exactly the two
+numbers this failure was about:
+
+    - name: Branch stamp vs the stamp actually delivered
+      ...
+        echo "This branch builds stamp: ${BRANCH:-unknown}"
+        echo "Last stamp on the phone:  ${DELIVERED:-none recorded}"
+
+and its comment at :82 to :90 says why it was built: "a batch once sat in an open
+pull request while the founder tapped check-for-update and read back the old
+stamp". So a previous session built a check for precisely this and made it
+informational, correctly, because failing on it would cry wolf on every push. The
+check is right and it is aimed at a log file. The founder does not read GitHub
+Actions logs. The gap is not detection. It is delivery of the detection.
+
+**4. For the fuse and the ambiguous finder, one shared root: a rule stated in a
+file does not travel to the file next door, even inside one commit.**
+
+This is session 14's headline arriving for the second day running, and this time
+the distance is smaller than ever. flutter/test/goldens/gen-period-goldens.js:10
+to :12, in commit 6c8ecfb, states:
+
+    // Every fixture that involves "today" passes an explicit ref date. periodIsFuture
+    // falls back to `new Date()`, and a golden file whose answers change depending
+    // on the day it was generated is not a golden file.
+
+That is the rule the widget tests in the same commit broke, written by the same
+author, in a sibling directory, hours apart at most. The generator was made
+clock-explicit. The widget tests were not. Nothing carried the sentence across,
+because nothing exists to carry it: the rule lives in a comment attached to one
+file, and comments do not travel.
+
+### Lessons and guards
+
+**Lesson 1. A report can be accurate in every word and still function as a
+promise. That is a fourth distinct cause of delivery confusion, and it is the
+first one with no automated guard available.**
+
+The three earlier causes each got a guard, and each guard holds:
+
+- A test that passed locally and failed on a runner: guarded by
+  .github/workflows/flutter-check.yml running the whole suite on every push to a
+  `claude/**` branch, with no paths filter. Strongest tier.
+- A QA pass that was simply skipped: guarded by docs/qa-log.md plus
+  flutter/test/qa_record_test.dart. Strongest tier, and it fired again this round.
+- Finished work never merged at all: guarded by CLAUDE.md's "Finished means
+  delivered" rule. Medium tier by construction, because it is prose.
+
+This round is the fourth cause: **finished-sounding words about unfinished work**.
+Nothing catches it, and the honest reason is that the artifact is a sentence in a
+chat window. No test, no workflow, and no assertion can read it. Every automated
+guard in this project inspects the repository, and the repository was correct at
+every instant.
+
+**Guard, and its strength stated honestly: MEDIUM, a rule tied to a specific
+moment. NEW Open 35 for the class.** The rule that fits the actual failure, and
+which is narrow enough to be checkable by the person about to break it:
+
+> Never write a stamp name (f2.xx) to the founder before a delivery row exists
+> for it. Until that row exists, say what is happening in words that cannot be
+> looked up on the phone: "nothing new on your phone yet, I will tell you when
+> there is." The stamp name is the founder's lookup key. Handing them a key
+> before the door exists is what sends them to the door.
+
+Two things make this stronger than an intention without making it strong.
+
+First, it names the exact keystroke that triggers it, which is typing an
+`f` followed by a digit into a message. That is a much better trigger than
+"report carefully", because it is recognisable in the moment.
+
+Second, there is a mechanical assist that already exists and costs nothing: the
+three delivery commands in CLAUDE.md, which read the row rather than guessing. If
+a stamp name is about to be typed, those three commands settle whether it may be.
+
+**What would be stronger, and why it is not available.** The strongest version of
+this guard would be an automated message to the founder when, and only when, a
+delivery row appears, so that no interim status message is ever needed. The
+publisher already writes the row and already opens GitHub issues for two other
+conditions (nothing shipped, at flutter-preview.yml:223, and a release needing a
+manual install, at :248). Neither of those reaches the founder's phone either.
+There is no channel from this repository to the founder that they actually watch,
+other than the app itself and Claude's own messages. Until there is, this lesson
+stays at medium tier and should be described that way every time it is cited.
+
+**A weaker but real fallback if this recurs: stop reporting progress between
+merges entirely.** Two messages per batch, "starting X" and "delivered as f2.xx,
+patch N". That removes the class rather than patching it, at the cost of the
+founder hearing less. It is written down here so that the next session has
+somewhere to escalate to, rather than repeating the same medium guard louder.
+
+**Lesson 2. Three tests were pinned to July while the screen they mounted read
+the real calendar, and the rule against exactly that was written into a file in
+the same commit.**
+
+The defect: flutter/test/period_selector_test.dart mounts HistoryScreen with
+fixtures hard coded to July 2026, and pre-fix the screen passed no clock to
+PeriodSelector, whose constructor defaults to `clock ?? DateTime.now` at
+flutter/lib/widgets/period_selector.dart:42. Every assertion about "this month"
+was therefore an assertion about the day the suite happened to run.
+
+Measured this session, in a clean pre-fix worktree, rather than taken from the
+commit message: two of those tests fail on 1 August 2026, four fail by
+1 January 2027. See the beliefs section for the failure lines. The commit message
+and the QA row both say three. The direction of the finding is right and the
+count is wrong, which is worth recording because this log has now corrected a
+QA row's arithmetic twice in two sessions.
+
+The sharp part is not the mistake, it is the distance. The rule was written in
+flutter/test/goldens/gen-period-goldens.js:10 to :12, quoted in full under Root
+cause, in the same commit, about the same concept, for the JS generator. It says
+an answer that changes with the day it was generated is not a fixed answer. Two
+directories away, in Dart, the same author let three answers depend on the day.
+Session 14's headline was a rule applied in one file and not its sibling. This is
+the same shape on the next day, with the gap narrowed from "hours apart" to "same
+commit".
+
+**Guard for the instance: SHIPPED, strongest tier, re-proven live this session.**
+HistoryScreen now takes an injectable clock, at flutter/lib/screens/history.dart:99
+(`final DateTime Function()? clock;`) and :132
+(`DateTime _now() => (widget.clock ?? DateTime.now)();`), and the test mounts it
+with `clock: _now` at flutter/test/period_selector_test.dart:60. The comment at
+:53 to :57 records why. Pushing the injected clock to August in the CURRENT tree
+still fails those same two tests, which is the correct behaviour: the fixtures and
+the clock are now both pinned and both under the test's control.
+
+**Guard for the class: NOT WRITTEN. NEW Open 36.** Nothing stops the next widget
+test from mounting a screen that reads the real calendar. The candidate guard is
+small, mechanical and strongest tier: **make the clock a required parameter rather
+than a defaulted one on any widget that reads today**, so `DateTime.now` has to be
+typed at the call site by whoever wants it. A defaulted clock is invisible at the
+call site, and a test author cannot forget a parameter the compiler demands.
+Currently `PeriodSelector.clock` defaults at period_selector.dart:42 and
+`HistoryScreen.clock` is nullable at history.dart:99, so both can be omitted in
+silence.
+
+**An instance of the same class that is still live, found by this session and not
+filed by anyone.** flutter/test/screens_shot.dart:443 mounts
+`HistoryScreen(store: store, onMenu: () {})` with no clock, for three shots
+(`history-period-dark.png`, `history-period-custom-dark.png`,
+`history-period-month-dark.png` at :450, :462 and :478). The QA fix injected the
+clock into the widget test and not into the photograph. Stated precisely and
+without inflation: this cannot turn a build red, because CI runs the harness with
+`--update-goldens` so it only writes. What it means is that the month label in the
+third shot is whatever month the machine thinks it is, so two runs on two days
+produce different pictures for reasons that have nothing to do with the code, and
+a reviewer comparing them is comparing the calendar. Small, real, and exactly the
+sentence the generator header was written to prevent.
+
+**Lesson 3. The only automated warning about the "All" collision was a failing
+finder, and it was treated as a test-authoring annoyance.**
+
+What happened, from the commit message of 6c8ecfb and the two comments it left
+behind: on Activity, the period row sat directly above the type filter row, both
+led with an orange chip, and both chips said "All". Looking at the render showed
+it at a glance. No test asserted anything about it.
+
+But one test did react. `find.text('All')` was ambiguous, because there were two,
+and an ambiguous finder throws. The response was to scope the finder past the
+ambiguity. That artifact is still in the delivered tree, at
+flutter/test/period_selector_test.dart:96 to :100:
+
+    /// Scoped to the selector. The type filter row on Activity sits right below
+    /// this one, so a bare find.text can reach the wrong chip.
+    Finder _chip(String label) => find.descendant(
+      of: find.byType(PeriodSelector),
+      matching: find.text(label),
+    );
+
+Read that docstring cold and it is good practice. Read it knowing what happened
+and it is a description of the bug, written as if it were a testing convenience.
+Two chips on one screen carry the same word, therefore the test must disambiguate.
+The person who wrote that sentence had all the information and filed it under
+housekeeping.
+
+The code now records the correction, at
+flutter/lib/widgets/period_selector.dart:119 to :124:
+
+    // 'All time', not 'All'. On Activity this row sits directly above the
+    // type filter row, whose first chip is also called All and is also
+    // highlighted, so two orange chips called All stacked on top of each
+    // other and neither said which was which. The render showed it; no test
+    // did, and the test that DID trip over the ambiguity was rewritten to
+    // scope past it, which silenced the only warning there was.
+
+**What makes an ambiguous finder recognisable as a user interface signal rather
+than a chore.** This is the useful part of the lesson, so it is worth being
+precise instead of moralising. The two cases are genuinely different and the
+difference is checkable in seconds:
+
+- The duplicates are in DIFFERENT parts of the screen that a person reads
+  separately, for example the same word inside a text field and inside a list
+  row. Scoping is correct. `_row` at :103 to :106 is exactly this case, and its
+  docstring says so: typing a word into the filter puts that word on screen
+  inside the field.
+- The duplicates are in the SAME visual band, side by side or stacked, both
+  drawn in the same accent, both tappable. Then the finder is not confused. The
+  USER is. Scoping is suppressing the report.
+
+So the recognisable question, asked at the moment the finder throws, is: **would
+a person looking at this screen also have to disambiguate?** If yes, it is a
+defect. If no, scope it.
+
+**Guard for the instance: SHIPPED, strongest tier.**
+flutter/test/period_selector_test.dart:146 to :154, 'the two chip rows do not
+both say All', asserting `find.text('All')` finds exactly one widget and
+`find.text('All time')` finds exactly one. Any future rename that recreates the
+collision makes the first assertion ambiguous again, and this time it fails as a
+named guard rather than as noise in an unrelated test.
+
+**Guard for the class: NOT WRITTEN. NEW Open 37.** There is a strongest tier
+candidate here and it is broader than one screen: **a test that mounts each
+screen and asserts no two chips visible at once carry the same label.** The chip
+labels are the app's own strings, the widgets are all `ChoiceChip` or
+`FilterChip`, and the assertion is a set comparison. That works while nobody is
+watching, on screens nobody thought to look at. The medium tier fallback, if the
+sweep is judged too large, is the paragraph above written into CLAUDE.md beside
+the render rule, since the render rule is where a person already is when this
+happens.
+
+**Lesson 4. A scripted edit silently did nothing, for the second time in one day,
+and this time the assert session 14 asked for was already there.**
+
+From the commit message of 52da033, recorded by the author against themselves:
+
+    One process note worth recording. The clock fix silently did not apply on its
+    first attempt: the python anchor did not match the formatted text, the assert
+    fired, and the script exited before its write. Caught by grepping for the
+    result instead of trusting the exit code.
+
+**Corroboration from the diff, since session 14 could only report its instance.**
+The edit target was `_openHistory` in the pre-fix test file. At 6c8ecfb its mount
+is a single physical line:
+
+    home: Scaffold(body: HistoryScreen(store: store)),
+
+and in the delivered tree it is three, because adding `clock: _now` pushed it past
+the line width and `dart format` reflowed it:
+
+    home: Scaffold(
+      body: HistoryScreen(store: store, clock: _now),
+    ),
+
+An anchor written the way the code reads in an editor, across lines, cannot match
+a formatter-collapsed single line, and an anchor written flat cannot match a
+formatter-expanded block. Both directions occur in the same file within one
+commit. That is the mechanism, and it is now demonstrated twice in one day from
+two different commits, in opposite directions, which makes it a property of the
+toolchain rather than an unlucky afternoon.
+
+**The important difference from session 14, and it is a correction to Open 31's
+proposed wording.** Session 14's recommendation was that an edit script should
+assert its match count BEFORE writing. Here the assert was present and it fired.
+The edit still silently did not happen, because an assert that fires prevents a
+WRONG write and does nothing to announce a MISSING one. The failure moved one
+step downstream: from "wrote the wrong thing" to "wrote nothing, and the next
+step assumed it had". Open 31's wording, followed exactly, would not have
+prevented this round's instance.
+
+**Guard: MEDIUM at best as prose, and there is a mechanical option that is
+genuinely stronger. Open 31 restated.** The mechanical option is available today
+and requires no new code: **do not edit source files with heredoc scripts at all.
+Use the file editing tool, which fails loudly when its target string is absent and
+cannot silently no-op.** That is not a habit, it is a property of a different
+tool, which is why it ranks above the rule. Where a script is genuinely necessary,
+for example a hundred call sites, the script must END by printing
+`git diff --stat` for the file it claimed to change, so that "nothing happened" is
+visible in the same output as "it worked".
+
+The thing that actually caught it this time was neither: it was grepping for the
+result. That is a habit, weakest tier, and it worked, and it should not be relied
+on again.
+
+**A third instance, produced by this session while writing this entry.** The
+script that corrected line numbers in this file asserted on anchors that did not
+match, because the draft's own line wrapping split them differently than expected,
+and it exited before its write. Twice. Both times it was caught by grepping for
+the result rather than by the exit status, which is the same weakest-tier habit
+described above. Three instances in one day, in three different files, by two
+different processes, is enough evidence to stop treating this as bad luck.
+
+**Lesson 5. Two fixes shipped with no test at all, and one of them is a repeat of
+a bug this project already found and guarded elsewhere.**
+
+Proven this session, by removing each fix in a clean worktree at the delivered tip
+and running the whole suite:
+
+- **The date picker crash on a device clock before 1995.** MUST FIX number 2 in
+  the QA round. Reverting the clamp at flutter/lib/widgets/period_selector.dart:78
+  to :82 back to a constant `firstDate` and an unclamped `initialDate` leaves
+  **+982: All tests passed!**
+- **The Reports carry-over.** Removing `initialPeriod: Period.monthOf(_ref)` from
+  flutter/lib/screens/reports.dart:532 leaves **+982: All tests passed!** The
+  existing drilldown test at flutter/test/reports_screen_test.dart:97 to :100
+  asserts the pushed Activity route pre-fills the category name, and asserts
+  nothing about the period, so tapping "Food ₱4,200" under June could silently go
+  back to listing every month's Food without a single test objecting.
+
+Neither is a hidden failure. The commit message quotes a failure line for findings
+1, 3, 4, 5, 6 and 8 and quotes none for finding 2 or for the Reports fix, so
+nobody claimed guards that do not exist. What is missing is that the record does
+not distinguish them. The docs/qa-log.md row describes all of them identically as
+"fixed and re-checked".
+
+The picker crash deserves its own sentence, because it is not a new bug shape. The
+identical bug was found by QA in the edit sheet and IS guarded, at
+flutter/test/edit_entry_test.dart:225 to :264, whose reason string reads:
+
+    'Opening the picker on a pre-2015 entry crashed on the '
+    'firstDate assertion before the clamp.'
+
+So the project has met this exact assertion failure before, wrote a test for it
+there, and shipped the same fix in a new widget with no test. The fix's own
+comment at period_selector.dart:69 to :77 even says the hazard was known and only
+half handled the first time. It is now fully handled and completely unguarded.
+
+**Guard: NOT WRITTEN. NEW Open 38.** Two candidates, and the cheap one is
+strongest.
+
+Cheap and strongest tier, about six lines: **a picker bounds test for
+PeriodSelector, mirroring edit_entry_test.dart:225**, mounting the selector with a
+clock at 1970 and asserting `find.byType(DatePickerDialog)` appears. It costs
+minutes and it closes a bug shape that has now occurred twice.
+
+Structural and medium tier: **the QA log row should mark which findings have a
+guard and which do not.** A row that says "3 MUST FIX fixed" reads as "3 MUST FIX
+fixed and guarded" to every future reader, including the next retrospective. A
+row that says "fixed, guard: none" is a sentence someone has to write on purpose,
+which is the same mechanism that made the QA record guard work.
+
+**Lesson 6. The standing CLAUDE.md fact check. Clean this round, and the check is
+the reason to say so out loud.**
+
+Five consecutive sessions found a false factual claim in CLAUDE.md before session
+12. Sessions 12, 13 and 14 found it clean. This round it is clean again, and
+CLAUDE.md did not change at all: `git log f4753ea..origin/main --oneline --
+CLAUDE.md .github/ .claude/` returns exactly one commit, 52da033, and it touched
+only `.claude/agents/home-screen-widget-designer.md`, a new agent file. CLAUDE.md
+and every workflow are byte identical to what session 14 audited.
+
+Re-verified by reading and running anyway, because "unchanged" is a claim about
+the file and the fact check is about the world the file describes:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, docs/qa-log.md, mobile/app/(tabs)/more.js,
+  flutter/test/qa_record_test.dart.
+- All five skills exist in .claude/skills and the description of them, three
+  adapted and two ours, still matches the directory.
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- mobile/package.json:11 still pins `"expo": "~54.0.0"`.
+- The 120 character stamp cap is live at update_stamp_test.dart:20; the shipped
+  stamp is 83.
+- flutter-check.yml:20 triggers on `claude/**` with no paths filter, and runs the
+  shot harness separately with `--update-goldens` at :79.
+- flutter-preview.yml triggers on `main` with paths `flutter/**` and watches its
+  own definition.
+- The local SDK claim holds: /opt/flutter runs 3.44.6 stable, analyze and test
+  both ran from it this session.
+- The three delivery commands ran as written and returned f2.74 patch 24.
+- The render rule was followed this round and paid for itself: batch 8 added a
+  dark-only Activity shot at screens_shot.dart:396, and looking at it is what
+  caught the "All" collision.
+- The "directory listing is the count" sentence still holds; flutter/test/shots
+  now carries 51 files.
+
+**One fact worth recording that is not an error.** Session 14's own commit,
+f4753ea, is a docs commit that also changed flutter/lib/money/statement.dart and
+flutter/test/person_sheet_test.dart. That is announced clearly in its commit
+message and both changes are the guards session 14 asked for, so it is not a
+smuggled edit. It is noted here only so that a future reader running
+`git log -- flutter/lib/money/` is not surprised to find code inside a
+retrospective.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.74 in person, which remains the only proof that counts.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here, re-confirmed this session. No spurious issue in evidence, and this round's
+12m11s merge-to-row gap was well inside the 2700 second grace at
+delivery-watchdog.yml:43.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised, the merge bumped the stamp. Batch 8 was again committed
+deliberately without a stamp bump, on a branch rather than at a merge, which is
+now the settled practice created by the QA record guard.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,** re-verified
+by reading, the scrape is still inside the ship step with `|| true` at
+flutter-preview.yml:127 and its load-bearing comment intact at :112 to :126.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** The log now carries
+34 `patch` rows and 2 `release` rows and no failure rows at all.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the shell's
+wiring: STILL OPEN, and it grew again.** `MaterialApp(` sites in screens_shot.dart
+are now 23, up from 21. The new ones hand-build Activity at :443 with no clock,
+which is also the live instance of NEW Open 36 described in Lesson 2.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL OPEN,
+untouched, re-verified.** eas-update.yml:18 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7.
+
+**Open 15, the walk-keying and frame-asserting rule: STILL OPEN, and it slipped
+again, though less than the raw number suggests.** Measured the same way as the
+last three sessions, 10 of 33 `expectLater` sites are preceded within six lines by
+an `expect(`, against 9 of 29 last session, so the ratio is flat. Fairly stated:
+the second and third new Activity shots at :462 and :478 are preceded by taps on
+scoped finders, which do fail loudly when the control is absent, so they are not
+blind. The first, at :450, goes straight from `pumpAndSettle` to `expectLater`.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN.** `grep -rn "git checkout\|git restore" CLAUDE.md .claude/skills/*/SKILL.md`
+still returns nothing. This session broke the delivered code three times to prove
+things and used a throwaway `git worktree` each time, which is a cleaner
+workaround than the previous three sessions invented and is written down here so
+the fourth session does not invent a fifth.
+
+**Open 17, nothing generalises the payday guard: STILL OPEN, re-verified.**
+`PlannedReminder` at flutter/lib/money/reminders.dart:25 to :29 still carries only
+title, body and when.
+
+**Open 18, the habit signal has several independent remembering events: STILL
+OPEN.** `sampleTxIds` still appears at 10 sites under flutter/lib with no shared
+accessor.
+
+**Open 20, mobile/lib/notifications.js has the same sample-row defect Flutter
+fixed: STILL OPEN, re-verified.** `loggedToday` at :99 still does not exclude the
+sample ids.
+
+**Open 21, the balance label guards are example-shaped: STILL OPEN.**
+`grep -rn "never refused as an overdraft" flutter/test/` still returns nothing.
+
+**Open 23, a shared centavo helper exists and nothing points at it: HALF CLOSED,
+and the closing is verified.** flutter/lib/money/statement.dart:238 now reads
+`final open = round2(totalLent - totalPaid);` and imports it at :29, replacing the
+hand-inlined `(((totalLent - totalPaid) * 100) + 0.5).floorToDouble() / 100`
+session 14 measured. The two are identical by construction:
+accounts_calc.dart:7 defines `_jsRound(x) => (x + 0.5).floorToDouble()`. What
+remains open is the pointer: flutter/lib/money/thirteenth.dart:20 still carries a
+private `_round2`, and nothing in the porting skill names the shared one.
+
+**Open 25, nothing says that a test for a default must exercise the untouched
+path: STILL OPEN.** CLAUDE.md did not change on this point.
+
+**Open 26, a defect found by looking is not fixed until an assertion fails on the
+old behaviour: STILL OPEN, and this round is its clearest instance yet.** Two
+fixes shipped with no assertion at all, both proven unguarded by removing them
+against a green suite. See Lesson 5 and NEW Open 38.
+
+**Open 27, whether to port a DISPLAY bug faithfully: STILL OPEN.** Not exercised
+this round. Batch 8 made the opposite kind of decision on purpose and wrote it
+down: the malformed period shapes RN produces are reproduced rather than tidied,
+because none is reachable from the selector and locking them stops a future
+refactor rendering the word 'null' on the screen.
+
+**Open 29, nothing decides what counts as money math, so a ported rule written
+inside a screen escapes the golden contract: STILL OPEN, and batch 8 is the best
+counter-example so far.** The period engine is not money math and was locked as
+hard as money math, with the reason written in the commit message: it decides
+WHICH money a screen adds up, so a period that quietly drops an entry makes every
+total wrong while every total still looks right. That is the right instinct
+applied by hand. Nothing in the repository would have required it.
+
+**Open 30, nothing distinguishes a test that asserts how the code behaves from a
+test that asserts a fact about the world: STILL OPEN.** Not exercised this round.
+
+**Open 31, nothing says how to edit or undo safely: STILL OPEN, RESTATED, and its
+previous wording is now known to be insufficient.** An assert before writing
+prevents a wrong write and does not announce a missing one. See Lesson 4 for the
+replacement wording and the mechanical option that outranks it.
+
+**Open 32, one sanitizer makes every raw money read in every screen safe and
+nothing at any read site says so: STILL OPEN, unchanged.** Still 12 files under
+flutter/lib/screens/ containing `is num`. Batch 8 added no new money reads.
+
+**Open 33, a proven-to-fail failure line proves ONE assertion: STILL OPEN, and
+this round gives it a second shape.** Six of this round's eight findings carry a
+failure line, and the QA row describes all eight identically. NEW Open 38 is the
+concrete fix for the recording half.
+
+**Open 34, half of the first deliberate golden-lock divergence was unguarded:
+HALF CLOSED, and the closed half is re-proven live.** f4753ea added the reminder
+centavo guard. Re-proven this session by removing `money: formatMoney` from the
+Remind call at flutter/lib/screens/utang.dart:707 in a clean worktree:
+
+    Expected: contains '₱100.50'
+      Actual: 'Hi Ana! Friendly reminder about the ₱101 total you still owe.
+    00:02 +10 -1: the reminder shows centavos too, not just the statement [E]
+
+The OTHER half is still open, exactly as session 14 described it:
+flutter/test/statement_golden_test.dart:28 is still named 'every statement matches
+the RN text byte for byte' and still says nothing anywhere about the injected
+formatter, so the one file a reader opens to learn what the lock covers still
+tells them something that is not true of the shipped app.
+
+**NEW Open 35: a report can be accurate in every word and still function as a
+promise.** The fourth distinct cause of delivery confusion in this log, and the
+first with no automated guard available, because the artifact is a sentence in a
+chat window that no checker can read. Guard is the medium tier rule in Lesson 1:
+never write a stamp name to the founder before a delivery row exists for it.
+Escalation if it recurs: two messages per batch and no interim status at all.
+
+**NEW Open 36: nothing stops a widget test depending on the real calendar.**
+Proven live: two tests would have failed on 1 August 2026, four by 1 January 2027.
+Fixed for this instance by injection. Candidate guard, strongest tier and small:
+make the clock a REQUIRED parameter on widgets that read today, so `DateTime.now`
+has to be typed at the call site. Live instance still in the tree:
+screens_shot.dart:443 mounts Activity with no clock for three shots.
+
+**NEW Open 37: an ambiguous finder is a user interface report and gets filed as a
+test-authoring chore.** The distinguishing question, and it takes seconds: would a
+person looking at this screen also have to disambiguate? Candidate guard,
+strongest tier: a test asserting no two chips visible at once carry the same
+label. Medium fallback: that question written into CLAUDE.md beside the render
+rule, which is where someone already is when this happens.
+
+**NEW Open 38: two fixes shipped with no guard, and the record does not
+distinguish a guarded fix from an unguarded one.** Proven live: removing the
+picker clamp, and separately removing the Reports period carry-over, each leaves
+all 982 tests passing. The picker crash is a repeat of a bug shape already guarded
+at edit_entry_test.dart:225. Candidate guards: a six line picker bounds test for
+PeriodSelector, strongest tier; and a "guard: none" column or phrase in the
+docs/qa-log.md row, medium tier, so that an unguarded fix has to be written down
+as one.
+
+### Guard status re-check
+
+Read and re-run, not assumed. `git log f4753ea..origin/main -- .github/workflows/
+CLAUDE.md` returns NOTHING, so every workflow line the last seven entries recorded
+still stands. Verified by reading anyway, and by breaking three of them:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:165 to :181.
+  Correctly silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127, comment intact.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:223 onward. Not
+  fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:248 onward. Correctly
+  silent, the row reads `patch`.
+- The publisher watching its own definition: PRESENT.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT at :20, the
+  separate shot harness run at :79, and the informational stamp comparison at :91.
+- The stamp cap: PRESENT, update_stamp_test.dart:20; the shipped stamp is 83 of
+  120 characters.
+- **The QA record guard: PRESENT and RE-PROVEN LIVE, and it fired for real a
+  second time.** Setting the delivered stamp to f9.99 in a clean worktree:
+
+      Stamp f9.99 has 0 rows in docs/qa-log.md, expected exactly one. Add a row
+      saying who reviewed this batch and what they found. SKIPPED is a valid
+      verdict; a missing row is not, because a missing row is what shipped a
+      broken monthly cap to the founder's phone in f2.71.
+
+  Second consecutive round in which a retrospective's own recommendation stopped
+  something. It is now the most valuable guard built in this log.
+- **Session 14's new reminder centavo guard: PRESENT and PROVEN LIVE**, failure
+  line quoted under Open 34.
+- Session 12's guard, 'the DEFAULT is moving, not untagging': PRESENT at
+  flutter/test/categories_screen_test.dart:137.
+- Session 13's guard, 'a cap fires for an entry logged with the main Log button':
+  PRESENT at flutter/test/categories_screen_test.dart:234.
+- Sessions 6 through 11 guards: PRESENT, spot-checked by grep, none deleted.
+- The whole delivered suite: 982 pass and analyze clean, measured in a clean
+  checkout of 0f10b11, up from 951 at f2.73.
+
+**No guard was found deleted, disabled or routed around, and no test was deleted
+or inverted this round.** The nearest thing to a bad finding is the opposite
+shape: two fixes shipped with no guard at all, both proven unguarded here, and one
+warning that DID exist, an ambiguous finder, was routed around by scoping before
+it was understood. That last one is the closest this log has come to a guard being
+silenced by hand, and it is worth remembering that it was silenced for an entirely
+reasonable-sounding reason, written into a docstring that still reads as good
+practice.
+
+---
+
 ## 2026-07-28, session 14: the rule was written down, and the same shape came back anyway
 
 f2.73 delivered cleanly, was confirmed on the founder's phone, and nothing

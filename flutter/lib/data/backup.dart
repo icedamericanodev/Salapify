@@ -487,6 +487,19 @@ Map<String, dynamic> sanitizeData(
       // removed otherwise. That keeps the golden key-set contract intact,
       // because the RN-generated fixtures never carry paluwagans and so must
       // not gain the key here either.
+      // "The person has opened the quick add editor" is a CONDITIONAL key for
+      // the same reason. It exists because an empty quickAdds list is
+      // ambiguous on its own: before the editor shipped it could only mean
+      // "never set", so the Budget card filled in the four defaults. With an
+      // editor it can also mean "I deleted them all", and refilling then reads
+      // as the app refusing to be changed. This flag is the only thing that
+      // tells those two apart, and it is absent on every RN-generated fixture
+      // so the golden key-set contract holds.
+      if (settings['quickAddsEdited'] == true) {
+        s['quickAddsEdited'] = true;
+      } else {
+        s.remove('quickAddsEdited');
+      }
       final pal = settings['paluwagans'];
       if (pal is List) {
         s['paluwagans'] = _paluwaganList(pal);

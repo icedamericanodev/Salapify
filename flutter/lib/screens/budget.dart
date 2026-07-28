@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/budget.dart' as budget;
 import '../theme.dart';
+import 'quick_add_editor.dart';
+import '../money/quick_adds.dart' show QuickAdd;
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
@@ -16,13 +18,6 @@ import 'overview.dart' show formatMoney;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The RN default quick adds, shown when the imported settings carry none.
-const List<({String label, num amount})> _defaultQuickAdds = [
-  (label: 'Food', amount: 150),
-  (label: 'Transport', amount: 50),
-  (label: 'Coffee', amount: 120),
-  (label: 'Load', amount: 100),
-];
-
 class BudgetScreen extends StatelessWidget {
   final SalapifyStore store;
 
@@ -40,23 +35,11 @@ class BudgetScreen extends StatelessWidget {
     final rows = (went['rows'] as List).cast<Map<String, dynamic>>();
     final max = went['max'] as double;
 
-    final rawQuickAdds =
-        (data['settings'] is Map
-                ? (data['settings'] as Map)['quickAdds']
-                : null)
-            as List?;
-    // Only positive finite amounts become chips: a hand-edited backup with a
-    // negative quick add would otherwise log money BACK on every tap.
-    final quickAdds = <({String label, num amount})>[
-      for (final q in rawQuickAdds ?? const [])
-        if (q is Map &&
-            q['label'] is String &&
-            q['amount'] is num &&
-            (q['amount'] as num) > 0 &&
-            (q['amount'] as num).isFinite)
-          (label: q['label'] as String, amount: q['amount'] as num),
-    ];
-    final adds = quickAdds.isNotEmpty ? quickAdds : _defaultQuickAdds;
+    // One reader for the presets, shared with the editor, so the chips and the
+    // list being edited can never disagree about what is stored. It also
+    // decides the defaults question: an empty list means the defaults until
+    // the person has actually edited, and means empty afterwards.
+    final adds = store.quickAdds;
 
     // The header is pinned above the list, the money.dart shape, so Menu
     // stays one tap away at any scroll depth. Founder approved for every
@@ -83,8 +66,40 @@ class BudgetScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('QUICK ADD', style: Barako.cardKickerStyle),
-                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'QUICK ADD',
+                                  style: Barako.cardKickerStyle,
+                                ),
+                              ),
+                              // Edit sits ON the card, not in a settings
+                              // screen. Nobody decides their presets are wrong
+                              // while browsing Preferences; they decide it
+                              // looking at a chip that says Coffee ₱120 when
+                              // their coffee is ₱65.
+                              TextButton(
+                                onPressed: () =>
+                                    showQuickAddEditor(context, store),
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    color: Barako.primaryText,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -396,10 +411,7 @@ class BudgetScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _quickAdd(
-    BuildContext context,
-    ({String label, num amount}) item,
-  ) async {
+  Future<void> _quickAdd(BuildContext context, QuickAdd item) async {
     final messenger = ScaffoldMessenger.of(context);
     final data = store.data;
     final def = (data['settings'] is Map

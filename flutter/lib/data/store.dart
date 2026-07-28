@@ -19,6 +19,7 @@ import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
+import '../money/quick_adds.dart';
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
@@ -1784,6 +1785,74 @@ class SalapifyStore extends ChangeNotifier {
       'settings': {
         ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
         key: value,
+      },
+    },
+  );
+
+  /// The quick add presets as stored, or the shipped defaults when the person
+  /// has never touched them.
+  ///
+  /// The distinction matters the moment they CAN touch them. Before the
+  /// editor existed, an empty stored list could only mean "never set", so
+  /// falling back to the defaults was right. With an editor, deleting the last
+  /// button would have made four different ones reappear, which reads as the
+  /// app refusing to be changed. So opening the editor writes the defaults
+  /// down first (see [seedQuickAdds]), and after that an empty list means
+  /// exactly what it says.
+  List<QuickAdd> get quickAdds {
+    final stored = readQuickAdds((data['settings'] as Map?)?['quickAdds']);
+    if (stored.isNotEmpty) return stored;
+    return _quickAddsSeeded ? const [] : defaultQuickAdds;
+  }
+
+  /// Whether the person has ever opened the editor.
+  ///
+  /// NOT "the stored list is non empty", which was the first version and could
+  /// never represent a deliberately empty list: delete the last button and the
+  /// signal flips back to "never set", so the four defaults returned. This
+  /// flag is the only thing that tells "never touched" from "emptied on
+  /// purpose".
+  bool get _quickAddsSeeded =>
+      (data['settings'] as Map?)?['quickAddsEdited'] == true;
+
+  /// Write the current visible presets down, so an empty list afterwards is a
+  /// choice rather than an absence.
+  ///
+  /// Called from the two WRITE paths, never from opening the editor. Seeding
+  /// on open looked harmless and was not: settings.quickAdds being non empty
+  /// is one of the things [hasData] counts, so opening the sheet and closing
+  /// it without touching anything flipped an empty app into "this person has
+  /// data". That permanently replaced Menu's BRING YOUR DATA OVER card, the
+  /// only in-app prompt to import from the old app, with a backup card. Every
+  /// RN tester's migration path, removed by looking at a settings sheet.
+  ///
+  /// Seeding on the first real edit costs nothing and cannot do that, because
+  /// by then the person really does have data.
+
+  /// Append a preset. Returns the refusal sentence, or null when it saved.
+  Future<String?> addQuickAddPreset(String label, String amountText) async {
+    final result = addQuickAdd(quickAdds, label, amountText);
+    if (result.error != null) return result.error;
+    await _writeQuickAdds(result.list!);
+    return null;
+  }
+
+  /// Drop the preset at [index]. Deleting the last one is allowed and is
+  /// remembered: the card then says so rather than quietly refilling.
+  Future<void> removeQuickAddPreset(int index) async {
+    await _writeQuickAdds(removeQuickAdd(quickAdds, index));
+  }
+
+  /// The list and the edited flag move in ONE mutate, so a crash between them
+  /// cannot leave the flag set with nothing behind it, or a stored list that
+  /// the card then silently tops up.
+  Future<void> _writeQuickAdds(List<QuickAdd> next) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'quickAdds': [for (final q in next) q.toJson()],
+        'quickAddsEdited': true,
       },
     },
   );

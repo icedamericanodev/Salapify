@@ -343,6 +343,41 @@ void main() {
     );
   });
 
+  testWidgets('the date picker opens on a phone whose clock is in 1970', (
+    tester,
+  ) async {
+    // Session 15: the picker clamp SHIPPED WITH NO TEST. Deleting it left all
+    // 982 tests green, so a future tidy-up could have quietly reintroduced the
+    // crash. An Android with a dead RTC boots at 1970, and the fix has to hold
+    // for a clock the person never set.
+    //
+    // Same bug already has a guard one screen over, at
+    // test/edit_entry_test.dart, which is what makes leaving this one
+    // unguarded worse than an oversight: the lesson was already written down.
+    final emitted = <Period>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => PeriodSelector(
+              period: emitted.isEmpty ? const Period.custom() : emitted.last,
+              allowAll: true,
+              clock: () => DateTime(1970, 1, 1),
+              onChange: (p) => setState(() => emitted.add(p)),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('From: the start'));
+    await tester.pumpAndSettle();
+    // It opened at all. Before the clamp this threw
+    // "lastDate must be on or after firstDate" out of showDatePicker.
+    expect(find.byType(CalendarDatePicker), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the period and the text filter both apply', (tester) async {
     // Two filters that silently replace each other is the bug worth guarding:
     // the person narrows by month, types a word, and gets rows from outside

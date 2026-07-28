@@ -40,6 +40,7 @@ import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/utang.dart';
+import 'package:salapify/screens/quick_add_editor.dart';
 import 'package:salapify/widgets/period_selector.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
@@ -355,6 +356,43 @@ void main() {
     );
   });
 
+  testWidgets('the quick add editor, dark', (tester) async {
+    // A new write sheet, and the one that decides whether the app's most
+    // frequent action feels like the user's own. Never rendered before.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true, 'monthlyLimit': 12000},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 8400},
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: SingleChildScrollView(child: QuickAddEditor(store: store)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/quick-add-editor-dark.png'),
+    );
+  });
+
   testWidgets('Activity with the new period selector, dark', (tester) async {
     // The existing history shot has no entries, so it could not show the
     // selector sitting above a real list. This one has entries in three
@@ -402,7 +440,15 @@ void main() {
       MaterialApp(
         theme: salapifyTheme(Barako.current),
         home: Scaffold(
-          body: HistoryScreen(store: store, onMenu: () {}),
+          // Pinned, like the widget tests. Left on the real clock these
+          // three shots silently become an empty month the moment the
+          // calendar rolls past July, so the review artifact stops proving
+          // what it was added to prove. Session 15 found this one still live.
+          body: HistoryScreen(
+            store: store,
+            onMenu: () {},
+            clock: () => DateTime(2026, 7, 28),
+          ),
         ),
       ),
     );
