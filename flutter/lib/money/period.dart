@@ -65,13 +65,11 @@ class Period {
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}',
   );
 
-  Period copyWith({String? from, String? to}) => Period(
-    mode: mode,
-    ym: ym,
-    y: y,
-    from: from ?? this.from,
-    to: to ?? this.to,
-  );
+  // No copyWith. The obvious one, `from: from ?? this.from`, cannot CLEAR a
+  // bound: passing null silently keeps the old value. It had no callers, and
+  // the selector already hand builds a Period to dodge it. A dead helper whose
+  // null argument means "ignore me" is exactly the shape that has bitten this
+  // codebase before, so it is gone rather than documented.
 
   @override
   bool operator ==(Object other) =>

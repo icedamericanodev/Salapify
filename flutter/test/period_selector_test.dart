@@ -52,7 +52,13 @@ Future<SalapifyStore> _openHistory(WidgetTester tester) async {
   await store.load();
   await tester.pumpWidget(
     MaterialApp(
-      home: Scaffold(body: HistoryScreen(store: store)),
+      // The clock is PINNED. Without it the selector fell back to
+      // DateTime.now while these fixtures are hard coded to July 2026, so
+      // three of the tests below were going to start failing on 1 August and
+      // turn the branch check red on main. QA caught it four days out.
+      home: Scaffold(
+        body: HistoryScreen(store: store, clock: _now),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -223,6 +229,118 @@ void main() {
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
     expect(emitted, isEmpty, reason: 'tapping the current mode changed it');
+  });
+
+  testWidgets('Show all clears the PERIOD too, not just the other two', (
+    tester,
+  ) async {
+    // QA: the one control that promises to put everything back left the
+    // period untouched. Step back to an empty month, tap Show all, and the
+    // list is still empty with the month chip still set, while the sentence
+    // beside the button says the entries are just hidden. That reads as a lie
+    // to someone who has just done what it told them.
+    await _openHistory(tester);
+    await tester.tap(_chip('Month'));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.chevron_left));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('No entries match'), findsOneWidget);
+
+    await tester.tap(find.text('Show all'));
+    await tester.pumpAndSettle();
+    expect(_row('ThisMonth'), findsOneWidget);
+    expect(_row('LastMonth'), findsOneWidget);
+    expect(_row('LastYear'), findsOneWidget);
+  });
+
+  testWidgets('a backwards custom range is swapped, not left showing nothing', (
+    tester,
+  ) async {
+    // QA: picking the To end first and then a later From is a natural order,
+    // and it produced a range matching nothing with no hint the ends were
+    // inverted. Two dates describe exactly one range.
+    final emitted = await _mountSelector(tester, const Period.custom());
+    await tester.tap(find.textContaining('To: the end'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('From:'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('25'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final p = emitted.last;
+    expect(
+      p.from!.compareTo(p.to!) <= 0,
+      isTrue,
+      reason: 'from ${p.from} is after to ${p.to}, so nothing can match',
+    );
+  });
+
+  testWidgets('the clear X is a real tap target, not a 16dp dot', (
+    tester,
+  ) async {
+    // QA measured 16x16. Missing it by a few pixels hit the button behind and
+    // opened a full screen calendar, so the cost of a miss was far worse than
+    // the cost of the tap.
+    await _mountSelector(tester, const Period.custom(from: '2026-06-01'));
+    final handle = tester.ensureSemantics();
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    handle.dispose();
+  });
+
+  testWidgets('the stepper can reach an entry dated in the future', (
+    tester,
+  ) async {
+    // QA: a CSV imported with the day and month the wrong way round throws
+    // rows into the future. They show under All time, and the forward arrow
+    // refused to walk to them, so the stepper physically could not reach data
+    // the person really had.
+    await _openHistory(tester);
+    // Month first: the stepper only exists in a stepping mode.
+    await tester.tap(_chip('Month'));
+    await tester.pumpAndSettle();
+    expect(
+      _stepButton(tester, Icons.chevron_right).onPressed,
+      isNull,
+      reason: 'nothing ahead, so the stop stays',
+    );
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        ..._blob(),
+        'transactions': [
+          {
+            'id': 'ahead',
+            'type': 'expense',
+            'label': 'Ahead',
+            'amount': 10,
+            'date': '2026-12-07',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HistoryScreen(store: store, clock: _now),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(_chip('Month'));
+    await tester.pumpAndSettle();
+    expect(
+      _stepButton(tester, Icons.chevron_right).onPressed,
+      isNotNull,
+      reason: 'there is data ahead, so the stop moves out to it',
+    );
   });
 
   testWidgets('the period and the text filter both apply', (tester) async {

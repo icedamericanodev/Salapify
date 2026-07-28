@@ -83,6 +83,12 @@ void main() {
       expect(got?.mode, want?.mode, reason: '${c['name']} mode');
       expect(got?.ym, want?.ym, reason: '${c['name']} ym');
       expect(got?.y, want?.y, reason: '${c['name']} y');
+      // The ends too. Without these, a shift that dropped from and to on a
+      // custom range passed every assertion here: the fixture set already
+      // crossed five custom periods with four deltas, so only the checking
+      // was missing, not the data.
+      expect(got?.from, want?.from, reason: '${c['name']} from');
+      expect(got?.to, want?.to, reason: '${c['name']} to');
     }
   });
 

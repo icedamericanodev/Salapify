@@ -28,6 +28,13 @@ class PeriodSelector extends StatelessWidget {
   /// future" mean without waiting for the calendar to roll over.
   final DateTime Function() clock;
 
+  /// The latest date the caller's data actually contains, when it knows.
+  /// Stepping normally stops at today, which is right for browsing, but it
+  /// stranded rows dated ahead: a CSV imported with the day and month the
+  /// wrong way round puts entries in the future, and the arrow refused to
+  /// walk to them.
+  final String? lastEntryDate;
+
   // NOT const, the documented rule on every widget here that reads a Barako
   // getter during build. Dart canonicalizes const instances, so a const call
   // site lets Element.updateChild skip build() and freezes this control in the
@@ -38,6 +45,7 @@ class PeriodSelector extends StatelessWidget {
     required this.period,
     required this.onChange,
     this.allowAll = false,
+    this.lastEntryDate,
     DateTime Function()? clock,
   }) : clock = clock ?? DateTime.now;
 
@@ -58,27 +66,43 @@ class PeriodSelector extends StatelessWidget {
     final now = clock();
     final current = isFrom ? period.from : period.to;
     final parsed = current == null ? null : DateTime.tryParse(current);
+    // Generous bounds for a restored backup's oldest entry and a bill dated
+    // ahead. The first version made firstDate a constant and lastDate depend
+    // on the clock, which INVERTS the range on a device whose clock is before
+    // 1995: an Android with a dead RTC boots at 1970 and the picker asserted
+    // "lastDate must be on or after firstDate". The comment here used to say
+    // the bounds were generous BECAUSE showDatePicker asserts, so the hazard
+    // was known and only half handled. Both ends now move together and the
+    // initial date is clamped inside them, the pattern paluwagan.dart and
+    // edit_sheet.dart already use.
+    final first = DateTime(now.year - 30 < 2000 ? now.year - 30 : 2000);
+    final last = DateTime(now.year + 5, 12, 31);
+    var initial = parsed ?? now;
+    if (initial.isBefore(first)) initial = first;
+    if (initial.isAfter(last)) initial = last;
     final picked = await showDatePicker(
       context: context,
-      initialDate: parsed ?? now,
-      // Wide enough for a restored backup's oldest entry and for a bill dated
-      // ahead. showDatePicker asserts in debug when initialDate falls outside
-      // the range, which is why the bounds are generous rather than tidy.
-      firstDate: DateTime(2000),
-      lastDate: DateTime(now.year + 5, 12, 31),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
     );
     if (picked == null) return;
     final iso =
         '${picked.year.toString().padLeft(4, '0')}-'
         '${picked.month.toString().padLeft(2, '0')}-'
         '${picked.day.toString().padLeft(2, '0')}';
-    onChange(
-      Period(
-        mode: PeriodMode.custom,
-        from: isFrom ? iso : period.from,
-        to: isFrom ? period.to : iso,
-      ),
-    );
+    var from = isFrom ? iso : period.from;
+    var to = isFrom ? period.to : iso;
+    // Picking the To end first and then a later From is a natural order, and
+    // it produced a range that matches nothing at all with no hint on screen
+    // that the ends were inverted. Swapping is what the person meant: they
+    // picked two dates, and there is only one range those two dates describe.
+    if (from != null && to != null && from.compareTo(to) > 0) {
+      final swap = from;
+      from = to;
+      to = swap;
+    }
+    onChange(Period(mode: PeriodMode.custom, from: from, to: to));
   }
 
   void _clear(bool isFrom) => onChange(
@@ -105,9 +129,13 @@ class PeriodSelector extends StatelessWidget {
     ];
     final stepping =
         period.mode == PeriodMode.month || period.mode == PeriodMode.year;
-    // Never step into a month or year that cannot contain anything yet.
+    // Never step into a month or year that cannot contain anything, which
+    // normally means past today. When the data itself reaches further, the
+    // stop moves out to it rather than hiding rows the person really has.
+    final next = shiftPeriod(period, 1);
     final canForward =
-        stepping && !periodIsFuture(shiftPeriod(period, 1), clock());
+        stepping &&
+        (!periodIsFuture(next, clock()) || _hasDataIn(next, lastEntryDate));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,6 +210,24 @@ class PeriodSelector extends StatelessWidget {
     );
   }
 
+  /// Whether [last] falls on or after the start of [p]. Same lexical text
+  /// comparison the engine uses, so the two can never disagree about which
+  /// month a date belongs to.
+  static bool _hasDataIn(Period? p, String? last) {
+    if (p == null || last == null) return false;
+    if (p.mode == PeriodMode.year) {
+      return p.y != null &&
+          last.length >= 4 &&
+          last.substring(0, 4).compareTo(p.y!) >= 0;
+    }
+    if (p.mode == PeriodMode.month) {
+      return p.ym != null &&
+          last.length >= 7 &&
+          last.substring(0, 7).compareTo(p.ym!) >= 0;
+    }
+    return false;
+  }
+
   Widget _dateField(
     BuildContext context, {
     required bool isFrom,
@@ -212,10 +258,18 @@ class PeriodSelector extends StatelessWidget {
           if (set)
             GestureDetector(
               onTap: () => _clear(isFrom),
+              // A real 48dp box around a deliberately small glyph. At 16dp a
+              // miss of a few pixels hit the button behind it and opened a
+              // full screen calendar, so the cost of missing was far worse
+              // than the cost of the tap.
               child: Semantics(
                 button: true,
                 label: 'Clear $label date',
-                child: Icon(Icons.close, size: 16, color: Barako.faint),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Icon(Icons.close, size: 16, color: Barako.faint),
+                ),
               ),
             ),
         ],
