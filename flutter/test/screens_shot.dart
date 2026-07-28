@@ -420,6 +420,71 @@ void main() {
     );
   });
 
+  testWidgets('Activity and Budget with real data, dark', (tester) async {
+    // The empty-seed per-tab shots cannot show the batch 6 polish: the human
+    // date headers, the account and category context line on rows, and the
+    // TODAY card on Budget all need data to exist.
+    await loadRealFonts(tester);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 12450},
+        ],
+        'categories': [
+          {'id': 'c-food', 'name': 'Food'},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'expense',
+            'label': 'Jollibee',
+            'amount': 150,
+            'date': today,
+            'accountId': 'cash',
+            'categoryId': 'c-food',
+          },
+          {
+            'id': 't2',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 480,
+            'date': '2026-07-12',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: ShellScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(navDestination('Activity'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/activity-rows-dark.png'),
+    );
+    await tester.tap(navDestination('Budget'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/budget-today-dark.png'),
+    );
+  });
+
   testWidgets('Insights with real data, banded, dark', (tester) async {
     // The per-tab insights shot seeds an empty store, so it renders the
     // empty-state invitation and the BANDS are invisible to it. This frame

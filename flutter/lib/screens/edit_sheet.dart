@@ -313,15 +313,7 @@ class _EditSheetState extends State<EditSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'EDIT ENTRY',
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
-            ),
+            Text('EDIT ENTRY', style: Barako.cardKickerStyle),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -360,28 +352,12 @@ class _EditSheetState extends State<EditSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            Text(
-              'WHEN',
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
-            ),
+            Text('WHEN', style: Barako.cardKickerStyle),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: _dayChips()),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text(
-                'LINKED ACCOUNT',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
-              ),
+              Text('LINKED ACCOUNT', style: Barako.cardKickerStyle),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,

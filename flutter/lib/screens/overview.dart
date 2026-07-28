@@ -30,6 +30,7 @@ import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
 import 'pan.dart';
+import 'accounts.dart';
 import 'search.dart';
 import 'shell.dart';
 
@@ -366,112 +367,167 @@ class OverviewScreen extends StatelessWidget {
                 if (!hasStarted) ...[
                   if (store.loadError == null) _welcomeCard(context),
                 ] else ...[
+                  // Tappable: THIS MONTH is made of Activity's rows, so the
+                  // card leads there. It was a dead surface between two
+                  // tappable siblings, the last cards on Home that informed
+                  // without leading anywhere.
                   Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Kicker('THIS MONTH'),
-                          const SizedBox(height: 6),
-                          // The ANSWER first, its two parts underneath. This was
-                          // three equal rows and a divider, which made the reader
-                          // do the subtraction with their eyes before learning
-                          // whether the month was up or down. The net is the only
-                          // figure most people want, so it gets the headline.
-                          Builder(
-                            builder: (context) {
-                              final net = istmt['netIncome'] as double;
-                              return Text(
-                                // The sign is explicit on a gain. Without it a
-                                // good month and a bad month look identical until
-                                // you notice the minus.
-                                '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                                style: TextStyle(
-                                  fontFamily: Barako.displayFont,
-                                  color: net >= 0
-                                      ? Barako.primary
-                                      : Barako.warning,
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w700,
-                                  fontFeatures: const [],
+                    child: Semantics(
+                      button: true,
+                      label: 'This month, open Activity',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: onSwitchTab == null
+                            ? null
+                            : () => onSwitchTab!(Destination.history),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Kicker('THIS MONTH'),
+                                  const Spacer(),
+                                  if (onSwitchTab != null)
+                                    ExcludeSemantics(
+                                      child: Icon(
+                                        Icons.chevron_right,
+                                        size: 18,
+                                        color: Barako.muted,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              // The ANSWER first, its two parts underneath. This was
+                              // three equal rows and a divider, which made the reader
+                              // do the subtraction with their eyes before learning
+                              // whether the month was up or down. The net is the only
+                              // figure most people want, so it gets the headline.
+                              Builder(
+                                builder: (context) {
+                                  final net = istmt['netIncome'] as double;
+                                  return Text(
+                                    // The sign is explicit on a gain. Without it a
+                                    // good month and a bad month look identical until
+                                    // you notice the minus.
+                                    '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                                    style: TextStyle(
+                                      fontFamily: Barako.displayFont,
+                                      color: net >= 0
+                                          ? Barako.primary
+                                          : Barako.warning,
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w700,
+                                      fontFeatures: const [],
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: Gap.md),
+                              StatPair(
+                                leftLabel: 'Money in',
+                                leftValue: formatMoney(
+                                  istmt['income'] as double,
                                 ),
-                              );
-                            },
+                                leftColor: Barako.primary,
+                                rightLabel: 'Money out',
+                                rightValue: formatMoney(
+                                  istmt['expenses'] as double,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: Gap.md),
-                          StatPair(
-                            leftLabel: 'Money in',
-                            leftValue: formatMoney(istmt['income'] as double),
-                            leftColor: Barako.primary,
-                            rightLabel: 'Money out',
-                            rightValue: formatMoney(
-                              istmt['expenses'] as double,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   if (accounts.isNotEmpty) ...[
+                    // Tappable for the same reason: the rows ARE accounts, so
+                    // the card opens the Accounts screen.
                     Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Kicker('MY MONEY'),
-                            const SizedBox(height: 6),
-                            // Flat rows with hairline separators, the same content
-                            // treatment as Utang's people list. Rows in a card, not
-                            // a card per row.
-                            for (final (i, a) in accounts.indexed) ...[
-                              if (i > 0)
-                                Divider(height: 1, color: Barako.border),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                      child: Semantics(
+                        button: true,
+                        label: 'My money, open Accounts',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AccountsScreen(store: store),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        a['name'] as String? ?? 'Account',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Barako.text,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // A big balance scales down instead of
-                                    // overflowing the row on a narrow phone.
-                                    Flexible(
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          formatMoney(amount(a['balance'])),
-                                          style: TextStyle(
-                                            color: Barako.textSecondary,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            fontFeatures: const [
-                                              FontFeature.tabularFigures(),
-                                            ],
-                                          ),
-                                        ),
+                                    Kicker('MY MONEY'),
+                                    const Spacer(),
+                                    ExcludeSemantics(
+                                      child: Icon(
+                                        Icons.chevron_right,
+                                        size: 18,
+                                        color: Barako.muted,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ],
+                                const SizedBox(height: 6),
+                                // Flat rows with hairline separators, the same content
+                                // treatment as Utang's people list. Rows in a card, not
+                                // a card per row.
+                                for (final (i, a) in accounts.indexed) ...[
+                                  if (i > 0)
+                                    Divider(height: 1, color: Barako.border),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            a['name'] as String? ?? 'Account',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Barako.text,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // A big balance scales down instead of
+                                        // overflowing the row on a narrow phone.
+                                        Flexible(
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              formatMoney(amount(a['balance'])),
+                                              style: TextStyle(
+                                                color: Barako.textSecondary,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                fontFeatures: const [
+                                                  FontFeature.tabularFigures(),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),

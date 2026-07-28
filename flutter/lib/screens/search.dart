@@ -98,9 +98,7 @@ class _SearchScreenState extends State<SearchScreen> {
           widget.onOpenPayables!();
         } else {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => DebtsScreen(store: widget.store),
-            ),
+            MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
           );
         }
         break;
