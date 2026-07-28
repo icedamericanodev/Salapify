@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/transfers.dart' show TransferRefusal;
 import 'package:salapify/screens/accounts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -207,6 +208,55 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
     expect(find.text('Move money between accounts'), findsNothing);
+  });
+
+  testWidgets('a write landing mid-transfer refuses instead of crashing', (
+    tester,
+  ) async {
+    // The QA fix that made transferBetweenAccounts a single run inside the
+    // write queue shipped with no test, which the session 11 retrospective
+    // caught. This is that test.
+    //
+    // The old shape validated against the data as it was, then applied
+    // against the data as it had become, and threw "the transfer became
+    // invalid mid-write" when they disagreed, leaving the sheet dead. The
+    // write queue defers through Future.then, so queueing a spend first and
+    // asking to move the whole balance second is enough to land one write
+    // between the two runs.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(
+        _blob(
+          accounts: [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
+            {'id': 'bpi', 'name': 'BPI', 'kind': 'savings', 'balance': 0},
+          ],
+        ),
+      ),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    final spending = store.addEntry({
+      'type': 'expense',
+      'label': 'Groceries',
+      'amount': 1000.0,
+      'accountId': 'cash',
+      'date': '2026-07-28',
+    });
+    final moving = store.transferBetweenAccounts(
+      fromId: 'cash',
+      toId: 'bpi',
+      amountText: '1000',
+    );
+    await spending;
+    final refusal = await moving;
+
+    // Refused as an ordinary answer, not thrown as a crash.
+    expect(refusal, isNotNull);
+    expect(refusal!.refusal, TransferRefusal.overdraft);
+    // And the money is where the spend left it: no half-applied transfer.
+    expect(_balanceOf(store, 'cash'), 0);
+    expect(_balanceOf(store, 'bpi'), 0);
   });
 
   testWidgets('one account means no transfer button at all', (tester) async {
