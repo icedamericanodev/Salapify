@@ -40,6 +40,7 @@ import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/utang.dart';
+import 'package:salapify/widgets/period_selector.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
@@ -351,6 +352,92 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/money-owed-dark.png'),
+    );
+  });
+
+  testWidgets('Activity with the new period selector, dark', (tester) async {
+    // The existing history shot has no entries, so it could not show the
+    // selector sitting above a real list. This one has entries in three
+    // different months and opens the custom range, which is the tallest the
+    // filter stack ever gets.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 1250,
+            'date': '2026-07-20',
+          },
+          {
+            'id': 't2',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 28000,
+            'date': '2026-07-15',
+          },
+          {
+            'id': 't3',
+            'type': 'expense',
+            'label': 'Jeep',
+            'amount': 26,
+            'date': '2026-06-28',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          body: HistoryScreen(store: store, onMenu: () {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/history-period-dark.png'),
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PeriodSelector),
+        matching: find.text('Custom'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/history-period-custom-dark.png'),
+    );
+
+    // The stepper row, which is the other piece of new UI. Stepped back once
+    // so the forward arrow is live and the label names a real month.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PeriodSelector),
+        matching: find.text('Month'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithIcon(IconButton, Icons.chevron_left));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/history-period-month-dark.png'),
     );
   });
 

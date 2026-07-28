@@ -272,10 +272,20 @@ void main() {
   testWidgets('the settled row shows the utang, not what is left of it', (
     tester,
   ) async {
-    // Two QA findings in one row. A ₱2,000 utang marked paid with a ₱750
-    // logged payment printed "₱1,250 paid", which is what was LEFT. And a
-    // stored amount of "2400" (a string, from a restored backup) is not a
-    // num, so the row read "₱0 paid" beside a statement saying ₱2,400.
+    // A ₱2,000 utang marked paid with a ₱750 logged payment printed
+    // "₱1,250 paid", which is what was LEFT, labelled as what was paid.
+    //
+    // The first version of this test ALSO carried a stored amount of "2400"
+    // as a string and asserted it did not print as ₱0. Session 14 proved
+    // those two assertions could never fail: every load runs through
+    // sanitizeData, so a screen never sees a string amount. They passed
+    // against the broken code and read as proof. Removed rather than left in,
+    // because an assertion that cannot fail is worse than no assertion: it
+    // makes the row above it look better guarded than it is.
+    //
+    // The screen still coerces with amountOf. That is the house style for
+    // reading any stored number and it costs nothing; what changed is that
+    // this file no longer claims a test is holding it up.
     await _open(
       tester,
       blob: _blob(
@@ -290,20 +300,33 @@ void main() {
               {'id': 'p1', 'amount': 750, 'date': '2026-07-01'},
             ],
           },
-          {
-            'id': 'r2',
-            'personId': 'per1',
-            'amount': '2400',
-            'note': 'Stringy',
-            'paid': true,
-          },
         ],
       ),
     );
     expect(find.text('₱2,000 paid'), findsOneWidget);
-    expect(find.text('₱2,400 paid'), findsOneWidget);
     expect(find.text('₱1,250 paid'), findsNothing);
-    expect(find.text('₱0 paid'), findsNothing);
+  });
+
+  testWidgets('the reminder shows centavos too, not just the statement', (
+    tester,
+  ) async {
+    // Open 34: half of the deliberate divergence from RN's whole peso
+    // formatter was unguarded. Deleting `money: formatMoney` from the Remind
+    // call left all fifteen tests in this file green, because the only
+    // reminder assertion used a round number that formats the same either way.
+    // A reminder that says ₱101 about a ₱100.50 debt overstates it, in a
+    // message sent to the person who owes it.
+    final (_, sent) = await _open(
+      tester,
+      blob: _blob(
+        receivables: [
+          {'id': 'r1', 'personId': 'per1', 'amount': 100.50, 'note': 'Jeep'},
+        ],
+      ),
+    );
+    await _tapThrough(tester, 'Remind', 'English');
+    expect(sent.single, contains('₱100.50'));
+    expect(sent.single, isNot(contains('₱101')));
   });
 
   testWidgets('a statement with centavos adds up in front of two people', (

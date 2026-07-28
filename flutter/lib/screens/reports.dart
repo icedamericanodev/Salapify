@@ -16,6 +16,7 @@ import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
 import '../money/statements.dart';
+import '../money/period.dart';
 import '../theme.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
@@ -520,10 +521,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute(
+        // The month the person is already looking at travels with them. Without
+        // it, tapping "Food ₱4,200" under June opened a list of Food from
+        // every month: the rows visibly did not add to the number that was
+        // tapped, and nothing on screen explained the difference.
         builder: (_) => HistoryScreen(
           store: widget.store,
           initialQuery: label,
           pushed: true,
+          initialPeriod: Period.monthOf(_ref),
         ),
       ),
     );

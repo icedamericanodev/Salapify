@@ -9,7 +9,9 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/search.dart' as search;
+import '../money/period.dart';
 import '../theme.dart';
+import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'overview.dart' show formatMoney, prettyDay;
@@ -87,12 +89,26 @@ class HistoryScreen extends StatefulWidget {
   final String initialQuery;
   final bool pushed;
   final VoidCallback? onMenu;
+
+  /// Injected so a test can pin what "this month" means. Without it the
+  /// selector fell back to DateTime.now while the fixtures were hard coded to
+  /// July 2026, so three tests were going to start failing on 1 August and
+  /// turn the branch check red on main. The generator header next door already
+  /// states the rule they broke: an answer that changes with the day it was
+  /// run is not a fixed answer.
+  final DateTime Function()? clock;
+
+  /// The slice to open on. Reports and Search push this screen after the
+  /// person has already narrowed to a month, so they pass their own.
+  final Period? initialPeriod;
   const HistoryScreen({
     super.key,
     required this.store,
     this.initialQuery = '',
     this.pushed = false,
     this.onMenu,
+    this.clock,
+    this.initialPeriod,
   });
 
   @override
@@ -101,6 +117,38 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String filter = 'all';
+
+  /// The time slice. Opens on ALL TIME rather than this month, deliberately:
+  /// Activity has always shown everything, and starting it filtered would make
+  /// entries the person logged last month look deleted. The selector is an
+  /// addition to the screen, not a new default for it.
+  ///
+  /// A caller that has ALREADY narrowed, like a Reports month row, passes its
+  /// own slice instead: tapping "Food ₱4,200" under June and landing on a list
+  /// of Food from every month shows numbers that visibly do not add up, with
+  /// nothing on screen explaining why.
+  late Period period = widget.initialPeriod ?? const Period.all();
+
+  DateTime _now() => (widget.clock ?? DateTime.now)();
+
+  /// The latest date any entry carries, so the stepper can reach it.
+  ///
+  /// QA's case: a CSV imported with the wrong day/month order throws a slice
+  /// of rows into the future (12/07/2026 read as month first becomes December
+  /// 7th). The forward arrow stops at today, so those rows exist, show under
+  /// All time, and the stepper physically refuses to walk to them. The engine
+  /// rule is golden locked and stays; the SCREEN is allowed to know its own
+  /// data goes further.
+  String? _lastEntryDate(List<Map<String, dynamic>> all) {
+    String? latest;
+    for (final t in all) {
+      final d = t['date'];
+      if (d is! String || d.length < 7) continue;
+      if (latest == null || d.compareTo(latest) > 0) latest = d;
+    }
+    return latest;
+  }
+
   late final TextEditingController _query = TextEditingController(
     text: widget.initialQuery,
   );
@@ -143,7 +191,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               : t['type'] == filter);
       final keepText =
           q.trim().isEmpty || search.txMatches(t, q, maps.cat, maps.acct);
-      if (keepType && keepText) indexed.add((t, i));
+      final keepDate = inPeriod(t['date'], period);
+      if (keepType && keepText && keepDate) indexed.add((t, i));
     }
     indexed.sort((a, b) {
       final byDate = (b.$1['date'] ?? '').toString().compareTo(
@@ -262,6 +311,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            PeriodSelector(
+              period: period,
+              allowAll: true,
+              clock: _now,
+              lastEntryDate: _lastEntryDate(all),
+              onChange: (p) => setState(() => period = p),
+            ),
+            const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -327,6 +384,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
               onAction: () => setState(() {
                 filter = 'all';
                 _query.clear();
+                // The period too. It used to be left alone, so stepping back
+                // to an empty month and tapping the button that promises to
+                // show everything left the list empty and the month chip
+                // still set. The sentence beside it says the entries are just
+                // hidden, which then read as a lie.
+                period = const Period.all();
               }),
             ),
     ],
