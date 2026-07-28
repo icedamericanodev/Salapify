@@ -56,8 +56,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _initialCode() => (_settings()['currencyCode'] as String?) ?? 'PHP';
   String _initialSymbol() => (_settings()['currency'] as String?) ?? '₱';
   String _initialLimit() {
+    // 0 seeds as 0: it is a real stored answer ("do not budget me"), and a
+    // restored onboarded-false backup whose owner chose it must not have
+    // 20000 written back by a tap-through.
     final v = _settings()['monthlyLimit'];
-    return v is num && v > 0 ? _plain(v) : '20000';
+    return v is num && v.isFinite && v >= 0 ? _plain(v) : '20000';
   }
 
   static String _plain(num v) =>

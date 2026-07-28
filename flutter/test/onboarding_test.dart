@@ -17,6 +17,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/chain.dart';
 import 'package:salapify/money/sample_data.dart';
+import 'package:salapify/money/quickadd.dart';
+import 'package:salapify/money/coach.dart' as coach;
 import 'package:salapify/screens/log_sheet.dart' show LogSheet;
 import 'package:salapify/screens/onboarding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -278,6 +280,232 @@ void main() {
       }
       // Payables are deliberately never seeded: no fake debt the user owes.
       expect(seed.containsKey('payables'), isFalse);
+    });
+  });
+
+  group('the QA round', () {
+    test('the first log sheet never preselects a sample account', () {
+      // QA MUST FIX: with only the seed present, lastUsedAccountId derived
+      // "BPI Savings" from the sample transactions, so the auto-opened first
+      // log sheet funneled a new user's real entries into an account that
+      // Remove sample data then deletes from under them.
+      final seed = sampleData(DateTime(2026, 7, 15));
+      final valid = {'sample_cash', 'sample_bpi', 'sample_gcash'};
+      expect(lastUsedAccountId(seed['transactions'], valid), isNull);
+      // And even a REAL transaction pointed at a sample account must not
+      // invite the next one there.
+      final real = [
+        ...seed['transactions'] as List,
+        {
+          'id': 'tx_real',
+          'type': 'expense',
+          'label': 'Coffee',
+          'amount': 90,
+          'date': '2026-07-16',
+          'accountId': 'sample_bpi',
+        },
+      ];
+      expect(lastUsedAccountId(real, valid), isNull);
+    });
+
+    test('quick-add chips never offer sample labels', () {
+      final seed = sampleData(DateTime(2026, 7, 15));
+      expect(recentLabels(seed['transactions'], 'expense'), isEmpty);
+      expect(recentLabels(seed['transactions'], 'income'), isEmpty);
+    });
+
+    test('removal unlinks real entries logged into a sample account', () async {
+      // The rows survive with their money; only the pointer at the account
+      // that stops existing goes.
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      await store.completeOnboarding(
+        currencyCode: 'PHP',
+        currencySymbol: '₱',
+        monthlyLimit: 20000,
+        withSampleData: true,
+      );
+      await store.addEntry({
+        'type': 'expense',
+        'label': 'Real coffee',
+        'amount': 90.0,
+        'accountId': 'sample_bpi',
+        'date': '2026-07-16',
+      });
+      await store.removeSampleData();
+      final survivors = (store.data['transactions'] as List)
+          .whereType<Map>()
+          .toList();
+      expect(survivors, hasLength(1));
+      expect(survivors.single['label'], 'Real coffee');
+      expect(
+        survivors.single.containsKey('accountId'),
+        isFalse,
+        reason: 'the pointer at the deleted sample account must go',
+      );
+    });
+
+    test('removal drops payment residue from sample fixtures', () async {
+      // QA SHOULD FIX: paying the sample credit card writes a payments row
+      // and debt/interest transactions with REAL ids carrying its debtId,
+      // which survived removal and fed the month recap forever.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {'onboarded': true},
+          'debts': [
+            ...sampleData(DateTime(2026, 7, 15))['debts'] as List,
+            {
+              'id': 'd_real',
+              'name': 'My loan',
+              'type': 'personal loan',
+              'remaining': 5000,
+              'monthlyRate': 1,
+              'minPayment': 500,
+            },
+          ],
+          'payments': [
+            {
+              'id': 'payments_1',
+              'debtId': 'sample_d1',
+              'amount': 1500,
+              'date': '2026-07-15',
+            },
+            {
+              'id': 'payments_2',
+              'debtId': 'd_real',
+              'amount': 500,
+              'date': '2026-07-15',
+            },
+          ],
+          'transactions': [
+            {
+              'id': 'txn_1',
+              'type': 'debt',
+              'label': 'Debt payment: Credit Card',
+              'amount': 1400,
+              'date': '2026-07-15',
+              'debtId': 'sample_d1',
+            },
+            {
+              'id': 'txn_2',
+              'type': 'expense',
+              'label': 'Interest: Credit Card',
+              'amount': 100,
+              'date': '2026-07-15',
+              'debtId': 'sample_d1',
+              'source': 'interest',
+            },
+            {
+              'id': 'txn_3',
+              'type': 'debt',
+              'label': 'Debt payment: My loan',
+              'amount': 500,
+              'date': '2026-07-15',
+              'debtId': 'd_real',
+            },
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await store.removeSampleData();
+      final paymentIds = (store.data['payments'] as List)
+          .map((p) => (p as Map)['id'])
+          .toList();
+      final txnIds = (store.data['transactions'] as List)
+          .map((t) => (t as Map)['id'])
+          .toList();
+      expect(paymentIds, ['payments_2']);
+      expect(txnIds, ['txn_3']);
+    });
+
+    test(
+      'erase everything leads back to onboarding, restore never does',
+      () async {
+        // QA SHOULD FIX: startFresh left firstRun alone, so erase showed
+        // onboarding only after a restart. And the counterweight: a backup
+        // imported after an erase must land on the shell, not the welcome.
+        SharedPreferences.setMockInitialValues({});
+        final store = SalapifyStore();
+        await store.load();
+        await store.completeOnboarding(
+          currencyCode: 'PHP',
+          currencySymbol: '₱',
+          monthlyLimit: 20000,
+          withSampleData: false,
+        );
+        expect(store.needsOnboarding, isFalse);
+        await store.startFresh();
+        expect(store.needsOnboarding, isTrue, reason: 'erased means fresh');
+        await store.importBackupText(
+          jsonEncode({
+            'app': 'Salapify',
+            'kind': 'backup',
+            'schemaVersion': 12,
+            'exportedAt': '2026-07-15T00:00:00.000Z',
+            'data': {
+              'schemaVersion': 12,
+              'accounts': [
+                {'id': 'a1', 'name': 'Wallet', 'icon': 'W', 'balance': 500},
+              ],
+            },
+          }),
+        );
+        expect(
+          store.needsOnboarding,
+          isFalse,
+          reason: 'a restored user is never a first-run user',
+        );
+      },
+    );
+
+    test('the log-today nudge ignores sample rows', () {
+      // The seed's clamped dates land on today early in the month; the coach
+      // must still ask for the first real log while the chain does.
+      final ref = DateTime(2026, 7, 5);
+      final data = {
+        'accounts': [
+          {'id': 'a1', 'name': 'Wallet', 'balance': 500},
+        ],
+        'transactions': [
+          {
+            'id': 'sample_t3',
+            'type': 'expense',
+            'label': 'Groceries',
+            'amount': 2300,
+            'date': '2026-07-05',
+          },
+        ],
+      };
+      final kinds = coach
+          .decisionCandidates(data, ref)
+          .map((c) => c['kind'])
+          .toList();
+      expect(kinds, contains('logtoday'));
+    });
+
+    testWidgets('a stored budget of 0 survives a re-walk untouched', (
+      tester,
+    ) async {
+      // QA NICE: the field seeded 20000 over a deliberate stored 0, so a
+      // restored onboarded-false backup got its "do not budget me" answer
+      // overwritten by a tap-through.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {'onboarded': false, 'monthlyLimit': 0},
+        }),
+      });
+      final store = await _boot(tester);
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      expect(_settings(store)['monthlyLimit'], 0);
     });
   });
 

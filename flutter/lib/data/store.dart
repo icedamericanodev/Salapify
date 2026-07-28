@@ -401,6 +401,11 @@ class SalapifyStore extends ChangeNotifier {
     // locked read-only.
     loadError = null;
     loaded = true;
+    // A restored user is never a first-run user, whatever this session
+    // was before the import. Without this, erase-then-import (startFresh
+    // sets firstRun) would greet someone standing on their restored data
+    // with the welcome flow, the exact thing the gate exists to prevent.
+    firstRun = false;
     notifyListeners();
   });
 
@@ -483,6 +488,12 @@ class SalapifyStore extends ChangeNotifier {
     data = sanitizeData({});
     loadError = null;
     loaded = true;
+    // Erasing everything means beginning again from zero, and zero includes
+    // the welcome: the disk is now exactly what a fresh install sees, so the
+    // gate should read it the same way. Before this, erase showed onboarding
+    // only after a restart (the disk was empty but firstRun still said no),
+    // one action with two outcomes depending on when you looked.
+    firstRun = true;
     notifyListeners();
   });
 
@@ -1412,6 +1423,15 @@ class SalapifyStore extends ChangeNotifier {
   /// seeded row carries the sample_ id prefix, the improvement over RN,
   /// where only transactions were tagged and the sample accounts became
   /// permanent residents.
+  ///
+  /// Interacting with the sample set writes rows with REAL ids that point
+  /// back at sample fixtures (paying the sample credit card records a
+  /// payments row and debt/interest transactions carrying its debtId), and
+  /// QA caught those surviving removal and feeding the month recap as real
+  /// money forever. So removal also drops any row that references a sample
+  /// fixture, and a surviving real transaction the user logged INTO a
+  /// sample account keeps its money but loses the accountId link, since the
+  /// account it names is about to stop existing.
   Future<void> removeSampleData() => _mutate((d) {
     var next = d;
     for (final key in [
@@ -1428,6 +1448,31 @@ class SalapifyStore extends ChangeNotifier {
         key: [
           for (final row in list)
             if (row is! Map || !isSampleId(row['id'])) row,
+        ],
+      };
+    }
+    final payments = next['payments'];
+    if (payments is List) {
+      next = {
+        ...next,
+        'payments': [
+          for (final row in payments)
+            if (row is! Map || !isSampleId(row['debtId'])) row,
+        ],
+      };
+    }
+    final txns = next['transactions'];
+    if (txns is List) {
+      next = {
+        ...next,
+        'transactions': [
+          for (final row in txns)
+            if (row is! Map)
+              row
+            else if (!isSampleId(row['debtId']))
+              isSampleId(row['accountId'])
+                  ? ({...row}..remove('accountId'))
+                  : row,
         ],
       };
     }
