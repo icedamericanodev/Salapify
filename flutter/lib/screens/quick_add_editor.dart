@@ -7,11 +7,16 @@
 // they decide it while looking at a chip that says Coffee ₱120 when their
 // coffee is ₱65.
 //
-// Opening it SEEDS the current defaults into storage. That is what makes
-// deleting the last button work: before this existed, an empty stored list
-// could only mean "never set", so the card fell back to the four defaults.
-// Without the seed, deleting all four would make four different ones reappear,
-// which reads as the app refusing to be changed.
+// Opening it writes NOTHING. The two WRITE paths record that the presets have
+// been edited, which is what makes deleting the last button work: before this
+// existed, an empty stored list could only mean "never set", so the card fell
+// back to the four defaults, and deleting all four would make four different
+// ones reappear.
+//
+// This paragraph said the opposite one commit ago, and it was true then. The
+// seed moved because doing it on OPEN flipped hasData true on an empty app and
+// deleted Menu's import prompt. A comment describing what the code does is a
+// claim with an expiry date; this one is dated on purpose.
 
 import 'package:flutter/material.dart';
 
