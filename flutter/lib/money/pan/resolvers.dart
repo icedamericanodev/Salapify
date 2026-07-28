@@ -10,8 +10,7 @@ import '../analytics.dart'
         goalPace,
         healthScore,
         savingsRate;
-import '../commitments.dart'
-    show bankDueDate, safeToSpend, upcomingCommitments;
+import '../commitments.dart' show bankDueDate, safeToSpend, upcomingCommitments;
 import '../debtmath.dart' show cardForecast, debtFreeProjection;
 import '../ledger.dart' show amountOf;
 import '../recap.dart' show monthRecap;
@@ -24,17 +23,17 @@ double _num(dynamic x) => amountOf(x);
 const List<String> _liquid = ['cash', 'ewallet', 'checking'];
 
 List<Map<String, dynamic>> _rows(dynamic v) => [
-      for (final r in (v is List ? v : const []))
-        if (r is Map) r.cast<String, dynamic>(),
-    ];
+  for (final r in (v is List ? v : const []))
+    if (r is Map) r.cast<String, dynamic>(),
+];
 
 bool _jsFalsy(dynamic v) =>
     v == null || v == false || v == '' || v == 0 || (v is double && v.isNaN);
 
 typedef PanCtx = ({DateTime now, double? amount, String raw});
 
-typedef Resolver = Map<String, dynamic> Function(
-    Map<String, dynamic> data, PanCtx ctx);
+typedef Resolver =
+    Map<String, dynamic> Function(Map<String, dynamic> data, PanCtx ctx);
 
 final Map<String, Resolver> resolvers = {
   'safeToSpend': (data, ctx) {
@@ -152,8 +151,9 @@ final Map<String, Resolver> resolvers = {
     ];
     final extra = _num(ctx.amount);
     final base = debtFreeProjection(debts, 'avalanche', 0, ctx.now);
-    final withExtra =
-        extra > 0 ? debtFreeProjection(debts, 'avalanche', extra, ctx.now) : null;
+    final withExtra = extra > 0
+        ? debtFreeProjection(debts, 'avalanche', extra, ctx.now)
+        : null;
     Map<String, dynamic>? pack(Map<String, dynamic>? p) => p != null
         ? {
             'months': p['months'],
@@ -186,8 +186,7 @@ final Map<String, Resolver> resolvers = {
   'forecast': (data, ctx) {
     final f = forecastMonthEnd(data['transactions'] ?? const [], ctx.now);
     final settings = data['settings'];
-    final limit =
-        _num(settings is Map ? settings['monthlyLimit'] : null);
+    final limit = _num(settings is Map ? settings['monthlyLimit'] : null);
     final projected = f['projected'] as double;
     return {
       'kind': 'forecast',
@@ -198,10 +197,13 @@ final Map<String, Resolver> resolvers = {
     };
   },
   'savingsRate': (data, ctx) => {
-        'kind': 'savings_rate',
-        'rate': savingsRate(
-            data['transactions'] ?? const [], data['payments'] ?? const [], ctx.now),
-      },
+    'kind': 'savings_rate',
+    'rate': savingsRate(
+      data['transactions'] ?? const [],
+      data['payments'] ?? const [],
+      ctx.now,
+    ),
+  },
   'goalPace': (data, ctx) {
     final goals = [
       for (final g in _rows(data['goals']))
@@ -216,8 +218,7 @@ final Map<String, Resolver> resolvers = {
         // and never matches, not the string "0" matching any zero in the
         // message.
         final rawName = g['name'];
-        final name =
-            _jsFalsy(rawName) ? '' : rawName.toString().toLowerCase();
+        final name = _jsFalsy(rawName) ? '' : rawName.toString().toLowerCase();
         if (name.isNotEmpty && rawLower.contains(name)) {
           named = g;
           break;
@@ -235,8 +236,8 @@ final Map<String, Resolver> resolvers = {
     ];
     Map<String, dynamic>? focus;
     if (named != null) {
-      final namedName = (named['name'] is String &&
-              (named['name'] as String).isNotEmpty)
+      final namedName =
+          (named['name'] is String && (named['name'] as String).isNotEmpty)
           ? named['name']
           : 'Goal';
       for (final p in paces) {
@@ -257,8 +258,9 @@ final Map<String, Resolver> resolvers = {
     if (focus == null) {
       final indexed = List.generate(paces.length, (i) => (paces[i], i));
       indexed.sort((a, b) {
-        final c = ((a.$1['pace'] as Map)['pct'] as num)
-            .compareTo((b.$1['pace'] as Map)['pct'] as num);
+        final c = ((a.$1['pace'] as Map)['pct'] as num).compareTo(
+          (b.$1['pace'] as Map)['pct'] as num,
+        );
         return c != 0 ? c : a.$2.compareTo(b.$2);
       });
       focus = indexed.first.$1;
@@ -274,11 +276,13 @@ final Map<String, Resolver> resolvers = {
       ('debt load', amountOf(hp['debt']), 25.0),
       ('logging habit', amountOf(hp['logging']), 15.0),
     ];
-    final weakSorted = [...parts]..sort((a, b) {
+    final weakSorted = [...parts]
+      ..sort((a, b) {
         final c = (a.$2 / a.$3).compareTo(b.$2 / b.$3);
         return c != 0 ? c : parts.indexOf(a).compareTo(parts.indexOf(b));
       });
-    final strongSorted = [...parts]..sort((a, b) {
+    final strongSorted = [...parts]
+      ..sort((a, b) {
         final c = (b.$2 / b.$3).compareTo(a.$2 / a.$3);
         return c != 0 ? c : parts.indexOf(a).compareTo(parts.indexOf(b));
       });
@@ -290,7 +294,9 @@ final Map<String, Resolver> resolvers = {
     };
   },
   'balances': (data, ctx) {
-    final accts = data['accounts'] is List ? data['accounts'] as List : const [];
+    final accts = data['accounts'] is List
+        ? data['accounts'] as List
+        : const [];
     var spendable = 0.0;
     var savings = 0.0;
     for (final a in accts) {
@@ -300,7 +306,8 @@ final Map<String, Resolver> resolvers = {
       if (a is Map && a['kind'] == 'savings') savings += _num(a['balance']);
     }
     var debt = 0.0;
-    for (final d in (data['debts'] is List ? data['debts'] as List : const [])) {
+    for (final d
+        in (data['debts'] is List ? data['debts'] as List : const [])) {
       debt += _num(d is Map ? d['remaining'] : null);
     }
     return {

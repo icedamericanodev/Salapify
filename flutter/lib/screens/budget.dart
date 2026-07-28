@@ -13,6 +13,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
 import 'overview.dart' show formatMoney;
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The RN default quick adds, shown when the imported settings carry none.
 const List<({String label, num amount})> _defaultQuickAdds = [
@@ -481,7 +482,7 @@ class BudgetScreen extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: TextStyle(color: Barako.text, fontSize: 20),
           decoration: InputDecoration(
-            prefixText: '₱ ',
+            prefixText: '$baseCurrencySymbol ',
             prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
             hintText: '15000',
             hintStyle: TextStyle(color: Barako.faint),

@@ -79,8 +79,7 @@ class BarakoTheme {
     required this.light,
     required this.dark,
   });
-  BarakoPalette resolve(Brightness b) =>
-      b == Brightness.dark ? dark : light;
+  BarakoPalette resolve(Brightness b) => b == Brightness.dark ? dark : light;
 }
 
 const _barakoDark = BarakoPalette(
@@ -469,22 +468,62 @@ const _mintLight = BarakoPalette(
 /// Forest palette below is fixed here and left alone in RN, which stays frozen
 /// for testers. Treat the RN file as a sibling, not a source.
 const List<BarakoTheme> barakoThemes = [
-  BarakoTheme(key: 'barako', label: 'Barako', hint: 'Roasted orange on dark coffee.',
-      light: _barakoLight, dark: _barakoDark),
-  BarakoTheme(key: 'ember', label: 'Ember', hint: 'Coral on charcoal. Barako, hotter.',
-      light: _emberLight, dark: _emberDark),
-  BarakoTheme(key: 'orchidgold', label: 'Orchid Gold', hint: 'Berry plum, gold for wins.',
-      light: _orchidgoldLight, dark: _orchidgoldDark),
-  BarakoTheme(key: 'ultraviolet', label: 'Ultraviolet', hint: 'Midnight violet, electric lime.',
-      light: _ultravioletLight, dark: _ultravioletDark),
-  BarakoTheme(key: 'voltage', label: 'Voltage', hint: 'Ink black, blue, hot pink wins.',
-      light: _voltageLight, dark: _voltageDark),
-  BarakoTheme(key: 'tidal', label: 'Tidal', hint: 'Deep navy, vivid aqua.',
-      light: _tidalLight, dark: _tidalDark),
-  BarakoTheme(key: 'mint', label: 'Mint', hint: 'Spring green, honey gold.',
-      light: _mintLight, dark: _mintDark),
-  BarakoTheme(key: 'forest', label: 'Forest', hint: 'Deep green, warm orange.',
-      light: _forestLight, dark: _forestDark),
+  BarakoTheme(
+    key: 'barako',
+    label: 'Barako',
+    hint: 'Roasted orange on dark coffee.',
+    light: _barakoLight,
+    dark: _barakoDark,
+  ),
+  BarakoTheme(
+    key: 'ember',
+    label: 'Ember',
+    hint: 'Coral on charcoal. Barako, hotter.',
+    light: _emberLight,
+    dark: _emberDark,
+  ),
+  BarakoTheme(
+    key: 'orchidgold',
+    label: 'Orchid Gold',
+    hint: 'Berry plum, gold for wins.',
+    light: _orchidgoldLight,
+    dark: _orchidgoldDark,
+  ),
+  BarakoTheme(
+    key: 'ultraviolet',
+    label: 'Ultraviolet',
+    hint: 'Midnight violet, electric lime.',
+    light: _ultravioletLight,
+    dark: _ultravioletDark,
+  ),
+  BarakoTheme(
+    key: 'voltage',
+    label: 'Voltage',
+    hint: 'Ink black, blue, hot pink wins.',
+    light: _voltageLight,
+    dark: _voltageDark,
+  ),
+  BarakoTheme(
+    key: 'tidal',
+    label: 'Tidal',
+    hint: 'Deep navy, vivid aqua.',
+    light: _tidalLight,
+    dark: _tidalDark,
+  ),
+  BarakoTheme(
+    key: 'mint',
+    label: 'Mint',
+    hint: 'Spring green, honey gold.',
+    light: _mintLight,
+    dark: _mintDark,
+  ),
+  BarakoTheme(
+    key: 'forest',
+    label: 'Forest',
+    hint: 'Deep green, warm orange.',
+    light: _forestLight,
+    dark: _forestDark,
+  ),
 ];
 
 /// The appearance modes, matching the RN app.
@@ -584,20 +623,19 @@ class Barako {
   /// new style is very slightly NARROWER per character (8.6 against 8.8), so
   /// nothing that fitted before can overflow now.
   static TextStyle get kickerStyle => TextStyle(
-        color: current.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1.2,
-      );
+    color: current.muted,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.2,
+  );
 
   /// The kicker for a label INSIDE a card, in the warm accent rather than
   /// muted. Splitting the two is what stops a screen of cards reading
   /// utilitarian: the outside label orients, the inside label belongs to its
   /// card. Contrast was checked across all sixteen palettes; caramel on card
   /// ranges 5.42 to 9.75, so every one clears AA for small text.
-  static TextStyle get cardKickerStyle => kickerStyle.copyWith(
-        color: current.caramel,
-      );
+  static TextStyle get cardKickerStyle =>
+      kickerStyle.copyWith(color: current.caramel);
 }
 
 /// The spacing ladder. Anything outside it is a bug.
@@ -693,17 +731,17 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           size: 22,
-          color:
-              states.contains(WidgetState.selected) ? p.onPrimary : p.muted,
+          color: states.contains(WidgetState.selected) ? p.onPrimary : p.muted,
         ),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: isLight ? p.text : p.surfaceRaised,
       contentTextStyle: TextStyle(
-          fontFamily: 'Jakarta',
-          color: isLight ? p.card : p.text,
-          fontSize: 14),
+        fontFamily: 'Jakarta',
+        color: isLight ? p.card : p.text,
+        fontSize: 14,
+      ),
       // The default action color is the brand primary. celebrate is passed
       // explicitly only on win/streak snackbars, so the gold stays earned.
       actionTextColor: p.primary,
@@ -725,38 +763,42 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       style: FilledButton.styleFrom(
         backgroundColor: p.primary,
         foregroundColor: p.onPrimary,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
-            fontFamily: 'Jakarta',
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2),
+          fontFamily: 'Jakarta',
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: p.border),
         foregroundColor: p.textSecondary,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
-            fontFamily: 'Jakarta', fontWeight: FontWeight.w600),
+          fontFamily: 'Jakarta',
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: p.primary,
         textStyle: const TextStyle(
-            fontFamily: 'Jakarta', fontWeight: FontWeight.w700),
+          fontFamily: 'Jakarta',
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: p.background,
       side: BorderSide(color: p.border),
       labelStyle: TextStyle(
-          fontFamily: 'Jakarta',
-          color: p.textSecondary,
-          fontWeight: FontWeight.w600),
+        fontFamily: 'Jakarta',
+        color: p.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       showCheckmark: false,
     ),

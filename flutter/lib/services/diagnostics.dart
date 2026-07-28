@@ -169,7 +169,9 @@ class Diagnostics {
     b.writeln('Build: ${_versionOf(stamp)}');
     b.writeln('Patch: ${patch ?? 'none (running the base build)'}');
     b.writeln('Platform: ${platform ?? _platform()}');
-    b.writeln('Taken: ${DateTime.now().toUtc().toIso8601String().substring(0, 19)} UTC');
+    b.writeln(
+      'Taken: ${DateTime.now().toUtc().toIso8601String().substring(0, 19)} UTC',
+    );
     b.writeln();
 
     b.writeln('How much is stored (counts only, no amounts or names):');

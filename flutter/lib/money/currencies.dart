@@ -30,6 +30,39 @@ const List<Map<String, String>> currencies = [
   {'code': 'NZD', 'symbol': 'NZ\$'},
 ];
 
+/// The symbol every formatter renders BASE amounts with.
+///
+/// Resolved from settings once per rebuild in main.dart, the Barako.current
+/// pattern: a settings change notifies the store, the app tree rebuilds, and
+/// every amount on screen reflows at once. Defaults to the peso, so every
+/// existing user and every existing test sees zero change until someone
+/// explicitly picks another currency.
+///
+/// This is the ONE mutable currency read. The PH calculators (tax, salary,
+/// loan, contributions, thirteenth month) deliberately do not use it: they
+/// compute Philippine payroll and tax law, and the peso is part of that
+/// domain, not a display preference.
+String baseCurrencySymbol = '₱';
+
+/// Read the RN settings keys (currency holds the symbol, currencyCode the
+/// code) into [baseCurrencySymbol]. Symbol wins when both exist, matching
+/// the RN app, and anything malformed falls back to the peso.
+void resolveBaseCurrency(dynamic settings) {
+  if (settings is Map) {
+    final sym = settings['currency'];
+    if (sym is String && sym.isNotEmpty) {
+      baseCurrencySymbol = sym;
+      return;
+    }
+    final code = settings['currencyCode'];
+    if (code is String && code.isNotEmpty) {
+      baseCurrencySymbol = currencySymbol(code);
+      return;
+    }
+  }
+  baseCurrencySymbol = '₱';
+}
+
 /// The sign for a code, falling back to the code itself so an unknown code
 /// never renders blank. Matches RN currencySymbol (null and '' give '').
 String currencySymbol(dynamic code) {

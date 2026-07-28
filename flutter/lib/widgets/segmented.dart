@@ -37,7 +37,11 @@ class SegmentOption<T> {
   /// What a screen reader should say. Falls back to the label.
   final String? semanticLabel;
 
-  const SegmentOption({required this.value, required this.label, this.semanticLabel});
+  const SegmentOption({
+    required this.value,
+    required this.label,
+    this.semanticLabel,
+  });
 }
 
 class Segmented<T> extends StatelessWidget {

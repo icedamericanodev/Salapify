@@ -101,17 +101,22 @@ String scheduleLabel(dynamic schedule) {
     final suffix = (d == 1 || d == 21)
         ? 'st'
         : (d == 2 || d == 22)
-            ? 'nd'
-            : (d == 3 || d == 23)
-                ? 'rd'
-                : 'th';
+        ? 'nd'
+        : (d == 3 || d == 23)
+        ? 'rd'
+        : 'th';
     return 'the $d$suffix';
   }
 
   if (sch['mode'] == 'weekly') {
     const names = [
-      'Sunday', 'Monday', 'Tuesday', 'Wednesday',
-      'Thursday', 'Friday', 'Saturday',
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
     ];
     return 'every ${names[sch['weekday'] as int]}';
   }
@@ -131,8 +136,11 @@ DateTime prevPayday(DateTime today, dynamic schedule) {
     return DateTime(startToday.year, startToday.month, startToday.day - back);
   }
   for (var i = 0; i >= -1; i--) {
-    final list =
-        _monthPaydays(today.year, today.month + i, sch).reversed.toList();
+    final list = _monthPaydays(
+      today.year,
+      today.month + i,
+      sch,
+    ).reversed.toList();
     for (final c in list) {
       if (!c.isAfter(startToday)) return c;
     }

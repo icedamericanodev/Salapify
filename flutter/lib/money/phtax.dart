@@ -120,26 +120,34 @@ Map<String, dynamic> contributionBreakdown(num monthly) {
     'employee': sssEmployee(monthly),
     'employer': sssEmployer(monthly),
   };
-  sss['total'] = _round2((sss['employee'] as double) + (sss['employer'] as double));
+  sss['total'] = _round2(
+    (sss['employee'] as double) + (sss['employer'] as double),
+  );
   final philhealth = <String, dynamic>{
     'employee': philhealthEmployee(monthly),
     'employer': philhealthEmployer(monthly),
   };
-  philhealth['total'] =
-      _round2((philhealth['employee'] as double) + (philhealth['employer'] as double));
+  philhealth['total'] = _round2(
+    (philhealth['employee'] as double) + (philhealth['employer'] as double),
+  );
   final pagibig = <String, dynamic>{
     'employee': pagibigEmployee(monthly),
     'employer': pagibigEmployer(monthly),
   };
-  pagibig['total'] =
-      _round2((pagibig['employee'] as double) + (pagibig['employer'] as double));
+  pagibig['total'] = _round2(
+    (pagibig['employee'] as double) + (pagibig['employer'] as double),
+  );
 
-  final employeeTotal = _round2((sss['employee'] as double) +
-      (philhealth['employee'] as double) +
-      (pagibig['employee'] as double));
-  final employerTotal = _round2((sss['employer'] as double) +
-      (philhealth['employer'] as double) +
-      (pagibig['employer'] as double));
+  final employeeTotal = _round2(
+    (sss['employee'] as double) +
+        (philhealth['employee'] as double) +
+        (pagibig['employee'] as double),
+  );
+  final employerTotal = _round2(
+    (sss['employer'] as double) +
+        (philhealth['employer'] as double) +
+        (pagibig['employer'] as double),
+  );
 
   return {
     'msc': sssMSC(monthly),
@@ -157,12 +165,16 @@ Map<String, dynamic> contributionBreakdown(num monthly) {
 /// salary; taxable allowances are taxed with pay; non-taxable allowances
 /// pass straight to take-home. The annual graduated tax spreads across 12
 /// months for the withholding estimate.
-Map<String, dynamic> takeHomePay(num basic,
-    {num taxableAllowance = 0, num nonTaxableAllowance = 0}) {
+Map<String, dynamic> takeHomePay(
+  num basic, {
+  num taxableAllowance = 0,
+  num nonTaxableAllowance = 0,
+}) {
   final basicPay = _num(basic) < 0 ? 0.0 : _num(basic);
   final taxAllow = _num(taxableAllowance) < 0 ? 0.0 : _num(taxableAllowance);
-  final nonTaxAllow =
-      _num(nonTaxableAllowance) < 0 ? 0.0 : _num(nonTaxableAllowance);
+  final nonTaxAllow = _num(nonTaxableAllowance) < 0
+      ? 0.0
+      : _num(nonTaxableAllowance);
 
   final sss = sssEmployee(basicPay);
   final philhealth = philhealthEmployee(basicPay);
@@ -204,8 +216,9 @@ double percentageTax(num annualGross) {
 /// Mixed income: the whole gross is taxed.
 double eightPercentTax(num annualGross, {bool mixedIncome = false}) {
   final g = _num(annualGross) < 0 ? 0.0 : _num(annualGross);
-  final taxBase =
-      mixedIncome ? g : (g - selfEmployedExempt < 0 ? 0.0 : g - selfEmployedExempt);
+  final taxBase = mixedIncome
+      ? g
+      : (g - selfEmployedExempt < 0 ? 0.0 : g - selfEmployedExempt);
   return _round2(taxBase * 0.08);
 }
 
@@ -213,18 +226,22 @@ double eightPercentTax(num annualGross, {bool mixedIncome = false}) {
 /// on net (after the 40 percent OSD or itemized expenses), plus the 3
 /// percent percentage tax where it applies. For a mixed earner the business
 /// net stacks on top of the salary at the marginal rungs.
-Map<String, dynamic> graduatedSelfEmployedTax(num annualGross,
-    {bool useOSD = true,
-    num expenses = 0,
-    num salaryTaxable = 0,
-    bool vatRegistered = false}) {
+Map<String, dynamic> graduatedSelfEmployedTax(
+  num annualGross, {
+  bool useOSD = true,
+  num expenses = 0,
+  num salaryTaxable = 0,
+  bool vatRegistered = false,
+}) {
   final g = _num(annualGross) < 0 ? 0.0 : _num(annualGross);
   final exp = _num(expenses) < 0 ? 0.0 : _num(expenses);
   final salary = _num(salaryTaxable) < 0 ? 0.0 : _num(salaryTaxable);
   final deduction = useOSD ? _round2(g * 0.4) : (exp > g ? g : exp);
   var net = _round2(g - deduction);
   if (net < 0) net = 0;
-  var incomeTax = _round2(annualIncomeTax(salary + net) - annualIncomeTax(salary));
+  var incomeTax = _round2(
+    annualIncomeTax(salary + net) - annualIncomeTax(salary),
+  );
   final pct = vatRegistered ? 0.0 : percentageTax(g);
   if (incomeTax < 0) incomeTax = 0;
   return {
@@ -239,22 +256,26 @@ Map<String, dynamic> graduatedSelfEmployedTax(num annualGross,
 /// Both self-employed regimes compared, with a recommendation. Mirrors the
 /// RN engine exactly, including the mixed-earner-without-salary guard and
 /// the VAT-threshold gate on the 8 percent option.
-Map<String, dynamic> selfEmployedTax(num annualGross,
-    {bool mixedIncome = false,
-    bool useOSD = true,
-    num expenses = 0,
-    num salaryTaxable = 0}) {
+Map<String, dynamic> selfEmployedTax(
+  num annualGross, {
+  bool mixedIncome = false,
+  bool useOSD = true,
+  num expenses = 0,
+  num salaryTaxable = 0,
+}) {
   final gross = _num(annualGross) < 0 ? 0.0 : _num(annualGross);
   final salary = _num(salaryTaxable) < 0 ? 0.0 : _num(salaryTaxable);
   final eligible8 = gross <= vatThreshold;
   final canCompareGraduated = !mixedIncome || salary > 0;
 
   final eightTotal = eightPercentTax(gross, mixedIncome: mixedIncome);
-  final graduated = graduatedSelfEmployedTax(gross,
-      useOSD: useOSD,
-      expenses: expenses,
-      salaryTaxable: salary,
-      vatRegistered: !eligible8);
+  final graduated = graduatedSelfEmployedTax(
+    gross,
+    useOSD: useOSD,
+    expenses: expenses,
+    salaryTaxable: salary,
+    vatRegistered: !eligible8,
+  );
 
   final eightPercent = <String, dynamic>{
     'exempt': mixedIncome ? 0.0 : selfEmployedExempt,
@@ -270,12 +291,15 @@ Map<String, dynamic> selfEmployedTax(num annualGross,
     recommended = 'eight';
     savings = 0;
   } else {
-    recommended = eightTotal <= (graduated['total'] as double) ? 'eight' : 'graduated';
+    recommended = eightTotal <= (graduated['total'] as double)
+        ? 'eight'
+        : 'graduated';
     savings = _round2(((graduated['total'] as double) - eightTotal).abs());
   }
 
-  final chosenTotal =
-      recommended == 'eight' ? eightTotal : graduated['total'] as double;
+  final chosenTotal = recommended == 'eight'
+      ? eightTotal
+      : graduated['total'] as double;
   final effectiveRate = gross > 0 ? _round2((chosenTotal / gross) * 100) : 0.0;
 
   return {
@@ -294,11 +318,13 @@ Map<String, dynamic> selfEmployedTax(num annualGross,
 
 /// Employee year-end annualization: the year's tax due versus what was
 /// withheld, and the refund (positive) or shortfall (negative).
-Map<String, dynamic> annualizeCompensation(num basic,
-    {num taxableAllowance = 0,
-    num? monthsWorked,
-    num bonuses = 0,
-    num taxWithheld = 0}) {
+Map<String, dynamic> annualizeCompensation(
+  num basic, {
+  num taxableAllowance = 0,
+  num? monthsWorked,
+  num bonuses = 0,
+  num taxWithheld = 0,
+}) {
   final basicPay = _num(basic) < 0 ? 0.0 : _num(basic);
   final taxAllow = _num(taxableAllowance) < 0 ? 0.0 : _num(taxableAllowance);
   final months = monthsWorked == null
@@ -308,7 +334,8 @@ Map<String, dynamic> annualizeCompensation(num basic,
   final withheld = _num(taxWithheld) < 0 ? 0.0 : _num(taxWithheld);
 
   final monthlyTaxable =
-      takeHomePay(basicPay, taxableAllowance: taxAllow)['monthlyTaxable'] as double;
+      takeHomePay(basicPay, taxableAllowance: taxAllow)['monthlyTaxable']
+          as double;
   final regularTaxable = _round2(monthlyTaxable * months);
 
   var bonusTaxable = _round2(bon - bonusTaxFreeCeiling);
@@ -319,8 +346,9 @@ Map<String, dynamic> annualizeCompensation(num basic,
   final difference = _round2(withheld - annualTaxDue);
 
   final grossForYear = _round2((basicPay + taxAllow) * months + bon);
-  final effectiveRate =
-      grossForYear > 0 ? _round2((annualTaxDue / grossForYear) * 100) : 0.0;
+  final effectiveRate = grossForYear > 0
+      ? _round2((annualTaxDue / grossForYear) * 100)
+      : 0.0;
 
   return {
     'regularTaxable': regularTaxable,

@@ -88,9 +88,7 @@ LessonInsight lessonInsight(dynamic data, String trackId, DateTime now) {
     }
   }
 
-  final activeDebts = debts
-      .where((x) => amountOf(x['remaining']) > 0)
-      .toList();
+  final activeDebts = debts.where((x) => amountOf(x['remaining']) > 0).toList();
   final hasDebt = activeDebts.isNotEmpty;
   final daysSinceIncome = lastIncome == null
       ? null

@@ -86,11 +86,7 @@ const Duration panReactionWindow = Duration(seconds: 6);
 ///
 /// Pure and clock-injected so it is testable and cannot drift from the
 /// ambient mapping above.
-PanMood? panMoodForRecentAction(
-  String? kind,
-  DateTime? at,
-  DateTime now,
-) {
+PanMood? panMoodForRecentAction(String? kind, DateTime? at, DateTime now) {
   if (kind == null || at == null) return null;
   final elapsed = now.difference(at);
   // A negative elapsed means the stamp is in the future, which happens when a

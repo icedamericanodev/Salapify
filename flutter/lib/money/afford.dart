@@ -137,18 +137,19 @@ Map<String, dynamic> affordCheck(
     final months = term > 0 ? term : 0;
     final totalCost = months > 0 ? amt * months : null;
     final newMonthlyCommitted = monthlyCommitted + amt;
-    final newShare =
-        hasIncomeBase ? newMonthlyCommitted / typicalIncome : null;
+    final newShare = hasIncomeBase ? newMonthlyCommitted / typicalIncome : null;
     final newLeanShare = (leanIncome != null && leanIncome > 0)
         ? newMonthlyCommitted / leanIncome
         : null;
-    final bool? fitsLean =
-        newLeanShare == null ? null : newLeanShare <= _leanFitShare;
+    final bool? fitsLean = newLeanShare == null
+        ? null
+        : newLeanShare <= _leanFitShare;
     // A "lean month" is only a real stress test if the user has actually had a
     // leaner sweldo than usual. With flat income the lean month IS the typical
     // month, so the card must not imply a downturn resilience the data cannot
     // show. 0.9: at least ~10% below typical to count as genuinely lean.
-    final leanIsDistinct = leanIncome != null &&
+    final leanIsDistinct =
+        leanIncome != null &&
         typicalIncome > 0 &&
         leanIncome < typicalIncome * 0.9;
 
@@ -197,8 +198,7 @@ Map<String, dynamic> affordCheck(
   final eatsCushion = overflow > 0;
   final cushionAfter = buffer - amt > 0 ? buffer - amt : 0.0;
   final wipesCushion = amt > buffer; // more than all the money in your accounts
-  final cushionMonthsLost =
-      (avg > 0 && amt.isFinite) ? amt / avg : null;
+  final cushionMonthsLost = (avg > 0 && amt.isFinite) ? amt / avg : null;
   final runwayMonthsAfter = avg > 0 ? cushionAfter / avg : null;
 
   String verdict;

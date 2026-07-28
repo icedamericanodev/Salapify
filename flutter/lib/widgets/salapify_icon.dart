@@ -112,7 +112,8 @@ IconData salapifyIcon(String name) =>
 /// with no filled twin simply does not change when selected. That is a
 /// deliberate difference from [salapifyIcon]: an unknown NAME is a typo worth
 /// showing, but a missing filled variant is a normal, correct state.
-IconData salapifyIconSelected(String name) => _filled[name] ?? salapifyIcon(name);
+IconData salapifyIconSelected(String name) =>
+    _filled[name] ?? salapifyIcon(name);
 
 /// A Salapify icon, in the theme's accent, optionally inside a soft tinted
 /// disc. The disc is what makes a row of these read as one family: it gives

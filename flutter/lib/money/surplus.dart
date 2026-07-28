@@ -64,18 +64,21 @@ Map<String, dynamic> nextPesoPlan(Map<String, dynamic> data, DateTime ref) {
 
   // Starter cushion: one month of typical spend when we know it, else a plain
   // 10k floor. Never the full fund; that waits behind high-interest debt.
-  final starterTarget =
-      hasHistory && avg > 0 ? avg : amountOf(runway['firstTarget']);
+  final starterTarget = hasHistory && avg > 0
+      ? avg
+      : amountOf(runway['firstTarget']);
   final starterGap = starterTarget - buffer > 0 ? starterTarget - buffer : 0.0;
   final fullTarget = hasHistory && avg > 0 ? avg * 3 : 0.0;
-  final fullGap =
-      fullTarget > 0 && fullTarget - buffer > 0 ? fullTarget - buffer : 0.0;
+  final fullGap = fullTarget > 0 && fullTarget - buffer > 0
+      ? fullTarget - buffer
+      : 0.0;
 
   // Highest monthly-rate debt with a real rate saved wins the debt tier. A
   // strict `>` keeps the first of any tie, matching the RN linear scan.
   Map<String, dynamic>? topDebt;
   var rateUnfilled = false;
-  for (final raw in (data['debts'] is List ? data['debts'] as List : const [])) {
+  for (final raw
+      in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
     final remaining = amountOf(d['remaining']);

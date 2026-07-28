@@ -16,6 +16,7 @@ import '../theme.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import 'split_expense.dart' show showSplitSheet;
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// Opens the right sheet for a history row: the edit form when the row is
 /// editable, otherwise the read-only explainer that says why not and where
@@ -341,7 +342,7 @@ class _EditSheetState extends State<EditSheet> {
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
               ),
-              decoration: _decor('0.00', prefix: '₱ '),
+              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
             ),
             const SizedBox(height: 10),
             TextField(

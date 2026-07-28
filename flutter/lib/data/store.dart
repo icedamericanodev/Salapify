@@ -1341,6 +1341,21 @@ class SalapifyStore extends ChangeNotifier {
     return {...d, 'settings': next};
   });
 
+  /// Set the display currency, the RN keys exactly (currency holds the
+  /// symbol, currencyCode the code) so a backup written here reads the same
+  /// in the RN app and back. Purely a display preference: amounts are never
+  /// converted, which is the whole offline-first currency design.
+  Future<void> setCurrency(String code, String symbol) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'currency': symbol,
+        'currencyCode': code,
+      },
+    },
+  );
+
   /// Unlock Pro. During early access Pro is free and early users keep it free,
   /// so this is the honest "unlock" the recurring cap offers. A plain settings
   /// write, preserved by backup like every other settings key.

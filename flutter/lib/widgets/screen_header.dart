@@ -28,12 +28,14 @@ class ScreenHeader extends StatelessWidget {
   // mistake impossible. The analyzer wants const on an all-final widget, but
   // that is exactly the footgun we are avoiding, so we opt out here.
   // ignore: prefer_const_constructors_in_immutables
-  ScreenHeader(this.title,
-      {super.key,
-      this.subtitle,
-      this.trailing,
-      this.onMenu,
-      this.topGap = 12});
+  ScreenHeader(
+    this.title, {
+    super.key,
+    this.subtitle,
+    this.trailing,
+    this.onMenu,
+    this.topGap = 12,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +50,16 @@ class ScreenHeader extends StatelessWidget {
     // It also leaves exactly ONE uppercase treatment in the app, the 12px
     // kicker. Two all-caps sizes competing is solved by deleting one of them,
     // not by tuning both.
-    final titleText = Text(title,
-        style: TextStyle(
-            color: Barako.text,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            height: 1.2,
-            letterSpacing: 0));
+    final titleText = Text(
+      title,
+      style: TextStyle(
+        color: Barako.text,
+        fontSize: 22,
+        fontWeight: FontWeight.w800,
+        height: 1.2,
+        letterSpacing: 0,
+      ),
+    );
     // One Row whenever there is anything beside the title, rather than a
     // trailing-only special case. Menu now sits here on every primary screen,
     // and Utang carries a create button as well, so "title alone" stopped
@@ -89,8 +94,10 @@ class ScreenHeader extends StatelessWidget {
           titleText,
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(subtitle!,
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.3)),
+          Text(
+            subtitle!,
+            style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.3),
+          ),
         ],
         // Gap.md, not 20: the title shrank from 26 to 22, so it needs less
         // air under it to keep the same optical relationship.
@@ -126,33 +133,34 @@ class HeaderAction extends StatelessWidget {
   final VoidCallback onTap;
 
   // ignore: prefer_const_constructors_in_immutables
-  HeaderAction(
-      {super.key,
-      required this.icon,
-      required this.tooltip,
-      required this.onTap});
+  HeaderAction({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) => IconButton(
-        onPressed: onTap,
-        tooltip: tooltip,
-        // 22, the size the bottom bar icons use, so chrome icons stay one
-        // size app wide.
-        icon: Icon(salapifyIcon(icon), size: 22, color: Barako.text),
-        style: IconButton.styleFrom(
-          backgroundColor: Barako.surfaceRaised,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Radii.md),
-            side: BorderSide(color: Barako.border),
-          ),
-          // fixedSize pins the drawn square to the tap target, so the shape
-          // users see is exactly the thing they can hit.
-          fixedSize: const Size(48, 48),
-          minimumSize: const Size(48, 48),
-          padding: EdgeInsets.zero,
-        ),
-        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-      );
+    onPressed: onTap,
+    tooltip: tooltip,
+    // 22, the size the bottom bar icons use, so chrome icons stay one
+    // size app wide.
+    icon: Icon(salapifyIcon(icon), size: 22, color: Barako.text),
+    style: IconButton.styleFrom(
+      backgroundColor: Barako.surfaceRaised,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.md),
+        side: BorderSide(color: Barako.border),
+      ),
+      // fixedSize pins the drawn square to the tap target, so the shape
+      // users see is exactly the thing they can hit.
+      fixedSize: const Size(48, 48),
+      minimumSize: const Size(48, 48),
+      padding: EdgeInsets.zero,
+    ),
+    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+  );
 }
 
 /// The way into Menu, in one place.

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../data/export_files.dart';
 import '../data/store.dart';
+import '../money/currencies.dart' show currencies;
 import '../money/greeting.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
@@ -232,6 +233,8 @@ class MenuScreen extends StatelessWidget {
                 Kicker('PERSONALIZE'),
                 const SizedBox(height: 8),
                 _appearanceRow(context),
+                const SizedBox(height: 8),
+                _currencyRow(context),
                 const SizedBox(height: 20),
                 Kicker('YOUR NAME'),
                 const SizedBox(height: 8),
@@ -442,6 +445,82 @@ class MenuScreen extends StatelessWidget {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => AppearanceScreen(store: store))),
+    );
+  }
+
+  /// The display currency, PHP by default. Purely how amounts are DRAWN:
+  /// nothing is ever converted, the offline-first currency design, and the
+  /// picker sheet says so out loud before anyone taps.
+  Widget _currencyRow(BuildContext context) {
+    final settings = (store.data['settings'] as Map?) ?? const {};
+    final code = (settings['currencyCode'] as String?) ?? 'PHP';
+    final symbol = (settings['currency'] as String?) ?? '₱';
+    return _navRow(
+      icon: Icons.payments_outlined,
+      title: 'Currency',
+      blurb: '$code $symbol',
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Barako.card,
+        isScrollControlled: true,
+        builder: (sheetContext) => SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+            ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              children: [
+                Text('CURRENCY', style: Barako.cardKickerStyle),
+                const SizedBox(height: 6),
+                Text(
+                  'This only changes the sign in front of amounts. Nothing '
+                  'is converted; your numbers stay exactly as you logged '
+                  'them.',
+                  style: TextStyle(
+                    color: Barako.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final c in currencies)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    minTileHeight: 48,
+                    title: Text(
+                      '${c['code']}  ${c['symbol']}',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontWeight: c['code'] == code
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    trailing: c['code'] == code
+                        ? Icon(Icons.check, size: 18, color: Barako.primary)
+                        : null,
+                    onTap: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      Navigator.of(sheetContext).pop();
+                      try {
+                        await store.setCurrency(c['code']!, c['symbol']!);
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not save that, nothing changed. $e',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

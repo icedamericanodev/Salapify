@@ -108,7 +108,7 @@ List<DateTime> _cycleDates(DateTime start, int members, String cadence) {
   if (cadence == 'weekly') {
     return [
       for (var i = 0; i < members; i++)
-        DateTime(start.year, start.month, start.day + 7 * i)
+        DateTime(start.year, start.month, start.day + 7 * i),
     ];
   }
   if (cadence == 'kinsenas') return _kinsenaSequence(start, members);
@@ -119,8 +119,9 @@ List<DateTime> _cycleDates(DateTime start, int members, String cadence) {
 // partial junk and get back a safe, fully shaped object.
 Map<String, dynamic> newPaluwagan(Map form, DateTime ref) {
   final members = _clampInt(form['members'], 2, 60, 5);
-  final cadence =
-      _cadenceKeys.contains(form['cadence']) ? form['cadence'] as String : 'monthly';
+  final cadence = _cadenceKeys.contains(form['cadence'])
+      ? form['cadence'] as String
+      : 'monthly';
   final amount = _nonNeg(amountOf(form['amount']));
   final rawName = form['name'];
   final name = (rawName is String && rawName.trim().isNotEmpty)
@@ -139,7 +140,9 @@ Map<String, dynamic> newPaluwagan(Map form, DateTime ref) {
     'amount': amount,
     'members': members,
     'cadence': cadence,
-    'startDate': _parseIso(form['startDate']) != null ? form['startDate'] : _isoOf(ref),
+    'startDate': _parseIso(form['startDate']) != null
+        ? form['startDate']
+        : _isoOf(ref),
     'myTurn': _clampInt(form['myTurn'], 1, members, 1),
     'paidCycles': _clampInt(form['paidCycles'], 0, members, 0),
     'note': note,
@@ -165,8 +168,9 @@ Map<String, dynamic> paluwaganStatus(Map p, DateTime ref) {
   final members = _clampInt(p['members'], 2, 60, 2);
   final myTurn = _clampInt(p['myTurn'], 1, members, 1);
   final paidCycles = _clampInt(p['paidCycles'], 0, members, 0);
-  final cadence =
-      _cadenceKeys.contains(p['cadence']) ? p['cadence'] as String : 'monthly';
+  final cadence = _cadenceKeys.contains(p['cadence'])
+      ? p['cadence'] as String
+      : 'monthly';
 
   final dates = _cycleDates(_parseIso(p['startDate']) ?? ref, members, cadence);
   final refDay = _dayOnly(ref);
@@ -175,8 +179,9 @@ Map<String, dynamic> paluwaganStatus(Map p, DateTime ref) {
     if (!_dayOnly(d).isAfter(refDay)) currentCycle += 1;
   }
 
-  final payoutDate =
-      (myTurn - 1) < dates.length ? _isoOf(dates[myTurn - 1]) : null;
+  final payoutDate = (myTurn - 1) < dates.length
+      ? _isoOf(dates[myTurn - 1])
+      : null;
   final payoutAmount = amount * members;
   final contributedSoFar = amount * paidCycles;
   final remainingContribution = _nonNeg(amount * (members - paidCycles));

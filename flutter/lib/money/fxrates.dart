@@ -25,9 +25,7 @@ double? _rate(dynamic rates, dynamic code) {
 /// Turn the provider response into { base, rates, fetchedAt } or null. Anything
 /// unexpected returns null so the caller falls back to a typed rate.
 Map<String, dynamic>? parseRatesResponse(dynamic json) {
-  if (json is! Map ||
-      json['result'] != 'success' ||
-      json['rates'] is! Map) {
+  if (json is! Map || json['result'] != 'success' || json['rates'] is! Map) {
     return null;
   }
   final base = json['base_code'] is String ? json['base_code'] as String : null;
@@ -37,8 +35,9 @@ Map<String, dynamic>? parseRatesResponse(dynamic json) {
   return {
     'base': base,
     'rates': json['rates'],
-    'fetchedAt':
-        (fetched != null && fetched.isFinite && fetched > 0) ? fetched * 1000 : null,
+    'fetchedAt': (fetched != null && fetched.isFinite && fetched > 0)
+        ? fetched * 1000
+        : null,
   };
 }
 
@@ -78,7 +77,9 @@ double? roundRate(dynamic r) {
 /// Is a cached table still fresh enough to skip a refetch? A null or zero stamp
 /// is never fresh (JS treats both as falsy).
 bool isFresh(dynamic fetchedAt, num nowMs) {
-  final f = fetchedAt is num ? fetchedAt.toDouble() : double.tryParse('${fetchedAt ?? ''}');
+  final f = fetchedAt is num
+      ? fetchedAt.toDouble()
+      : double.tryParse('${fetchedAt ?? ''}');
   if (f == null || f == 0) return false;
   return nowMs - f < fxMaxAgeMs;
 }

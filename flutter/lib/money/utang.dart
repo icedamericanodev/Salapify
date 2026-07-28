@@ -17,7 +17,9 @@ Map<String, dynamic> utangAging(Map<String, dynamic> data, DateTime ref) {
   final nameById = <String, String>{};
   for (final p in (data['people'] as List? ?? [])) {
     if (p is Map && p['id'] is String && (p['id'] as String).isNotEmpty) {
-      nameById[p['id'] as String] = p['name'] is String ? p['name'] as String : '';
+      nameById[p['id'] as String] = p['name'] is String
+          ? p['name'] as String
+          : '';
     }
   }
 
@@ -37,7 +39,9 @@ Map<String, dynamic> utangAging(Map<String, dynamic> data, DateTime ref) {
         ? (nameById[r['personId']] ?? '').trim()
         : '';
     final byRow = r['person'] is String ? (r['person'] as String).trim() : '';
-    final name = byId.isNotEmpty ? byId : (byRow.isNotEmpty ? byRow : 'Someone');
+    final name = byId.isNotEmpty
+        ? byId
+        : (byRow.isNotEmpty ? byRow : 'Someone');
 
     final key = name.toLowerCase();
     var g = groups[key];
@@ -65,8 +69,11 @@ Map<String, dynamic> utangAging(Map<String, dynamic> data, DateTime ref) {
     }
     final dm = _dueRe.firstMatch((r['dueDate'] ?? '').toString().trim());
     if (dm != null) {
-      final due = DateTime(int.parse(dm.group(1)!), int.parse(dm.group(2)!),
-          int.parse(dm.group(3)!));
+      final due = DateTime(
+        int.parse(dm.group(1)!),
+        int.parse(dm.group(2)!),
+        int.parse(dm.group(3)!),
+      );
       final oldest = g['oldestDue'] as DateTime?;
       if (oldest == null || due.isBefore(oldest)) g['oldestDue'] = due;
     }
@@ -86,27 +93,33 @@ Map<String, dynamic> utangAging(Map<String, dynamic> data, DateTime ref) {
           'daysOverdue': oldest == null
               ? 0
               : (today.difference(oldest).inMilliseconds / 86400000)
-                  .round()
-                  .clamp(0, 1 << 31),
+                    .round()
+                    .clamp(0, 1 << 31),
           'oldestDue': oldest == null ? '' : _isoDate(oldest),
         };
-      }()
+      }(),
   ];
 
   // Longest overdue first, then biggest balance, then stable by name.
   people.sort((a, b) {
     final d = (b['daysOverdue'] as int).compareTo(a['daysOverdue'] as int);
     if (d != 0) return d;
-    final o = (b['outstanding'] as double).compareTo(a['outstanding'] as double);
+    final o = (b['outstanding'] as double).compareTo(
+      a['outstanding'] as double,
+    );
     if (o != 0) return o;
     return (a['name'] as String).compareTo(b['name'] as String);
   });
 
-  final totalOutstanding =
-      people.fold<double>(0, (t, p) => t + (p['outstanding'] as double));
+  final totalOutstanding = people.fold<double>(
+    0,
+    (t, p) => t + (p['outstanding'] as double),
+  );
   final overdue = people.where((p) => (p['daysOverdue'] as int) > 0).toList();
-  final overdueTotal =
-      overdue.fold<double>(0, (t, p) => t + (p['outstanding'] as double));
+  final overdueTotal = overdue.fold<double>(
+    0,
+    (t, p) => t + (p['outstanding'] as double),
+  );
   return {
     'people': people,
     'totalOutstanding': totalOutstanding,

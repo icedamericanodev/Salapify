@@ -21,8 +21,9 @@ final RegExp _identifierRe = RegExp(r'\d[\d,.]*(?:-[\d,.]+){2,}');
 
 /// Trailing math must start right after a space (or the line start), so
 /// store names like 7-11 never half-match into 7 minus 11.
-final RegExp _trailingMathRe =
-    RegExp(r'(?:^|\s)([-+]?[\d.(][\d,.()%+*/\s-]*)$');
+final RegExp _trailingMathRe = RegExp(
+  r'(?:^|\s)([-+]?[\d.(][\d,.()%+*/\s-]*)$',
+);
 final RegExp _trailingNumberRe = RegExp(r'(?:^|\s)([-+]?\d[\d,.]*%?)\s*$');
 final RegExp _bareRe = RegExp(r'^[\d,.]+$');
 final RegExp _digitRe = RegExp(r'\d');

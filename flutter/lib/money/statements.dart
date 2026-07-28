@@ -30,8 +30,10 @@ bool isThisMonth(dynamic dateStr, DateTime ref) {
 bool _inMonth(dynamic dateStr, DateTime ref) =>
     _truthy(dateStr) && isThisMonth(dateStr, ref);
 
-List<Map<String, dynamic>> _list(dynamic v) =>
-    (v as List? ?? []).whereType<Map>().map((m) => m.cast<String, dynamic>()).toList();
+List<Map<String, dynamic>> _list(dynamic v) => (v as List? ?? [])
+    .whereType<Map>()
+    .map((m) => m.cast<String, dynamic>())
+    .toList();
 
 /// Tracked (cash leg) utang still outstanding: amount minus recorded
 /// payments, unpaid entries only, never negative.
@@ -101,7 +103,9 @@ Map<String, dynamic> balanceSheet(Map<String, dynamic>? data) {
 
   var shortDebts = 0.0;
   for (final x in _list(d['debts'])) {
-    if (_shortTermDebtTypes.contains(x['type'])) shortDebts += _num(x['remaining']);
+    if (_shortTermDebtTypes.contains(x['type'])) {
+      shortDebts += _num(x['remaining']);
+    }
   }
   final longDebts = (parts['debts'] as double) - shortDebts;
 
@@ -132,9 +136,9 @@ Map<String, dynamic> balanceSheet(Map<String, dynamic>? data) {
 
 /// Income statement for one month: honest earnings, not cash movement.
 Map<String, dynamic> incomeStatement(Map<String, dynamic>? data, DateTime ref) {
-  final tx = _list((data ?? {})['transactions'])
-      .where((t) => _inMonth(t['date'], ref))
-      .toList();
+  final tx = _list(
+    (data ?? {})['transactions'],
+  ).where((t) => _inMonth(t['date'], ref)).toList();
   var income = 0.0;
   var expenses = 0.0;
   var interestExpense = 0.0;
@@ -158,17 +162,24 @@ Map<String, dynamic> incomeStatement(Map<String, dynamic>? data, DateTime ref) {
 
 /// Cash flow for one month: every peso that moved through an account, sorted
 /// into operating, investing, and financing, with the reconcile proof.
-Map<String, dynamic> cashFlowStatement(Map<String, dynamic>? data, DateTime ref) {
+Map<String, dynamic> cashFlowStatement(
+  Map<String, dynamic>? data,
+  DateTime ref,
+) {
   final d = data ?? {};
-  final accountIds =
-      _list(d['accounts']).map((a) => a['id']).where((id) => id != null).toSet();
-  final tx =
-      _list(d['transactions']).where((t) => _inMonth(t['date'], ref)).toList();
+  final accountIds = _list(
+    d['accounts'],
+  ).map((a) => a['id']).where((id) => id != null).toSet();
+  final tx = _list(
+    d['transactions'],
+  ).where((t) => _inMonth(t['date'], ref)).toList();
   final linked = tx
-      .where((t) =>
-          _truthy(t['accountId']) &&
-          accountIds.contains(t['accountId']) &&
-          t['type'] != 'adjustment')
+      .where(
+        (t) =>
+            _truthy(t['accountId']) &&
+            accountIds.contains(t['accountId']) &&
+            t['type'] != 'adjustment',
+      )
       .toList();
 
   int sign(Map<String, dynamic> t) {
@@ -199,8 +210,9 @@ Map<String, dynamic> cashFlowStatement(Map<String, dynamic>? data, DateTime ref)
     }
   }
 
-  final payments =
-      _list(d['payments']).where((p) => _inMonth(p['date'], ref)).toList();
+  final payments = _list(
+    d['payments'],
+  ).where((p) => _inMonth(p['date'], ref)).toList();
   var principalPaid = 0.0;
   var interestPaid = 0.0;
   for (final p in payments) {

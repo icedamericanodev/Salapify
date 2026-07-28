@@ -17,15 +17,17 @@ double _jsRound(num x) => (x + 0.5).floorToDouble();
 Map<String, dynamic> bnplCost([Map<String, dynamic>? fields]) {
   final f = fields ?? const {};
   final cash = amountOf(f['cashPrice']) > 0 ? amountOf(f['cashPrice']) : 0.0;
-  final downRaw =
-      amountOf(f['downpayment']) > 0 ? amountOf(f['downpayment']) : 0.0;
+  final downRaw = amountOf(f['downpayment']) > 0
+      ? amountOf(f['downpayment'])
+      : 0.0;
   final down = downRaw < cash ? downRaw : cash;
   final fee = amountOf(f['upfrontFee']) > 0 ? amountOf(f['upfrontFee']) : 0.0;
   final monthsRounded = _jsRound(amountOf(f['months']));
   final monthsFloor = monthsRounded > 1 ? monthsRounded : 1.0;
   final months = (monthsFloor < 60 ? monthsFloor : 60.0).toInt();
-  final monthly =
-      amountOf(f['monthlyPayment']) > 0 ? amountOf(f['monthlyPayment']) : 0.0;
+  final monthly = amountOf(f['monthlyPayment']) > 0
+      ? amountOf(f['monthlyPayment'])
+      : 0.0;
 
   // What you finance is the price left after any downpayment. What you pay
   // is the downpayment now, the fee now, and the installments over time.
