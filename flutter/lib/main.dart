@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.75 \u00b7 The quick add buttons on Budget are yours now: rename, re-price, delete, or add your own.';
+    'f2.76 \u00b7 A home screen widget: your daily number and a one tap Log button. Install this one by hand.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -54,6 +54,9 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     // Load, then refresh the reminder schedule from the loaded data. Both are
     // safe no-ops off a real phone (web, tests), so this never blocks startup.
     HomeTile.attach(widget.store);
+    // Recorded here, ACTED ON in shell.dart. A widget tap lands before the
+    // store has loaded and before any shell exists.
+    HomeTile.captureLaunch();
     widget.store.load().then((_) {
       Reminders.reschedule(widget.store.data, DateTime.now());
       // Post-frame, so the first build has already resolved the palette and

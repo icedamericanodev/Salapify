@@ -80,6 +80,51 @@ void main() {
     expect(info, isNot(contains('keyguard')));
   });
 
+  test('the layout uses ONLY classes RemoteViews can inflate', () {
+    // The blocker a launch audit found and no other check could. RemoteViews
+    // inflates through a filter that admits only classes annotated
+    // @RemoteView. android.widget.Space is NOT annotated, so a Space in a
+    // widget layout throws InflateException and the launcher draws "Problem
+    // loading widget" instead of the tile, on every Android version, in the
+    // picker preview too. It compiles, it analyzes clean, and it is frozen in
+    // res/ until the next base APK, so it would have cost a second manual
+    // install to fix.
+    //
+    // The allowed list is the annotated set this tile actually needs. Adding
+    // to it means checking the AOSP source for @RemoteView first, not
+    // guessing, because the failure is invisible until a phone renders it.
+    const allowed = {
+      'LinearLayout',
+      'RelativeLayout',
+      'FrameLayout',
+      'GridLayout',
+      'TextView',
+      'ImageView',
+      'Button',
+      'ImageButton',
+      'ProgressBar',
+      'Chronometer',
+      'AnalogClock',
+      'ViewFlipper',
+      'ListView',
+      'GridView',
+      'StackView',
+      'AdapterViewFlipper',
+    };
+    final layout = File(
+      'android/app/src/main/res/layout/widget_your_number.xml',
+    ).readAsStringSync();
+    for (final m in RegExp(r'<([A-Z]\w+)').allMatches(layout)) {
+      expect(
+        allowed,
+        contains(m.group(1)),
+        reason:
+            '${m.group(1)} is not a @RemoteView class, so the launcher will '
+            'refuse to inflate this layout and show "Problem loading widget"',
+      );
+    }
+  });
+
   test('the layout carries the first render, not placeholders', () {
     // A tile dragged out before the app has ever run shows these strings, and
     // so does the widget picker preview. They have to be real sentences.

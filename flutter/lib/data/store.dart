@@ -1327,9 +1327,6 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
-  /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
-  /// disables it automatically if the phone has no biometrics enrolled, so this
-  /// can never lock the owner out.
   /// Whether the home screen tile hides the peso figure.
   ///
   /// Separate from [setAppLock] on purpose. App lock already forces the tile's
@@ -1347,6 +1344,9 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
+  /// disables it automatically if the phone has no biometrics enrolled, so this
+  /// can never lock the owner out.
   Future<void> setAppLock(bool value) => _mutate(
     (d) => {
       ...d,

@@ -18,6 +18,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../services/home_tile.dart';
 import '../theme.dart';
 import '../widgets/salapify_icon.dart';
 import 'budget.dart';
@@ -96,6 +97,22 @@ class _ShellScreenState extends State<ShellScreen> {
         return;
       }
       widget.store.clearFirstLogPrompt();
+      showLogSheet(context, widget.store);
+    });
+    // A tap on the home screen tile's Log bar, consumed HERE for exactly the
+    // reasons above: this callback only runs once the store has loaded and
+    // onboarding is done, because the shell is not built until then, and the
+    // lock gate draws OVER it so a sheet opened underneath waits behind the
+    // fingerprint rather than leaking anything.
+    //
+    // Without this the two tap targets the widget builds are identical and
+    // both just open the app. The picker description promising a one tap Log
+    // button is frozen in res/, so it has to be true from the first install.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.store.canWrite) return;
+      if (!HomeTile.takeLogRequest()) return;
+      final s = widget.store.data['settings'];
+      if (s is! Map || s['onboarded'] != true) return;
       showLogSheet(context, widget.store);
     });
   }

@@ -42,6 +42,41 @@ class HomeTile {
   /// for a dollar user".
   static bool ready = false;
 
+  /// A widget tap that has not been acted on yet.
+  ///
+  /// main.dart records it and NEVER acts on it. The tap arrives while the
+  /// store is still loading, before the shell exists, before onboarding is
+  /// known, so calling showLogSheet there opens an empty sheet over a blank
+  /// screen or throws. The shell consumes it from its own post-frame
+  /// callback, next to the first-log prompt, under the same guards that
+  /// problem was already solved with once.
+  static String? pendingUri;
+
+  /// Records a widget tap for the shell to pick up. Also called for a warm
+  /// tap, which arrives through the plugin's stream rather than the launch
+  /// intent.
+  static Future<void> captureLaunch() async {
+    if (!_supported) return;
+    try {
+      final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (uri != null) pendingUri = uri.toString();
+      HomeWidget.widgetClicked.listen((uri) {
+        if (uri != null) pendingUri = uri.toString();
+      });
+    } catch (_) {
+      // A tap that cannot be read is a tap that opens the app and no more,
+      // which is exactly what the tile promises when logging is not offered.
+    }
+  }
+
+  /// Takes the pending tap, if it asked for the log sheet. Reading clears it,
+  /// so a rebuild cannot open the sheet twice.
+  static bool takeLogRequest() {
+    final wanted = pendingUri != null && pendingUri!.contains('log');
+    pendingUri = null;
+    return wanted;
+  }
+
   static bool get _supported {
     if (kIsWeb) return false;
     try {

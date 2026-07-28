@@ -47,6 +47,12 @@ jobs:
         working-directory: flutter
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the native-change detection below can find the
+          # merge base with main. The default shallow clone has no merge base
+          # at all, and the check would then either always fire or never fire,
+          # which is worse than not having it.
+          fetch-depth: 0
 
       - uses: subosito/flutter-action@v2
         with:
@@ -78,6 +84,35 @@ jobs:
       # stopped working.
       - name: The screenshot harness still renders
         run: flutter test test/screens_shot.dart --update-goldens
+
+      # Compile Android, but ONLY when the native side of the app changed.
+      #
+      # A launch audit found the order was backwards: nothing here ever ran
+      # Gradle, so the first Android compile of a native change happened on
+      # main, inside the publisher, AFTER the merge. For a change that costs
+      # the founder a manual APK install, discovering a build failure there is
+      # the most expensive possible moment.
+      #
+      # Gated on the paths, because a Gradle build is minutes and the vast
+      # majority of pushes here are pure Dart. --debug, not --release: it
+      # proves the plugins resolve and the manifest merges without needing the
+      # signing config or publishing anything.
+      - name: Did the native side change
+        id: native
+        working-directory: .
+        run: |
+          BASE=$(git merge-base origin/main HEAD 2>/dev/null || echo "")
+          if [ -z "$BASE" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if git diff --name-only "$BASE"...HEAD \
+              | grep -qE '^flutter/(android/|pubspec\.yaml)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Android actually compiles
+        if: steps.native.outputs.changed == 'true'
+        run: flutter build apk --debug
 
       # Informational, never a gate. Unmerged work in progress is completely
       # normal, so failing here would cry wolf on every push.

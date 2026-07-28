@@ -200,18 +200,23 @@ void main() {
     // A RemoteViews TextView cannot autosize, and the peso figure is variable
     // width. Whether 24sp actually fits on a real launcher is a phone
     // question; that the rule is applied at all is this one.
+    // The caps came DOWN (32/24/20 to 28/22/18) after a launch audit measured
+    // the stacked content at roughly 176dp inside a tile declaring 110dp. In a
+    // vertical LinearLayout the weighted spacer clamps to zero and the
+    // overflow clips whatever comes after it, and the Log bar is last.
+    //
     // The thresholds are on the FORMATTED figure, not the balance, and the
     // fixture spreads the balance over 10 days. So the numbers below are
     // chosen from what actually reaches the headline, checked rather than
     // assumed: ₱1,000 is 6 characters, ₱1,000,000 is 10, ₱100,000,000 is 12.
     expect(tile(base(balance: 10000))['yn_headline'], '₱1,000');
-    expect(tile(base(balance: 10000))['yn_headline_sp'], '32');
+    expect(tile(base(balance: 10000))['yn_headline_sp'], '28');
 
     expect(tile(base(balance: 10000000))['yn_headline'], '₱1,000,000');
-    expect(tile(base(balance: 10000000))['yn_headline_sp'], '24');
+    expect(tile(base(balance: 10000000))['yn_headline_sp'], '22');
 
     expect(tile(base(balance: 1000000000))['yn_headline'], '₱100,000,000');
-    expect(tile(base(balance: 1000000000))['yn_headline_sp'], '20');
+    expect(tile(base(balance: 1000000000))['yn_headline_sp'], '18');
   });
 
   test('the as of line always names a DAY, never just a time', () {

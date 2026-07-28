@@ -69,9 +69,14 @@ String _stampedAt(DateTime ref) {
 /// the peso figure is variable width: "₱1,234,567" is ten characters where
 /// "₱1,000" is six.
 String _headlineSp(String headline) {
-  if (headline.length <= 8) return '32';
-  if (headline.length <= 11) return '24';
-  return '20';
+  // Capped at 28, not 32. At 32 the stacked content came to roughly 176dp
+  // inside a tile that declares 110dp, and in a vertical LinearLayout the
+  // weighted spacer clamps to zero and the overflow clips whatever comes
+  // AFTER it. The Log bar is last, so the button would be the first thing to
+  // disappear, on the tile whose whole point is that button.
+  if (headline.length <= 8) return '28';
+  if (headline.length <= 11) return '22';
+  return '18';
 }
 
 /// The six content strings plus the build stamp.
@@ -107,6 +112,10 @@ Map<String, String> widgetTileStrings(
     'yn_asof': asOf ? _stampedAt(ref) : '',
     'yn_bar': bar,
     // '1' opens the log sheet, '0' just opens the app. Never a dead tap.
+    // This was a LIE for one commit: the Kotlin built two distinct intents and
+    // nothing in Dart read the launch URI, so both taps did the same thing
+    // while the widget picker description (frozen in res/) promised a one tap
+    // Log button. HomeTile.captureLaunch and shell.dart consume it now.
     'yn_bar_tap': barLogs ? '1' : '0',
     'yn_stamp': stamp,
   };

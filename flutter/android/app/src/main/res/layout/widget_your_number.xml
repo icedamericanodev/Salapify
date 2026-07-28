@@ -15,7 +15,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="16dp">
+    android:padding="12dp">
 
     <TextView
         android:id="@+id/yn_kicker"
@@ -44,10 +44,10 @@
         android:id="@+id/yn_sub"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Open the app once and your daily number appears here."
+        android:text="Open the app once to see your daily number."
         android:textColor="#FFA99182"
         android:textSize="12sp"
-        android:maxLines="2"
+        android:maxLines="1"
         android:ellipsize="end" />
 
     <TextView
@@ -61,16 +61,23 @@
         android:maxLines="1"
         android:visibility="gone" />
 
-    <!-- Pushes the bar to the bottom whatever the headline size does. -->
-    <Space
+    <!-- Pushes the bar to the bottom whatever the headline size does.
+         An empty TextView, NOT a Space. RemoteViews inflates through a filter
+         that only admits classes annotated @RemoteView, and android.widget
+         .Space carries no such annotation, so a Space here throws
+         InflateException and the launcher draws "Problem loading widget"
+         instead of the tile. On every Android version, in the picker preview
+         too. TextView is annotated, and an empty one is a valid spacer. -->
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:text="" />
 
     <LinearLayout
         android:id="@+id/yn_bar"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="36dp"
         android:orientation="horizontal"
         android:gravity="center"
         android:background="@drawable/widget_bar_bg">
