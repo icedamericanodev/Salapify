@@ -1384,6 +1384,7 @@ class SalapifyStore extends ChangeNotifier {
     required String currencySymbol,
     required num monthlyLimit,
     required bool withSampleData,
+    bool nightlyNudge = false,
   }) => _mutate((d) {
     var next = d;
     if (withSampleData) {
@@ -1394,15 +1395,37 @@ class SalapifyStore extends ChangeNotifier {
           key: [...(next[key] as List? ?? const []), ...seed[key] as List],
       };
     }
+    final settings = ((next['settings'] as Map?) ?? const {})
+        .cast<String, dynamic>();
+    // The nightly nudge rides along in the SAME write rather than being
+    // saved the moment it is chosen. Onboarding is not finished until the
+    // last button, so a flow abandoned after the notification step leaves
+    // nothing behind: no half-configured reminders on a phone whose owner
+    // never finished saying hello.
+    final notifs = nightlyNudge
+        ? {
+            ...((settings['notifications'] as Map?) ?? const {})
+                .cast<String, dynamic>(),
+            'daily': true,
+            'payday': true,
+          }
+        : null;
     return {
       ...next,
       'settings': {
-        ...((next['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        ...settings,
         'currency': currencySymbol,
         'currencyCode': currencyCode,
         'monthlyLimit': monthlyLimit,
         'onboarded': true,
         'firstLogPrompt': true,
+        // Only on an explicit yes, and only ever ADDING to whatever is
+        // already there. The key itself always exists (the sanitizer gives
+        // every store an empty notifications map), so the thing being
+        // protected is not the key, it is the user's other reminder
+        // choices: a restored backup with bills reminders on must not have
+        // them dropped by someone answering one question about nights.
+        'notifications': ?notifs,
       },
     };
   });

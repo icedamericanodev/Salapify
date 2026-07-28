@@ -283,6 +283,144 @@ void main() {
     });
   });
 
+  group('the nightly nudge', () {
+    // Pumped directly rather than through SalapifyApp, because the seams
+    // that make this step testable at all (does the device support
+    // reminders, what did the OS answer) live on the screen.
+    Future<SalapifyStore> pumpFlow(
+      WidgetTester tester, {
+      required bool granted,
+      bool showNudge = true,
+      List<String>? asked,
+    }) async {
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OnboardingScreen(
+            store: store,
+            showNudge: showNudge,
+            askPermission: () async {
+              asked?.add('asked');
+              return granted;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      return store;
+    }
+
+    testWidgets('a granted yes turns the daily and payday reminders on', (
+      tester,
+    ) async {
+      final asked = <String>[];
+      final store = await pumpFlow(tester, granted: true, asked: asked);
+      expect(find.text('STEP 2 OF 3'), findsOneWidget);
+      await tester.tap(find.text('Yes, remind me at night'));
+      await tester.pumpAndSettle();
+      expect(asked, hasLength(1), reason: 'the phone must actually be asked');
+      // The flow moved on, and the count never lies about where you are.
+      expect(find.text('STEP 3 OF 3'), findsOneWidget);
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      final notifs = _settings(store)['notifications'] as Map?;
+      expect(notifs?['daily'], true);
+      expect(notifs?['payday'], true);
+    });
+
+    testWidgets('a refused yes switches nothing on, and never traps', (
+      tester,
+    ) async {
+      // The permission dialog said no. Turning the reminders on anyway
+      // would put switches in Menu that the OS silently swallows, which
+      // reads as a broken app rather than a refused permission.
+      final store = await pumpFlow(tester, granted: false);
+      await tester.tap(find.text('Yes, remind me at night'));
+      await tester.pumpAndSettle();
+      expect(find.text('STEP 3 OF 3'), findsOneWidget, reason: 'never traps');
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      final notifs = (_settings(store)['notifications'] as Map?) ?? const {};
+      expect(notifs['daily'], isNot(true));
+      expect(notifs['payday'], isNot(true));
+    });
+
+    testWidgets('no thanks never asks the phone anything', (tester) async {
+      final asked = <String>[];
+      final store = await pumpFlow(tester, granted: true, asked: asked);
+      await tester.tap(find.text('No thanks'));
+      await tester.pumpAndSettle();
+      expect(asked, isEmpty, reason: 'saying no must not open an OS dialog');
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      final notifs = (_settings(store)['notifications'] as Map?) ?? const {};
+      expect(notifs['daily'], isNot(true));
+      expect(notifs['payday'], isNot(true));
+    });
+
+    testWidgets('a device with no reminders never sees the step', (
+      tester,
+    ) async {
+      // The web preview: the step is skipped and the kickers say 2, rather
+      // than announcing a step 3 that does not exist.
+      final store = await pumpFlow(tester, granted: true, showNudge: false);
+      expect(find.text('A 30 second nudge at night?'), findsNothing);
+      expect(find.text('STEP 2 OF 2'), findsOneWidget);
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      final notifs = (_settings(store)['notifications'] as Map?) ?? const {};
+      expect(notifs['daily'], isNot(true));
+      expect(notifs['payday'], isNot(true));
+      expect(_settings(store)['onboarded'], true);
+    });
+
+    testWidgets('an existing reminder choice is not clobbered by a yes', (
+      tester,
+    ) async {
+      // Someone who restored a backup with bills reminders on and landed
+      // back in the flow keeps that choice; the yes adds, never replaces.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {
+            'onboarded': false,
+            'notifications': {'bills': true, 'daily': false},
+          },
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OnboardingScreen(
+            store: store,
+            showNudge: true,
+            askPermission: () async => true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes, remind me at night'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      final notifs = _settings(store)['notifications'] as Map?;
+      expect(notifs?['bills'], true, reason: 'their own choice survives');
+      expect(notifs?['daily'], true);
+      expect(notifs?['payday'], true);
+    });
+  });
+
   group('the QA round', () {
     test('the first log sheet never preselects a sample account', () {
       // QA MUST FIX: with only the seed present, lastUsedAccountId derived
