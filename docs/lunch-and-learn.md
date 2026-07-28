@@ -10,6 +10,381 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 8: the patch that shipped wearing the wrong name
+
+UI Phase 2, seven batches, eight pull requests, and for the first time in
+this log the instrument this whole file calls ground truth was itself briefly
+wrong: for up to 25 minutes the phone's Update stamp row mislabeled a live
+patch. The log never lied. The phone did. That asymmetry is the story, and it
+was bought by a design decision made in session 3.
+
+### What we believed / What was true
+
+**Believed: every delivered stamp reached the phone under its own name. TRUE
+for seven of eight merges, confirmed in person for the last.** Read from
+`git show origin/main:docs/delivery-log.md`: f2.60 patch 9 (16:49 UTC Jul
+27, run 30285603929), f2.61 patch 10 (17:11, run 30287281609), f2.62 patch
+12 (17:37, run 30289242012), f2.63 patch 13 (00:16 Jul 28, run 30316235961),
+f2.64 patch 14 (00:28, run 30316836160), f2.65 patch 15 (00:51, run
+30318011428), f2.66 patch 16 (01:16, run 30319281517). All mode `patch` on
+0.6.2+11, pubspec unchanged, no base APK stranded. Merge to row: 11, 11, 11,
+11, 12, 11 and 10 minutes. The founder read f2.66 patch 16 off the phone.
+
+**Believed: the batch 3 stamp bump script did its job. FALSE, and it failed
+silently.** The script replaced text around the stamp's middle dot and
+matched the literal dot character, while flutter/lib/main.dart spells it as
+the escape sequence backslash u00b7. The two render identically to a human
+and are different bytes to a replace. With no assert on the effect, the
+script no-opped, reported nothing, and read as done. Batch 3 merged carrying
+f2.61's stamp, the name of the PREVIOUS build.
+
+**Believed, for about 25 minutes: patch 11 does not exist. FALSE, it
+existed and was running on phones labeled f2.61.** Merge #216 (956b270,
+17:12 UTC) triggered the publisher, Shorebird shipped batch 3 as patch 11,
+and then the duplicate stamp refusal at flutter-preview.yml:178 did exactly
+what its own comment promises: it failed the run AFTER the publish, wrote no
+row, and refused to make the log lie. Its comment says refusing to record
+would be the worse lie, and it is right, but note the precise cost: the
+worse lie was avoided by accepting the smaller one, a phone that briefly
+said f2.61 while running batch 3's code. There is no patch 11 row and there
+never will be; the number is permanently orphaned in the log.
+
+**Believed, during a container restart: batch 4's pull request was empty.
+FALSE.** Its commit (1fba4e4) had landed before the restart. The belief came
+from reconstructing memory of which commands had errored instead of reading
+git, and it produced a duplicate-message commit (e4e1d78, 63 lines, shot
+harness only) and one wrong statement to the founder, corrected in the PR
+body and to the founder directly. No code harm; git absorbed the duplicate
+cleanly.
+
+**Believed, by the plan and held: the phase's scope.** The phase started as
+docs/Flutter_UI_Phase2_Plan.md, written before any code, with the founder's
+three scope decisions recorded: headers pin, the habit layer is in, the big
+builds are parked for Phase 3. The plan was followed, and batch 4, the
+money-adjacent one, waited roughly seven hours for the founder's explicit
+sign-off before merging, exactly as the never-delegated gate requires.
+
+### Timeline (with evidence)
+
+All times UTC, from commit timestamps and the publisher's rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 27 16:30 | 3c0d14e batch 1, receipts and one debts home | git log |
+| 16:38 | Merge #214 (6061eb81) | git log |
+| 16:49 | f2.60 patch 9 delivered, 11 minutes | delivery row |
+| 16:52 | c150eff batch 2, pinned headers | git log |
+| 16:59 | 1636fa5 batch 3. **The bump script no-ops here**, stamp stays f2.61 | git show 1636fa5:flutter/lib/main.dart |
+| 17:00 | Merge #215 (e4b22cc7), batch 2 | git log |
+| 17:11 | f2.61 patch 10 delivered, 11 minutes | delivery row |
+| **17:12** | **Merge #216 (956b270), batch 3, carrying f2.61's stamp. DIVERGENCE** | git show 956b270:flutter/lib/main.dart is f2.61 |
+| 17:18 | af1143c, the one-line stamp fix to f2.62, mechanism named in the message, written while the #216 run was still in flight | git log |
+| 17:20 | 1fba4e4 batch 4, edit a logged entry | git log |
+| ~17:23 | Patch 11 publishes labeled f2.61. The refusal fails the run after the publish, no row is written | flutter-preview.yml:178, af1143c message |
+| 17:26 | Merge #217 (24da2a96), the stamp fix ALONE, batch 4 stays on the branch | git log 24da2a9..8e31409 |
+| 17:37 | f2.62 patch 12 delivered, 11 minutes. **The phone converges on reopen** | delivery row |
+| 17:48 | e4e1d78, the duplicate-message commit from the restart confusion, shot harness lines only | git show e4e1d78 --stat |
+| 18:10 | e186dc4, the batch 4 QA round: one crash, three honesty gaps, all guarded | commit message |
+| 18:10 | eede7ad batch 5, Insights in three bands | git log |
+| Jul 28 00:05 | Merge #219 (8e31409f), batch 4 plus QA, **after the founder's sign-off** | git log |
+| 00:16 | f2.63 patch 13 delivered, 11 minutes | delivery row |
+| 00:16 | Merge #220 (63366e4a), batch 5 | git log |
+| 00:28 | f2.64 patch 14 delivered, 12 minutes | delivery row |
+| 00:32 | 76b6ee2 batch 6, list polish | git log |
+| 00:40 | Merge #221 (b33fddbc) | git log |
+| 00:51 | f2.65 patch 15 delivered, 11 minutes | delivery row |
+| 00:58 | 987ebaf batch 7, the habit layer, both halves of the comeback line proven | commit message |
+| 01:06 | Merge #222 (55e610ab) | git log |
+| 01:16 | f2.66 patch 16 delivered, 10 minutes | delivery row |
+| after | **Founder confirms f2.66 patch 16 on the phone, in person** | founder |
+
+Verified on the checkout at the time of writing, run fresh: `flutter
+analyze` reports "No issues found", `flutter test` reports **848 tests
+passing**. The phase's arc: 775 at the start of Phase 1, 840 at the start of
+this phase, 848 now.
+
+### Divergence point
+
+**16:59 UTC on Jul 27, commit 1636fa5**, the moment a mutating script did
+nothing and said nothing. Everything after that was machinery behaving
+correctly around a wrong input: the merge was clean, the publisher
+published, the refusal refused, the failure was loud, and the fix took one
+line and 25 minutes end to end.
+
+Name the shape, because this is its third appearance in two days: **a tool
+that silently does less than it claims, reading as done.** Session 6, eyes
+that deprioritized light mode. Session 7, a shot harness mounting less
+chrome than production. Session 8, a replace that matched zero occurrences
+and exited clean. The first two verified a stand-in for the artifact; this
+one performed a stand-in for the action. The counter-move is the same each
+time and now has three data points behind it: a tool must measure or assert
+its own effect, because "no error" and "no effect" look identical from
+outside.
+
+### Root cause
+
+**The orphan stamp.** Two encodings of one character, indistinguishable on
+screen, distinguishable to a byte-level replace, and no assertion that the
+file actually changed. The root cause is not the encoding, it is the missing
+assert: a replace that demands one match and fails on zero would have turned
+a silent no-op into a loud stop before commit. Every later bump this session
+asserted its effect and anchored on the escape sequence itself, which is
+practice, not machinery, and is ranked accordingly below.
+
+**Why the blast radius was one orphaned number and 25 minutes.** This
+incident landed exactly in the blind spot Open 7 has described since session
+4: main's stamp equaled the delivered stamp, so the watchdog's comparison
+read "ok" throughout. And it was covered by exactly the compensating guard
+session 4's Open 7 note predicted: the publisher's own refusal, which exits
+1 after publishing and trips the failure notice. The prediction was written
+fifteen days of stamps ago and cashed today. The refusal's after-the-publish
+ordering meant docs/delivery-log.md stayed truthful the entire time, which
+is why recovery needed no archaeology, one glance at the failed run's cause
+named the missing bump.
+
+**The duplicate commit.** After an interruption, the cheapest-feeling move
+is to reconstruct what happened from memory of the error messages, and
+memory of errors is exactly what an interruption corrupts. The state was in
+git the whole time, one `git log` away. The reading-not-remembering rule has
+existed for delivery state since session 3; nothing extended it to commit
+state until it cost a duplicate commit and a wrong sentence to the founder.
+
+### Lessons and guards
+
+**Lesson 1. A mutating script without an assert on its own effect is a
+silent no-op that reads as done.**
+
+**Guard, detection half, EXISTING and it FIRED: the duplicate stamp refusal,
+flutter-preview.yml:178.** This was its first real firing, and it performed
+to its design: published, then refused to record a second build under a
+delivered name, then failed loudly. Strongest tier, already committed,
+proven in production today.
+
+**Guard, prevention half, PRACTICE, medium at best and stated plainly.** The
+bump is done by session tooling, not by a committed script, so the assert
+lives in discipline: any text replace that must change a file asserts
+exactly one replacement occurred, and stamp edits anchor on the escape
+sequence as it is spelled in the source. If stamp bumping is ever committed
+as a script, the assert goes in it and gets proven by breaking it, like any
+guard. Until then the refusal is the net, and today measured the cost of
+relying on the net alone: one orphaned patch number and up to 25 minutes of
+a mislabeled phone.
+
+**Lesson 2. The refusal's after-the-publish design bought exactly what
+session 3 said it would, and today is the evidence.** The log never lied.
+The phone lied for at most 25 minutes and only if reopened inside the
+window. Recovery was one one-line commit (af1143c) merged alone as #217,
+which was the right shape: nothing else rode along with the fix, so the
+converging patch was minimal. No change requested to the mechanism. The
+entry records the residue honestly: patch 11 has no row and never will, so
+the patches column now skips a number, and this paragraph is the only place
+that explains it. That is the second archaeology case for **Open 9**, which
+would have made the gap self-explaining with a FAILED row.
+
+**Lesson 3. After an interruption, reconstruct state by reading git, never
+from memory of which commands errored.**
+
+**Guard, MEDIUM, a rule tied to a moment.** Before any statement about what
+landed, after any restart or interruption: `git log --oneline -5` and
+`git status`, then speak. This extends the session 3 delivery rule (read the
+log, never assume) from delivery state to commit state, and today's evidence
+for the tier is honest in both directions: the delivery half of the rule was
+followed all day and produced zero wrong statements about shipping; the
+commit half did not exist and produced one wrong statement and one duplicate
+commit. Same person, same day, the difference was which half had a written
+rule.
+
+**Lesson 4. The quality machinery earned its keep this phase, and a clean
+finding is a valid outcome. Credited by name, no new guards needed:**
+
+- The qa-tester pass on batch 4 found a real crash before it shipped:
+  showDatePicker asserts initialDate on or after firstDate, and a restored
+  RN backup can legally carry pre-2015 dates. Fixed by clamping both bounds
+  around the row's own date, guarded in flutter/test/edit_entry_test.dart
+  (the 2014-12-31 fixture), and the guard was proven with the exact
+  predicted assertion quoted in e186dc4. Three honesty gaps fixed and
+  guarded in the same round: a wrong explainer routing CSV and interest rows
+  to an irrelevant tab, and two silent no-ops around deleted rows that now
+  say what happened instead of implying success.
+- The founder gate held: batch 4 touches money records, so it waited about
+  seven hours for explicit sign-off, and the stamp fix was deliberately
+  merged around it rather than with it.
+- The porting order paid off precisely as CLAUDE.md rule 4 intended:
+  batch 4's reverse-then-apply edit engine (ledger.updateTransaction) had
+  been ported and golden-tested since Jul 17 (merge #111), ten days before
+  the UI batch existed. The batch added a store method and a sheet, and the
+  money math was already proven to the centavo.
+- Prove-it-fails ran on every batch and, for once, caught nothing passing
+  vacuously, which after session 6's three silent greens is itself a
+  measurement. Both halves of the chain's comeback line were proven per the
+  alarm rule, fires on the missed-yesterday fixture and stays silent once
+  today is logged, failure lines quoted in 987ebaf.
+- Session 7's seeded-shot lesson was applied proactively three times, log
+  and utang sheets, banded Insights, and the Activity and Budget frames,
+  when the empty-seed per-tab shots could not show the change.
+- The copy adaptations were deliberate, not drift: English-first per the
+  founder's 2026-07-23 rule, RN emoji removed from Salapify-authored chain
+  copy per the icon rule, and the celebration overlay keeps the RN reduce
+  motion contract, message and haptic survive, motion does not, guarded in
+  flutter/test/habit_layer_test.dart.
+
+**Lesson 5. CLAUDE.md fact check.** No edits to CLAUDE.md this phase, and
+`git log` over the guard files since f2.59 confirms none of
+flutter-preview.yml, flutter-check.yml, delivery-watchdog.yml, eas-update.yml
+or CLAUDE.md changed, so the check reduces to spot-verifying standing claims:
+the three delivery commands ran as written and returned f2.66 patch 16, the
+named paths still exist, the stamp cap still holds (the suite is green and
+includes it). No new false claim found. The one known stale claim, workflow
+item 4 versus eas-update.yml's dead-branch trigger, is unchanged and remains
+**Open 14**.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design, with a
+new nuance recorded.** The founder confirmed f2.66 patch 16 in person. But
+today showed the phone half of the comparison can itself be briefly wrong:
+during the orphan window the phone's stamp row was the mislabeled artifact.
+The comparison the founder performs is only as good as the stamp discipline
+feeding it, which is one more reason Lesson 1's prevention half matters.
+
+**Open 6, the watchdog has never been observed running a scheduled pass:
+STILL OPEN.** Run history is still unreadable from this sandbox. Today's
+orphan was invisible to it by design (see Open 7), and no spurious issue is
+in evidence.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp:
+STILL OPEN, and today it stopped being theoretical.** Merge #216 was exactly
+the predicted case, main's stamp equal to the delivered stamp with a patch
+genuinely pending, and exactly the predicted compensating guard reported it,
+the publisher's refusal plus failure notice. The prediction from session 4
+held in every particular. The blind spot remains, and remains covered only
+by that one guard.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,
+untouched this phase.**
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN, and today added
+its second archaeology case.** The patch 10 to patch 12 jump is explained
+nowhere in the log itself. A FAILED row for the #216 run would have made the
+gap self-documenting. This open item has now cost reading time twice.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 12, the dead branch in CLAUDE.md and the publisher: STAYS CLOSED,**
+re-verified trivially, no workflow or CLAUDE.md file changed this phase.
+
+**Open 13, the shot harness mounts screens through a private copy of the
+shell's wiring: STILL OPEN.** The class produced steady hand-work this
+phase, three proactive seeded-shot additions, and the harness lines were
+also the content of the duplicate commit, so the copy keeps costing small
+amounts of attention. The automated version, mounting through the shell or
+asserting chrome presence, is still not done.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL
+OPEN, untouched.**
+
+### Guard status re-check
+
+Read, not assumed. The cheap and honest version this session: `git log`
+proves none of the guard-bearing workflow files changed during the phase, so
+their session 7 line numbers stand, and the fresh 848-green suite run covers
+every committed test guard, including session 6's (a11y with the sweep
+floor, nav_ambiguity, the clock seam) and session 7's (both header_action
+tests). Three guards deserve individual mention:
+
+- **The duplicate stamp refusal FIRED, correctly, first real firing.** It
+  published, refused to record, failed loudly, and the log stayed truthful.
+  flutter-preview.yml:178.
+- The failure notice tied to it should have opened its issue; as in every
+  session, that cannot be confirmed from this sandbox (API 403), stated
+  rather than assumed. What is confirmed is its effect's absence of harm:
+  the very next merge recovered.
+- New guards from this phase, first listing for the next session to
+  re-check: flutter/test/edit_entry_test.dart (the pre-2015 picker clamp
+  with the predicted assertion, the deleted-row honesty pair),
+  flutter/test/log_date_test.dart, flutter/test/habit_layer_test.dart (both
+  halves of the comeback line, the reduce motion contract, celebration on
+  real balance only), and lib/money/chain.dart's pinned-clock vector suite.
+
+### What it cost, and what it did not
+
+Cost: one patch number orphaned forever, up to 25 minutes of a mislabeled
+phone, one failed run, and 25 minutes of wall clock from divergence to
+convergence. One duplicate-message commit in permanent history and one wrong
+sentence to the founder about batch 4, corrected the same hour. The patches
+column now skips 11, which will puzzle every future reader who has not read
+this entry.
+
+Did not cost: any data, any wrong number, any manual install, any
+undelivered batch, any founder-found bug. Seven deliveries at a metronomic
+10 to 12 minutes. The one crash of the phase was caught by QA before it
+shipped, on a fixture (a restored old backup) that no fresh install would
+ever have shown. And the incident itself cost so little precisely because
+two old decisions held: the refusal design from session 3, and one-stamp-
+one-patch bookkeeping that made the wrong name detectable at all.
+
+### For the founder, in plain English
+
+Phase 2 is fully on your phone, you confirmed f2.66, patch 16, and all seven
+updates arrived on the usual ten-minute rhythm. Receipts when you log,
+headers that stay put, backdated logging with a calendar, editing a logged
+entry without deleting it, Insights in three readable bands, the list
+polish, and the seven-day chain with the confetti when a debt clears.
+
+One thing went wrong in the middle, and I want to walk you through it
+because you may one day notice a small oddity it left behind: your patch
+numbers jump from 10 to 12. There is no patch 11 row, and there never will
+be. Here is why.
+
+Every update carries two labels: a patch number the robot assigns
+automatically, and a stamp like f2.62 that I write by hand into the code, so
+you can check what arrived. For batch 3 I used a small script to update that
+stamp, and the script silently did nothing: the stamp contains a middle dot
+character, and the code spells that dot in an escaped notation that looks
+identical on screen but is different underneath. The script searched for the
+lookalike, found nothing, replaced nothing, and reported no error. Doing
+nothing without saying so is the worst way a tool can fail, because it looks
+exactly like success. So batch 3 went out still wearing the previous
+update's name, f2.61.
+
+Our publishing robot has a rule written for exactly this: two different
+builds must never share a name, because your stamp row is the one check
+nobody can fake. It shipped the update, then refused to write the lying row
+into the log, and stopped with a loud failure instead. That refusal is
+deliberately AFTER shipping, because the update was already out, and
+pretending otherwise in the log would be a worse lie. So for up to 25
+minutes, if you reopened the app in that window, your phone said f2.61
+while actually running batch 3. The log stayed honest the whole time, which
+is why fixing it took one line, giving the build its real name f2.62, and
+eleven minutes.
+
+Separately, and this one is on me in a more ordinary way: my workspace
+restarted mid-batch, and instead of checking the record of what had been
+saved, I went from memory of the error messages and told you batch 4's pull
+request was empty. It was not; the work had landed. I corrected it the same
+hour. The new rule is written down: after any interruption, read the record
+before saying anything about what happened. The same rule already existed
+for deliveries and worked all day; it just had never been extended to this.
+
+Some good news you should know about, because it is your own past decisions
+paying out. The editing feature touches money records, so it went through
+the extra QA pass and waited for your sign-off, and that QA found a real
+crash before it ever reached you: old backups from the previous app can
+contain dates before 2015, and the date picker choked on them. Fixed, with a
+test. And the reason the editing feature was safe to build quickly is the
+rule we set at the start, port the money math first: the engine that
+recalculates balances when you edit an entry had already been ported and
+tested to the centavo ten days ago, so this batch only added the screen.
+
+What it costs if a guard is removed: take out the robot's refusal rule and
+the next time a stamp goes stale, two different builds share a name and your
+one reliable check, comparing the phone's row to the log, quietly starts
+lying, with nothing to tell either of us. It stays.
+
+---
+
 ## 2026-07-27, session 7: the screenshots were missing the button under review
 
 Second sitting of the day, after session 6, and it has to open with an
