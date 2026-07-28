@@ -1,15 +1,21 @@
 // The first run, ported from the RN Onboarding: what Salapify is, the
-// basics (currency and a starting monthly budget), and how to start. Three
-// steps, no back button, no skip, every field carrying a default so there
-// is nothing to get wrong, ending in the one settings patch that marks
-// onboarding done and queues the first log.
+// basics (currency and a starting monthly budget), the nightly nudge ask,
+// and how to start. No back button, no skip, every field carrying a default
+// so there is nothing to get wrong, ending in the one settings patch that
+// marks onboarding done and queues the first log.
 //
-// Two deliberate differences from RN, both safety:
-// - Flutter starts EMPTY and seeds the sample set only when asked, so there
-//   is no destructive "start empty" wipe and no confirm dialog for a brand
-//   new user to misread. Nothing real can be lost here.
-// - The notification ask is not in this flow yet; it arrives as its own
-//   batch, so the step count reads 2 like the RN web variant.
+// One deliberate difference from RN, and it is safety: Flutter starts EMPTY
+// and seeds the sample set only when asked, so there is no destructive
+// "start empty" wipe and no confirm dialog for a brand new user to misread.
+// Nothing real can be lost here.
+//
+// The step COUNT is not fixed, the same as RN: a device that cannot show
+// reminders at all never sees the nudge step, and the kickers read 2
+// instead of 3 rather than announcing a step that does not exist. That is
+// desktop and the test VM, NOT a web build: this app imports dart:io all
+// over and cannot run on web at all. The RN flow said web because the RN
+// app has a web target; repeating it here would send someone hunting for
+// one that does not exist.
 //
 // The gate lives in main.dart on store.needsOnboarding, whose derivation is
 // the load-bearing part: any successfully loaded blob counts as onboarded
@@ -20,6 +26,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/pan_mood.dart';
+import '../services/notifications.dart';
 import '../theme.dart';
 import '../widgets/pan_mascot.dart';
 
@@ -34,15 +41,52 @@ const _quickCurrencies = [
 class OnboardingScreen extends StatefulWidget {
   final SalapifyStore store;
 
+  /// Whether to show the nightly nudge step. Defaults to whether this device
+  /// can show reminders at all.
+  ///
+  /// A test seam, like OverviewScreen's clock: the widget suite runs on a
+  /// desktop VM where reminders are unsupported, so without this the step
+  /// could never be reached by a test at all, and the one part of the flow
+  /// that touches the OS would ship unguarded.
+  final bool? showNudge;
+
+  /// Asks the OS for notification permission. Injectable for the same
+  /// reason: the real call can only ever answer "no" in a test.
+  final Future<bool> Function() askPermission;
+
   // ignore: prefer_const_constructors_in_immutables
-  OnboardingScreen({super.key, required this.store});
+  OnboardingScreen({
+    super.key,
+    required this.store,
+    this.showNudge,
+    this.askPermission = Reminders.requestPermission,
+  });
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
+/// The steps, by name. They are compared and jumped between in four places,
+/// and a bare 2 meant "the nudge" in one of them and "how to start" in
+/// another the moment the nudge became optional.
+enum _Step { welcome, basics, nudge, start }
+
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  int step = 0;
+  _Step step = _Step.welcome;
+
+  /// Set only when the phone actually granted permission, so a refused
+  /// dialog can never leave reminders switched on in settings that the OS
+  /// will silently swallow.
+  bool nightlyNudge = false;
+
+  /// A permission dialog is open. Both answers go dead while it is, because
+  /// the OS dialog takes a moment to appear and both buttons stay live and
+  /// tappable underneath it: QA reproduced tapping "No thanks" during that
+  /// window and having the granted answer land afterwards, turning an
+  /// explicit no into a yes. On a step whose whole design point is that a no
+  /// must feel as fine as a yes, overriding the no is the worst outcome
+  /// available.
+  bool asking = false;
 
   /// Seeded from existing settings so a restored user who somehow lands
   /// here (explicit onboarded false in a backup) is not reset, the RN rule.
@@ -83,6 +127,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return n > 100000000 ? 100000000 : n;
   }
 
+  /// Whether this run of the flow includes the nudge step, and therefore
+  /// how many steps the kickers should claim.
+  ///
+  /// Latched once, not read live. A count that could change mid-flow could
+  /// print "STEP 2 OF 2" on the nudge step and again on the one after it,
+  /// and a step counter that can contradict itself is worse than none.
+  late final bool _nudgeStep = widget.showNudge ?? Reminders.supported;
+  int get _stepCount => _nudgeStep ? 3 : 2;
+
+  /// The nightly nudge choice. Yes asks the phone first and only remembers
+  /// the answer when it is granted; either way the flow moves on, because
+  /// this step must never be able to trap anyone behind a permission dialog
+  /// they cannot get back to.
+  Future<void> _askNudge() async {
+    if (asking) return;
+    setState(() => asking = true);
+    var granted = false;
+    try {
+      granted = await widget.askPermission();
+    } catch (_) {
+      // Permission plumbing must never block onboarding.
+    }
+    if (!mounted) return;
+    setState(() {
+      asking = false;
+      nightlyNudge = granted;
+      step = _Step.start;
+    });
+  }
+
   Future<void> _finish(bool withSample) async {
     if (saving) return;
     setState(() => saving = true);
@@ -92,6 +166,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         currencySymbol: symbol,
         monthlyLimit: _parsedLimit(),
         withSampleData: withSample,
+        nightlyNudge: nightlyNudge,
       );
       // No navigation: the gate in main.dart flips to the shell on the
       // store notify, and the shell acts on firstLogPrompt.
@@ -102,6 +177,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SnackBar(content: Text('Could not save, nothing was changed. $e')),
         );
       }
+      return;
+    }
+    // Lay tonight's reminder now rather than at the next launch. The app only
+    // reschedules on load and on resume, and someone who just said yes to an
+    // 8pm nudge should get it tonight, not tomorrow.
+    //
+    // Deliberately OUTSIDE the try above. Scheduling cannot currently throw,
+    // but if it ever did, the catch would tell someone "nothing was changed"
+    // about a save that succeeded, and let them tap finish again, which
+    // appends the sample seed a second time. The message a screen shows must
+    // only ever be able to describe the thing it wrapped.
+    if (nightlyNudge) {
+      await Reminders.reschedule(widget.store.data, DateTime.now());
     }
   }
 
@@ -116,9 +204,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: switch (step) {
-                0 => _welcome(),
-                1 => _basics(),
-                _ => _howToStart(),
+                _Step.welcome => _welcome(),
+                _Step.basics => _basics(),
+                _Step.nudge => _nudge(),
+                _Step.start => _howToStart(),
               },
             ),
           ),
@@ -189,14 +278,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
       ),
       const SizedBox(height: Gap.xl),
-      _primary('Get started', () => setState(() => step = 1)),
+      _primary('Get started', () => setState(() => step = _Step.basics)),
     ],
   );
 
   Widget _basics() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('STEP 1 OF 2', style: Barako.kickerStyle),
+      Text('STEP 1 OF $_stepCount', style: Barako.kickerStyle),
       const SizedBox(height: 6),
       Text(
         'The basics',
@@ -270,8 +359,75 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         style: TextStyle(color: Barako.muted, fontSize: 12),
       ),
       const SizedBox(height: Gap.xl),
-      _primary('Next', () => setState(() => step = 2)),
+      _primary(
+        'Next',
+        () => setState(() => step = _nudgeStep ? _Step.nudge : _Step.start),
+      ),
     ],
+  );
+
+  /// The nightly nudge ask. Both answers carry the SAME visual weight, the
+  /// RN decision kept on purpose: a "no" that looks like the lesser button
+  /// is a no the design is arguing with, and a yes collected that way is
+  /// worth nothing to a person who then mutes the app a week later.
+  Widget _nudge() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('STEP 2 OF $_stepCount', style: Barako.kickerStyle),
+      const SizedBox(height: 6),
+      Text(
+        'A 30 second nudge at night?',
+        style: TextStyle(
+          color: Barako.text,
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: Gap.md),
+      // Says only what will actually happen tonight. It used to promise a
+      // payday heads up too, ported from RN without noticing that this port
+      // only fires payday reminders once a payday schedule EXISTS, which a
+      // brand new user has never set. A promise the app cannot keep, plus a
+      // switch sitting on in Menu doing nothing, is worse than a smaller
+      // promise kept. "No sounds" went for the same reason: the Android
+      // channel plays the default notification sound.
+      Text(
+        'People who log daily actually change how they spend. One quiet '
+        'reminder at 8pm, nothing else. No spam, and you can switch it off '
+        'any time in Menu, where the payday and bill reminders live too.',
+        style: TextStyle(
+          color: Barako.textSecondary,
+          fontSize: 15,
+          height: 1.5,
+        ),
+      ),
+      const SizedBox(height: Gap.xl),
+      _choice('Yes, remind me at night', asking ? null : _askNudge),
+      const SizedBox(height: Gap.sm),
+      _choice(
+        'No thanks',
+        asking ? null : () => setState(() => step = _Step.start),
+      ),
+    ],
+  );
+
+  /// One of a pair of equally weighted answers. Outlined rather than filled,
+  /// because two filled accent buttons stacked read as one button and one
+  /// mistake, and the point here is that neither answer is the mistake.
+  Widget _choice(String label, VoidCallback? onTap) => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Barako.primaryText,
+        side: BorderSide(color: Barako.primary),
+        minimumSize: const Size(0, 52),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+    ),
   );
 
   Widget _howToStart() {
@@ -288,7 +444,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('STEP 2 OF 2', style: Barako.kickerStyle),
+        Text('STEP $_stepCount OF $_stepCount', style: Barako.kickerStyle),
         const SizedBox(height: 6),
         Text(
           hasAnything ? 'You are all set.' : 'How do you want to start?',

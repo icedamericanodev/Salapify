@@ -10,6 +10,487 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 9: the welcome screen that was photographed on step two
+
+Two deliveries, two clean rows, both confirmed on the phone by the founder.
+There is no delivery incident in this entry and none is manufactured. What
+this session has instead is the strongest thing a clean round can produce:
+three defects that never reached the phone, each caught by a different kind
+of check, and one of them was a defect in a checking tool itself.
+
+### What we believed / What was true
+
+**Believed: both patches reached the phone. TRUE, and confirmed in person,
+twice.** Read from `git show origin/main:docs/delivery-log.md`: f2.67 patch
+17 at 02:29 UTC (run 30322704978, merge 1a0c9930) and f2.68 patch 18 at 03:42
+UTC (run 30326108991, merge a822666f). Both mode `patch`, both on 0.6.2+11,
+and `git show origin/main:flutter/pubspec.yaml` still reads `version:
+0.6.2+11`, so no base APK was stranded and no manual install is owed. Merge
+to row: 11 minutes and 12 minutes, inside the norm every session since 4 has
+measured. The founder read both stamps off the Update stamp row. Say it
+plainly: the delivery pipeline was boring in both directions, which is the
+only thing a delivery pipeline should ever be.
+
+**Believed: merge #223 shipped nothing, and its absence from the log is the
+system working. TRUE.** That merge (7744e08, 01:34 UTC) was the session 8
+write-up, documentation only. The publisher's paths filter correctly stayed
+silent, so there is no row between patch 16 and patch 17, and by session 5's
+reading rule that gap is benign rather than an incident.
+
+**Believed, by the render discipline: a shot named `onboarding-welcome-light`
+photographed the welcome screen. FALSE. It photographed step 2.** The
+onboarding walk in flutter/test/screens_shot.dart shoots dark first, taps
+through all three steps, then loops to light and shoots the welcome again.
+`pumpWidget` reuses the existing `State` object when the widget type and its
+position in the tree both match, so the `step` field survived from the end of
+the dark walk into the first light frame. The file named it welcome. The
+image showed the currency and budget step. Nothing failed, nothing warned,
+and 868 passing tests had no opinion, because a screen rendering a valid step
+is a valid widget tree. It was caught by opening the PNG and looking at it.
+
+**Believed: the designed happy path was safe because every new test passed.
+FALSE, and this one was a money trap.** The onboarding flow's own recommended
+route (explore the sample data, then the shell auto-opens the first log sheet)
+preselected the sample account "BPI Savings", because `lastUsedAccountId`
+derived the most recent account from the only transactions that existed at
+that moment, the seeded ones. A brand new user's first REAL entries would
+have been filed into a fictional account, and "Remove sample data" then
+deleted that account from under them, silently losing the balance effect. All
+fourteen new onboarding tests passed while this was live in the branch. It
+was found by the qa-tester merge-gate pass, not by the suite.
+
+**Believed, for about a minute: a restore had put the code back. FALSE, it
+had thrown work away.** During the prove-it-fails run for the quick-add
+guard, the restore step used `git checkout lib/money/quickadd.dart`. That
+restores the last COMMIT, not the pre-break state, and the QA fixes were
+still uncommitted, so it wiped them. It was caught immediately only because
+the same command printed a `grep` count of the fix markers straight
+afterwards, and the count came back 0.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 01:16 | f2.66 patch 16 delivered, session 8's ground truth | delivery row |
+| 01:34 | Merge #223 (7744e08), the session 8 write-up, docs only. No row, correctly | paths filter, no row in log |
+| 02:10 | 634b8d5 Phase 3 batch 1, the currency setting. One resolved symbol read by every formatter, defaulting to the peso so all 848 prior tests see zero change. Guard proven failing first by severing the resolve | commit message |
+| 02:17 | Merge #224 (1a0c9930) | git log |
+| 02:29 | f2.67 patch 17 delivered, 11 minutes | delivery row |
+| 02:46 | a9c152e Phase 3 batch 2, the onboarding flow. **The lying screenshot is found by looking, and fixed inside this same commit** | screens_shot.dart:850 to 857 |
+| 03:23 | 63f5b19 QA round. **The sample account funnel found by qa-tester and fixed**, guard proven failing | commit message |
+| 03:30 | Merge #225 (a822666f) | git log |
+| 03:42 | f2.68 patch 18 delivered, 12 minutes | delivery row |
+| after | **Founder confirms BOTH f2.67 patch 17 and f2.68 patch 18 on the phone** | founder |
+
+Test counts, and an honest note about them. The commits record 854 green
+after batch 1, 868 after batch 2, and 875 after the QA round, each with
+analyze clean. Unlike every session since 6, this entry does NOT quote a
+suite run made while writing it: another task is editing flutter/ at this
+moment, so a run now would measure a half-edited tree and report a number
+about nothing. Quoting the commits and saying why is better than running
+something that cannot mean what it claims. The next session should re-run and
+confirm 875 as its baseline.
+
+### Divergence point
+
+There is no delivery divergence to name this round, and that is the finding,
+not a gap in the investigation. Both stamps built, both shipped, both rows
+were written, both matched the phone.
+
+The belief divergence worth naming is inside the branch: **02:46 UTC, in the
+authoring of a9c152e**, the moment the onboarding walk was written as one
+`testWidgets` loop over two brightnesses with a single `pumpWidget` per
+iteration. From that moment the harness produced an image whose FILENAME and
+CONTENT disagreed. It never reached main, because the divergence and its
+closure are inside the same commit: the fix, the `ValueKey(b.name)` at
+screens_shot.dart:857, is in the same diff as the bug.
+
+Name the shape, because this is now its fourth consecutive appearance in this
+log: **a checking tool that verifies a stand-in for the artifact.** Session 6,
+a dark-first eye that structurally could not see light mode. Session 7, a shot
+harness mounting less chrome than production. Session 8, a text replace that
+performed a stand-in for the action and matched zero bytes. Session 9, a
+camera that photographed leftover state while labelling it fresh. Three of
+those four were only detectable by measuring or looking at the actual output.
+The difference this time, and it is worth the sentence: the render caught the
+render. The discipline turned on itself and won, before the merge.
+
+### Root cause
+
+**The lying screenshot.** Flutter's element tree reuses `State` when the
+widget's runtime type and slot both match across a `pumpWidget`. That is not
+a bug, it is the mechanism that makes hot reload and rebuilds cheap, and it
+is documented. The harness's mental model was "each `pumpWidget` gives me a
+fresh screen", which is true for every other shot in the file because every
+other shot pumps a DIFFERENT widget type. The onboarding walk was the first
+shot that pumps the SAME type twice in one test, so it was the first place
+the assumption could be wrong, and it was wrong the first time it was used.
+The root cause is not the reuse and it is not inattention. It is that the
+harness names a file after a state it never asserts it is in. A shot
+function that photographs whatever is on screen and trusts its own caller for
+the label can only ever be as correct as the caller's mental model.
+
+**The sample account funnel.** Every test in the onboarding batch was written
+by the same author, at the same sitting, from the same mental model as the
+code. That model contained the sentence "sample data is clearly marked and
+removable", and it was true, so the tests proved it. The model did not
+contain the sentence "the sample rows are the only rows, therefore they are
+also the most RECENT rows, therefore every helper that means recent means
+sample". `lastUsedAccountId` is a pure, correct, well-tested function; it did
+exactly what it says. The defect lived in the composition of three correct
+parts: seed sample data, auto-open the log sheet, preselect the last used
+account. No unit test can see a composition, and no author who holds the
+model can see its own gap. That is precisely what an adversarial reader with
+a different frame is for, and it is why the qa-tester pass is a merge gate in
+CLAUDE.md rather than an optional courtesy.
+
+**The destructive restore.** `git checkout <file>` restores from the index or
+the last commit. The prove-it-fails discipline in CLAUDE.md says to break the
+code, watch it fail, and quote the failure, and it says nothing whatsoever
+about how to put the code back. The break happened at a moment when the fix
+was deliberately not yet committed, which is the normal state during a QA
+round: fix, then prove the fix. So the safest-feeling restore command was
+exactly the wrong one, and it was wrong for a reason that is invisible unless
+you are thinking about the index at that second. The rule had a hole in the
+half nobody wrote down.
+
+### Lessons and guards
+
+**Lesson 1. A shot harness that pumps the same widget type twice renders
+leftover state while claiming a fresh screen, and only LOOKING at the image
+catches it.**
+
+**Guard, SHIPPED for the instance, MEDIUM.** The walk is now keyed per
+brightness, `OnboardingScreen(key: ValueKey(b.name), store: store)` at
+flutter/test/screens_shot.dart:857, with the reason recorded immediately
+above it at lines 850 to 853:
+
+    // Keyed per brightness. Without this the second pump reuses the first
+    // iteration's State (same widget type, same slot), so the "welcome"
+    // shot silently rendered whatever step the previous walk ended on.
+    // The first light render proved it by photographing step 2.
+
+That comment fixes this walk and explains itself at the site, which is the
+right place for it. It is medium rather than strong because it guards one
+loop, not the class.
+
+**The class is NOT guarded, and the candidate rule is not where it would be
+read. Checked, and reporting the result honestly:** the header comment of
+screens_shot.dart (lines 1 to 24) records three hard-won harness rules, the
+deliberate non-`_test` filename, the `tester.runAsync` font gotcha, and where
+the output lands. It does NOT mention keying repeated pumps. So the next
+person writing a walk-style shot reads the header, learns three lessons, and
+does not learn this one. **New Open 15.**
+
+**The strongest available version of this guard, which does not exist yet and
+should:** the shot function asserts the frame it is about to photograph. One
+line before each `expectLater`, for example `expect(find.text('Get started'),
+findsOneWidget)` before the welcome shot, converts a mislabelled image from a
+silent wrong picture into a hard failure. That is the automated tier, it
+works while nobody is looking at the PNGs, and it is the direct answer to a
+harness that names files after states it never checks. It is not written,
+because flutter/ is being edited by another task as this is written. It
+should be the first thing the next session does.
+
+**Lesson 2. Every new test in a batch is written from the same mental model
+as the code, so a clean suite is evidence about the model, not about the
+product. Only a reader with a different frame sees a composition defect.**
+
+**Guard, EXISTING, and it FIRED: the qa-tester merge gate in CLAUDE.md.** The
+merge rules require a QA pass on changed code with every must-fix findings
+fixed and re-checked. This round it earned its whole existence: it found a
+must-fix that funnels a new user's first real money into an account the app
+then deletes, plus two should-fixes (sample debt payments surviving removal
+and feeding the month recap as real money forever, and `startFresh` leaving
+`firstRun` alone so erasing everything only returned to onboarding after a
+restart). It is a rule tied to a specific moment, the merge, which is the
+medium tier by this log's ranking, and today is the argument for why the
+medium tier is worth keeping: the strong tier, the tests, was fully green and
+wrong.
+
+**Guard for the finding itself, SHIPPED, strongest tier, proven failing
+first.** flutter/test/onboarding_test.dart, group 'the QA round', asserts
+`lastUsedAccountId` returns null both for a store containing only the seed
+and for a store where a REAL transaction points at a sample account
+(onboarding_test.dart:287 to 309). The failure it was born catching is quoted
+in 63f5b19:
+
+    Expected: null / Actual: 'sample_bpi'
+
+Two layers, both guarded, and the second layer is the interesting one:
+skipping sample ROWS alone would still have preselected a sample ACCOUNT once
+a real transaction pointed at one, so the fix at
+flutter/lib/money/quickadd.dart also refuses any sample account id outright,
+with the reasoning at the line: "preselection is an invitation to keep going."
+
+**Lesson 3. While uncommitted work exists, `git checkout <file>` is not a
+restore, it is a delete, and the prove-it-fails rule never said how to put
+the code back.**
+
+**Guard, PRACTICE for now, and ranked weak, honestly.** Two halves, and the
+first is structural enough to be worth doing:
+
+1. Order of operations, which makes the hazard impossible rather than
+   discouraged: COMMIT the fix, then break, then restore. If the fix is in
+   the last commit, `git checkout <file>` is a correct restore by
+   construction, and the whole class of mistake stops existing. This costs
+   nothing, since the fix is going to be committed anyway.
+2. If a break must happen over uncommitted work, reverse the exact edit
+   (the python replace-back pattern used elsewhere in this project), never
+   `git checkout`, and end every restore by asserting the fix markers are
+   still present. The assertion is what actually saved the work this time,
+   and it saved it by accident of habit rather than by rule.
+
+This is weak tier because it lives in discipline, and it is weak for the same
+reason session 8's Lesson 1 prevention half was: the break and restore are
+done by session tooling, not by a committed script, so there is nothing to
+put an assert inside. If prove-it-fails is ever committed as a script, both
+halves go in it and get proven by breaking it. **New Open 16.** Recorded
+without softening: the cost of this staying weak is that a QA round's worth
+of uncommitted fixes is one command away from gone, and the only thing that
+caught it was a `grep` count that happened to be in the same line.
+
+**Lesson 4. The one-seam pattern paid out a third time, and it does not need
+a new guard, it needs to be named so it keeps being chosen.**
+
+The onboarding gate changed what an empty boot shows: with nothing stored,
+the app now correctly lands on the welcome flow rather than the shell, which
+broke every full-app test that booted with `SharedPreferences.
+setMockInitialValues({})`. The fix was ONE helper, `onboardedEmptyStorage()`
+at flutter/test/support/app_harness.dart:42, twenty lines including the
+reason, plus a one-line fixture swap at each call site. Measured, not
+estimated: 29 call sites across 26 test files, and `git show a9c152e
+--numstat` shows twenty five of those files changed by exactly one or two
+lines each. No assertion in any of them changed.
+
+This is the same seam that absorbed Menu moving off the bottom bar in session
+6 (`openMenu`, a two line change instead of edits across 24 files) and the
+same shape whose ABSENCE cost session 7 its blind screenshots. Three data
+points now: when a behaviour that every test depends on changes, the cost is
+paid once at a seam or twenty five times at the call sites, and which one
+happens is decided months earlier by whether the seam exists. No guard, this
+is a design habit with an evidence trail.
+
+**Lesson 5. Tests that changed this round, reported per the session 5
+convention. None was defending a bug, and this was checked rather than
+assumed.** The QA commit 63f5b19 deleted nothing at all from
+onboarding_test.dart; it is 228 lines of pure addition. The batch commit
+a9c152e's changes to twenty five existing test files are, without exception,
+the single fixture line `SharedPreferences.setMockInitialValues({})` becoming
+`SharedPreferences.setMockInitialValues(onboardedEmptyStorage())`, verified
+by reading the diffs. No assertion was inverted, removed, or loosened, and
+nothing had to change for a fix to pass. Saying so explicitly is the
+convention, and it matters here because a batch that touches twenty five test
+files is exactly the shape under which an inverted assertion would hide.
+
+**Lesson 6. CLAUDE.md fact check, run as a step, with the result reported
+even though the result is mostly boring.**
+
+`git log c3d1032..origin/main -- .github/workflows/ CLAUDE.md` returns
+nothing, so neither CLAUDE.md nor any workflow file changed since session 8's
+ground truth. The check therefore reduces to re-verifying standing factual
+claims against the repository, which was done by reading:
+
+- Every path the file names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, mobile/app/(tabs)/more.js.
+- All five skills exist in .claude/skills (brainstorming, flutter-ui-polish,
+  porting-money-logic, systematic-debugging, writing-skills).
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- The 120 character stamp cap is enforced at update_stamp_test.dart:20, and
+  the live stamp is comfortably inside it.
+- flutter-check.yml triggers on `claude/**` with no paths filter, and
+  flutter-preview.yml triggers on `main` with paths `flutter/**` plus its own
+  definition. Both match what rule 1 claims, word for word.
+- The three delivery commands ran as written and returned f2.68 patch 18.
+
+**No new false claim found this session.** That is the second session in a
+row without one, after the streak of five. The one known stale claim is
+unchanged and stays **Open 14**: workflow item 4 says every push to the branch
+touching mobile/ triggers the OTA publish, while eas-update.yml:18 still
+triggers only on `claude/salapify-v2`, a branch that no longer exists. Harm
+today: still none, still in the safe direction. Harm the day RN work resumes:
+someone believes publishing is automatic and it is not.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed both stamps in person, which is the only proof that counts
+and the one thing only the founder can do.
+
+**Open 6, the watchdog has never been observed running a scheduled pass:
+STILL OPEN.** Run history remains unreadable from this sandbox. No spurious
+issue in evidence, and both of this round's gaps were well inside the 2700
+second grace.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp:
+STILL OPEN.** Not exercised this round, both merges bumped the stamp.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,**
+re-verified by reading, the scrape still lives inside the ship step with
+`|| true` intact at flutter-preview.yml:127 and its comment explaining that
+its absence once cost a whole delivery.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** No new
+archaeology case this round, but the patch 10 to 12 jump from session 8 is
+now permanently in the file with no explanation inside the file itself.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the
+shell's wiring: STILL OPEN, and this session is a second data point against
+the copy.** The onboarding walk builds its own MaterialApp by hand, which is
+exactly why the State reuse was possible and invisible. The harness keeps
+producing correct-looking output from hand-assembled scaffolding, and the
+automated version, mounting through the shell or asserting what is on screen,
+still does not exist.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL
+OPEN, untouched, re-verified this session.**
+
+**NEW Open 15: the walk-keying rule is not in the screens_shot.dart header.**
+The header records three harness rules learned the hard way; this is a
+fourth, and it currently lives only as an inline comment on the one loop that
+has it. Two tiers available and neither is done: the strong one is asserting
+the expected frame before each shot, the medium one is a line in the header.
+The strong one should be preferred, because a header comment only works on a
+person who reads it before writing the bug.
+
+**NEW Open 16: prove-it-fails says how to break the code and not how to
+restore it.** Today that gap deleted a QA round's uncommitted fixes and was
+caught by a habit rather than a rule. The cheap structural answer is to
+commit the fix before breaking anything. Not written down anywhere yet.
+
+### Guard status re-check
+
+Read, not assumed, and this session's version is cheap and honest: `git log`
+proves no workflow file and no CLAUDE.md line changed since session 8, so
+every line number that session recorded still stands. Verified by reading
+anyway, because a guard that was quietly routed around is the most valuable
+thing this section can find:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:174 to 181,
+  comment and all, including the sentence explaining why it fails AFTER the
+  publish. Correctly silent this round, both stamps were distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:223 to 237,
+  one issue commented on rather than duplicated. Not fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:239 onward.
+  Correctly silent, both rows read mode `patch`.
+- The publisher watching its own definition: PRESENT in the paths filter.
+- Concurrency `cancel-in-progress: false`: PRESENT.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:43 and :99, with the load-bearing comment intact.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT, with the
+  comment explaining that a skipped check reads as approval at a glance.
+- The stamp cap: PRESENT, update_stamp_test.dart:20.
+- Session 6 and 7 guards (a11y_test.dart with the Menu sweep floor,
+  nav_ambiguity_test.dart, the injected clock, header_action_test.dart,
+  app_harness.dart): PRESENT. app_harness.dart absorbed this round's
+  twenty five file change exactly as it was designed to, which is the third
+  time that seam has paid.
+- Session 8's guards: PRESENT and untouched.
+- New this round for the next session to re-check:
+  flutter/test/onboarding_test.dart (the 'QA round' group, seven new tests
+  per 63f5b19, the sample account funnel proven failing first), flutter/test/currency_test.dart
+  (the resolved symbol, proven failing by severing the resolve), and the
+  keyed onboarding walk at screens_shot.dart:857.
+
+**Nothing was found deleted, disabled, or routed around.**
+
+### What it cost, and what it did not
+
+Cost: one screenshot round spent looking at an image that was not what its
+name said, which is cheap only because someone looked. One near miss on
+uncommitted QA fixes, recovered in under a minute because a `grep` count
+happened to be attached to the restore. One suite count in this entry that is
+quoted rather than re-run, with the reason stated.
+
+Did not cost: any delivery failure, any wrong number on the phone, any manual
+install, any lost user data, any founder-found bug. Two deliveries, two rows,
+two confirmations, eleven and twelve minutes. And the money trap that would
+have been the expensive one, a new user's first real entries vanishing into a
+deleted sample account, was caught before the merge by the gate that exists
+for exactly that, on a path the design itself recommends, which is the path a
+beginner is most likely to take.
+
+### For the founder, in plain English
+
+Both updates are on your phone and you confirmed both: f2.67, the currency
+setting, and f2.68, the new welcome flow for first-time users. Eleven and
+twelve minutes from merge to arrival, which is the normal rhythm. Nothing
+went wrong with delivery this time, and I am not going to invent a problem to
+make this write-up feel earned.
+
+What is worth your time is three things that were caught before they reached
+you.
+
+**One: my camera photographed the wrong screen.** I take screenshots of every
+screen before shipping it, and for the new welcome flow I take them twice,
+once in dark mode and once in light. The picture labelled "welcome, light
+mode" was actually a picture of the second step. The reason is a quirk of how
+Flutter works: when you ask it to build the same kind of screen a second time,
+it reuses the machinery from the first one to save effort, including the
+memory of which step you were on. So the second run started where the first
+run finished, and the file name was a claim nobody had checked. Nothing
+failed. All 868 tests passed, because a real screen was on the screen; it was
+just the wrong one. The only thing that caught it was opening the image and
+looking at it. That is the second time in three days that looking at a picture
+found something the tests could not, and this time the picture found a fault
+in my own camera.
+
+It is fixed for this flow. I have written down, honestly, that it is not fixed
+for the NEXT flow anyone builds, and I have said what the real fix is: the
+camera should check that the right screen is in front of it before it presses
+the shutter, instead of trusting the label. That is a small piece of work and
+it should be done next.
+
+**Two: the friendliest path through the new welcome flow had a money trap in
+it, and every test said it was fine.** If a new user chose "explore the sample
+data first", the app opened a logging box for them straight away, helpfully
+pre-filled with the account they had "last used". Except the only transactions
+in existence at that moment were the fake sample ones, so it pre-filled a fake
+account called BPI Savings. Their first REAL expense would go into a made-up
+account, and when they later tapped "Remove sample data", that account
+disappeared and took the effect on their balance with it. Quietly. No error,
+no warning.
+
+Every single test I wrote for that flow passed, and that is the lesson: I
+wrote the tests from the same understanding that produced the code, so they
+proved the things I already believed and were blind in exactly the same place.
+What found it was the separate quality review pass, which reads the code
+adversarially, as someone trying to break it rather than someone trying to
+confirm it. That review is a rule we set in July, and this is the round where
+it paid for its whole existence. There is now a test that fails loudly if a
+sample account is ever pre-selected again, and I broke the code on purpose
+first to watch it fail before trusting it.
+
+**Three: I nearly deleted an hour of fixes with one command.** To prove a new
+test really works, I break the code on purpose, watch the test fail, then put
+the code back. This time "put the code back" used a command that restores from
+the last saved version, and the fixes had not been saved yet, so it threw them
+away instead. I caught it in seconds only because the same command prints a
+count of the fixes right afterwards, and the count came back zero. Nothing was
+lost. The written rule told me how to break the code and said nothing about
+how to restore it, which is the actual hole. The fix is simple and I have
+recorded it: save the work first, then break it, so restoring is safe by
+definition.
+
+**What it costs if a guard is removed.** Take out the sample account test and
+the friendliest path through your welcome flow quietly starts eating new
+users' first entries, and it will look perfect from every angle including the
+tests. Take out the quality review pass and things like it stop being found at
+all, because the tests are written by the same mind that wrote the bug. Take
+out the screenshot habit and you go back to finding layout problems yourself,
+on your phone, which is the most expensive place to find anything.
+
+---
+
 ## 2026-07-28, session 8: the patch that shipped wearing the wrong name
 
 UI Phase 2, seven batches, eight pull requests, and for the first time in

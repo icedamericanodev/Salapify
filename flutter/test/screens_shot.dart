@@ -854,11 +854,21 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
-          home: OnboardingScreen(key: ValueKey(b.name), store: store),
+          // showNudge forced on: the harness runs on a desktop VM where
+          // reminders are unsupported, so the real device check would hide
+          // the step and this walk would photograph a flow the phone does
+          // not have.
+          home: OnboardingScreen(
+            key: ValueKey(b.name),
+            store: store,
+            showNudge: true,
+            askPermission: () async => true,
+          ),
         ),
       );
       await tester.pumpAndSettle();
       final mode = b == Brightness.dark ? 'dark' : 'light';
+      expect(find.text('Get started'), findsOneWidget);
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('shots/onboarding-welcome-$mode.png'),
@@ -867,6 +877,7 @@ void main() {
 
       await tester.tap(find.text('Get started'));
       await tester.pumpAndSettle();
+      expect(find.text('The basics'), findsOneWidget);
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('shots/onboarding-basics-dark.png'),
@@ -874,6 +885,21 @@ void main() {
 
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
+      // Assert the frame BEFORE photographing it. A shot named for one step
+      // that renders another is the exact failure this walk already had
+      // once, and a name is not evidence.
+      expect(find.text('A 30 second nudge at night?'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/onboarding-nudge-dark.png'),
+      );
+
+      // The YES branch on purpose: it is the path that runs the injected
+      // permission seam, so the walk exercises it rather than photographing
+      // only the answer that touches nothing.
+      await tester.tap(find.text('Yes, remind me at night'));
+      await tester.pumpAndSettle();
+      expect(find.text('How do you want to start?'), findsOneWidget);
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('shots/onboarding-start-dark.png'),

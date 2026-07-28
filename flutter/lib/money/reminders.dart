@@ -18,6 +18,7 @@
 
 import 'commitments.dart' show bankDueDate;
 import 'ledger.dart' show amountOf;
+import 'sample_data.dart' show sampleTxIds;
 import 'schedule.dart' show hasExplicitPaydaySchedule, nextPayday;
 import 'statements.dart' show todayISO;
 
@@ -99,9 +100,16 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
   }
 
   if (on['daily'] == true) {
+    // Sample rows never count as logging. This is the fourth reader of the
+    // habit signal (chain, coach, quick-add are the others) and it was the
+    // one that missed the rule sample_data.dart writes down. It mattered:
+    // the seed clamps its dates to today, so someone who said yes to the
+    // nightly nudge and then chose "explore the sample data" had tonight's
+    // reminder cancelled by a transaction they did not make, on any install
+    // day from the 1st to the 10th.
     final loggedToday = _list(
       data['transactions'],
-    ).any((t) => t['date'] == todayISO(now));
+    ).any((t) => !sampleTxIds.contains(t['id']) && t['date'] == todayISO(now));
     for (var i = 0; i < 14; i++) {
       final d = DateTime(now.year, now.month, now.day + i, 20);
       if (!d.isAfter(now)) continue;
