@@ -14,6 +14,35 @@
 //   it out of earnings).
 
 import 'ledger.dart' as ledger;
+import 'transfers.dart' show jsNumber;
+
+bool _falsy(dynamic v) =>
+    v == null || v == false || v == '' || (v is num && (v == 0 || v.isNaN));
+
+/// JS `Number(x)` for a relational comparison, NaN preserved. Folding NaN to
+/// zero here would make an unparseable date sort as the oldest possible one
+/// instead of comparing false against everything.
+double _jsRelational(dynamic x) {
+  if (x == null) return 0;
+  if (x == true) return 1;
+  if (x == false) return 0;
+  if (x is num) return x.toDouble();
+  if (x is String) return jsNumber(x);
+  return double.nan;
+}
+
+/// RN's `Number(x) || 0` for a stored payment amount.
+double _jsAmount(dynamic x) {
+  if (x == null) return 0;
+  if (x == true) return 1;
+  if (x == false) return 0;
+  if (x is num) return x.isFinite ? x.toDouble() : 0;
+  if (x is String) {
+    final v = jsNumber(x);
+    return v.isFinite ? v : 0;
+  }
+  return 0;
+}
 
 typedef GenId = String Function(String prefix);
 
@@ -50,16 +79,27 @@ String nameOf(Map<String, dynamic> data, Map<String, dynamic> r) {
 /// One line of a person's payment history: the payment, which utang it was
 /// against, and how much they had paid back IN TOTAL as of that payment.
 class PaymentRow {
-  final String id, rid, date, from;
+  final String id, rid, from;
   final double amount, running;
+
+  /// The stored date, whatever type it is. RN keeps a truthy non-string date
+  /// rather than blanking it, and that decides where the row SORTS: a blanked
+  /// date sorts as dateless and drags the running total with it. Kept raw so
+  /// the sort can follow the same rule, and read through [date] for display.
+  final dynamic rawDate;
   const PaymentRow({
     required this.id,
     required this.rid,
-    required this.date,
+    required this.rawDate,
     required this.from,
     required this.amount,
     required this.running,
   });
+
+  /// The date as something a screen can print. A non-string date has no
+  /// readable form, so it shows as no date, which is what fmtDate does with
+  /// it in the statement too.
+  String get date => rawDate is String ? rawDate as String : '';
 }
 
 /// Every payment one person has made, across all of their utang, newest
@@ -78,7 +118,12 @@ List<PaymentRow> personPaymentHistory(dynamic receivables) {
   if (receivables is List) {
     for (final r in receivables.whereType<Map>()) {
       for (final p in (r['payments'] as List? ?? []).whereType<Map>()) {
-        final amount = ledger.amountOf(p['amount']);
+        // jsNumber, not amountOf. RN coerces with Number(), which accepts
+        // things double.tryParse rejects, and QA found the consequence: a
+        // stored payment of "0x10" showed ₱0 in the history and ₱16 in the
+        // statement, on the same sheet, about the same payment. The two now
+        // read a stored amount the same way.
+        final amount = _jsAmount(p['amount']);
         final date = p['date'];
         final note = r['note'];
         flat.add(
@@ -86,7 +131,7 @@ List<PaymentRow> personPaymentHistory(dynamic receivables) {
             id: '${p['id'] ?? ''}',
             rid: '${r['id'] ?? ''}',
             amount: amount,
-            date: date is String && date.isNotEmpty ? date : '',
+            rawDate: _falsy(date) ? '' : date,
             from: note is String && note.isNotEmpty ? note : 'Utang',
             running: 0,
           ),
@@ -99,8 +144,21 @@ List<PaymentRow> personPaymentHistory(dynamic receivables) {
   // between the two apps, and their running totals would swap with them.
   final indexed = [for (var i = 0; i < flat.length; i++) (i, flat[i])];
   indexed.sort((a, b) {
-    final c = a.$2.date.compareTo(b.$2.date);
-    return c != 0 ? (c < 0 ? -1 : 1) : a.$1.compareTo(b.$1);
+    final x = a.$2.rawDate, y = b.$2.rawDate;
+    // JS relational comparison, which the RN comparator relies on without
+    // saying so. Two strings compare as strings. Otherwise BOTH sides are
+    // coerced to numbers, so a stored date of 5 sorts AFTER '' (which is 0)
+    // and ties with '2026-01-01' (which is NaN, so neither less nor greater).
+    // Modelling non-strings as simply "equal to everything" put the row in
+    // the wrong place and moved its running total with it.
+    if (x is String && y is String) {
+      final c = x.compareTo(y);
+      if (c != 0) return c < 0 ? -1 : 1;
+    } else {
+      final nx = _jsRelational(x), ny = _jsRelational(y);
+      if (!nx.isNaN && !ny.isNaN && nx != ny) return nx < ny ? -1 : 1;
+    }
+    return a.$1.compareTo(b.$1);
   });
   var run = 0.0;
   final out = <PaymentRow>[];
@@ -110,7 +168,7 @@ List<PaymentRow> personPaymentHistory(dynamic receivables) {
       PaymentRow(
         id: p.id,
         rid: p.rid,
-        date: p.date,
+        rawDate: p.rawDate,
         from: p.from,
         amount: p.amount,
         running: run,

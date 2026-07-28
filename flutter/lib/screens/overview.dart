@@ -51,6 +51,11 @@ String formatMoney(num value) {
   final scaled = value.abs() * 100;
   if (!scaled.isFinite) return '$baseCurrencySymbol$value';
   final rounded = scaled.round() / 100;
+  // Same int64 saturation guard as formatMoneyText: floor() on a double past
+  // 2^53 clamps instead of overflowing, so a restored backup carrying 1e30
+  // rendered a precise and completely wrong peso figure rather than obvious
+  // garbage.
+  if (rounded >= 9007199254740992.0) return '$baseCurrencySymbol$value';
   var whole = rounded.floor();
   final cents = ((rounded - whole) * 100).round();
   final digits = whole.toString();

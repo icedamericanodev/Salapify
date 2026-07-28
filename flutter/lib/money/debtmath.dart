@@ -290,7 +290,17 @@ String _longDate(String? isoDate) {
 /// RN formatMoney: sign, peso sign, comma-grouped whole pesos. Public so the
 /// debts write engine composes its logged-payment messages byte for byte.
 String formatMoneyText(num n) {
-  final v = _jsRound(amountOf(n)).toInt();
+  final rounded = _jsRound(amountOf(n));
+  // Past 2^53 a double no longer holds whole numbers exactly, and toInt()
+  // SATURATES at the int64 ceiling rather than overflowing visibly. QA found
+  // an utang of 1e30 printing as "₱9,223,372,036,854,775,807" in a statement
+  // sent to a friend: a specific, credible, comma-grouped, wrong figure. The
+  // raw expansion is garbage, but it reads as garbage, which is the honest
+  // failure and what the RN app prints too.
+  if (rounded.abs() >= 9007199254740992.0) {
+    return '$baseCurrencySymbol$rounded';
+  }
+  final v = rounded.toInt();
   final sign = v < 0 ? '-' : '';
   final digits = v.abs().toString();
   final buf = StringBuffer();

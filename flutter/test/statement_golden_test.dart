@@ -104,7 +104,14 @@ void main() {
       for (var i = 0; i < want.length; i++) {
         expect(got[i].id, '${want[i]['id']}', reason: '$label row $i id');
         expect(got[i].rid, '${want[i]['rid']}', reason: '$label row $i rid');
-        expect(got[i].date, want[i]['date'], reason: '$label row $i date');
+        // rawDate, not date: the ORDER a row lands in depends on the stored
+        // value exactly as JS saw it, and that is what must match. The
+        // display getter deliberately differs, asserted on its own below.
+        expect(
+          got[i].rawDate,
+          want[i]['date'],
+          reason: '$label row $i stored date',
+        );
         expect(got[i].from, want[i]['from'], reason: '$label row $i from');
         expect(
           got[i].amount,
@@ -118,6 +125,24 @@ void main() {
         );
       }
     }
+  });
+
+  test('a date that is not a date shows as no date, not as junk', () {
+    // The one deliberate divergence in this port. RN renders the stored value
+    // straight into the row, so a date of 5 reads as "5 · Utang" in a list of
+    // real dates. It still SORTS exactly as RN sorts it, which is what the
+    // running total depends on; it just does not print a number as a day.
+    final rows = personPaymentHistory([
+      {
+        'id': 'r1',
+        'note': 'A',
+        'payments': [
+          {'id': 'p1', 'amount': 100, 'date': 5},
+        ],
+      },
+    ]);
+    expect(rows.single.rawDate, 5);
+    expect(rows.single.date, '');
   });
 
   test('a person with nothing recorded still gets a readable document', () {

@@ -248,6 +248,136 @@
       ]
     },
     {
+      "name": "amounts only JS Number accepts",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A",
+          "payments": [
+            {
+              "id": "p1",
+              "amount": "0x10",
+              "date": "2026-01-01"
+            },
+            {
+              "id": "p2",
+              "amount": "  42  ",
+              "date": "2026-01-02"
+            },
+            {
+              "id": "p3",
+              "amount": "+7",
+              "date": "2026-01-03"
+            },
+            {
+              "id": "p5",
+              "amount": true,
+              "date": "2026-01-05"
+            },
+            {
+              "id": "p6",
+              "amount": "",
+              "date": "2026-01-06"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p6",
+          "rid": "r1",
+          "amount": 0,
+          "date": "2026-01-06",
+          "from": "A",
+          "running": 66
+        },
+        {
+          "id": "p5",
+          "rid": "r1",
+          "amount": 1,
+          "date": "2026-01-05",
+          "from": "A",
+          "running": 66
+        },
+        {
+          "id": "p3",
+          "rid": "r1",
+          "amount": 7,
+          "date": "2026-01-03",
+          "from": "A",
+          "running": 65
+        },
+        {
+          "id": "p2",
+          "rid": "r1",
+          "amount": 42,
+          "date": "2026-01-02",
+          "from": "A",
+          "running": 58
+        },
+        {
+          "id": "p1",
+          "rid": "r1",
+          "amount": 16,
+          "date": "2026-01-01",
+          "from": "A",
+          "running": 16
+        }
+      ]
+    },
+    {
+      "name": "a date that is not a string",
+      "receivables": [
+        {
+          "id": "r1",
+          "note": "A",
+          "payments": [
+            {
+              "id": "p1",
+              "amount": 100,
+              "date": 5
+            },
+            {
+              "id": "p2",
+              "amount": 300,
+              "date": "2026-01-01"
+            },
+            {
+              "id": "p3",
+              "amount": 50,
+              "date": ""
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "id": "p2",
+          "rid": "r1",
+          "amount": 300,
+          "date": "2026-01-01",
+          "from": "A",
+          "running": 450
+        },
+        {
+          "id": "p1",
+          "rid": "r1",
+          "amount": 100,
+          "date": 5,
+          "from": "A",
+          "running": 150
+        },
+        {
+          "id": "p3",
+          "rid": "r1",
+          "amount": 50,
+          "date": "",
+          "from": "A",
+          "running": 50
+        }
+      ]
+    },
+    {
       "name": "no receivables",
       "receivables": [],
       "rows": []

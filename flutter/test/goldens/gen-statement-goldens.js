@@ -334,6 +334,44 @@ const historyCases = [
       },
     ],
   },
+  {
+    // QA: the port used Dart's double.tryParse where RN uses Number(), so the
+    // SAME payment printed one amount in the history and another in the
+    // statement on the SAME sheet. The original junk case only carried 'abc',
+    // '300' and null, which both coercions agree on, so the lock could not
+    // see the difference.
+    name: 'amounts only JS Number accepts',
+    receivables: [
+      {
+        id: 'r1',
+        note: 'A',
+        payments: [
+          { id: 'p1', amount: '0x10', date: '2026-01-01' },
+          { id: 'p2', amount: '  42  ', date: '2026-01-02' },
+          { id: 'p3', amount: '+7', date: '2026-01-03' },
+          { id: 'p5', amount: true, date: '2026-01-05' },
+          { id: 'p6', amount: '', date: '2026-01-06' },
+        ],
+      },
+    ],
+  },
+  {
+    // QA: RN keeps a truthy non-string date, so it does NOT sort as dateless.
+    // The port coerced it to '', which moved the row to the oldest position
+    // and took the running total with it.
+    name: 'a date that is not a string',
+    receivables: [
+      {
+        id: 'r1',
+        note: 'A',
+        payments: [
+          { id: 'p1', amount: 100, date: 5 },
+          { id: 'p2', amount: 300, date: '2026-01-01' },
+          { id: 'p3', amount: 50, date: '' },
+        ],
+      },
+    ],
+  },
   { name: 'no receivables', receivables: [] },
 ];
 

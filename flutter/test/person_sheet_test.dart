@@ -28,33 +28,37 @@ Map<String, dynamic> _blob({
 }) => {
   'schemaVersion': 12,
   'settings': {'onboarded': true},
-  'people': people ?? [
-    {'id': 'per1', 'name': 'Ana'},
-  ],
-  'receivables': receivables ?? [
-    {
-      'id': 'r1',
-      'personId': 'per1',
-      'person': 'Ana',
-      'amount': 5000,
-      'note': 'Emergency',
-      'dueDate': '2026-06-30',
-      'payments': [
-        {'id': 'p1', 'amount': 1500, 'date': '2026-07-10'},
+  'people':
+      people ??
+      [
+        {'id': 'per1', 'name': 'Ana'},
       ],
-    },
-    {
-      'id': 'r2',
-      'personId': 'per1',
-      'person': 'Ana',
-      'amount': 800,
-      'note': 'Load',
-      'paid': true,
-      'payments': [
-        {'id': 'p2', 'amount': 800, 'date': '2026-05-20'},
+  'receivables':
+      receivables ??
+      [
+        {
+          'id': 'r1',
+          'personId': 'per1',
+          'person': 'Ana',
+          'amount': 5000,
+          'note': 'Emergency',
+          'dueDate': '2026-06-30',
+          'payments': [
+            {'id': 'p1', 'amount': 1500, 'date': '2026-07-10'},
+          ],
+        },
+        {
+          'id': 'r2',
+          'personId': 'per1',
+          'person': 'Ana',
+          'amount': 800,
+          'note': 'Load',
+          'paid': true,
+          'payments': [
+            {'id': 'p2', 'amount': 800, 'date': '2026-05-20'},
+          ],
+        },
       ],
-    },
-  ],
 };
 
 /// Opens the sheet with the share seam captured. Returns the store and a list
@@ -215,6 +219,178 @@ void main() {
     // One open utang, so exactly one set of action buttons.
     expect(find.text('Log payment'), findsOneWidget);
     expect(find.text('Mark paid'), findsOneWidget);
+  });
+
+  testWidgets('two people who share a name get two separate statements', (
+    tester,
+  ) async {
+    // QA's worst finding. Both gathers keyed on the lowercased NAME, so two
+    // people called Ana were merged, and the statement sent to Ana number one
+    // billed her for the other Ana's ₱7,000. This is reachable from a plain
+    // RN backup: the RN person screen renames with no uniqueness check.
+    final blob = _blob(
+      people: const [
+        {'id': 'per1', 'name': 'Ana'},
+        {'id': 'per2', 'name': 'Ana'},
+      ],
+      receivables: [
+        {'id': 'r1', 'personId': 'per1', 'amount': 1000, 'note': 'Ana one'},
+        {'id': 'r2', 'personId': 'per2', 'amount': 7000, 'note': 'Ana two'},
+      ],
+    );
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+    final store = SalapifyStore();
+    await store.load();
+    final sent = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 2000,
+            child: PersonSheet(
+              store: store,
+              name: 'Ana',
+              personId: 'per1',
+              share: (text) async => sent.add(text),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _tapThrough(tester, 'Share statement', 'English');
+
+    expect(sent.single, contains('Ana one'));
+    expect(
+      sent.single,
+      isNot(contains('Ana two')),
+      reason: "billing one person for a different person's debt",
+    );
+    expect(sent.single, contains('Total lent: ₱1,000'));
+  });
+
+  testWidgets('the settled row shows the utang, not what is left of it', (
+    tester,
+  ) async {
+    // Two QA findings in one row. A ₱2,000 utang marked paid with a ₱750
+    // logged payment printed "₱1,250 paid", which is what was LEFT. And a
+    // stored amount of "2400" (a string, from a restored backup) is not a
+    // num, so the row read "₱0 paid" beside a statement saying ₱2,400.
+    await _open(
+      tester,
+      blob: _blob(
+        receivables: [
+          {
+            'id': 'r1',
+            'personId': 'per1',
+            'amount': 2000,
+            'note': 'Short',
+            'paid': true,
+            'payments': [
+              {'id': 'p1', 'amount': 750, 'date': '2026-07-01'},
+            ],
+          },
+          {
+            'id': 'r2',
+            'personId': 'per1',
+            'amount': '2400',
+            'note': 'Stringy',
+            'paid': true,
+          },
+        ],
+      ),
+    );
+    expect(find.text('₱2,000 paid'), findsOneWidget);
+    expect(find.text('₱2,400 paid'), findsOneWidget);
+    expect(find.text('₱1,250 paid'), findsNothing);
+    expect(find.text('₱0 paid'), findsNothing);
+  });
+
+  testWidgets('a statement with centavos adds up in front of two people', (
+    tester,
+  ) async {
+    // QA: the RN whole peso formatter printed two ₱100.50 utang as "₱101" and
+    // "₱101" over "Total lent: ₱201", so the friend holding it adds 101 and
+    // 101 and gets 202. The document has to survive being checked by hand,
+    // which is the entire reason it exists.
+    final (_, sent) = await _open(
+      tester,
+      blob: _blob(
+        receivables: [
+          {'id': 'r1', 'personId': 'per1', 'amount': 100.50, 'note': 'Jeep'},
+          {'id': 'r2', 'personId': 'per1', 'amount': 100.50, 'note': 'Load'},
+        ],
+      ),
+    );
+    await _tapThrough(tester, 'Share statement', 'English');
+    expect(sent.single, contains('Jeep   ₱100.50'));
+    expect(sent.single, contains('Total lent: ₱201'));
+    expect(sent.single, contains('STILL OPEN: ₱201'));
+    expect(sent.single, isNot(contains('₱101')));
+  });
+
+  testWidgets('a failed share says so instead of doing nothing', (
+    tester,
+  ) async {
+    // QA: every exception was swallowed with a comment about the user closing
+    // the sheet. With no share target installed, the person picked a language
+    // and then absolutely nothing happened, with no explanation at all.
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(_blob())});
+    final store = SalapifyStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 2000,
+            child: PersonSheet(
+              store: store,
+              name: 'Ana',
+              share: (_) async => throw StateError('no share target'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _tapThrough(tester, 'Share statement', 'English');
+    expect(
+      find.textContaining('Could not open the share sheet'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('every payment is listed once, and stays removable', (
+    tester,
+  ) async {
+    // QA: payments were listed on the utang card AND under PAYMENT HISTORY,
+    // so every one appeared twice on the same sheet, once with a remove
+    // action and once without. A person with 200 payments rendered 400 rows.
+    await _open(tester);
+    expect(find.textContaining('Jul 10'), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsNWidgets(2));
+  });
+
+  testWidgets('a payment from another year says which year', (tester) async {
+    // QA: prettyDay prints "Jul 10" with no year, in a list whose only job is
+    // chronological order, so 2025-07-10 and 2026-07-10 read identically.
+    await _open(
+      tester,
+      blob: _blob(
+        receivables: [
+          {
+            'id': 'r1',
+            'personId': 'per1',
+            'amount': 5000,
+            'note': 'Old',
+            'payments': [
+              {'id': 'p1', 'amount': 100, 'date': '2019-07-10'},
+            ],
+          },
+        ],
+      ),
+    );
+    expect(find.textContaining('Jul 10, 2019'), findsOneWidget);
   });
 
   testWidgets('a legacy name-only utang still gets a statement', (

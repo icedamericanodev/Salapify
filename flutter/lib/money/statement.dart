@@ -7,9 +7,19 @@
 // still open, with nothing forecast and nothing inferred. Everything here
 // only sums what is already stored.
 //
-// It shares the whole peso formatter with the debt SOA (formatMoneyText),
-// which is the RN formatter, not the app's on-screen one. Shared text has
-// always been formatted that way here, and a statement is shared text.
+// The money formatter is INJECTED, and that is the one deliberate divergence
+// from RN in this file. RN formats a statement in whole pesos, which makes the
+// document visibly fail to add up: two utang of ₱100.50 print as "₱101" and
+// "₱101" over "Total lent: ₱201", and the friend holding it adds 101 and 101
+// and gets 202. QA reproduced it. A document whose own lines contradict its
+// own total is worse than a document that differs from the old app, so the
+// screen passes the app's centavo-showing formatter.
+//
+// The default stays the RN whole peso formatter so the golden replay compares
+// byte for byte against text generated from the shipped RN source. The lock is
+// on the STRUCTURE and the arithmetic, which is what a port can get wrong; the
+// formatter is a display choice this app is allowed to make, and one test pins
+// that the injected one ties out.
 //
 // The two emoji in the closing lines are deliberate and stay. Salapify's icon
 // rule is about glyphs the app DRAWS, which the palette owns; this is plain
@@ -182,8 +192,10 @@ String buildPersonStatement(
   dynamic receivables, {
   StatementLang lang = StatementLang.en,
   required DateTime asOf,
+  String Function(num)? money,
 }) {
   final t = _copy(lang);
+  final fmt = money ?? formatMoneyText;
   final name = _text(person?['name']) ?? 'Someone';
   final list = receivables is List
       ? receivables.whereType<Map>().map((r) => r.cast<String, dynamic>())
@@ -213,12 +225,12 @@ String buildPersonStatement(
     final status = isPaid
         ? ' · ${t.paidTag}'
         : loggedSum > 0.005
-        ? ' · ${formatMoneyText(loggedSum)} ${t.ofPaid} '
-              '${formatMoneyText(amount)} ${t.paidTag}'
+        ? ' · ${fmt(loggedSum)} ${t.ofPaid} '
+              '${fmt(amount)} ${t.paidTag}'
         : '';
     utangLines.add(
       '${due.isNotEmpty ? '${t.due} $due' : t.noDue}   $label   '
-      '${formatMoneyText(amount)}$status',
+      '${fmt(amount)}$status',
     );
   }
   final totalPaid = payments.fold(0.0, (s, e) => s + e.amount);
@@ -258,29 +270,25 @@ String buildPersonStatement(
     '',
     t.utang,
     ...utangLines,
-    '${t.totalLent}: ${formatMoneyText(totalLent)}',
+    '${t.totalLent}: ${fmt(totalLent)}',
   ];
   if (indexed.isNotEmpty) {
     lines.addAll(['', t.payHead]);
     for (final (_, e) in indexed) {
       if (e.marked) {
-        lines.add('${t.markedPaid}   ${e.note}   ${formatMoneyText(e.amount)}');
+        lines.add('${t.markedPaid}   ${e.note}   ${fmt(e.amount)}');
       } else {
-        lines.add('${fmtDate(e.date)}   ${formatMoneyText(e.amount)}'.trim());
+        lines.add('${fmtDate(e.date)}   ${fmt(e.amount)}'.trim());
       }
     }
-    lines.add('${t.totalPaid}: ${formatMoneyText(totalPaid)}');
+    lines.add('${t.totalPaid}: ${fmt(totalPaid)}');
   }
 
   lines.add('');
   if (fullyPaid) {
     lines.addAll([t.fullyPaid, '', t.closePaid]);
   } else {
-    lines.addAll([
-      '${t.stillOpen}: ${formatMoneyText(stillOpen)}',
-      '',
-      t.closeOpen,
-    ]);
+    lines.addAll(['${t.stillOpen}: ${fmt(stillOpen)}', '', t.closeOpen]);
   }
   lines.add('Made with Salapify.');
   return lines.join('\n');
@@ -293,9 +301,10 @@ String buildPersonReminder(
   Map<String, dynamic>? person,
   dynamic owed, {
   StatementLang lang = StatementLang.en,
+  String Function(num)? money,
 }) {
   final name = _text(person?['name']) ?? 'Someone';
-  final amount = formatMoneyText(_num(owed));
+  final amount = (money ?? formatMoneyText)(_num(owed));
   if (lang == StatementLang.tl) {
     return 'Hi $name! Paalala lang sa $amount na total ng utang. Walang '
         'pressure, para lang di natin makalimutan. Salamat! 🙏';
