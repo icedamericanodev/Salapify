@@ -266,6 +266,17 @@ guard for the third.
 Never tell the founder a stamp is live until a row for it exists. "Merged"
 is not "delivered"; the whole delivery outage was that one word.
 
+Stronger, after session 15: never SAY a version number to the founder at all
+until its delivery row exists. Not "f2.74 is ready", not "waiting on the check
+for f2.74". Every word of that was true and the founder still went to their
+phone and found nothing, because the number is the thing they look up. Handing
+them the key before the door exists is what sends them looking. Until a row
+exists the wording is "nothing new on your phone yet". This one is a rule and
+not a machine, because what went wrong was a sentence in a chat and no test
+can read a sentence. If it happens again, the escalation is already decided:
+stop giving progress updates between merges entirely, and speak exactly twice
+per batch, at the start and when the row lands.
+
 After the founder confirms a patch on the phone, run the lunch and learn: a
 short blameless retrospective, facilitated by the lunch-and-learn agent,
 written up in docs/lunch-and-learn.md. Ground truth is always the stamp on the

@@ -27,6 +27,73 @@ Future<void> _openReports(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('tapping a category row carries the month you were reading', (
+    tester,
+  ) async {
+    // Session 15: this fix SHIPPED WITH NO TEST. Removing the initialPeriod
+    // argument left all 982 tests green, so a future tidy-up could quietly
+    // undo it and nothing would say so.
+    //
+    // The harm it prevents: Reports says "Food ₱4,200" under LAST MONTH, you
+    // tap it to see where the money went, and Activity lists Food from every
+    // month. The rows visibly do not add up to the number you tapped, and
+    // nothing on screen explains the difference.
+    tester.view.physicalSize = const Size(1200, 3600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'transactions': [
+          {
+            'id': 'now',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 500,
+            'date': _thisMonth(5),
+          },
+          {
+            'id': 'then',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 4200,
+            'date': _monthsAgo(1, 5),
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openReports(tester);
+
+    // Step back a month, so the number on screen is last month's.
+    await tester.tap(find.byIcon(Icons.chevron_left).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Food').first);
+    await tester.pumpAndSettle();
+
+    // Activity opened on THAT month: last month's row is there, this
+    // month's is not.
+    // Scoped to the LIST. A bare textContaining('500') matched the filter
+    // box's own placeholder, "Filter entries, like jollibee or 1500", which
+    // would have made this pass or fail for a reason that has nothing to do
+    // with the period.
+    Finder row(String text) => find.descendant(
+      of: find.byType(ListView),
+      matching: find.textContaining(text),
+    );
+    expect(row('4,200'), findsWidgets);
+    expect(
+      row('₱500'),
+      findsNothing,
+      reason: 'a row from a month the person was not reading',
+    );
+  });
+
   testWidgets('empty state invites the first log', (tester) async {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
@@ -49,8 +116,22 @@ void main() {
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 10000},
         ],
         'transactions': [
-          {'id': 'i1', 'date': _thisMonth(15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
-          {'id': 'e1', 'date': _thisMonth(5), 'type': 'expense', 'label': 'Food', 'amount': 5000, 'accountId': 'c'},
+          {
+            'id': 'i1',
+            'date': _thisMonth(15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e1',
+            'date': _thisMonth(5),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 5000,
+            'accountId': 'c',
+          },
         ],
       }),
     });
@@ -100,7 +181,9 @@ void main() {
     expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
   });
 
-  testWidgets('the new decision graphs render without overflow', (tester) async {
+  testWidgets('the new decision graphs render without overflow', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 4200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -114,18 +197,88 @@ void main() {
         'transactions': [
           // This month: income plus expenses on five different weekdays, so the
           // weekday pattern has a real peak to draw.
-          {'id': 'i0', 'date': _thisMonth(15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
-          {'id': 'e1', 'date': _thisMonth(2), 'type': 'expense', 'label': 'Food', 'amount': 400, 'accountId': 'c'},
-          {'id': 'e2', 'date': _thisMonth(3), 'type': 'expense', 'label': 'Grab', 'amount': 300, 'accountId': 'c'},
-          {'id': 'e3', 'date': _thisMonth(4), 'type': 'expense', 'label': 'Food', 'amount': 900, 'accountId': 'c'},
-          {'id': 'e4', 'date': _thisMonth(5), 'type': 'expense', 'label': 'Bills', 'amount': 200, 'accountId': 'c'},
-          {'id': 'e5', 'date': _thisMonth(6), 'type': 'expense', 'label': 'Food', 'amount': 600, 'accountId': 'c'},
+          {
+            'id': 'i0',
+            'date': _thisMonth(15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e1',
+            'date': _thisMonth(2),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 400,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e2',
+            'date': _thisMonth(3),
+            'type': 'expense',
+            'label': 'Grab',
+            'amount': 300,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e3',
+            'date': _thisMonth(4),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 900,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e4',
+            'date': _thisMonth(5),
+            'type': 'expense',
+            'label': 'Bills',
+            'amount': 200,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e5',
+            'date': _thisMonth(6),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 600,
+            'accountId': 'c',
+          },
           // Prior months so the net cash flow trend has a positive and a
           // negative month.
-          {'id': 'i1', 'date': _monthsAgo(1, 15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
-          {'id': 'e6', 'date': _monthsAgo(1, 10), 'type': 'expense', 'label': 'Rent', 'amount': 25000, 'accountId': 'c'},
-          {'id': 'i2', 'date': _monthsAgo(2, 15), 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'c'},
-          {'id': 'e7', 'date': _monthsAgo(2, 10), 'type': 'expense', 'label': 'Food', 'amount': 8000, 'accountId': 'c'},
+          {
+            'id': 'i1',
+            'date': _monthsAgo(1, 15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e6',
+            'date': _monthsAgo(1, 10),
+            'type': 'expense',
+            'label': 'Rent',
+            'amount': 25000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'i2',
+            'date': _monthsAgo(2, 15),
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'accountId': 'c',
+          },
+          {
+            'id': 'e7',
+            'date': _monthsAgo(2, 10),
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 8000,
+            'accountId': 'c',
+          },
         ],
       }),
     });

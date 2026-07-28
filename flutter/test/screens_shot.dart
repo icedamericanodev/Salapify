@@ -440,7 +440,15 @@ void main() {
       MaterialApp(
         theme: salapifyTheme(Barako.current),
         home: Scaffold(
-          body: HistoryScreen(store: store, onMenu: () {}),
+          // Pinned, like the widget tests. Left on the real clock these
+          // three shots silently become an empty month the moment the
+          // calendar rolls past July, so the review artifact stops proving
+          // what it was added to prove. Session 15 found this one still live.
+          body: HistoryScreen(
+            store: store,
+            onMenu: () {},
+            clock: () => DateTime(2026, 7, 28),
+          ),
         ),
       ),
     );

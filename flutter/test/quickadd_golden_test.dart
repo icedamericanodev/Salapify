@@ -40,6 +40,10 @@ void main() {
     final cases = (g['cases'] as List).cast<Map<String, dynamic>>();
     expect(cases, isNotEmpty);
     for (final c in cases) {
+      // Two fixtures record inputs RN accepts and this app refuses on
+      // purpose, asserted by name below. Skipped here so the replay stays a
+      // statement about RN rather than a place a divergence hides.
+      if ((c['name'] as String).startsWith('RN accepts')) continue;
       final want = _list(c['list']);
       final List<QuickAdd> got;
       if (c['kind'] == 'add') {
@@ -91,15 +95,51 @@ void main() {
     expect(addQuickAdd(const [], '  ', '100').error, 'Give it a name.');
     expect(
       addQuickAdd(const [], 'X', 'abc').error,
-      'Enter an amount above zero, like 150 or 13.50.',
+      'Enter an amount of at least 0.01, like 150 or 13.50.',
     );
     expect(
       addQuickAdd(const [], 'X', '0').error,
-      'Enter an amount above zero, like 150 or 13.50.',
+      'Enter an amount of at least 0.01, like 150 or 13.50.',
     );
     expect(
       addQuickAdd(const [QuickAdd('Food', 150)], 'fOOd', '99').error,
       'You already have a button called fOOd.',
+    );
+  });
+
+  test('the three refusals RN does not have, each for a real harm', () {
+    // Recorded as deliberate divergences, with the fixture holding RN's
+    // answer beside each so nobody later "fixes" the port back.
+
+    // RN accepts 0.004 and the chip then draws "Kape ₱0" while every tap
+    // files a real expense. The silent-junk class, in a button.
+    expect(
+      addQuickAdd(const [], 'Kape', '0.004').error,
+      'Enter an amount of at least 0.01, like 150 or 13.50.',
+    );
+    expect(addQuickAdd(const [], 'Kape', '0.01').list, isNotNull);
+
+    // RN accepts any length, and a long one clipped the amount off the
+    // Budget chip entirely, so the button logged a figure never shown.
+    expect(
+      addQuickAdd(
+        const [],
+        'Pamasahe papuntang opisina tapos pauwi',
+        '92',
+      ).error,
+      'Keep the name short, 24 letters or less, so the amount still fits.',
+    );
+    expect(
+      addQuickAdd(const [], 'Pamasahe papuntang opis', '92').list,
+      isNotNull,
+    );
+
+    // RN refuses a comma too, but says nothing. The app prints ₱1,500 on
+    // every screen, so typing it back is the obvious move, and "above zero"
+    // is a confusing answer about a number that plainly is.
+    expect(
+      addQuickAdd(const [], 'Rent', '1,500').error,
+      'Use a period for centavos, like 2.50. Commas only group thousands.',
     );
   });
 

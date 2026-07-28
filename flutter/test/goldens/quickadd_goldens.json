@@ -341,6 +341,48 @@
       "accepted": true
     },
     {
+      "name": "RN accepts a sub centavo amount",
+      "kind": "add",
+      "label": "Kape",
+      "amount": "0.004",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Kape",
+          "amount": 0.004
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "RN accepts a very long label",
+      "kind": "add",
+      "label": "Pamasahe papuntang opisina tapos pauwi rin sa gabi",
+      "amount": "92",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Pamasahe papuntang opisina tapos pauwi rin sa gabi",
+          "amount": 92
+        }
+      ],
+      "accepted": true
+    },
+    {
       "name": "remove the first",
       "kind": "remove",
       "index": 0,

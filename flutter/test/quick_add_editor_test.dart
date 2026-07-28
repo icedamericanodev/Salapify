@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/budget.dart';
+import 'package:salapify/screens/quick_add_editor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> _blob({List<Map<String, dynamic>>? quickAdds}) => {
@@ -65,6 +66,18 @@ Future<SalapifyStore> _open(
 Future<void> _openEditor(WidgetTester tester) async {
   await tester.tap(find.text('Edit'));
   await tester.pumpAndSettle();
+}
+
+/// A store whose preset writes always fail, so the sheet's error path can be
+/// exercised without a debug flag living in production code.
+class _UnwritableStore extends SalapifyStore {
+  @override
+  Future<String?> addQuickAddPreset(String label, String amountText) =>
+      Future.error(StateError('disk full'));
+
+  @override
+  Future<void> removeQuickAddPreset(int index) =>
+      Future.error(StateError('disk full'));
 }
 
 void main() {
@@ -153,7 +166,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'abc');
     await tester.tap(find.text('Add button'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Enter an amount above zero'), findsOneWidget);
+    expect(find.textContaining('Enter an amount of at least'), findsOneWidget);
   });
 
   testWidgets('a successful add clears the fields, a refused one does not', (
@@ -180,6 +193,81 @@ void main() {
       tester.widget<TextField>(find.byType(TextField).first).controller!.text,
       '',
       reason: 'a success clears, so the next one can be typed straight in',
+    );
+  });
+
+  testWidgets('opening the editor and closing it writes NOTHING', (
+    tester,
+  ) async {
+    // QA's worst finding. Seeding on open flipped hasData true on an empty
+    // app, which permanently replaced Menu's BRING YOUR DATA OVER card, the
+    // only in-app route to import from the old app, with a backup card. Every
+    // RN tester's migration path, removed by looking at a settings sheet.
+    // An EMPTY app, which is the whole point: the first version of this test
+    // used the default fixture, which carries an account, so hasData was
+    // already true and the assertion could not have failed.
+    final store = await _open(
+      tester,
+      blob: {
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+      },
+    );
+    expect(store.hasData, isFalse, reason: 'the fixture is not empty');
+    final before = jsonEncode(store.data['settings']);
+    await _openEditor(tester);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(
+      jsonEncode(store.data['settings']),
+      before,
+      reason: 'just looking at the sheet changed stored data',
+    );
+    expect(store.hasData, isFalse, reason: 'an empty app now claims data');
+  });
+
+  testWidgets('the first real edit is what remembers, and it sticks', (
+    tester,
+  ) async {
+    // The other half: moving the seed to the write paths must not lose the
+    // behaviour it was there for.
+    final store = await _open(tester);
+    await _openEditor(tester);
+    await tester.tap(find.byTooltip('Remove Coffee'));
+    await tester.pumpAndSettle();
+    expect(
+      (store.data['settings'] as Map)['quickAddsEdited'],
+      isTrue,
+      reason: 'a real edit must be remembered',
+    );
+    expect(store.quickAdds.map((q) => q.label), ['Food', 'Transport', 'Load']);
+  });
+
+  testWidgets('a store that cannot write says so instead of freezing', (
+    tester,
+  ) async {
+    // QA: neither write was wrapped, so a refused write never reached the line
+    // that clears busy. The Add button stuck on "Saving...", every remove went
+    // dead, nothing appeared on screen, and the exception escaped unhandled
+    // because nothing awaits an onPressed future.
+    // A store that refuses to write, rather than a debug flag in production
+    // code. Subclassing keeps the seam entirely inside the test.
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(_blob())});
+    final store = _UnwritableStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: QuickAddEditor(store: store)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Remove Food'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not save'), findsOneWidget);
+    expect(
+      find.text('Saving...'),
+      findsNothing,
+      reason: 'the sheet is stuck busy with no way out',
     );
   });
 

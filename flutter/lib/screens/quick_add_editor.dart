@@ -21,14 +21,25 @@ import '../theme.dart';
 import 'overview.dart' show formatMoney;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
-Future<void> showQuickAddEditor(BuildContext context, SalapifyStore store) async {
-  // Seeded BEFORE the sheet builds, so the list it shows is the list that is
-  // stored and a delete cannot be undone by a fallback.
-  await store.seedQuickAdds();
-  if (!context.mounted) return;
-  await showModalBottomSheet<void>(
+Future<void> showQuickAddEditor(BuildContext context, SalapifyStore store) {
+  // Opening writes NOTHING. The first version seeded the defaults here so a
+  // later delete could not be undone by the card's fallback, and that turned
+  // out to flip hasData true on an empty app: Menu's BRING YOUR DATA OVER
+  // card, the only in-app route to import from the old app, was replaced by a
+  // backup card just for looking at this sheet. The write paths carry the flag
+  // instead, which cannot do that because by then there really is data.
+  final media = MediaQuery.of(context);
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // Safe area and a height cap, the categories.dart pattern. Without them a
+    // person with a dozen presets got a sheet running the full screen: the
+    // grab handle sat under the status bar and the Add and Done buttons were
+    // below the fold with no visible way out.
+    useSafeArea: true,
+    constraints: BoxConstraints(
+      maxHeight: (media.size.height - media.viewInsets.bottom) * 0.9,
+    ),
     backgroundColor: Barako.background,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -63,13 +74,27 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
     super.dispose();
   }
 
+  // Both writes are wrapped, the categories.dart pattern. Without the catch a
+  // store that refuses to write (disk full, canWrite false) never reached the
+  // line that clears _busy: the Add button stuck on "Saving...", every remove
+  // went dead, no message appeared anywhere, and the exception escaped
+  // unhandled because nothing awaits an onPressed future. The sheet was dead
+  // until it was closed and reopened, and the person was told nothing.
   Future<void> _add() async {
     if (_busy) return;
     setState(() => _busy = true);
-    final refusal = await widget.store.addQuickAddPreset(
-      _label.text,
-      _amount.text,
-    );
+    String? refusal;
+    try {
+      refusal = await widget.store.addQuickAddPreset(_label.text, _amount.text);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'Could not save, nothing was changed. $e';
+        });
+      }
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -84,7 +109,17 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
   Future<void> _remove(int index) async {
     if (_busy) return;
     setState(() => _busy = true);
-    await widget.store.removeQuickAddPreset(index);
+    try {
+      await widget.store.removeQuickAddPreset(index);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'Could not save, nothing was changed. $e';
+        });
+      }
+      return;
+    }
     if (mounted) setState(() => _busy = false);
   }
 
@@ -204,7 +239,10 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
                       style: TextButton.styleFrom(
                         minimumSize: const Size(0, 48),
                       ),
-                      child: Text('Done', style: TextStyle(color: Barako.muted)),
+                      child: Text(
+                        'Done',
+                        style: TextStyle(color: Barako.muted),
+                      ),
                     ),
                   ],
                 ),

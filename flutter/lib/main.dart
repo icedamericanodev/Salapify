@@ -27,7 +27,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.74 \u00b7 Activity can now show just one month, one year, or any date range you pick.';
+    'f2.75 \u00b7 The quick add buttons on Budget are yours now: rename, re-price, delete, or add your own.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

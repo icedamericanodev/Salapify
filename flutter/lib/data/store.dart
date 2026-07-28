@@ -1816,41 +1816,46 @@ class SalapifyStore extends ChangeNotifier {
       (data['settings'] as Map?)?['quickAddsEdited'] == true;
 
   /// Write the current visible presets down, so an empty list afterwards is a
-  /// choice rather than an absence. Called when the editor opens; a no-op once
-  /// anything is stored.
-  Future<void> seedQuickAdds() async {
-    if (_quickAddsSeeded) return;
-    // The list AS SHOWN, not the constant: someone who already has a stored
-    // list must not have it replaced by the defaults just for opening the
-    // editor. Both keys move in ONE mutate, so a crash between them cannot
-    // leave the flag set with no list behind it.
-    final current = quickAdds;
-    await _mutate(
-      (d) => {
-        ...d,
-        'settings': {
-          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
-          'quickAdds': [for (final q in current) q.toJson()],
-          'quickAddsEdited': true,
-        },
-      },
-    );
-  }
+  /// choice rather than an absence.
+  ///
+  /// Called from the two WRITE paths, never from opening the editor. Seeding
+  /// on open looked harmless and was not: settings.quickAdds being non empty
+  /// is one of the things [hasData] counts, so opening the sheet and closing
+  /// it without touching anything flipped an empty app into "this person has
+  /// data". That permanently replaced Menu's BRING YOUR DATA OVER card, the
+  /// only in-app prompt to import from the old app, with a backup card. Every
+  /// RN tester's migration path, removed by looking at a settings sheet.
+  ///
+  /// Seeding on the first real edit costs nothing and cannot do that, because
+  /// by then the person really does have data.
 
   /// Append a preset. Returns the refusal sentence, or null when it saved.
   Future<String?> addQuickAddPreset(String label, String amountText) async {
     final result = addQuickAdd(quickAdds, label, amountText);
     if (result.error != null) return result.error;
-    await setSetting('quickAdds', [for (final q in result.list!) q.toJson()]);
+    await _writeQuickAdds(result.list!);
     return null;
   }
 
   /// Drop the preset at [index]. Deleting the last one is allowed and is
   /// remembered: the card then says so rather than quietly refilling.
   Future<void> removeQuickAddPreset(int index) async {
-    final next = removeQuickAdd(quickAdds, index);
-    await setSetting('quickAdds', [for (final q in next) q.toJson()]);
+    await _writeQuickAdds(removeQuickAdd(quickAdds, index));
   }
+
+  /// The list and the edited flag move in ONE mutate, so a crash between them
+  /// cannot leave the flag set with nothing behind it, or a stored list that
+  /// the card then silently tops up.
+  Future<void> _writeQuickAdds(List<QuickAdd> next) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'quickAdds': [for (final q in next) q.toJson()],
+        'quickAddsEdited': true,
+      },
+    },
+  );
 
   /// Add or update a category. Returns the refusal, or null when it saved.
   ///

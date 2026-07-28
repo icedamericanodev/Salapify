@@ -89,9 +89,31 @@ QuickAddResult addQuickAdd(
   final amount = jsNumber(amountInput);
 
   if (label.isEmpty) return const QuickAddResult.refused('Give it a name.');
-  if (!amount.isFinite || amount <= 0) {
+  // A cap, because this is now a first class place to TYPE a label rather
+  // than something only a hand edited backup could carry. A long one clipped
+  // the amount off the Budget chip entirely, so the button logged a figure
+  // that was never on screen.
+  if (label.length > 24) {
     return const QuickAddResult.refused(
-      'Enter an amount above zero, like 150 or 13.50.',
+      'Keep the name short, 24 letters or less, so the amount still fits.',
+    );
+  }
+  // Commas get their own sentence. The app prints ₱1,500 on every screen, so
+  // typing it back is the obvious thing to do, and "enter an amount above
+  // zero" is a confusing answer to a number that plainly is above zero. The
+  // log sheet already had this exact message; it was simply not reused.
+  if (amountInput.contains(',')) {
+    return const QuickAddResult.refused(
+      'Use a period for centavos, like 2.50. Commas only group thousands.',
+    );
+  }
+  // Below a centavo is not an amount, it is a typo. RN accepts it and then
+  // draws the chip as "Kape ₱0" while every tap files a real 0.004 expense,
+  // which is the silent-junk class this project keeps meeting. Recorded as a
+  // deliberate divergence in the goldens rather than left to be discovered.
+  if (!amount.isFinite || amount < 0.01) {
+    return const QuickAddResult.refused(
+      'Enter an amount of at least 0.01, like 150 or 13.50.',
     );
   }
   final taken = current.any(

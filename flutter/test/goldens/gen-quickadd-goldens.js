@@ -89,6 +89,12 @@ const cases = [
   { name: 'a hex literal is accepted', kind: 'add', label: 'Hex', amount: '0x10' },
   { name: 'an infinite amount is refused', kind: 'add', label: 'Inf', amount: 'Infinity' },
   { name: 'a very large amount is accepted', kind: 'add', label: 'Big', amount: '999999999' },
+  // Two cases RN ACCEPTS and this app deliberately does not. They are in the
+  // fixture so the divergence is recorded on purpose rather than discovered:
+  // the replay asserts RN's answer, and the Dart test asserts the refusal
+  // beside it with the reason.
+  { name: 'RN accepts a sub centavo amount', kind: 'add', label: 'Kape', amount: '0.004' },
+  { name: 'RN accepts a very long label', kind: 'add', label: 'Pamasahe papuntang opisina tapos pauwi rin sa gabi', amount: '92' },
   { name: 'remove the first', kind: 'remove', index: 0 },
   { name: 'remove the last', kind: 'remove', index: 1 },
   { name: 'remove an index that is not there', kind: 'remove', index: 9 },
