@@ -148,9 +148,7 @@ class StatPair extends StatelessWidget {
         // than as a rendering limit. Money never gets cut off here.
         FittedBox(
           fit: BoxFit.scaleDown,
-          alignment: alignRight
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+          alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
           child: Text(
             value,
             maxLines: 1,

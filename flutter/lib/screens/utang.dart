@@ -18,6 +18,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney;
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The open receivables behind one aging row. utangAging folds rows by the
 /// lowercased resolved name (personId row and legacy name row together), so
@@ -657,7 +658,7 @@ class _PersonSheetState extends State<PersonSheet> {
                 decoration: InputDecoration(
                   hintText: 'How much came back?',
                   hintStyle: TextStyle(color: Barako.faint, fontSize: 14),
-                  prefixText: '₱ ',
+                  prefixText: '$baseCurrencySymbol ',
                   prefixStyle: TextStyle(
                     color: Barako.muted,
                     fontSize: 18,
@@ -911,7 +912,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
               ),
-              decoration: _decor('0.00', prefix: '₱ '),
+              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
             ),
             const SizedBox(height: 10),
             // Read only, tap to pick. This used to ask a phone keyboard for

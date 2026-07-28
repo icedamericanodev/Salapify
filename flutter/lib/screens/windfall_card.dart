@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../money/windfall.dart';
 import '../theme.dart';
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 class WindfallCard extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -105,7 +106,7 @@ class _WindfallCardState extends State<WindfallCard> {
       fontWeight: FontWeight.w700,
     ),
     decoration: InputDecoration(
-      prefixText: '₱ ',
+      prefixText: '$baseCurrencySymbol ',
       prefixStyle: TextStyle(
         color: Barako.textSecondary,
         fontSize: 18,

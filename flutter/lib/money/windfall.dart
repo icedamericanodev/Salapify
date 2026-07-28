@@ -52,7 +52,12 @@ Map<String, dynamic> splitWindfall(
 }) {
   final gross = _num(amount);
   if (!(gross > 0)) {
-    return {'applicable': false, 'gross': gross, 'slices': const [], 'leftover': 0.0};
+    return {
+      'applicable': false,
+      'gross': gross,
+      'slices': const [],
+      'leftover': 0.0,
+    };
   }
   final reserve = _num(setAside).clamp(0, gross).toDouble();
   var pool = gross - reserve;
@@ -94,7 +99,8 @@ Map<String, dynamic> splitWindfall(
   final debts = <Map<String, dynamic>>[];
   final bnplZero = <Map<String, dynamic>>[];
   var rateUnfilled = false;
-  for (final raw in (data['debts'] is List ? data['debts'] as List : const [])) {
+  for (final raw
+      in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
     final remaining = _num(d['remaining']);
@@ -122,8 +128,7 @@ Map<String, dynamic> splitWindfall(
   debts.sort((a, b) {
     final c = (b['rate'] as double).compareTo(a['rate'] as double);
     if (c != 0) return c;
-    final r =
-        (b['remaining'] as double).compareTo(a['remaining'] as double);
+    final r = (b['remaining'] as double).compareTo(a['remaining'] as double);
     return r != 0 ? r : (a['i'] as int).compareTo(b['i'] as int);
   });
   for (final d in debts) {
@@ -145,8 +150,7 @@ Map<String, dynamic> splitWindfall(
   //     payment and removes the late-fee risk. Smallest first, so whole
   //     installments are cleared and monthly obligations actually disappear.
   bnplZero.sort((a, b) {
-    final c =
-        (a['remaining'] as double).compareTo(b['remaining'] as double);
+    final c = (a['remaining'] as double).compareTo(b['remaining'] as double);
     return c != 0 ? c : (a['i'] as int).compareTo(b['i'] as int);
   });
   for (final b in bnplZero) {
@@ -176,7 +180,8 @@ Map<String, dynamic> splitWindfall(
         'key': 'fuller',
         'label': 'Grow your safety net',
         'amount': give,
-        'detail': 'Toward three months of expenses (${_whole(fullTarget)}), real peace of mind.',
+        'detail':
+            'Toward three months of expenses (${_whole(fullTarget)}), real peace of mind.',
       });
     }
   }
@@ -226,24 +231,32 @@ List<Map<String, dynamic>> _activeGoals(dynamic goals, DateTime ref) {
     if (p['done'] == true || !(_num(p['remaining']) > 0)) continue;
     out.add((gm, p));
   }
-  int rank(String? s) =>
-      s == 'behind' ? 0 : (s == 'due-soon' || s == 'active') ? 1 : 2;
+  int rank(String? s) => s == 'behind'
+      ? 0
+      : (s == 'due-soon' || s == 'active')
+      ? 1
+      : 2;
   final indexed = List.generate(out.length, (i) => (out[i], i));
   indexed.sort((a, b) {
-    final r = rank(a.$1.$2['status'] as String?)
-        .compareTo(rank(b.$1.$2['status'] as String?));
+    final r = rank(
+      a.$1.$2['status'] as String?,
+    ).compareTo(rank(b.$1.$2['status'] as String?));
     if (r != 0) return r;
     final da = (a.$1.$2['targetDate'] as String?) ?? '';
     final db = (b.$1.$2['targetDate'] as String?) ?? '';
     if (da.isNotEmpty && db.isNotEmpty && da != db) return da.compareTo(db);
-    final rem =
-        (b.$1.$2['remaining'] as num).compareTo(a.$1.$2['remaining'] as num);
+    final rem = (b.$1.$2['remaining'] as num).compareTo(
+      a.$1.$2['remaining'] as num,
+    );
     // Insertion-index tiebreak so exact ties keep listed order (stable).
     return rem != 0 ? rem : a.$2.compareTo(b.$2);
   });
   return [
     for (final e in indexed)
-      {'name': _debtName(e.$1.$1['name']), 'remaining': _num(e.$1.$2['remaining'])},
+      {
+        'name': _debtName(e.$1.$1['name']),
+        'remaining': _num(e.$1.$2['remaining']),
+      },
   ];
 }
 

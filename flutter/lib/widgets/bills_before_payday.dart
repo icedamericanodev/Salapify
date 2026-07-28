@@ -115,10 +115,7 @@ class BillsBeforePayday extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                sub,
-                style: TextStyle(color: Barako.muted, fontSize: 12.5),
-              ),
+              Text(sub, style: TextStyle(color: Barako.muted, fontSize: 12.5)),
             ],
           ),
         ),

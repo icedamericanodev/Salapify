@@ -20,9 +20,10 @@ typedef GenId = String Function(String prefix);
 List<Map<String, dynamic>> _list(Map<String, dynamic> data, String key) =>
     (data[key] as List? ?? []).cast<Map<String, dynamic>>();
 
-double paidSumOf(Map<String, dynamic> r) =>
-    (r['payments'] as List? ?? []).fold(
-        0.0, (t, p) => t + (p is Map ? ledger.amountOf(p['amount']) : 0.0));
+double paidSumOf(Map<String, dynamic> r) => (r['payments'] as List? ?? []).fold(
+  0.0,
+  (t, p) => t + (p is Map ? ledger.amountOf(p['amount']) : 0.0),
+);
 
 double remainingOf(Map<String, dynamic> r) {
   final rem = ledger.amountOf(r['amount']) - paidSumOf(r);
@@ -46,8 +47,12 @@ String nameOf(Map<String, dynamic> data, Map<String, dynamic> r) {
   return 'Someone';
 }
 
-Map<String, dynamic> _updateItem(Map<String, dynamic> data, String collection,
-    String id, Map<String, dynamic> patch) {
+Map<String, dynamic> _updateItem(
+  Map<String, dynamic> data,
+  String collection,
+  String id,
+  Map<String, dynamic> patch,
+) {
   return {
     ...data,
     collection: [
@@ -58,7 +63,10 @@ Map<String, dynamic> _updateItem(Map<String, dynamic> data, String collection,
 }
 
 Map<String, dynamic> _removeItem(
-    Map<String, dynamic> data, String collection, String id) {
+  Map<String, dynamic> data,
+  String collection,
+  String id,
+) {
   return {
     ...data,
     collection: [
@@ -69,13 +77,19 @@ Map<String, dynamic> _removeItem(
 }
 
 /// receivables.js postIncome. Returns (newData, txnId).
-(Map<String, dynamic>, String) _postIncome(Map<String, dynamic> data,
-    Map<String, dynamic> r, double amount, String today, GenId genId) {
+(Map<String, dynamic>, String) _postIncome(
+  Map<String, dynamic> data,
+  Map<String, dynamic> r,
+  double amount,
+  String today,
+  GenId genId,
+) {
   if (amount <= 0) return (data, '');
   final accounts = _list(data, 'accounts');
   if (r['cashLeg'] == true) {
     final rAcct = r['accountId'];
-    final acctId = (rAcct is String &&
+    final acctId =
+        (rAcct is String &&
             rAcct.isNotEmpty &&
             accounts.any((a) => a['id'] == rAcct))
         ? rAcct
@@ -93,9 +107,8 @@ Map<String, dynamic> _removeItem(
     return (ledger.addTransaction(data, entry), entry['id'] as String);
   }
   final def = (data['settings'] as Map?)?['defaultAccountId'];
-  final accountId = (def is String &&
-          def.isNotEmpty &&
-          accounts.any((a) => a['id'] == def))
+  final accountId =
+      (def is String && def.isNotEmpty && accounts.any((a) => a['id'] == def))
       ? def
       : '';
   final entry = <String, dynamic>{
@@ -120,14 +133,19 @@ Map<String, dynamic>? _find(Map<String, dynamic> data, String id) {
 /// receivables.js logPartial: clamp to what is still owed, post the income
 /// (or transfer back), remember the txn on the payment, settle when the last
 /// peso arrives. Junk, zero, and nothing-owed all record nothing.
-Map<String, dynamic> logPartial(Map<String, dynamic> data, String receivableId,
-    String payAmt,
-    {required String today, required GenId genId}) {
+Map<String, dynamic> logPartial(
+  Map<String, dynamic> data,
+  String receivableId,
+  String payAmt, {
+  required String today,
+  required GenId genId,
+}) {
   final r = _find(data, receivableId);
   if (r == null) return data;
   final cleaned = payAmt.replaceAll(RegExp(r'[, ]'), '');
-  final amount =
-      cleaned.isEmpty ? 0.0 : (double.tryParse(cleaned) ?? double.nan);
+  final amount = cleaned.isEmpty
+      ? 0.0
+      : (double.tryParse(cleaned) ?? double.nan);
   final remaining = remainingOf(r);
   if (!amount.isFinite || amount <= 0) return data;
   final applied = amount < remaining ? amount : remaining;
@@ -148,8 +166,12 @@ Map<String, dynamic> logPartial(Map<String, dynamic> data, String receivableId,
 
 /// receivables.js markPaid: settle whatever is STILL owed after partials in
 /// one settled-tagged payment, so reopening knows exactly what to reverse.
-Map<String, dynamic> markPaid(Map<String, dynamic> data, String receivableId,
-    {required String today, required GenId genId}) {
+Map<String, dynamic> markPaid(
+  Map<String, dynamic> data,
+  String receivableId, {
+  required String today,
+  required GenId genId,
+}) {
   final r = _find(data, receivableId);
   if (r == null) return data;
   final remaining = remainingOf(r);
@@ -178,7 +200,10 @@ Map<String, dynamic> markPaid(Map<String, dynamic> data, String receivableId,
 /// receivables.js removePayment: reverse the linked income entry, drop the
 /// payment row, reopen the utang unless it is still fully covered.
 Map<String, dynamic> removePayment(
-    Map<String, dynamic> data, String receivableId, String paymentId) {
+  Map<String, dynamic> data,
+  String receivableId,
+  String paymentId,
+) {
   final r = _find(data, receivableId);
   if (r == null) return data;
   final payments = (r['payments'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -199,8 +224,7 @@ Map<String, dynamic> removePayment(
     for (final p in payments)
       if (p['id'] != paymentId) p,
   ];
-  final newPaidSum =
-      kept.fold(0.0, (t, p) => t + ledger.amountOf(p['amount']));
+  final newPaidSum = kept.fold(0.0, (t, p) => t + ledger.amountOf(p['amount']));
   final stillPaid =
       r['paid'] == true && newPaidSum >= ledger.amountOf(r['amount']);
   return _updateItem(next, 'receivables', receivableId, {
@@ -240,8 +264,9 @@ SaveResult saveReceivable(
   final name = person.trim();
   if (name.isEmpty) return SaveResult(data, error: 'name');
   final trimmedAmt = amountText.trim();
-  final amount =
-      trimmedAmt.isEmpty ? double.nan : (double.tryParse(trimmedAmt) ?? double.nan);
+  final amount = trimmedAmt.isEmpty
+      ? double.nan
+      : (double.tryParse(trimmedAmt) ?? double.nan);
   if (amountText.isEmpty || !amount.isFinite || amount < 0) {
     return SaveResult(data, error: 'amount');
   }
@@ -295,7 +320,8 @@ SaveResult saveReceivable(
   }
 
   final wasPaid = existing != null && existing['paid'] == true;
-  final lendAcctId = (id.isEmpty &&
+  final lendAcctId =
+      (id.isEmpty &&
           fromAccount.isNotEmpty &&
           _list(next, 'accounts').any((a) => a['id'] == fromAccount))
       ? fromAccount
@@ -354,16 +380,23 @@ SaveResult saveReceivable(
     'cashLeg': lendAcctId.isNotEmpty,
     'accountId': lendAcctId,
   };
-  final priorPayments =
-      (existing?['payments'] as List? ?? []).cast<Map<String, dynamic>>();
+  final priorPayments = (existing?['payments'] as List? ?? [])
+      .cast<Map<String, dynamic>>();
   if (paid) {
-    final priorPaid =
-        priorPayments.fold(0.0, (t, p) => t + ledger.amountOf(p['amount']));
+    final priorPaid = priorPayments.fold(
+      0.0,
+      (t, p) => t + ledger.amountOf(p['amount']),
+    );
     final remaining = (amount - priorPaid) > 0 ? (amount - priorPaid) : 0.0;
     var payments = priorPayments.toList();
     if (remaining > 0) {
-      final (afterIncome, txnId) =
-          _postIncome(next, collectRef, remaining, today, genId);
+      final (afterIncome, txnId) = _postIncome(
+        next,
+        collectRef,
+        remaining,
+        today,
+        genId,
+      );
       next = afterIncome;
       payments = [
         ...priorPayments,
@@ -376,11 +409,14 @@ SaveResult saveReceivable(
         },
       ];
     }
-    next = _updateItem(
-        next, 'receivables', savedId, {'paid': true, 'payments': payments});
+    next = _updateItem(next, 'receivables', savedId, {
+      'paid': true,
+      'payments': payments,
+    });
   } else if (wasPaid) {
-    final settledTagged =
-        priorPayments.where((p) => p['settled'] == true).toList();
+    final settledTagged = priorPayments
+        .where((p) => p['settled'] == true)
+        .toList();
     var payments = priorPayments.toList();
     if (settledTagged.isNotEmpty) {
       for (final p in settledTagged) {
@@ -391,8 +427,10 @@ SaveResult saveReceivable(
       }
       payments = priorPayments.where((p) => p['settled'] != true).toList();
     }
-    next = _updateItem(
-        next, 'receivables', savedId, {'paid': false, 'payments': payments});
+    next = _updateItem(next, 'receivables', savedId, {
+      'paid': false,
+      'payments': payments,
+    });
   }
   return SaveResult(next, id: savedId);
 }
@@ -401,12 +439,13 @@ SaveResult saveReceivable(
 /// outflow, then remove the utang, so deleting never leaves phantom income
 /// or a lend that never returns.
 Map<String, dynamic> deleteReceivable(
-    Map<String, dynamic> data, String receivableId) {
+  Map<String, dynamic> data,
+  String receivableId,
+) {
   final r = _find(data, receivableId);
   if (r == null) return _removeItem(data, 'receivables', receivableId);
   var next = data;
-  for (final p
-      in (r['payments'] as List? ?? []).cast<Map<String, dynamic>>()) {
+  for (final p in (r['payments'] as List? ?? []).cast<Map<String, dynamic>>()) {
     final txnId = p['txnId'];
     if (txnId is String && txnId.isNotEmpty) {
       next = ledger.removeTransaction(next, txnId);

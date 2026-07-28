@@ -27,6 +27,7 @@ import 'afford_card.dart';
 import 'overview.dart' show formatMoney;
 import 'windfall_card.dart';
 import 'shell.dart';
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 const List<String> _monthsShort = [
   'Jan',
@@ -547,7 +548,7 @@ class InsightsScreen extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 style: TextStyle(color: Barako.text),
                 decoration: InputDecoration(
-                  prefixText: '₱ ',
+                  prefixText: '$baseCurrencySymbol ',
                   prefixStyle: TextStyle(color: Barako.text),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Barako.border),

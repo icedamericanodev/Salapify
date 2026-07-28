@@ -15,6 +15,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../money/afford.dart';
 import '../theme.dart';
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 class AffordCard extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -168,7 +169,7 @@ class _AffordCardState extends State<AffordCard> {
       fontWeight: FontWeight.w700,
     ),
     decoration: InputDecoration(
-      prefixText: '₱ ',
+      prefixText: '$baseCurrencySymbol ',
       prefixStyle: TextStyle(
         color: Barako.textSecondary,
         fontSize: 18,

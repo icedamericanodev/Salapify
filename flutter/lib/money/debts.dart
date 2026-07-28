@@ -57,8 +57,12 @@ String _formText(dynamic v) => v == null ? '' : v.toString();
 
 bool _hasId(dynamic id) => id is String && id.isNotEmpty;
 
-Map<String, dynamic> _updateItem(Map<String, dynamic> data, String collection,
-    String id, Map<String, dynamic> patch) {
+Map<String, dynamic> _updateItem(
+  Map<String, dynamic> data,
+  String collection,
+  String id,
+  Map<String, dynamic> patch,
+) {
   return {
     ...data,
     collection: [
@@ -89,8 +93,12 @@ class DebtSaveResult {
 /// interest clock started today, or patch the existing one, resetting the
 /// clock ONLY when the remaining balance was edited, because a typed-in
 /// balance is current as of today.
-DebtSaveResult saveDebt(Map<String, dynamic> data, Map<String, dynamic> form,
-    {required String today, required GenId genId}) {
+DebtSaveResult saveDebt(
+  Map<String, dynamic> data,
+  Map<String, dynamic> form, {
+  required String today,
+  required GenId genId,
+}) {
   if (_formText(form['name']).trim().isEmpty) {
     return DebtSaveResult(data, 'Please enter a name.', null);
   }
@@ -134,23 +142,31 @@ DebtSaveResult saveDebt(Map<String, dynamic> data, Map<String, dynamic> form,
     if (graceText.isNotEmpty &&
         (!_isInteger(graceNum) || graceNum < 1 || graceNum > 60)) {
       return DebtSaveResult(
-          data, 'Days before due should be from 1 to 60.', null);
+        data,
+        'Days before due should be from 1 to 60.',
+        null,
+      );
     }
     grace = graceText.isEmpty ? 0 : graceNum.toInt();
-    final limitText =
-        _formText(form['creditLimit']).trim().replaceAll(RegExp(r'[, ]'), '');
+    final limitText = _formText(
+      form['creditLimit'],
+    ).trim().replaceAll(RegExp(r'[, ]'), '');
     limit = limitText.isEmpty ? 0.0 : _jsNumber(limitText);
     if (limitText.isNotEmpty && (!limit.isFinite || limit < 0)) {
       return DebtSaveResult(
-          data, 'Enter a valid credit limit, or leave it empty.', null);
+        data,
+        'Enter a valid credit limit, or leave it empty.',
+        null,
+      );
     }
     // A statement day alone gives no due date, so reminders would stay
     // silent while the user believes they are covered.
     if (stmtDay != 0 && dueDay == 0 && grace == 0) {
       return DebtSaveResult(
-          data,
-          'Add the days after statement until due (check your SOA, usually about 20), or a fixed due day, so reminders know when payment is due.',
-          null);
+        data,
+        'Add the days after statement until due (check your SOA, usually about 20), or a fixed due day, so reminders know when payment is due.',
+        null,
+      );
     }
   }
   final payload = <String, dynamic>{
@@ -177,13 +193,17 @@ DebtSaveResult saveDebt(Map<String, dynamic> data, Map<String, dynamic> form,
   // New debt: start the interest clock now, so a first payment does not
   // back accrue interest for time before the debt existed in the app.
   final id = genId('debts');
-  return DebtSaveResult({
-    ...data,
-    'debts': [
-      ..._list(data, 'debts'),
-      {...payload, 'interestThroughISO': today, 'id': id},
-    ],
-  }, '', id);
+  return DebtSaveResult(
+    {
+      ...data,
+      'debts': [
+        ..._list(data, 'debts'),
+        {...payload, 'interestThroughISO': today, 'id': id},
+      ],
+    },
+    '',
+    id,
+  );
 }
 
 /// debts.js del(): remove the debt only. Payments and transaction records
@@ -206,8 +226,12 @@ class DebtPayResult {
   final String msg;
   final bool celebrated;
   final double? newRemaining;
-  const DebtPayResult(this.data, this.msg,
-      {this.celebrated = false, this.newRemaining});
+  const DebtPayResult(
+    this.data,
+    this.msg, {
+    this.celebrated = false,
+    this.newRemaining,
+  });
 }
 
 /// debts.js applyPayment(): the one shared payment path. Splits the amount
@@ -215,9 +239,14 @@ class DebtPayResult {
 /// debits the chosen account for what was actually applied (an overpayment
 /// is never taken), records the payment row (pending for credit cards,
 /// posted otherwise), and writes the principal and interest record rows.
-DebtPayResult applyDebtPayment(Map<String, dynamic> data,
-    Map<String, dynamic> form, String? payFrom, double amt,
-    {required String today, required GenId genId}) {
+DebtPayResult applyDebtPayment(
+  Map<String, dynamic> data,
+  Map<String, dynamic> form,
+  String? payFrom,
+  double amt, {
+  required String today,
+  required GenId genId,
+}) {
   if (!_hasId(form['id']) || amt <= 0) return DebtPayResult(data, '');
   final debtId = form['id'] as String;
   // Read the balance from the store, never from the edit field: a cleared
@@ -231,15 +260,22 @@ DebtPayResult applyDebtPayment(Map<String, dynamic> data,
       : ledger.amountOf(form['monthlyRate']);
   final stamp = today;
   final split = splitDebtPayment(
-      cur, rate, debt != null ? debt['interestThroughISO'] : null, amt, stamp);
+    cur,
+    rate,
+    debt != null ? debt['interestThroughISO'] : null,
+    amt,
+    stamp,
+  );
   final accrued = split['accrued'] as double;
   final applied = split['applied'] as double;
   final interestPortion = split['interest'] as double;
   final principalPortion = split['principal'] as double;
   final newRem = split['newRemaining'] as double;
   final overpay = split['overpay'] as double;
-  var next = _updateItem(
-      data, 'debts', debtId, {'remaining': newRem, 'interestThroughISO': stamp});
+  var next = _updateItem(data, 'debts', debtId, {
+    'remaining': newRem,
+    'interestThroughISO': stamp,
+  });
   // Cash leaves only for what was actually applied.
   Map<String, dynamic>? acct;
   for (final a in _list(next, 'accounts')) {
@@ -249,8 +285,9 @@ DebtPayResult applyDebtPayment(Map<String, dynamic> data,
     }
   }
   if (acct != null && applied > 0) {
-    next = _updateItem(next, 'accounts', acct['id'] as String,
-        {'balance': ledger.amountOf(acct['balance']) - applied});
+    next = _updateItem(next, 'accounts', acct['id'] as String, {
+      'balance': ledger.amountOf(acct['balance']) - applied,
+    });
   }
   // Credit card payments start as pending, because banks take a day or
   // three to post them. Other debts post right away.
@@ -276,8 +313,8 @@ DebtPayResult applyDebtPayment(Map<String, dynamic> data,
   final name = (debtName is String && debtName.isNotEmpty)
       ? debtName
       : (formName is String && formName.isNotEmpty)
-          ? formName
-          : 'Debt';
+      ? formName
+      : 'Debt';
   if (principalPortion > 0) {
     next = ledger.addTransaction(next, {
       'type': 'debt',
@@ -314,34 +351,64 @@ DebtPayResult applyDebtPayment(Map<String, dynamic> data,
         ' ${formatMoneyText(overpay)} was more than you owed and was not taken.';
   }
   msg += ' New balance ${formatMoneyText(newRem)}.';
-  return DebtPayResult(next, msg,
-      celebrated: newRem == 0 && cur > 0, newRemaining: newRem);
+  return DebtPayResult(
+    next,
+    msg,
+    celebrated: newRem == 0 && cur > 0,
+    newRemaining: newRem,
+  );
 }
 
 /// debts.js logPayment(): parse the typed amount ("2,500" is twenty five
 /// hundred) and pay. Junk parses to 0 and records nothing.
-DebtPayResult logDebtPayment(Map<String, dynamic> data,
-    Map<String, dynamic> form, String? payFrom, dynamic payAmount,
-    {required String today, required GenId genId}) {
+DebtPayResult logDebtPayment(
+  Map<String, dynamic> data,
+  Map<String, dynamic> form,
+  String? payFrom,
+  dynamic payAmount, {
+  required String today,
+  required GenId genId,
+}) {
   final cleaned = (payAmount ?? '').toString().replaceAll(RegExp(r'[, ]'), '');
-  return applyDebtPayment(data, form, payFrom, ledger.amountOf(cleaned),
-      today: today, genId: genId);
+  return applyDebtPayment(
+    data,
+    form,
+    payFrom,
+    ledger.amountOf(cleaned),
+    today: today,
+    genId: genId,
+  );
 }
 
 /// debts.js markPaid(): a real payment of everything still owed including
 /// the interest accrued since the last payment, never a silent zeroing.
-DebtPayResult markDebtPaid(Map<String, dynamic> data,
-    Map<String, dynamic> form, String? payFrom,
-    {required String today, required GenId genId}) {
+DebtPayResult markDebtPaid(
+  Map<String, dynamic> data,
+  Map<String, dynamic> form,
+  String? payFrom, {
+  required String today,
+  required GenId genId,
+}) {
   if (!_hasId(form['id'])) return DebtPayResult(data, '');
   final debt = _findDebt(data, form['id']);
   final remaining = debt != null ? ledger.amountOf(debt['remaining']) : 0.0;
   if (remaining <= 0) return DebtPayResult(data, 'Already at zero.');
   final rate = debt != null ? ledger.amountOf(debt['monthlyRate']) : 0.0;
-  final balance = splitDebtPayment(remaining, rate,
-      debt != null ? debt['interestThroughISO'] : null, 0, today)['balance']
-      as double;
+  final balance =
+      splitDebtPayment(
+            remaining,
+            rate,
+            debt != null ? debt['interestThroughISO'] : null,
+            0,
+            today,
+          )['balance']
+          as double;
   return applyDebtPayment(
-      data, form, payFrom, balance > 0 ? balance : remaining,
-      today: today, genId: genId);
+    data,
+    form,
+    payFrom,
+    balance > 0 ? balance : remaining,
+    today: today,
+    genId: genId,
+  );
 }

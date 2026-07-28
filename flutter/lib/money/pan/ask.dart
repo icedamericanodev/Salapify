@@ -27,9 +27,9 @@ Map<String, dynamic> helpReply([List<dynamic>? alternatives]) {
 
 /// The starter chips for the input screen: one example per top intent.
 List<Map<String, String>> suggestions([int n = 6]) => [
-      for (final i in intents.take(n))
-        {'id': i.id, 'label': i.title, 'example': i.examples.first},
-    ];
+  for (final i in intents.take(n))
+    {'id': i.id, 'label': i.title, 'example': i.examples.first},
+];
 
 Map<String, dynamic> ask(dynamic data, dynamic message, {DateTime? now}) {
   final ref = now ?? DateTime.now();
@@ -73,8 +73,9 @@ Map<String, dynamic> ask(dynamic data, dynamic message, {DateTime? now}) {
   if (resolver == null) return helpReply();
 
   final facts = resolver(
-      data is Map ? data.cast<String, dynamic>() : <String, dynamic>{},
-      (now: ref, amount: extractAmount(raw), raw: raw));
+    data is Map ? data.cast<String, dynamic>() : <String, dynamic>{},
+    (now: ref, amount: extractAmount(raw), raw: raw),
+  );
   final reply = respond(facts);
   return {'intent': intent!.id, ...reply};
 }

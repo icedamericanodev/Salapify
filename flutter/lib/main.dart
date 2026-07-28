@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
+import 'money/currencies.dart' show resolveBaseCurrency;
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
 import 'screens/shell.dart';
@@ -25,7 +26,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.66 \u00b7 The logging chain and your treat live on Home, and a cleared debt gets confetti.';
+    'f2.67 \u00b7 Pick your currency in Menu. The sign changes, your numbers never do.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -90,6 +91,10 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
         // rebuild this tree, so a theme/mode switch or a night-mode flip
         // repaints the whole app.
         final settings = widget.store.data['settings'];
+        // The base currency resolves here for the same reason the palette
+        // does: BEFORE anything below formats an amount, on every store
+        // notify, so a currency change reflows every figure at once.
+        resolveBaseCurrency(settings);
         final (themeKey, mode) = resolveThemeChoice(settings);
         final os =
             WidgetsBinding.instance.platformDispatcher.platformBrightness;

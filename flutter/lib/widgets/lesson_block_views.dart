@@ -498,17 +498,15 @@ class ReflectionView extends StatelessWidget {
 
 /// The one dispatcher. Sealed blocks mean a new kind is a compile error here
 /// until it has a view, instead of silently rendering as nothing.
-Widget viewForBlock(
-  LessonBlock block, {
-  VoidCallback? onRevealed,
-}) => switch (block) {
-  ProseBlock() => ProseView(block),
-  RulesBlock() => RulesView(block),
-  NuggetsBlock() => NuggetsView(block),
-  DiscoveryBlock() => DiscoveryView(block, onRevealed: onRevealed),
-  StoryBlock() => StoryView(block),
-  DiagramBlock() => DiagramView(block),
-  TrapBlock() => TrapView(block),
-  ChallengeBlock() => ChallengeView(block),
-  ReflectionBlock() => ReflectionView(block),
-};
+Widget viewForBlock(LessonBlock block, {VoidCallback? onRevealed}) =>
+    switch (block) {
+      ProseBlock() => ProseView(block),
+      RulesBlock() => RulesView(block),
+      NuggetsBlock() => NuggetsView(block),
+      DiscoveryBlock() => DiscoveryView(block, onRevealed: onRevealed),
+      StoryBlock() => StoryView(block),
+      DiagramBlock() => DiagramView(block),
+      TrapBlock() => TrapView(block),
+      ChallengeBlock() => ChallengeView(block),
+      ReflectionBlock() => ReflectionView(block),
+    };

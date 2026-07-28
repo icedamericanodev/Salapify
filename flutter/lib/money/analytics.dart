@@ -25,14 +25,24 @@ String _iso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 const List<String> _monthsShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 List<Map<String, dynamic>> _txs(dynamic transactions) => [
-      for (final t in (transactions is List ? transactions : const []))
-        if (t is Map) t.cast<String, dynamic>(),
-    ];
+  for (final t in (transactions is List ? transactions : const []))
+    if (t is Map) t.cast<String, dynamic>(),
+];
 
 /// Per-goal progress plus the honest catch-up pace, statuses
 /// done | behind | due-soon | active | no-date | no-target.
@@ -43,30 +53,48 @@ Map<String, dynamic> goalPace(Map<String, dynamic>? goal, DateTime ref) {
   final targetDate = rawDate is String ? rawDate.trim() : '';
   if (target <= 0) {
     return {
-      'pct': 0, 'saved': saved, 'target': target, 'remaining': 0,
-      'done': false, 'status': 'no-target', 'monthsLeft': null,
-      'perMonth': 0, 'perWeek': 0, 'targetDate': targetDate,
+      'pct': 0,
+      'saved': saved,
+      'target': target,
+      'remaining': 0,
+      'done': false,
+      'status': 'no-target',
+      'monthsLeft': null,
+      'perMonth': 0,
+      'perWeek': 0,
+      'targetDate': targetDate,
     };
   }
-  final remaining =
-      (target - saved) > 0 ? (target - saved) : 0.0;
+  final remaining = (target - saved) > 0 ? (target - saved) : 0.0;
   final pct = saved / target < 1 ? saved / target : 1.0;
   final base = {
-    'pct': pct, 'saved': saved, 'target': target,
-    'remaining': remaining, 'targetDate': targetDate,
+    'pct': pct,
+    'saved': saved,
+    'target': target,
+    'remaining': remaining,
+    'targetDate': targetDate,
   };
   if (remaining <= 0) {
     return {
-      ...base, 'pct': 1, 'done': true, 'status': 'done',
-      'monthsLeft': 0, 'perMonth': 0, 'perWeek': 0,
+      ...base,
+      'pct': 1,
+      'done': true,
+      'status': 'done',
+      'monthsLeft': 0,
+      'perMonth': 0,
+      'perWeek': 0,
     };
   }
   final m = RegExp(r'^(\d{4})-(\d{2})(?:-(\d{2}))?$').firstMatch(targetDate);
   final mo = m != null ? int.parse(m.group(2)!) - 1 : -1;
   if (m == null || mo < 0 || mo > 11) {
     return {
-      ...base, 'done': false, 'status': 'no-date',
-      'monthsLeft': null, 'perMonth': 0, 'perWeek': 0,
+      ...base,
+      'done': false,
+      'status': 'no-date',
+      'monthsLeft': null,
+      'perMonth': 0,
+      'perWeek': 0,
     };
   }
   final y = int.parse(m.group(1)!);
@@ -79,22 +107,33 @@ Map<String, dynamic> goalPace(Map<String, dynamic>? goal, DateTime ref) {
   final monthsLeft = (y - ref.year) * 12 + ((mo + 1) - ref.month);
   if (deadline.isBefore(today)) {
     return {
-      ...base, 'done': false, 'status': 'behind', 'monthsLeft': monthsLeft,
-      'perMonth': remaining, 'perWeek': remaining,
+      ...base,
+      'done': false,
+      'status': 'behind',
+      'monthsLeft': monthsLeft,
+      'perMonth': remaining,
+      'perWeek': remaining,
     };
   }
   if (monthsLeft <= 0) {
     return {
-      ...base, 'done': false, 'status': 'due-soon',
+      ...base,
+      'done': false,
+      'status': 'due-soon',
       'monthsLeft': monthsLeft > 0 ? monthsLeft : 0,
-      'perMonth': remaining, 'perWeek': remaining,
+      'perMonth': remaining,
+      'perWeek': remaining,
     };
   }
   final perMonth = (remaining / monthsLeft).ceil();
   final perWeek = (remaining / (monthsLeft * (52 / 12))).ceil();
   return {
-    ...base, 'done': false, 'status': 'active', 'monthsLeft': monthsLeft,
-    'perMonth': perMonth, 'perWeek': perWeek,
+    ...base,
+    'done': false,
+    'status': 'active',
+    'monthsLeft': monthsLeft,
+    'perMonth': perMonth,
+    'perWeek': perWeek,
   };
 }
 
@@ -106,7 +145,10 @@ Map<String, dynamic> goalPace(Map<String, dynamic>? goal, DateTime ref) {
 /// just accumulates, so the estimate never flatters itself. Returns null when
 /// weekly is not positive (it would never fund) or nothing is left to save.
 Map<String, dynamic>? goalForecast(
-    dynamic remaining, dynamic weekly, DateTime ref) {
+  dynamic remaining,
+  dynamic weekly,
+  DateTime ref,
+) {
   final rem = amountOf(remaining);
   final wk = amountOf(weekly);
   if (!(rem > 0) || !(wk > 0)) return null;
@@ -127,7 +169,10 @@ Map<String, dynamic>? goalForecast(
 /// Last month's unspent budget, floored at 0; nothing when last month had no
 /// logged expenses (an unknown month must never double this month's budget).
 double previousMonthLeftover(
-    dynamic transactions, dynamic monthlyLimit, DateTime ref) {
+  dynamic transactions,
+  dynamic monthlyLimit,
+  DateTime ref,
+) {
   final limit = amountOf(monthlyLimit);
   if (limit <= 0) return 0;
   final prevKey = _monthKey(DateTime(ref.year, ref.month - 1, 1));
@@ -154,7 +199,10 @@ String _month7(dynamic date) {
 /// Income, expenses, and net for each of the last n months, oldest first.
 /// Utang collected (source receivable) is not income.
 List<Map<String, dynamic>> monthlySeries(
-    dynamic transactions, int n, DateTime ref) {
+  dynamic transactions,
+  int n,
+  DateTime ref,
+) {
   final out = <Map<String, dynamic>>[];
   final txs = _txs(transactions);
   for (var i = n - 1; i >= 0; i--) {
@@ -182,14 +230,18 @@ List<Map<String, dynamic>> monthlySeries(
 }
 
 Map<String, double> _categoryTotals(
-    List<Map<String, dynamic>> txs, int offset, DateTime ref) {
+  List<Map<String, dynamic>> txs,
+  int offset,
+  DateTime ref,
+) {
   final key = _monthKey(DateTime(ref.year, ref.month - offset, 1));
   final totals = <String, double>{};
   for (final t in txs) {
     if (t['type'] != 'expense' || _month7(t['date']) != key) continue;
     final raw = t['label'];
-    final label =
-        (raw is String && raw.trim().isNotEmpty) ? raw.trim() : 'Other';
+    final label = (raw is String && raw.trim().isNotEmpty)
+        ? raw.trim()
+        : 'Other';
     totals[label] = (totals[label] ?? 0) + amountOf(t['amount']);
   }
   return totals;
@@ -205,8 +257,11 @@ List<T> _stableSorted<T>(List<T> list, int Function(T, T) compare) {
 }
 
 /// The biggest category changes vs last month, largest absolute move first.
-List<Map<String, dynamic>> categoryMovers(dynamic transactions, DateTime ref,
-    [int limit = 5]) {
+List<Map<String, dynamic>> categoryMovers(
+  dynamic transactions,
+  DateTime ref, [
+  int limit = 5,
+]) {
   final txs = _txs(transactions);
   final now = _categoryTotals(txs, 0, ref);
   final before = _categoryTotals(txs, 1, ref);
@@ -228,8 +283,12 @@ List<Map<String, dynamic>> categoryMovers(dynamic transactions, DateTime ref,
 
 /// This month per category vs the average of active past months, with the
 /// pace-adjusted expected value. Biggest current spender first.
-List<Map<String, dynamic>> categoryVsAverage(dynamic transactions, DateTime ref,
-    [int months = 6, int limit = 5]) {
+List<Map<String, dynamic>> categoryVsAverage(
+  dynamic transactions,
+  DateTime ref, [
+  int months = 6,
+  int limit = 5,
+]) {
   final txs = _txs(transactions);
   final sums = <String, double>{};
   var active = 0;
@@ -242,8 +301,7 @@ List<Map<String, dynamic>> categoryVsAverage(dynamic transactions, DateTime ref,
   }
   final denom = active > 1 ? active : 1;
   final daysInMonth = DateTime(ref.year, ref.month + 1, 0).day;
-  final frac =
-      (ref.day / daysInMonth) < 1 ? (ref.day / daysInMonth) : 1.0;
+  final frac = (ref.day / daysInMonth) < 1 ? (ref.day / daysInMonth) : 1.0;
   final now = _categoryTotals(txs, 0, ref);
   final labels = <String>{...sums.keys, ...now.keys};
   final out = <Map<String, dynamic>>[];
@@ -253,8 +311,10 @@ List<Map<String, dynamic>> categoryVsAverage(dynamic transactions, DateTime ref,
     if (avg == 0 && cur == 0) continue;
     out.add({'label': label, 'now': cur, 'avg': avg, 'expected': avg * frac});
   }
-  final sorted = _stableSorted(out,
-      (x, y) => (y['now'] as double).compareTo(x['now'] as double));
+  final sorted = _stableSorted(
+    out,
+    (x, y) => (y['now'] as double).compareTo(x['now'] as double),
+  );
   return sorted.length > limit ? sorted.sublist(0, limit) : sorted;
 }
 
@@ -313,8 +373,7 @@ Map<String, dynamic> forecastMonthEnd(dynamic transactions, DateTime ref) {
   }
   final dayOfMonth = ref.day;
   final daysInMonth = DateTime(ref.year, ref.month + 1, 0).day;
-  final projected =
-      dayOfMonth > 0 ? (spent / dayOfMonth) * daysInMonth : spent;
+  final projected = dayOfMonth > 0 ? (spent / dayOfMonth) * daysInMonth : spent;
   return {
     'spent': spent,
     'projected': _jsRound(projected),
@@ -338,13 +397,17 @@ Map<String, dynamic> emergencyRunway(Map<String, dynamic>? data, DateTime ref) {
   }
   final buffer = accountSum > 0 ? accountSum : 0.0;
   final series = monthlySeries(
-      d['transactions'] is List ? d['transactions'] : const [], 7, ref);
-  final completed = series
-      .sublist(0, 6)
-      .map((mo) => mo['expenses'] as double)
-      .where((x) => x > 0)
-      .toList()
-    ..sort();
+    d['transactions'] is List ? d['transactions'] : const [],
+    7,
+    ref,
+  );
+  final completed =
+      series
+          .sublist(0, 6)
+          .map((mo) => mo['expenses'] as double)
+          .where((x) => x > 0)
+          .toList()
+        ..sort();
   var typical = 0.0;
   const runwayMinMonths = 2;
   if (completed.length >= runwayMinMonths) {
@@ -353,8 +416,7 @@ Map<String, dynamic> emergencyRunway(Map<String, dynamic>? data, DateTime ref) {
         ? completed[mid]
         : (completed[mid - 1] + completed[mid]) / 2;
   }
-  final rawMonths =
-      typical > 0 ? _jsRound((buffer / typical) * 10) / 10 : null;
+  final rawMonths = typical > 0 ? _jsRound((buffer / typical) * 10) / 10 : null;
   final capped = rawMonths != null && rawMonths > runwayCap;
   final monthsCovered = capped ? runwayCap : rawMonths;
   return {
@@ -382,13 +444,16 @@ Map<String, dynamic> healthScore(Map<String, dynamic> data, DateTime ref) {
       : _jsRound(((rate / 0.3).clamp(0, 1)) * 35);
 
   final spent = forecastMonthEnd(data['transactions'], ref)['spent'] as double;
-  final limit =
-      amountOf(data['settings'] is Map ? (data['settings'] as Map)['monthlyLimit'] : null);
+  final limit = amountOf(
+    data['settings'] is Map ? (data['settings'] as Map)['monthlyLimit'] : null,
+  );
   var budgetPts = 0.0;
   if (limit > 0) {
     budgetPts = spent <= limit
         ? 25.0
-        : _jsRound(((1 - (spent - limit) / limit).clamp(0, double.infinity)) * 25);
+        : _jsRound(
+            ((1 - (spent - limit) / limit).clamp(0, double.infinity)) * 25,
+          );
   }
 
   double sum(dynamic arr, String key) {
@@ -399,7 +464,8 @@ Map<String, dynamic> healthScore(Map<String, dynamic> data, DateTime ref) {
     return t;
   }
 
-  final assets = sum(data['accounts'], 'balance') + sum(data['assets'], 'value');
+  final assets =
+      sum(data['accounts'], 'balance') + sum(data['assets'], 'value');
   final debt = sum(data['debts'], 'remaining');
   var debtPts = 25.0;
   if (debt > 0) {

@@ -29,8 +29,12 @@ double sharedMax(dynamic seriesList) {
 /// with 8 percent headroom. All-zero draws along the baseline; a single
 /// point lands centered horizontally.
 List<Map<String, double>> linePointsScaled(
-    dynamic values, dynamic maxValue, dynamic width, dynamic height,
-    [double pad = 8]) {
+  dynamic values,
+  dynamic maxValue,
+  dynamic width,
+  dynamic height, [
+  double pad = 8,
+]) {
   final list = [
     for (final v in (values is List ? values : const [])) amountOf(v),
   ];
@@ -48,16 +52,18 @@ List<Map<String, double>> linePointsScaled(
     for (var i = 0; i < n; i++)
       {
         'x': n == 1 ? w / 2 : pad + (innerW * i) / (n - 1),
-        'y': pad +
-            innerH * (1 - (list[i] > 0 ? list[i] : 0) / denom),
+        'y': pad + innerH * (1 - (list[i] > 0 ? list[i] : 0) / denom),
       },
   ];
 }
 
 /// Single-series convenience: scaled against the series' own max.
 List<Map<String, double>> linePoints(
-    dynamic values, dynamic width, dynamic height,
-    [double pad = 8]) {
+  dynamic values,
+  dynamic width,
+  dynamic height, [
+  double pad = 8,
+]) {
   final list = [
     for (final v in (values is List ? values : const [])) amountOf(v),
   ];

@@ -4,12 +4,30 @@
 // no logic, no network. Golden-verified against the real RN module.
 
 const Map<String, String> _diacritics = {
-  'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a',
-  'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-  'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
-  'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o', 'õ': 'o',
-  'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
-  'ñ': 'n', 'ç': 'c',
+  'á': 'a',
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'ã': 'a',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'í': 'i',
+  'ì': 'i',
+  'î': 'i',
+  'ï': 'i',
+  'ó': 'o',
+  'ò': 'o',
+  'ô': 'o',
+  'ö': 'o',
+  'õ': 'o',
+  'ú': 'u',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ñ': 'n',
+  'ç': 'c',
 };
 
 const Map<String, String> _synonyms = {
@@ -75,8 +93,10 @@ String normalize(dynamic raw) {
   var s = (raw ?? '').toString().toLowerCase();
   // JS folds [À-ſ] (U+00C0..U+017F) through the table, leaving unknown
   // characters in that range alone.
-  s = s.replaceAllMapped(RegExp(r'[À-ſ]'),
-      (m) => _diacritics[m.group(0)] ?? m.group(0)!);
+  s = s.replaceAllMapped(
+    RegExp(r'[À-ſ]'),
+    (m) => _diacritics[m.group(0)] ?? m.group(0)!,
+  );
   for (final (re, to) in _phrases) {
     s = s.replaceAll(re, to);
   }

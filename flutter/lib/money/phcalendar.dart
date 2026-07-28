@@ -21,11 +21,7 @@ const Map<String, String> _fixed = {
   '12-31': 'New Year’s Eve',
 };
 
-const Map<int, String> _cny = {
-  2026: '02-17',
-  2027: '02-06',
-  2028: '01-26',
-};
+const Map<int, String> _cny = {2026: '02-17', 2027: '02-06', 2028: '01-26'};
 
 /// Easter Sunday for any year (Anonymous Gregorian algorithm).
 DateTime easterSunday(int year) {
@@ -60,9 +56,11 @@ String? holidayName(DateTime date) {
   if (_cny[y] == key) return 'Chinese New Year';
 
   final easter = easterSunday(y);
-  final days = DateTime(y, date.month, date.day)
-          .difference(DateTime(y, easter.month, easter.day))
-          .inDays;
+  final days = DateTime(
+    y,
+    date.month,
+    date.day,
+  ).difference(DateTime(y, easter.month, easter.day)).inDays;
   if (days == -3) return 'Maundy Thursday';
   if (days == -2) return 'Good Friday';
   if (days == -1) return 'Black Saturday';

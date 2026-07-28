@@ -19,7 +19,9 @@ bool _isThisMonth(dynamic dateStr, DateTime ref) {
 }
 
 List<Map<String, dynamic>> _monthExpenses(
-    Map<String, dynamic> data, DateTime ref) {
+  Map<String, dynamic> data,
+  DateTime ref,
+) {
   return [
     for (final t in (data['transactions'] as List? ?? const []))
       if (t is Map && t['type'] == 'expense' && _isThisMonth(t['date'], ref))
@@ -89,12 +91,13 @@ Map<String, dynamic> whereItWent(Map<String, dynamic> data, DateTime ref) {
     }
     final key = name.toLowerCase();
     final row = spentByCat.putIfAbsent(
-        key,
-        () => {
-              'label': name,
-              'amount': 0.0,
-              'cap': cat != null && pro ? amountOf(cat['monthlyCap']) : 0.0,
-            });
+      key,
+      () => {
+        'label': name,
+        'amount': 0.0,
+        'cap': cat != null && pro ? amountOf(cat['monthlyCap']) : 0.0,
+      },
+    );
     row['amount'] = (row['amount'] as double) + amountOf(t['amount']);
   }
   final rows = spentByCat.values.toList();
@@ -103,9 +106,7 @@ Map<String, dynamic> whereItWent(Map<String, dynamic> data, DateTime ref) {
     final c = (b.$1['amount'] as double).compareTo(a.$1['amount'] as double);
     return c != 0 ? c : a.$2.compareTo(b.$2);
   });
-  final top = [
-    for (final e in indexed.take(4)) e.$1,
-  ];
+  final top = [for (final e in indexed.take(4)) e.$1];
   var max = 1.0;
   for (final w in top) {
     if ((w['amount'] as double) > max) max = w['amount'] as double;

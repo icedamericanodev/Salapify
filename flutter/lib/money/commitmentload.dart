@@ -86,8 +86,9 @@ Map<String, dynamic> commitmentLoad(Map<String, dynamic> data, DateTime ref) {
         : (incomes[mid - 1] + incomes[mid]) / 2;
   }
   final hasIncomeBase = typicalIncome > 0;
-  final committedShare =
-      hasIncomeBase ? monthlyCommitted / typicalIncome : null;
+  final committedShare = hasIncomeBase
+      ? monthlyCommitted / typicalIncome
+      : null;
   final free = hasIncomeBase ? typicalIncome - monthlyCommitted : null;
   // How many of the last 6 completed months actually had income. Fewer than 6
   // means income is new or irregular, so a lean month spends a bigger share

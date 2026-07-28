@@ -21,8 +21,11 @@ double _round2(num x) => _jsRound(_num(x) * 100) / 100;
 
 /// The 13th month pay and its tax treatment. monthsWorked null means a full
 /// year; a real value clamps to 1..12 so it never silently becomes 12.
-Map<String, dynamic> thirteenthMonth(num monthlyBasic,
-    {num? monthsWorked, num otherBenefits = 0}) {
+Map<String, dynamic> thirteenthMonth(
+  num monthlyBasic, {
+  num? monthsWorked,
+  num otherBenefits = 0,
+}) {
   final basic = _num(monthlyBasic) < 0 ? 0.0 : _num(monthlyBasic);
   final months = monthsWorked == null
       ? 12
@@ -33,15 +36,20 @@ Map<String, dynamic> thirteenthMonth(num monthlyBasic,
 
   var remainingExemption = thirteenthTaxFreeCeiling - other;
   if (remainingExemption < 0) remainingExemption = 0;
-  final taxFreePortion = _round2(amount < remainingExemption ? amount : remainingExemption);
+  final taxFreePortion = _round2(
+    amount < remainingExemption ? amount : remainingExemption,
+  );
   var taxable = _round2(amount - remainingExemption);
   if (taxable < 0) taxable = 0;
 
-  final regularAnnualTaxable =
-      _round2((takeHomePay(basic)['monthlyTaxable'] as double) * months);
+  final regularAnnualTaxable = _round2(
+    (takeHomePay(basic)['monthlyTaxable'] as double) * months,
+  );
   final taxOnExcess = taxable > 0
-      ? _round2(annualIncomeTax(regularAnnualTaxable + taxable) -
-          annualIncomeTax(regularAnnualTaxable))
+      ? _round2(
+          annualIncomeTax(regularAnnualTaxable + taxable) -
+              annualIncomeTax(regularAnnualTaxable),
+        )
       : 0.0;
 
   final net = _round2(amount - taxOnExcess);

@@ -8,7 +8,9 @@
 /// a number stays itself, a numeric string parses, anything else is zero.
 double savedNum(dynamic v) {
   if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
+  if (v is String) {
+    return double.tryParse(v.replaceAll(RegExp(r'[, ]'), '')) ?? 0;
+  }
   return 0;
 }
 

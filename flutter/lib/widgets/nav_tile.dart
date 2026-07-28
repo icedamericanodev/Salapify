@@ -96,9 +96,7 @@ class NavTileGrid extends StatelessWidget {
         return Wrap(
           spacing: Gap.md,
           runSpacing: Gap.md,
-          children: [
-            for (final t in tiles) SizedBox(width: width, child: t),
-          ],
+          children: [for (final t in tiles) SizedBox(width: width, child: t)],
         );
       },
     );

@@ -40,26 +40,35 @@ List<Map<String, dynamic>> _transactions(Map<String, dynamic> state) =>
     (state['transactions'] as List? ?? []).cast<Map<String, dynamic>>();
 
 List<Map<String, dynamic>> _shiftAccount(
-    List<Map<String, dynamic>> accounts, String id, double delta) {
+  List<Map<String, dynamic>> accounts,
+  String id,
+  double delta,
+) {
   return accounts
-      .map((a) => a['id'] == id
-          ? {...a, 'balance': amountOf(a['balance']) + delta}
-          : a)
+      .map(
+        (a) => a['id'] == id
+            ? {...a, 'balance': amountOf(a['balance']) + delta}
+            : a,
+      )
       .toList();
 }
 
 /// Add a transaction; when it is linked to a real account, move that
 /// account's balance by the signed amount.
 Map<String, dynamic> addTransaction(
-    Map<String, dynamic> state, Map<String, dynamic> tx) {
+  Map<String, dynamic> state,
+  Map<String, dynamic> tx,
+) {
   final accounts = _accounts(state);
   final linked =
-      _truthyId(tx['accountId']) && accounts.any((a) => a['id'] == tx['accountId']);
+      _truthyId(tx['accountId']) &&
+      accounts.any((a) => a['id'] == tx['accountId']);
   final delta = balanceSign(tx) * amountOf(tx['amount']);
   return {
     ...state,
-    'accounts':
-        linked ? _shiftAccount(accounts, tx['accountId'] as String, delta) : accounts,
+    'accounts': linked
+        ? _shiftAccount(accounts, tx['accountId'] as String, delta)
+        : accounts,
     'transactions': [..._transactions(state), tx],
   };
 }
@@ -67,7 +76,10 @@ Map<String, dynamic> addTransaction(
 /// Edit a transaction honestly: reverse the old entry's effect, apply the
 /// new one's, so no edit can drift a balance.
 Map<String, dynamic> updateTransaction(
-    Map<String, dynamic> state, String id, Map<String, dynamic> patch) {
+  Map<String, dynamic> state,
+  String id,
+  Map<String, dynamic> patch,
+) {
   final txs = _transactions(state);
   final idx = txs.indexWhere((t) => t['id'] == id);
   if (idx < 0) return state;
@@ -75,8 +87,12 @@ Map<String, dynamic> updateTransaction(
   final next = {...tx, ...patch};
 
   List<Map<String, dynamic>> shift(
-      List<Map<String, dynamic>> accs, Map<String, dynamic> t, int sign) {
-    if (!_truthyId(t['accountId']) || !accs.any((a) => a['id'] == t['accountId'])) {
+    List<Map<String, dynamic>> accs,
+    Map<String, dynamic> t,
+    int sign,
+  ) {
+    if (!_truthyId(t['accountId']) ||
+        !accs.any((a) => a['id'] == t['accountId'])) {
       return accs;
     }
     final delta = sign * balanceSign(t) * amountOf(t['amount']);
@@ -87,9 +103,7 @@ Map<String, dynamic> updateTransaction(
   return {
     ...state,
     'accounts': accounts,
-    'transactions': [
-      for (final t in txs) t['id'] == id ? next : t,
-    ],
+    'transactions': [for (final t in txs) t['id'] == id ? next : t],
   };
 }
 
@@ -101,7 +115,8 @@ Map<String, dynamic> removeTransaction(Map<String, dynamic> state, String id) {
   final tx = txs[idx];
   final accounts = _accounts(state);
   final linked =
-      _truthyId(tx['accountId']) && accounts.any((a) => a['id'] == tx['accountId']);
+      _truthyId(tx['accountId']) &&
+      accounts.any((a) => a['id'] == tx['accountId']);
   final delta = balanceSign(tx) * amountOf(tx['amount']);
   return {
     ...state,

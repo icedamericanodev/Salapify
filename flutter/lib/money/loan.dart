@@ -43,7 +43,10 @@ double monthlyPayment(dynamic principal, dynamic monthlyRate, dynamic months) {
 /// interest on the current balance and principal; the last payment absorbs
 /// rounding so the loan closes exactly.
 Map<String, dynamic> amortize(
-    dynamic principal, dynamic monthlyRate, dynamic months) {
+  dynamic principal,
+  dynamic monthlyRate,
+  dynamic months,
+) {
   final p = math.max(0.0, amountOf(principal));
   final r = math.max(0.0, amountOf(monthlyRate));
   final n = _clampMonths(months);
@@ -78,7 +81,10 @@ Map<String, dynamic> amortize(
 /// Add-on loan: interest charged on the ORIGINAL principal for the whole
 /// term, then spread evenly.
 Map<String, dynamic> addOnLoan(
-    dynamic principal, dynamic monthlyAddOnRate, dynamic months) {
+  dynamic principal,
+  dynamic monthlyAddOnRate,
+  dynamic months,
+) {
   final p = math.max(0.0, amountOf(principal));
   final rate = math.max(0.0, amountOf(monthlyAddOnRate));
   final n = _clampMonths(months);
@@ -96,14 +102,17 @@ Map<String, dynamic> addOnLoan(
 /// The effective monthly rate a loan really costs, backed out from its
 /// principal, level payment, and term by bisection. For an add-on loan
 /// this reveals the true rate hiding behind the quoted one.
-double effectiveMonthlyRate(dynamic principal, dynamic payment, dynamic months) {
+double effectiveMonthlyRate(
+  dynamic principal,
+  dynamic payment,
+  dynamic months,
+) {
   final p = math.max(0.0, amountOf(principal));
   final a = math.max(0.0, amountOf(payment));
   final n = _clampMonths(months);
   if (p <= 0 || a <= 0) return 0;
   if (a * n <= p) return 0;
-  double pv(double r) =>
-      r == 0 ? a * n : a * (1 - math.pow(1 + r, -n)) / r;
+  double pv(double r) => r == 0 ? a * n : a * (1 - math.pow(1 + r, -n)) / r;
   var lo = 0.0;
   var hi = 1.0;
   while (pv(hi) > p && hi < 1e6) {
@@ -131,8 +140,12 @@ double effectiveAnnualRate(dynamic monthlyRate) {
 /// payment, totals, the schedule, and BOTH the nominal and the true
 /// effective annual rate so the real cost is never hidden.
 Map<String, dynamic> loanSummary(
-    dynamic principal, dynamic ratePercent, dynamic months,
-    {String method = 'diminishing', String rateBasis = 'monthly'}) {
+  dynamic principal,
+  dynamic ratePercent,
+  dynamic months, {
+  String method = 'diminishing',
+  String rateBasis = 'monthly',
+}) {
   final p = math.max(0.0, amountOf(principal));
   final n = _clampMonths(months);
   final chosenMethod = method == 'addon' ? 'addon' : 'diminishing';
@@ -155,7 +168,8 @@ Map<String, dynamic> loanSummary(
     schedule = (amortize(p, eff, n)['schedule'] as List)
         .cast<Map<String, dynamic>>();
     final sumInterest = _round2(
-        schedule.fold(0.0, (s, row) => s + (row['interest'] as double)));
+      schedule.fold(0.0, (s, row) => s + (row['interest'] as double)),
+    );
     final drift = _round2(totalInterest - sumInterest);
     if (schedule.isNotEmpty && drift != 0) {
       final last = schedule.last;
@@ -192,7 +206,11 @@ Map<String, dynamic> loanSummary(
 /// diminishing-balance loan (the only kind where early payoff cuts
 /// interest).
 Map<String, dynamic> payoffSaving(
-    dynamic principal, dynamic monthlyRate, dynamic months, dynamic paidMonths) {
+  dynamic principal,
+  dynamic monthlyRate,
+  dynamic months,
+  dynamic paidMonths,
+) {
   final full = amortize(principal, monthlyRate, months);
   final fullMonths = full['months'] as int;
   final rounded = _jsRound(amountOf(paidMonths));
@@ -203,10 +221,13 @@ Map<String, dynamic> payoffSaving(
   for (final row in schedule.take(k)) {
     interestPaidSoFar += row['interest'] as double;
   }
-  final balanceCleared =
-      k > 0 ? schedule[k - 1]['balance'] as double : amountOf(principal);
+  final balanceCleared = k > 0
+      ? schedule[k - 1]['balance'] as double
+      : amountOf(principal);
   return {
-    'interestSaved': _round2((full['totalInterest'] as double) - interestPaidSoFar),
+    'interestSaved': _round2(
+      (full['totalInterest'] as double) - interestPaidSoFar,
+    ),
     'balanceCleared': _round2(balanceCleared),
   };
 }

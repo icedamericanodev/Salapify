@@ -17,7 +17,11 @@ class PressableScale extends StatefulWidget {
   /// The press depth. 0.96 is the better-ui default; never go below 0.95.
   final double pressedScale;
 
-  const PressableScale({super.key, required this.child, this.pressedScale = 0.96});
+  const PressableScale({
+    super.key,
+    required this.child,
+    this.pressedScale = 0.96,
+  });
 
   @override
   State<PressableScale> createState() => _PressableScaleState();

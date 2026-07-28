@@ -58,11 +58,7 @@ int daysUntil(DateTime date, DateTime from) {
 }
 
 bool _jsTruthy(dynamic v) =>
-    v != null &&
-    v != false &&
-    v != 0 &&
-    v != '' &&
-    !(v is double && v.isNaN);
+    v != null && v != false && v != 0 && v != '' && !(v is double && v.isNaN);
 
 DateTime _addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
 
@@ -81,8 +77,10 @@ List<DateTime> _rawDueCandidates(Map<String, dynamic> debt, DateTime from) {
     if (_jsTruthy(debt['statementDay']) && grace > 0) {
       final prevStmt = prevOccurrence(debt['statementDay'], from);
       if (prevStmt != null) {
-        final prevPrevStmt =
-            prevOccurrence(debt['statementDay'], _addDays(prevStmt, -1));
+        final prevPrevStmt = prevOccurrence(
+          debt['statementDay'],
+          _addDays(prevStmt, -1),
+        );
         if (prevPrevStmt != null) out.add(_addDays(prevPrevStmt, grace));
         out.add(_addDays(prevStmt, grace));
       }
@@ -96,7 +94,9 @@ List<DateTime> _rawDueCandidates(Map<String, dynamic> debt, DateTime from) {
 
 /// The next due date the way the BANK sees it, or null with no schedule.
 ({DateTime date, DateTime raw, bool moved, String reason})? bankDueDate(
-    Map<String, dynamic>? debt, DateTime from) {
+  Map<String, dynamic>? debt,
+  DateTime from,
+) {
   if (debt == null) return null;
   final todayMid = DateTime(from.year, from.month, from.day);
   for (final raw in _rawDueCandidates(debt, from)) {
@@ -113,7 +113,10 @@ List<DateTime> _rawDueCandidates(Map<String, dynamic> debt, DateTime from) {
 /// schedule and money still owed, bank adjusted, soonest first. Each entry:
 /// { debt, dueISO, inDays, moved, amount } where amount is the minimum due.
 List<Map<String, dynamic>> upcomingDues(
-    dynamic debts, int windowDays, DateTime from) {
+  dynamic debts,
+  int windowDays,
+  DateTime from,
+) {
   final list = <Map<String, dynamic>>[];
   for (final raw in (debts is List ? debts : const [])) {
     if (raw is! Map) continue;
@@ -126,8 +129,9 @@ List<Map<String, dynamic>> upcomingDues(
     final minPay = amountOf(d['minPayment']);
     final remaining = amountOf(d['remaining']);
     final minOfBoth = minPay < remaining ? minPay : remaining;
-    final amount =
-        minOfBoth != 0 ? minOfBoth : (remaining != 0 ? remaining : 0.0);
+    final amount = minOfBoth != 0
+        ? minOfBoth
+        : (remaining != 0 ? remaining : 0.0);
     list.add({
       'debt': d,
       'dueISO': _iso(bankDue.date),
@@ -148,21 +152,25 @@ List<Map<String, dynamic>> upcomingDues(
 /// total: card and loan minimums plus recurring bills not already posted
 /// this cycle. Returns { payday (ISO), daysLeft, bills, total }.
 Map<String, dynamic> upcomingCommitments(
-    Map<String, dynamic> data, DateTime ref) {
+  Map<String, dynamic> data,
+  DateTime ref,
+) {
   final today = DateTime(ref.year, ref.month, ref.day);
-  final schedule =
-      data['settings'] is Map ? (data['settings'] as Map)['paydaySchedule'] : null;
+  final schedule = data['settings'] is Map
+      ? (data['settings'] as Map)['paydaySchedule']
+      : null;
 
   var payday = nextPayday(today, schedule);
   if (payday == today) {
-    payday =
-        nextPayday(DateTime(today.year, today.month, today.day + 1), schedule);
+    payday = nextPayday(
+      DateTime(today.year, today.month, today.day + 1),
+      schedule,
+    );
   }
   final rawDaysLeft = daysUntil(payday, today);
   final daysLeft = rawDaysLeft > 1 ? rawDaysLeft : 1;
 
-  final monthKey =
-      '${today.year}-${today.month.toString().padLeft(2, '0')}';
+  final monthKey = '${today.year}-${today.month.toString().padLeft(2, '0')}';
   final bills = <Map<String, dynamic>>[];
   for (final d in upcomingDues(data['debts'], daysLeft, today)) {
     if (amountOf(d['amount']) > 0) {
@@ -182,8 +190,7 @@ Map<String, dynamic> upcomingCommitments(
     final r = raw.cast<String, dynamic>();
     if (r['type'] != 'expense') continue;
     final lastPosted = r['lastPosted'];
-    final posted =
-        lastPosted is String && lastPosted.compareTo(monthKey) >= 0;
+    final posted = lastPosted is String && lastPosted.compareTo(monthKey) >= 0;
     if (posted) continue;
     final amt = amountOf(r['amount']).clamp(0, double.infinity).toDouble();
     final due = nextOccurrence(r['dayOfMonth'], today);
@@ -250,7 +257,10 @@ Map<String, dynamic> safeToSpend(Map<String, dynamic> data, DateTime ref) {
 /// count against the runway. `daysSeen` collects the distinct days that had
 /// discretionary spend, so the caller can refuse to read a pace off too few.
 double _discretionaryDailyPace(
-    dynamic transactions, DateTime ref, Set<String> daysSeen) {
+  dynamic transactions,
+  DateTime ref,
+  Set<String> daysSeen,
+) {
   final today = DateTime(ref.year, ref.month, ref.day);
   final start = DateTime(today.year, today.month, today.day - 13);
   var total = 0.0;
@@ -284,7 +294,10 @@ double _discretionaryDailyPace(
 /// crunch case, owned by the coach's crunch decision, so this never stacks a
 /// second scary card), when there is too little recent logging to read a pace
 /// honestly, or when the recent pace is zero. Silence beats a made-up number.
-Map<String, dynamic>? paydayProjection(Map<String, dynamic> data, DateTime ref) {
+Map<String, dynamic>? paydayProjection(
+  Map<String, dynamic> data,
+  DateTime ref,
+) {
   final s = safeToSpend(data, ref);
   final available = s['available'] as double;
   // A junk backup can smuggle a huge or non-finite balance. floor() throws on
@@ -292,8 +305,11 @@ Map<String, dynamic>? paydayProjection(Map<String, dynamic> data, DateTime ref) 
   // before any division, rather than crash the whole coach.
   if (!(available > 0) || !available.isFinite) return null;
   final daysSeen = <String>{};
-  final dailyPace =
-      _discretionaryDailyPace(data['transactions'], ref, daysSeen);
+  final dailyPace = _discretionaryDailyPace(
+    data['transactions'],
+    ref,
+    daysSeen,
+  );
   const minLoggedDays = 6;
   if (daysSeen.length < minLoggedDays ||
       !(dailyPace > 0) ||

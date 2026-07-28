@@ -13,6 +13,7 @@
 
 import 'commitments.dart' show bankDueDate, nextOccurrence;
 import 'ledger.dart' show amountOf;
+import 'currencies.dart' show baseCurrencySymbol;
 
 double _jsRound(num x) => (x + 0.5).floorToDouble();
 
@@ -47,8 +48,13 @@ double monthlyInterest(Map<String, dynamic>? debt) {
 /// Split one debt payment into interest and principal. Returns every part
 /// the caller and reports need: { accrued, balance, applied, interest,
 /// principal, newRemaining, overpay }.
-Map<String, dynamic> splitDebtPayment(dynamic remaining, dynamic monthlyRate,
-    dynamic interestThroughISO, dynamic amount, String todayStr) {
+Map<String, dynamic> splitDebtPayment(
+  dynamic remaining,
+  dynamic monthlyRate,
+  dynamic interestThroughISO,
+  dynamic amount,
+  String todayStr,
+) {
   final curRaw = amountOf(remaining);
   final cur = curRaw > 0 ? curRaw : 0.0;
   final rate = amountOf(monthlyRate);
@@ -56,8 +62,8 @@ Map<String, dynamic> splitDebtPayment(dynamic remaining, dynamic monthlyRate,
   final amt = amtRaw > 0 ? amtRaw : 0.0;
   final fromISO =
       (interestThroughISO is String && interestThroughISO.isNotEmpty)
-          ? interestThroughISO
-          : todayStr;
+      ? interestThroughISO
+      : todayStr;
   // A bad stamp makes the day diff NaN in JS and accrues 0 instead of
   // poisoning the balance; mirror with the JS-grammar parse so 2026-01-32
   // accrues nothing here too instead of quietly becoming February 1.
@@ -66,12 +72,11 @@ Map<String, dynamic> splitDebtPayment(dynamic remaining, dynamic monthlyRate,
   var days = 0;
   if (fromDate != null && todayDate != null) {
     final raw = _jsRound(
-            todayDate.difference(fromDate).inMilliseconds / 86400000)
-        .toInt();
+      todayDate.difference(fromDate).inMilliseconds / 86400000,
+    ).toInt();
     days = raw > 0 ? raw : 0;
   }
-  final accrued =
-      rate > 0 ? _jsRound(cur * (rate / 100) * (days / 30)) : 0.0;
+  final accrued = rate > 0 ? _jsRound(cur * (rate / 100) * (days / 30)) : 0.0;
   final balance = cur + accrued;
   final applied = amt < balance ? amt : balance;
   final interest = applied < accrued ? applied : accrued;
@@ -92,8 +97,12 @@ Map<String, dynamic> splitDebtPayment(dynamic remaining, dynamic monthlyRate,
 
 /// Simulate paying down all debts month by month. Returns { months,
 /// totalInterest, date (ISO) }, or null when the minimums can never win.
-Map<String, dynamic>? debtFreeProjection(dynamic debts,
-    [String strategy = 'avalanche', double extra = 0, DateTime? ref]) {
+Map<String, dynamic>? debtFreeProjection(
+  dynamic debts, [
+  String strategy = 'avalanche',
+  double extra = 0,
+  DateTime? ref,
+]) {
   final refDate = ref ?? DateTime.now();
   final list = <Map<String, double>>[];
   for (final d in (debts is List ? debts : const [])) {
@@ -114,8 +123,7 @@ Map<String, dynamic>? debtFreeProjection(dynamic debts,
 
   // The freed minimum of a finished debt rolls into the focus debt instead
   // of leaving the plan, which is what accelerates the payoff at the end.
-  final totalMin =
-      list.fold(0.0, (t, d) => t + d['minPayment']!);
+  final totalMin = list.fold(0.0, (t, d) => t + d['minPayment']!);
 
   var months = 0;
   var totalInterest = 0.0;
@@ -178,13 +186,17 @@ Map<String, dynamic>? debtFreeProjection(dynamic debts,
 ///   (or null), interestSaved (or null) }. Saved values are null whenever
 ///   either that step or the baseline has no finite payoff, so the screen
 ///   can tell the honest story instead of a made-up date.
-Map<String, dynamic> whatIfLadder(dynamic debts, List<int> extras,
-    [DateTime? ref]) {
+Map<String, dynamic> whatIfLadder(
+  dynamic debts,
+  List<int> extras, [
+  DateTime? ref,
+]) {
   final refDate = ref ?? DateTime.now();
   final baseline = debtFreeProjection(debts, 'avalanche', 0, refDate);
   final baseMonths = baseline == null ? null : baseline['months'] as int;
-  final baseInterest =
-      baseline == null ? null : baseline['totalInterest'] as double;
+  final baseInterest = baseline == null
+      ? null
+      : baseline['totalInterest'] as double;
   final steps = <Map<String, dynamic>>[];
   for (final e in extras) {
     final p = debtFreeProjection(debts, 'avalanche', e.toDouble(), refDate);
@@ -208,7 +220,10 @@ Map<String, dynamic> whatIfLadder(dynamic debts, List<int> extras,
 /// forecast balance, minimum due, utilization, and what paying late costs.
 /// Dates cross the API as ISO strings.
 Map<String, dynamic>? cardForecast(
-    Map<String, dynamic>? debt, dynamic payments, DateTime from) {
+  Map<String, dynamic>? debt,
+  dynamic payments,
+  DateTime from,
+) {
   if (debt == null) return null;
   final stmtDay = debt['statementDay'];
   final statement = (stmtDay != null && stmtDay != 0 && stmtDay != '')
@@ -252,8 +267,18 @@ String? dueDateFor(Map<String, dynamic>? debt, DateTime from) {
 }
 
 const List<String> _monthsShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _longDate(String? isoDate) {
@@ -273,7 +298,7 @@ String formatMoneyText(num n) {
     if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
     buf.write(digits[i]);
   }
-  return '$sign₱$buf';
+  return '$sign$baseCurrencySymbol$buf';
 }
 
 /// A shareable text SOA forecast, byte-identical to the RN buildSOA. Honest
@@ -291,7 +316,8 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     lines.add('Next statement cut: ${_longDate(f['statement'] as String)}');
   }
   lines.add(
-      'Forecast statement balance: ${formatMoneyText(f['forecastBalance'] as double)}');
+    'Forecast statement balance: ${formatMoneyText(f['forecastBalance'] as double)}',
+  );
   if ((f['creditLimit'] as double) > 0) {
     // A huge balance over a tiny limit overflows to Infinity. JS survives,
     // Math.min(Math.round(Infinity), 999) is 999, but Dart toInt() throws
@@ -299,23 +325,28 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     final utilRaw = _jsRound(((f['utilization'] as double?) ?? 0) * 100);
     final capped = utilRaw < 999 ? utilRaw.toInt() : 999;
     lines.add(
-        'Credit used: $capped% of ${formatMoneyText(f['creditLimit'] as double)}');
+      'Credit used: $capped% of ${formatMoneyText(f['creditLimit'] as double)}',
+    );
   }
   if ((f['pending'] as double) > 0) {
     lines.add(
-        'Payments sent but not yet posted: ${formatMoneyText(f['pending'] as double)}');
+      'Payments sent but not yet posted: ${formatMoneyText(f['pending'] as double)}',
+    );
   }
 
   lines.add('');
   lines.add('WHAT TO PAY');
   lines.add(
-      'Pay in full: ${formatMoneyText(f['forecastBalance'] as double)} and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)');
+    'Pay in full: ${formatMoneyText(f['forecastBalance'] as double)} and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)',
+  );
   lines.add(
-      'Or at least the minimum: ${formatMoneyText(f['minDue'] as double)} to avoid late fees');
+    'Or at least the minimum: ${formatMoneyText(f['minDue'] as double)} to avoid late fees',
+  );
   if (f['due'] != null) {
     if (f['dueMoved'] as bool) {
       lines.add(
-          'Due date: ${_longDate(f['due'] as String)} (moved from ${_longDate(f['dueRaw'] as String)}, which is ${f['dueMovedReason']}; banks accept payment on the next banking day)');
+        'Due date: ${_longDate(f['due'] as String)} (moved from ${_longDate(f['dueRaw'] as String)}, which is ${f['dueMovedReason']}; banks accept payment on the next banking day)',
+      );
     } else {
       lines.add('Due date: ${_longDate(f['due'] as String)}');
     }
@@ -325,22 +356,25 @@ String buildSOA(Map<String, dynamic>? debt, dynamic payments, DateTime from) {
     lines.add('');
     lines.add('IF YOU PAY LATE OR ONLY THE MINIMUM');
     lines.add(
-        'About ${formatMoneyText(f['lateInterest'] as double)} interest gets added next month (${_numText(f['monthlyRate'] as double)}% monthly on the unpaid balance)');
+      'About ${formatMoneyText(f['lateInterest'] as double)} interest gets added next month (${_numText(f['monthlyRate'] as double)}% monthly on the unpaid balance)',
+    );
     lines.add(
-        'Missing the due date also adds your bank’s late fee, check your card terms for the exact amount');
+      'Missing the due date also adds your bank’s late fee, check your card terms for the exact amount',
+    );
   } else if ((f['forecastBalance'] as double) > 0) {
     lines.add('');
     lines.add('INTEREST RATE NOT SET');
     lines.add(
-        'This card has no monthly interest rate saved, so the forecast shows zero interest. Check your SOA for the real rate (PH cards are capped at 3% monthly) and add it in Salapify.');
+      'This card has no monthly interest rate saved, so the forecast shows zero interest. Check your SOA for the real rate (PH cards are capped at 3% monthly) and add it in Salapify.',
+    );
   }
 
   lines.add('');
   lines.add(
-      'This is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.');
+    'This is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.',
+  );
   return lines.join('\n');
 }
 
 /// JS template interpolation prints 3 as "3" and 3.5 as "3.5".
-String _numText(double v) =>
-    v % 1 == 0 ? v.toInt().toString() : v.toString();
+String _numText(double v) => v % 1 == 0 ? v.toInt().toString() : v.toString();

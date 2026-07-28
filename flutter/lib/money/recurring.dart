@@ -25,16 +25,19 @@ bool _postedThisMonthOrLater(dynamic lastPosted, String monthKey) =>
     lastPosted is String && lastPosted.compareTo(monthKey) >= 0;
 
 List<Map<String, dynamic>> _list(dynamic v) => [
-      for (final x in (v is List ? v : const []))
-        if (x is Map) x.cast<String, dynamic>(),
-    ];
+  for (final x in (v is List ? v : const []))
+    if (x is Map) x.cast<String, dynamic>(),
+];
 
 /// Post every recurring item that has come due this month, returning a NEW data
 /// map (transactions, accounts, recurring updated). `nextId` mints transaction
 /// ids; at runtime the store passes its real genId, tests pass a deterministic
 /// stub. Returns the input unchanged when nothing is due.
 Map<String, dynamic> postDueRecurring(
-    Map<String, dynamic> data, DateTime now, String Function() nextId) {
+  Map<String, dynamic> data,
+  DateTime now,
+  String Function() nextId,
+) {
   final monthKey = _monthKey(now);
   final daysInMonth = _daysInMonth(now);
   final recurringIn = _list(data['recurring']);
@@ -135,7 +138,9 @@ String recurringSaveLastPosted({
 /// whose day has not arrived keeps its own lastPosted (so restoring early never
 /// skips a bill still to come). Never stamp backwards past a future marker.
 List<Map<String, dynamic>> stampRecurringOnRestore(
-    dynamic recurringList, DateTime now) {
+  dynamic recurringList,
+  DateTime now,
+) {
   final monthKey = _monthKey(now);
   final daysInMonth = _daysInMonth(now);
   return _list(recurringList).map((r) {

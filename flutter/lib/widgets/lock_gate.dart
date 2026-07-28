@@ -49,7 +49,9 @@ class BiometricAuthenticator implements LockAuthenticator {
       return await _auth.authenticate(
         localizedReason: 'Unlock Salapify',
         options: const AuthenticationOptions(
-            biometricOnly: false, stickyAuth: true),
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
       );
     } catch (_) {
       return false;
@@ -125,7 +127,8 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
       if (!_obscure) setState(() => _obscure = true);
     } else if (state == AppLifecycleState.resumed) {
       final away = _awaySince;
-      final beyondGrace = away != null &&
+      final beyondGrace =
+          away != null &&
           DateTime.now().difference(away).inMilliseconds > _graceMs;
       setState(() {
         if (beyondGrace) {
@@ -178,7 +181,10 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
     // a blank instead of flashing data. If the read failed, let the app render
     // so its storage-error message shows instead of a silent blank forever.
     if (!widget.store.loaded && widget.store.loadError == null) {
-      return ColoredBox(color: Barako.background, child: const SizedBox.expand());
+      return ColoredBox(
+        color: Barako.background,
+        child: const SizedBox.expand(),
+      );
     }
 
     // Needing auth drives the biometric prompt; the overlay also shows while
@@ -243,43 +249,58 @@ class _LockScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Barako.border),
                       ),
-                      child: Icon(Icons.fingerprint,
-                          size: 44, color: Barako.primary),
+                      child: Icon(
+                        Icons.fingerprint,
+                        size: 44,
+                        color: Barako.primary,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text('Salapify is locked',
-                    style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800)),
+                Text(
+                  'Salapify is locked',
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text('Private to you on this phone.',
-                    style: TextStyle(color: Barako.muted, fontSize: 15)),
+                Text(
+                  'Private to you on this phone.',
+                  style: TextStyle(color: Barako.muted, fontSize: 15),
+                ),
                 const SizedBox(height: 28),
                 FilledButton(
                   onPressed: checking ? null : onUnlock,
                   style: FilledButton.styleFrom(
                     backgroundColor: Barako.primary,
                     foregroundColor: Barako.onPrimary,
-                    disabledBackgroundColor:
-                        Barako.primary.withValues(alpha: 0.6),
+                    disabledBackgroundColor: Barako.primary.withValues(
+                      alpha: 0.6,
+                    ),
                     // Keep the label legible while checking (Material's default
                     // disabled foreground would fade it below AA).
                     disabledForegroundColor: Barako.onPrimary,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 14),
+                      horizontal: 40,
+                      vertical: 14,
+                    ),
                   ),
                   child: checking
                       ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Barako.onPrimary),
+                            strokeWidth: 2,
+                            color: Barako.onPrimary,
+                          ),
                         )
-                      : const Text('Unlock',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      : const Text(
+                          'Unlock',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ],
             ),

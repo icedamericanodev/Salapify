@@ -27,6 +27,7 @@ import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
+import '../money/currencies.dart' show baseCurrencySymbol;
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
 import 'goals.dart';
@@ -41,13 +42,13 @@ String formatMoney(num value) {
   // round() throws on non-finite, which would take down the whole screen,
   // so render the raw word instead (the RN app shows the same garbage but
   // stays alive, and staying alive is the contract here).
-  if (!value.isFinite) return '₱$value';
+  if (!value.isFinite) return '$baseCurrencySymbol$value';
   final negative = value < 0;
   // A FINITE value near max double still overflows when scaled by 100 for
   // centavo rounding, and round() throws on the resulting Infinity. Same
   // contract: render the raw number, stay alive.
   final scaled = value.abs() * 100;
-  if (!scaled.isFinite) return '₱$value';
+  if (!scaled.isFinite) return '$baseCurrencySymbol$value';
   final rounded = scaled.round() / 100;
   var whole = rounded.floor();
   final cents = ((rounded - whole) * 100).round();
@@ -58,7 +59,7 @@ String formatMoney(num value) {
     buf.write(digits[i]);
   }
   final centsPart = cents > 0 ? '.${cents.toString().padLeft(2, '0')}' : '';
-  return '${negative ? '-' : ''}₱$buf$centsPart';
+  return '${negative ? '-' : ''}$baseCurrencySymbol$buf$centsPart';
 }
 
 /// An ISO date as a short human day, "Jul 27".

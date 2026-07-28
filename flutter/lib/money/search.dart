@@ -52,8 +52,7 @@ double _jsRound(double x) => (x + 0.5).floorToDouble();
 String _amountHay(dynamic n) {
   final v = _jsNumber(n);
   if (!v.isFinite || v == 0) return '';
-  final pesoDigits =
-      formatMoneyText(v).replaceAll(RegExp(r'[^\d.,]'), '');
+  final pesoDigits = formatMoneyText(v).replaceAll(RegExp(r'[^\d.,]'), '');
   return '${_jsNumStr(v)} ${_jsNumStr(_jsRound(v))} $pesoDigits';
 }
 
@@ -82,7 +81,10 @@ _NameMaps _buildNameMaps(Map<String, dynamic> d) {
 /// The transaction haystack, shared with History's own filter so a result
 /// never disappears when you drill into it.
 String txHaystack(
-    Map t, Map<String, String> catName, Map<String, String> acctName) {
+  Map t,
+  Map<String, String> catName,
+  Map<String, String> acctName,
+) {
   final cat = t['categoryId'] != null
       ? (catName[t['categoryId'].toString()] ?? '')
       : '';
@@ -93,12 +95,12 @@ String txHaystack(
   final kind = type == 'income'
       ? 'income'
       : type == 'transfer'
-          ? 'transfer'
-          : type == 'debt'
-              ? 'debt payment'
-              : type == 'adjustment'
-                  ? 'balance adjustment'
-                  : 'expense';
+      ? 'transfer'
+      : type == 'debt'
+      ? 'debt payment'
+      : type == 'adjustment'
+      ? 'balance adjustment'
+      : 'expense';
   return _hay([t['label'], cat, acct, _amountHay(t['amount']), kind]);
 }
 
@@ -106,19 +108,29 @@ String txHaystack(
 /// filter can find a transaction by its category or account name, not only its
 /// own label. Returns two maps: category names and account names.
 ({Map<String, String> cat, Map<String, String> acct}) transactionNameMaps(
-    dynamic data) {
-  final m =
-      _buildNameMaps(data is Map ? data.cast<String, dynamic>() : const {});
+  dynamic data,
+) {
+  final m = _buildNameMaps(
+    data is Map ? data.cast<String, dynamic>() : const {},
+  );
   return (cat: m.cat, acct: m.acct);
 }
 
 /// True when a transaction matches every word in the query (AND). A blank
 /// query matches everything, so History can use this as its live filter.
 /// Ported from the RN txMatches so a result never disappears on drill-in.
-bool txMatches(Map t, String query, Map<String, String> catName,
-    Map<String, String> acctName) {
-  final tokens =
-      query.trim().toLowerCase().split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
+bool txMatches(
+  Map t,
+  String query,
+  Map<String, String> catName,
+  Map<String, String> acctName,
+) {
+  final tokens = query
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\s+'))
+      .where((x) => x.isNotEmpty)
+      .toList();
   if (tokens.isEmpty) return true;
   return _matches(txHaystack(t, catName, acctName), tokens);
 }
@@ -138,8 +150,12 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
 
   final maps = _buildNameMaps(d);
   final groups = <Map<String, dynamic>>[];
-  void add(String kind, String title, String route,
-      List<Map<String, dynamic>> all) {
+  void add(
+    String kind,
+    String title,
+    String route,
+    List<Map<String, dynamic>> all,
+  ) {
     if (all.isEmpty) return;
     groups.add({
       'kind': kind,
@@ -159,8 +175,9 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
   for (final t in _arr(d['transactions'])) {
     if (t is! Map) continue;
     if (!_matches(txHaystack(t, maps.cat, maps.acct), tokens)) continue;
-    final cat =
-        t['categoryId'] != null ? (maps.cat[t['categoryId'].toString()] ?? '') : '';
+    final cat = t['categoryId'] != null
+        ? (maps.cat[t['categoryId'].toString()] ?? '')
+        : '';
     final acct = t['accountId'] != null
         ? (maps.acct[t['accountId'].toString()] ?? '')
         : '';
@@ -169,14 +186,19 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
     final sign = type == 'income'
         ? '+'
         : type == 'transfer'
-            ? '⇄'
-            : type == 'debt'
-                ? ''
-                : type == 'adjustment'
-                    ? (t['flow'] == 'in' ? '+' : '-')
-                    : '-';
-    final sub = '$date${acct.isNotEmpty ? ' · $acct' : cat.isNotEmpty ? ' · $cat' : ''}'
-        .trim();
+        ? '⇄'
+        : type == 'debt'
+        ? ''
+        : type == 'adjustment'
+        ? (t['flow'] == 'in' ? '+' : '-')
+        : '-';
+    final sub =
+        '$date${acct.isNotEmpty
+                ? ' · $acct'
+                : cat.isNotEmpty
+                ? ' · $cat'
+                : ''}'
+            .trim();
     txIndexed.add((
       idx++,
       {
@@ -186,7 +208,7 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
         'amount': _jsNumberOrZero(t['amount']),
         'sign': sign,
         'date': date,
-      }
+      },
     ));
   }
   txIndexed.sort((a, b) {
@@ -210,8 +232,12 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
     final amt = _jsNumberOrZero(r['amount']);
     final outstanding = (amt - paid) > 0 ? amt - paid : 0.0;
     final h = _hay([
-      r['person'], r['note'], r['phone'],
-      _amountHay(r['amount']), _amountHay(outstanding), 'utang owes',
+      r['person'],
+      r['note'],
+      r['phone'],
+      _amountHay(r['amount']),
+      _amountHay(outstanding),
+      'utang owes',
     ]);
     if (!_matches(h, tokens)) continue;
     utang.add({
@@ -220,8 +246,8 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
       'subtitle': (r['note'] != null && r['note'].toString().isNotEmpty)
           ? r['note'].toString()
           : outstanding > 0
-              ? 'still owes you'
-              : 'settled',
+          ? 'still owes you'
+          : 'settled',
       'amount': outstanding,
       'sign': '',
     });
@@ -232,14 +258,19 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
   final debts = <Map<String, dynamic>>[];
   for (final dd in _arr(d['debts'])) {
     if (dd is! Map) continue;
-    final h = _hay(
-        [dd['name'], dd['type'], _amountHay(dd['remaining']), 'debt loan card']);
+    final h = _hay([
+      dd['name'],
+      dd['type'],
+      _amountHay(dd['remaining']),
+      'debt loan card',
+    ]);
     if (!_matches(h, tokens)) continue;
     debts.add({
       'id': dd['id'],
       'title': (dd['name'] ?? '').toString().isEmpty ? 'Debt' : dd['name'],
-      'subtitle':
-          (dd['type'] != null && dd['type'].toString().isNotEmpty) ? dd['type'].toString() : 'debt',
+      'subtitle': (dd['type'] != null && dd['type'].toString().isNotEmpty)
+          ? dd['type'].toString()
+          : 'debt',
       'amount': _jsNumberOrZero(dd['remaining']),
       'sign': '',
     });
@@ -250,8 +281,12 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
   final goals = <Map<String, dynamic>>[];
   for (final g in _arr(d['goals'])) {
     if (g is! Map) continue;
-    final h = _hay(
-        [g['name'], _amountHay(g['target']), _amountHay(g['saved']), 'goal save']);
+    final h = _hay([
+      g['name'],
+      _amountHay(g['target']),
+      _amountHay(g['saved']),
+      'goal save',
+    ]);
     if (!_matches(h, tokens)) continue;
     goals.add({
       'id': g['id'],
@@ -290,8 +325,9 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
     accts.add({
       'id': a['id'],
       'title': (a['name'] ?? '').toString().isEmpty ? 'Account' : a['name'],
-      'subtitle':
-          (a['kind'] != null && a['kind'].toString().isNotEmpty) ? a['kind'].toString() : 'account',
+      'subtitle': (a['kind'] != null && a['kind'].toString().isNotEmpty)
+          ? a['kind'].toString()
+          : 'account',
       'amount': _jsNumberOrZero(a['balance']),
       'sign': '',
     });

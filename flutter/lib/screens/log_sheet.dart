@@ -16,6 +16,7 @@ import '../data/store.dart';
 import '../money/quickadd.dart';
 import '../theme.dart';
 import 'overview.dart' show formatMoney, prettyDay;
+import '../money/currencies.dart' show baseCurrencySymbol;
 
 final Random _rand = Random();
 
@@ -254,7 +255,7 @@ class _LogSheetState extends State<LogSheet> {
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
               ),
-              decoration: _decor('0.00', prefix: '₱ '),
+              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
             ),
             const SizedBox(height: 10),
             TextField(
