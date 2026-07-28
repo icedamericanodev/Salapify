@@ -56,11 +56,44 @@ void main() {
         continue;
       }
       final today = DateTime.tryParse(todayRaw);
+      final onEight = input['onEightPercent'] as bool;
       final got = taxDeadlines(
         today,
-        onEightPercent: input['onEightPercent'] as bool,
+        basis: onEight ? FilingBasis.eightPercent : FilingBasis.regular,
         count: input['count'] as int,
       );
+
+      // The 8% cases are a DELIBERATE divergence, on a tax professional's
+      // finding, so they are asserted separately rather than compared row
+      // for row. RN drops every 2551Q when the 8% option is on, including
+      // the January 25 one, which covers October to December of LAST year
+      // and is still due: the election is per taxable year. Salapify keeps
+      // that row. Everything else about the 8% list must still match RN.
+      if (onEight) {
+        final ours = got.map((r) => '${r.form}|${_iso(r.date)}').toList();
+        final theirs = want.map((r) => '${r['form']}|${r['date']}').toList();
+        // Compared inside OUR window, not row for row. Adding the January
+        // row pushes RN's last row past the same count, so a naive set
+        // comparison would fail for the wrong reason and teach nothing.
+        final lastOfOurs = got.isEmpty ? '' : _iso(got.last.date);
+        for (var i = 0; i < theirs.length; i++) {
+          if (want[i]['date'].toString().compareTo(lastOfOurs) > 0) continue;
+          expect(
+            ours,
+            contains(theirs[i]),
+            reason: 'RN row missing from ours: $label',
+          );
+        }
+        final extra = ours.where((r) => !theirs.contains(r)).toList();
+        for (final r in extra) {
+          expect(
+            r.startsWith('2551Q|') && r.contains('-01-25'),
+            isTrue,
+            reason: 'the only row we add on 8% is the January 2551Q: $r',
+          );
+        }
+        continue;
+      }
 
       expect(got.length, want.length, reason: 'row count for $label');
       for (var i = 0; i < want.length; i++) {
@@ -91,9 +124,38 @@ void main() {
     expect(deadlineDaysLabel(rows.first.daysLeft), 'Due today');
   });
 
-  test('the 8 percent option drops the percentage tax rows', () {
-    final rows = taxDeadlines(DateTime(2026, 1, 1), onEightPercent: true);
+  test('the 8 percent option keeps ONLY last year\'s percentage tax row', () {
+    // The correction that matters most in this file. Someone who was on
+    // graduated rates last year and elects 8% this year still files the
+    // October to December 2551Q on January 25, and the app must not tell
+    // them otherwise.
+    final rows = taxDeadlines(
+      DateTime(2026, 1, 1),
+      basis: FilingBasis.eightPercent,
+      count: 12,
+    );
+    final pct = rows.where((r) => r.form == '2551Q').toList();
+    // One per year in the window, and every one a January row: the list
+    // looks two years ahead, so 2027 carries its own last-year quarter.
+    expect(pct.every((r) => r.date.month == 1), isTrue);
+    expect(pct.first.date, DateTime(2026, 1, 25));
+    expect(pct.first.note, contains('LAST year'));
+    // The April, July and October ones are genuinely replaced by the 8%.
+    expect(rows.any((r) => r.form == '2551Q' && r.date.month != 1), isFalse);
+    expect(rows.any((r) => r.form.startsWith('1701')), isTrue);
+  });
+
+  test('a VAT registered filer gets 2550Q and never 2551Q', () {
+    // Section 116 applies only to persons who are NOT VAT registered, so
+    // handing a VAT filer a 3% percentage tax row is affirmatively wrong.
+    final rows = taxDeadlines(
+      DateTime(2026, 1, 1),
+      basis: FilingBasis.vatRegistered,
+      count: 12,
+    );
     expect(rows.any((r) => r.form == '2551Q'), isFalse);
+    final vat2026 = rows.where((r) => r.form == '2550Q' && r.date.year == 2026);
+    expect(vat2026, hasLength(4), reason: 'all four quarters of this year');
     expect(rows.any((r) => r.form.startsWith('1701')), isTrue);
   });
 

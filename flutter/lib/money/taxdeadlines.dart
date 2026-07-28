@@ -19,6 +19,12 @@ class TaxDeadline {
   final int year;
   final DateTime date;
   final int daysLeft;
+
+  /// A caveat this row needs that the RN engine does not carry. Kept OUT of
+  /// [what] on purpose: what, form, title, year, date and daysLeft are locked
+  /// to the live app by goldens, and a correction bolted into a locked string
+  /// would either break the lock or quietly weaken it.
+  final String? note;
   const TaxDeadline({
     required this.form,
     required this.title,
@@ -26,6 +32,7 @@ class TaxDeadline {
     required this.year,
     required this.date,
     required this.daysLeft,
+    this.note,
   });
 }
 
@@ -103,6 +110,33 @@ const _percentageQuarterly = [
   ),
 ];
 
+/// A VAT registered filer files 2550Q on the same quarterly clock and no
+/// 2551Q at all. Salapify does not compute the 12% VAT and says so.
+const _vatQuarterly = [
+  _Spec(
+    '2550Q',
+    'VAT return',
+    'Value added tax for October to December.',
+    1,
+    25,
+  ),
+  _Spec('2550Q', 'VAT return', 'Value added tax for January to March.', 4, 25),
+  _Spec('2550Q', 'VAT return', 'Value added tax for April to June.', 7, 25),
+  _Spec(
+    '2550Q',
+    'VAT return',
+    'Value added tax for July to September.',
+    10,
+    25,
+  ),
+];
+
+/// What the taxpayer is filing under this year. A boolean could not say
+/// "VAT registered", and handing a VAT filer four rows telling them to file
+/// a 3% percentage tax return is affirmatively wrong: section 116 applies
+/// only to persons who are NOT VAT registered.
+enum FilingBasis { regular, eightPercent, vatRegistered }
+
 /// The upcoming deadlines, soonest first.
 ///
 /// A deadline falling TODAY still counts as upcoming, with 0 days left, which
@@ -111,7 +145,7 @@ const _percentageQuarterly = [
 /// is due would be both wrong and alarming.
 List<TaxDeadline> taxDeadlines(
   DateTime? today, {
-  bool onEightPercent = false,
+  FilingBasis basis = FilingBasis.regular,
   int count = 4,
 }) {
   // A DELIBERATE divergence from RN, the only one in this port, and it is
@@ -123,13 +157,23 @@ List<TaxDeadline> taxDeadlines(
   // nothing. Junk strings already return empty in RN too; this makes null
   // behave like the junk it is.
   if (today == null) return const [];
-  final n = count.isFinite ? count : 4;
-  final wanted = n < 1 ? 1 : (n > 12 ? 12 : n);
-  final specs = [
-    _annual,
-    ..._incomeQuarterly,
-    if (!onEightPercent) ..._percentageQuarterly,
-  ];
+  final wanted = count < 1 ? 1 : (count > 12 ? 12 : count);
+  // The January 25 row SURVIVES the 8% election, and this is the most
+  // dangerous thing a tax professional flagged in the whole batch. The
+  // election is per taxable year and irrevocable for that year only, so
+  // someone on graduated rates last year still files the October to December
+  // 2551Q on January 25 even though they are on 8% now. Dropping it on the
+  // strength of a fact about a different year exposes them to a 25% surcharge
+  // plus 12% interest, on a return the app told them was not theirs to file.
+  //
+  // The live RN app drops it. That is a real defect there rather than a
+  // difference of opinion, and this port deliberately does not copy it.
+  final quarterly = switch (basis) {
+    FilingBasis.regular => _percentageQuarterly,
+    FilingBasis.eightPercent => [_percentageQuarterly.first],
+    FilingBasis.vatRegistered => _vatQuarterly,
+  };
+  final specs = [_annual, ..._incomeQuarterly, ...quarterly];
   final startToday = DateTime(today.year, today.month, today.day);
   final out = <TaxDeadline>[];
   // This year and next, so the list wraps past a year boundary correctly.
@@ -149,13 +193,31 @@ List<TaxDeadline> taxDeadlines(
             // Philippines has none, and the RN app does the same arithmetic,
             // so this stays identical to the live app by construction.
             daysLeft: (d.difference(startToday).inHours / 24).round(),
+            // Gated on the FORM, not the month. Gating on month == 1 put an
+            // 8% explanation on a VAT filer's 2550Q card, which is advice
+            // about an option they cannot legally be on.
+            note: (s.month == 1 && s.form == '2551Q' && y == today.year)
+                ? 'This covers October to December of LAST year, and it is '
+                      'still due even if you moved to the 8% option this '
+                      'year: that election covers only the year you made it.'
+                : null,
           ),
         );
       }
     }
   }
   out.sort((a, b) => a.date.compareTo(b.date));
-  return out.take(wanted).toList();
+  // On the 8% basis, only THIS year's January percentage tax survives. Next
+  // January's 2551Q covers October to December of the year the user just told
+  // us they are on 8% for, so keeping it would assert a filing obligation
+  // that the election actually removes.
+  final trimmed = basis == FilingBasis.eightPercent
+      ? [
+          for (final r in out)
+            if (r.form != '2551Q' || r.year == today.year) r,
+        ]
+      : out;
+  return trimmed.take(wanted).toList();
 }
 
 /// "Due today", "Tomorrow", "In 9 days", "In about 3 months".

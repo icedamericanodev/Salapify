@@ -1,8 +1,8 @@
 // Year-end tax check for employees: am I getting a refund, or do I still owe?
 //
 // Every December an employer trues up the whole year's tax, and steady monthly
-// withholding rarely matches the real annual tax once a 13th month, a bonus, a
-// raise, or a mid-year start are counted. This estimates the annual tax due
+// withholding rarely matches the real annual tax once a 13th month, a bonus,
+// or a mid-year start are counted. This estimates the annual tax due
 // and compares it against what was already withheld.
 //
 // Every peso comes from money/phtax.dart, which is golden locked to the RN
@@ -41,14 +41,30 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
     super.dispose();
   }
 
-  /// Typed text to a number the engine can use: commas and spaces out, blank
-  /// and junk to zero. The engine clamps and rounds from there, so this stays
-  /// a reader rather than a second place where money rules live.
-  num _num(TextEditingController c) {
+  /// Typed text to a number, NaN when it cannot be read, null when empty.
+  ///
+  /// The distinction is the whole point. This used to map anything unreadable
+  /// to zero silently, so pasting "₱12,500" from a payslip made the screen
+  /// announce "LIKELY STILL OWED" to somebody who had actually overpaid, and
+  /// typing "6 months" in the months field became one month and overstated a
+  /// refund twelvefold. A number the app cannot read has to be said out loud,
+  /// never guessed at.
+  num? _read(TextEditingController c) {
     final raw = c.text.replaceAll(RegExp(r'[, ]'), '').trim();
-    if (raw.isEmpty) return 0;
+    if (raw.isEmpty) return null;
     final v = num.tryParse(raw);
-    return (v == null || !v.isFinite || v < 0) ? 0 : v;
+    if (v == null || !v.isFinite || v < 0) return double.nan;
+    return v;
+  }
+
+  bool _unreadable(TextEditingController c) => _read(c)?.isNaN ?? false;
+
+  /// The value handed to the engine. Unreadable contributes zero, which is
+  /// only ever reached after the screen has said the field is unreadable and
+  /// withheld the verdict.
+  num _num(TextEditingController c) {
+    final v = _read(c);
+    return (v == null || v.isNaN) ? 0 : v;
   }
 
   @override
@@ -62,6 +78,22 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
       bonuses: _num(_bonuses),
       taxWithheld: _num(_withheld),
     );
+    // The verdict waits for the number it is a verdict ABOUT.
+    //
+    // It used to appear the moment a salary was typed, with withheld
+    // defaulting to zero, so every user's first sight of this screen was
+    // "LIKELY STILL OWED" and a peso figure: a false statement of a tax
+    // position, shown by default, to everyone. The breakdown can show early.
+    // The verdict cannot.
+    final withheldEntered =
+        _withheld.text.trim().isNotEmpty && !_unreadable(_withheld);
+    final badFields = [
+      if (_unreadable(_basic)) 'monthly basic pay',
+      if (_unreadable(_allowance)) 'allowance',
+      if (_unreadable(_months)) 'months worked',
+      if (_unreadable(_bonuses)) 'bonuses and benefits',
+      if (_unreadable(_withheld)) 'tax withheld',
+    ];
     final showResult = basic > 0;
     final difference = result['difference'] as double;
     final isRefund = result['isRefund'] as bool;
@@ -82,8 +114,10 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
             Text(
               'Every December your employer works out the whole year at once. '
               'Steady monthly tax rarely matches that once a 13th month, a '
-              'bonus, a raise, or a mid-year start are counted, so most '
-              'people are owed a little back or owe a little more.',
+              'bonus, or a mid-year start are counted, so most people are '
+              'owed a little back or owe a little more. There is one pay '
+              'field here, so if you had a raise, use your average monthly '
+              'pay for the year.',
               style: TextStyle(
                 color: Barako.textSecondary,
                 fontSize: 14,
@@ -97,65 +131,127 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
             _field(_allowance, hint: 'Leave empty if none'),
             _label('Months worked this year'),
             _field(_months, hint: '12 if you worked the whole year'),
-            _label('Bonuses and 13th month, for the year'),
-            _field(_bonuses, hint: 'Total for the year'),
+            _label('13th month, bonuses and other benefits, for the year'),
+            _field(_bonuses, hint: 'Including de minimis above its own cap'),
             _label('Tax already withheld, for the year'),
             _field(_withheld, hint: 'From your payslips'),
             const SizedBox(height: Gap.xl),
-            if (!showResult)
-              Text(
-                'Enter your monthly basic pay to see the estimate.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
-              )
-            else ...[
+            if (badFields.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Barako.card,
                   borderRadius: BorderRadius.circular(Radii.lg),
-                  border: Border.all(
-                    color: isRefund ? Barako.primary : Barako.warningStrong,
+                  border: Border.all(color: Barako.warningStrong),
+                ),
+                child: Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    badFields.length == 1
+                        ? 'That ${badFields.first} is not a number I can '
+                              'read, so there is no estimate yet. Use digits '
+                              'only, like 25000.'
+                        : 'These are not numbers I can read: '
+                              '${badFields.join(', ')}. Use digits only, like '
+                              '25000.',
+                    style: TextStyle(
+                      color: Barako.warningStrong,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Kicker(isRefund ? 'LIKELY REFUND' : 'LIKELY STILL OWED'),
-                    const SizedBox(height: 6),
-                    Text(
-                      formatMoneyText(difference.abs()),
-                      style: TextStyle(
-                        fontFamily: Barako.displayFont,
-                        color: isRefund
-                            ? Barako.primaryText
-                            : Barako.warningStrong,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                      ),
+              )
+            else if (!showResult)
+              Text(
+                'Enter your monthly basic pay to see the estimate.',
+                style: TextStyle(color: Barako.muted, fontSize: 13),
+              )
+            else ...[
+              if (!withheldEntered)
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Barako.card,
+                    borderRadius: BorderRadius.circular(Radii.lg),
+                    border: Border.all(color: Barako.border),
+                  ),
+                  child: Text(
+                    'Enter the tax withheld from your payslips to see whether '
+                    'you are due a refund or still owe. Until then the '
+                    'breakdown below shows what the year asks for.',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 14,
+                      height: 1.5,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isRefund
-                          ? 'You paid more through the year than the annual '
-                                'computation asks for, so this should come '
-                                'back to you.'
-                          : 'The annual computation asks for more than was '
-                                'withheld, so expect this to be deducted.',
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Barako.card,
+                    borderRadius: BorderRadius.circular(Radii.lg),
+                    border: Border.all(
+                      color: difference == 0
+                          ? Barako.border
+                          : isRefund
+                          ? Barako.primary
+                          : Barako.warningStrong,
                     ),
-                  ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Kicker(
+                        difference == 0
+                            ? 'YOU ARE SQUARE'
+                            : isRefund
+                            ? 'LIKELY REFUND'
+                            : 'LIKELY STILL OWED',
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        formatMoneyText(difference.abs()),
+                        style: TextStyle(
+                          fontFamily: Barako.displayFont,
+                          color: difference == 0
+                              ? Barako.text
+                              : isRefund
+                              ? Barako.primaryText
+                              : Barako.warningStrong,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        difference == 0
+                            ? 'What was withheld matches what the year asks '
+                                  'for, so there should be nothing more to pay '
+                                  'and nothing coming back.'
+                            : isRefund
+                            ? 'You paid more through the year than the annual '
+                                  'computation asks for, so this should come '
+                                  'back to you.'
+                            : 'The annual computation asks for more than was '
+                                  'withheld, so expect this to be deducted.',
+                        style: TextStyle(
+                          color: Barako.textSecondary,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: Gap.lg),
               Kicker('HOW THAT ADDS UP'),
               const SizedBox(height: 8),
               _row('Regular pay, taxable', result['regularTaxable'] as double),
               _row(
-                'Bonuses above the ${formatMoneyText(bonusTaxFreeCeiling)} '
+                'Benefits above the ${formatMoneyText(bonusTaxFreeCeiling)} '
                 'tax free ceiling',
                 result['bonusTaxable'] as double,
               ),
