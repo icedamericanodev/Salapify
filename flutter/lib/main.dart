@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.84 \u00b7 Insights now writes payday dates in plain English, like the rest.';
+    'f2.85 \u00b7 Every theme is now measured for readability, light mode included.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
