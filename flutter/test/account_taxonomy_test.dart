@@ -438,8 +438,28 @@ void main() {
       expect(searchInstitutions('zzzzz'), isEmpty);
     });
 
-    test('initials are two letters, and never a bare question mark', () {
+    test('a run-together name splits at its capitals', () {
+      // "UnionBank" gave UN, which on a circle reads as the United Nations.
+      // The render made that obvious and the code did not. One rule fixes six
+      // names rather than six special cases.
+      expect(initialsFor('UnionBank'), 'UB');
+      expect(initialsFor('GoTyme'), 'GT');
+      expect(initialsFor('SeaBank'), 'SB');
+      expect(initialsFor('GrabPay'), 'GP');
+      expect(initialsFor('ShopeePay'), 'SP');
+      expect(initialsFor('EastWest'), 'EW');
+      expect(initialsFor('GCash'), 'GC');
+      // An all-capitals name has no boundary to split on, so it keeps its
+      // first two letters, which is what anybody would write by hand.
       expect(initialsFor('BPI'), 'BP');
+      expect(initialsFor('RCBC'), 'RC');
+      expect(initialsFor('PSBank'), 'PS');
+      // A plain lowercase word has no boundary either.
+      expect(initialsFor('Metrobank'), 'ME');
+      expect(initialsFor('Tonik'), 'TO');
+    });
+
+    test('initials are two letters, and never a bare question mark', () {
       expect(initialsFor('Bank of Commerce'), 'BO');
       expect(initialsFor('Pag-IBIG'), 'PI');
       expect(initialsFor('  '), '?');
