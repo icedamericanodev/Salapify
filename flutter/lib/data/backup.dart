@@ -13,6 +13,7 @@
 
 import 'dart:convert' show JsonEncoder;
 
+import '../money/account_taxonomy.dart' show AccountStore, taxonomyKeys;
 import '../money/greeting.dart' show normalizeDisplayName;
 
 const int schemaVersion = 12;
@@ -202,6 +203,50 @@ Map<String, dynamic> _migrate(Map<String, dynamic> raw) {
 
 // ---- sanitizeData ----
 
+/// Applies the unified-accounts metadata to one normalized row.
+///
+/// Every key it can add is CONDITIONAL. backup_golden_test compares the
+/// normalized output against fixtures generated from the React Native app
+/// STRICTLY on key sets, and those fixtures will never carry `subtype` or
+/// `institutionId`. So a key appears only when the stored row genuinely has a
+/// usable value, exactly the pattern `paluwagans`, `steadyPay` and
+/// `quickAddsEdited` already use. An RN row goes through here and comes out
+/// byte for byte what it went in as.
+///
+/// The other half matters as much: the keys taxonomyKeys does NOT return are
+/// REMOVED. Junk that came in on a hand-edited or corrupt backup, a subtype
+/// that does not exist, a last4 that is not four digits, a currency code that
+/// is not three letters, does not survive a load. It is dropped rather than
+/// corrected, because correcting it means guessing what somebody meant about
+/// their own money, and the legacy derivation underneath is always safe.
+Map<String, dynamic> _withTaxonomy(
+  dynamic source,
+  AccountStore store,
+  Map<String, dynamic> out,
+) {
+  final keep = taxonomyKeys(source, store);
+  for (final k in const [
+    'accountClass',
+    'category',
+    'subtype',
+    'institutionId',
+    'institutionName',
+    'currencyCode',
+    'last4',
+    'includeInNetWorth',
+    'isArchived',
+    'createdAt',
+    'updatedAt',
+  ]) {
+    if (keep.containsKey(k)) {
+      out[k] = keep[k];
+    } else {
+      out.remove(k);
+    }
+  }
+  return out;
+}
+
 Map<String, dynamic> sanitizeData(
   dynamic raw, {
   bool keepAppLock = false,
@@ -223,22 +268,30 @@ Map<String, dynamic> sanitizeData(
   return {
     'schemaVersion': schemaVersion,
     'accounts': _cleanList(src['accounts']).map((a) {
-      return {
+      return _withTaxonomy(a, AccountStore.accounts, {
         ...a,
         'name': _str(a['name'], 'Account'),
         'brand': _str(a['brand']),
         'icon': _str(a['icon']),
+        // NOT widened, deliberately. Every money engine reads this field and
+        // every balance depends on it, so the real subtype went into a new
+        // field instead (money/account_taxonomy.dart, DECISION 2). Adding
+        // 'payroll' here would be written, then silently rewritten to 'cash'
+        // on the next load, permanently, with no error.
         'kind':
             const ['cash', 'savings', 'checking', 'ewallet'].contains(a['kind'])
             ? a['kind']
             : 'cash',
         'balance': _num(a['balance']),
         'target': _num(a['target']),
-      };
+      });
     }).toList(),
-    'assets': _cleanList(
-      src['assets'],
-    ).map((a) => {...a, 'value': _num(a['value'])}).toList(),
+    'assets': _cleanList(src['assets'])
+        .map((a) => _withTaxonomy(a, AccountStore.assets, {
+              ...a,
+              'value': _num(a['value']),
+            }))
+        .toList(),
     'debts': _cleanList(src['debts']).map((d) {
       final out = {
         ...d,
@@ -258,7 +311,7 @@ Map<String, dynamic> sanitizeData(
       } else {
         out.remove('interestThroughISO');
       }
-      return out;
+      return _withTaxonomy(d, AccountStore.debts, out);
     }).toList(),
     'payments': (() {
       var i = 0;
