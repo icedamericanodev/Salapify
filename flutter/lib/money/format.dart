@@ -62,6 +62,33 @@ String prettyDay(String iso) {
   return '${monthAbbrevs[m - 1]} $day';
 }
 
+/// A figure the sentence around it already hedges: whole pesos, no centavos.
+///
+/// "About ₱26,525.25 a day" is a sentence arguing with itself. The word
+/// promises a rounded figure and the number then gives two decimal places, and
+/// on the Insights safe-to-spend card that exact string sat directly above
+/// another card reading "about ₱26,525 free to move": one number, one screen,
+/// two spellings. The convention already existed, Steady Pay and the Home pace
+/// line both round, it was simply applied at some call sites and not others.
+/// A named helper makes the intent readable at the call site, where a bare
+/// `.roundToDouble()` reads like somebody's stray edit.
+///
+/// Use it ONLY where the copy says "about", or for a pace figure produced by
+/// division. NEVER for a balance, a total, a logged amount, or anything the
+/// user typed: those are exact, the golden vectors pin them to the centavo,
+/// and a rounded balance is a wrong balance rather than a friendly one.
+///
+/// Rounds to NEAREST, deliberately. `formatMoneyText` rounds up, which is
+/// correct for the contexts it was built for and wrong here: rounding a
+/// spending figure up tells somebody they have more room than they do.
+String formatMoneyAbout(num value) {
+  // Non-finite and near-max values are handed straight to formatMoney, which
+  // already has the guards and the reasons for them. roundToDouble() on
+  // Infinity throws, so this order matters.
+  if (!value.isFinite) return formatMoney(value);
+  return formatMoney(value.roundToDouble());
+}
+
 /// Sign, currency symbol, comma-grouped pesos, and centavos when there are any.
 String formatMoney(num value) {
   // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.

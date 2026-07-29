@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.87 \u00b7 The publisher now proves a build really shipped before recording it.';
+    'f2.88 \u00b7 When the app says about, it now rounds like it means it.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
