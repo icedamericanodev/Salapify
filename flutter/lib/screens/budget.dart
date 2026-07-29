@@ -447,6 +447,7 @@ class BudgetScreen extends StatelessWidget {
         SnackBar(
           content: Text('${item.label} ${formatMoney(item.amount)} logged.'),
           duration: const Duration(seconds: 4),
+          persist: false,
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () async {

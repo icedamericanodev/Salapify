@@ -465,6 +465,11 @@ class _GoalSheetState extends State<_GoalSheet> {
         ..showSnackBar(
           SnackBar(
             content: const Text('Goal deleted'),
+            // Five, matching the other delete receipt on History, and explicit
+            // rather than leaning on a framework default that has already
+            // changed under this app once.
+            duration: const Duration(seconds: 5),
+            persist: false,
             action: SnackBarAction(
               label: 'Undo',
               onPressed: () {

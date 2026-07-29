@@ -267,6 +267,12 @@ class _NoteEditorState extends State<NoteEditor> {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Could not save the note, it is still open. $e'),
+          // The ONE that stays, deliberately. Every other action snackbar in
+          // the app is a receipt for something that already worked; this one
+          // says the note did NOT save and offers the only way out of an
+          // editor that would otherwise be a trap. A message like that timing
+          // out after four seconds is how somebody loses a note.
+          persist: true,
           action: SnackBarAction(
             label: 'Leave anyway',
             onPressed: () {

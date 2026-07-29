@@ -59,20 +59,48 @@ double remainingOf(Map<String, dynamic> r) {
   return rem > 0 ? rem : 0;
 }
 
+/// The display name for a receivable, resolved by EXACTLY the rule
+/// utangAging uses.
+///
+/// Not "similar to". The two rules decide different halves of the same
+/// screen: utangAging decides which person row you see and how much it says
+/// they owe, and this decides which utangs land in that person's sheet, which
+/// is what the statement and the reminder are built from. Any disagreement is
+/// a row saying ₱500 that opens onto nothing, or a document quietly leaving
+/// out money somebody really owes.
+///
+/// A comment here used to CLAIM the rules matched. Three ways they did not,
+/// and the first one was reproducible:
+/// - `isNotEmpty` on the raw legacy string, where utangAging trims first, so
+///   a person field of "   " grouped under "Someone" in the total and matched
+///   nobody in the sheet;
+/// - the person record's name returned untrimmed, where utangAging groups on
+///   the trimmed one, so " Ana " and "Ana" were one row and two sheets;
+/// - the FIRST person record with a matching id won here, where utangAging
+///   builds a Map so the LAST one does, which a backup carrying a duplicate
+///   id turns into an empty sheet under a renamed person.
+///
+/// This deliberately differs from RN, which takes `(p && p.name) || r.person`
+/// and therefore lets a whitespace-only name win. That divergence is the
+/// whole point: RN has no aging sheet to disagree with.
 String nameOf(Map<String, dynamic> data, Map<String, dynamic> r) {
-  final people = _list(data, 'people');
-  for (final p in people) {
-    if (p['id'] == r['personId']) {
-      final n = p['name'];
-      // Whitespace-only names fall through to the legacy string, the same
-      // rule utangAging uses, so a person row on the aging screen always
-      // opens a sheet that folds to the same entries.
-      if (n is String && n.trim().isNotEmpty) return n;
-      break;
+  var byId = '';
+  final wanted = r['personId'];
+  if (wanted is String && wanted.isNotEmpty) {
+    // Every match, not the first, because utangAging assigns into a Map and
+    // a later duplicate overwrites an earlier one.
+    for (final p in _list(data, 'people')) {
+      final id = p['id'];
+      if (id is String && id.isNotEmpty && id == wanted) {
+        final n = p['name'];
+        byId = n is String ? n.trim() : '';
+      }
     }
   }
+  if (byId.isNotEmpty) return byId;
   final person = r['person'];
-  if (person is String && person.isNotEmpty) return person;
+  final byRow = person is String ? person.trim() : '';
+  if (byRow.isNotEmpty) return byRow;
   return 'Someone';
 }
 

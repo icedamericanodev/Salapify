@@ -77,6 +77,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
         ..showSnackBar(
           SnackBar(
             content: const Text('Win removed'),
+            duration: const Duration(seconds: 5),
+            persist: false,
             action: SnackBarAction(
               label: 'Undo',
               onPressed: () {

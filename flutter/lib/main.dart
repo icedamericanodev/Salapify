@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.76 \u00b7 A home screen widget: your daily number and a one tap Log button. Install this one by hand.';
+    'f2.77 \u00b7 The Undo receipt no longer sits on the screen forever after you log.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

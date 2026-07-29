@@ -265,6 +265,7 @@ class _EditSheetState extends State<EditSheet> {
         SnackBar(
           content: Text('$shownLabel updated.'),
           duration: const Duration(seconds: 5),
+          persist: false,
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () async {

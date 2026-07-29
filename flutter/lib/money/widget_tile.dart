@@ -24,38 +24,7 @@ import 'cycle.dart' show cycleStatus;
 // UP. Home said 412.50, the tile said 413, and a person with 40 centavos a day
 // saw a flat "0" on their home screen. Two versions of one number, on the one
 // surface that cannot be corrected without a reinstall.
-import 'format.dart' show formatMoney;
-
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-/// An ISO date as a short human day, "Jul 27".
-///
-/// A private copy of prettyDay, which lives in screens/overview.dart and
-/// therefore imports Flutter. This file must not, so it can stay plain Dart.
-/// widget_tile_test.dart asserts the two agree across a set of dates including
-/// junk, which costs five lines and stops a third month name list drifting.
-String _prettyDay(String iso) {
-  final p = iso.split('-');
-  if (p.length < 3) return iso;
-  final y = int.tryParse(p[0]);
-  final m = int.tryParse(p[1]);
-  final d = int.tryParse(p[2].length > 2 ? p[2].substring(0, 2) : p[2]);
-  if (y == null || m == null || d == null || m < 1 || m > 12) return iso;
-  return '${_months[m - 1]} $d';
-}
+import 'format.dart' show formatMoney, monthAbbrevs, prettyDay;
 
 /// "Jul 27, 7:04 PM", baked at write time.
 ///
@@ -69,7 +38,7 @@ String _stampedAt(DateTime ref) {
   final h = h24 % 12 == 0 ? 12 : h24 % 12;
   final m = ref.minute.toString().padLeft(2, '0');
   final ampm = h24 < 12 ? 'AM' : 'PM';
-  return 'as of ${_months[ref.month - 1]} ${ref.day}, $h:$m $ampm';
+  return 'as of ${monthAbbrevs[ref.month - 1]} ${ref.day}, $h:$m $ampm';
 }
 
 /// How many characters of the sub line actually fit on one row.
@@ -194,7 +163,7 @@ Map<String, String> widgetTileStrings(
     );
   }
 
-  final payday = c.payday.isEmpty ? '' : _prettyDay(c.payday);
+  final payday = c.payday.isEmpty ? '' : prettyDay(c.payday);
 
   // 5. Accounts exist but none of it is spendable cash.
   if (c.reason == 'quiet') {

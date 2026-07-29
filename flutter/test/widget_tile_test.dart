@@ -11,7 +11,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/backup.dart' show sanitizeData;
 import 'package:salapify/money/widget_tile.dart';
-import 'package:salapify/screens/overview.dart' show prettyDay;
+import 'package:salapify/money/format.dart'
+    show monthAbbrevs, prettyDay;
 
 void main() {
   final ref = DateTime(2026, 7, 10, 19, 4);
@@ -106,10 +107,13 @@ void main() {
       ];
       final t = tile(d);
       expect(t['yn_headline'], 'Bills first');
-      // No date: cycleStatus returns early for this state and carries no
-      // payday, so the copy falls back rather than inventing one. Asserted
-      // explicitly so nobody later assumes the date is there.
-      expect(t['yn_sub'], 'Everything you have is spoken for.');
+      // The date IS here now. cycleStatus used to return early for this state
+      // and drop the payday, so this branch of the copy could never render and
+      // read as live code while being unreachable. The date of the next payday
+      // is a calendar fact, and it does not stop being true because the money
+      // ran out; this is the state where it matters most. The no-date fallback
+      // still exists and is asserted below.
+      expect(t['yn_sub'], 'Spoken for until Jul 20.');
       expect(
         t.values.join(' '),
         isNot(contains('₱')),
@@ -252,31 +256,38 @@ void main() {
     expect(midnight['yn_asof'], 'as of Jul 10, 12:30 AM');
   });
 
-  test('the private day formatter agrees with the one on Home', () {
-    // This file cannot import overview.dart's prettyDay, because that file
-    // imports Flutter and this one must stay plain Dart. So it carries a
-    // copy, and a copy of a month name list is exactly the thing that drifts.
+  test('there is only ONE day formatter left to disagree with', () {
+    // This test used to claim it compared the tile's private _prettyDay with
+    // Home's prettyDay "across a set of dates including junk". It did not. The
+    // loop called only the PUBLIC one and asserted
+    // `anyOf(isNotEmpty, equals(iso))`, which every possible string satisfies,
+    // so it could never fail. The private copy was compared on exactly one
+    // date, through the sub line, and the two genuinely differed: "2026-7-4"
+    // read as "2026-7-4" on Home and "Jul 4" on the tile.
+    //
+    // A test watching two functions for drift is worse than not having two
+    // functions. widget_tile.dart now imports the same prettyDay, so what is
+    // left to assert is that it still does.
+    expect(tile(base())['yn_sub'], contains(prettyDay('2026-07-20')));
     for (final iso in [
       '2026-07-10',
       '2026-01-01',
       '2025-12-31',
       '2026-02-29',
+      '2026-7-4',
       'nonsense',
       '',
       '2026-13-40',
     ]) {
-      final d = base();
-      (d['settings'] as Map)['paydaySchedule'] = {'mode': 'monthly', 'day': 20};
-      // Compared through the public surface: the sub line carries the
-      // formatted payday, so if the copy drifts this string changes.
+      // The real assertion: the tile's month names come from the same list.
+      final out = prettyDay(iso);
       expect(
-        prettyDay(iso),
-        anyOf(isNotEmpty, equals(iso)),
-        reason: 'prettyDay itself moved for $iso',
+        out == iso || monthAbbrevs.any(out.startsWith),
+        isTrue,
+        reason: 'prettyDay("$iso") returned "$out", which is neither the '
+            'input nor a month from the shared list',
       );
     }
-    // The direct comparison, on the format that actually reaches the tile.
-    expect(tile(base())['yn_sub'], contains(prettyDay('2026-07-20')));
   });
 
   test('every state carries a stamp and no dashes', () {

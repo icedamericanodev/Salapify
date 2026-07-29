@@ -174,6 +174,11 @@ class _LogSheetState extends State<LogSheet> {
                 : '$shownLabel ${formatMoney(amount)} logged.',
           ),
           duration: const Duration(seconds: 4),
+          // persist defaults to TRUE for any SnackBar carrying an action, so
+          // without this the receipt sat on the screen forever, across every
+          // tab, covering the cards underneath. The founder found it on the
+          // most used write path in the app. See snackbar_persist_test.
+          persist: false,
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () async {

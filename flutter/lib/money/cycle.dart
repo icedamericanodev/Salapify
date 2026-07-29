@@ -397,7 +397,25 @@ CycleStatus cycleStatus(dynamic data, DateTime ref) {
     return const CycleStatus(show: false, reason: 'nonfinite');
   }
   if (available <= 0) {
-    return CycleStatus(show: false, reason: liquid > 0 ? 'committed' : 'quiet');
+    // The calendar facts come along even though the card stays hidden.
+    //
+    // They used to be dropped, which made two things wrong at once. The home
+    // screen tile has copy for "Spoken for until Jul 20" that could never
+    // render, because payday was always empty here, so it always fell back to
+    // the version with no date and the branch read as live code while being
+    // unreachable. And these two fields are calendar facts, not money: the
+    // date of the next payday does not stop being true because the money ran
+    // out. If anything it is the state where it matters most.
+    //
+    // Safe by construction: show stays false, so Home's card is still hidden,
+    // and the one place that reads liquid and available outside the card
+    // (overview.dart's committed bar) guards on cycle.show first.
+    return CycleStatus(
+      show: false,
+      reason: liquid > 0 ? 'committed' : 'quiet',
+      daysLeft: s['daysLeft'] as int,
+      payday: (s['payday'] ?? '').toString(),
+    );
   }
 
   final pp = paydayProjection(d, ref);
