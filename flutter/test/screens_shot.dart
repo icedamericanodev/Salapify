@@ -31,6 +31,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/backup.dart' show defaultCategories;
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/pan_mood.dart';
 import 'package:salapify/screens/budget.dart';
@@ -168,6 +169,166 @@ Future<void> loadRealFonts(WidgetTester tester) async {
   });
 }
 
+/// A phone that has been USED, and the reason this exists.
+///
+/// Every per-tab shot ran against an EMPTY store for the whole life of this
+/// harness. Sixteen images, both brightnesses, and not one of them ever
+/// contained a peso figure: they were all first-run welcome states. So every
+/// time this file's own rule said "look at the screen before shipping a
+/// screen", what was looked at was a screen with no money on it.
+///
+/// That is exactly how the crossed-out peso reached the founder's phone. The
+/// display serif drew ₱ with a long crossbar that ran into the minus sign, so
+/// every negative amount read as struck through. It was on Home. It had been
+/// rendered dozens of times. It was never once visible, because Home had no
+/// amounts in it.
+///
+/// So the fixture below is a lived-in phone: money in several accounts, a
+/// month of spending across categories, income, a card and a loan, somebody
+/// who owes money and somebody who is owed, a goal part way there, and a
+/// logging streak. Enough that every tab has something real to draw.
+///
+/// Two rules for changing it. Keep the numbers ODD and specific (48,500.55 not
+/// 50,000), because round numbers hide grouping and decimal bugs. And never
+/// shrink it to make a shot tidier: a tidy shot of an empty screen is what
+/// this replaces.
+final Map<String, dynamic> livedInBlob = () {
+  // Dates are relative to a FIXED day, so a shot taken today and a shot taken
+  // next month contain the same entries. Golden images that change with the
+  // calendar are noise nobody reads.
+  const y = 2026, m = 7;
+  String d(int day) =>
+      '$y-${m.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+  return <String, dynamic>{
+    'schemaVersion': 12,
+    'settings': {
+      'onboarded': true,
+      'name': 'Carla',
+      'paydaySchedule': {'mode': 'monthly', 'day': 30},
+      'monthlyLimit': 18000,
+    },
+    'accounts': [
+      {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 2340},
+      {
+        'id': 'bpi',
+        'name': 'BPI Savings',
+        'kind': 'savings',
+        'balance': 48500.55,
+        'subtype': 'savings_account',
+        'institutionId': 'bpi',
+        'target': 100000,
+      },
+      {
+        'id': 'gcash',
+        'name': 'GCash',
+        'kind': 'ewallet',
+        'balance': 1785.25,
+        'subtype': 'ewallet',
+        'institutionId': 'gcash',
+      },
+      {
+        'id': 'pay',
+        'name': 'Salary account',
+        'kind': 'checking',
+        'balance': 22400,
+        'subtype': 'payroll_account',
+        'institutionId': 'unionbank',
+      },
+    ],
+    'assets': [
+      {'id': 'mp2', 'name': 'Pag-IBIG MP2', 'kind': 'mp2', 'value': 61200},
+    ],
+    'debts': [
+      {
+        'id': 'card',
+        'name': 'BPI card',
+        'type': 'credit card',
+        'remaining': 12480.40,
+        'monthlyRate': 3,
+        'minPayment': 1250,
+        'dueDay': 15,
+        'statementDay': 25,
+        'creditLimit': 50000,
+      },
+      {
+        'id': 'moto',
+        'name': 'Motorcycle loan',
+        'type': 'auto',
+        'remaining': 48000,
+        'monthlyRate': 1.5,
+        'minPayment': 3200,
+        'dueDay': 5,
+        'subtype': 'auto_loan',
+      },
+    ],
+    'receivables': [
+      {
+        'id': 'r1',
+        'person': 'Ana',
+        'amount': 1500,
+        'dueDate': d(12),
+        'payments': [
+          {'id': 'p1', 'amount': 500, 'date': d(18)},
+        ],
+      },
+      {'id': 'r2', 'person': 'Ben', 'amount': 2200, 'dueDate': d(2)},
+    ],
+    'payables': [
+      {'id': 'y1', 'person': 'Mama', 'amount': 3000, 'dueDate': d(28)},
+    ],
+    'goals': [
+      {
+        'id': 'g1',
+        'name': 'Emergency fund',
+        'target': 60000,
+        'saved': 21500,
+        'targetDate': '$y-12-31',
+      },
+    ],
+    'categories': defaultCategories.map((c) => {...c}).toList(),
+    'transactions': [
+      {
+        'id': 't1',
+        'type': 'income',
+        'label': 'Salary',
+        'amount': 32000,
+        'date': d(15),
+        'accountId': 'pay',
+      },
+      // categoryId, NOT a plain 'category' string. The first version of this
+      // fixture used the latter, which the engine does not read, so every
+      // expense fell through to its LABEL and the WHERE IT WENT card grouped
+      // by label instead of category. It looked plausible. Checking the engine
+      // rather than the screenshot is what caught it, and it is a small
+      // example of the same lesson this whole fixture exists for: a render
+      // that exercises the wrong path proves the wrong thing.
+      for (final (i, e) in const [
+        ('Groceries', 'cat_groceries', 2450.75, 3),
+        ('Jeep and bus', 'cat_transport', 620, 4),
+        ('Coffee', 'cat_food', 185, 5),
+        ('Electricity', 'cat_bills', 3120.50, 8),
+        ('Load', 'cat_load', 300, 9),
+        ('Lunch out', 'cat_food', 480, 11),
+        ('Grab', 'cat_transport', 265, 12),
+        ('Medicine', 'cat_health', 890.25, 14),
+        ('Groceries', 'cat_groceries', 1980, 17),
+        ('Water', 'cat_bills', 410, 19),
+        ('Movie', 'cat_fun', 700, 21),
+        ('Groceries', 'cat_groceries', 2210.40, 24),
+      ].indexed)
+        {
+          'id': 'e$i',
+          'type': 'expense',
+          'label': e.$1,
+          'categoryId': e.$2,
+          'amount': e.$3,
+          'date': d(e.$4),
+          'accountId': 'gcash',
+        },
+    ],
+  };
+}();
+
 /// Pump one screen at one brightness and write the PNG.
 ///
 /// Both brightnesses on purpose. The renderer drew only the light palette for
@@ -183,7 +344,7 @@ Future<void> shoot(
 }) async {
   await loadRealFonts(tester);
   await loadPanFaces(tester);
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues({storageKey: jsonEncode(livedInBlob)});
   final store = SalapifyStore();
   await store.load();
 

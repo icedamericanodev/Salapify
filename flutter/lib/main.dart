@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.83 \u00b7 Foreign accounts now convert, and the screen says what rate it used.';
+    'f2.84 \u00b7 Insights now writes payday dates in plain English, like the rest.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

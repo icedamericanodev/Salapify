@@ -24,7 +24,7 @@ import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, prettyDay;
 import 'windfall_card.dart';
 import 'shell.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
@@ -774,7 +774,13 @@ class InsightsScreen extends StatelessWidget {
             Text(
               tight
                   ? 'Bills before payday already use up your spendable cash. Hold off on extras until payday.'
-                  : 'About ${formatMoney(perDay)} a day for the next $daysLeft ${daysLeft == 1 ? 'day' : 'days'} (payday ${sts['payday']}). '
+                  // prettyDay, not the raw stored value. This printed
+                  // "(payday 2026-07-30)" for its whole life: a machine date
+                  // in a sentence, on a screen whose entire job is reading
+                  // plainly, while every other screen said "Jul 30". Nobody
+                  // saw it because every render of this tab used an empty
+                  // store and this card never had a payday to print.
+                  : 'About ${formatMoney(perDay)} a day for the next $daysLeft ${daysLeft == 1 ? 'day' : 'days'} (payday ${prettyDay((sts['payday'] ?? '').toString())}). '
                         '${billCount > 0 ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.' : 'No bills land before then.'}',
               style: TextStyle(
                 color: tight ? Barako.warning : Barako.muted,

@@ -59,6 +59,15 @@ prose as a wall of text, and lessons losing their completed tick. Both were
 obvious at a glance and invisible to 673 passing tests, because a test checks
 what someone thought to check.
 
+It renders against a LIVED-IN phone, and that sentence is the whole point of
+this paragraph. For most of the harness's life every per-tab shot used an EMPTY
+store, so sixteen images at two brightnesses were all first-run welcome
+screens and not one of them ever contained a peso figure. The rule "look at the
+screen" was followed, faithfully, against a fixture that could not show the
+defect: a crossed-out peso sign sat on Home through dozens of renders and
+reached the founder's phone. If you change the fixture, do not shrink it; a
+tidy shot of an empty screen is exactly what it replaced.
+
 It renders every tab at BOTH brightnesses, and a growing set of other screens,
 sheets and dialogs in dark only. Look at the dark ones first; that is what the
 founder uses. (This sentence used to claim everything was rendered at both
