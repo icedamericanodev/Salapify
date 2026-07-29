@@ -51,6 +51,15 @@ class FinancialInstitution {
 ///
 /// "BPI" gives "BP", not "B", because a single letter on a circle reads as a
 /// placeholder rather than a bank.
+///
+/// A run-together name is split at its internal capitals, so "UnionBank" gives
+/// UB rather than UN. That is not fussiness: UN on a circle reads as the
+/// United Nations, which the render made obvious and the code did not. It also
+/// fixes GoTyme (GT), SeaBank (SB), GrabPay (GP), ShopeePay (SP) and EastWest
+/// (EW) in one rule instead of five special cases.
+///
+/// An all-capitals name has no such boundary, so BPI, RCBC and PSBank keep
+/// their first two letters, which is what anybody would write by hand.
 String initialsFor(String name) {
   final words = name
       .split(RegExp(r'[\s\-_.]+'))
@@ -59,6 +68,8 @@ String initialsFor(String name) {
   if (words.isEmpty) return '?';
   if (words.length == 1) {
     final w = words.first;
+    final camel = RegExp(r'^(.*?[a-z])([A-Z])').firstMatch(w);
+    if (camel != null) return (w[0] + camel.group(2)!).toUpperCase();
     return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
   }
   return (words[0][0] + words[1][0]).toUpperCase();

@@ -326,6 +326,79 @@ void main() {
     expect(find.text('Bank or brand (optional)'), findsNothing);
   });
 
+  testWidgets('a chosen bank leaves the icon empty, so initials can show', (
+    tester,
+  ) async {
+    // The account icon is USER data: it lives in the backup file and CLAUDE.md
+    // is explicit that Salapify never replaces one. So the row can only show a
+    // bank's initials where the field is genuinely empty, and that means the
+    // save path must NOT write the default money emoji over a chosen bank.
+    // Writing it would make "left blank" and "picked the money emoji" the same
+    // stored value, and the row would have to guess which.
+    final store = await _store();
+    await _open(tester, store);
+    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Cash and e-wallets'));
+    await _tap(tester, find.text('E-wallet'));
+    await _tap(tester, find.text('Choose'));
+    await _type(tester, 'Search, or type your own', 'gcash');
+    await _tap(tester, find.text('GCash').last);
+    await _type(tester, 'e.g. GCash', 'My GCash');
+    await _type(tester, '0', '1200');
+    await _tap(tester, find.text('Save'));
+
+    final a = _rows(store, 'accounts').first;
+    expect(a['icon'], '');
+    expect(a['institutionId'], 'gcash');
+    // And the list actually draws the initials rather than a blank gap.
+    expect(find.text('GC'), findsOneWidget);
+  });
+
+  testWidgets('a TYPED icon always wins over the bank initials', (
+    tester,
+  ) async {
+    // The other half, and the one the icon rule is really about. Somebody who
+    // picked an emoji keeps it, whatever bank they also chose.
+    final store = await _store();
+    await _open(tester, store);
+    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Cash and e-wallets'));
+    await _tap(tester, find.text('E-wallet'));
+    await _tap(tester, find.text('Choose'));
+    await _type(tester, 'Search, or type your own', 'gcash');
+    await _tap(tester, find.text('GCash').last);
+    await _type(tester, 'e.g. GCash', 'My GCash');
+    await _type(tester, '0', '1200');
+    await _type(tester, '💵', '🐷');
+    await _tap(tester, find.text('Save'));
+
+    final a = _rows(store, 'accounts').first;
+    expect(a['icon'], '🐷');
+    expect(a['institutionId'], 'gcash');
+    expect(find.text('🐷'), findsOneWidget);
+    expect(find.text('GC'), findsNothing, reason: 'the choice was overwritten');
+  });
+
+  testWidgets('an account that predates all of this keeps its emoji', (
+    tester,
+  ) async {
+    final store = await _store({
+      'schemaVersion': 12,
+      'settings': {'onboarded': true},
+      'accounts': [
+        {
+          'id': 'a1',
+          'name': 'Old wallet',
+          'kind': 'ewallet',
+          'icon': '💵',
+          'balance': 100,
+        },
+      ],
+    });
+    await _open(tester, store);
+    expect(find.text('💵'), findsOneWidget);
+  });
+
   testWidgets('cash on hand is not asked which bank it is in', (tester) async {
     final store = await _store();
     await _open(tester, store);

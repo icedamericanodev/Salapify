@@ -18,9 +18,10 @@ import '../money/transfers.dart'
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
-import '../money/institutions.dart' show institutionById;
+import '../money/institutions.dart'
+    show institutionById, institutionLabel;
 import '../theme.dart';
-import 'add_account_flow.dart';
+import 'add_account_flow.dart' show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/pressable_scale.dart';
 
@@ -38,8 +39,6 @@ const _assetKinds = [
   ('vehicle', 'Vehicle'),
   ('other', 'Other'),
 ];
-const _bankKinds = {'savings', 'checking', 'ewallet'};
-
 String _todayISO() {
   final n = DateTime.now();
   return '${n.year.toString().padLeft(4, '0')}-'
@@ -74,17 +73,39 @@ class AccountsScreen extends StatelessWidget {
         child: ListenableBuilder(
           listenable: store,
           builder: (context, _) {
-            final accounts = _rows('accounts');
-            final assets = _rows('assets');
-            final debts = _rows('debts');
-            final cash = accounts.where((a) => a['kind'] == 'cash').toList();
-            final bank = accounts
-                .where((a) => _bankKinds.contains(a['kind']))
-                .toList();
+            // Grouped by the TAXONOMY category, not by the four legacy kinds.
+            //
+            // Everything a person owns or owes now sits under the same heading
+            // the Add flow offered them, so what they chose and what they see
+            // afterwards use the same words. A row with no classification is
+            // derived from its legacy fields, so an account created before any
+            // of this still lands in the right place with nothing written to
+            // it (money/account_taxonomy.dart).
+            //
+            // The amount key differs per collection, which is why the group
+            // carries it rather than the caller guessing.
+            final groups = <String, List<(Map<String, dynamic>, AccountStore)>>{
+              for (final c in accountCategories) c.id: [],
+            };
+            for (final (rows, which) in [
+              (_rows('accounts'), AccountStore.accounts),
+              (_rows('assets'), AccountStore.assets),
+              (_rows('debts'), AccountStore.debts),
+            ]) {
+              for (final r in rows) {
+                groups[resolveKind(r, which).category.id]!.add((r, which));
+              }
+            }
             final parts = netWorthParts(store.data);
 
-            double sum(List<Map<String, dynamic>> l, String k) =>
-                l.fold(0.0, (t, x) => t + amountOf(x[k]));
+            double amountOfRow((Map<String, dynamic>, AccountStore) e) =>
+                switch (e.$2) {
+                  AccountStore.accounts => amountOf(e.$1['balance']),
+                  AccountStore.assets => amountOf(e.$1['value']),
+                  AccountStore.debts => amountOf(e.$1['remaining']),
+                };
+
+            final anyRows = groups.values.any((g) => g.isNotEmpty);
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -99,7 +120,8 @@ class AccountsScreen extends StatelessWidget {
                 // Only with somewhere to move money from AND to. One account
                 // cannot transfer to itself, so offering the button then
                 // would be offering a dead end.
-                if (store.canWrite && accounts.length > 1) ...[
+                if (store.canWrite &&
+                    groups['cash_equivalents']!.length > 1) ...[
                   const SizedBox(height: 10),
                   _addButton(
                     context,
@@ -108,39 +130,40 @@ class AccountsScreen extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
-                _section('CASH', sum(cash, 'balance'), [
-                  for (final a in cash) _accountRow(context, a),
-                  if (cash.isEmpty) _empty('No cash account yet.'),
-                ]),
-                _section('SAVINGS AND BANK', sum(bank, 'balance'), [
-                  for (final a in bank) _accountRow(context, a),
-                  if (bank.isEmpty) _empty('Nothing here yet.'),
-                ]),
-                _section('INVESTMENTS AND OTHER ASSETS', sum(assets, 'value'), [
-                  for (final a in assets) _assetRow(context, a),
-                  if (assets.isEmpty) _empty('No assets yet.'),
-                ]),
-                _section(
-                  'DEBTS',
-                  parts['debts'] as double,
-                  [
-                    for (final d in debts)
-                      _plainRow(
-                        '💳',
-                        d['name']?.toString() ?? 'Debt',
-                        amountOf(d['remaining']),
-                        amountColor: Barako.warningStrong,
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Manage debts on the Debts screen.',
-                        style: TextStyle(color: Barako.faint, fontSize: 12),
-                      ),
+                // An EMPTY section is not shown. Six headings over six "nothing
+                // here yet" lines is a screen that looks like a chore list, and
+                // the old two-section version already had two of them. One
+                // honest empty state instead, below.
+                for (final c in accountCategories)
+                  if (groups[c.id]!.isNotEmpty)
+                    _section(
+                      c.label.toUpperCase(),
+                      groups[c.id]!.fold(0.0, (t, e) => t + amountOfRow(e)),
+                      [
+                        for (final e in groups[c.id]!) _taxonomyRow(context, e),
+                        // Once, under the last debt section, not under each.
+                        if (c.store == AccountStore.debts &&
+                            c.id == _lastDebtCategoryWithRows(groups))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'Manage debts on the Debts screen.',
+                              style: TextStyle(
+                                color: Barako.faint,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                      subtotalColor: c.cls == AccountClass.liability
+                          ? Barako.warningStrong
+                          : null,
                     ),
-                  ],
-                  subtotalColor: Barako.warningStrong,
-                ),
+                if (!anyRows)
+                  _empty(
+                    'Nothing recorded yet. Tap Add an account above and '
+                    'Salapify will ask what it is.',
+                  ),
               ],
             );
           },
@@ -294,22 +317,98 @@ class AccountsScreen extends StatelessWidget {
     child: Text(text, style: TextStyle(color: Barako.faint, fontSize: 13)),
   );
 
-  Widget _accountRow(BuildContext context, Map<String, dynamic> a) {
+  /// Which debt category renders the "manage debts elsewhere" note.
+  ///
+  /// The LAST one with rows, so the note appears exactly once and always at
+  /// the bottom of the debts, whichever categories happen to be present.
+  String _lastDebtCategoryWithRows(
+    Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
+  ) {
+    var last = '';
+    for (final c in accountCategories) {
+      if (c.store == AccountStore.debts && groups[c.id]!.isNotEmpty) {
+        last = c.id;
+      }
+    }
+    return last;
+  }
+
+  /// One row, whichever collection it came from.
+  ///
+  /// The sub line names the SUBTYPE and the institution, which is the pair
+  /// that answers "which of my three BPI things is this". It replaces the old
+  /// free text brand, which only accounts had and which nothing validated.
+  Widget _taxonomyRow(
+    BuildContext context,
+    (Map<String, dynamic>, AccountStore) entry,
+  ) {
+    final (row, which) = entry;
+    final kind = resolveKind(row, which);
+    final bank = institutionLabel(row);
+    final parts = <String>[kind.subtype.label, ?bank];
+
+    switch (which) {
+      case AccountStore.accounts:
+        return _accountRow(context, row, sub: parts.join(' · '));
+      case AccountStore.assets:
+        return _row(
+          icon: '📈',
+          name: row['name']?.toString() ?? 'Asset',
+          sub: parts.join(' · '),
+          amount: amountOf(row['value']),
+          onTap: () => _openForm(context, isAccount: false, item: row),
+        );
+      case AccountStore.debts:
+        // Not tappable. Editing a debt belongs to the Debts screen, which owns
+        // interest, due dates and payment history; opening the account form on
+        // one would offer fields that do not apply and drop the ones that do.
+        return _row(
+          icon: '💳',
+          name: row['name']?.toString() ?? 'Debt',
+          sub: parts.join(' · '),
+          amount: amountOf(row['remaining']),
+          amountColor: Barako.warningStrong,
+        );
+    }
+  }
+
+  Widget _accountRow(
+    BuildContext context,
+    Map<String, dynamic> a, {
+    String? sub,
+  }) {
     final target = amountOf(a['target']);
     final balance = amountOf(a['balance']);
     final brand = (a['brand'] ?? '').toString();
-    String? sub;
+    // The caller's line (subtype and institution) is the default. A savings
+    // TARGET replaces it, because progress toward a goal is the more useful
+    // fact and a third clause would not fit on one line at any font size.
     double? progress;
     if (target > 0) {
       final pct = ((balance / target) * 100).clamp(0, 999).round();
+      final lead = sub ?? (brand.isNotEmpty ? brand : '');
       sub =
-          '${brand.isNotEmpty ? '$brand · ' : ''}$pct% of ${formatMoneyText(target)}';
+          '${lead.isNotEmpty ? '$lead · ' : ''}'
+          '$pct% of ${formatMoneyText(target)}';
       progress = (balance / target).clamp(0.0, 1.0);
-    } else if (brand.isNotEmpty) {
+    } else if (sub == null && brand.isNotEmpty) {
       sub = brand;
     }
+    // The bank's initials, but ONLY when there is no emoji to respect.
+    //
+    // CLAUDE.md's icon rule is that Salapify styles the icons IT authors and
+    // never touches the ones a person picked: an account icon is user data,
+    // it lives in the backup file, and replacing it would overwrite a choice
+    // that was never ours. So an account with any stored icon keeps it, and
+    // the avatar appears only where the field is genuinely empty, which is
+    // what the Add flow now leaves when a bank was chosen instead.
+    final storedIcon = (a['icon'] ?? '').toString();
+    final bankId = (a['institutionId'] ?? '').toString();
     return _row(
-      icon: (a['icon'] ?? '').toString().isEmpty ? '💵' : a['icon'].toString(),
+      icon: storedIcon.isEmpty ? '💵' : storedIcon,
+      leading: storedIcon.isEmpty && bankId.isNotEmpty
+          ? InstitutionAvatar(id: bankId, size: 30)
+          : null,
       name: a['name']?.toString() ?? 'Account',
       sub: sub,
       amount: balance,
@@ -318,23 +417,12 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _assetRow(BuildContext context, Map<String, dynamic> a) => _row(
-    icon: '📈',
-    name: a['name']?.toString() ?? 'Asset',
-    sub: (a['kind'] ?? '').toString(),
-    amount: amountOf(a['value']),
-    onTap: () => _openForm(context, isAccount: false, item: a),
-  );
-
-  Widget _plainRow(
-    String icon,
-    String name,
-    double amount, {
-    Color? amountColor,
-  }) => _row(icon: icon, name: name, amount: amount, amountColor: amountColor);
-
   Widget _row({
     required String icon,
+
+    /// Drawn instead of [icon] when given. Only ever the institution avatar,
+    /// and only where there is no emoji to respect.
+    Widget? leading,
     required String name,
     double? amount,
     String? sub,
@@ -346,7 +434,7 @@ class AccountsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Text(icon, style: const TextStyle(fontSize: 22)),
+          leading ?? Text(icon, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -676,7 +764,15 @@ class _AccountFormState extends State<_AccountForm> {
     }
     final name = _name.text.trim();
     final brand = _brand.text.trim();
-    final icon = _icon.text.trim().isEmpty ? '💵' : _icon.text.trim();
+    // The default emoji is NOT written when a bank was chosen and no icon was
+    // typed, so the row can show that bank's initials. Writing 💵 anyway would
+    // make "the person left it blank" and "the person picked the money emoji"
+    // the same stored value, and the row would then have to guess which, which
+    // is exactly the guess the icon rule forbids.
+    final typedIcon = _icon.text.trim();
+    final icon = typedIcon.isNotEmpty
+        ? typedIcon
+        : (_institutionId.isNotEmpty ? '' : '💵');
 
     setState(() => _saving = true);
     final id = widget.item?['id'];

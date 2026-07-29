@@ -1166,8 +1166,49 @@ void main() {
             'name': 'BPI Savings',
             'kind': 'savings',
             'balance': 48500.55,
+            'subtype': 'savings_account',
+            'institutionId': 'bpi',
           },
-          {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 1750},
+          {
+            'id': 'gcash',
+            'name': 'GCash',
+            'kind': 'ewallet',
+            'balance': 1750,
+            'subtype': 'ewallet',
+            'institutionId': 'gcash',
+          },
+          {
+            'id': 'pay',
+            'name': 'Salary account',
+            'kind': 'checking',
+            'balance': 22400,
+            'subtype': 'payroll_account',
+            'institutionId': 'unionbank',
+          },
+        ],
+        'assets': [
+          {'id': 'mp2', 'name': 'Pag-IBIG MP2', 'kind': 'mp2', 'value': 60000},
+          {'id': 'car', 'name': 'Motorcycle', 'kind': 'vehicle', 'value': 85000},
+        ],
+        'debts': [
+          {
+            'id': 'card',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 12400,
+            'minPayment': 1200,
+            'dueDay': 15,
+            'statementDay': 25,
+          },
+          {
+            'id': 'moto',
+            'name': 'Motorcycle loan',
+            'type': 'auto',
+            'remaining': 48000,
+            'minPayment': 3200,
+            'dueDay': 5,
+            'subtype': 'auto_loan',
+          },
         ],
       }),
     });
@@ -1185,6 +1226,21 @@ void main() {
         home: AccountsScreen(store: store),
       ),
     );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/accounts-grouped-dark.png'),
+    );
+    // The bottom half, because the debt sections are new and the top of the
+    // list is not where they are. A screen is only "looked at" if the part
+    // that changed was on screen.
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1400));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/accounts-grouped-tail-dark.png'),
+    );
+    await tester.drag(find.byType(ListView).first, const Offset(0, 1400));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Move money between accounts'));
     await tester.pumpAndSettle();
