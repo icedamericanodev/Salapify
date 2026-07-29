@@ -1030,7 +1030,7 @@ class OverviewScreen extends StatelessWidget {
                         TextSpan(
                           text: formatMoney(s.perDay),
                           style: TextStyle(
-                            fontFamily: 'Fraunces',
+                            fontFamily: Barako.displayFont,
                             color: Barako.text,
                             fontSize: 34,
                             fontWeight: FontWeight.w700,

@@ -1237,7 +1237,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         labelOverride ?? formatMoney(value),
         maxLines: 1,
         style: TextStyle(
-          fontFamily: 'Fraunces',
+          fontFamily: Barako.displayFont,
           color:
               colorOverride ??
               (value >= 0 ? Barako.primary : Barako.warningStrong),
@@ -1332,7 +1332,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Text(
               'Your reports build themselves',
               style: TextStyle(
-                fontFamily: 'Fraunces',
+                fontFamily: Barako.displayFont,
                 color: Barako.text,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,

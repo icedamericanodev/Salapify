@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.78 \u00b7 Groundwork for the new Accounts screen. Nothing looks different yet.';
+    'f2.79 \u00b7 One font everywhere. Negative amounts no longer look crossed out.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

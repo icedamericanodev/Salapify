@@ -598,23 +598,45 @@ class Barako {
   static Color get positiveBorder => current.positiveBorder;
   static Color get overlay => current.overlay;
 
-  /// The display serif, and the ONE rule that governs it.
+  /// The face for THE ONE NUMBER on a screen, at 30 or larger.
   ///
-  /// Fraunces marks THE ONE NUMBER on a screen, at 30 or larger, and nothing
-  /// else. Two hard limits decide this rather than taste:
+  /// It is Plus Jakarta Sans, the same family as everything else, and the
+  /// reason is a bug rather than taste. This used to be Fraunces, a display
+  /// serif. Fraunces draws ₱ with a long crossbar, and next to a minus sign
+  /// the two run together into what reads as a line STRUCK THROUGH the number:
+  /// "-₱720" looked like a crossed-out ₱720, on every negative figure in the
+  /// app. The founder saw it on their phone, said the old React Native app
+  /// looked better, and was right; the old app loads no custom font at all, so
+  /// every screen there is the plain Android system face.
   ///
-  /// 1. Fraunces ships no `tnum` table, verified with fontTools. So its digits
-  ///    are proportional: zero is 44% wider than one. It can NEVER align in a
-  ///    column, which rules it out of every list, legend, and table row. Every
-  ///    `FontFeature.tabularFigures()` paired with this family was a silent no
-  ///    op. Plus Jakarta Sans DOES have tnum, so amounts in rows use Jakarta
-  ///    and get real alignment.
-  /// 2. Only w600 and w700 ship, so it cannot reach the w800 a heading wants.
+  /// The choice was made by rendering the same figures in every candidate and
+  /// LOOKING (test/font_compare.dart). Jakarta separates the minus cleanly,
+  /// keeps the app's own character instead of looking like stock Android, and
+  /// unlike Fraunces it ships a real `tnum` table, so a hero number can hold
+  /// its column when it changes rather than jittering.
   ///
-  /// A heading is scanned and skipped, so it wants the neutral workhorse. A
-  /// hero number is meant to be looked at, and a different family says "this
-  /// is the headline" without spending more size to say it.
-  static const displayFont = 'Fraunces';
+  /// The old argument for a second family was that a different face says "this
+  /// is the headline" without spending size. True, and not worth a struck
+  /// through peso figure. Size, weight and colour already say it.
+  ///
+  /// One constant, deliberately, so this is one edit and not forty. There is a
+  /// test that fails on any file naming a font family directly.
+  static const displayFont = 'Jakarta';
+  /// The workhorse: every sentence, label, heading and row amount.
+  ///
+  /// Same family as [displayFont] today. They are kept as two constants
+  /// anyway, because they answer two different questions ("what does a hero
+  /// number look like" and "what does prose look like") and collapsing them
+  /// would mean a future decision to give hero numbers their own face again
+  /// has to be un-collapsed first.
+  ///
+  /// It exists mainly for the share images. Those draw off-screen into a
+  /// picture and do NOT inherit the app's text theme, so every Text in them
+  /// has to name a family, and twelve of them named it as a raw string. That
+  /// is exactly how a font change ships everywhere the founder looks and
+  /// nowhere they do not, until somebody shares a win and sees the old face.
+  static const bodyFont = 'Jakarta';
+
 
   /// The section kicker: the small uppercase label above a card's content.
   ///
