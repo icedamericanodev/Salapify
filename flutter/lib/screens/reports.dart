@@ -21,7 +21,7 @@ import '../theme.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'history.dart';
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, formatMoneyAbout;
 import 'shell.dart';
 
 const _months = [
@@ -683,10 +683,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     String read;
     if (peak.lightDay >= 0) {
       read =
-          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoney(peak.peakAvg)} a day. ${_dayLong[peak.lightDay]} are your lightest, about ${formatMoney(peak.lightAvg)}. Line up the big buys for a quieter day.';
+          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoneyAbout(peak.peakAvg)} a day. ${_dayLong[peak.lightDay]} are your lightest, about ${formatMoneyAbout(peak.lightAvg)}. Line up the big buys for a quieter day.';
     } else {
       read =
-          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoney(peak.peakAvg)} a day.';
+          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoneyAbout(peak.peakAvg)} a day.';
     }
 
     return Column(
@@ -1166,7 +1166,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 12),
         Text(
           saved > 0
-              ? 'With ${formatMoney(extra)} extra a month, avalanche keeps about ${formatMoney(saved)} more out of interest. If that gap feels small, take snowball for the quick win.'
+              ? 'With ${formatMoney(extra)} extra a month, avalanche keeps about ${formatMoneyAbout(saved)} more out of interest. If that gap feels small, take snowball for the quick win.'
               : 'At this amount both strategies cost about the same, so pick snowball for the motivation of an early win.',
           style: TextStyle(color: Barako.text, fontSize: 13, height: 1.4),
         ),

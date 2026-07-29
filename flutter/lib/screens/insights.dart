@@ -24,7 +24,7 @@ import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
-import 'overview.dart' show formatMoney, prettyDay;
+import 'overview.dart' show formatMoney, formatMoneyAbout, prettyDay;
 import 'windfall_card.dart';
 import 'shell.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
@@ -656,7 +656,7 @@ class InsightsScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Planned on your three leanest months out of the last six '
-            '(about ${formatMoney(suggestion.leanBaseline!.roundToDouble())} a month), so a good month '
+            '(about ${formatMoneyAbout(suggestion.leanBaseline!)} a month), so a good month '
             'becomes runway, not lifestyle.'
             '${runwayLine == null ? '' : ' $runwayLine'}',
             style: TextStyle(
@@ -780,8 +780,16 @@ class InsightsScreen extends StatelessWidget {
                   // plainly, while every other screen said "Jul 30". Nobody
                   // saw it because every render of this tab used an empty
                   // store and this card never had a payday to print.
-                  : 'About ${formatMoney(perDay)} a day for the next $daysLeft ${daysLeft == 1 ? 'day' : 'days'} (payday ${prettyDay((sts['payday'] ?? '').toString())}). '
-                        '${billCount > 0 ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.' : 'No bills land before then.'}',
+                  // "for the next 1 day" was the other half of this sentence
+                  // reading like a machine, and on the last day of a cycle
+                  // "a day" describes nothing anyway: there is one day left
+                  // and the rate and the amount are the same number.
+                  : (daysLeft == 1
+                            ? 'About ${formatMoneyAbout(perDay)} to reach tomorrow, your ${prettyDay((sts['payday'] ?? '').toString())} payday. '
+                            : 'About ${formatMoneyAbout(perDay)} a day for the next $daysLeft days (payday ${prettyDay((sts['payday'] ?? '').toString())}). ') +
+                        (billCount > 0
+                            ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.'
+                            : 'No bills land before then.'),
               style: TextStyle(
                 color: tight ? Barako.warning : Barako.muted,
                 fontSize: 13,

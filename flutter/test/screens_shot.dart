@@ -858,34 +858,20 @@ void main() {
     // seeds enough data that DO NEXT, TOOLS (folded launchers), and THE
     // BIGGER PICTURE all render; without it the batch 5 restructure would
     // have shipped with no render showing it, the session 7 lesson again.
+    //
+    // It used to seed a bespoke three-row store of its own: one cash account,
+    // one grocery expense, one credit card. Enough to make every band appear,
+    // which was all it was ever asked to do, and NOT enough to be a person.
+    // f2.84 gave shoot() a lived-in fixture and the shots that build their own
+    // store, this one included, quietly kept their thin ones. So the fullest
+    // render of Insights in this project showed "Money health 10 of 100" and
+    // "Spoken for: from 1 minimum", figures produced by a store with no income
+    // in it at all, and nobody could tell whether that was the app judging a
+    // real person harshly or an artefact of the fixture. A screen that reasons
+    // about somebody's money has to be looked at with somebody's money in it.
     await loadRealFonts(tester);
     SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode({
-        'schemaVersion': 12,
-        'accounts': [
-          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 20000},
-        ],
-        'transactions': [
-          {
-            'id': 't1',
-            'type': 'expense',
-            'label': 'Groceries',
-            'amount': 500,
-            'date': '2026-07-10',
-            'accountId': 'cash',
-          },
-        ],
-        'debts': [
-          {
-            'id': 'd1',
-            'name': 'BPI card',
-            'type': 'credit card',
-            'remaining': 12000,
-            'monthlyRate': 3,
-            'minPayment': 500,
-          },
-        ],
-      }),
+      storageKey: jsonEncode(livedInBlob),
     });
     final store = SalapifyStore();
     await store.load();

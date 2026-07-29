@@ -18,7 +18,7 @@ import '../theme.dart';
 import '../widgets/celebration.dart';
 import '../widgets/section.dart';
 import 'log_sheet.dart' show parseAmount;
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, formatMoneyAbout;
 
 const List<String> kDebtTypes = [
   'credit card',
@@ -727,7 +727,7 @@ class _DebtSheetState extends State<DebtSheet> {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      'About ${formatMoney(monthlyInterest(d))} interest gets added each month it sits.',
+                      'About ${formatMoneyAbout(monthlyInterest(d))} interest gets added each month it sits.',
                       style: TextStyle(color: Barako.muted, fontSize: 12),
                     ),
                   ),

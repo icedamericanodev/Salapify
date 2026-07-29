@@ -27,7 +27,7 @@ import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
-import '../money/format.dart' show formatMoney, prettyDay;
+import '../money/format.dart' show formatMoney, formatMoneyAbout, prettyDay;
 import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
@@ -44,7 +44,7 @@ import 'shell.dart';
 // import it from this file, and because the alternative, a second copy, is
 // precisely the bug that forced the move: the tile printed 413 where Home
 // printed 412.50, for the same number, at the same instant.
-export '../money/format.dart' show formatMoney, prettyDay;
+export '../money/format.dart' show formatMoney, formatMoneyAbout, prettyDay;
 
 /// An ISO date as a short human day, "Jul 27".
 ///
@@ -992,7 +992,7 @@ class OverviewScreen extends StatelessWidget {
         ? null
         : paceFits
         ? 'Your recent pace fits. Keep going.'
-        : 'Recent pace is about ${formatMoney(s.dailyPace.roundToDouble())} '
+        : 'Recent pace is about ${formatMoneyAbout(s.dailyPace)} '
               'a day. Easing ${formatMoney(easeWhole)} a day keeps you '
               'covered to payday.';
 
