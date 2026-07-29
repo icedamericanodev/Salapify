@@ -154,6 +154,26 @@ what it drew. Nothing fails when a screen becomes unreadable.
 Unchanged. Eight deliveries today all produced rows, so the mechanism is
 healthy, but a failure after the tests pass would still be quiet.
 
+> **Correction, 2026-07-29 (f2.87).** This was carried forward from session 1
+> without anyone re-reading the workflow, and half of it had already been
+> fixed: the "Say plainly that nothing shipped" step opens an issue on any
+> non-zero step, so a Shorebird step that FAILS has been loud for several
+> sessions. Carrying a lesson forward is not free, and this one had been
+> restated in every retrospective since while being false. It is the same
+> mistake CLAUDE.md names one paragraph away: when a rule describes what a
+> tool does, read the tool, not the rule.
+>
+> Re-reading it found the half that was genuinely open, and it is a different
+> shape from the one written above: a Shorebird step that **succeeds having
+> shipped nothing**. On a patch run the patch number is parsed with `|| true`,
+> necessarily, so an empty one is indistinguishable from success and the
+> delivery row would be written reading "patch: none" while the phone received
+> nothing. A row is the one thing here treated as proof of delivery.
+> **Closed** by `.github/scripts/verify-shipped.sh`, which runs before the row
+> is written, and `flutter/test/publisher_guard_test.dart`, which drives it
+> through every failure shape on the branch check. That test is also the first
+> time any of the publisher's logic has been testable without shipping.
+
 **Open 4 (carried, session 1). Nothing compares the phone to main.** The
 founder is still the detector of last resort. Acceptable while they are the
 only user; not acceptable at launch.
