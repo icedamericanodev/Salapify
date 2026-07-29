@@ -23,8 +23,24 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
 
-    // Add.
-    await tester.tap(find.text('+ Account'));
+    // Add. The two buttons became one, and it now asks what is being added
+    // before it opens the form (screens/add_account_flow.dart), so this walks
+    // the same path a person does.
+    await tester.tap(find.text('+ Add an account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cash and e-wallets'));
+    await tester.pumpAndSettle();
+    // Scrolled to, because the subtype list is longer than the sheet and a
+    // ListView does not build what is off screen. tester.tap on a widget that
+    // is not there throws; on one that is merely off screen it silently does
+    // nothing, which is worse.
+    await tester.scrollUntilVisible(
+      find.text('E-wallet'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('E-wallet'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), 'GCash');
     await tester.enterText(find.byType(TextField).at(1), '5000');
