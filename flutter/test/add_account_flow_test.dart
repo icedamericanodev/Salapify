@@ -428,8 +428,11 @@ void main() {
 
     final a = _rows(store, 'accounts').first;
     expect(a['currencyCode'], 'USD');
-    // And the list says so where the totals are, not only in the form.
-    expect(find.textContaining('not counted in the total'), findsOneWidget);
+    // And the list says so where the total is, not only in the form. With no
+    // rate cached, the sentence is the no-rate branch of the conversion rules
+    // and it OFFERS a way out rather than just stating a limit.
+    expect(find.textContaining('no rate for USD'), findsOneWidget);
+    expect(find.text('Set a USD rate'), findsOneWidget);
     expect(find.text('\$1,000.00'), findsOneWidget);
   });
 
@@ -453,6 +456,91 @@ void main() {
     final a = _rows(store, 'accounts').first;
     expect(a.containsKey('currencyCode'), isFalse);
     expect(find.textContaining('not counted'), findsNothing);
+  });
+
+  testWidgets('a typed rate converts the total, and the screen says so', (
+    tester,
+  ) async {
+    // The manual rate path, driven end to end. The offer to enter one is
+    // useless if the value it stores never reaches a total, and a branch that
+    // reads as live code while being unreachable is a defect this session has
+    // already found once.
+    final store = await _store({
+      'schemaVersion': 12,
+      'settings': {'onboarded': true},
+      'accounts': [
+        {'id': 'a', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        {
+          'id': 'b',
+          'name': 'Chase',
+          'kind': 'savings',
+          'balance': 100,
+          'currencyCode': 'USD',
+        },
+      ],
+    });
+    await _open(tester, store);
+    // No rates cached in a test, so the dollar account starts excluded.
+    expect(find.textContaining('no rate for USD'), findsOneWidget);
+    // findsWidgets, not findsOneWidget: the same figure legitimately appears
+    // as net worth, as total assets, as the section subtotal and on the row.
+    // The exact arithmetic is pinned in fx_totals_test; what matters here is
+    // that the SCREEN moves when a rate is entered.
+    expect(find.text('₱5,000'), findsWidgets);
+    expect(find.text('₱10,000'), findsNothing);
+
+    await _tap(tester, find.text('Set a USD rate'));
+    expect(find.text('USD to PHP'), findsOneWidget);
+    await _type(tester, 'e.g. 56.50', '50');
+    await _tap(tester, find.text('Use this rate'));
+    // setManualRate writes, THEN rebuilds the rate table from disk. That is
+    // two awaits behind the dialog's own pop, and one pumpAndSettle inside
+    // _tap only drains the first. Without this the store has the rate and the
+    // screen has not been told, which reads exactly like the conversion not
+    // working.
+    await tester.pumpAndSettle();
+
+    expect(store.data['settings']['manualRates'], {'USD': 50.0});
+    // 5000 + 100 * 50 = 10,000, and the sentence names where that came from.
+    expect(find.text('₱10,000'), findsWidgets);
+    expect(
+      find.textContaining('a rate you entered yourself'),
+      findsOneWidget,
+      reason: 'the total moved and nothing said why',
+    );
+  });
+
+  testWidgets('removing a typed rate puts the total back', (tester) async {
+    final store = await _store({
+      'schemaVersion': 12,
+      'settings': {
+        'onboarded': true,
+        'manualRates': {'USD': 50.0},
+      },
+      'accounts': [
+        {'id': 'a', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+        {
+          'id': 'b',
+          'name': 'Chase',
+          'kind': 'savings',
+          'balance': 100,
+          'currencyCode': 'USD',
+        },
+      ],
+    });
+    await _open(tester, store);
+    expect(find.text('₱10,000'), findsWidgets);
+
+    // The offer is gone once a rate exists, so the way back in is the row
+    // itself; the notice is what tells somebody a rate is in play.
+    expect(find.text('Set a USD rate'), findsNothing);
+    expect(find.textContaining('a rate you entered yourself'), findsOneWidget);
+
+    await store.setManualRate('USD', null);
+    await tester.pumpAndSettle();
+    expect(store.data['settings'].containsKey('manualRates'), isFalse);
+    expect(find.text('₱5,000'), findsWidgets);
+    expect(find.text('₱10,000'), findsNothing);
   });
 
   testWidgets('cash on hand is not asked which bank it is in', (tester) async {

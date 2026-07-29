@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.82 \u00b7 Foreign currency accounts, kept honestly out of your peso totals.';
+    'f2.83 \u00b7 Foreign accounts now convert, and the screen says what rate it used.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

@@ -106,3 +106,25 @@ String? excludedNotice(dynamic data) {
       'convert to $base yet. The amounts are still yours, and still shown '
       'below in their own currency.';
 }
+
+/// The rates a person typed, keyed by upper case currency code.
+///
+/// A CONDITIONAL settings key, the `paluwagans` pattern: absent on every blob
+/// that has never had one, so the backup goldens generated from the React
+/// Native app never gain the key. Junk is dropped rather than corrected, the
+/// same rule the account fields follow, because a rate somebody cannot see is
+/// a rate that should not be silently repaired.
+Map<String, double> manualRatesOf(dynamic data) {
+  final d = data is Map ? data : const {};
+  final s = d['settings'];
+  final raw = s is Map ? s['manualRates'] : null;
+  if (raw is! Map) return const {};
+  final out = <String, double>{};
+  raw.forEach((k, v) {
+    if (k is! String || !RegExp(r'^[A-Za-z]{3}$').hasMatch(k)) return;
+    final n = v is num ? v.toDouble() : double.tryParse('$v');
+    if (n == null || !n.isFinite || n <= 0) return;
+    out[k.toUpperCase()] = n;
+  });
+  return out;
+}

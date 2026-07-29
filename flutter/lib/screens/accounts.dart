@@ -13,7 +13,9 @@ import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
-    show baseCurrencyOf, excludedNotice, inBaseCurrency;
+    show baseCurrencyOf, excludedNotice, manualRatesOf;
+import '../money/fx_totals.dart'
+    show FxOutcome, conversionNotice, resolveRate;
 import '../money/currencies.dart'
     show baseCurrencySymbol, currencies, currencySymbol, formatConverted;
 import '../money/transfers.dart'
@@ -99,7 +101,7 @@ class AccountsScreen extends StatelessWidget {
                 groups[resolveKind(r, which).category.id]!.add((r, which));
               }
             }
-            final parts = netWorthParts(store.data);
+            final parts = netWorthParts(store.data, fx: store.fxTable);
 
             double amountOfRow((Map<String, dynamic>, AccountStore) e) =>
                 switch (e.$2) {
@@ -114,18 +116,45 @@ class AccountsScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 _summary(parts),
-                // Directly UNDER the number it explains. It sat at the bottom
-                // of the list first, which meant the figure somebody was
-                // reading and the sentence saying it was incomplete were a
-                // full scroll apart. Named rather than counted, and never
-                // silent: excluding a foreign row and saying nothing would be
-                // the same failure the exclusion exists to prevent, quieter.
-                if (excludedNotice(store.data) case final notice?)
+                // What the total was converted with, or what it left out,
+                // directly UNDER the number it explains. It sat at the bottom
+                // of the list first, a full scroll from the figure somebody
+                // was reading.
+                //
+                // There is no state in which a converted number is shown
+                // without this line. That is the design document's rule and
+                // the whole reason conversion was gated separately from the
+                // rest of the feature.
+                if (_fxNotice(store, parts) case final notice?)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       notice,
                       style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
+                  ),
+                if (_missingRateCodes(parts).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final code in _missingRateCodes(parts))
+                          TextButton(
+                            onPressed: () =>
+                                _askManualRate(context, store, code),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text('Set a $code rate'),
+                          ),
+                      ],
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -155,14 +184,16 @@ class AccountsScreen extends StatelessWidget {
                   if (groups[c.id]!.isNotEmpty)
                     _section(
                       c.label.toUpperCase(),
-                      groups[c.id]!
-                          .where(
-                            (e) => inBaseCurrency(
-                              e.$1,
-                              baseCurrencyOf(store.data),
-                            ),
-                          )
-                          .fold(0.0, (t, e) => t + amountOfRow(e)),
+                      // Counts exactly what the total above counts: base
+                      // currency rows, plus any foreign row the app can price.
+                      // A subtotal that used a different rule from the total
+                      // is the "two versions of one number" bug, and it is
+                      // easy to write by accident because each rule looks
+                      // right on its own.
+                      groups[c.id]!.fold(
+                        0.0,
+                        (t, e) => t + _countedAmount(e, amountOfRow(e)),
+                      ),
                       [
                         for (final e in groups[c.id]!) _taxonomyRow(context, e),
                         // Once, under the last debt section, not under each.
@@ -194,6 +225,55 @@ class AccountsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The one sentence under the total.
+  ///
+  /// With a rate table it names what was converted and with what; without one
+  /// it names what was left out. Both come from the same place, so a person
+  /// never sees a total whose provenance is unexplained.
+  String? _fxNotice(SalapifyStore store, Map<String, dynamic> parts) {
+    final t = store.fxTable;
+    if (t == null) return excludedNotice(store.data);
+    final a = parts['fxAssets'] as FxOutcome?;
+    final d = parts['fxDebts'] as FxOutcome?;
+    if (a == null || d == null) return excludedNotice(store.data);
+    // Assets and debts are converted separately so a foreign debt lands on
+    // the right side, but the SENTENCE is about the total, so the two are
+    // merged for the reader.
+    final merged = FxOutcome(0, {...a.excluded, ...d.excluded}, {
+      ...a.used,
+      ...d.used,
+    });
+    return conversionNotice(t, merged);
+  }
+
+  /// The currencies with no rate at all, which are the only ones worth
+  /// offering to price by hand.
+  List<String> _missingRateCodes(Map<String, dynamic> parts) {
+    final a = parts['fxAssets'] as FxOutcome?;
+    final d = parts['fxDebts'] as FxOutcome?;
+    return {...?a?.excluded.keys, ...?d?.excluded.keys}.toList()..sort();
+  }
+
+  Future<void> _askManualRate(
+    BuildContext context,
+    SalapifyStore store,
+    String code,
+  ) async {
+    final base = baseCurrencyOf(store.data);
+    final entered = await showDialog<double?>(
+      context: context,
+      builder: (ctx) => _ManualRateDialog(
+        code: code,
+        base: base,
+        existing: manualRatesOf(store.data)[code],
+      ),
+    );
+    if (entered == null) return;
+    // 0 is the Remove button, and a junk parse also lands here; both clear the
+    // rate rather than storing something the totals would then trust.
+    await store.setManualRate(code, entered > 0 ? entered : null);
   }
 
   Widget _summary(Map<String, dynamic> parts) => Card(
@@ -442,6 +522,24 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
+  /// A row's contribution to a base-currency subtotal.
+  ///
+  /// Base currency rows count as themselves; foreign rows count as their
+  /// converted value, or as nothing when there is no rate. The same three
+  /// cases netWorthParts uses, so the subtotal and the total can never
+  /// disagree about a row.
+  double _countedAmount(
+    (Map<String, dynamic>, AccountStore) e,
+    double amount,
+  ) {
+    final code = _foreignCodeOf(e.$1);
+    if (code == null) return amount;
+    final t = store.fxTable;
+    if (t == null) return 0;
+    final r = resolveRate(t, code);
+    return r.basePerUnit == null ? 0 : amount * r.basePerUnit!;
+  }
+
   /// The row's own currency, when it differs from the app's. Null otherwise,
   /// which is every row that has ever existed.
   String? _foreignCodeOf(Map<String, dynamic> r) {
@@ -449,6 +547,25 @@ class AccountsScreen extends StatelessWidget {
     final c = r['currencyCode'];
     if (c is! String || c.isEmpty) return null;
     return c.toUpperCase() == base ? null : c.toUpperCase();
+  }
+
+  /// What the second line under a foreign amount should say.
+  ///
+  /// This exists because the first version said "not counted" on every foreign
+  /// row, unconditionally. Once conversion shipped that became a LIE on any row
+  /// the app could price: net worth included the converted dollars, and the row
+  /// underneath insisted they were left out. Two versions of one number, which
+  /// is a bug this project has fixed before.
+  ///
+  /// So the line follows the same resolution the total used. Converted, it
+  /// shows the base-currency equivalent, marked with a tilde because it is an
+  /// equivalent and not a balance. Unpriceable, it says so.
+  String _foreignSubLabel(String code, double amount) {
+    final t = store.fxTable;
+    if (t == null) return 'not counted';
+    final r = resolveRate(t, code);
+    if (r.basePerUnit == null) return 'not counted';
+    return '~ ${formatMoneyText(amount * r.basePerUnit!)}';
   }
 
   Widget _row({
@@ -532,7 +649,7 @@ class AccountsScreen extends StatelessWidget {
                 ),
                 if (foreignCode != null)
                   Text(
-                    'not counted',
+                    _foreignSubLabel(foreignCode, amount),
                     style: TextStyle(color: Barako.muted, fontSize: 11),
                   ),
               ],
@@ -1606,4 +1723,97 @@ class _TransferSheetState extends State<_TransferSheet> {
         ),
     ],
   );
+}
+
+
+/// The rate dialog, as a widget rather than a local in an async function.
+///
+/// It was a local first, and that was a CRASH, not a style problem. The
+/// controller was disposed the moment showDialog returned, while the dialog
+/// was still animating out and its TextField was still reading it, so tapping
+/// "Use this rate" threw "A TextEditingController was used after being
+/// disposed" and took the frame down. A widget test found it; nothing in the
+/// code reads as wrong.
+class _ManualRateDialog extends StatefulWidget {
+  final String code;
+  final String base;
+  final double? existing;
+  const _ManualRateDialog({
+    required this.code,
+    required this.base,
+    this.existing,
+  });
+
+  @override
+  State<_ManualRateDialog> createState() => _ManualRateDialogState();
+}
+
+class _ManualRateDialogState extends State<_ManualRateDialog> {
+  late final TextEditingController _ctl;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _ctl = TextEditingController(
+      text: e == null
+          ? ''
+          : (e == e.roundToDouble() ? e.toInt().toString() : e.toString()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Barako.surfaceRaised,
+      title: Text(
+        '${widget.code} to ${widget.base}',
+        style: TextStyle(color: Barako.text),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            // The direction is stated in words, because a rate typed upside
+            // down is a total wrong by a factor of thousands and looks
+            // perfectly reasonable on the way in.
+            'How many ${widget.base} is ONE ${widget.code} worth?',
+            style: TextStyle(color: Barako.muted, fontSize: 13),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _ctl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: TextStyle(color: Barako.text),
+            decoration: const InputDecoration(hintText: 'e.g. 56.50'),
+          ),
+        ],
+      ),
+      actions: [
+        if (widget.existing != null)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(0.0),
+            child: const Text('Remove'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(
+            double.tryParse(_ctl.text.trim().replaceAll(',', '')),
+          ),
+          child: const Text('Use this rate'),
+        ),
+      ],
+    );
+  }
 }
