@@ -96,7 +96,13 @@ const _barakoDark = BarakoPalette(
   muted: Color(0xFFA99182),
   faint: Color(0xFF97806F),
   warning: Color(0xFFFF5D73),
-  warningStrong: Color(0xFFF5384F),
+  // Lifted two points from F5384F, which measured 4.4996 against this card:
+  // under WCAG AA by four ten-thousandths. Not a judgement call about how it
+  // looks, a rounding hair on the wrong side of a published bar, found by
+  // palette_contrast_test rather than by eye, and invisible at two points.
+  // It matters because warningStrong carries the 13pt section subtotals on
+  // Accounts, which are small enough that the 4.5 bar genuinely applies.
+  warningStrong: Color(0xFFF73A51),
   onPrimary: Color(0xFF2A1305),
   celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF2E2114),
@@ -264,7 +270,10 @@ const _emberDark = BarakoPalette(
   muted: Color(0xFFAC9A8C),
   faint: Color(0xFF958578),
   warning: Color(0xFFFF556E),
-  warningStrong: Color(0xFFF53A57),
+  // Lifted five points from F53A57, which measured 4.33 against Ember's
+  // slightly lighter card and was genuinely under AA rather than on the line.
+  // Same reason as Barako above: this colour carries 13pt subtotals.
+  warningStrong: Color(0xFFFA3F5C),
   onPrimary: Color(0xFF2A0E04),
   celebrate: Color(0xFFFFB020),
   positiveSurface: Color(0xFF2E2016),
