@@ -10,6 +10,163 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-29, session 17: sixteen screenshots with no money in them
+
+Eight deliveries in one day: f2.76 as a new base APK for the home screen
+widget, then patches 1 through 7 (f2.77 to f2.83). Every one confirmed on the
+phone. Ground truth is docs/delivery-log.md, read before writing this.
+
+The founder found two bugs before any test did. That is the thread running
+through the whole day, and the cause turned out to be one thing.
+
+### Lesson 1. Every screenshot this project has ever taken was of an empty app
+
+**Evidence.** `test/screens_shot.dart`, line 186, inside `shoot()`, the helper
+that renders sixteen images (eight screens at two brightnesses):
+
+    SharedPreferences.setMockInitialValues({});
+
+An empty store. So Home, Budget, Insights, Activity, Utang and Menu were
+rendered, looked at, and approved dozens of times as FIRST-RUN WELCOME
+SCREENS. Not one of those images has ever contained a peso figure.
+
+**What it cost.** The founder opened f2.76 and saw `-₱720` with a line through
+it. The display serif drew the peso sign with a long crossbar that ran into the
+minus, so every negative amount in the app read as struck through. It was on
+Home. It had been rendered many times. It was invisible every time, because
+Home had no amounts in it.
+
+CLAUDE.md has said "look at the screen before shipping a screen" since a
+previous incident, and that rule was FOLLOWED. It was followed against a
+fixture that could not show the defect. A rule about looking is worth nothing
+if the thing being looked at is not the thing that ships.
+
+**Guard.** `shoot()` now loads a lived-in phone: four accounts with odd
+balances, twelve categorised expenses across a month, income, a card and a
+loan, somebody who owes and somebody who is owed, a goal part way there, and a
+logging streak. Dates are relative to a fixed day so the images do not churn
+with the calendar.
+Strength: **strong** (a fixture every future render inherits).
+
+**It paid for itself in the same session.** The first render with real data
+surfaced two things nobody had ever seen:
+
+1. Insights printed `(payday 2026-07-30)`, a machine date in a sentence, while
+   every other screen in the app says "Jul 30". Fixed, and guarded by
+   `test/no_iso_dates_in_copy_test.dart`, which was proven by putting the bug
+   back and watching it name the exact line.
+2. The first version of the fixture itself used `'category': 'Food'`, which no
+   engine reads, so the Budget breakdown quietly grouped by LABEL. The
+   screenshot looked plausible. Reading `money/budget.dart` rather than trusting
+   the picture is what caught it, which is the same lesson one level down.
+
+### Lesson 2. Two defaults changed underneath the app, and only a phone noticed
+
+**Evidence.** Flutter's `SnackBar` defaults `persist` to `action != null`. So
+every snackbar offering Undo, seven of them on the most used write paths,
+ignored the `duration` written directly above it. The code said four seconds
+and meant it.
+
+**What it cost.** The founder logged an expense and the receipt sat on screen,
+on every tab, until swiped. Reported within minutes of installing.
+
+**Guard.** A widget test that logs a real expense and watches the receipt
+leave, plus a source scan that refuses any `SnackBar` carrying an action
+without an explicit `persist` decision. Both proven failing first. There is a
+third test proving the scanner can flag something, because a scanner that
+matches nothing reads exactly like a clean bill of health.
+Strength: **strong** (two machines).
+
+**The general shape.** Neither of these was a mistake in Salapify's code. Both
+were a dependency changing what "no opinion" means. The durable answer is the
+one used here twice: where a default decides behaviour a person will notice,
+state the choice explicitly and scan for anyone who forgot.
+
+### Lesson 3. "Two versions of one number" recurred twice in one day
+
+**Evidence, both caught internally.**
+
+- f2.80: the Add-account form still showed the Kind chips after the subtype had
+  been chosen one screen earlier, so picking "Payroll account" and then tapping
+  "Cash" stored `kind: 'cash'` beside `subtype: 'payroll_account'`. Found by
+  looking at the render.
+- f2.83: with conversion working, net worth counted the converted dollars while
+  the row six lines below said "not counted" and the section subtotal excluded
+  them. Three numbers on one screen disagreeing. Found by a widget test written
+  almost as an afterthought.
+
+**Guard.** Both have tests. The general rule is stronger and is now written
+into the two screens: a subtotal must be computed by the same function as the
+total, not by a rule that looks equivalent. Every one of these bugs was two
+pieces of code that each read correctly on their own.
+Strength: **medium** (tests for the two instances, a rule for the class).
+
+### Lesson 4. The assert-before-write pattern bit again, on its seventh outing
+
+**Evidence.** A python heredoc that asserts an anchor string exists and then
+writes. The assert threw, the script exited before `write()`, nothing changed,
+and `flutter analyze` reported errors from an edit that had never landed. It
+cost one round in the middle of delivery E.
+
+Session 16 already concluded: "The fix is not 'be careful', it is 'stop using
+that tool for edits', because the safer tool refuses loudly instead of doing
+nothing quietly." That conclusion was recorded, agreed, and then not followed.
+
+**Why no guard is possible.** Nothing in this repository can observe how a file
+gets edited. This one is a rule and cannot be a machine.
+
+**What changes anyway.** The failure is only silent because the assert runs
+BEFORE the write. Ordering it the other way, or using the Edit tool, makes a
+missing anchor an immediate loud failure. The Edit tool was used for the repair
+and for every edit after it in this session.
+Strength: **weak** (a rule that has now failed seven times). Recorded honestly
+rather than dressed up.
+
+### What went right, and is worth keeping
+
+Delivery A of the accounts feature shipped INVISIBLY, on purpose, so the data
+design could be wrong cheaply. It was: assets already carry a meaningful type
+and the first version read them all as "something else", which would have shown
+a crypto holding and a house as the same line item. Nothing depended on it yet,
+so the fix cost minutes. That ordering is worth repeating on any feature whose
+storage shape is uncertain.
+
+Delivery E's riskiest decision was refusing a convenience: the exchange rate
+table is passed in as an argument rather than kept in a module variable. A
+currency SIGN in a global is fine, because being wrong for one frame is
+cosmetic. A RATE in a global is a total that depends on hidden state, which is
+how a money app gets "it was right yesterday".
+
+### Open lessons carried forward
+
+**Open 1 (new). Nobody looks at the light renders.** The fixture fix covers
+both brightnesses, but the standing habit is to review dark first because that
+is what the founder uses, and light usually goes unopened. A contrast defect in
+light would survive exactly the way the strikethrough did.
+Candidate guard: an automated contrast check over the rendered light images,
+rather than another instruction to look.
+
+**Open 2 (new). The render harness is still opt-in.** CI runs it with
+`--update-goldens`, which proves it does not crash and proves nothing about
+what it drew. Nothing fails when a screen becomes unreadable.
+
+**Open 3 (carried, session 1). A Shorebird step failure is still silent.**
+Unchanged. Eight deliveries today all produced rows, so the mechanism is
+healthy, but a failure after the tests pass would still be quiet.
+
+**Open 4 (carried, session 1). Nothing compares the phone to main.** The
+founder is still the detector of last resort. Acceptable while they are the
+only user; not acceptable at launch.
+
+### What it cost
+
+Two founder-reported defects, both fixed within the hour of being reported, and
+one internal round lost to a known-bad edit pattern. No wrong money reached the
+phone and no data was at risk. The expensive part is what almost happened
+rather than what did: the conversion work in f2.83 shipped with three numbers
+briefly disagreeing on one screen, and it was a test written on a hunch, not
+the process, that caught it.
+
 ## 2026-07-28, session 16: the bug was in the feature next door
 
 f2.75 delivered cleanly, was confirmed on the founder's phone, and nothing
