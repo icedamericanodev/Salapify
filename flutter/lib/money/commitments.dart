@@ -7,6 +7,7 @@
 // passed. Dates cross the API as ISO strings so the shapes are
 // JSON-friendly and golden-comparable.
 
+import 'base_currency_scope.dart' show baseCurrencyOf, inBaseCurrency;
 import 'ledger.dart' show amountOf;
 import 'phcalendar.dart';
 import 'schedule.dart';
@@ -227,10 +228,17 @@ const List<String> liquidKinds = ['cash', 'ewallet', 'checking'];
 /// payday, after setting aside the bills that land before then.
 Map<String, dynamic> safeToSpend(Map<String, dynamic> data, DateTime ref) {
   final c = upcomingCommitments(data, ref);
+  // Foreign accounts are not spendable pesos, so they never reach the daily
+  // number. This one matters more than net worth does: safeToSpend drives the
+  // figure on Home and on the home screen widget, and a dollar balance counted
+  // as pesos there would tell somebody they can spend money they do not have.
+  final base = baseCurrencyOf(data);
   var liquid = 0.0;
   for (final raw
       in (data['accounts'] is List ? data['accounts'] as List : const [])) {
-    if (raw is Map && liquidKinds.contains(raw['kind'])) {
+    if (raw is Map &&
+        liquidKinds.contains(raw['kind']) &&
+        inBaseCurrency(raw, base)) {
       liquid += amountOf(raw['balance']);
     }
   }

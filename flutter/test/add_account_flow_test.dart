@@ -399,6 +399,62 @@ void main() {
     expect(find.text('💵'), findsOneWidget);
   });
 
+  testWidgets('choosing a foreign currency WARNS before it is saved', (
+    tester,
+  ) async {
+    // The consequence is stated at the moment of choosing. Somebody who
+    // records a dollar account and is not told it sits outside their peso
+    // totals will read a net worth that silently omits it, and a missing
+    // feature is visible where a wrong total is not.
+    final store = await _store();
+    await _open(tester, store);
+    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Cash and e-wallets'));
+    await _tap(tester, find.text('Savings account'));
+    expect(find.text('Currency'), findsOneWidget);
+    expect(
+      find.textContaining('will NOT be counted'),
+      findsNothing,
+      reason: 'a peso account was warned about for no reason',
+    );
+
+    await _tap(tester, find.text('PHP  ₱'));
+    await _tap(tester, find.textContaining('USD'));
+    expect(find.textContaining('will NOT be counted'), findsOneWidget);
+
+    await _type(tester, 'e.g. GCash', 'Chase');
+    await _type(tester, '0', '1000');
+    await _tap(tester, find.text('Save'));
+
+    final a = _rows(store, 'accounts').first;
+    expect(a['currencyCode'], 'USD');
+    // And the list says so where the totals are, not only in the form.
+    expect(find.textContaining('not counted in the total'), findsOneWidget);
+    expect(find.text('\$1,000.00'), findsOneWidget);
+  });
+
+  testWidgets('the base currency is NOT stored as a per-row code', (
+    tester,
+  ) async {
+    // A row that just restates the app setting is noise that would have to be
+    // kept in step with it forever. Absent means "the app's currency", which
+    // is what every row in every existing backup already means.
+    final store = await _store();
+    await _open(tester, store);
+    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Cash and e-wallets'));
+    await _tap(tester, find.text('Savings account'));
+    await _tap(tester, find.text('PHP  ₱'));
+    await _tap(tester, find.textContaining('PHP'));
+    await _type(tester, 'e.g. GCash', 'BPI');
+    await _type(tester, '0', '1000');
+    await _tap(tester, find.text('Save'));
+
+    final a = _rows(store, 'accounts').first;
+    expect(a.containsKey('currencyCode'), isFalse);
+    expect(find.textContaining('not counted'), findsNothing);
+  });
+
   testWidgets('cash on hand is not asked which bank it is in', (tester) async {
     final store = await _store();
     await _open(tester, store);
