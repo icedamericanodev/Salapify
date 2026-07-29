@@ -117,6 +117,34 @@ CI does run it, deliberately and separately, with `--update-goldens` so it only
 writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
 
+## Test the app the way a person uses it, not one screen at a time
+
+`flutter/test/journeys_test.dart` taps and types through several features in one
+sitting and then checks that every screen still agrees about the money. Sixty
+other test files each drive ONE screen with a store built for it, which is good
+and is not this: a defect that is correct where it was written and wrong where it
+is read has nowhere to be caught by those. Three false alarms in one afternoon
+came from two screens seeming to disagree, and none could be settled, because no
+test had ever put two screens in front of the same store.
+
+Journeys assert INVARIANTS, never expected values. An expected value has to be
+recomputed by hand whenever a fixture moves, and the moment that gets tedious
+somebody pastes in whatever the code printed, which asserts what the code does
+and reads like proof. An invariant is a sentence that cannot be false: moving
+money between your own accounts cannot change your net worth, paying a debt
+cannot either (an asset falls and a liability falls by the same amount), spending
+reduces it by exactly what was spent, lending and being repaid returns to the
+start.
+
+Every invariant needs a did-anything-happen check beside it, because an invariant
+also holds when the action silently did nothing: a transfer that transfers
+nothing preserves net worth perfectly. Without that second assertion the test
+passes hardest when the feature is most broken.
+
+The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
+the discipline around it. Use it when the founder cannot test by hand, which is
+most of the time.
+
 ## Prove a new test can fail before trusting it
 
 When adding a test to guard a lesson, break the code once, watch it fail, and
