@@ -14,6 +14,7 @@
 import 'dart:convert' show JsonEncoder;
 
 import '../money/account_taxonomy.dart' show AccountStore, taxonomyKeys;
+import '../money/base_currency_scope.dart' show manualRatesOf;
 import '../money/greeting.dart' show normalizeDisplayName;
 
 const int schemaVersion = 12;
@@ -552,6 +553,17 @@ Map<String, dynamic> sanitizeData(
         s['quickAddsEdited'] = true;
       } else {
         s.remove('quickAddsEdited');
+      }
+      // Rates the person typed for currencies Salapify could not price. A
+      // CONDITIONAL key like the three above, so the RN-generated fixtures
+      // never gain it. Validated here rather than trusted: a rate is
+      // arithmetic that goes straight into a total, and a junk one from a
+      // hand-edited backup would produce a confident wrong net worth.
+      final manual = manualRatesOf({'settings': settings});
+      if (manual.isEmpty) {
+        s.remove('manualRates');
+      } else {
+        s['manualRates'] = manual;
       }
       final pal = settings['paluwagans'];
       if (pal is List) {

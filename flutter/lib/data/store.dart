@@ -12,6 +12,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:math';
 
+import '../money/base_currency_scope.dart'
+    show baseCurrencyOf, manualRatesOf;
+import '../money/fx_totals.dart' show FxTable;
 import '../money/greeting.dart';
 import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
@@ -20,6 +23,7 @@ import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
+import 'fx_service.dart' show FxService;
 import '../money/sample_data.dart' show isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
@@ -27,7 +31,6 @@ import '../money/categories.dart' as categories;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
-import 'fx_service.dart' show FxService;
 
 const String storageKey = 'salapify_data_v2';
 
@@ -324,6 +327,69 @@ class SalapifyStore extends ChangeNotifier {
     return firstRun;
   }
 
+  /// The exchange rates this session will convert with, or null for none.
+  ///
+  /// Null until [loadFxTable] runs, and null forever off a real phone, which
+  /// is why every engine treats a null table as "convert nothing" and behaves
+  /// exactly as it did before conversion existed.
+  ///
+  /// It lives on the store rather than in a module variable because it is
+  /// ARITHMETIC. A currency sign being wrong for one frame is cosmetic; a rate
+  /// being wrong is a wrong total, and hidden state set somewhere else is how
+  /// a money app gets "it was right yesterday".
+  ///
+  /// It is NOT part of `data`. Live rates never enter the backup file, by the
+  /// same rule fx_service.dart already follows, so a person's export never
+  /// carries a snapshot of the market.
+  FxTable? fxTable;
+
+  /// Rebuild [fxTable] from the cached rates and the person's manual ones.
+  ///
+  /// Safe to call as often as you like and safe to fail: a missing cache, a
+  /// broken read, or no network ever leaves the table null, which converts
+  /// nothing and excludes everything foreign, which is the honest answer.
+  Future<void> loadFxTable({FxService? service, DateTime? now}) async {
+    try {
+      final base = baseCurrencyOf(data);
+      final cached = await (service ?? FxService()).cached(base);
+      final at = now ?? DateTime.now();
+      fxTable = FxTable(
+        base: base,
+        rates: cached?.rates ?? const {},
+        fetchedAt: cached?.fetchedAt,
+        manual: manualRatesOf(data),
+        nowMs: at.millisecondsSinceEpoch,
+      );
+    } catch (_) {
+      fxTable = null;
+    }
+    notifyListeners();
+  }
+
+  /// Store a rate the person typed, or remove it with a null.
+  ///
+  /// Base currency per ONE unit, the same direction the label on the field
+  /// says, so what somebody types and what the total uses are the same number.
+  Future<void> setManualRate(String code, double? rate) async {
+    final c = code.toUpperCase();
+    await _mutate((d) {
+      final settings = {...(d['settings'] as Map? ?? const {})};
+      final rates = {...(settings['manualRates'] as Map? ?? const {})};
+      if (rate == null || !rate.isFinite || rate <= 0) {
+        rates.remove(c);
+      } else {
+        rates[c] = rate;
+      }
+      if (rates.isEmpty) {
+        settings.remove('manualRates');
+      } else {
+        settings['manualRates'] = rates;
+      }
+      return {...d, 'settings': settings};
+    });
+    await loadFxTable();
+  }
+
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -345,6 +411,10 @@ class SalapifyStore extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+    // After the data, because the base currency and the manual rates both come
+    // out of it. Never blocks: a failure leaves the table null and the app
+    // simply does not convert.
+    await loadFxTable();
     // Post any recurring bills and income that have come due while the app was
     // closed. Runs after load so canWrite is settled; a failed read skips it.
     await postDueRecurring();

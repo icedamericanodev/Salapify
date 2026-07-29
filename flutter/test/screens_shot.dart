@@ -1158,7 +1158,12 @@ void main() {
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
         'schemaVersion': 12,
-        'settings': {'onboarded': true},
+        'settings': {
+          'onboarded': true,
+          // A rate the person typed, so the shot shows the CONVERTED state
+          // and its label rather than only the excluded one.
+          'manualRates': {'USD': 56.5},
+        },
         'accounts': [
           {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
           {

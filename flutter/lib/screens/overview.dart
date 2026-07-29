@@ -101,7 +101,7 @@ class OverviewScreen extends StatelessWidget {
     // One clock for the whole build, so a midnight straddle can never show
     // the check-in for one day and the number for the next in the same frame.
     final now = clock();
-    final parts = netWorthParts(data);
+    final parts = netWorthParts(data, fx: store.fxTable);
     final istmt = incomeStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
     // The one thing to do about money right now, seen the moment Home opens.
