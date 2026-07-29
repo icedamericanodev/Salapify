@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.85 \u00b7 Every theme is now measured for readability, light mode included.';
+    'f2.86 \u00b7 Every screen is now checked for broken layout, big system font included.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
