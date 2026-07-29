@@ -99,6 +99,31 @@ bool _insideHorizontalScroll(Element element) {
   return horizontal;
 }
 
+/// A stored machine date that reached the screen.
+///
+/// There is already a static scan for this (no_iso_dates_in_copy_test.dart)
+/// and it is worth keeping, because it names the offending line at the moment
+/// somebody writes it. But it can only ever guess: it matches a map subscript
+/// of four hardcoded key names, so "Due ${person['oldestDue']}" walked straight
+/// past a guard whose whole title is that dates must not appear raw in copy. A
+/// test that reads as a rule and implements a list will keep doing that,
+/// because the next offender is by definition the spelling nobody thought of.
+///
+/// This one cannot be fooled by a spelling. It reads what was actually drawn.
+final _isoDate = RegExp(r'\b\d{4}-\d{2}-\d{2}\b');
+
+List<String> _machineDates(WidgetTester tester) {
+  final bad = <String>[];
+  for (final e in find.byType(Text).evaluate()) {
+    final w = e.widget as Text;
+    final s = (w.data ?? w.textSpan?.toPlainText() ?? '').trim();
+    final hit = _isoDate.firstMatch(s);
+    if (hit == null) continue;
+    bad.add('"$s" shows the stored date ${hit.group(0)}');
+  }
+  return bad;
+}
+
 /// Text the layout gave up on and cut off with an ellipsis.
 ///
 /// Not the same thing as overflow, and invisible to every check above: an
@@ -174,6 +199,14 @@ Future<List<String>> _inspect(
   Widget Function(SalapifyStore) build,
   double scale, {
   Map<String, dynamic>? blob,
+
+  /// Text to tap once the screen has settled, for a state that is a tab away.
+  ///
+  /// A screen has more than one face and this file was only ever looking at the
+  /// first one. The Owed to me half of Utang carried a raw stored date in its
+  /// copy and no check here could see it, because nothing had ever pressed the
+  /// button that shows it.
+  String? thenTap,
 }) async {
   await loadRealFonts(tester);
   SharedPreferences.setMockInitialValues({
@@ -198,6 +231,10 @@ Future<List<String>> _inspect(
     ),
   );
   await tester.pumpAndSettle();
+  if (thenTap != null) {
+    await tester.tap(find.text(thenTap));
+    await tester.pumpAndSettle();
+  }
 
   final problems = <String>[];
 
@@ -223,6 +260,9 @@ Future<List<String>> _inspect(
     }
     for (final off in _runsOffTheSide(tester)) {
       problems.add('$where has text off the side: $off');
+    }
+    for (final iso in _machineDates(tester)) {
+      problems.add('$where shows a machine date: $iso');
     }
     // Cut-off text is judged at DEFAULT font size only, and the line is
     // principled rather than convenient. An ellipsis at 1.5x is the layout
@@ -302,12 +342,27 @@ void main() {
     'Categories': (s) => CategoriesScreen(store: s),
   };
 
+  // A second face of a screen, reached the way a person reaches it. Keyed by
+  // the label to press once the screen has settled.
+  const secondFace = <String, String>{'Utang': 'Owed to me'};
+
   for (final entry in screens.entries) {
     for (final scale in _scales) {
       testWidgets('${entry.key} lays out at ${scale}x system font', (
         tester,
       ) async {
         final problems = await _inspect(tester, entry.key, entry.value, scale);
+        if (secondFace[entry.key] case final tap?) {
+          problems.addAll(
+            await _inspect(
+              tester,
+              '${entry.key} (${tap.toLowerCase()})',
+              entry.value,
+              scale,
+              thenTap: tap,
+            ),
+          );
+        }
         expect(
           problems,
           isEmpty,

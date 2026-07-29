@@ -296,6 +296,18 @@ final Map<String, dynamic> livedInBlob = () {
         ],
       },
       {'id': 'r2', 'person': 'Ben', 'amount': 2200, 'dueDate': d(2)},
+      // A receivable that is NOT yet overdue, and the reason it had to exist.
+      //
+      // Both rows above are past their due date, so the Owed to me list only
+      // ever rendered "Overdue N days" and the OTHER branch of that sub line,
+      // the one that prints the due date, was unreachable from this fixture. It
+      // was printing "Due 2026-08-15", a stored machine date in a sentence
+      // about asking a friend for money, and no render could show it because
+      // no render had anybody who still had time to pay.
+      //
+      // A fixture where every case is the same case is a fixture that proves
+      // one case.
+      {'id': 'r3', 'person': 'Migs', 'amount': 1500, 'dueDate': '$y-08-15'},
     ],
     'payables': [
       {'id': 'y1', 'person': 'Mama', 'amount': 3000, 'dueDate': d(28)},

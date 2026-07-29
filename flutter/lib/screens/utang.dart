@@ -370,7 +370,19 @@ class _PersonRow extends StatelessWidget {
     final sub = overdue
         ? 'Overdue $days ${days == 1 ? 'day' : 'days'}'
         : (person['oldestDue'] as String).isNotEmpty
-        ? 'Due ${person['oldestDue']}'
+        // _dayMaybeYear, not the raw stored value. This printed
+        // "Due 2026-08-15" on the Owed to me list for its whole life: the same
+        // machine-date-in-a-sentence defect f2.84 fixed on Insights, on a
+        // screen about asking a friend for money, where reading like a
+        // spreadsheet is the last thing wanted.
+        //
+        // The guard written for that fix did not catch this one. It matched
+        // four hardcoded key names and this key is called oldestDue, so a test
+        // that reads as "no raw dates in copy" actually meant "not those four
+        // spellings". The helper it needs was already in this file, ten lines
+        // up, with a comment explaining why a utang list in particular needs
+        // the year.
+        ? 'Due ${_dayMaybeYear(person['oldestDue'] as String)}'
         : 'No due date';
     return InkWell(
       onTap: onTap,
