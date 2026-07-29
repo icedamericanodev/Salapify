@@ -18,6 +18,14 @@
 // Clock-free, following home_bills_test's discipline: OverviewScreen reads
 // DateTime.now() internally, so any fixture that needs a particular day passes
 // for two weeks and then blames whoever pushed on the 28th.
+//
+// That paragraph was a CLAIM, not a fact, for as long as it stood. The crunch
+// fixture below hardcoded a due day, and on the 29th of the month it stopped
+// producing a crunch at all, so the test reported a card appearing that should
+// not appear, which reads exactly like a layout regression somebody just
+// introduced. It is fixed now and the details are on _crunch. The general
+// lesson is the one CLAUDE.md keeps relearning: when a comment describes what
+// the code does, read the code, not the comment.
 
 import 'dart:convert';
 
@@ -54,32 +62,62 @@ Map<String, dynamic> _healthy() => {
 /// Crunch: committed money has eaten everything spendable. This is the ONLY
 /// state that produces an urgent check-in, and it is also the state where
 /// cycleStatus hides Your Number.
-Map<String, dynamic> _crunch() => {
-  'schemaVersion': 12,
-  'accounts': [
-    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 900},
-  ],
-  'transactions': [
-    {
-      'id': 't1',
-      'type': 'expense',
-      'amount': 100,
-      'date': '2026-07-05',
-      'accountId': 'cash',
+///
+/// Both dates are derived from [now], and that is the whole point.
+///
+/// The first version hardcoded dueDay 28 and no payday schedule, under a file
+/// header claiming the whole file was clock-free. It was not. On the 29th of
+/// the month the July 28 due date had passed, the next one landed in August,
+/// August is past the next payday, so no bill fell inside the window, so
+/// nothing was committed, so the check-in was not urgent and Your Number
+/// reappeared. The test then failed on the runner with "one was found but none
+/// were expected", naming a card, which reads exactly like a real layout
+/// regression and is not one.
+///
+/// Two derivations, both deliberate:
+/// - the bill is due TODAY, so it is always inside the window;
+/// - payday is eight days out, so the window is always eight days wide.
+///
+/// Eight, not one or two, because bankDueDate shifts a weekend due date to the
+/// next business day. On the day before payday the window is one day wide, and
+/// a Saturday due date shifted to Monday fell outside it. That was three
+/// failing days in a 400 day sweep, which is the kind of thing that lands on
+/// whoever pushes that morning. Verified at zero over 400 consecutive days.
+Map<String, dynamic> _crunch([DateTime? at]) {
+  final now = at ?? DateTime.now();
+  return {
+    'schemaVersion': 12,
+    'settings': {
+      'paydaySchedule': {
+        'mode': 'monthly',
+        'day': now.add(const Duration(days: 8)).day,
+      },
     },
-  ],
-  'debts': [
-    {
-      'id': 'd1',
-      'name': 'BPI card',
-      'type': 'credit card',
-      'remaining': 40000,
-      'monthlyRate': 3,
-      'minPayment': 4000,
-      'dueDay': 28,
-    },
-  ],
-};
+    'accounts': [
+      {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 900},
+    ],
+    'transactions': [
+      {
+        'id': 't1',
+        'type': 'expense',
+        'amount': 100,
+        'date': '2026-07-05',
+        'accountId': 'cash',
+      },
+    ],
+    'debts': [
+      {
+        'id': 'd1',
+        'name': 'BPI card',
+        'type': 'credit card',
+        'remaining': 40000,
+        'monthlyRate': 3,
+        'minPayment': 4000,
+        'dueDay': now.day,
+      },
+    ],
+  };
+}
 
 Future<void> _pump(WidgetTester tester, Map<String, dynamic> blob) async {
   tester.view.physicalSize = const Size(1200, 4600);
@@ -148,8 +186,14 @@ void main() {
       // The PRECONDITION for the whole reorder being safe. If a second urgent
       // kind ever appears that does NOT hide the number, the widget test below
       // stops covering the case it was written for.
-      final s = cycleStatus(_crunch(), DateTime(2026, 7, 26));
-      final c = coach.weeklyCheckIn(_crunch(), DateTime(2026, 7, 26));
+      final s = cycleStatus(
+        _crunch(DateTime(2026, 7, 26)),
+        DateTime(2026, 7, 26),
+      );
+      final c = coach.weeklyCheckIn(
+        _crunch(DateTime(2026, 7, 26)),
+        DateTime(2026, 7, 26),
+      );
       expect(c['tone'], 'urgent');
       expect(
         s.show,

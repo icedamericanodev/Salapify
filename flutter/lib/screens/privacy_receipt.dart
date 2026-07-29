@@ -292,6 +292,37 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               'Lets your scheduled reminders survive a phone reboot. That is '
                   'all it does.',
             ),
+            const Divider(height: 22),
+            row(
+              Icons.vibration,
+              'Vibrate',
+              'The small buzz when a button is pressed or a reminder arrives. '
+                  'It reads nothing.',
+            ),
+            const Divider(height: 22),
+            // The four below arrive with the home screen widget's plumbing.
+            // A launch audit found this screen listed four permissions while
+            // the app actually shipped six, and this release adds three more.
+            // The card above it promises "the complete list of what this app
+            // can do", so a list that is short by five is not a small
+            // omission, it is the one claim on the screen being false.
+            row(
+              Icons.widgets_outlined,
+              'Keep the phone awake briefly, and check if there is a network',
+              'Both come with the home screen widget plumbing. Salapify uses '
+                  'neither to move your money data anywhere. They are the '
+                  'ordinary background machinery Android widgets are built '
+                  'on, and neither can be seen or refused in your phone '
+                  'settings because Android treats them as harmless.',
+            ),
+            const Divider(height: 22),
+            row(
+              Icons.play_circle_outline,
+              'Run a short task in the foreground',
+              'Also widget plumbing, and also unused by Salapify. Listed '
+                  'because this card claims to be the complete list, and a '
+                  'complete list has to include the boring ones.',
+            ),
           ],
         ),
       ),

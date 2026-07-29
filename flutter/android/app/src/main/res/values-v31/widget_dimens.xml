@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 31+ masks every widget with the system corner radius. Matching it
+         instead of fighting it, or the card peeks square outside a rounded
+         mask on one phone and doubles its corner on another. -->
+    <dimen name="widget_corner">@android:dimen/system_app_widget_background_radius</dimen>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- What the widget picker calls it. Without this it inherits the app
+         label, "Salapify Preview", which looks unfinished in the picker and is
+         invisible until it is on a real phone. -->
+    <string name="widget_label">Your Number</string>
+    <string name="widget_description">How much you can spend a day until payday, with a one tap Log button.</string>
+</resources>

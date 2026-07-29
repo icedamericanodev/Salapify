@@ -227,6 +227,26 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
 }
 
 class SalapifyStore extends ChangeNotifier {
+  /// Called after every notify, so anything that MIRRORS the store can follow
+  /// it without the store knowing what it is mirroring onto.
+  ///
+  /// This exists so the home screen tile can stay in step without importing a
+  /// plugin here. The rule at the top of this file is that the store carries
+  /// no platform dependency so it stays unit testable, and 144 test files
+  /// rely on that.
+  ///
+  /// notifyListeners is the correct funnel, and _save is not: startFresh
+  /// never calls _save (it removes the key), and the erase path is the one
+  /// that must never be missed, because a stale peso figure surviving an
+  /// erase is the worst thing this hook could do.
+  void Function()? onChanged;
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    onChanged?.call();
+  }
+
   /// What the user just did, and when, so Pan can react to the ACTION rather
   /// than only to the ambient state the coach computes.
   ///
@@ -1304,6 +1324,23 @@ class SalapifyStore extends ChangeNotifier {
     (d) => {
       ...d,
       'recurring': _recurring(d).where((r) => r['id'] != id).toList(),
+    },
+  );
+
+  /// Whether the home screen tile hides the peso figure.
+  ///
+  /// Separate from [setAppLock] on purpose. App lock already forces the tile's
+  /// private face, because the home screen is visible before any unlock. This
+  /// is for the much more common person who does not want a lock on the whole
+  /// app but also does not want their daily number readable over a shoulder
+  /// on the LRT.
+  Future<void> setWidgetHideAmount(bool value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'widgetHideAmount': value,
+      },
     },
   );
 

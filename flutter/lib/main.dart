@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
+import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
 import 'screens/onboarding.dart';
@@ -27,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.75 \u00b7 The quick add buttons on Budget are yours now: rename, re-price, delete, or add your own.';
+    'f2.76 \u00b7 A home screen widget: your daily number and a one tap Log button. Install this one by hand.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
@@ -52,8 +53,30 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Load, then refresh the reminder schedule from the loaded data. Both are
     // safe no-ops off a real phone (web, tests), so this never blocks startup.
-    widget.store.load().then((_) {
+    HomeTile.attach(widget.store);
+    // Recorded here, ACTED ON in shell.dart. A widget tap lands before the
+    // store has loaded and before any shell exists.
+    HomeTile.captureLaunch();
+    // whenComplete, NOT then.
+    //
+    // load() awaits postDueRecurring OUTSIDE its own try/catch, and that path
+    // rethrows when the write to disk fails. A full disk is an ordinary
+    // condition on the cheap Android phones this app is for. With .then, one
+    // such failure meant the body never ran, HomeTile.ready stayed false for
+    // the whole session, and EVERY push was dropped, including the one that
+    // clears the tile after "erase everything on this phone". Somebody's
+    // salary would have stayed on their home screen after they erased the app.
+    // Reminders.reschedule was lost the same way.
+    widget.store.load().whenComplete(() {
       Reminders.reschedule(widget.store.data, DateTime.now());
+      // Post-frame, so the first build has already resolved the palette and
+      // the base currency. Until this runs HomeTile.ready is false and every
+      // push is dropped, so the first thing ever written to the tile is never
+      // the default palette or a peso sign on a dollar user.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        HomeTile.ready = true;
+        HomeTile.push(widget.store);
+      });
     });
   }
 
@@ -73,8 +96,16 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   // lastPosted marker makes this idempotent, so an extra call is always safe.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // The user is on their way to the home screen RIGHT NOW, so this is the
+      // push that matters most. It is also the cheapest place to catch a day
+      // rollover: the tile is rewritten with today's date every time the app
+      // goes to the background.
+      HomeTile.push(widget.store);
+    }
     if (state == AppLifecycleState.resumed) {
-      widget.store.postDueRecurring();
+      // Recurring first, then push, so posted bills are already in the figure.
+      widget.store.postDueRecurring().then((_) => HomeTile.push(widget.store));
       // Refill the schedule on every foreground, so tonight's log nudge is
       // dropped once you have logged, and new bills/utang are picked up.
       Reminders.reschedule(widget.store.data, DateTime.now());

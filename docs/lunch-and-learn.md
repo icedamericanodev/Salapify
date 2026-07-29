@@ -10,6 +10,859 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-28, session 16: the bug was in the feature next door
+
+f2.75 delivered cleanly, was confirmed on the founder's phone, and nothing
+broken reached it. Ninth clean delivery in a row on the mechanical side, and
+the third round running where the pre-merge QA pass ran, found real defects,
+and every must-fix was fixed before the merge instead of after.
+
+The patch is clean. The session is long, because this round produced the single
+most useful shape a retrospective here has seen: **a defect whose harm was
+entirely in a different feature from the one being built**. The batch was a
+quick add editor. The damage was to the migration prompt in Menu, which the
+editor never touches, never imports, and never mentions. No amount of testing
+the quick add editor would have found it, and QA found it anyway.
+
+Four other things are worth the time, and three of them are about work that has
+NOT shipped, which is the cheapest moment to say so. A data shape key is
+guarded in one direction and completely unguarded in the other, proven by
+deleting it against a green suite. The home screen widget's central design
+claim, that one pure Dart file holds the entire decision surface, does not hold:
+the file between the store and that pure function makes four decisions no test
+can see, and three of them were broken here without a single test objecting.
+The one test written to catch a native mistake misses three native mistakes that
+each make the widget permanently dead. And an assertion that could not fail
+turned up three separate times in one round, by three different mechanisms.
+
+### What we believed / What was true
+
+**Believed: f2.75 reached the phone. TRUE, and confirmed in person.** From
+`git show origin/main:docs/delivery-log.md | tail -1`:
+
+    | 2026-07-28 22:29 UTC | f2.75 | 25 | patch | 0.6.2+11 | 379f6960 (run 30404001614) |
+
+Mode `patch`, so nothing was stranded and no manual install is owed.
+flutter/pubspec.yaml:12 at the delivered tip still reads `version: 0.6.2+11`,
+unchanged since session 5. The stamp at flutter/lib/main.dart:29 to :30 of
+commit 379f696 is `'f2.75 · The quick add buttons on Budget are yours now:
+rename, re-price, delete, or add your own.'`, 97 characters against the 120 cap
+at flutter/test/update_stamp_test.dart:20. Stamp in the code, stamp in the log,
+stamp on the phone: three for three.
+
+**Believed: the merge used a merge commit, not a squash. TRUE, verified.**
+`git cat-file -p 379f696` shows two parents, 0f10b11 and 02b6c4c.
+
+**Believed: the suite is green on what shipped. TRUE, re-run in a clean
+checkout.** A throwaway worktree at dd213ca, the delivered tip, reports
+`flutter analyze` clean and `flutter test` at **+1001: All tests passed!**, up
+from 982 at f2.74. Same caveat as last session, stated rather than smoothed
+over: the working tree this session sat in was ALSO being used to write the
+next batch while the session ran, and it changed under this session at least
+three times while it was running. Every number in this entry that describes
+what SHIPPED was measured in the clean worktree at dd213ca. Every number that
+describes the unshipped widget work was measured in a second clean worktree at
+2ebd297, plus one snapshot of the uncommitted tree taken at a stated moment and
+applied to that worktree.
+
+**Believed: the QA pass ran BEFORE the merge. TRUE, with a record.**
+docs/qa-log.md:35 carries an f2.75 row naming 2 MUST FIX, 4 SHOULD FIX and 3
+deferred findings. The row exists because flutter/test/qa_record_test.dart made
+the build fail without it, for the third consecutive round.
+
+**Believed: seeding the presets on OPEN flipped `hasData` true and deleted the
+migration prompt. TRUE, and verified against both commits.** At 6988747,
+flutter/lib/screens/quick_add_editor.dart:27 called `await
+store.seedQuickAdds();` before the sheet was built, and `seedQuickAdds` at
+store.dart:1821 to :1838 wrote `'quickAdds': [...]` and `'quickAddsEdited':
+true` into settings. `hasData` counts `quickAdds` at store.dart:279, in a list
+that has read `['paluwagans', 'treats', 'quickAdds']` since bea60ca, long
+before this batch. Menu reads that same boolean at menu.dart:1272:
+
+    Kicker(store.hasData ? 'BACKUP' : 'BRING YOUR DATA OVER'),
+
+So on an empty app, opening a settings sheet and closing it without touching
+anything replaced the only in-app route to import from the old React Native app
+with a backup card, permanently. Fixed in fdb0e52 by moving the seed into
+`_writeQuickAdds` at store.dart:1849, which only the two write paths reach.
+
+**Believed: `quickAddsEdited` follows the conditional-key pattern and QA
+verified it. TRUE. Believed it is therefore guarded. HALF TRUE, and the
+unguarded half is the dangerous one.** See Lesson 2. Proven both directions in
+a clean worktree.
+
+**Believed: the widget's entire decision surface lives in
+flutter/lib/money/widget_tile.dart. FALSE, and provably so.** See Lesson 3.
+Three deliberate breaks in flutter/lib/services/home_tile.dart leave all 1026
+tests passing and `flutter analyze` clean.
+
+**Believed: the pubspec bump to 0.6.3+12 will produce a `release` row, not a
+`patch` row. TRUE, verified by reading the workflow rather than the commit
+message.** .github/workflows/flutter-preview.yml:85 reads the version straight
+out of pubspec.yaml, :103 tests it against `shorebird releases list`, and :109
+takes the `shorebird release android` branch with `mode=release` when no such
+release exists. docs/delivery-log.md has exactly two release rows, for 0.6.1+10
+and 0.6.2+11, so 0.6.3+12 is genuinely new. The consequences the commit claims
+all exist in the file: the base APK is uploaded to the fixed flutter-preview
+tag at :131, the row records `| none | release |` because the patch scrape at
+:127 finds no "Published Patch N" line on a release run, and the manual-install
+issue opens at :249. The commit message is accurate.
+
+**Believed: this is the second time in two days a substring matcher weakened a
+guard. NOT CONFIRMED as stated, and the true version is stronger.** No earlier
+substring-matcher instance is recorded anywhere in this log or in any commit
+message; `grep -n "substring" docs/lunch-and-learn.md` returns nothing and only
+one commit in the repository mentions the word. What IS in the repository is
+better evidence: **three assertions that could not fail, in this one round, by
+three different mechanisms**, each caught by a different person-level habit and
+none by a machine. See Lesson 5.
+
+### Timeline (with evidence)
+
+All times UTC, from `git log --format=%cI` and the publisher's own rows.
+
+| Time | Event | Evidence |
+|------|-------|----------|
+| Jul 28 15:34:17 | f2.74 patch 24 delivered, confirmed on the phone | 0f10b11 |
+| 16:39:37 | 6988747 batch 9, the quick add editor. 1413 lines added. **No stamp bump**, deliberately, so the stamp lands with the QA row | commit message |
+| 17:02:55 | fdb0e52 QA round plus session 15. 2 MUST FIX, 4 SHOULD FIX. Stamp bumped to f2.75 | commit message, docs/qa-log.md:35 |
+| 22:04:56 | 02b6c4c, a one-file correction to a header comment that had become false in fdb0e52 | commit message |
+| 22:17:24 | Merge #232 (379f696), two parents | `git cat-file -p 379f696` |
+| 22:29:25 | f2.75 patch 25 delivered, 12m01s after the merge | delivery row, dd213ca |
+| after | **Founder confirms f2.75 on the phone** | founder |
+| 22:41:59 | 81c72a6, widget groundwork, on the branch | commit |
+| 22:47:20 | c86e2ff, the widget privacy switch | commit |
+| 22:50:25 | 2ebd297, the native half and the pubspec bump to 0.6.3+12 | commit |
+| during this session | the working tree changed at least three times while the session ran, including a stamp bump past f2.75 | `git status --porcelain` returned clean, then eleven modified files, then a different set |
+
+### Divergence point
+
+**There is no delivery divergence. Nine in a row.** There is no correctness
+divergence that reached the phone either, for the third round running.
+
+The divergence worth dating is the one inside the batch, and it is
+**6988747 at 16:39:37**, the moment `await store.seedQuickAdds();` entered
+quick_add_editor.dart line 27. From that instant, every empty app that opened
+the quick add sheet lost its import prompt forever. It never shipped, because
+QA ran before the merge. Twenty three minutes separated the defect from its
+discovery.
+
+Worth saying plainly, because it is the whole point of this session: nothing
+about the quick add editor was wrong. Every preset rule matched the RN engine
+across 22 golden cases. The editor added, removed, refused and reported
+correctly. The batch was correct AND it deleted a migration path, and those two
+facts are not in tension, because the harm happened in a file the batch never
+opened.
+
+### Root cause
+
+**1. `hasData` is a derived signal with eleven collection inputs, four settings
+inputs, and one consumer whose failure is irreversible.**
+
+store.dart:262 to :287 computes `hasData` from eleven collections plus
+`paluwagans`, `treats`, `quickAdds` and `steadyPay`. Its own docstring at :275
+to :281 explains why settings-era data counts: someone whose only data is a
+paluwagan deserves the same backup buttons. That reasoning is right and it is
+the reason the trap exists. Any new feature that writes into one of those four
+settings keys silently answers a question asked in a completely different
+screen.
+
+The consumer that matters is menu.dart:1272. It is not symmetric. Showing
+BACKUP to someone with no data is a cosmetic mistake. Showing BACKUP to someone
+who still needs to import from the old app removes the only route they have,
+and they will not know it was ever there. There is no undo, because there is
+nothing to undo: the app simply stops offering.
+
+So the root cause is not "the seed was in the wrong place". It is that **a write
+and its most expensive consequence live in different files with nothing
+connecting them**, and the connection is a boolean that reads as harmless.
+
+**2. Every test in the batch tested the batch.**
+
+quick_add_editor_test.dart at 6988747 was 201 lines and thorough. It covered
+adding, removing, refusing, trimming, duplicate labels in different cases, hex
+literals, leading plus signs. Every one of those assertions is about the quick
+add editor. Not one is about anything outside it, because nothing about the
+feature suggests there is an outside. This is the general shape: **the blast
+radius of a change is not the same set of files as the change**, and test
+authorship follows the change.
+
+**3. For the widget: a design principle was stated, believed, and then not
+enforced anywhere.**
+
+The claim is written three times, in three files, with real conviction:
+widget_tile.dart:1 to :7 ("the ENTIRE decision surface is here"),
+home_tile.dart:8 to :11 ("Nothing here decides anything, which is why nothing
+here needs to"), and YourNumberWidget.kt:17 to :21 ("nothing here is allowed to
+be interesting"). It is a good principle. It is also just prose. Nothing checks
+it, and it is already false in the file that asserts it hardest, at
+home_tile.dart:81 to :90.
+
+**4. For the conditional key and the manifest test: a guard written against one
+failure direction reads as a guard against the concept.**
+
+The golden key-set contract genuinely catches `quickAddsEdited` being emitted
+when it should not be. It catches nothing at all when the key is dropped when it
+should not be, because RN fixtures never carry it, so dropping it agrees with
+every fixture. Same shape in widget_manifest_test.dart: it catches the receiver
+class name being wrong, which is the failure someone imagined, and misses three
+other ways to make the same widget permanently dead.
+
+### Lessons and guards
+
+**Lesson 1. The harm was entirely in a feature the batch never touched, and
+that is a class, not an accident.**
+
+The instance is fixed and guarded. The class is not.
+
+**Guard for the instance: SHIPPED, strongest tier, re-proven live this
+session.** flutter/test/quick_add_editor_test.dart:199 to :227, 'opening the
+editor and closing it writes NOTHING', which mounts an app with an empty blob,
+opens the sheet, taps Done, and asserts both that settings is byte identical and
+that `store.hasData` is still false. Its failure line is quoted in fdb0e52:
+
+    expect(store.hasData, isFalse)   Expected: false  Actual: <true>
+
+**Guard for the class: NOT WRITTEN. NEW Open 39.** The candidate is strongest
+tier, and the trick that makes it work while nobody is watching is one this
+project has already used successfully in widget_manifest_test.dart: **have the
+test read the source tree so its own coverage list cannot go stale.**
+
+Concretely, two assertions in one file:
+
+- On an empty app, open and close every read-only entry point in a list, and
+  assert `jsonEncode(store.data)` is unchanged and `store.hasData` is still
+  false after each.
+- Assert that the list covers every `Future<void> show*Editor(` and
+  `Future<void> show*Sheet(` function found by grepping lib/screens off disk, so
+  a new sheet added next month fails this test until somebody puts it in the
+  list.
+
+Without the second assertion it is a list that rots. With it, it is a guard.
+
+The medium-tier companion, and it should be written whether or not the test is:
+**the QA pass must ask, for every new write, which derived signals read that
+key and who consumes them.** For settings writes the answer is currently four
+keys at store.dart:279 to :283 and a consumer at menu.dart:1272.
+
+**Lesson 2. The new settings key is guarded against being present and completely
+unguarded against being absent, and the absent direction is the one that loses a
+person's choice.**
+
+`quickAddsEdited` follows the conditional-key pattern at
+flutter/lib/data/backup.dart:498 to :503, exactly like `paluwagans` at :504 and
+`steadyPay` at :510. QA is right that it survives save, export, parse, restore
+and undo-import. The question this session was asked to answer is whether
+anything PINS that conditionality, since paluwagans and steadyPay each have an
+explicit omission test and this key has none.
+
+Measured, not assumed, in a clean worktree at dd213ca:
+
+- **Emitting it unconditionally: CAUGHT, loudly.** Replacing the conditional
+  with a bare `s['quickAddsEdited'] = true;` fails ten tests, including
+  `backup_golden_test.dart: sanitizeData matches the RN engine on every fixture,
+  keys included` and `backup_export_golden_test.dart: buildBackupText decodes to
+  exactly what the RN buildBackup writes`. The golden key-set contract does the
+  work, and it does it well.
+- **Dropping it unconditionally: NOT CAUGHT AT ALL.** Replacing the conditional
+  with a bare `s.remove('quickAddsEdited');` leaves **+1001: All tests passed!**
+
+The second one is not a theoretical direction. `sanitizeData` runs on every app
+load, at store.dart:336. So a bug in that direction does not wait for an export:
+it erases the flag on the next app open, `_quickAddsSeeded` at store.dart:1815
+goes false, and the `quickAdds` getter at store.dart:1802 refills the four
+defaults. Somebody who deliberately deleted every quick add would find Coffee
+₱120 back, and the app would keep bringing it back forever. That is precisely
+the behaviour this key was invented to prevent, described in its own docstring
+at store.dart:1808 to :1814.
+
+The reason paluwagans and steadyPay are safe in both directions is that they
+have the named test the golden contract cannot provide:
+flutter/test/paluwagan_store_test.dart:101, 'sanitize omits the key when there
+are no paluwagans (golden safety)', and
+flutter/test/steadypay_store_test.dart:46 and :66.
+
+**Guard: NOT WRITTEN. NEW Open 40. Strongest tier, and it is about six lines.**
+A `quick_add_store_test` mirroring paluwagan_store_test.dart:101 in both
+directions: absent on a store that never edited, and PRESENT after an edit,
+through `sanitizeData` and through `buildBackupText`. The general rule behind
+it, worth writing beside the conditional-key comment in backup.dart: **a
+conditional key needs two tests, because the golden fixtures can only ever
+prove one direction.** The fixtures are generated by an app that has never heard
+of the key, so agreement with them is agreement that it is missing.
+
+**Lesson 3. "The entire decision surface is one pure Dart file" is false, and
+the decisions that escaped are the two the widget exists to get right.**
+
+Answering the question directly: widget_tile.dart is an excellent pure function
+and every one of its eight states is driven by tests. It is not the whole
+decision surface. flutter/lib/services/home_tile.dart makes at least four
+decisions no test reaches, and YourNumberWidget.kt makes three more.
+
+In home_tile.dart, at 2ebd297:
+
+- **:81 and :82, the settings-key mapping.** `appLock: settings['appLock'] ==
+  true` and `hideAmounts: settings['widgetHideAmount'] == true`. The pure
+  function takes booleans; deciding which stored key produces them happens here.
+- **:88 to :90, the palette.** `yn_text`, `yn_muted` and `yn_accent` are
+  computed from `Barako.text`, `Barako.muted` and `Barako.primary` and never
+  pass through `widgetTileStrings` at all. No test mentions any of the three
+  names.
+- **:83, the stamp**, `updateStamp.split(' ').first`.
+- **:68, the readiness gate**, `if (!_supported || !ready) return;`, with a
+  careful eleven line comment at :34 to :42 explaining why the first push must
+  be dropped. Nothing exercises it.
+
+**Proven, not argued.** Three edits in a clean worktree at 2ebd297, then the
+whole suite:
+
+    appLock:     settings['appLock']         -> settings['appLocked']
+    hideAmounts: settings['widgetHideAmount'] -> settings['widgetHideAmounts']
+    'yn_accent': _hex(Barako.primary)         -> _hex(Barako.background)
+
+Result: `flutter analyze` clean, and **+1026: All tests passed!**
+
+Read what each of those three would do on a phone. The first puts the daily peso
+figure on a home screen that is visible before any unlock, which is the exact
+failure widget_tile.dart:127 to :130 was written to prevent and ranks second in
+its own state order. The second makes the privacy switch in Menu write a setting
+nothing reads, so the person turns it on, watches nothing happen, and their
+salary stays in public. The third draws the Log bar's label in the background
+colour, so the tile's only action becomes invisible. All three are frozen in a
+release the founder must install by hand.
+
+The reason the tests miss the first two is worth naming precisely, because it
+looks like coverage. flutter/test/widget_privacy_test.dart:45 to :55 defines its
+own `_tile(store)` helper which reads `settings['appLock']` and
+`settings['widgetHideAmount']` and calls `widgetTileStrings` directly. It never
+calls `HomeTile.push`. So the test contains a second, private copy of the exact
+line that would be wrong, and asserts the copy agrees with itself. That is not
+carelessness; it is the only way to test a function whose real caller is
+unreachable in a unit test. It is still a hole.
+
+In the Kotlin, three more, all at 2ebd297:
+
+- **:42 to :48, six fallback constants duplicated from Dart.** `"Start here"`,
+  the "Add your cash and log one expense" sentence, `"Log an expense"`, `"1"`
+  and `20f` all restate values that widget_tile.dart:154 to :160 and :110 also
+  define. Change the Dart copy and the Kotlin fallbacks silently disagree.
+- **:81, the tap encoding.** `if (barTap == "1") log else home`. The meaning of
+  the string "1" is asserted in a comment on both sides and nowhere else.
+- **The kicker.** `R.id.yn_kicker` appears once in the Kotlin, at :65, and only
+  to be tinted. Its text, "YOUR NUMBER", is set only in
+  res/layout/widget_your_number.xml:23. One visible string on the tile is
+  decided in XML and appears in no Dart file at all.
+
+**Proven for the key contract too.** Renaming `getString("yn_sub", ...)` to
+`getString("yn_subtitle", ...)` in the Kotlin, and changing the tap encoding
+from "1" to "7", leaves **+1026: All tests passed!** The first makes the sub
+line show the "Add your cash" fallback forever under a real headline; the second
+makes the only button on the tile stop logging. Neither is visible to
+`flutter analyze`, to `flutter test`, or to a Gradle build.
+
+**Guard: NOT WRITTEN. NEW Open 41.** Three candidates, ranked.
+
+Strongest and cheapest: **a test that reads YourNumberWidget.kt off disk and
+asserts the set of `getString("...")` keys it reads is exactly the set of keys
+`HomeTile.push` writes.** Both are string literals in files this suite can
+already read; widget_manifest_test.dart:97 already parses the Kotlin with a
+regex. That closes the whole rename class in both directions.
+
+Strongest for the two privacy decisions: **call `HomeTile.push` in the test
+instead of a private copy.** `HomeWidget.saveWidgetData` needs a platform
+channel, which a widget test can fake with
+`TestDefaultBinaryMessengerBinding.defaultBinaryMessenger.setMockMethodCallHandler`,
+collecting the written keys into a map. Then widget_privacy_test.dart asserts
+against what the app would really write, and `_tile` at :45 is deleted rather
+than trusted. That is more work than the first candidate and it is the one that
+would have caught the app lock break.
+
+Medium tier, and it should happen regardless: **stop the three files claiming
+the decision surface is one file until it is one file.** A comment that is read
+with authority and is not true is the exact failure CLAUDE.md already warns
+about, in the paragraph about the render harness.
+
+**Lesson 4. The one test written to catch a native mistake catches the mistake
+somebody imagined and misses three that are just as fatal.**
+
+The brief was to try to break the native setup in a way
+flutter/test/widget_manifest_test.dart does NOT catch. Three found, all proven,
+all applied at once to the manifest at 2ebd297, and then repeated against the
+in-flight version of the test that adds the RemoteViews inflation check:
+
+    <intent-filter> with android.appwidget.action.APPWIDGET_UPDATE   deleted
+    receiver android:exported="true"                              -> "false"
+    meta-data android:name="android.appwidget.provider"           -> "...providerZZZ"
+
+Result both times: **All tests passed!**
+
+Each one alone is fatal and none is a compile error. Android discovers app
+widget providers by scanning for receivers that declare the APPWIDGET_UPDATE
+action and carry the `android.appwidget.provider` meta-data, so with either of
+those gone the tile does not appear in the widget picker at all. `exported`
+false is the risk the manifest's own comment at :71 to :77 spends seven lines
+justifying as true, and the test that appears to check it does not:
+
+    expect(manifest, contains('android:exported="true"'));
+
+MainActivity is also exported at AndroidManifest.xml:23, so that assertion is
+satisfied by a completely different element and can never fail while the app has
+a launcher activity. That is the same species as the `@+id/yn_asof` bug from
+Lesson 5, in the same file, uncaught.
+
+The neighbouring assertion has the same weakness in the substring form:
+`contains('@xml/your_number_widget_info')` at :63 also matches
+`@xml/your_number_widget_info_gone`. That one would be caught by Gradle, because
+the resource would not resolve, but only in the "Android actually compiles" step
+that is still uncommitted at the time of writing.
+
+**Guard: NOT WRITTEN. NEW Open 42. Strongest tier and small.** Parse the
+receiver BLOCK rather than the whole file. One regex from `<receiver` to
+`</receiver>` around `.YourNumberWidget`, then assert inside that substring:
+`android:exported="true"`, the APPWIDGET_UPDATE action, and
+`android:name="android.appwidget.provider"` with its closing quote. The general
+rule, which is the reusable part: **an assertion about one element must be
+scoped to that element, or a different element will satisfy it.** In a file that
+declares an activity, three receivers and two meta-data blocks, a whole-file
+`contains` is a coin toss.
+
+Credit where it is due, because a session that only lists holes is misleading:
+the in-flight version of this file adds 'the layout uses ONLY classes
+RemoteViews can inflate', which caught an `android.widget.Space` that would have
+made the launcher draw "Problem loading widget" instead of the tile, on every
+Android version, frozen in res/ until a second manual install. That is a real
+catch of exactly the kind this file exists for, and it was found by an audit
+before anything shipped.
+
+**Lesson 5. Three assertions that could not fail, in one round, found three
+different ways. This deserves a name.**
+
+The brief asked whether the substring matcher is worth a named pattern. It is,
+but the pattern is broader than substrings, and the evidence in this round is
+better than the brief claimed.
+
+- **The substring matcher.** From 2ebd297's commit message, recorded by the
+  author against themselves: `contains('@+id/yn_asof')` also matches
+  `'@+id/yn_asof_typo'`, so renaming an id left the guard green. Fixed by
+  including the closing quote, now at widget_manifest_test.dart:101 to :105 with
+  the reason written in. Found by breaking the code.
+- **The fixture that pre-satisfied the assertion.** From
+  quick_add_editor_test.dart:206 to :208, in the shipped tree: "the first
+  version of this test used the default fixture, which carries an account, so
+  hasData was already true and the assertion could not have failed." Found by
+  re-reading the fixture.
+- **The unloaded store.** From c86e2ff's commit message and preserved as a
+  docstring at widget_privacy_test.dart:34 to :37: assigning `store.data`
+  directly leaves `loaded` false, which makes `canWrite` false, which makes the
+  tile show the failed-read face in every case, so a "no money on the tile"
+  assertion "passes with flying colours while testing nothing". Found by
+  printing what the code actually produced.
+
+Three mechanisms, one shape: **the assertion is satisfied by something other
+than the behaviour it names.** A matcher that matches too much, a fixture that
+already satisfies it, and a setup that forces the answer. All three read as
+correct tests. All three would have been described honestly as "guarded" in a QA
+row.
+
+**Guard: the strongest tier version already exists and is already in CLAUDE.md.**
+It is the prove-it-can-fail rule, and it caught the first of the three. What is
+missing is that the rule reads as being about NEW tests guarding new lessons,
+and two of these three were about the SETUP rather than the assertion.
+
+**NEW Open 43, medium tier by construction, because it is a sentence.** The
+addition to CLAUDE.md's prove-it-can-fail section, phrased as a question that
+can be asked in ten seconds: **before trusting a green assertion, ask what ELSE
+would satisfy it.** Three answers to check by name, because all three have now
+happened here: a longer string that contains yours, a fixture that already meets
+the condition before the code runs, and a setup that puts the code on a path
+where the assertion is trivially true. This is the fourth named species of "a
+test that passes for the wrong reason" in this log, after a test written from
+the same wrong model, an alarm that never proved its silent half, and a test
+that reads layout while the bug is in state.
+
+The stronger companion, and it is available for one of the three: **a lint or
+test-of-tests that flags `contains(` on a bare identifier in a file that reads
+source off disk.** There are few such sites, they are all in
+widget_manifest_test.dart today, and the fix is always the same, add the
+delimiter. Worth doing only if that file grows.
+
+**Lesson 6. The scripted edit that silently does nothing is now a six instance
+pattern across two days, one of them produced while writing this lesson, and it
+needs a mechanical answer rather than another rule.**
+
+Repository-corroborated instances, and the count is stated as evidence rather
+than as an impression:
+
+- 52da033's commit message, the period selector clock fix: "the python anchor
+  did not match the formatted text, the assert fired, and the script exited
+  before its write. Caught by grepping for the result instead of trusting the
+  exit code."
+- 6988747's commit message, the seedQuickAdds edit: "The python edit script
+  silently did nothing AGAIN, third time today: the anchor did not survive dart
+  format, the assert fired, the script exited before its write." By its own
+  count that is three occurrences on 2026-07-28.
+- docs/lunch-and-learn.md:454 to :460, session 15's own file-editing script,
+  twice, while writing the entry that described the problem.
+
+Session 14 named it. Session 15 proved it twice and corrected Open 31's proposed
+wording, because an assert that FIRES prevents a wrong write and does nothing to
+announce a missing one. This round adds two more and, importantly, adds nothing
+new about the mechanism: it is always the same, an anchor written the way the
+code looks in an editor cannot match the way `dart format` chose to wrap it, and
+the direction flips file to file.
+
+**The honest assessment the brief asked for: yes, this now needs a mechanical
+guard, and no, it cannot have a strongest-tier one.** Every strongest-tier guard
+in this project is a check that runs in CI against the repository. This failure
+happens inside a chat session, before any commit exists, and its symptom is that
+a file the operator believes changed did not change. No workflow can observe
+that, because there is nothing yet to observe.
+
+What IS available, ranked, and the top option is genuinely mechanical rather
+than a habit:
+
+1. **Stop using heredoc scripts to edit source files. Use the file editing tool,
+   which errors when its target string is absent and cannot silently no-op.**
+   This outranks any rule because it is a property of a different tool, not a
+   thing to remember. It is the single change that would have prevented all six
+   instances. Call it strong-medium: it works while nobody is watching, but only
+   while the tool is the one being used.
+2. **Where a script is genuinely necessary, put the reporting INSIDE the
+   script.** End every edit script with an unconditional
+   `git diff --stat -- <file>` and a printed line naming the file and whether it
+   changed, and run it with `;` rather than `&&` so the report still prints when
+   the assert fires. Mechanical, because the printing lives in the tool rather
+   than in the operator's memory. Also cheap: three lines.
+3. **Match on a normalised anchor.** Collapse runs of whitespace in both the
+   file text and the anchor before searching, so a formatter's line wrapping
+   cannot break a match. This removes the actual cause rather than reporting it.
+
+Grepping for the result afterwards, which is what caught all five, is the
+weakest tier and should be described that way every time it is credited.
+
+**A sixth instance, produced by this session, while writing this lesson.** The
+script that corrected two line numbers in this entry asserted on an anchor
+spanning a line break, the draft had wrapped it differently, the assert fired,
+and the script exited before its write. Exactly the mechanism described three
+paragraphs above, in the file describing it, minutes after describing it. It was
+caught by grepping for the number afterwards, which is the weakest tier habit,
+and the retry that worked used no anchor at all: a plain replace of a string
+short enough not to contain a line break, with the replacement count printed.
+
+Six instances, four files, three processes, two days. This is now the most
+frequently repeating finding in this log, and it is the only one whose best
+available guard is a different tool rather than a test.
+
+**Lesson 7. The standing CLAUDE.md fact check. Clean, with one sentence that is
+about to become false.**
+
+Sessions 12, 13, 14 and 15 found it clean; this is the fifth. CLAUDE.md changed
+once since session 15's audit, inside fdb0e52, adding eleven lines at :268 to
+:278, the "never SAY a version number until its delivery row exists" rule that
+session 15 asked for. That text makes no factual claim about a path, a command
+or a trigger, so there is nothing in it to be wrong. `git diff fdb0e52 HEAD
+--stat -- CLAUDE.md .github/ .claude/` is empty, so every workflow is byte
+identical to what session 15 audited.
+
+Re-verified by reading and running anyway, because "unchanged" is a claim about
+the file and the fact check is about the world it describes:
+
+- Every path CLAUDE.md names exists where it says: flutter/shorebird.yaml,
+  flutter/test/update_stamp_test.dart, flutter/test/screens_shot.dart,
+  flutter/lib/widgets/salapify_icon.dart, flutter/lib/main.dart,
+  docs/delivery-log.md, docs/qa-log.md, mobile/app/(tabs)/more.js,
+  flutter/test/qa_record_test.dart, .github/workflows/flutter-check.yml,
+  .github/workflows/flutter-preview.yml, .github/workflows/eas-update.yml.
+- All five skills exist in .claude/skills and the split, three adapted and two
+  ours, still matches the directory.
+- mobile/lib/storage.js:9 still holds `salapify_data_v2`.
+- mobile/package.json:11 still pins `"expo": "~54.0.0"`.
+- The 120 character stamp cap is live at update_stamp_test.dart:20; the
+  delivered stamp is 97.
+- flutter-check.yml:20 triggers on `claude/**` with no paths filter, and runs
+  the shot harness separately with `--update-goldens` at :79.
+- flutter-preview.yml:17 triggers on `main` with paths `flutter/**` at :19 and
+  watches its own definition at :26.
+- The app id claim holds: flutter/shorebird.yaml:4 carries it in plain text and
+  no token.
+- The committed preview keystore claim holds:
+  flutter/android/app/preview-keystore.jks exists and build.gradle.kts:42 points
+  at it.
+- The local SDK claim holds: /opt/flutter runs 3.44.6 stable, and analyze, test
+  and the shot harness all ran from it this session.
+- The three delivery commands ran as written and returned f2.75 patch 25.
+- The render rule was followed this round: batch 9 added a dark-only quick add
+  editor shot at screens_shot.dart:359 to :392, rendered and looked at here.
+
+**The one sentence to watch, and it is a warning rather than a finding.**
+CLAUDE.md's Flutter rule 1 describes the branch check as "analyze and test only,
+on a real runner, nothing published". At the delivered tip that is defensible,
+because the extra step at flutter-check.yml:79 is itself a `flutter test`
+invocation and the word "only" is carrying "nothing published". The uncommitted
+tree adds a `flutter build apk --debug` step to that workflow, gated on native
+paths. If that lands, "analyze and test only" becomes a false description of the
+branch check, and it is a description the founder and every future session read
+with authority. **The fix costs one line and belongs in the same commit as the
+workflow change, not in the next retrospective.** This is exactly the shape that
+five consecutive sessions repeated before session 12: a sentence about a tool
+that was true when written.
+
+**One number correction, in the spirit of the log measuring rather than
+inheriting.** Session 15 reported "34 patch rows and 2 release rows" in
+docs/delivery-log.md. The file has 34 rows in total: 32 `patch` and 2 `release`.
+Session 15 also reported 23 `MaterialApp(` sites and 33 `expectLater` sites in
+screens_shot.dart at the f2.74 tip; at 0f10b11, the actual f2.74 tip, they are
+22 and 32, and the 23 and 33 it measured were the live tree with batch 9 already
+in it. Session 15 said out loud that its tree was moving, so this is a
+confirmation of its own caveat rather than a contradiction of it.
+
+### Open lessons carried forward
+
+**Open 3, nothing compares the phone to main: STILL OPEN, by design.** The
+founder confirmed f2.75 in person, which remains the only proof that counts.
+
+**Open 6, the watchdog has never been observed running a scheduled pass: STILL
+OPEN.** Run history is unreadable from this sandbox and `gh` is not installed
+here, re-confirmed. No spurious issue in evidence, and this round's 12m01s
+merge-to-row gap was well inside the 2700 second grace at
+delivery-watchdog.yml:43.
+
+**Open 7, the watchdog blind spot for merges that do not bump the stamp: STILL
+OPEN.** Not exercised. Batch 9 was again committed deliberately without a stamp
+bump, on a branch, with the stamp landing alongside the QA row. That is now the
+settled practice and the QA record guard is what created it.
+
+**Open 8, split the publish step from the log scraping: STILL OPEN,** re-verified
+by reading. The scrape is still inside the ship step with `|| true` at
+flutter-preview.yml:127 and its load-bearing comment intact at :112 to :126.
+
+**Open 9, FAILED rows in docs/delivery-log.md: STILL OPEN.** 32 `patch` rows,
+2 `release` rows, no failure rows at all.
+
+**Open 10, nothing holds Pan's rendered size: STILL OPEN.**
+
+**Open 11, nothing stops a sixth private kicker: STILL OPEN.**
+
+**Open 13, the shot harness mounts screens through a private copy of the shell's
+wiring: STILL OPEN, and this round gives it a clean illustration.**
+`MaterialApp(` sites in screens_shot.dart are 23 at the delivered tip, up from 22
+at f2.74. The new quick add editor shot at :359 to :392 mounts
+`QuickAddEditor(store: store)` inside a `SingleChildScrollView`, not through
+`showQuickAddEditor`. So the render could never have shown the seed-on-open
+defect, because the seed lived in the wrapper the shot skips, and it also cannot
+show the safe area or the height cap that QA's fourth SHOULD FIX was about. The
+picture is real and it proves less than it appears to.
+
+**Open 14, CLAUDE.md workflow item 4 versus the eas-update trigger: STILL OPEN,
+untouched, re-verified.** eas-update.yml:18 still triggers only on
+`claude/salapify-v2`, a branch retired in cf5c6a7.
+
+**Open 15, the walk-keying and frame-asserting rule: STILL OPEN, flat.**
+Measured the same way as the last four sessions, at the delivered tip: 10 of 33
+`expectLater` sites are preceded within six lines by an `expect(`. The new quick
+add editor shot is one of the 23 that are not, going straight from
+`pumpAndSettle` to `expectLater`.
+
+**Open 16, prove-it-fails says how to break the code and not how to restore it:
+STILL OPEN.** `grep -rn "git checkout\|git restore" CLAUDE.md
+.claude/skills/*/SKILL.md` still returns nothing. This session broke code eight
+times to prove things and used two throwaway `git worktree` checkouts, the same
+workaround session 15 invented. Two sessions in a row inventing the same
+workaround is the argument for writing it down.
+
+**Open 17, nothing generalises the payday guard: STILL OPEN, re-verified.**
+`PlannedReminder` at flutter/lib/money/reminders.dart:25 to :29 still carries
+only title, body and when.
+
+**Open 18, the habit signal has several independent remembering events: STILL
+OPEN.** `sampleTxIds` still appears at 10 sites under flutter/lib with no shared
+accessor.
+
+**Open 20, mobile/lib/notifications.js has the same sample-row defect Flutter
+fixed: STILL OPEN, re-verified.** `loggedToday` is now at :100 and still reads
+`(data.transactions || []).some((t) => t.date === todayISO())` with no sample
+exclusion.
+
+**Open 21, the balance label guards are example-shaped: STILL OPEN.**
+`grep -rn "never refused as an overdraft" flutter/test/` still returns nothing.
+
+**Open 23, a shared centavo helper exists and nothing points at it: STILL HALF
+CLOSED.** flutter/lib/money/thirteenth.dart:20 still carries a private `_round2`
+and nothing in the porting skill names the shared one.
+
+**Open 25, nothing says that a test for a default must exercise the untouched
+path: STILL OPEN.** CLAUDE.md did not change on this point.
+
+**Open 26, a defect found by looking is not fixed until an assertion fails on the
+old behaviour: STILL OPEN, but this round is its best round yet.** Both of the
+f2.74 fixes session 15 proved unguarded are now guarded, and both re-proven live
+here. See the guard re-check.
+
+**Open 27, whether to port a DISPLAY bug faithfully: EXERCISED, and answered
+deliberately.** Batch 9 diverges from RN on purpose in two places, and fdb0e52
+put both divergences INTO the goldens with RN's own answer recorded beside each,
+so the replay stays a statement about RN and nobody later "fixes" the port back.
+That is the pattern this open lesson was asking for, applied by hand.
+
+**Open 29, nothing decides what counts as money math: STILL OPEN.** The quick add
+engine was locked to RN across 22 golden cases, which is the right call, and
+nothing in the repository would have required it.
+
+**Open 30, nothing distinguishes a test that asserts how the code behaves from a
+test that asserts a fact about the world: STILL OPEN.** Lesson 3's proposal, that
+the Kotlin key set and the Dart key set be compared by reading both files, is the
+same family: an assertion about a fact that spans two languages.
+
+**Open 31, nothing says how to edit or undo safely: STILL OPEN, RESTATED with a
+ranking.** Six documented instances now, one of them produced by this session
+while writing the lesson about it. See Lesson 6 for the three mechanical options
+and their honest ceiling.
+
+**Open 32, one sanitizer makes every raw money read safe and nothing at any read
+site says so: STILL OPEN.** Still 12 files under flutter/lib/screens/ containing
+`is num`.
+
+**Open 33, a proven-to-fail failure line proves ONE assertion: STILL OPEN.**
+fdb0e52 quotes one failure line and describes six findings.
+
+**Open 34, half of the first deliberate golden-lock divergence was unguarded:
+STILL HALF CLOSED.** flutter/test/statement_golden_test.dart:28 is still named
+'every statement matches the RN text byte for byte' and still says nothing about
+the injected formatter.
+
+**Open 35, a report can be accurate in every word and still function as a
+promise: STILL OPEN, and NOT exercised this round.** The founder was not sent to
+their phone by anything this round. The rule at CLAUDE.md:268 to :278 has now
+been live for one full batch with nothing to test it against, which is neither
+evidence for nor against it.
+
+**Open 36, nothing stops a widget test depending on the real calendar: HALF
+CLOSED, and the closing is verified.** Session 15's live instance is fixed:
+screens_shot.dart now mounts Activity with `clock: () => DateTime(2026, 7, 28)`
+and a four line comment naming session 15 as the finder. What remains open is
+the class guard, making the clock a REQUIRED parameter on widgets that read
+today, so `DateTime.now` has to be typed at the call site.
+
+**Open 37, an ambiguous finder is a user interface report and gets filed as a
+test-authoring chore: STILL OPEN.** No new chip screens this round.
+
+**Open 38, two fixes shipped with no guard: CLOSED, and both guards re-proven
+live this session.** See the guard re-check for the failure lines.
+
+**NEW Open 39: nothing tests that opening a read-only screen writes nothing.**
+The quick add editor flipped `hasData` true and deleted Menu's BRING YOUR DATA
+OVER card by being opened. Instance guarded at quick_add_editor_test.dart:199.
+Candidate class guard, strongest tier: an empty-app test that opens and closes
+every sheet in a list and asserts `store.data` is unchanged and `hasData` is
+still false, plus a second assertion that the list covers every `show*Editor`
+and `show*Sheet` found by grepping lib/screens off disk, so the list cannot rot.
+
+**NEW Open 40: a conditional settings key is pinned in one direction only.**
+Proven live: emitting `quickAddsEdited` unconditionally fails ten tests;
+DROPPING it leaves all 1001 passing, and `sanitizeData` runs on every load, so
+that direction resurrects the four default quick adds for anyone who deleted
+them on purpose. Candidate guard, strongest tier and about six lines: an
+omission-and-presence test mirroring paluwagan_store_test.dart:101. General rule
+worth writing beside backup.dart:490: a conditional key needs two tests, because
+RN fixtures can only ever prove the absent direction.
+
+**NEW Open 41: the home tile's decision surface is not the file that claims to
+hold it.** Proven live at 2ebd297: misspelling the app lock key, misspelling the
+privacy key, and setting the accent to the background colour all leave 1026
+tests passing and analyze clean; renaming a key in the Kotlin, or changing the
+tap encoding, does the same. Candidate guards, strongest first: compare the
+Kotlin's `getString` key set against the keys `HomeTile.push` writes by reading
+both files; then make widget_privacy_test.dart call `HomeTile.push` behind a
+mock platform channel instead of its private `_tile` copy at :45.
+
+**NEW Open 42: widget_manifest_test.dart misses three fatal native mistakes.**
+Proven live, individually and together, against both the committed and the
+in-flight version of the file: deleting the APPWIDGET_UPDATE intent-filter,
+setting the receiver to `exported="false"`, and renaming the
+`android.appwidget.provider` meta-data all leave every test passing. The
+`exported` assertion at :62 is satisfied by MainActivity, a different element.
+Candidate guard, strongest tier: scope every manifest assertion to the receiver
+BLOCK, and never assert about one element with a whole-file `contains`.
+
+**NEW Open 43: an assertion can be satisfied by something other than the
+behaviour it names, and three different mechanisms did that in one round.** A
+matcher that matches too much, a fixture that already satisfies the condition,
+and a setup that forces the answer. Guard is a medium tier addition to
+CLAUDE.md's prove-it-can-fail section: before trusting a green assertion, ask
+what ELSE would satisfy it, and check those three by name. This is the fourth
+named species of "a test that passes for the wrong reason" in this log.
+
+### Guard status re-check
+
+Read and re-run, not assumed. `git diff fdb0e52 HEAD --stat -- .github/
+CLAUDE.md .claude/` returns NOTHING in the committed tree, so every workflow
+line the last eight entries recorded still stands. Verified by reading anyway,
+and by breaking several of them:
+
+- The duplicate stamp refusal: PRESENT, flutter-preview.yml:165 to :181.
+  Correctly silent, the stamp was distinct.
+- The `|| true` scrape guard: PRESENT, flutter-preview.yml:127, comment intact.
+- The nothing-shipped failure issue: PRESENT, flutter-preview.yml:223 onward.
+  Not fired, correctly.
+- The release install shout: PRESENT, flutter-preview.yml:249 onward. Correctly
+  silent this round, the row reads `patch`. It WILL fire on the widget batch,
+  and that is the intended behaviour, verified by reading the branch logic at
+  :103 to :110.
+- The publisher watching its own definition: PRESENT at flutter-preview.yml:26.
+- The delivery watchdog's `--first-parent` and 2700 second grace: PRESENT,
+  delivery-watchdog.yml:99 and :43.
+- flutter-check.yml on `claude/**` with NO paths filter: PRESENT at :20, and the
+  separate shot harness run at :79.
+- The stamp cap: PRESENT, update_stamp_test.dart:20; the delivered stamp is 97
+  of 120 characters.
+- **The QA record guard: PRESENT, and it produced its third consecutive row.**
+  docs/qa-log.md:35 exists because the build fails without it. It is still the
+  most valuable guard built in this log.
+- **Session 15's two new guards: PRESENT and BOTH RE-PROVEN LIVE.** In a clean
+  worktree at dd213ca, reverting the picker bounds at
+  flutter/lib/widgets/period_selector.dart:78 to :82 back to a constant
+  `firstDate` with no clamp, and separately removing `initialPeriod:
+  Period.monthOf(_ref)` from flutter/lib/screens/reports.dart:532:
+
+      lastDate 1975-12-31 00:00:00.000 must be on or after firstDate 2000-01-01
+      Failed assertion: line 231 pos 5: '!lastDate.isBefore(firstDate)'
+      00:04 +16 -2: the date picker opens on a phone whose clock is in 1970 [E]
+
+      Expected: no matching candidates
+        Actual: Found 1 widget with text containing ₱500 descending from widget
+      00:03 +12 -1: tapping a category row carries the month you were reading [E]
+
+  Third consecutive round in which a retrospective's own recommendation was
+  implemented and then verified by the next retrospective. Open 38 is closed.
+- Session 14's reminder centavo guard: PRESENT at person_sheet_test.dart:310.
+- Session 12's guard, 'the DEFAULT is moving, not untagging': PRESENT at
+  categories_screen_test.dart:137.
+- Session 13's guard, 'a cap fires for an entry logged with the main Log
+  button': PRESENT at categories_screen_test.dart:234.
+- Sessions 6 through 11 guards: PRESENT, spot-checked by grep, none deleted.
+- The shot harness: RUNS, verified rather than assumed. `flutter test
+  test/screens_shot.dart --update-goldens` in the clean worktree reports 37
+  passing render tests writing 49 files.
+- The whole delivered suite: 1001 pass and analyze clean, measured in a clean
+  checkout of dd213ca, up from 982 at f2.74.
+
+**No guard was found deleted, disabled or routed around, and no test was deleted
+or inverted this round.** `git diff 0f10b11 379f696 -- flutter/test/` shows
+1296 insertions and 14 deletions, and every deletion is `dart format`
+re-wrapping the signature of a test that still exists. No assertion changed
+meaning, which means nothing in this round's suite was defending a defect.
+
+The nearest thing to a bad finding is again the opposite shape, and it is
+bigger than last round: four separate guards that read as coverage and are
+satisfied by something other than the thing they name. The conditional key
+guarded in one direction, the privacy test asserting a copy of the code, the
+manifest test satisfied by a different element, and the substring matcher that
+matched a renamed id. All four look right. Three of the four were found by
+deliberately breaking working code, which is the only method that has ever found
+this class here.
+
+---
+
 ## 2026-07-28, session 15: the words were accurate and the founder still went looking
 
 f2.74 delivered cleanly, was confirmed on the founder's phone, and nothing

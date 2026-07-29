@@ -39,6 +39,9 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.LAUNCH" />
+            </intent-filter>
         </activity>
         <!-- flutter_local_notifications: deliver a scheduled reminder and
              re-register the schedule after a reboot. -->
@@ -59,6 +62,30 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- The Your Number home screen tile. RemoteViews only: the Kotlin
+             reads ten plain strings the app wrote and puts them in TextViews.
+             It does no money math and no date math, so it can never disagree
+             with the app.
+
+             exported="true" is a risk-adjusted choice, not doctrine. Our own
+             update broadcast is explicit, so false would work, but OEM
+             launchers have a long history of only honouring exported
+             providers. The cost of true being wrong is nil (something could
+             ask us to redraw the same strings). The cost of false being wrong
+             is a widget that never updates, which costs the founder another
+             manual APK install to fix. -->
+        <receiver
+            android:name=".YourNumberWidget"
+            android:label="@string/widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/your_number_widget_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

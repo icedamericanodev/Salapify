@@ -1,15 +1,18 @@
 name: salapify
 description: "A new Flutter project."
 publish_to: 'none'
-# Bumped for Pan's redrawn artwork (assets/pan/, four mood faces, ~145KB).
-# Shorebird patches carry Dart code, NOT assets, and refuse a patch that
-# touches them, so adding an image is a native-level change: a fresh base APK
-# that the founder installs once by hand. Everything after that install goes
-# back to patching over the air.
+# Bumped for the "Your Number" home screen widget: the home_widget plugin, a
+# new manifest receiver, and new Kotlin. A Shorebird patch carries Dart code
+# only, so none of that can travel over the air. This is a fresh base APK the
+# founder installs once by hand, and until they do they receive NOTHING while
+# every later build reports green. Say that loudly, never bury it.
 #
-# The previous bump was flutter_local_notifications + timezone on top of
-# local_auth for App Lock.
-version: 0.6.2+11
+# BOTH halves move. The +11 is the Android versionCode and it must increase or
+# the new APK will refuse to install over the old one.
+#
+# Earlier bumps: Pan's redrawn artwork (assets are not patchable either), and
+# flutter_local_notifications plus timezone on top of local_auth for App Lock.
+version: 0.6.3+12
 
 environment:
   sdk: ^3.12.2
@@ -21,6 +24,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_local_notifications: ^18.0.1
+  home_widget: ^0.9.3
   local_auth: ^2.3.0
   path_provider: ^2.1.6
   pdf: ^3.11.1
