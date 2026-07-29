@@ -206,6 +206,10 @@ final Map<String, dynamic> livedInBlob = () {
       'name': 'Carla',
       'paydaySchedule': {'mode': 'monthly', 'day': 30},
       'monthlyLimit': 18000,
+      // A rate the person typed themselves, so every screen renders the
+      // CONVERTED state and the sentence that owns up to where the rate came
+      // from, rather than only the excluded one.
+      'manualRates': {'USD': 56.5},
     },
     'accounts': [
       {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 2340},
@@ -234,9 +238,29 @@ final Map<String, dynamic> livedInBlob = () {
         'subtype': 'payroll_account',
         'institutionId': 'unionbank',
       },
+      // A FOREIGN account, in the fixture every screen shares.
+      //
+      // Per-account currency is the newest and, by the design document's own
+      // ranking, the most dangerous money code in the app: it is the one place
+      // that can produce a WRONG total rather than a missing one. It was
+      // rendered on exactly one screen, from a fixture built for that screen,
+      // so the conversion notice and the exclusion rule were never once seen
+      // on Home, Budget or Insights, which are the screens that would actually
+      // carry a wrong number to somebody.
+      {
+        'id': 'usd',
+        'name': 'Freelance USD',
+        'kind': 'savings',
+        'balance': 1200,
+        'subtype': 'savings_account',
+        'currencyCode': 'USD',
+      },
     ],
     'assets': [
       {'id': 'mp2', 'name': 'Pag-IBIG MP2', 'kind': 'mp2', 'value': 61200},
+      // A thing you own that is not spendable, so the Accounts screen shows
+      // more than one category and net worth stops being a synonym for cash.
+      {'id': 'car', 'name': 'Motorcycle', 'kind': 'vehicle', 'value': 85000},
     ],
     'debts': [
       {
@@ -1302,75 +1326,15 @@ void main() {
   testWidgets('the transfer sheet, dark', (tester) async {
     // A write path with money in it, so it gets looked at before it ships.
     await loadRealFonts(tester);
+    // The SAME person every other screen renders. This shot used to seed its
+    // own near-copy of the lived-in fixture, close enough to look identical
+    // and different enough that Accounts and Utang disagreed about the total
+    // debt by 80 pesos and 40 centavos. Chasing that gap ate an investigation
+    // and the answer was that neither screen was wrong, they were rendering
+    // two different people. Cross-screen comparison is the most valuable kind
+    // of looking there is, and a private fixture per shot makes it impossible.
     SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode({
-        'schemaVersion': 12,
-        'settings': {
-          'onboarded': true,
-          // A rate the person typed, so the shot shows the CONVERTED state
-          // and its label rather than only the excluded one.
-          'manualRates': {'USD': 56.5},
-        },
-        'accounts': [
-          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
-          {
-            'id': 'bpi',
-            'name': 'BPI Savings',
-            'kind': 'savings',
-            'balance': 48500.55,
-            'subtype': 'savings_account',
-            'institutionId': 'bpi',
-          },
-          {
-            'id': 'gcash',
-            'name': 'GCash',
-            'kind': 'ewallet',
-            'balance': 1750,
-            'subtype': 'ewallet',
-            'institutionId': 'gcash',
-          },
-          {
-            'id': 'pay',
-            'name': 'Salary account',
-            'kind': 'checking',
-            'balance': 22400,
-            'subtype': 'payroll_account',
-            'institutionId': 'unionbank',
-          },
-          {
-            'id': 'usd',
-            'name': 'Freelance USD',
-            'kind': 'savings',
-            'balance': 1200,
-            'subtype': 'savings_account',
-            'currencyCode': 'USD',
-          },
-        ],
-        'assets': [
-          {'id': 'mp2', 'name': 'Pag-IBIG MP2', 'kind': 'mp2', 'value': 60000},
-          {'id': 'car', 'name': 'Motorcycle', 'kind': 'vehicle', 'value': 85000},
-        ],
-        'debts': [
-          {
-            'id': 'card',
-            'name': 'BPI card',
-            'type': 'credit card',
-            'remaining': 12400,
-            'minPayment': 1200,
-            'dueDay': 15,
-            'statementDay': 25,
-          },
-          {
-            'id': 'moto',
-            'name': 'Motorcycle loan',
-            'type': 'auto',
-            'remaining': 48000,
-            'minPayment': 3200,
-            'dueDay': 5,
-            'subtype': 'auto_loan',
-          },
-        ],
-      }),
+      storageKey: jsonEncode(livedInBlob),
     });
     final store = SalapifyStore();
     await store.load();

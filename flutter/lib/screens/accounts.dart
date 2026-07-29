@@ -487,13 +487,22 @@ class AccountsScreen extends StatelessWidget {
     // The caller's line (subtype and institution) is the default. A savings
     // TARGET replaces it, because progress toward a goal is the more useful
     // fact and a third clause would not fit on one line at any font size.
+    //
+    // That sentence was written first and the code underneath it then APPENDED
+    // rather than replaced, so a savings account with a goal rendered
+    // "Savings account · BPI · 49% of ₱1..." and the target, the one number
+    // the line exists to show, was the part cut off. The author knew a third
+    // clause would not fit and wrote a third clause. It survived because no
+    // fixture had ever given an account a target: the render that would have
+    // shown it seeded its own store, and that store had no goals in it.
+    //
+    // Nothing is lost by replacing. The subtype is a category the row already
+    // sits under, and the institution is drawn as its own avatar two
+    // centimetres to the left.
     double? progress;
     if (target > 0) {
       final pct = ((balance / target) * 100).clamp(0, 999).round();
-      final lead = sub ?? (brand.isNotEmpty ? brand : '');
-      sub =
-          '${lead.isNotEmpty ? '$lead · ' : ''}'
-          '$pct% of ${formatMoneyText(target)}';
+      sub = '$pct% of ${formatMoneyText(target)}';
       progress = (balance / target).clamp(0.0, 1.0);
     } else if (sub == null && brand.isNotEmpty) {
       sub = brand;

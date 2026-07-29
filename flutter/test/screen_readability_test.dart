@@ -37,6 +37,9 @@
 // re-prove something arithmetic already proves better.
 
 import 'package:flutter/material.dart';
+// RenderParagraph lives here, not in material.dart. The ellipsis check below
+// is the only thing in this file that needs to reach past the widget layer.
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
@@ -94,6 +97,37 @@ bool _insideHorizontalScroll(Element element) {
     return true;
   });
   return horizontal;
+}
+
+/// Text the layout gave up on and cut off with an ellipsis.
+///
+/// Not the same thing as overflow, and invisible to every check above: an
+/// ellipsized line fits perfectly, throws nothing, and stays inside the frame.
+/// It also keeps its FULL string in the widget, so a test asserting on the
+/// text passes while the phone shows "49% of ₱1...". Only the render knows.
+///
+/// This is a real defect class here rather than a style rule: the Accounts row
+/// cut a savings target down to "₱1..." with the code comment directly above
+/// it saying a third clause would not fit.
+///
+/// Truncating a long name a person typed is legitimate and always will be, so
+/// this leans on the fixture: every name in the lived-in store is an ordinary
+/// length, and on ordinary data nothing should need cutting. If a future
+/// fixture adds a deliberately enormous name, this is the check that has to
+/// learn about it, and that is the right trade: it fails loudly rather than
+/// letting real truncation hide among expected truncation.
+List<String> _cutOff(WidgetTester tester) {
+  final bad = <String>[];
+  for (final e in find.byType(Text).evaluate()) {
+    final ro = e.renderObject;
+    if (ro is! RenderParagraph || !ro.attached) continue;
+    if (!ro.didExceedMaxLines) continue;
+    final w = e.widget as Text;
+    final s = (w.data ?? w.textSpan?.toPlainText() ?? '').trim();
+    if (s.isEmpty) continue;
+    bad.add('"$s" is cut off');
+  }
+  return bad;
 }
 
 /// Text painted past the left or right edge of the phone.
@@ -189,6 +223,19 @@ Future<List<String>> _inspect(
     }
     for (final off in _runsOffTheSide(tester)) {
       problems.add('$where has text off the side: $off');
+    }
+    // Cut-off text is judged at DEFAULT font size only, and the line is
+    // principled rather than convenient. An ellipsis at 1.5x is the layout
+    // degrading gracefully, which is exactly what an ellipsis is for; the
+    // first run of this check at 1.5x flagged a search hint and two account
+    // names, and demanding zero ellipsis there would push every fixed-width
+    // piece of chrome in the app into wrapping. An ellipsis at 1.0x is
+    // different in kind: it is the layout failing to fit its own ordinary
+    // content, on ordinary data, for everybody.
+    if (scale == 1.0) {
+      for (final cut in _cutOff(tester)) {
+        problems.add('$where has text cut off: $cut');
+      }
     }
   }
 
