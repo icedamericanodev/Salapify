@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.90 \u00b7 The utang list now shows a due date you can read.';
+    'f2.91 \u00b7 The app now tests itself the way you would use it.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
