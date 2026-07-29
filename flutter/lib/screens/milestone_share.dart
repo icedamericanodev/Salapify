@@ -327,7 +327,7 @@ class _MilestoneCard extends StatelessWidget {
                 child: Text(
                   'MILESTONE',
                   style: TextStyle(
-                    fontFamily: 'Jakarta',
+                    fontFamily: Barako.bodyFont,
                     color: _orange,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -357,7 +357,7 @@ class _MilestoneCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'Fraunces',
+              fontFamily: Barako.displayFont,
               color: _cream,
               fontSize: win.headline.length > 13 ? 24 : 30,
               fontWeight: FontWeight.w700,
@@ -367,7 +367,7 @@ class _MilestoneCard extends StatelessWidget {
           Text(
             win.sub,
             style: const TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _muted,
               fontSize: 12,
               height: 1.35,
@@ -384,7 +384,7 @@ class _MilestoneCard extends StatelessWidget {
                   child: Text(
                     win.amountLabel,
                     style: const TextStyle(
-                      fontFamily: 'Jakarta',
+                      fontFamily: Barako.bodyFont,
                       color: _muted,
                       fontSize: 13,
                     ),
@@ -394,7 +394,7 @@ class _MilestoneCard extends StatelessWidget {
                   child: Text(
                     formatMoneyText(win.amount),
                     style: const TextStyle(
-                      fontFamily: 'Jakarta',
+                      fontFamily: Barako.bodyFont,
                       color: _cream,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -409,7 +409,7 @@ class _MilestoneCard extends StatelessWidget {
           Text(
             _closing,
             style: const TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _cream,
               fontSize: 12,
               height: 1.35,
@@ -419,7 +419,7 @@ class _MilestoneCard extends StatelessWidget {
           const Text(
             "Salapify, on your money's side",
             style: TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _orange,
               fontSize: 11,
               fontWeight: FontWeight.w800,

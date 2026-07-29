@@ -422,7 +422,7 @@ class _RecapCard extends StatelessWidget {
                   (recap['kicker'] as String?) ??
                       'MY ${recap['label'].toString().toUpperCase()}',
                   style: const TextStyle(
-                    fontFamily: 'Jakarta',
+                    fontFamily: Barako.bodyFont,
                     color: _orange,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -460,7 +460,7 @@ class _RecapCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'Fraunces',
+              fontFamily: Barako.displayFont,
               color: _cream,
               fontSize: big.length > 13 ? 24 : 30,
               fontWeight: FontWeight.w700,
@@ -470,7 +470,7 @@ class _RecapCard extends StatelessWidget {
           Text(
             sub,
             style: const TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _muted,
               fontSize: 12,
             ),
@@ -488,7 +488,7 @@ class _RecapCard extends StatelessWidget {
                     child: Text(
                       r[0],
                       style: const TextStyle(
-                        fontFamily: 'Jakarta',
+                        fontFamily: Barako.bodyFont,
                         color: _muted,
                         fontSize: 13,
                       ),
@@ -498,7 +498,7 @@ class _RecapCard extends StatelessWidget {
                     child: Text(
                       r[1],
                       style: const TextStyle(
-                        fontFamily: 'Jakarta',
+                        fontFamily: Barako.bodyFont,
                         color: _cream,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -513,7 +513,7 @@ class _RecapCard extends StatelessWidget {
           Text(
             recap['verdict'].toString(),
             style: const TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _cream,
               fontSize: 12,
               height: 1.35,
@@ -523,7 +523,7 @@ class _RecapCard extends StatelessWidget {
           const Text(
             "Salapify, on your money's side",
             style: TextStyle(
-              fontFamily: 'Jakarta',
+              fontFamily: Barako.bodyFont,
               color: _orange,
               fontSize: 11,
               fontWeight: FontWeight.w800,
