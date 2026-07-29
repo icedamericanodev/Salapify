@@ -128,6 +128,38 @@ jobs:
           echo "patch=${PATCH:-}" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # Did that actually ship anything?
+      #
+      # The failure notice at the bottom of this file covers a step that exits
+      # NON-ZERO. This covers the other half, which nothing covered: a step
+      # that exits ZERO having published nothing. On a patch run the patch
+      # number is parsed with `|| true` on purpose, so an empty one looks
+      # exactly like success, and the delivery row below would be written
+      # reading "patch: none" while the phone received nothing.
+      #
+      # A row in docs/delivery-log.md is the ONE thing this project treats as
+      # proof that something shipped. A row that means nothing is worse than no
+      # row at all, because it is believed. So this runs BEFORE the row is
+      # written, and its failure reaches the founder through the same
+      # nothing-shipped issue as any other failure here.
+      #
+      # The logic lives in a script rather than in this file because a workflow
+      # step can only ever be tested by shipping. flutter/test/publisher_guard
+      # _test.dart drives that script through every failure shape on the branch
+      # check, before the merge, which is the first time any of this has been
+      # testable at all.
+      #
+      # Invoked via `bash` so it cannot quietly stop running the day the
+      # executable bit is lost in a checkout or a rebase.
+      - name: Prove something actually shipped
+        working-directory: .
+        run: |
+          bash .github/scripts/verify-shipped.sh \
+            '${{ steps.ship.outputs.mode }}' \
+            '${{ steps.ship.outputs.patch }}' \
+            flutter/ship.log \
+            flutter/build/app/outputs/flutter-apk/app-release.apk
+
       - name: Publish the base APK to the fixed flutter-preview release
         if: steps.ship.outputs.mode == 'release'
         uses: softprops/action-gh-release@v2
