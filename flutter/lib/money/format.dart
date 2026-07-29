@@ -22,6 +22,46 @@
 
 import 'currencies.dart' show baseCurrencySymbol;
 
+/// The month names every short date in the app uses. Public because the home
+/// screen tile builds its own "as of" stamp from a DateTime rather than an ISO
+/// string, and a fourth copy of this list is exactly what the drift being
+/// fixed here was made of.
+const List<String> monthAbbrevs = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/// An ISO date as a short human day, "Jul 27". Junk comes back unchanged.
+///
+/// Here for the same reason formatMoney is: it lived in overview.dart, which
+/// imports Flutter, so the home screen tile could not reach it and carried a
+/// private copy plus a third list of month names. A test claimed to compare
+/// the two "across a set of dates including junk" and in fact compared them on
+/// exactly one date, because its loop asserted `anyOf(isNotEmpty, equals(iso))`
+/// which every possible string satisfies. They did differ: "2026-7-4" read as
+/// "2026-7-4" on Home and "Jul 4" on the tile, unreachable only because
+/// paydays come from a formatter that pads.
+///
+/// One function means the comparison cannot drift, which is better than a test
+/// that watches two functions that can.
+String prettyDay(String iso) {
+  if (iso.length < 10) return iso;
+  final m = int.tryParse(iso.substring(5, 7));
+  final day = int.tryParse(iso.substring(8, 10));
+  if (m == null || day == null || m < 1 || m > 12) return iso;
+  return '${monthAbbrevs[m - 1]} $day';
+}
+
 /// Sign, currency symbol, comma-grouped pesos, and centavos when there are any.
 String formatMoney(num value) {
   // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.

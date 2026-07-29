@@ -27,7 +27,7 @@ import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
-import '../money/format.dart' show formatMoney;
+import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
@@ -44,7 +44,7 @@ import 'shell.dart';
 // import it from this file, and because the alternative, a second copy, is
 // precisely the bug that forced the move: the tile printed 413 where Home
 // printed 412.50, for the same number, at the same instant.
-export '../money/format.dart' show formatMoney;
+export '../money/format.dart' show formatMoney, prettyDay;
 
 /// An ISO date as a short human day, "Jul 27".
 ///
@@ -55,27 +55,6 @@ export '../money/format.dart' show formatMoney;
 ///
 /// Junk in, junk out ON PURPOSE: an unparseable date returns unchanged rather
 /// than throwing, so a hand-edited backup cannot take Home down.
-String prettyDay(String iso) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  if (iso.length < 10) return iso;
-  final m = int.tryParse(iso.substring(5, 7));
-  final day = int.tryParse(iso.substring(8, 10));
-  if (m == null || day == null || m < 1 || m > 12) return iso;
-  return '${months[m - 1]} $day';
-}
 
 class OverviewScreen extends StatelessWidget {
   final SalapifyStore store;

@@ -203,6 +203,22 @@ String buildPersonStatement(
       : const <Map<String, dynamic>>[];
 
   var totalLent = 0.0;
+  // The sum of what is open on each utang SEPARATELY, each one floored at
+  // zero. Not the same as totalLent minus totalPaid the moment any single
+  // utang has been paid more than it was for, which only an imported backup
+  // can produce because logPartial clamps a payment to the remaining.
+  //
+  // A DELIBERATE divergence from statement.js, recorded rather than silently
+  // introduced. RN nets globally, so ₱200 overpaid on one utang quietly pays
+  // off ₱200 of a different one. Three reasons that is the wrong answer:
+  // overpaying one debt is not a credit against another unless the two people
+  // agree it is; the person sheet directly above the share button already
+  // totals the per-utang remainders, so the netted figure made the Remind
+  // message and the Statement message name two different amounts to the same
+  // friend; and the netted figure is the SMALLER one, so the document
+  // understates a real debt. The goldens still pass because no vector
+  // overpays, which is exactly why this could sit undetected.
+  var openPerUtang = 0.0;
   final utangLines = <String>[];
   final payments = <_PayLine>[];
   for (final r in list) {
@@ -233,10 +249,21 @@ String buildPersonStatement(
       '${due.isNotEmpty ? '${t.due} $due' : t.noDue}   $label   '
       '${fmt(amount)}$status',
     );
+    // Marked paid means settled, whatever the logged payments add up to.
+    final rowOpen = isPaid ? 0.0 : amount - loggedSum;
+    if (rowOpen > 0) openPerUtang += rowOpen;
   }
   final totalPaid = payments.fold(0.0, (s, e) => s + e.amount);
   final open = round2(totalLent - totalPaid);
-  final stillOpen = open > 0 ? open : 0.0;
+  final netted = open > 0 ? open : 0.0;
+  // The larger of the two, which is only ever the per-utang sum, and only
+  // when something was overpaid. Written as a max rather than a plain swap so
+  // that every non-overpaid statement, which is all of them in the goldens
+  // and all of them the app itself can create, takes the byte-identical RN
+  // path.
+  final stillOpen = round2(
+    netted > openPerUtang ? netted : round2(openPerUtang),
+  );
   final fullyPaid = totalLent > 0 && stillOpen <= 0.005;
 
   // Oldest first; the marked paid lines, which carry no date, come last.
