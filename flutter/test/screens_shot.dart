@@ -1185,6 +1185,14 @@ void main() {
             'subtype': 'payroll_account',
             'institutionId': 'unionbank',
           },
+          {
+            'id': 'usd',
+            'name': 'Freelance USD',
+            'kind': 'savings',
+            'balance': 1200,
+            'subtype': 'savings_account',
+            'currencyCode': 'USD',
+          },
         ],
         'assets': [
           {'id': 'mp2', 'name': 'Pag-IBIG MP2', 'kind': 'mp2', 'value': 60000},

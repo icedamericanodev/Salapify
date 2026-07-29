@@ -12,7 +12,10 @@ import 'package:flutter/services.dart';
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
-import '../money/currencies.dart' show baseCurrencySymbol;
+import '../money/base_currency_scope.dart'
+    show baseCurrencyOf, excludedNotice, inBaseCurrency;
+import '../money/currencies.dart'
+    show baseCurrencySymbol, currencies, currencySymbol, formatConverted;
 import '../money/transfers.dart'
     show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
@@ -111,6 +114,20 @@ class AccountsScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 _summary(parts),
+                // Directly UNDER the number it explains. It sat at the bottom
+                // of the list first, which meant the figure somebody was
+                // reading and the sentence saying it was incomplete were a
+                // full scroll apart. Named rather than counted, and never
+                // silent: excluding a foreign row and saying nothing would be
+                // the same failure the exclusion exists to prevent, quieter.
+                if (excludedNotice(store.data) case final notice?)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      notice,
+                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 // ONE button. It used to be two, "+ Account" and "+ Asset",
                 // which asked people to know Salapify's internal split before
@@ -138,7 +155,14 @@ class AccountsScreen extends StatelessWidget {
                   if (groups[c.id]!.isNotEmpty)
                     _section(
                       c.label.toUpperCase(),
-                      groups[c.id]!.fold(0.0, (t, e) => t + amountOfRow(e)),
+                      groups[c.id]!
+                          .where(
+                            (e) => inBaseCurrency(
+                              e.$1,
+                              baseCurrencyOf(store.data),
+                            ),
+                          )
+                          .fold(0.0, (t, e) => t + amountOfRow(e)),
                       [
                         for (final e in groups[c.id]!) _taxonomyRow(context, e),
                         // Once, under the last debt section, not under each.
@@ -405,6 +429,7 @@ class AccountsScreen extends StatelessWidget {
     final storedIcon = (a['icon'] ?? '').toString();
     final bankId = (a['institutionId'] ?? '').toString();
     return _row(
+      foreignCode: _foreignCodeOf(a),
       icon: storedIcon.isEmpty ? '💵' : storedIcon,
       leading: storedIcon.isEmpty && bankId.isNotEmpty
           ? InstitutionAvatar(id: bankId, size: 30)
@@ -417,7 +442,22 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
+  /// The row's own currency, when it differs from the app's. Null otherwise,
+  /// which is every row that has ever existed.
+  String? _foreignCodeOf(Map<String, dynamic> r) {
+    final base = baseCurrencyOf(store.data);
+    final c = r['currencyCode'];
+    if (c is! String || c.isEmpty) return null;
+    return c.toUpperCase() == base ? null : c.toUpperCase();
+  }
+
   Widget _row({
+    /// When set, the amount is drawn in THIS currency and marked as not
+    /// counted. The mark is not decoration: the figure beside it is real money
+    /// that the totals above deliberately leave out, and a row that showed the
+    /// amount without saying so would make the totals look wrong instead of
+    /// incomplete.
+    String? foreignCode,
     required String icon,
 
     /// Drawn instead of [icon] when given. Only ever the institution avatar,
@@ -476,14 +516,26 @@ class AccountsScreen extends StatelessWidget {
           ),
           if (amount != null) ...[
             const SizedBox(width: 8),
-            Text(
-              formatMoneyText(amount),
-              style: TextStyle(
-                color: amountColor ?? Barako.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  foreignCode == null
+                      ? formatMoneyText(amount)
+                      : formatConverted(amount, foreignCode),
+                  style: TextStyle(
+                    color: amountColor ?? Barako.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (foreignCode != null)
+                  Text(
+                    'not counted',
+                    style: TextStyle(color: Barako.muted, fontSize: 11),
+                  ),
+              ],
             ),
           ],
         ],
@@ -579,6 +631,11 @@ class _AccountFormState extends State<_AccountForm> {
   late final TextEditingController _icon;
   late String _kind;
   late String _institutionId;
+
+  /// Empty means "the app's currency", which is what every account has always
+  /// been. A code is only stored when it DIFFERS from the base, so no row ever
+  /// gains a key that just restates the setting.
+  late String _currencyCode;
   bool _confirmDel = false;
   bool _saving = false;
   String? _err;
@@ -616,6 +673,7 @@ class _AccountFormState extends State<_AccountForm> {
                 : (_assetKindFor(widget.seed) ?? 'crypto')))
         .toString();
     _institutionId = it?['institutionId']?.toString() ?? '';
+    _currencyCode = it?['currencyCode']?.toString() ?? '';
   }
 
   @override
@@ -658,7 +716,130 @@ class _AccountFormState extends State<_AccountForm> {
     return {
       'subtype': s.id,
       if (_institutionId.isNotEmpty) 'institutionId': _institutionId,
+      if (_currencyCode.isNotEmpty) 'currencyCode': _currencyCode,
     };
+  }
+
+  /// The currency, as ONE row rather than a wall of chips.
+  ///
+  /// It was eight chips first. That is two wrapped rows for a question whose
+  /// answer is the base currency almost every time, and it pushed the Save
+  /// button off the bottom of the sheet, which is the same defect this feature
+  /// already fixed once by removing the Kind chips. A row that states the
+  /// current answer and opens a list is smaller, matches the bank field right
+  /// under it, and makes the ordinary answer the cheapest one.
+  ///
+  /// The warning below it is the point of the whole control. Somebody who
+  /// records a dollar account and is not told it sits outside their peso
+  /// totals will read a net worth that silently omits it, and a missing
+  /// feature is visible where a wrong total is not. So the consequence is
+  /// stated at the moment of choosing.
+  Widget _currencyRow() {
+    final base = baseCurrencyOf(widget.store.data);
+    final shown = _currencyCode.isEmpty ? base : _currencyCode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Material(
+          color: Barako.card,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              final picked = await _pickCurrency(base, shown);
+              if (picked == null || !mounted) return;
+              setState(() => _currencyCode = picked == base ? '' : picked);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '$shown  ${currencySymbol(shown)}',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (shown != base) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Salapify cannot convert $shown to $base yet, so this will NOT be '
+            'counted in your net worth or your daily number. It stays on this '
+            'screen with its own amount.',
+            style: TextStyle(color: Barako.warningStrong, fontSize: 12),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<String?> _pickCurrency(String base, String current) {
+    // The base currency pinned first, then the ones people here actually hold,
+    // then everything else. Not alphabetical: the answer somebody wants is
+    // almost always in the first two rows, and an alphabetical list buries it.
+    const common = ['USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AUD', 'CAD', 'HKD'];
+    final order = <String>{base, ...common, for (final c in currencies) c['code']!};
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Barako.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+          ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            children: [
+              Text(
+                'Which currency?',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final code in order)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    '$code  ${currencySymbol(code)}',
+                    style: TextStyle(color: Barako.text),
+                  ),
+                  subtitle: code == base
+                      ? Text(
+                          'Your app currency. Counted in every total.',
+                          style: TextStyle(
+                            color: Barako.muted,
+                            fontSize: 12,
+                          ),
+                        )
+                      : null,
+                  trailing: current == code
+                      ? Icon(Icons.check, color: Barako.primary)
+                      : null,
+                  onTap: () => Navigator.of(ctx).pop(code),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _institutionRow() {
@@ -1006,6 +1187,10 @@ class _AccountFormState extends State<_AccountForm> {
                   'Set this to the real total in your account. We log the difference so your reports and History stay right.',
                   style: TextStyle(color: Barako.faint, fontSize: 12),
                 ),
+              ],
+              if (!_isEdit && widget.seed != null) ...[
+                _label('Currency'),
+                _currencyRow(),
               ],
               // Only when the subtype actually has an institution. A cash
               // on hand row has no bank, and asking anyway is the tap tax the
