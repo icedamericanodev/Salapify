@@ -57,7 +57,17 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     // Recorded here, ACTED ON in shell.dart. A widget tap lands before the
     // store has loaded and before any shell exists.
     HomeTile.captureLaunch();
-    widget.store.load().then((_) {
+    // whenComplete, NOT then.
+    //
+    // load() awaits postDueRecurring OUTSIDE its own try/catch, and that path
+    // rethrows when the write to disk fails. A full disk is an ordinary
+    // condition on the cheap Android phones this app is for. With .then, one
+    // such failure meant the body never ran, HomeTile.ready stayed false for
+    // the whole session, and EVERY push was dropped, including the one that
+    // clears the tile after "erase everything on this phone". Somebody's
+    // salary would have stayed on their home screen after they erased the app.
+    // Reminders.reschedule was lost the same way.
+    widget.store.load().whenComplete(() {
       Reminders.reschedule(widget.store.data, DateTime.now());
       // Post-frame, so the first build has already resolved the palette and
       // the base currency. Until this runs HomeTile.ready is false and every

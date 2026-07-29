@@ -48,7 +48,7 @@ void main() {
       expect(t['yn_headline'], 'Open Salapify');
       expect(t['yn_bar_tap'], '0');
       expect(t['yn_asof'], '');
-      expect(t['yn_sub'], contains('Saving is off'));
+      expect(t['yn_sub'], 'Saving is off. Tap to fix it.');
     });
 
     test('2. app lock hides the amount but keeps the Log bar working', () {
@@ -58,7 +58,7 @@ void main() {
       final t = tile(base(), appLock: true);
       expect(t['yn_headline'], 'Salapify');
       expect(t['yn_bar_tap'], '1');
-      expect(t['yn_sub'], contains('App lock is on'));
+      expect(t['yn_sub'], 'Amounts hidden while app lock is on.');
     });
 
     test('3. numbers that cannot be read say so, not zero', () {
@@ -109,11 +109,7 @@ void main() {
       // No date: cycleStatus returns early for this state and carries no
       // payday, so the copy falls back rather than inventing one. Asserted
       // explicitly so nobody later assumes the date is there.
-      expect(
-        t['yn_sub'],
-        'Everything you have is spoken for. Open Salapify '
-        'for what to do.',
-      );
+      expect(t['yn_sub'], 'Everything you have is spoken for.');
       expect(
         t.values.join(' '),
         isNot(contains('₱')),
@@ -135,7 +131,7 @@ void main() {
     test('8. the real thing, matching the engine to the peso', () {
       final t = tile(base());
       expect(t['yn_headline'], '₱1,000');
-      expect(t['yn_sub'], 'a day until your Jul 20 payday, 10 days away.');
+      expect(t['yn_sub'], 'a day until Jul 20, 10 days away.');
       expect(t['yn_bar'], 'Log an expense');
       expect(t['yn_bar_tap'], '1');
       expect(t['yn_asof'], 'as of Jul 10, 7:04 PM');
@@ -300,6 +296,60 @@ void main() {
         expect(v.contains('–'), isFalse, reason: 'en dash in "$v"');
       }
     }
+  });
+
+  test('no sub line is long enough to be cut off', () {
+    // The layout gives this row ONE line with ellipsize="end" inside about
+    // 226dp at 12sp, which is roughly 37 characters. Every string the first
+    // version shipped was 43 to 66, so every explanatory sentence on the tile
+    // was truncated mid-word, and "Tap to fix it" and "Tap to check", the two
+    // strings that tell somebody how to recover, were both past the cut.
+    //
+    // Nothing else could catch this. flutter analyze does not measure text,
+    // no golden renders RemoteViews, and the strings are correct Dart.
+    //
+    // The payday variants are included deliberately: the month name and the
+    // day count are the parts that vary, so the longest real date and the
+    // longest real day count are what the cap has to hold.
+    final cases = <String, Map<String, String>>{
+      'failed read': tile(base(), canWrite: false),
+      'app lock': tile(base(), appLock: true),
+      'fresh': tile(<String, dynamic>{}),
+      'quiet': tile(base(balance: 0)),
+      'hidden': tile(base(), hideAmounts: true),
+      'ok': tile(base()),
+    };
+    // The two longest real shapes of the number state: a long month with a
+    // two digit day, and the largest day count a monthly cycle can produce.
+    cases['ok, longest date'] = widgetTileStrings(
+      base(),
+      DateTime(2026, 8, 31, 19, 4),
+      canWrite: true,
+      appLock: false,
+      hideAmounts: false,
+      stamp: 'f0.00',
+    );
+    final crunch = base(balance: 100);
+    crunch['debts'] = [
+      {
+        'id': 'd1',
+        'name': 'Card',
+        'type': 'credit card',
+        'remaining': 5000,
+        'minPayment': 500,
+        'dueDay': 15,
+      },
+    ];
+    cases['committed'] = tile(crunch);
+    cases.forEach((name, t) {
+      expect(
+        t['yn_sub']!.length,
+        lessThanOrEqualTo(subLineCap),
+        reason:
+            '$name is ${t['yn_sub']!.length} characters and will be cut: '
+            '"${t['yn_sub']}"',
+      );
+    });
   });
 
   test('junk never throws', () {

@@ -8,7 +8,17 @@
      what the widget picker previews. So a tile placed on a fresh install looks
      intentional and says exactly what to do next. Kotlin's per-key fallbacks
      match these strings, so a half written preferences file renders the same
-     way rather than blank. -->
+     way rather than blank. That sentence was FALSE for one round, in a comment
+     asserting it: the XML said "Salapify" and Kotlin said "Start here".
+
+     yn_sub takes maxLines="2" while every other row takes 1. Not symmetry, a
+     decision. It is the only row carrying a sentence, this row is frozen in
+     the APK, and shortening a sentence ships over the air while raising
+     maxLines costs another manual install. So the copy is capped at 36
+     characters in Dart (money/widget_tile.dart, subLineCap, with a test) to
+     fit one line, and the second line is the free insurance for a resized
+     tile, where wrapping beats a sentence cut mid-word. -->
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/yn_root"
     android:layout_width="match_parent"
@@ -33,7 +43,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="Salapify"
+        android:text="Start here"
         android:textColor="#FFFBF3E9"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -44,10 +54,10 @@
         android:id="@+id/yn_sub"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Open the app once to see your daily number."
+        android:text="Add your cash to get started."
         android:textColor="#FFA99182"
         android:textSize="12sp"
-        android:maxLines="1"
+        android:maxLines="2"
         android:ellipsize="end" />
 
     <TextView

@@ -17,7 +17,14 @@
 // phone nobody can debug. One type, forever, removes that failure.
 
 import 'cycle.dart' show cycleStatus;
-import 'debtmath.dart' show formatMoneyText;
+// formatMoney, the CENTAVO formatter every screen uses, not formatMoneyText.
+// The tile used the whole-peso one for one round and printed a different
+// number from Home for the same instant: perDay is available/daysLeft, so it
+// lands on a whole peso essentially never, and the whole-peso version rounds
+// UP. Home said 412.50, the tile said 413, and a person with 40 centavos a day
+// saw a flat "0" on their home screen. Two versions of one number, on the one
+// surface that cannot be corrected without a reinstall.
+import 'format.dart' show formatMoney;
 
 const _months = [
   'Jan',
@@ -64,6 +71,24 @@ String _stampedAt(DateTime ref) {
   final ampm = h24 < 12 ? 'AM' : 'PM';
   return 'as of ${_months[ref.month - 1]} ${ref.day}, $h:$m $ampm';
 }
+
+/// How many characters of the sub line actually fit on one row.
+///
+/// The tile declares 250dp wide with 12dp of padding each side, leaving about
+/// 226dp. At 12sp, an average character is roughly 6dp, so about 37 fit, and
+/// the layout sets maxLines with ellipsize, so anything past that is simply
+/// cut. QA measured the first version's strings at 43 to 66 characters: EVERY
+/// explanatory sentence on the tile was truncated mid-word, and both of the
+/// recovery instructions ("Tap to fix it", "Tap to check") were past the cut,
+/// which is the exact half a person needs when something is wrong.
+///
+/// Left at 36 with a margin rather than 37, because the estimate is an
+/// average and a string full of wide characters loses a place or two.
+///
+/// This is the number to fight for, not the layout. Shortening a sentence is
+/// Dart and ships over the air. Raising maxLines is res/ and costs another
+/// manual install.
+const int subLineCap = 36;
 
 /// The headline text size, because a RemoteViews TextView cannot autosize and
 /// the peso figure is variable width: "₱1,234,567" is ten characters where
@@ -127,7 +152,7 @@ Map<String, String> widgetTileStrings(
   if (!canWrite) {
     return tile(
       headline: 'Open Salapify',
-      sub: 'Saving is off until your stored data can be read. Tap to fix it.',
+      sub: 'Saving is off. Tap to fix it.',
       bar: 'Open Salapify',
       barLogs: false,
     );
@@ -140,7 +165,7 @@ Map<String, String> widgetTileStrings(
   if (appLock) {
     return tile(
       headline: 'Salapify',
-      sub: 'App lock is on, so amounts stay hidden here.',
+      sub: 'Amounts hidden while app lock is on.',
       bar: 'Log an expense',
       barLogs: true,
     );
@@ -152,7 +177,7 @@ Map<String, String> widgetTileStrings(
   if (c.reason == 'nonfinite') {
     return tile(
       headline: 'Open Salapify',
-      sub: 'Some of your saved numbers could not be read. Tap to check.',
+      sub: 'Some numbers could not be read.',
       bar: 'Open Salapify',
       barLogs: false,
     );
@@ -163,7 +188,7 @@ Map<String, String> widgetTileStrings(
   if (c.reason == 'fresh') {
     return tile(
       headline: 'Start here',
-      sub: 'Add your cash and log one expense. Your daily number appears here.',
+      sub: 'Add your cash to get started.',
       bar: 'Log an expense',
       barLogs: true,
     );
@@ -175,7 +200,7 @@ Map<String, String> widgetTileStrings(
   if (c.reason == 'quiet') {
     return tile(
       headline: 'No cash yet',
-      sub: 'Update your cash and e-wallet balances to see your daily number.',
+      sub: 'Update your cash balances.',
       bar: 'Log an expense',
       barLogs: true,
       asOf: true,
@@ -190,9 +215,8 @@ Map<String, String> widgetTileStrings(
     return tile(
       headline: 'Bills first',
       sub: payday.isEmpty
-          ? 'Everything you have is spoken for. Open Salapify for what to do.'
-          : 'Everything you have is spoken for before $payday. Open Salapify '
-                'for what to do.',
+          ? 'Everything you have is spoken for.'
+          : 'Spoken for until $payday.',
       bar: 'Log an expense',
       barLogs: true,
       asOf: true,
@@ -208,8 +232,8 @@ Map<String, String> widgetTileStrings(
     return tile(
       headline: '$days $dayWord',
       sub: payday.isEmpty
-          ? 'until your next payday. Amounts are hidden on this widget.'
-          : 'to your $payday payday. Amounts are hidden on this widget.',
+          ? 'to payday. Amounts hidden here.'
+          : 'to $payday payday. Amounts hidden.',
       bar: 'Log an expense',
       barLogs: true,
       asOf: true,
@@ -225,10 +249,10 @@ Map<String, String> widgetTileStrings(
   // rather than odd on a launcher. One wording means it can never drift into a
   // second variant of what Home says. Do not "improve" this by adding them.
   return tile(
-    headline: formatMoneyText(c.perDay),
+    headline: formatMoney(c.perDay),
     sub: payday.isEmpty
-        ? 'a day until your next payday, $days $dayWord away.'
-        : 'a day until your $payday payday, $days $dayWord away.',
+        ? 'a day until payday, $days $dayWord away.'
+        : 'a day until $payday, $days $dayWord away.',
     bar: 'Log an expense',
     barLogs: true,
     asOf: true,

@@ -184,8 +184,24 @@ void main() {
     final layout = File(
       'android/app/src/main/res/layout/widget_your_number.xml',
     ).readAsStringSync();
-    expect(layout, contains('Open the app once'));
+    expect(layout, contains('Start here'));
+    expect(layout, contains('Add your cash to get started.'));
     expect(layout, contains('Log an expense'));
+
+    // Kotlin's per-key fallbacks must be the SAME strings, or a half written
+    // preferences file renders a different tile from an unwritten one. The
+    // XML comment claimed this for a round while it was false.
+    final kt = File(
+      'android/app/src/main/kotlin/dev/icedamericano/salapify/'
+      'YourNumberWidget.kt',
+    ).readAsStringSync();
+    for (final s in ['Start here', 'Add your cash to get started.']) {
+      expect(
+        kt,
+        contains('"$s"'),
+        reason: 'the layout shows "$s" and Kotlin falls back to something else',
+      );
+    }
     // Every id the Kotlin sets must exist in the layout, or the update throws
     // at runtime on a phone.
     final kotlin = File(

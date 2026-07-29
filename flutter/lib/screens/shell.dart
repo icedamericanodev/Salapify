@@ -90,31 +90,60 @@ class _ShellScreenState extends State<ShellScreen> {
     // showing, so a crash mid-sheet can never turn it into a nag. Guarded on
     // onboarded too: a restored backup carrying a stray true from a phone
     // that died mid-onboarding should not open a sheet over a stranger.
+    // ONE callback, deliberately, handling both reasons a sheet might open on
+    // the first frame. They used to be two, and two callbacks meant two
+    // sheets: on a fresh install where the tile was tapped before the app had
+    // ever run, the parked tap and the first-log prompt both fired, stacking a
+    // second log sheet under the welcome one. Both reasons want the same
+    // sheet, so wanting it twice is still once.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Taken FIRST and unconditionally, before any guard can return. Reading
+      // clears it, so a tap this mount cannot serve is dropped here instead of
+      // waiting in a static field to detonate on the next mount, minutes later,
+      // over whatever sheet that mount opens.
+      final tapWantsLog = HomeTile.takeLogRequest();
       if (!mounted || !widget.store.canWrite) return;
-      final s = widget.store.data['settings'];
-      if (s is! Map || s['firstLogPrompt'] != true || s['onboarded'] != true) {
-        return;
-      }
-      widget.store.clearFirstLogPrompt();
-      showLogSheet(context, widget.store);
-    });
-    // A tap on the home screen tile's Log bar, consumed HERE for exactly the
-    // reasons above: this callback only runs once the store has loaded and
-    // onboarding is done, because the shell is not built until then, and the
-    // lock gate draws OVER it so a sheet opened underneath waits behind the
-    // fingerprint rather than leaking anything.
-    //
-    // Without this the two tap targets the widget builds are identical and
-    // both just open the app. The picker description promising a one tap Log
-    // button is frozen in res/, so it has to be true from the first install.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.store.canWrite) return;
-      if (!HomeTile.takeLogRequest()) return;
       final s = widget.store.data['settings'];
       if (s is! Map || s['onboarded'] != true) return;
-      showLogSheet(context, widget.store);
+      // The first-log prompt: onboarding just finished, so open the log sheet
+      // once, unasked, on the day the habit should start. Cleared BEFORE
+      // showing, so a crash mid-sheet can never turn it into a nag.
+      final prompt = s['firstLogPrompt'] == true;
+      if (prompt) widget.store.clearFirstLogPrompt();
+      if (prompt || tapWantsLog) _openLogSheetOnce();
     });
+    // The WARM tap, which is most taps. The app is already running, the tap
+    // arrives through the plugin's stream, and no initState is ever going to
+    // run again to notice it: this shell is built inside a ListenableBuilder
+    // with no key, so its Element is reused on every store change. Registering
+    // a live consumer is the only thing that makes the tile's Log button work
+    // more than once per app process.
+    HomeTile.onLogTap = _openLogSheetFromTile;
+  }
+
+  /// True while a sheet this shell opened is on screen.
+  ///
+  /// Two taps in a row would otherwise stack two identical log sheets, and the
+  /// person dismisses one and finds another underneath.
+  bool _sheetOpen = false;
+
+  void _openLogSheetOnce() {
+    if (_sheetOpen) return;
+    _sheetOpen = true;
+    showLogSheet(context, widget.store).whenComplete(() => _sheetOpen = false);
+  }
+
+  /// A tile tap on a running app. Same guards the cold path uses, because the
+  /// same things are true: a sheet must not open over a store that cannot be
+  /// written, or over somebody who has not finished onboarding.
+  ///
+  /// The lock gate draws OVER the shell, so a sheet opened underneath waits
+  /// behind the fingerprint rather than leaking anything.
+  void _openLogSheetFromTile() {
+    if (!mounted || !widget.store.canWrite) return;
+    final s = widget.store.data['settings'];
+    if (s is! Map || s['onboarded'] != true) return;
+    _openLogSheetOnce();
   }
 
   /// Reaches into the Money tab for the two things only it knows: which
@@ -146,6 +175,11 @@ class _ShellScreenState extends State<ShellScreen> {
 
   @override
   void dispose() {
+    // Release the tile's consumer, or a tap arriving after this shell is torn
+    // down calls into a dead State and the mounted check inside is the only
+    // thing between that and a crash. Compared first so a shell that was
+    // replaced by a newer one cannot unregister the newer one's handler.
+    if (HomeTile.onLogTap == _openLogSheetFromTile) HomeTile.onLogTap = null;
     for (final c in _controllers.values) {
       c.dispose();
     }

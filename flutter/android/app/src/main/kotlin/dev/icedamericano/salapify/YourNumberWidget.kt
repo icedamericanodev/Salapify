@@ -40,8 +40,13 @@ class YourNumberWidget : HomeWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_your_number)
 
             val headline = widgetData.getString("yn_headline", null) ?: "Start here"
+            // Byte for byte the same strings the XML declares, so a half
+            // written preferences file renders exactly like a tile that has
+            // never been written to. A comment used to claim this and it was
+            // not true: the XML said "Salapify" / "Open the app once..." while
+            // these said "Start here" / a sentence twice as long.
             val sub = widgetData.getString("yn_sub", null)
-                ?: "Add your cash and log one expense. Your daily number appears here."
+                ?: "Add your cash to get started."
             val asOf = widgetData.getString("yn_asof", null) ?: ""
             val bar = widgetData.getString("yn_bar", null) ?: "Log an expense"
             val barTap = widgetData.getString("yn_bar_tap", null) ?: "1"

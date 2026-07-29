@@ -151,7 +151,20 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
       // lock they can never pass, so the persist is best-effort.
       if (!await widget.authenticator.canLock()) {
         try {
-          if (widget.store.canWrite) await widget.store.setAppLock(false);
+          if (widget.store.canWrite) {
+            // Turning app lock off silently republishes the daily number to
+            // the home screen tile, because the tile hides amounts WHILE app
+            // lock is on. The justification for that coupling is that it
+            // follows the person's intent; answering the opposite way on their
+            // behalf, without telling them, is the one thing it must not do.
+            //
+            // So the privacy half is carried over explicitly. They can turn it
+            // back on in Menu, which is a choice they get to make, unlike
+            // finding their salary on the home screen after a screen repair
+            // broke the fingerprint sensor.
+            await widget.store.setWidgetHideAmount(true);
+            await widget.store.setAppLock(false);
+          }
         } catch (_) {}
         if (mounted) {
           setState(() {

@@ -27,7 +27,7 @@ import '../widgets/section.dart';
 import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
-import '../money/currencies.dart' show baseCurrencySymbol;
+import '../money/format.dart' show formatMoney;
 import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/pressable_scale.dart';
 import 'debts.dart';
@@ -38,35 +38,13 @@ import 'accounts.dart';
 import 'search.dart';
 import 'shell.dart';
 
-String formatMoney(num value) {
-  // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
-  // round() throws on non-finite, which would take down the whole screen,
-  // so render the raw word instead (the RN app shows the same garbage but
-  // stays alive, and staying alive is the contract here).
-  if (!value.isFinite) return '$baseCurrencySymbol$value';
-  final negative = value < 0;
-  // A FINITE value near max double still overflows when scaled by 100 for
-  // centavo rounding, and round() throws on the resulting Infinity. Same
-  // contract: render the raw number, stay alive.
-  final scaled = value.abs() * 100;
-  if (!scaled.isFinite) return '$baseCurrencySymbol$value';
-  final rounded = scaled.round() / 100;
-  // Same int64 saturation guard as formatMoneyText: floor() on a double past
-  // 2^53 clamps instead of overflowing, so a restored backup carrying 1e30
-  // rendered a precise and completely wrong peso figure rather than obvious
-  // garbage.
-  if (rounded >= 9007199254740992.0) return '$baseCurrencySymbol$value';
-  var whole = rounded.floor();
-  final cents = ((rounded - whole) * 100).round();
-  final digits = whole.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
-    buf.write(digits[i]);
-  }
-  final centsPart = cents > 0 ? '.${cents.toString().padLeft(2, '0')}' : '';
-  return '${negative ? '-' : ''}$baseCurrencySymbol$buf$centsPart';
-}
+// formatMoney moved to money/format.dart so the home screen tile, which must
+// stay free of Flutter imports, can use the SAME function rather than the
+// whole-peso one. It is re-exported here because thirty-odd screens already
+// import it from this file, and because the alternative, a second copy, is
+// precisely the bug that forced the move: the tile printed 413 where Home
+// printed 412.50, for the same number, at the same instant.
+export '../money/format.dart' show formatMoney;
 
 /// An ISO date as a short human day, "Jul 27".
 ///
