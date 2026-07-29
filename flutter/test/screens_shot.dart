@@ -1195,6 +1195,58 @@ void main() {
     );
   });
 
+  testWidgets('the add account sheet, both panes, dark', (tester) async {
+    // The one button that replaced two, and what it asks. Rendered because a
+    // list of categories is exactly the kind of screen that reads fine in code
+    // and turns out to be a wall of near identical rows on a phone.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: AccountsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ Add an account'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/add-account-dark.png'),
+    );
+
+    // The second pane, which is where the subtype hints have to earn their
+    // space or be cut.
+    await tester.tap(find.text('Cash and e-wallets'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/add-account-subtypes-dark.png'),
+    );
+
+    // And the form it lands in, with the institution row that only some
+    // subtypes show.
+    await tester.tap(find.text('E-wallet'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/add-account-form-dark.png'),
+    );
+  });
+
   testWidgets('categories, and the delete question, dark', (tester) async {
     // Two frames: the list with a cap being blown, and the sheet that asks
     // where a deleted category's entries should go. The second one is a

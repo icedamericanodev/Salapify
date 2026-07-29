@@ -791,6 +791,12 @@ class SalapifyStore extends ChangeNotifier {
   /// collection, so this is additive with no migration. Balance changes to an
   /// existing account go through a recorded adjustment via addEntry, never a
   /// silent overwrite, so this only sets the opening number on a NEW account.
+  /// [meta] carries the unified-accounts classification: subtype,
+  /// institutionId, last4 and so on. It is spread FIRST so no caller can
+  /// smuggle a value into name, kind, balance or id through it, which would
+  /// turn a classification field into a way to write an unvalidated balance.
+  /// sanitizeData validates and drops the rest on the way to disk, so a junk
+  /// subtype never survives a load.
   Future<void> addAccount({
     required String name,
     required String kind,
@@ -798,12 +804,14 @@ class SalapifyStore extends ChangeNotifier {
     required String icon,
     required double target,
     required double balance,
+    Map<String, dynamic> meta = const {},
   }) => _mutate(
     (d) => {
       ...d,
       'accounts': [
         ...(d['accounts'] as List? ?? const []),
         {
+          ...meta,
           'name': name,
           'kind': kind,
           'brand': brand,
@@ -866,16 +874,25 @@ class SalapifyStore extends ChangeNotifier {
   });
 
   /// Create an investment or other asset.
+  /// [meta] as in [addAccount]: spread first so it can never overwrite the
+  /// named fields.
   Future<void> addAsset({
     required String name,
     required String kind,
     required double value,
+    Map<String, dynamic> meta = const {},
   }) => _mutate(
     (d) => {
       ...d,
       'assets': [
         ...(d['assets'] as List? ?? const []),
-        {'name': name, 'kind': kind, 'value': value, 'id': _genId('asset')},
+        {
+          ...meta,
+          'name': name,
+          'kind': kind,
+          'value': value,
+          'id': _genId('asset'),
+        },
       ],
     },
   );
@@ -2008,13 +2025,41 @@ class SalapifyStore extends ChangeNotifier {
     };
   });
 
-  Future<String?> saveDebt(Map<String, dynamic> form) async {
+  /// [meta] carries the unified-accounts classification for a NEW debt.
+  ///
+  /// It is applied AFTER the engine rather than passed through it, on purpose.
+  /// money/debts.dart is golden-locked against the React Native app and builds
+  /// an explicit payload, so it drops every key it does not know about, which
+  /// is exactly what keeps it byte identical. Threading a new field through it
+  /// would mean editing a golden-locked engine to carry a value it has no
+  /// opinion about. So the engine runs untouched, and the classification is
+  /// merged onto the row it produced.
+  ///
+  /// Only ever on create. On an edit the engine's own payload is authoritative
+  /// and the row keeps whatever classification it already had.
+  Future<String?> saveDebt(
+    Map<String, dynamic> form, {
+    Map<String, dynamic> meta = const {},
+  }) async {
     String? savedId;
+    final isNew = !(form['id'] is String && (form['id'] as String).isNotEmpty);
     await _mutate((d) {
       final r = debts.saveDebt(d, form, today: _todayISO(), genId: _genId);
       if (r.error.isNotEmpty) throw ArgumentError(r.error);
       savedId = r.id;
-      return r.data;
+      if (meta.isEmpty || !isNew || r.id == null) return r.data;
+      return {
+        ...r.data,
+        'debts': [
+          for (final row in (r.data['debts'] as List? ?? const []))
+            if (row is Map && row['id'] == r.id)
+              // meta FIRST, so it can never overwrite what the engine
+              // computed: a remaining balance, an interest clock, an id.
+              {...meta, ...row.cast<String, dynamic>()}
+            else
+              row,
+        ],
+      };
     });
     return savedId;
   }

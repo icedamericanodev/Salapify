@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../money/account_taxonomy.dart' show AccountSubtype;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/ledger.dart' show amountOf;
@@ -908,10 +909,17 @@ class _DebtSheetState extends State<DebtSheet> {
 // Add and edit form.
 // ---------------------------------------------------------------------------
 
+/// [seed] is what the person said they were adding in the unified Add flow.
+///
+/// It pre-selects the debt type and is stored as the row's subtype, and it is
+/// deliberately NOT a `debt` map: this form decides add against edit by
+/// whether it was handed a row with an id, so seeding through `debt` would
+/// turn every add into an edit of a row that does not exist.
 Future<void> showDebtFormSheet(
   BuildContext context,
   SalapifyStore store, {
   Map<String, dynamic>? debt,
+  AccountSubtype? seed,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -924,7 +932,7 @@ Future<void> showDebtFormSheet(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: DebtFormSheet(store: store, debt: debt),
+      child: DebtFormSheet(store: store, debt: debt, seed: seed),
     ),
   );
 }
@@ -932,7 +940,16 @@ Future<void> showDebtFormSheet(
 class DebtFormSheet extends StatefulWidget {
   final SalapifyStore store;
   final Map<String, dynamic>? debt;
-  const DebtFormSheet({super.key, required this.store, this.debt});
+
+  /// See [showDebtFormSheet]. Null when editing, or when this sheet is opened
+  /// from a path that never asked what kind of debt it is.
+  final AccountSubtype? seed;
+  const DebtFormSheet({
+    super.key,
+    required this.store,
+    this.debt,
+    this.seed,
+  });
 
   @override
   State<DebtFormSheet> createState() => _DebtFormSheetState();
@@ -962,7 +979,15 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     }
 
     name = TextEditingController(text: (d?['name'] ?? '').toString());
-    type = (d?['type'] ?? 'credit card').toString();
+    // An existing row's own type always wins. Then the seed: a credit card
+    // subtype maps to the one string the payment engine branches on
+    // (money/debts.dart keys on exactly 'credit card'), everything else to
+    // 'other'. Only then the default.
+    type = (d?['type'] ??
+            (widget.seed == null
+                ? 'credit card'
+                : (widget.seed!.id == 'credit_card' ? 'credit card' : 'other')))
+        .toString();
     remaining = TextEditingController(
       text: d != null ? _rateText(amountOf(d['remaining'])) : '',
     );
@@ -1011,7 +1036,13 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
         'statementDay': statementDay.text,
         'graceDays': graceDays.text,
         'creditLimit': creditLimit.text,
-      });
+      },
+      // Only on create, and only when the person actually answered. Writing it
+      // on an edit would let opening and saving an untouched row reclassify
+      // it. sanitizeData drops it if it does not belong to debts.
+      meta: widget.debt == null && widget.seed != null
+          ? {'subtype': widget.seed!.id}
+          : const {});
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {

@@ -17,7 +17,11 @@ import '../money/transfers.dart'
     show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
+import '../money/account_taxonomy.dart';
+import '../money/institutions.dart' show institutionById;
 import '../theme.dart';
+import 'add_account_flow.dart';
+import 'debts.dart' show showDebtFormSheet;
 import '../widgets/pressable_scale.dart';
 
 const _accountKinds = [
@@ -87,25 +91,11 @@ class AccountsScreen extends StatelessWidget {
               children: [
                 _summary(parts),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _addButton(
-                        context,
-                        '+ Account',
-                        () => _openForm(context, isAccount: true),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _addButton(
-                        context,
-                        '+ Asset',
-                        () => _openForm(context, isAccount: false),
-                      ),
-                    ),
-                  ],
-                ),
+                // ONE button. It used to be two, "+ Account" and "+ Asset",
+                // which asked people to know Salapify's internal split before
+                // they could record anything, and offered nothing at all for a
+                // car loan, which lives on a different tab.
+                _addButton(context, '+ Add an account', () => _add(context)),
                 // Only with somewhere to move money from AND to. One account
                 // cannot transfer to itself, so offering the button then
                 // would be offering a dead end.
@@ -427,18 +417,48 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
+  /// Ask what it is, then open the form that can actually record it.
+  ///
+  /// The routing is the whole feature. An answer maps to one of the three
+  /// collections, and each collection has a form that already works: accounts
+  /// and assets share this file's sheet, and a liability goes to the debts
+  /// form, which owns interest, due dates and payment history. Nothing is
+  /// rewritten and nothing moves between collections.
+  Future<void> _add(BuildContext context) async {
+    final choice = await showAddAccountSheet(context);
+    if (choice == null || !context.mounted) return;
+    if (choice.store == AccountStore.debts) {
+      // Seeded, not pre-created. The debt form decides add against edit by
+      // whether it was handed a row with an id, so a seed carrying only a type
+      // and a subtype stays an ADD.
+      await showDebtFormSheet(context, store, seed: choice.subtype);
+      return;
+    }
+    if (!context.mounted) return;
+    _openForm(
+      context,
+      isAccount: choice.store == AccountStore.accounts,
+      seed: choice.subtype,
+    );
+  }
+
   void _openForm(
     BuildContext context, {
     required bool isAccount,
     Map<String, dynamic>? item,
+    AccountSubtype? seed,
   }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          _AccountForm(store: store, isAccount: isAccount, item: item),
+      builder: (_) => _AccountForm(
+        store: store,
+        isAccount: isAccount,
+        item: item,
+        seed: seed,
+      ),
     );
   }
 }
@@ -448,7 +468,16 @@ class _AccountForm extends StatefulWidget {
   final SalapifyStore store;
   final bool isAccount;
   final Map<String, dynamic>? item;
-  const _AccountForm({required this.store, required this.isAccount, this.item});
+
+  /// What the person said they were adding. Null when editing an existing row
+  /// or when this sheet is reached by a path that never asked.
+  final AccountSubtype? seed;
+  const _AccountForm({
+    required this.store,
+    required this.isAccount,
+    this.item,
+    this.seed,
+  });
 
   @override
   State<_AccountForm> createState() => _AccountFormState();
@@ -461,6 +490,7 @@ class _AccountFormState extends State<_AccountForm> {
   late final TextEditingController _brand;
   late final TextEditingController _icon;
   late String _kind;
+  late String _institutionId;
   bool _confirmDel = false;
   bool _saving = false;
   String? _err;
@@ -489,7 +519,15 @@ class _AccountFormState extends State<_AccountForm> {
     );
     _brand = TextEditingController(text: it?['brand']?.toString() ?? '');
     _icon = TextEditingController(text: it?['icon']?.toString() ?? '');
-    _kind = (it?['kind'] ?? (widget.isAccount ? 'cash' : 'crypto')).toString();
+    // Order matters: an existing row's own kind always wins, then the seed's
+    // legacy mapping, then the default. Letting the seed win over a stored
+    // kind would silently re-type an account somebody is only editing.
+    _kind = (it?['kind'] ??
+            (widget.isAccount
+                ? (widget.seed?.legacyKind ?? 'cash')
+                : (_assetKindFor(widget.seed) ?? 'crypto')))
+        .toString();
+    _institutionId = it?['institutionId']?.toString() ?? '';
   }
 
   @override
@@ -500,6 +538,83 @@ class _AccountFormState extends State<_AccountForm> {
     _brand.dispose();
     _icon.dispose();
     super.dispose();
+  }
+
+  /// The reverse of the taxonomy's asset mapping: a chosen subtype back to the
+  /// free-string `kind` the Accounts picker has always written, so an asset
+  /// created through the new flow is indistinguishable from one created the
+  /// old way and every existing screen keeps grouping it correctly.
+  ///
+  /// Returns null for a subtype with no legacy equivalent, and the caller
+  /// falls back rather than inventing one.
+  static String? _assetKindFor(AccountSubtype? s) => switch (s?.id) {
+    'crypto' => 'crypto',
+    'stocks' => 'stocks',
+    'retirement' => 'mp2',
+    'real_estate' => 'real estate',
+    'vehicle' => 'vehicle',
+    _ => s == null ? null : 'other',
+  };
+
+  /// The classification to store alongside the row.
+  ///
+  /// Only ever added on CREATE. An edit leaves whatever classification the row
+  /// already has, because this sheet does not ask the question and writing a
+  /// seed here would let opening and saving an untouched row silently
+  /// reclassify it. sanitizeData validates every key on the way to disk, so a
+  /// value that does not belong to this collection is dropped rather than
+  /// stored.
+  Map<String, dynamic> _meta() {
+    final s = widget.seed;
+    if (s == null) return const {};
+    return {
+      'subtype': s.id,
+      if (_institutionId.isNotEmpty) 'institutionId': _institutionId,
+    };
+  }
+
+  Widget _institutionRow() {
+    final label = _institutionId.isEmpty
+        ? 'Choose'
+        : (institutionById(_institutionId)?.displayName ?? 'Choose');
+    return Material(
+      color: Barako.card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final picked = await showInstitutionPicker(
+            context,
+            current: _institutionId,
+          );
+          // Null means dismissed, which is NOT the same as choosing none. A
+          // back swipe must not silently clear an answer already given.
+          if (picked == null || !mounted) return;
+          setState(() => _institutionId = picked);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              InstitutionAvatar(id: _institutionId, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: _institutionId.isEmpty
+                        ? Barako.muted
+                        : Barako.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   double? _parseAmount(String t) {
@@ -539,7 +654,12 @@ class _AccountFormState extends State<_AccountForm> {
           value: amount,
         );
       } else {
-        await widget.store.addAsset(name: name, kind: _kind, value: amount);
+        await widget.store.addAsset(
+          name: name,
+          kind: _kind,
+          value: amount,
+          meta: _meta(),
+        );
       }
       if (mounted) Navigator.of(context).pop();
       return;
@@ -584,6 +704,7 @@ class _AccountFormState extends State<_AccountForm> {
         icon: icon,
         target: target,
         balance: amount,
+        meta: _meta(),
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -721,37 +842,59 @@ class _AccountFormState extends State<_AccountForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${_isEdit ? 'Edit' : 'Add'} $noun',
+                // The seed's own words, so the sheet confirms what was just
+                // chosen instead of falling back to "Add account" and leaving
+                // the person wondering whether the tap registered.
+                _isEdit
+                    ? 'Edit $noun'
+                    : 'Add ${widget.seed?.label.toLowerCase() ?? noun}',
                 style: TextStyle(
                   color: Barako.text,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (!_isEdit && widget.seed != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.seed!.hint,
+                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                ),
+              ],
               _label('Name'),
               _input(_name, hint: 'e.g. GCash', action: TextInputAction.next),
-              _label('Kind'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final (key, lbl) in kinds)
-                    ChoiceChip(
-                      label: Text(lbl),
-                      selected: _kind == key,
-                      onSelected: (_) => setState(() => _kind = key),
-                      selectedColor: Barako.primary,
-                      backgroundColor: Barako.card,
-                      labelStyle: TextStyle(
-                        color: _kind == key
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600,
+              // The Kind chips are HIDDEN once the sheet was reached through
+              // the Add flow, because the question was already asked and
+              // answered one screen ago. Leaving them was worse than
+              // redundant: picking "Payroll account" and then flipping the
+              // chip to Cash stored kind:'cash' with subtype:'payroll_account',
+              // an account that disagrees with its own classification and no
+              // screen would ever explain. The render is what showed this;
+              // reading the code, the two rows are two hundred lines apart.
+              if (_isEdit || widget.seed == null) ...[
+                _label('Kind'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final (key, lbl) in kinds)
+                      ChoiceChip(
+                        label: Text(lbl),
+                        selected: _kind == key,
+                        onSelected: (_) => setState(() => _kind = key),
+                        selectedColor: Barako.primary,
+                        backgroundColor: Barako.card,
+                        labelStyle: TextStyle(
+                          color: _kind == key
+                              ? Barako.onPrimary
+                              : Barako.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        side: BorderSide(color: Barako.border),
                       ),
-                      side: BorderSide(color: Barako.border),
-                    ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               _label(widget.isAccount ? 'Balance' : 'Value'),
               _input(
                 _amount,
@@ -768,9 +911,27 @@ class _AccountFormState extends State<_AccountForm> {
                   style: TextStyle(color: Barako.faint, fontSize: 12),
                 ),
               ],
+              // Only when the subtype actually has an institution. A cash
+              // on hand row has no bank, and asking anyway is the tap tax the
+              // design document warns about.
+              if (!_isEdit && (widget.seed?.hasInstitution ?? false)) ...[
+                _label('Bank or wallet (optional)'),
+                _institutionRow(),
+              ],
               if (widget.isAccount) ...[
-                _label('Bank or brand (optional)'),
-                _input(_brand, hint: 'e.g. BPI', action: TextInputAction.next),
+                // The free text brand field is hidden when the institution
+                // PICKER is showing, because the two asked the same question
+                // one above the other, in different words, with different
+                // answers. The render made that obvious in a second and the
+                // code never would have.
+                if (!(!_isEdit && (widget.seed?.hasInstitution ?? false))) ...[
+                  _label('Bank or brand (optional)'),
+                  _input(
+                    _brand,
+                    hint: 'e.g. BPI',
+                    action: TextInputAction.next,
+                  ),
+                ],
                 _label('Icon emoji (optional)'),
                 _input(_icon, hint: '💵', action: TextInputAction.next),
                 _label('Savings target (optional)'),

@@ -49,6 +49,10 @@ const Map<String, IconData> _icons = {
   'target': Icons.my_location_outlined,
   'cash': Icons.payments_outlined,
   'growth': Icons.trending_up_outlined,
+  // The mirror of 'growth', for money going the other way. Added for the
+  // Loans category in the add-account flow; the content test is what stops a
+  // name like this being used before it exists and reaching the fallback.
+  'decline': Icons.trending_down_outlined,
   'repeat': Icons.autorenew_outlined,
 
   // Empty states and moments
