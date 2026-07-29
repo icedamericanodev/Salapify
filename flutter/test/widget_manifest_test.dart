@@ -55,12 +55,13 @@ void main() {
     expect(f.readAsStringSync(), contains('HomeWidgetProvider'));
   });
 
-  /// The receiver block ONLY. Every assertion about the receiver has to be
-  /// scoped to it, because the manifest is full of other components: a
-  /// retrospective found the exported check passing because MainActivity is
-  /// exported, which meant deleting the attribute from the receiver left the
-  /// test green and the widget permanently dead.
   /// OUR receiver block, found by name.
+  ///
+  /// Every assertion about the receiver has to be scoped to it, because the
+  /// manifest is full of other components: a retrospective found the exported
+  /// check passing because MainActivity is exported, which meant deleting the
+  /// attribute from the receiver left the test green and the widget
+  /// permanently dead.
   ///
   /// The first version took indexOf('<receiver'), which lands on
   /// flutter_local_notifications' receiver, not this widget's. So it was
