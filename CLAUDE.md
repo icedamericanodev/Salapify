@@ -101,6 +101,18 @@ APIs there and parking it in tool/ turned `flutter analyze` red. Without the
 `*_test.dart`, so it can never join a CI run and fail there on fonts. A tag
 would not have been enough: tags only filter when you pass `--tags`.
 
+Looking is still required, and it is no longer the only check. The render is
+opt-in by nature: it produces pictures, and a picture nobody opens proves
+nothing. So the parts of "readable" a machine can judge were taken off the
+human's plate. `test/palette_contrast_test.dart` measures every colour pair in
+all sixteen palettes against WCAG AA, and `test/screen_readability_test.dart`
+pumps the same lived-in fixture through every screen and fails on an overflow,
+a blank screen, or a sentence past the edge of the phone, scrolling the whole
+screen and repeating it all at 1.5x system font. Both are ordinary
+`*_test.dart` files, so they run on the branch check with everything else.
+What is left for the eye is what only an eye can do: whether the screen reads
+well, not whether it fits.
+
 CI does run it, deliberately and separately, with `--update-goldens` so it only
 writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
