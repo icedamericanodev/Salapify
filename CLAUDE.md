@@ -216,6 +216,16 @@ broken in exactly the second half, and only the second half, on its first
 version. An alarm that cries wolf gets its battery taken out, and then it is
 not there during the fire.
 
+Restore the deliberate break only AFTER the test run reports, never while it is
+still going. The break-then-prove step is usually run by reverting a fix and
+launching the test in the background, and on f2.97 the fix was very nearly put
+back before the run had finished COMPILING it. A restore that beats the compile
+makes the run compile the FIXED code and print a false pass, which is worse than
+no proof because it reads exactly like proof. Wait for the completion
+notification, read the failure line, then restore. Nothing in the repo can
+observe the ordering of a background job against a manual edit, so this one is a
+rule and cannot be a machine; that is stated here rather than pretended away.
+
 ## Icons: ours are orange, the user's are emoji
 
 Salapify's own icons are Material glyphs in the theme accent, resolved through

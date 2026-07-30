@@ -10,6 +10,181 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-30, session 19: a clean patch, and the guards that caught the near-misses before the phone did
+
+**What we believed / What was true.** We believed f2.97 shipped as patch 21,
+over the air, on the existing base APK 0.6.3+12, with zero defects. The founder
+confirmed the same stamp on the phone: f2.97, patch 21, mode `patch`, base
+0.6.3+12. Belief and truth match. This is a CLEAN patch. Nothing bad reached the
+phone, no manual install is owed, and nothing was stranded. Said plainly so it is
+not buried under the process notes below: the app work was correct, and the point
+of this entry is the machinery around it, not a defect in it.
+
+**Timeline (with evidence).**
+- Merge commit `65f2973`, "Phase 0: trust the routes (#256)", has two parents
+  (`git rev-list --parents -n 1 65f2973` returns three hashes), so it was a merge
+  commit and not a squash.
+- `git diff --stat 65f2973^ 65f2973`: 17 files, eight fixes across
+  `flutter/lib/screens` (overview, search, accounts, insights, onboarding, pan,
+  plus the new `pan_routes.dart`), six new or updated test files, and a
+  PostToolUse hook (`.claude/settings.json`, `.claude/hooks/watch-created-pr.sh`).
+- Delivery row confirmed by reading, not assuming:
+  `f2.97 | 21 | patch | 0.6.3+12`, the last line of `docs/delivery-log.md` on
+  `origin/main`. Delivery commit `6a5bb05`. The patch number in the file equals
+  the patch number on the phone, which is the only real proof and the one the
+  founder supplied.
+
+**Root cause.** There is no defect to trace to a root cause, and manufacturing
+one would break the single rule of these sessions. What follows are process
+findings, each weighed honestly for whether it earns a durable guard or is only a
+note.
+
+### Lesson 1. Two existing guards fired on their own and stopped work at the gate. WIN, CLOSED.
+
+**Evidence.** `screen_readability_test.dart` failed the build because the new file
+`flutter/lib/screens/pan_routes.dart` was neither swept nor exempted. The failure
+forced an explicit decision, recorded in the test:
+`'pan_routes.dart': 'no widgets, the Pan CTA destination registry'`. Separately,
+`qa_record_test.dart` failed because the f2.97 stamp bump had no row yet in
+`docs/qa-log.md`; the row was written and the build went green.
+
+This is the "a derived set is a rule, a typed set is a promise" pattern from f2.96
+working exactly as designed, twice, unprompted. A file appeared and the readability
+sweep refused to pass until a human said in writing why it does not need sweeping.
+A stamp bumped and the QA gate refused to pass until a QA row existed. Neither
+needed anyone to remember them.
+
+**Guard.** Already built and already firing. No new guard needed; recording that
+these two held is the whole value, because a guard that quietly stops mattering is
+the most expensive thing this file can miss, and the opposite happened here.
+Strength: strongest, an automated check that fails loudly, and now with a fresh
+proof it still bites. CLOSED.
+
+### Lesson 2. The account focus-scroll cannot reach a row far below the fold, and that is documented rather than hidden. OPEN as a tracked limitation.
+
+**Evidence.** In `accounts.dart`, in code, in the honest words the author chose:
+"Best effort, and honestly so: the list is a lazy ListView, so a row far below the
+fold has no element yet and currentContext is null." When Search asks Accounts to
+reveal a matched account, `Scrollable.ensureVisible` needs the target row's build
+context; a lazy `ListView` has not built rows that are off screen, so for a user
+with 30 or more accounts a match near the bottom flashes nothing. Three review
+agents (qa-tester, flutter-ux-craftsman, release-manager) found this as one of four
+nice-to-have items and zero must-fix. It was deferred at merge on purpose.
+
+Why it is genuinely fine to ship: the account is still shown in Search, tapping it
+still opens the Accounts screen, and the only thing lost is the scroll-and-flash on
+a very long list. Nothing is wrong, one nicety is absent in one uncommon case.
+
+**Guard.** A note in code is the weakest of the three guard strengths (a habit
+written down), and it is honest to say so: nothing fails if the limitation is
+forgotten, because there is nothing failing. The right stronger guard, if this is
+ever fixed, is a test that builds a fixture of 30-plus accounts, asks Search to
+reveal the last one, and asserts the row became visible; that test would redden
+today, which is exactly why it is not written yet. Carried forward as Open 11, a
+tracked follow-up, not a defect. If the long-list case is never worth building, say
+that out loud and close it; do not let it drift.
+
+### Lesson 3. Onboarding now stores 0 to mean "no budget" instead of fabricating 20000, and this changed no data shape. NOTE, no guard needed.
+
+**Evidence.** `onboarding.dart` in the diff: blank now stores 0 (read by the app as
+"no limit"), invalid shows an inline error that blocks Next, zero is an explicit
+no-budget choice, and a value past the 100,000,000 cap is capped with the cap
+disclosed. The qa-log row states it directly: "both 'set later' and zero resolve to
+the 0 the app already reads as 'no limit', so no stored shape changed."
+
+The subtlety worth a sentence: what gets STORED changed (blank used to fabricate
+20000, now it stores 0), yet "no data change" is still true, because the stored
+value 0 was already a legal value the app already interpreted as no limit. No new
+field, no migration, no money math, no golden vector. The meaning the user gets is
+now honest (blank means "I did not set one", not "someone guessed 20000 for me"),
+and the storage contract is untouched. This is a note so the next reader does not
+mistake "the stored value changed" for "the schema changed"; they are different
+claims and only the first is true.
+
+**Guard.** None warranted. The existing money-math and golden-vector tests already
+guard the storage contract, and they stayed green, which is the proof.
+
+### Lesson 4. Two workflow hazards the human hit while proving tests and while scheduling reminders. Both get a guard.
+
+**Hazard (a): proving a test fails, in the background, is a race.** The
+prove-it-can-fail discipline was run by reverting a fix and launching
+`flutter test` in the BACKGROUND, then very nearly restoring the file before the
+test process had finished COMPILING it. Had the restore landed first, the run would
+have compiled the FIXED code and printed a false pass, and the false pass is worse
+than no proof because it reads as proof. This is the same class of failure the
+whole "prove a new test can fail" rule exists to prevent, reintroduced by timing.
+
+**Guard for (a):** A rule tied to a specific moment, which is medium strength
+because it depends on being read at the right time: when you revert code to prove a
+test fails, WAIT for the test-run completion notification before restoring the
+file. Never restore while the run is still going. Added to CLAUDE.md beside the
+"Prove a new test can fail before trusting it" section, because that section is
+where someone stands at exactly this moment. A stronger machine guard is not
+available here, because nothing in the repo can observe the ordering of a
+background job against a manual edit; saying that plainly rather than pretending a
+test could catch it.
+
+**Hazard (b): send_later reminders are one-shot and were updated after firing.**
+Several reminder triggers were created, then updated AFTER they had already fired,
+which is a no-op, and the leftover confusion was over which trigger was actually
+live. A fired one-shot trigger is gone; editing it changes nothing and looks like
+it changed something.
+
+**Guard for (b):** A rule, medium strength: treat every send_later trigger as
+single-use. Each firing must ARM A FRESH trigger if the reminder is still needed;
+never update a trigger that has already fired, because there is nothing there to
+update. This is a habit-shaped guard and is weak by nature, so the honest backstop
+is to keep at most one live trigger per intent and re-create rather than re-edit.
+
+**Open lessons carried forward.**
+- **Open 4, nothing compares the phone to main: STILL OPEN.** Unchanged; the
+  comparison remains the one thing only the founder can do, and they did it here.
+- **Open 7, guard sets are typed lists: STILL HALF CLOSED.** Screens are derived.
+  The second-face map and the render harness's shot list are still typed lists, not
+  derived sets. This session added no new offender; the readability sweep proved it
+  is holding for screens (Lesson 1).
+- **Open 8, the edit-pattern hook: CLOSED since f2.96.** The guard now exists
+  (`.claude/hooks/guard-destructive-edits.sh`, per CLAUDE.md). Kept here only to
+  note it moved from "best-evidenced open item" to "installed"; verify it still
+  fires in a future session rather than assuming.
+- **Open 10, whether onboarding sample data survives launch: STILL OPEN.** A
+  founder decision parked in docs/launch-checklist.md, not a defect.
+- **Open 11 (new), the account focus-scroll cannot reach a row far below the fold.**
+  Lesson 2 above. A tracked limitation with a known stronger guard that is
+  deliberately unwritten because it would redden today.
+
+**For the founder, over lunch.** f2.97 is clean. You confirmed patch 21 on your
+phone, the delivery log agrees, and there is no bug to report. Everything below is
+about how the work got made, not about what you are using.
+
+Two of our safety nets caught problems by themselves this time, before anything
+could reach you. One net checks that every screen file is either tested for
+readability or has a written reason why it does not need testing; a brand new file
+appeared and the net stopped the build until we wrote down why it is exempt. The
+other net refuses to ship a stamp until a quality-assurance note exists for it; it
+stopped the build until we wrote that note. These are worth celebrating precisely
+because they worked while nobody was watching them.
+
+We are leaving one small nicety unfinished on purpose. When you search for an
+account and tap it, the Accounts screen jumps to it and flashes it. If you ever
+have more than about 30 accounts and the match is near the very bottom, the jump
+does nothing, because the phone has not drawn rows that far down yet. The account
+still opens; only the little flash is missing. It is written down in the code and
+tracked as Open 11. If we forget it, the cost is that one flash stays missing on
+very long lists, and nothing else.
+
+Two habits nearly bit us and now have written rules. First, when we deliberately
+break code to check that a test would catch the break, we must wait for the test to
+finish before putting the code back; if we put it back too early, the test
+accidentally checks the fixed code and lies that everything is fine. Second, the
+reminder timers we set only fire once, so if we need another reminder we must set a
+brand new timer, never edit one that has already gone off, because editing a
+spent timer does nothing while looking like it did something. If either rule is
+dropped, the danger is the same in both cases: a false "all clear" that reads
+exactly like a real one.
+
+---
+
 ## 2026-07-30, session 18: the day the guards were audited, and two were hollow
 
 Six deliveries, f2.86 to f2.91, patches 10 to 15, all mode `patch` on
