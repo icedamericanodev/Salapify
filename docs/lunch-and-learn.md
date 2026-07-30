@@ -10,6 +10,166 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-30, session 21: a separate mind found four ways to lose your money, on the change most likely to
+
+**What we believed / What was true.** We believed the encrypted-at-rest store shipped
+as f3.02, a new base APK the founder installed by hand, and that the encrypted database
+actually opened and the old data moved into it on the founder's real device. The founder
+sent a screenshot of the update card reading `Update stamp: f3.02` and
+`Storage: Encrypted (moved this run)`, then after the f3.03 patch reported "yes it works"
+on reopen. Belief and truth match, on the phone, both times. That is the proof that
+matters: not a green runner, but the encrypted engine opening, the migration completing,
+and the plaintext retirement landing on the actual device. Both f3.02 (encryption) and
+f3.03 (plaintext retired) are confirmed on the founder's phone, so the whole
+durable-encrypted-store phase is delivered AND phone-verified.
+
+**Timeline (with evidence).**
+- Merge commit `22f7352` (`git show --stat 22f7352` shows `Merge: 8f915b4 f5c2cd1`, a
+  real merge, not squashed), "PR B2: encrypted-at-rest store (SQLCipher + Android
+  Keystore), f3.02". Fourteen files: the native adapter
+  `flutter/lib/data/sql_cipher_ledger_repository.dart`, the pure-Dart brain
+  `flutter/lib/data/encrypted_store_coordinator.dart`, `frozen_plaintext_store.dart`,
+  `storage_bootstrap.dart`, a `Storage` readout in `flutter/lib/screens/update_card.dart`,
+  `flutter/android/app/src/main/AndroidManifest.xml`, `pubspec.yaml` (0.6.3+12 to
+  0.7.0+13), and three test files.
+- Delivery read, not assumed. `origin/main:docs/delivery-log.md`:
+  `f3.02 | none | release | 0.7.0+13` (a base APK) and
+  `f3.03 | 1 | patch | 0.7.0+13` (over the air). The founder's manual install of f3.02 is
+  what the screenshot confirms.
+- The engine is untestable on the runner: SQLCipher (an encrypted SQLite library) and the
+  Android Keystore (the phone's hardware-backed key vault) need a real device and native
+  libraries the headless runner does not have. So the discipline was thin-native,
+  fat-pure-Dart: `sql_cipher_ledger_repository.dart` is a thin key-value adapter that makes
+  no decisions, and ALL the migrate-versus-read-versus-fallback logic lives in
+  `encrypted_store_coordinator.dart`, which is pure Dart and proven with fakes.
+- A THREE-agent pre-merge gate ran as a real gate: security-privacy-auditor, qa-tester,
+  and principal-engineer, recorded as the f3.02 row in `docs/qa-log.md`. On a change that
+  had already passed `flutter analyze`, 1319 tests, and a break-first proof, the gate found
+  FOUR must-fixes, all fixed and re-proven before merge.
+- Finding 1, SECURITY (privacy-lens only). The manifest had no `allowBackup=false`, so the
+  still-present plaintext ledger and the secure-storage prefs were eligible for Android Auto
+  Backup to the user's Google Drive, which flatly contradicts encrypted-at-rest. Fixed:
+  `android:allowBackup="false"`.
+- Finding 2, DATA-LOSS. A stale B1-era undo snapshot leaked through the frozen fallback, so
+  a healthy user could be offered, and tap, a revert to pre-upgrade data. Fixed by scoping
+  `readUndoSnapshot` to the encrypted era only, proven by a new test.
+- Finding 3, DATA-LOSS. If the encrypted store became unopenable later (Keystore key loss),
+  the app silently served the stale plaintext WHILE WRITABLE, losing post-migration writes
+  and flip-flopping. Fixed by making the store READ-ONLY when it serves the fallback because
+  encrypted is unavailable (`store.dart`: `canWrite` is false when `storageDegraded`), and
+  by `storage_bootstrap.dart` serving an `_UnavailableEncryptedStore` stand-in, not a
+  writable plaintext store, when the DB exists but will not open. Proven by a store-level
+  test.
+- Finding 4, DATA-LOSS. `clearLedger` cleared encrypted THEN fallback, so an
+  encrypted-clear failure left the plaintext full and the next launch migrated it back:
+  erase-then-resurrect. Fixed by clearing the fallback FIRST. The existing SAFETY test could
+  not catch this, because its mock never threw on clear, so it never exercised the failing
+  order. A NEW test makes the clear throw, backed by a `failClears` flag on the fake that
+  the old mock lacked.
+- The build risk was largely closed BEFORE merge, not after. `flutter-check.yml` (the branch
+  check) runs `flutter build apk --debug` when the diff touches `android/` or `pubspec.yaml`,
+  so the Android build compiled the SQLCipher AAR and merged the manifest on the branch. That
+  step being green was made the real pre-merge gate for this native PR; analyze-plus-test
+  alone is not enough when native code changes.
+- f3.03 (merge `0bdb02b`) retires the plaintext safety copy, self-gated. The coordinator
+  deletes the fallback ONLY on a steady-state encrypted read, which by construction never
+  runs on the migration launch and never when encrypted is unavailable. So the copy cannot be
+  removed until encryption has survived a full app restart on the device. Proven by a
+  deliberate break: adding the retire call to the migration branch failed the "migration run
+  keeps the fallback" tests, then it was restored. The founder's "yes it works" on reopen is
+  the phone confirmation.
+
+**Root cause.** There is no failure to explain here, and the session does not manufacture
+one: the delivered app is correct and confirmed on the phone. The real subject is the same
+one session 20 raised, now reinforced on the highest-stakes change in the phase. Four genuine
+data-loss-or-privacy defects survived `flutter analyze`, 1319 passing tests, AND a
+break-first proof, and were caught only because a SEPARATE adversarial mind read the design
+before merge. Tests written by the author of a change encode the author's mental model, so
+they pass hardest exactly where the model is wrong. Finding 4 is that failure caught in the
+act: a green SAFETY test was defending nothing, because its mock could not throw on clear.
+And Finding 1 adds a dimension tests almost never carry at all: a privacy-lens reviewer
+asked "where could this data leak OFF the device" and found Auto Backup, a question no
+functional test was ever going to ask.
+
+**Lessons, each with its guard.**
+
+- **Lesson 1. The multi-agent pre-merge gate earned its keep again, on the change most able
+  to hurt the founder. Run it before any storage, migration, or security change, without
+  exception.** Guard: a RULE (the qa-log row is already enforced by `qa_record_test.dart`,
+  but that enforces a row exists, not that three adversarial lenses were applied). Strength:
+  MEDIUM, and honestly so. The gate is human judgement by construction; no test can assert
+  "an adversary genuinely tried to break this design." What CAN be a machine is the single
+  most mechanical thing the gate found, see Lesson 2.
+
+- **Lesson 2. The `allowBackup=false` regression is now caught by a test, not by a reviewer
+  remembering.** This is the one finding that is a fixed string in a file and therefore
+  machine-checkable, and it was the highest-stakes finding of the arc: if that attribute is
+  ever dropped, the whole ledger silently becomes Google-Drive-eligible again with every
+  other check still green. Guard ADDED this session:
+  `flutter/test/widget_manifest_test.dart` (which already reads `AndroidManifest.xml` off
+  disk and runs on the branch check) now asserts the manifest contains
+  `android:allowBackup="false"`. Strength: STRONG, it fails loudly when no one is watching.
+  Proven by flipping the manifest to `allowBackup="true"`, watching the test redden, then
+  restoring. This closes Open 13 in the same session it was raised.
+
+- **Lesson 3. Thin-native, fat-pure-Dart is the pattern for anything the runner cannot
+  execute.** The encrypted engine cannot run in CI, so its decisions were lifted into a pure
+  coordinator that IS fully tested, leaving the native part a thin adapter with no logic to
+  get wrong. Guard: a RULE, now demonstrated in code as the reference. Strength: MEDIUM, but
+  the pattern is self-reinforcing because the pure half is where all the tests already are.
+
+- **Lesson 4. A mock that cannot exhibit the failure is a test that proves nothing.** Finding
+  4's old SAFETY test passed because its fake never threw on clear. The repo already teaches
+  "prove a new test can fail"; this is the same rule pointed at the FAKES, not just the code
+  under test. Guard: covered by the existing prove-it-fails discipline; the concrete fix
+  (`failClears` on the fake) is now in the suite as the worked example. Strength: MEDIUM,
+  unchanged rule, now with a second instance on record.
+
+- **Note on delivery mechanics (they worked, recorded so a future reader is not confused).**
+  A native change cannot ship over the air, so f3.02 was mode `release`, a fresh base APK the
+  founder installed by hand. A pure-Dart change ships over the air, so f3.03 was mode `patch`
+  on top of that base. The patch number RESET to 1 on f3.03 (f3.01 was patch 24) because
+  Shorebird numbers patches per base version, and 0.7.0+13 is a new base: patch 1 of the new
+  release, not a regression. Nothing went wrong here; the reset is expected.
+
+**Open lessons carried forward.**
+- **Open 4, nothing compares the phone to main: STILL OPEN.** It remains the one check only
+  the founder can do, and the f3.02 screenshot plus the f3.03 "yes it works" are exactly that
+  check done by hand.
+- **Open 7, guard sets are typed lists: STILL HALF CLOSED.** Unchanged this session.
+- **Open 8, the edit-pattern hook: CONFIRMED STILL PRESENT.** A future session should still
+  trip it deliberately rather than assume it bites.
+- **Open 10, whether onboarding sample data survives launch: STILL OPEN.**
+- **Open 11, the account focus-scroll cannot reach a row far below the fold: STILL OPEN.**
+- **Open 12, ADR 0001 lived only on an un-merged branch: CLOSED.** It landed on main in
+  commit `ead5ac4`; `git show origin/main:docs/adr/0001-durable-encrypted-store.md` now
+  returns the document.
+- **Open 13 (new), no test asserts `allowBackup=false`: CLOSED this session.** The strongest
+  single finding of this arc was a fixed string that nothing guarded. `widget_manifest_test
+  .dart` now asserts `android:allowBackup="false"`, proven to fail against `allowBackup="true"`
+  then restored. Raised and closed in the same session, which is the whole point of turning a
+  lesson into a machine.
+
+**For the founder, over lunch.** Your encryption is real and it is on your phone. The
+screenshot you sent, "Encrypted, moved this run", and your "yes it works" after the follow-up,
+are the proof: your old data was copied into an encrypted database, the app opened it on your
+own device, and the leftover plain copy is now cleaned up. That is the whole phase, done and
+seen on the phone, not just believed from the repo.
+
+Here is the honest part. Before this shipped, three separate reviewers went looking for ways
+it could lose or leak your money data, and they found FOUR, on a change that had already
+passed every automatic check I have. One would have let your data get copied to Google Drive
+in plain text. One could have offered you a button that quietly wiped your current data back
+to an old version. Two more could have brought back money you had just erased. None of these
+were in the app you are using, because they were caught and fixed first. What makes them
+impossible from here: all four are now permanent tests that fail loudly if anyone ever
+reintroduces them. The Google Drive leak was the last one without a test, so I added it this
+session, a one line check that the backup-off setting stays off, and I proved it by turning
+the setting back on and watching the test go red. So the single soft spot the review found is
+now guarded by a machine, not by anyone remembering.
+
+---
+
 ## 2026-07-30, session 20: every green check passed, and the design could still lose your money
 
 **What we believed / What was true.** We believed f3.01 shipped as patch 24, over
