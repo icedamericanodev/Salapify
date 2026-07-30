@@ -24,6 +24,12 @@ import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
 import 'fx_service.dart' show FxService;
+import 'ledger_repository.dart';
+// The ledger key constants and the persistence boundary now live in
+// ledger_repository.dart; re-exported so the ~40 tests (and any caller) that
+// import storageKey from store.dart keep working unchanged.
+export 'ledger_repository.dart'
+    show storageKey, previousBackupKey, LedgerRepository, SharedPrefsLedgerRepository;
 import '../money/sample_data.dart' show hasSampleData, isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
@@ -32,11 +38,6 @@ import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
 
-const String storageKey = 'salapify_data_v2';
-
-/// The blob being replaced by an import survives here until the next import,
-/// one step of on-disk undo for the most destructive action in the app.
-const String previousBackupKey = 'salapify_data_v2_prev';
 
 /// Transaction ids must be present and unique before the store accepts a
 /// blob: removeTransaction drops every row matching an id but reverses the
@@ -230,6 +231,18 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
 }
 
 class SalapifyStore extends ChangeNotifier {
+  /// The persistence engine. Defaults to SharedPreferences, the same store used
+  /// before the boundary existed, so every existing caller and test is
+  /// unchanged. A test can inject a fake to simulate a write failure, a
+  /// disk-full, or a corrupt read, which is how the "a failed write never
+  /// reports success, and never overwrites an unreadable ledger" invariants get
+  /// proven; the encrypted engine will slot in here later without touching a
+  /// caller.
+  final LedgerRepository _repo;
+
+  SalapifyStore({LedgerRepository? repository})
+    : _repo = repository ?? const SharedPrefsLedgerRepository();
+
   /// Called after every notify, so anything that MIRRORS the store can follow
   /// it without the store knowing what it is mirroring onto.
   ///
@@ -392,8 +405,7 @@ class SalapifyStore extends ChangeNotifier {
 
   Future<void> load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(storageKey);
+      final raw = await _repo.readLedger();
       if (raw != null && raw.isNotEmpty) {
         // keepAppLock: true on a normal load so App lock survives a restart.
         // The import/restore path keeps the default (false), forcing the lock
@@ -449,8 +461,7 @@ class SalapifyStore extends ChangeNotifier {
   }
 
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(storageKey, jsonEncode(data));
+    await _repo.writeLedger(jsonEncode(data));
   }
 
   /// Import a pasted Salapify backup (the same text the RN Backup screen
@@ -475,10 +486,9 @@ class SalapifyStore extends ChangeNotifier {
     // If this write fails the import aborts with memory and disk
     // untouched; replacing data without the net would be the one
     // unforgivable loss.
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(storageKey);
+    final raw = await _repo.readLedger();
     if (raw != null && raw.isNotEmpty) {
-      await prefs.setString(previousBackupKey, raw);
+      await _repo.writeUndoSnapshot(raw);
     }
     final previous = data;
     data = ensureEntityIds(ensureUniqueTxnIds(parsed));
@@ -508,8 +518,7 @@ class SalapifyStore extends ChangeNotifier {
   /// net was real and unreachable. Never throws; a missing key reads as false.
   Future<bool> hasPreviousImportCopy() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(previousBackupKey);
+      final raw = await _repo.readUndoSnapshot();
       return raw != null && raw.isNotEmpty;
     } catch (_) {
       return false;
@@ -529,8 +538,7 @@ class SalapifyStore extends ChangeNotifier {
   /// is never adopted raw. Returns false when there is nothing to undo.
   /// Runs on the serialized write queue so it cannot interleave with a save.
   Future<bool> undoLastImport() => _serialized(() async {
-    final prefs = await SharedPreferences.getInstance();
-    final prev = prefs.getString(previousBackupKey);
+    final prev = await _repo.readUndoSnapshot();
     if (prev == null || prev.isEmpty) return false;
     // Parse and migrate BEFORE touching anything. A corrupt or newer-schema
     // snapshot must fail here, with the current data still intact, rather
@@ -538,7 +546,7 @@ class SalapifyStore extends ChangeNotifier {
     final restored = ensureEntityIds(
       ensureUniqueTxnIds(sanitizeData(jsonDecode(prev), keepAppLock: true)),
     );
-    final outgoing = prefs.getString(storageKey);
+    final outgoing = await _repo.readLedger();
     final memoryBefore = data;
     data = restored;
     try {
@@ -552,9 +560,9 @@ class SalapifyStore extends ChangeNotifier {
     // user still has their restored data; they simply lose the ability to
     // swap back, which is the mild half of the failure.
     if (outgoing != null && outgoing.isNotEmpty) {
-      await prefs.setString(previousBackupKey, outgoing);
+      await _repo.writeUndoSnapshot(outgoing);
     } else {
-      await prefs.remove(previousBackupKey);
+      await _repo.clearUndoSnapshot();
     }
     loadError = null;
     loaded = true;
@@ -574,9 +582,11 @@ class SalapifyStore extends ChangeNotifier {
   /// also clears loadError and restores writability. Runs on the serialized
   /// write queue so it can never interleave with an in-flight save.
   Future<void> startFresh() => _serialized(() async {
+    // The ledger and its undo snapshot go through the boundary; the FX cache
+    // and log are a separate subsystem with their own keys, cleared directly as
+    // before.
+    await _repo.clearLedger();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(storageKey);
-    await prefs.remove(previousBackupKey);
     await prefs.remove(FxService.cacheKey);
     await prefs.remove(FxService.logKey);
     data = sanitizeData({});
