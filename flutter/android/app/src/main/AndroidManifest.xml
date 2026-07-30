@@ -17,7 +17,17 @@
     <application
         android:label="Salapify Preview"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"><!--
+        Data stays on the device, full stop. Android Auto Backup is OFF because
+        the app holds the whole ledger locally: with backup on, that data
+        (including, this release, the plaintext copy kept as a migration
+        fallback) would be uploaded to the user's Google Drive, which would
+        contradict the encrypted-at-rest promise and the app's on-device
+        posture. It would also break a restore onto a new phone, because the
+        SQLCipher key lives in the Android Keystore and is NOT backed up, so a
+        restored encrypted database could not be opened. The only way data
+        leaves this phone is the user's own backup export. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

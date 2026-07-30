@@ -253,6 +253,10 @@ class _UpdateCardState extends State<UpdateCard> {
                 ),
               ],
             ),
+            if (widget.store != null) ...[
+              const SizedBox(height: 10),
+              _StorageRow(store: widget.store!),
+            ],
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -300,6 +304,53 @@ class _UpdateCardState extends State<UpdateCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The one-line "where your data lives" readout, so the founder can SEE that the
+/// encrypted store engaged rather than silently falling back to plaintext. An
+/// untestable native encryption is exactly the kind of thing that must be
+/// visible, not trusted.
+class _StorageRow extends StatelessWidget {
+  final SalapifyStore store;
+  const _StorageRow({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final health = store.storageHealth();
+    final encrypted = health.encrypted;
+    return Row(
+      children: [
+        Text('Storage', style: TextStyle(color: Barako.text, fontSize: 14)),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Icon(
+                encrypted ? Icons.lock_outline : Icons.lock_open_outlined,
+                size: 14,
+                color: encrypted ? Barako.primary : Barako.muted,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  encrypted
+                      ? (health.migratedThisRun
+                          ? 'Encrypted (moved this run)'
+                          : 'Encrypted')
+                      : health.engineLabel,
+                  textAlign: TextAlign.right,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
