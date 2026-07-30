@@ -1,8 +1,14 @@
-// ADR 0001, PR B1: the migration + dual-write coordinator.
+// ADR 0001, PR B1: the durable file store as a validated shadow.
 //
-// These prove the safety-critical behaviours directly, composing an in-memory
-// engine (with a failable write) and the real atomic FileLedgerRepository so the
-// restart-recovery test exercises genuine on-disk atomicity.
+// These prove the safety-critical behaviours of the shadow design directly,
+// composing an in-memory engine (with a failable write) and the real atomic
+// FileLedgerRepository so the restart-recovery test exercises genuine on-disk
+// atomicity.
+//
+// The load-bearing property is: SOURCE is the single truth, and the shadow can
+// never override or resurrect anything. The last two tests are the two proven
+// data-loss findings from the pre-merge review, kept as regressions: a
+// stale/newer shadow is ignored, and a half-finished erase does not resurrect.
 
 import 'dart:io';
 
@@ -48,144 +54,146 @@ const _ledgerA = '{"schemaVersion":12,"transactions":[{"id":"t1"}]}';
 const _ledgerB = '{"schemaVersion":12,"transactions":[{"id":"t1"},{"id":"t2"}]}';
 
 void main() {
-  test('first run migrates legacy into primary without touching legacy', () async {
-    final primary = MemRepo();
-    final legacy = MemRepo()..ledger = _ledgerA;
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+  test('reads come from source, and the first read seeds the shadow from it', () async {
+    final source = MemRepo()..ledger = _ledgerA;
+    final shadow = MemRepo(); // empty: first run
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
 
-    final read = await repo.readLedger();
-    expect(read, _ledgerA);
-    expect(repo.lastSource, LedgerSource.migratedFromLegacy);
-    expect(primary.ledger, _ledgerA, reason: 'primary was built from legacy');
-    expect(legacy.ledger, _ledgerA, reason: 'legacy is never modified');
+    expect(await repo.readLedger(), _ledgerA, reason: 'the answer is always source');
+    expect(shadow.ledger, _ledgerA, reason: 'the shadow was seeded from source');
+    expect(repo.shadowInSync, isTrue);
   });
 
-  test('steady state reads straight from primary and leaves legacy alone', () async {
-    final primary = MemRepo()..ledger = _ledgerA;
-    final legacy = MemRepo()..ledger = 'stale';
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+  test('a steady-state read does not rewrite an already-current shadow', () async {
+    final source = MemRepo()..ledger = _ledgerA;
+    final shadow = MemRepo()..ledger = _ledgerA;
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
 
-    expect(await repo.readLedger(), _ledgerA);
-    expect(repo.lastSource, LedgerSource.primary);
-    expect(legacy.ledger, 'stale', reason: 'a primary read does not touch legacy');
+    await repo.readLedger();
+    expect(shadow.writes, 0, reason: 'nothing to catch up, so no write');
+    expect(repo.shadowInSync, isTrue);
   });
 
-  test('every write lands in primary and mirrors to legacy', () async {
-    final primary = MemRepo();
-    final legacy = MemRepo();
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+  test('every write lands in source and mirrors to the shadow', () async {
+    final source = MemRepo();
+    final shadow = MemRepo();
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
 
     await repo.writeLedger(_ledgerB);
-    expect(primary.ledger, _ledgerB);
-    expect(legacy.ledger, _ledgerB, reason: 'legacy mirror keeps the revert path current');
-    expect(repo.lastMirrorOk, isTrue);
+    expect(source.ledger, _ledgerB);
+    expect(shadow.ledger, _ledgerB, reason: 'the crash-safe copy keeps up');
+    expect(repo.lastShadowWriteOk, isTrue);
   });
 
-  test('a primary write failure throws (the write is not durable)', () async {
-    final primary = MemRepo()..failWrites = true;
-    final legacy = MemRepo();
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+  test('a source write failure throws (the write is not durable)', () async {
+    final source = MemRepo()..failWrites = true;
+    final shadow = MemRepo();
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
 
     await expectLater(repo.writeLedger(_ledgerB), throwsA(anything));
-    // Legacy was never written, so there is no half-committed dual-write.
-    expect(legacy.ledger, isNull);
   });
 
-  test('a legacy mirror failure keeps the write durable and never throws', () async {
-    final primary = MemRepo();
-    final legacy = MemRepo()..failWrites = true;
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+  test('a shadow write failure keeps the write durable and never throws', () async {
+    final source = MemRepo();
+    final shadow = MemRepo()..failWrites = true;
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
 
     await repo.writeLedger(_ledgerB); // must not throw
-    expect(primary.ledger, _ledgerB, reason: 'primary is durable');
-    expect(repo.lastMirrorOk, isFalse, reason: 'the degraded revert path is flagged');
-    expect(await repo.readLedger(), _ledgerB);
-  });
-
-  test('a corrupt primary self-heals from the intact legacy copy', () async {
-    final primary = MemRepo()..ledger = 'not json at all';
-    final legacy = MemRepo()..ledger = _ledgerA;
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
-
-    final read = await repo.readLedger();
-    expect(read, _ledgerA, reason: 'a good copy sits in legacy, so use it');
-    expect(repo.primaryWasCorrupt, isTrue);
-    expect(repo.lastSource, LedgerSource.legacyFallback);
-    expect(primary.ledger, _ledgerA, reason: 'primary was repaired from legacy');
-
-    // The next read is clean primary.
-    expect(await repo.readLedger(), _ledgerA);
-    expect(repo.lastSource, LedgerSource.primary);
+    expect(source.ledger, _ledgerB, reason: 'source is durable');
+    expect(repo.lastShadowWriteOk, isFalse, reason: 'the degraded copy is flagged');
+    expect(await repo.readLedger(), _ledgerB, reason: 'reads still come from source');
   });
 
   test('clearLedger wipes both stores', () async {
-    final primary = MemRepo()..ledger = _ledgerA;
-    final legacy = MemRepo()..ledger = _ledgerA;
-    final repo = DurableLedgerRepository(primary: primary, legacy: legacy);
+    final source = MemRepo()..ledger = _ledgerA;
+    final shadow = MemRepo()..ledger = _ledgerA;
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
     await repo.clearLedger();
-    expect(primary.ledger, isNull);
-    expect(legacy.ledger, isNull);
+    expect(source.ledger, isNull);
+    expect(shadow.ledger, isNull);
   });
 
   test('nothing stored anywhere reads as empty', () async {
-    final repo = DurableLedgerRepository(primary: MemRepo(), legacy: MemRepo());
+    final repo = DurableLedgerRepository(source: MemRepo(), shadow: MemRepo());
     expect(await repo.readLedger(), isNull);
-    expect(repo.lastSource, LedgerSource.empty);
+    expect(repo.shadowInSync, isTrue);
+  });
+
+  // The two proven pre-merge findings, kept as regressions.
+
+  test('FINDING 1 regression: a shadow that disagrees with source never overrides source', () async {
+    // If the shadow ever holds different bytes (older OR newer), source still
+    // wins and the shadow is brought back in line with source.
+    final source = MemRepo()..ledger = _ledgerA;
+    final shadow = MemRepo()..ledger = _ledgerB; // disagrees with source
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
+
+    expect(await repo.readLedger(), _ledgerA, reason: 'source is the only truth');
+    expect(shadow.ledger, _ledgerA, reason: 'the shadow is re-synced to source, not the reverse');
+  });
+
+  test('FINDING 2 regression: a half-finished erase does not resurrect from the shadow', () async {
+    // "Start fresh" cleared source, then was killed before the shadow cleared,
+    // so the shadow still holds the erased ledger. The next read must NOT bring
+    // it back.
+    final source = MemRepo(); // cleared
+    final shadow = MemRepo()..ledger = _ledgerA; // stale leftover
+    final repo = DurableLedgerRepository(source: source, shadow: shadow);
+
+    expect(await repo.readLedger(), isNull, reason: 'erased stays erased');
   });
 
   group('restart recovery with the real atomic file store', () {
     late Directory dir;
-    late MemRepo legacy;
+    late MemRepo source;
 
     setUp(() async {
       dir = await Directory.systemTemp.createTemp('durable_recovery');
-      legacy = MemRepo()..ledger = _ledgerA;
+      source = MemRepo()..ledger = _ledgerA;
     });
     tearDown(() async {
       if (await dir.exists()) await dir.delete(recursive: true);
     });
 
-    test('a restart finds either the old complete store or the new complete store', () async {
-      // Run 1: migrate legacy -> primary (a real file, atomic).
+    test('the shadow is seeded and then kept in sync across a restart', () async {
+      // Run 1: first read seeds the real file shadow from source.
       final run1 = DurableLedgerRepository(
-        primary: FileLedgerRepository(directoryPath: dir.path),
-        legacy: legacy,
+        source: source,
+        shadow: FileLedgerRepository(directoryPath: dir.path),
       );
       expect(await run1.readLedger(), _ledgerA);
-
-      // "Restart": a brand new coordinator over the same directory. Primary is
-      // a complete file now, so it is read directly, no re-migration.
-      final run2 = DurableLedgerRepository(
-        primary: FileLedgerRepository(directoryPath: dir.path),
-        legacy: legacy,
-      );
-      expect(await run2.readLedger(), _ledgerA);
-      expect(run2.lastSource, LedgerSource.primary);
-
-      // A write after restart is durable in the real file and mirrored.
-      await run2.writeLedger(_ledgerB);
-      final run3 = DurableLedgerRepository(
-        primary: FileLedgerRepository(directoryPath: dir.path),
-        legacy: legacy,
-      );
-      expect(await run3.readLedger(), _ledgerB);
-      expect(legacy.ledger, _ledgerB, reason: 'legacy mirror stayed current across the restart');
-    });
-
-    test('a crash before primary was ever written re-migrates cleanly on restart', () async {
-      // No read happened in "run 1" (primary file never created). Restart: the
-      // coordinator sees an absent primary and migrates fresh from legacy.
-      final restart = DurableLedgerRepository(
-        primary: FileLedgerRepository(directoryPath: dir.path),
-        legacy: legacy,
-      );
-      expect(await restart.readLedger(), _ledgerA);
-      expect(restart.lastSource, LedgerSource.migratedFromLegacy);
       expect(
         await FileLedgerRepository(directoryPath: dir.path).readLedger(),
         _ledgerA,
-        reason: 'primary is now a complete file',
+        reason: 'the shadow file is now a complete copy',
       );
+
+      // A write after "restart" lands in source and updates the shadow file.
+      final run2 = DurableLedgerRepository(
+        source: source,
+        shadow: FileLedgerRepository(directoryPath: dir.path),
+      );
+      await run2.writeLedger(_ledgerB);
+      expect(source.ledger, _ledgerB);
+      expect(
+        await FileLedgerRepository(directoryPath: dir.path).readLedger(),
+        _ledgerB,
+        reason: 'the shadow file caught the write',
+      );
+    });
+
+    test('a revert to source-only after this PR reads the exact same data', () async {
+      final run1 = DurableLedgerRepository(
+        source: source,
+        shadow: FileLedgerRepository(directoryPath: dir.path),
+      );
+      await run1.readLedger();
+      await run1.writeLedger(_ledgerB);
+
+      // Reverting this PR means the store talks to source alone again. Because
+      // source was always authoritative, it reads the current data unchanged,
+      // unconditionally, with nothing to reconcile.
+      expect(await source.readLedger(), _ledgerB);
     });
   });
 }

@@ -1,76 +1,65 @@
-// ADR 0001, PR B1: the migration + dual-write coordinator.
+// ADR 0001, PR B1: the durable file store as a VALIDATED SHADOW.
 //
 // This composes two LedgerRepository engines behind the same interface:
 //
-//   primary  the new durable file store (FileLedgerRepository). Authoritative.
-//   legacy   the old SharedPreferences store. Kept as a lossless revert mirror.
+//   source  the old SharedPreferences store. AUTHORITATIVE. Every read is
+//           answered from here, exactly as before this PR, so B1 changes
+//           nothing about which bytes the app trusts.
+//   shadow  the new durable file store (FileLedgerRepository). A crash-safe
+//           COPY that is written alongside source and kept in step, but is
+//           NEVER read back as the source of truth in B1.
 //
-// It does three safety-critical things, and each is here rather than in the
-// store so the store's load/save logic is unchanged:
+// Why a shadow and not an authority swap. An earlier version of this PR made
+// the file store authoritative and dual-wrote to SharedPreferences as a revert
+// mirror. A pre-merge review found two ways that lost data, both proven with a
+// test: (1) a file that was valid but OLDER than SharedPreferences (after a
+// code rollback, or a session where the file store failed to open) was trusted
+// over the newer SharedPreferences copy, and the stale copy then overwrote the
+// good one; (2) a "start fresh" interrupted partway left the file cleared and
+// SharedPreferences intact, which the next launch misread as a first run and
+// used to RESURRECT the just-erased ledger. Both turn on the same gap: two
+// independently-writable stores with no reliable "which is newer" signal.
 //
-//   1. Non-destructive migration. On the first run after this ships, primary is
-//      absent and legacy holds the user's data. The first read copies legacy
-//      into primary (atomically, via FileLedgerRepository) and VALIDATES the
-//      copy read back byte-for-byte before trusting it. Legacy is never touched.
+// The safe answer for an over-the-air step is not to hand-roll that signal, it
+// is to not need it: keep the single existing source of truth, and treat the
+// file purely as a copy. Reads come from source, so a stale or half-cleared
+// shadow can never override or resurrect anything. The file store is still
+// built, exercised on real devices, and kept continuously in sync, so PR B2
+// (the native encrypted SQLCipher engine, a transactional database that owns
+// "which is newer" correctly) can promote it to authority with the data
+// already present and validated.
 //
-//   2. Dual-write. Every write lands in primary FIRST (authoritative, and it
-//      must succeed or the write is not durable and the caller rolls back), then
-//      is mirrored into legacy best-effort. Because legacy stays current, simply
-//      reverting this PR, so the store talks to SharedPreferences again, loses
-//      nothing. That is the recovery path each PR in this phase must preserve.
-//
-//   3. Self-heal on corruption. If primary is ever present but not a readable
-//      ledger, the read falls back to the intact legacy copy and repairs primary
-//      from it, rather than surfacing a corrupt primary as a load error while a
-//      good copy sits in legacy. Corruption fails closed without losing data.
-//
-// It exposes a little observable state (the last read's source, whether the
-// mirror is current, whether primary was found corrupt) for the Data Health
-// primitives to report. None of that is part of the interface.
-
-import 'dart:convert';
+// It exposes a little observable state (whether the shadow matches source,
+// whether the last shadow write succeeded) for the Data Health primitives.
+// None of that is part of the interface.
 
 import 'file_ledger_repository.dart';
 import 'ledger_repository.dart';
 
-/// Where the last [DurableLedgerRepository.readLedger] got its answer.
-enum LedgerSource {
-  /// Read straight from the new durable store, the steady state.
-  primary,
-
-  /// First run: legacy was copied into primary this read.
-  migratedFromLegacy,
-
-  /// Primary could not be trusted this read (absent-then-unwritable, or
-  /// corrupt), so legacy answered and primary repair was attempted.
-  legacyFallback,
-
-  /// Nothing stored anywhere yet (a fresh install).
-  empty,
-}
-
 class DurableLedgerRepository implements LedgerRepository {
-  /// The new durable store. Authoritative once it holds a valid ledger.
-  final LedgerRepository primary;
+  /// The old store. Authoritative: every read is answered from here.
+  final LedgerRepository source;
 
-  /// The old store, kept current as a lossless revert path.
-  final LedgerRepository legacy;
+  /// The new durable file store. A crash-safe copy, written alongside source
+  /// and kept in step, but never read back as the source of truth in B1.
+  final LedgerRepository shadow;
 
-  DurableLedgerRepository({required this.primary, required this.legacy});
+  DurableLedgerRepository({required this.source, required this.shadow});
 
-  /// The engine the app runs on: the atomic file store in front of the old
-  /// SharedPreferences store, so a plain revert of this PR loses nothing.
+  /// The engine the app runs on: the old SharedPreferences store as the source
+  /// of truth, with the atomic file store shadowing it.
   ///
   /// If the file store cannot even be created (path_provider unavailable, no
   /// writable documents directory), fall back to SharedPreferences ALONE, the
-  /// exact behaviour before this PR. Nobody is worse off than the old build,
-  /// and startup never fails on persistence setup.
+  /// exact behaviour before this PR. That fallback is safe precisely because
+  /// source is already authoritative: there is no stale shadow that a later run
+  /// could wrongly trust.
   static Future<LedgerRepository> buildDefault() async {
     try {
       final file = await FileLedgerRepository.inAppDocuments();
       return DurableLedgerRepository(
-        primary: file,
-        legacy: const SharedPrefsLedgerRepository(),
+        source: const SharedPrefsLedgerRepository(),
+        shadow: file,
       );
     } catch (_) {
       return const SharedPrefsLedgerRepository();
@@ -78,101 +67,90 @@ class DurableLedgerRepository implements LedgerRepository {
   }
 
   /// Observable state for Data Health. Not part of the interface.
-  LedgerSource lastSource = LedgerSource.empty;
-  bool lastMirrorOk = true;
-  bool primaryWasCorrupt = false;
+  /// True when the shadow copy matched source at the last read or write.
+  bool shadowInSync = false;
 
-  /// A light gate to decide primary-vs-legacy: does this look like a ledger
-  /// blob at all (a non-empty JSON object)? The store still does the real
-  /// sanitize/migrate/id-repair; this only picks which copy to hand it.
-  bool _looksLikeLedger(String? s) {
-    if (s == null || s.isEmpty) return false;
-    try {
-      return jsonDecode(s) is Map;
-    } catch (_) {
-      return false;
-    }
-  }
+  /// True when the last shadow write succeeded. A false here means the crash-safe
+  /// copy is behind; it does NOT mean any data is at risk, because source is the
+  /// one the app reads.
+  bool lastShadowWriteOk = true;
 
   @override
   Future<String?> readLedger() async {
-    final p = await primary.readLedger();
-    if (_looksLikeLedger(p)) {
-      lastSource = LedgerSource.primary;
-      primaryWasCorrupt = false;
-      return p;
-    }
-    // Primary is absent or corrupt. Remember which, then answer from legacy and
-    // try to (re)build primary from it. Legacy is never modified.
-    primaryWasCorrupt = p != null;
-    final l = await legacy.readLedger();
-    if (l == null || l.isEmpty) {
-      // Nothing to migrate. A corrupt primary with an empty legacy is not
-      // expected in normal use; leave primary as-is (the store's own loadError
-      // guard still protects the user) rather than wiping either side.
-      lastSource = LedgerSource.empty;
-      return l;
-    }
+    // Source is the truth. Full stop.
+    final s = await source.readLedger();
+    // Best-effort: keep the shadow current so B2 inherits an up-to-date copy.
+    // This NEVER changes what we return, and never lets the shadow win.
     try {
-      await primary.writeLedger(l);
-      final back = await primary.readLedger();
-      lastSource = (back == l && !primaryWasCorrupt)
-          ? LedgerSource.migratedFromLegacy
-          : LedgerSource.legacyFallback;
+      final sh = await shadow.readLedger();
+      final sourceEmpty = s == null || s.isEmpty;
+      if (sourceEmpty) {
+        shadowInSync = sh == null || sh.isEmpty;
+      } else if (sh != s) {
+        // The shadow is absent or behind (first run, or it fell behind during a
+        // session where it could not be written). Catch it up from source.
+        await shadow.writeLedger(s);
+        shadowInSync = true;
+      } else {
+        shadowInSync = true;
+      }
     } catch (_) {
-      // Could not build primary (disk full, key access, etc.). No data is lost:
-      // legacy is intact and answers this run; the next run retries.
-      lastSource = LedgerSource.legacyFallback;
+      // A shadow that cannot be read or seeded is a degraded copy, not a data
+      // risk. Record it and carry on with the authoritative answer.
+      shadowInSync = false;
     }
-    return l;
+    return s;
   }
 
   @override
   Future<void> writeLedger(String json) async {
     // Authoritative write first: it MUST land, or the write is not durable and
-    // the store must roll back, so let it throw.
-    await primary.writeLedger(json);
-    // Mirror best-effort. Primary is already durable, so a mirror failure must
-    // never fail the write; it only degrades the revert path, which Data Health
-    // surfaces.
+    // the store rolls back, so let it throw.
+    await source.writeLedger(json);
+    // Shadow write is best-effort. source already holds the truth, so a shadow
+    // failure only leaves the crash-safe copy behind; it must never fail the
+    // write.
     try {
-      await legacy.writeLedger(json);
-      lastMirrorOk = true;
+      await shadow.writeLedger(json);
+      lastShadowWriteOk = true;
+      shadowInSync = true;
     } catch (_) {
-      lastMirrorOk = false;
+      lastShadowWriteOk = false;
+      shadowInSync = false;
     }
   }
 
   @override
-  Future<String?> readUndoSnapshot() async {
-    final p = await primary.readUndoSnapshot();
-    if (p != null && p.isNotEmpty) return p;
-    return legacy.readUndoSnapshot();
-  }
+  Future<String?> readUndoSnapshot() => source.readUndoSnapshot();
 
   @override
   Future<void> writeUndoSnapshot(String json) async {
-    await primary.writeUndoSnapshot(json);
+    await source.writeUndoSnapshot(json);
     try {
-      await legacy.writeUndoSnapshot(json);
+      await shadow.writeUndoSnapshot(json);
     } catch (_) {
-      // Best-effort, same as the ledger mirror.
+      // Best-effort, same as the ledger shadow.
     }
   }
 
   @override
   Future<void> clearUndoSnapshot() async {
-    await primary.clearUndoSnapshot();
+    await source.clearUndoSnapshot();
     try {
-      await legacy.clearUndoSnapshot();
+      await shadow.clearUndoSnapshot();
     } catch (_) {}
   }
 
   @override
   Future<void> clearLedger() async {
-    // Start fresh wipes everything, both stores, or a later revert would
-    // resurrect data the user chose to erase.
-    await primary.clearLedger();
-    await legacy.clearLedger();
+    // source is authoritative and is what the next read returns, so clearing it
+    // is what makes the erase real. A leftover shadow (if its clear fails or the
+    // process dies between the two) can never resurrect the data, because the
+    // shadow is never read back as truth. That is the whole safety of this
+    // design: erase is exactly as durable as the old single-store erase.
+    await source.clearLedger();
+    try {
+      await shadow.clearLedger();
+    } catch (_) {}
   }
 }

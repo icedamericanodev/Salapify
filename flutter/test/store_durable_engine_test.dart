@@ -1,13 +1,13 @@
 // ADR 0001, PR B1: the store driven through the real durable engine.
 //
 // The coordinator's own unit tests (durable_ledger_repository_test.dart) prove
-// migration, dual-write and self-heal in isolation. This proves the SAME thing
-// the app actually does: a full SalapifyStore, with no code change of its own,
-// running on a DurableLedgerRepository(primary: real atomic file, legacy: the
-// old SharedPreferences store). Every user-visible write path (import, log,
-// start fresh) must persist to the durable file, reload from it after a
-// restart, AND keep the legacy SharedPreferences copy current so a plain revert
-// of this PR loses nothing.
+// the shadow rules in isolation. This proves the SAME thing the app actually
+// does: a full SalapifyStore, with no code change of its own, running on a
+// DurableLedgerRepository(source: the old SharedPreferences store, shadow: a
+// real atomic file). Every user-visible write path (import, log, start fresh)
+// must persist to source, keep the crash-safe shadow file in step, and reload
+// correctly. A plain revert of this PR loses nothing because source was always
+// the source of truth.
 
 import 'dart:convert';
 import 'dart:io';
@@ -37,11 +37,13 @@ void main() {
   });
 
   DurableLedgerRepository durable() => DurableLedgerRepository(
-        primary: FileLedgerRepository(directoryPath: dir.path),
-        legacy: const SharedPrefsLedgerRepository(),
+        source: const SharedPrefsLedgerRepository(),
+        shadow: FileLedgerRepository(directoryPath: dir.path),
       );
 
-  test('import through the durable engine persists to the file and reloads', () async {
+  int txCount(SalapifyStore s) => (s.data['transactions'] as List).length;
+
+  test('import through the durable engine persists, mirrors to the shadow file, and reloads', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore(repository: durable());
     await store.load();
@@ -51,23 +53,21 @@ void main() {
     expect(store.hasData, isTrue);
     expect(netWorthParts(store.data)['netWorth'], closeTo(15400.5, 1e-9));
 
-    // The authoritative copy is the real file, not SharedPreferences.
+    // The crash-safe shadow file caught the import.
     expect(
       await FileLedgerRepository(directoryPath: dir.path).readLedger(),
       isNotNull,
-      reason: 'the durable primary holds the data',
+      reason: 'the shadow file holds a copy',
     );
 
-    // A brand new store over the same directory reloads it, a restart.
+    // A brand new store over the same source reloads it, a restart.
     final restarted = SalapifyStore(repository: durable());
     await restarted.load();
     expect(restarted.hasData, isTrue);
     expect(netWorthParts(restarted.data)['netWorth'], closeTo(15400.5, 1e-9));
   });
 
-  int txCount(SalapifyStore s) => (s.data['transactions'] as List).length;
-
-  test('a logged entry persists to the durable file and survives a restart', () async {
+  test('a logged entry persists and survives a restart', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore(repository: durable());
     await store.load();
@@ -81,11 +81,11 @@ void main() {
     final restarted = SalapifyStore(repository: durable());
     await restarted.load();
     expect(txCount(restarted), before + 1,
-        reason: 'the logged entry came back from the durable file');
+        reason: 'the logged entry came back after a restart');
     expect(restarted.data['transactions'].last['note'], 'coffee');
   });
 
-  test('legacy SharedPreferences stays current, so a plain revert loses nothing', () async {
+  test('a plain revert to the old store reads the exact same up-to-date data', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore(repository: durable());
     await store.load();
@@ -95,37 +95,37 @@ void main() {
         {'amount': -100.0, 'note': 'coffee', 'type': 'expense', 'accountId': 'acc_bank'});
 
     // Reverting this PR means the store talks to SharedPreferences alone again.
-    // That store must load the SAME up-to-date data with no migration.
+    // Because SharedPreferences was always the source of truth, it reads the
+    // SAME up-to-date data with nothing to reconcile.
     final reverted = SalapifyStore(repository: const SharedPrefsLedgerRepository());
     await reverted.load();
     expect(reverted.hasData, isTrue);
     expect(txCount(reverted), imported + 1,
-        reason: 'the mirror carried the import AND the logged entry');
+        reason: 'source carried the import AND the logged entry');
     expect(reverted.data['transactions'].last['note'], 'coffee');
   });
 
-  test('first run migrates an existing SharedPreferences ledger into the file', () async {
-    // Seed ONLY the legacy store, the state of a phone updating into this build:
-    // SharedPreferences holds the ledger, the durable file does not exist yet.
+  test('an existing ledger is copied into the shadow file on first durable load', () async {
+    // Seed ONLY the source store, the state of a phone updating into this build:
+    // SharedPreferences holds the ledger, the shadow file does not exist yet.
     final seed = SalapifyStore(repository: const SharedPrefsLedgerRepository());
     SharedPreferences.setMockInitialValues({});
     await seed.load();
     await seed.importBackupText(backupText);
-    final storedBlob = (await SharedPreferences.getInstance()).getString(storageKey);
-    expect(storedBlob, isNotNull);
+    expect((await SharedPreferences.getInstance()).getString(storageKey), isNotNull);
     expect(await FileLedgerRepository(directoryPath: dir.path).readLedger(), isNull,
-        reason: 'the durable file does not exist before the first durable load');
+        reason: 'the shadow file does not exist before the first durable load');
 
-    // First load on the durable engine migrates legacy into the file.
+    // First load on the durable engine seeds the shadow file from source.
     final store = SalapifyStore(repository: durable());
     await store.load();
     expect(store.hasData, isTrue);
     expect(netWorthParts(store.data)['netWorth'], closeTo(15400.5, 1e-9));
     expect(await FileLedgerRepository(directoryPath: dir.path).readLedger(), isNotNull,
-        reason: 'migration built the durable primary from legacy');
+        reason: 'the shadow file was seeded from source');
   });
 
-  test('start fresh clears both the durable file and the legacy store', () async {
+  test('start fresh clears both the source and the shadow file', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore(repository: durable());
     await store.load();
@@ -133,8 +133,9 @@ void main() {
 
     await store.startFresh();
     expect(store.hasData, isFalse);
-    expect(await FileLedgerRepository(directoryPath: dir.path).readLedger(), isNull);
     expect((await SharedPreferences.getInstance()).getString(storageKey), isNull,
-        reason: 'erase wipes both stores or a revert would resurrect erased data');
+        reason: 'the authoritative erase wiped source');
+    expect(await FileLedgerRepository(directoryPath: dir.path).readLedger(), isNull,
+        reason: 'the shadow copy was cleared too');
   });
 }

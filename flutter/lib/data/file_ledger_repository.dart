@@ -3,11 +3,19 @@
 // This is one implementation of the PR A LedgerRepository interface. It writes
 // the ledger JSON to a real file with an ATOMIC write: the bytes go to a
 // sibling ".tmp" file, are flushed to disk, and only then is that file renamed
-// over the target. rename() is atomic on a single filesystem, so a process kill
-// at ANY moment leaves the target either untouched (the previous complete
-// ledger) or fully replaced (the new complete ledger). It can never leave a
-// half-written, torn file, which is the failure a plain "write in place" over
-// SharedPreferences' single string value cannot rule out.
+// over the target. rename() is atomic on a single filesystem, so a PROCESS KILL
+// (the OS killing the app) at any moment leaves the target either untouched
+// (the previous complete ledger) or fully replaced (the new complete ledger).
+// It can never leave a half-written, torn file, which is the failure a plain
+// "write in place" over SharedPreferences' single string value cannot rule out.
+//
+// One honest limit: flush:true fsyncs the temp file's BYTES, but dart:io has no
+// API to fsync the directory entry the rename creates. On a hard power loss or
+// kernel panic in the instant after rename() returns, the directory update can
+// be lost and the file rolls back to its previous complete contents. That is
+// still not corruption, only the loss of the very last write, which is
+// acceptable for a phone app; a fully transactional engine (PR B2's SQLCipher)
+// is the upgrade that closes even that window.
 //
 // It deals in the raw JSON STRING, exactly like the SharedPreferences engine:
 // the store still owns sanitize, migrate, id-repair, and every money rule, and
