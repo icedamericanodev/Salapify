@@ -1,8 +1,28 @@
 # ADR 0001: A durable, encrypted data foundation for the Salapify ledger
 
-- Status: PROPOSED, awaiting founder approval. No code in this PR. Nothing is
-  implemented until this is approved.
+- Status: ACCEPTED (founder approved the recommendations on 2026-07-30, "go
+  with your recommendations"). Implementation proceeds with PR A only; the
+  native PR B stays gated for its own explicit approval.
 - Date: 2026-07-30
+
+### Decision record (founder approval, 2026-07-30)
+
+The founder approved the recommended path. The chosen options, from Section 17:
+
+1. Storage engine: SQLCipher-backed SQLite holding the JSON document behind the
+   repository interface (Section 2).
+2. Biometric key binding: NO. Encrypt at rest with a Keystore-wrapped DEK any run
+   can use; App Lock stays the UI gate (Section 4). Avoids turning a sensor reset
+   into data loss.
+3. Money: Path 1. Keep double parity, introduce only the pass-through adapter
+   seam; no number changes; goldens unchanged (Section 11). True zero drift, if
+   ever wanted, is a separate later ADR.
+4. Performance: the proposed budget (log-save p95 < 50ms, cold load < 400ms at a
+   realistic ledger size) is accepted as the working target; the exact reference
+   device is named when Phase C benchmarks are built.
+5. Proceed to PR A now (pure-Dart, reversible, ships OTA). PR B (native SQLCipher
+   + Keystore + base-APK rebuild + manual install) requires its own explicit
+   approval before any native code, per the founder's standing rule.
 - Scope: replace the SharedPreferences JSON ledger with a durable, encrypted
   store, preserving every user and every centavo. Significant stored-data,
   money, security, backup, and native change.
