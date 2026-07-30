@@ -6,6 +6,8 @@
 // transfer sheet at the bottom of this file spends every peso decision
 // through money/transfers.dart, which is locked to the RN engine by goldens.
 
+import 'dart:async' show Timer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -51,9 +53,103 @@ String _todayISO() {
       '${n.day.toString().padLeft(2, '0')}';
 }
 
-class AccountsScreen extends StatelessWidget {
+class AccountsScreen extends StatefulWidget {
   final SalapifyStore store;
-  const AccountsScreen({super.key, required this.store});
+
+  /// Routes the "manage debts" note to the canonical "I owe" segment of the
+  /// Utang tab. Null when this screen is pushed by a host with no tab switcher
+  /// (a deep push), in which case the note is plain words pointing the same way
+  /// rather than a live link.
+  final VoidCallback? onOpenPayables;
+
+  /// An account id to reveal on open: the list scrolls to it and it flashes
+  /// once. Set when Search opens this screen on a specific account match. If
+  /// the id no longer exists (the account was deleted between the search result
+  /// rendering and this tap), the screen opens normally and says so, rather
+  /// than crashing on a stale id.
+  final String? focusAccountId;
+
+  const AccountsScreen({
+    super.key,
+    required this.store,
+    this.onOpenPayables,
+    this.focusAccountId,
+  });
+
+  @override
+  State<AccountsScreen> createState() => _AccountsScreenState();
+}
+
+class _AccountsScreenState extends State<AccountsScreen> {
+  // The rest of this class was written against a bare `store` field. This
+  // getter keeps every one of those references compiling after the split to a
+  // StatefulWidget, so the focus/highlight state could be added without a
+  // rename sweep across two hundred lines.
+  SalapifyStore get store => widget.store;
+
+  /// The row to reveal, and its transient highlight. The key stays put so the
+  /// scroll can find the row; the id clears after the flash so the tint fades.
+  final GlobalKey _focusKey = GlobalKey();
+  String? _highlightId;
+  Timer? _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.focusAccountId;
+    if (id != null) {
+      _highlightId = id;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _revealFocus(id));
+    }
+  }
+
+  @override
+  void dispose() {
+    // A cancelable Timer, not Future.delayed: a pending timer at teardown
+    // fails the widget suite with "A Timer is still pending", and a real user
+    // can leave this screen before the flash fades.
+    _fade?.cancel();
+    super.dispose();
+  }
+
+  /// Scroll the focused account into view and let its flash fade. If it was
+  /// deleted between the search result and this tap, there is nothing to
+  /// reveal: clear the highlight and say so plainly, so a stale id is a calm
+  /// sentence rather than a crash or a silent no-op.
+  void _revealFocus(String id) {
+    if (!mounted) return;
+    final present = _rows('accounts').any((a) => '${a['id']}' == id);
+    if (!present) {
+      setState(() => _highlightId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'That account was just removed, so there is nothing to open here.',
+          ),
+        ),
+      );
+      return;
+    }
+    // Best effort, and honestly so: the list is a lazy ListView, so a row far
+    // below the fold has no element yet and currentContext is null. That is the
+    // common case (a handful of accounts, the match on screen) handled well,
+    // and the uncommon one (dozens of accounts, the match near the bottom) left
+    // un-scrolled rather than wrong. The highlight still applies to the row's
+    // own decoration, so scrolling to it by hand within the window shows the
+    // flash; making the scroll reliable on very long lists needs a positioned
+    // list and is tracked as a follow-up, not smuggled in at merge time.
+    final ctx = _focusKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.3,
+        duration: const Duration(milliseconds: 300),
+      );
+    }
+    _fade = Timer(const Duration(milliseconds: 2200), () {
+      if (mounted) setState(() => _highlightId = null);
+    });
+  }
 
   List<Map<String, dynamic>> _rows(String key) {
     final raw = store.data[key];
@@ -199,16 +295,7 @@ class AccountsScreen extends StatelessWidget {
                         // Once, under the last debt section, not under each.
                         if (c.store == AccountStore.debts &&
                             c.id == _lastDebtCategoryWithRows(groups))
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              'Manage debts on the Debts screen.',
-                              style: TextStyle(
-                                color: Barako.faint,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
+                          _manageDebtsNote(),
                       ],
                       subtotalColor: c.cls == AccountClass.liability
                           ? Barako.warningStrong
@@ -437,6 +524,50 @@ class AccountsScreen extends StatelessWidget {
     return last;
   }
 
+  /// Where debts are actually managed now: the "I owe" segment of the Utang
+  /// tab. This line used to read "Manage debts on the Debts screen", which
+  /// named a screen that is only a fallback and pointed away from the tab that
+  /// is the real home. When the host wired the jump it is a live link there;
+  /// otherwise it is plain words pointing the same way, never at a "Debts
+  /// screen".
+  Widget _manageDebtsNote() {
+    final open = widget.onOpenPayables;
+    const label = 'Manage debts under the "I owe" tab.';
+    if (open == null) {
+      // Left-aligned, the same as the linked variant below, so the note does
+      // not jump from centered to left depending on whether the host wired the
+      // jump. The section Card's Column centers its children by default, which
+      // is why this needs saying out loud.
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(color: Barako.faint, fontSize: 12),
+          ),
+        ),
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        // popUntil, not pop: Search can push this two deep, so popping to the
+        // root is what lands the tab switch cleanly from any depth.
+        onPressed: () {
+          Navigator.of(context).popUntil((r) => r.isFirst);
+          open();
+        },
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 0),
+          foregroundColor: Barako.primaryText,
+          minimumSize: const Size(0, 44),
+        ),
+        child: const Text(label),
+      ),
+    );
+  }
+
   /// One row, whichever collection it came from.
   ///
   /// The sub line names the SUBTYPE and the institution, which is the pair
@@ -453,7 +584,16 @@ class AccountsScreen extends StatelessWidget {
 
     switch (which) {
       case AccountStore.accounts:
-        return _accountRow(context, row, sub: parts.join(' · '));
+        final id = '${row['id']}';
+        return _accountRow(
+          context,
+          row,
+          sub: parts.join(' · '),
+          // The key rides on the row Search asked to reveal, so the scroll can
+          // find it; the flash follows the transient highlight id.
+          rowKey: id == widget.focusAccountId ? _focusKey : null,
+          highlight: id == _highlightId,
+        );
       case AccountStore.assets:
         return _row(
           icon: '📈',
@@ -463,9 +603,10 @@ class AccountsScreen extends StatelessWidget {
           onTap: () => _openForm(context, isAccount: false, item: row),
         );
       case AccountStore.debts:
-        // Not tappable. Editing a debt belongs to the Debts screen, which owns
-        // interest, due dates and payment history; opening the account form on
-        // one would offer fields that do not apply and drop the ones that do.
+        // Not tappable. Editing a debt belongs to the Utang tab's "I owe"
+        // segment, which owns interest, due dates and payment history; opening
+        // the account form on one would offer fields that do not apply and drop
+        // the ones that do.
         return _row(
           icon: '💳',
           name: row['name']?.toString() ?? 'Debt',
@@ -480,6 +621,8 @@ class AccountsScreen extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> a, {
     String? sub,
+    Key? rowKey,
+    bool highlight = false,
   }) {
     final target = amountOf(a['target']);
     final balance = amountOf(a['balance']);
@@ -528,6 +671,8 @@ class AccountsScreen extends StatelessWidget {
       amount: balance,
       progress: progress,
       onTap: () => _openForm(context, isAccount: true, item: a),
+      rowKey: rowKey,
+      highlight: highlight,
     );
   }
 
@@ -595,6 +740,14 @@ class AccountsScreen extends StatelessWidget {
     double? progress,
     Color? amountColor,
     VoidCallback? onTap,
+
+    /// Rides on the row Search asked to reveal, so Scrollable.ensureVisible can
+    /// find its element. Null on every other row.
+    Key? rowKey,
+
+    /// Draws a brief accent tint and border, the flash that says "this is the
+    /// one you searched for". Fades on its own after a couple of seconds.
+    bool highlight = false,
   }) {
     final body = Padding(
       padding: const EdgeInsets.all(14),
@@ -667,10 +820,20 @@ class AccountsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (onTap == null) return body;
-    return PressableScale(
-      child: InkWell(onTap: onTap, child: body),
-    );
+    Widget result = onTap == null
+        ? body
+        : PressableScale(child: InkWell(onTap: onTap, child: body));
+    if (highlight) {
+      result = DecoratedBox(
+        decoration: BoxDecoration(
+          color: Barako.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Barako.primary),
+        ),
+        child: result,
+      );
+    }
+    return rowKey == null ? result : KeyedSubtree(key: rowKey, child: result);
   }
 
   void _openTransfer(BuildContext context) {

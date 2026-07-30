@@ -24,6 +24,7 @@ import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'afford_card.dart';
+import 'log_sheet.dart' show showLogSheet;
 import 'overview.dart' show formatMoney, formatMoneyAbout, prettyDay;
 import 'windfall_card.dart';
 import 'shell.dart';
@@ -211,7 +212,16 @@ class InsightsScreen extends StatelessWidget {
                           backgroundColor: Barako.primary,
                           foregroundColor: Barako.onPrimary,
                         ),
-                        onPressed: () => onSwitchTab?.call(Destination.home),
+                        // Opens the Log sheet right here, so the button does
+                        // the thing it names. It used to switch to the Home
+                        // tab and stop, leaving the person to hunt for the Log
+                        // button themselves: a CTA that said "Start logging"
+                        // and did not. When writes are shut (an unreadable
+                        // load), there is nothing to log into, so it falls
+                        // back to Home where the error banner explains why.
+                        onPressed: () => store.canWrite
+                            ? showLogSheet(context, store)
+                            : onSwitchTab?.call(Destination.home),
                         child: const Text('Start logging'),
                       ),
                     ],

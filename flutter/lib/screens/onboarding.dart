@@ -116,15 +116,67 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  /// The RN budget parse exactly: commas and spaces stripped, a typed 0
-  /// honored as a real answer, junk and empty falling back to 20000, capped
-  /// at one hundred million.
-  num _parsedLimit() {
-    final raw = budgetController.text.replaceAll(RegExp(r'[, ]'), '').trim();
-    if (raw.isEmpty) return 20000;
+  /// The most a monthly budget can be. A finite ceiling so a fat-fingered
+  /// string of digits cannot overflow the money math downstream; the same
+  /// hundred million the RN parse used.
+  static const num _maxBudget = 100000000;
+
+  /// Reads the budget field into the four cases onboarding owes the user, and
+  /// NEVER fabricates a number they did not type:
+  ///
+  ///   blank   -> no budget for now ("set later"). It used to fall back to
+  ///              20000, so clearing the field and tapping through wrote a
+  ///              budget the person never chose.
+  ///   invalid -> an error to fix (junk or a negative). It used to also become
+  ///              20000, silently, so a typo turned into a made-up limit.
+  ///   zero    -> an explicit no-budget choice, honored as itself.
+  ///   maximum -> capped, and the cap is disclosed rather than applied in
+  ///              silence.
+  ///
+  /// Both "set later" and an explicit zero resolve to the same stored 0 (the
+  /// value the whole app already reads as "no limit", so no schema changes);
+  /// the difference the user sees is the sentence under the field, not the
+  /// stored shape.
+  ({num? value, String? error, String? note}) _classifyBudget() {
+    // Strip grouping commas and ALL whitespace, not just spaces: a value
+    // pasted with a trailing newline or tab ("15000\n") is still a valid
+    // number the person meant, and the old [, ] strip left the newline in and
+    // bounced it as invalid.
+    final raw = budgetController.text.replaceAll(RegExp(r'[,\s]'), '').trim();
+    if (raw.isEmpty) {
+      return (
+        value: 0,
+        error: null,
+        note: 'Left blank, so no budget for now. You can set one anytime in '
+            'Menu.',
+      );
+    }
     final n = num.tryParse(raw);
-    if (n == null || !n.isFinite || n < 0) return 20000;
-    return n > 100000000 ? 100000000 : n;
+    if (n == null || !n.isFinite || n < 0) {
+      return (
+        value: null,
+        error: 'Enter a number like 15000, or leave it blank to set a budget '
+            'later.',
+        note: null,
+      );
+    }
+    if (n == 0) {
+      return (
+        value: 0,
+        error: null,
+        note: 'No budget. Salapify still tracks everything, just without a '
+            'limit. Add one anytime in Menu.',
+      );
+    }
+    if (n > _maxBudget) {
+      return (
+        value: _maxBudget,
+        error: null,
+        note: 'That is above the $symbol${_plain(_maxBudget)} maximum, so '
+            'Salapify will cap it there.',
+      );
+    }
+    return (value: n, error: null, note: null);
   }
 
   /// Whether this run of the flow includes the nudge step, and therefore
@@ -164,17 +216,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await widget.store.completeOnboarding(
         currencyCode: code,
         currencySymbol: symbol,
-        monthlyLimit: _parsedLimit(),
+        // Non-null by the time we reach here: the Next button on the basics
+        // step refuses to advance while the field is invalid. The ?? 0 is a
+        // belt-and-braces "no budget" for any path that skipped that gate.
+        monthlyLimit: _classifyBudget().value ?? 0,
         withSampleData: withSample,
         nightlyNudge: nightlyNudge,
       );
       // No navigation: the gate in main.dart flips to the shell on the
       // store notify, and the shell acts on firstLogPrompt.
-    } catch (e) {
+    } catch (_) {
+      // A human sentence, not the raw exception: it says what stayed safe
+      // (nothing was written) and what to do next (try the step again), which
+      // is all the person can act on. The technical detail is not theirs to
+      // read on a first-run screen.
       if (mounted) {
         setState(() => saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save, nothing was changed. $e')),
+          const SnackBar(
+            content: Text(
+              'Could not finish setting up, and nothing was saved. Please try '
+              'that last step again.',
+            ),
+          ),
         );
       }
       return;
@@ -331,6 +395,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       TextField(
         controller: budgetController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        // Recompute the note/error line live as the field changes, so a blank,
+        // an over-max value, or a typo is answered as it happens rather than
+        // only after the Next button bounces.
+        onChanged: (_) => setState(() {}),
         style: TextStyle(
           color: Barako.text,
           fontSize: 20,
@@ -354,15 +422,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
       ),
       const SizedBox(height: 4),
-      Text(
-        'A starting line, not a cage. Change it anytime in Menu.',
-        style: TextStyle(color: Barako.muted, fontSize: 12),
+      // One line under the field, whichever of the four cases is live: a red
+      // error to fix, a muted note for blank / zero / capped, or the plain
+      // reassurance for an ordinary number.
+      Builder(
+        builder: (_) {
+          final b = _classifyBudget();
+          if (b.error != null) {
+            return Text(
+              b.error!,
+              style: TextStyle(color: Barako.warningStrong, fontSize: 12),
+            );
+          }
+          return Text(
+            b.note ?? 'A starting line, not a cage. Change it anytime in Menu.',
+            style: TextStyle(color: Barako.muted, fontSize: 12),
+          );
+        },
       ),
       const SizedBox(height: Gap.xl),
-      _primary(
-        'Next',
-        () => setState(() => step = _nudgeStep ? _Step.nudge : _Step.start),
-      ),
+      _primary('Next', () {
+        // The one gate: an invalid budget cannot walk past this step. The error
+        // is already on screen from the live line above, so a blocked tap just
+        // holds the person here rather than advancing with a bad value.
+        if (_classifyBudget().error != null) {
+          setState(() {});
+          return;
+        }
+        setState(() => step = _nudgeStep ? _Step.nudge : _Step.start);
+      }),
     ],
   );
 

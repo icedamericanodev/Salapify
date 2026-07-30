@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.96 \u00b7 Goals says by Dec 2026, and Search stops cutting off its hint.';
+    'f2.97 \u00b7 Home, Search and Pan land on the right Utang tab, and blank onboarding budget means set later.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
