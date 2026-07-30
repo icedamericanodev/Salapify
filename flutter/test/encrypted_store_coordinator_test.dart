@@ -55,15 +55,48 @@ const _a = '{"schemaVersion":12,"transactions":[{"id":"t1"}]}';
 const _b = '{"schemaVersion":12,"transactions":[{"id":"t1"},{"id":"t2"}]}';
 
 void main() {
-  test('steady state reads the encrypted store and never touches the fallback', () async {
+  test('steady state reads the encrypted store (not the fallback) and retires the redundant plaintext', () async {
     final enc = MemRepo()..ledger = _a;
     final fb = MemRepo()..ledger = 'stale plaintext';
     final repo = EncryptedStoreCoordinator(encrypted: enc, fallback: fb);
 
-    expect(await repo.readLedger(), _a);
+    expect(await repo.readLedger(), _a, reason: 'the answer comes from encrypted');
     expect(repo.lastSource, StorageEngine.encrypted);
     expect(repo.health.encrypted, isTrue);
-    expect(fb.ledger, 'stale plaintext', reason: 'the fallback was not consulted');
+    // A steady-state encrypted read (a relaunch, not the migration run) is the
+    // confirm-then-delete signal: the proven-redundant plaintext is retired.
+    expect(fb.ledger, isNull, reason: 'the redundant plaintext was retired');
+    expect(repo.plaintextRetired, isTrue);
+  });
+
+  test('the migration run keeps the plaintext fallback, retiring it only on a later relaunch', () async {
+    final enc = MemRepo(); // empty: first run
+    final fb = MemRepo()..ledger = _a;
+    final repo = EncryptedStoreCoordinator(encrypted: enc, fallback: fb);
+
+    // Run 1: migrate. The fallback is kept (encryption not yet proven to reopen).
+    expect(await repo.readLedger(), _a);
+    expect(repo.migratedThisRun, isTrue);
+    expect(repo.plaintextRetired, isFalse);
+    expect(fb.ledger, _a, reason: 'safety copy kept until a confirmed relaunch');
+
+    // Run 2 ("relaunch"): a fresh coordinator over the now-populated encrypted
+    // store reads steady-state and retires the fallback.
+    final run2 = EncryptedStoreCoordinator(encrypted: enc, fallback: fb);
+    expect(await run2.readLedger(), _a);
+    expect(run2.migratedThisRun, isFalse);
+    expect(run2.plaintextRetired, isTrue);
+    expect(fb.ledger, isNull, reason: 'retired after encryption survived a restart');
+  });
+
+  test('an unopenable encrypted store never retires the plaintext fallback', () async {
+    final enc = MemRepo()..failReads = true;
+    final fb = MemRepo()..ledger = _a;
+    final repo = EncryptedStoreCoordinator(encrypted: enc, fallback: fb);
+
+    await repo.readLedger();
+    expect(repo.plaintextRetired, isFalse);
+    expect(fb.ledger, _a, reason: 'the fallback is exactly what we might still need');
   });
 
   test('first run migrates the plaintext into the encrypted store, validated', () async {

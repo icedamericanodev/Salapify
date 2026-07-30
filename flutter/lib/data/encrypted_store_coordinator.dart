@@ -84,6 +84,31 @@ class EncryptedStoreCoordinator implements LedgerRepository {
   bool encryptedAvailable = true;
   bool migratedThisRun = false;
 
+  /// True once the plaintext fallback has been retired (deleted or already gone),
+  /// which only happens after a steady-state encrypted read on a relaunch.
+  bool plaintextRetired = false;
+  bool _retireAttempted = false;
+
+  /// Delete the plaintext fallback once encryption is confirmed to reopen on its
+  /// own. Best-effort: a failure leaves the fallback in place and the next
+  /// steady-state read retries, so cleanup can never race ahead of a working
+  /// encrypted store. Runs at most once per session.
+  Future<void> _retirePlaintextFallback() async {
+    if (_retireAttempted) return;
+    _retireAttempted = true;
+    try {
+      final f = await fallback.readLedger();
+      if (f == null || f.isEmpty) {
+        plaintextRetired = true; // already gone
+        return;
+      }
+      await fallback.clearLedger();
+      plaintextRetired = true;
+    } catch (_) {
+      plaintextRetired = false;
+    }
+  }
+
   StorageHealth get health => StorageHealth(
         encrypted: lastSource == StorageEngine.encrypted,
         migratedThisRun: migratedThisRun,
@@ -120,6 +145,15 @@ class EncryptedStoreCoordinator implements LedgerRepository {
 
     if (_looksLikeLedger(enc)) {
       lastSource = StorageEngine.encrypted;
+      // Confirm-then-delete: a steady-state encrypted read (this is NOT the
+      // migration branch, so it never runs on the migration launch) proves the
+      // encrypted store opened on its own on a later launch. That is the founder's
+      // agreed signal that the plaintext fallback is a proven-redundant safety
+      // copy and can be retired. Best-effort and gated: the fallback is never
+      // removed until encryption has survived a full app restart on the device,
+      // and never when the encrypted store is unavailable (that path returns
+      // above without reaching here).
+      await _retirePlaintextFallback();
       return enc;
     }
 
