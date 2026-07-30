@@ -30,6 +30,7 @@
 
 import 'dart:convert';
 
+import 'file_ledger_repository.dart';
 import 'ledger_repository.dart';
 
 /// Where the last [DurableLedgerRepository.readLedger] got its answer.
@@ -56,6 +57,25 @@ class DurableLedgerRepository implements LedgerRepository {
   final LedgerRepository legacy;
 
   DurableLedgerRepository({required this.primary, required this.legacy});
+
+  /// The engine the app runs on: the atomic file store in front of the old
+  /// SharedPreferences store, so a plain revert of this PR loses nothing.
+  ///
+  /// If the file store cannot even be created (path_provider unavailable, no
+  /// writable documents directory), fall back to SharedPreferences ALONE, the
+  /// exact behaviour before this PR. Nobody is worse off than the old build,
+  /// and startup never fails on persistence setup.
+  static Future<LedgerRepository> buildDefault() async {
+    try {
+      final file = await FileLedgerRepository.inAppDocuments();
+      return DurableLedgerRepository(
+        primary: file,
+        legacy: const SharedPrefsLedgerRepository(),
+      );
+    } catch (_) {
+      return const SharedPrefsLedgerRepository();
+    }
+  }
 
   /// Observable state for Data Health. Not part of the interface.
   LedgerSource lastSource = LedgerSource.empty;

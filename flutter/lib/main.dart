@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'data/durable_ledger_repository.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
 import 'services/home_tile.dart';
@@ -28,14 +29,19 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.99 \u00b7 Ledger persistence goes through a repository boundary, no behaviour change, groundwork for the durable store.';
+    'f3.00 \u00b7 Ledger now lives in a crash-safe file that migrates your data, with the old store kept as a safety net.';
 
-void main() {
+void main() async {
   // Before anything else, so an error thrown during startup is still caught.
   // A crash reporter installed after the crash reports nothing.
   Diagnostics.install();
   Diagnostics.load();
-  runApp(SalapifyApp(store: SalapifyStore()));
+  // path_provider needs the bindings up before it runs; this await also means
+  // the store is built on the durable file engine (with a SharedPreferences
+  // fallback baked into buildDefault) before the first frame reads it.
+  WidgetsFlutterBinding.ensureInitialized();
+  final repository = await DurableLedgerRepository.buildDefault();
+  runApp(SalapifyApp(store: SalapifyStore(repository: repository)));
 }
 
 class SalapifyApp extends StatefulWidget {
