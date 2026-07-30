@@ -24,7 +24,7 @@ import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
 import 'fx_service.dart' show FxService;
-import '../money/sample_data.dart' show isSampleId, sampleData;
+import '../money/sample_data.dart' show hasSampleData, isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
 import '../money/categories.dart' as categories;
@@ -1589,6 +1589,32 @@ class SalapifyStore extends ChangeNotifier {
   /// fixture, and a surviving real transaction the user logged INTO a
   /// sample account keeps its money but loses the accountId link, since the
   /// account it names is about to stop existing.
+  /// Seed the sample set into a store that is already in use.
+  ///
+  /// The same merge `completeOnboarding` does, lifted out so it can be reached
+  /// after onboarding too. It existed only inside that one flow, so anybody
+  /// already using the app could never load it: the founder asked for data to
+  /// poke at on their phone and the app had a generator they could not get to.
+  ///
+  /// This cannot lose real data, and that is a property of the seed rather than
+  /// a promise made here. It APPENDS; nothing existing is read, replaced or
+  /// removed. Every seeded row carries the `sample_` id prefix, so
+  /// [removeSampleData] takes exactly this set back out again and a real row can
+  /// never be caught by it.
+  ///
+  /// Idempotent. Tapping twice would otherwise create a second Jollibee and a
+  /// second sample card, and [removeSampleData] would clear both while the
+  /// figures in between were quietly doubled.
+  Future<void> addSampleData() => _mutate((d) {
+    if (hasSampleData(d)) return d;
+    final seed = sampleData(DateTime.now());
+    return {
+      ...d,
+      for (final key in seed.keys)
+        key: [...(d[key] as List? ?? const []), ...seed[key] as List],
+    };
+  });
+
   Future<void> removeSampleData() => _mutate((d) {
     var next = d;
     for (final key in [
