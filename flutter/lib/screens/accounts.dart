@@ -130,14 +130,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
       );
       return;
     }
-    // Best effort, and honestly so: the list is a lazy ListView, so a row far
-    // below the fold has no element yet and currentContext is null. That is the
-    // common case (a handful of accounts, the match on screen) handled well,
-    // and the uncommon one (dozens of accounts, the match near the bottom) left
-    // un-scrolled rather than wrong. The highlight still applies to the row's
-    // own decoration, so scrolling to it by hand within the window shows the
-    // flash; making the scroll reliable on very long lists needs a positioned
-    // list and is tracked as a follow-up, not smuggled in at merge time.
+    // This reaches a match far down a long list, and the comment that used to
+    // sit here saying it did NOT was wrong. It claimed the lazy ListView leaves
+    // a far-down row unbuilt, so currentContext is null and the scroll no-ops.
+    // But every account renders inside ONE eager Column (the "Cash and
+    // e-wallets" section, anchored at the top of the list), and a Column builds
+    // all its children, so the row's element exists even when painted well below
+    // the fold. ensureVisible finds it and scrolls it in. The old note was a
+    // code-reading guess about a lazy per-row list that this tree is not.
+    // accounts_focus_scroll_test.dart proves the 40th of 40 accounts is scrolled
+    // onto the screen; if the rows are ever moved to a lazy per-row builder that
+    // guard reddens, and only then would a scroll loop be needed.
     final ctx = _focusKey.currentContext;
     if (ctx != null) {
       Scrollable.ensureVisible(
