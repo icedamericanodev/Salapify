@@ -34,6 +34,69 @@ hand before any of this was written, and whose proposed guards were built in the
 same sitting rather than carried forward. Every lesson below is CLOSED except
 where it says otherwise.
 
+### Addendum, the second half of the same day: f2.92 to f2.96
+
+Five more deliveries after the retrospective above, patches 16 to 20, all
+confirmed on the phone. Written directly rather than by a second agent pass,
+which is worth saying because the entry above was facilitated and this one was
+not; treat its self-assessment with the appropriate suspicion.
+
+The reason it exists is that Lesson 3 above, guards that are lists wearing the
+title of rules, produced TWO MORE INSTANCES in the hours after being written
+down. Naming a pattern does not stop it.
+
+**Instance five, in the guard built to honour the founder's own request.** f2.94
+gated the sample data behind a build flag, and the scan checking the gate was
+present asked whether the word `kTestingAids` appeared anywhere in the file. It
+PASSED with the gate deleted, because the word was still sitting in a comment two
+lines above explaining the gate. A check a comment can satisfy. Caught only
+because the prove-it-can-fail rule was applied; nothing in review would have
+found it. Fixed by stripping comment lines and requiring the code form.
+
+**Instance six, and the most expensive.** The readability sweep covered ten typed
+screen names against fifty files in `lib/screens`, and this document plus
+CLAUDE.md both described it as covering every screen. When the set was finally
+derived from disk in f2.96, the first run found Goals printing
+`by 2026-12-31`, the THIRD screen to carry the machine-date defect. Insights had
+it in f2.84. The utang list had it in f2.90. Goals kept it through both rounds of
+fixing that exact class, for one reason: it was not on the list.
+
+So the guard for Lesson 3 is no longer a candidate, it is built, and the model is
+the one that already existed here: enumerate what is on disk, then refuse to pass
+until every item is swept or exempted with a stated reason. Applied to the screen
+set in f2.96. NOT yet applied to the second-face map or the render harness's shot
+list, which stay open.
+
+**What else the five delivered.** f2.92 fixed two journeys from f2.91 that passed
+with the feature deleted, and defused a fixture pinned to a month that would have
+expired two days later. f2.93 made the sample data reachable from Menu, which the
+founder had asked for and could not get to. f2.94 gated it so launch does not
+depend on memory. f2.95 parked the one deferred launch decision in the file
+somebody opens to flip that flag, rather than in a document whose existence has
+to be remembered. f2.96 is above.
+
+**The process failure, tenth outing.** The python assert-before-write heredoc
+silently discarded an edit again, ONE TURN after this document recorded it as Open
+8 and after the morning entry established that it is guardable. The write never
+happened because a later assertion in the same script threw; analyze then reported
+errors from an edit that did not exist. This is no longer a lesson, it is a
+measurement: the rule has failed ten times and the mechanism to prevent it has
+been available the whole time. Nothing here should be read as expecting the
+eleventh to go differently.
+
+**Open lessons, updated.**
+
+- **Open 4, nothing compares the phone to main: STILL OPEN.** Unchanged.
+- **Open 7, guard sets are typed lists: HALF CLOSED.** Screens are derived now.
+  The second-face map (one entry) and the render harness's shot list are not.
+- **Open 8, the edit-pattern hook: OPEN, and now the best-evidenced item in this
+  file.** Asked of the founder twice. It changes their configuration, so it stays
+  theirs to approve.
+- **Open 9, sample data unreachable after onboarding: CLOSED** by f2.93.
+- **Open 10 (new). Whether the onboarding sample data survives launch.** Deferred
+  by the founder on purpose, parked in docs/launch-checklist.md, surfaced from
+  build_flags.dart at the moment the flag is set. Not a defect, a decision.
+
 ### Lesson 1. Two of the six journeys passed when the feature did nothing
 
 **Evidence.** `journeys_test.dart`, the assertion sitting under a comment
