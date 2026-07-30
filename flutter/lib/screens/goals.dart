@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 
 import '../money/analytics.dart' as analytics;
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/format.dart' show prettyMonthYear;
 import '../money/goals_calc.dart';
 import '../data/store.dart';
 import '../theme.dart';
@@ -218,7 +219,13 @@ class GoalsScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     '${formatMoneyText(saved)} of ${formatMoneyText(target)}'
-                    '${targetDate.isNotEmpty ? ' · by $targetDate' : ''}',
+                    // prettyMonthYear, not the raw stored value. This printed
+                    // "by 2026-12-31" for the life of the screen, the same
+                    // machine-date-in-a-sentence defect fixed on Insights and
+                    // then on the utang list. It survived both because Goals was
+                    // not in the swept set, which is why the set is now derived
+                    // from lib/screens rather than typed by hand.
+                    '${targetDate.isNotEmpty ? ' · by ${prettyMonthYear(targetDate)}' : ''}',
                     style: TextStyle(
                       color: Barako.muted,
                       fontSize: 13,

@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.95 \u00b7 The one launch decision left is parked where it will be read.';
+    'f2.96 \u00b7 Goals says by Dec 2026, and Search stops cutting off its hint.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

@@ -62,6 +62,25 @@ String prettyDay(String iso) {
   return '${monthAbbrevs[m - 1]} $day';
 }
 
+/// A stored date as a month and year: "Dec 2026".
+///
+/// For a date far enough ahead that the day is noise. A savings goal is aimed at
+/// a month, not an afternoon, and the Goals screen printed the raw
+/// "by 2026-12-31" for its whole life.
+///
+/// Third screen to carry that defect, after Insights and the utang list, and
+/// found the same way each time: by a machine reading what was actually drawn,
+/// once the screen was finally in the swept set. The day is deliberately dropped
+/// rather than shown, because "by Dec 31" invites somebody to read a deadline
+/// into what is an estimate.
+String prettyMonthYear(String iso) {
+  if (iso.length < 7) return iso;
+  final m = int.tryParse(iso.substring(5, 7));
+  final y = iso.substring(0, 4);
+  if (m == null || m < 1 || m > 12) return iso;
+  return '${monthAbbrevs[m - 1]} $y';
+}
+
 /// A figure the sentence around it already hedges: whole pesos, no centavos.
 ///
 /// "About ₱26,525.25 a day" is a sentence arguing with itself. The word
