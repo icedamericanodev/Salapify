@@ -29,7 +29,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.02 \u00b7 Your data now lives in an encrypted database, old copy kept as a safety net until you confirm this build.';
+    'f3.03 \u00b7 Encrypted store confirmed on reopen, so the old plaintext safety copy is now retired. Encryption complete.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
