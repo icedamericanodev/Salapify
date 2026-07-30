@@ -12,6 +12,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__github__create_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/watch-created-pr.sh\"",
+            "timeout": 10,
+            "statusMessage": "Arranging to watch the new pull request"
+          }
+        ]
+      }
     ]
   }
 }
