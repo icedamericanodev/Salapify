@@ -138,7 +138,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// the difference the user sees is the sentence under the field, not the
   /// stored shape.
   ({num? value, String? error, String? note}) _classifyBudget() {
-    final raw = budgetController.text.replaceAll(RegExp(r'[, ]'), '').trim();
+    // Strip grouping commas and ALL whitespace, not just spaces: a value
+    // pasted with a trailing newline or tab ("15000\n") is still a valid
+    // number the person meant, and the old [, ] strip left the newline in and
+    // bounced it as invalid.
+    final raw = budgetController.text.replaceAll(RegExp(r'[,\s]'), '').trim();
     if (raw.isEmpty) {
       return (
         value: 0,
@@ -169,7 +173,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         value: _maxBudget,
         error: null,
         note: 'That is above the $symbol${_plain(_maxBudget)} maximum, so '
-            'Salapify will use $symbol${_plain(_maxBudget)}.',
+            'Salapify will cap it there.',
       );
     }
     return (value: n, error: null, note: null);

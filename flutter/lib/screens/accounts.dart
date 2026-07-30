@@ -130,6 +130,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
       );
       return;
     }
+    // Best effort, and honestly so: the list is a lazy ListView, so a row far
+    // below the fold has no element yet and currentContext is null. That is the
+    // common case (a handful of accounts, the match on screen) handled well,
+    // and the uncommon one (dozens of accounts, the match near the bottom) left
+    // un-scrolled rather than wrong. The highlight still applies to the row's
+    // own decoration, so scrolling to it by hand within the window shows the
+    // flash; making the scroll reliable on very long lists needs a positioned
+    // list and is tracked as a follow-up, not smuggled in at merge time.
     final ctx = _focusKey.currentContext;
     if (ctx != null) {
       Scrollable.ensureVisible(
@@ -526,9 +534,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final open = widget.onOpenPayables;
     const label = 'Manage debts under the "I owe" tab.';
     if (open == null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(label, style: TextStyle(color: Barako.faint, fontSize: 12)),
+      // Left-aligned, the same as the linked variant below, so the note does
+      // not jump from centered to left depending on whether the host wired the
+      // jump. The section Card's Column centers its children by default, which
+      // is why this needs saying out loud.
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(color: Barako.faint, fontSize: 12),
+          ),
+        ),
       );
     }
     return Align(
