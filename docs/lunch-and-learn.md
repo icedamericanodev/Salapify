@@ -10,6 +10,180 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-30, session 20: every green check passed, and the design could still lose your money
+
+**What we believed / What was true.** We believed f3.01 shipped as patch 24, over
+the air, on the existing base APK 0.6.3+12. The founder confirmed the same stamp on
+the phone: f3.01, patch 24, mode `patch`, base 0.6.3+12. Belief and truth match.
+This is a CLEAN delivery, mechanically. No manual install is owed, nothing was
+stranded, and the shipped code is safe. Said plainly so it is not buried: the app on
+the phone is correct. This entry is about what the FIRST version of this batch nearly
+did, and why the checks we normally trust could not see it.
+
+**Timeline (with evidence).**
+- Merge commit `f1e7cad`, "PR B1: durable crash-safe file store as a validated shadow
+  (f3.01)", has two parents (`git show --stat f1e7cad` shows `Merge: 1ea0ae4
+  8eb9330`), so it merged and was not squashed. Seven files, 704 insertions:
+  `flutter/lib/data/file_ledger_repository.dart`,
+  `flutter/lib/data/durable_ledger_repository.dart`, `flutter/lib/main.dart`, three
+  test files, and the qa-log row.
+- Delivery confirmed by reading, not assuming:
+  `f3.01 | 24 | patch | 0.6.3+12`, the last line of `docs/delivery-log.md` on
+  `origin/main`, run id 30556207033. The patch number in the file equals the number
+  on the phone, which is the only real proof and the one the founder supplied.
+- The FIRST design of B1 made the new file store AUTHORITATIVE and dual-wrote to
+  SharedPreferences as a "revert mirror." It passed `flutter analyze`, the full suite
+  of 1301 tests, and a deliberate-break proof, and the founder had approved the plan.
+- A pre-merge GATE was run as an actual gate, per the founder's standing instruction:
+  the qa-tester and principal-engineer agents reviewed the design INDEPENDENTLY. Both
+  found the same root flaw and two concrete data-loss paths. Finding 1, silent loss:
+  a file that was valid but OLDER than SharedPreferences (after a code rollback, or a
+  session where the file store failed to open and only SharedPreferences advanced)
+  was trusted over the newer copy and then overwrote it. Finding 2, resurrection: a
+  "start fresh" interrupted partway left the file cleared and SharedPreferences
+  intact, which the next launch misread as a first run and used to bring the
+  just-erased ledger BACK.
+- Both findings were REPRODUCED in a throwaway test before any change was made, so
+  neither was a code-reading guess. This is prove-it-before-you-fix-it applied to a
+  REVIEW finding, not just to our own tests.
+- The response was a REDESIGN, not a patch. SharedPreferences stays the single source
+  of truth and every read comes from it, exactly as before; the file store became a
+  SHADOW, written alongside and never read back as truth in B1. Confirmed in
+  `durable_ledger_repository.dart`: `source` is authoritative, `shadow` is "never read
+  back as the source of truth in B1." Both findings are kept as regression tests
+  (`durable_ledger_repository_test.dart` lines 124 and 135, "FINDING 1 regression" and
+  "FINDING 2 regression"), proven to fail against the old shadow-wins behaviour, then
+  restored.
+
+**Root cause.** The two data-loss paths share one cause: two independently-writable
+stores with no reliable which-is-newer signal. But the retrospective's real subject is
+one level up. All four checks this project trusts (analyze, 1301 tests, a break-first
+proof, and founder approval) test the code AS WRITTEN against futures the author
+imagined. A data-loss DESIGN flaw lives in the futures the author did not imagine: a
+rollback to an older file, a start-fresh interrupted halfway. A test written by the
+same mind that wrote the flaw will not contain the adversarial future that exposes it,
+because that mind already believed the future could not happen. That is the structural
+reason the green checks were blind, and it is the same failure mode as "a test written
+from the same wrong mental model as the code passes for the wrong reason," which this
+repo has hit before. Green here did not mean safe. It meant consistent with one
+person's imagination.
+
+### Lesson 1. A separate adversarial mind, run as a real gate, caught what no automated check could. WIN, and the guard has two strong halves and one weak one.
+
+**Evidence.** Two independent review agents each found the same root flaw and the same
+two paths, on a design that had already gone green four ways. The catch worked for one
+reason: the gate was actually RUN as a gate this time, not skipped. The qa-log row for
+f3.01 records it: "THE GATE DID ITS JOB, and this row is mostly about that."
+
+**Guard, honestly graded in three parts.**
+- The bug CLASS was removed by design, not patched. For an over-the-air step we chose
+  not to need a which-is-newer signal at all: keep the one existing source of truth and
+  treat the file as a copy. A stale or half-cleared shadow now cannot override or
+  resurrect anything, unconditionally. This is the strongest kind of fix, a structural
+  one, because the whole family of bugs is gone rather than blocked.
+- The two specific paths became regression tests, proven to fail against the old
+  behaviour. Strongest strength, an automated check that fails loudly, and it turns a
+  one-time human catch into a permanent machine guard for exactly these two paths.
+- The META guard, "run an adversarial data-loss review before merging any change to how
+  the app persists data or which store it trusts," is a RULE, medium strength, and it
+  is honest to say it cannot easily be mechanized. No test can generate the unimagined
+  adversarial future; that is precisely what a fresh mind is for. The `qa_record_test`
+  guard forces a qa-log ROW to exist, but a row is not proof a real adversarial review
+  happened, only that someone wrote a row. So the machine can tell you the gate was
+  claimed, never that it was real. The strongest available written form: any PR that
+  adds a second writable store, or changes which store answers reads, must pass an
+  independent data-loss review before merge, and the review must name at least one
+  rollback future and one interrupted-write future by hand. That is the durable guard
+  beyond "remember to run the agents," and it is still a rule, not a machine, said
+  plainly rather than dressed up as one.
+
+### Lesson 2. Prove-it-before-you-fix-it was applied to someone else's finding, and that is why the redesign is trustworthy. NOTE, discipline win.
+
+**Evidence.** Both review findings were reproduced in a scratch test before a line
+changed. The value: a finding you have watched fail is a fact; a finding you have only
+read is a belief, and this project has shipped code and tests built from beliefs that
+turned out wrong. Reproducing first is what let the redesign claim it removed the
+paths rather than hoped it did, and the same two tests now guard them.
+
+**Guard.** None new needed. The existing "Prove a new test can fail before trusting
+it" rule already covers this; this entry only records that it was extended, correctly,
+from our own tests to a reviewer's claim, and that the extension is worth keeping.
+
+### Lesson 3. Two limits were written down instead of hidden. NOTE, and this is the healthy behaviour.
+
+**Evidence.** `file_ledger_repository.dart` lines 12 to 14 state the honest limit:
+`flush:true` fsyncs the temp file's BYTES, but dart:io has no API to fsync the
+DIRECTORY entry the rename creates, so a hard power loss in the instant after
+`rename()` returns can still lose the update. And the qa-log row states the
+verification limit: "self review on a runner, not a hand test on the phone." Neither
+was smoothed over.
+
+**Guard.** None warranted; recording the limits IS the guard, because the expensive
+version of both is the unstated one. The fsync gap is bounded anyway: the file is a
+shadow that is never read as truth in B1, so a lost directory update costs a copy, not
+the ledger. Worth revisiting when B2 promotes the file to authority, where the same
+gap would cost real data.
+
+**Open lessons carried forward.**
+- **Open 4, nothing compares the phone to main: STILL OPEN.** The comparison remains
+  the one thing only the founder can do, and they did it here.
+- **Open 7, guard sets are typed lists: STILL HALF CLOSED.** Unchanged this session.
+- **Open 8, the edit-pattern hook: CONFIRMED STILL PRESENT.** Checked this session:
+  `.claude/hooks/guard-destructive-edits.sh` still exists on disk. Existence is not
+  the same as firing; a future session should still trip it deliberately rather than
+  assume it bites.
+- **Open 10, whether onboarding sample data survives launch: STILL OPEN.**
+- **Open 11, the account focus-scroll cannot reach a row far below the fold: STILL
+  OPEN.** No change this session.
+- **Open 12 (new), ADR 0001 lives only on an un-merged branch.** The design document
+  this whole phase follows (ADR 0001) exists on the `claude/phase-2-durable-store`
+  branch (PR #259) and never reached `main` (`git show origin/main:docs/adr/...` is
+  absent, and there is no `docs/adr/` directory on main). Yet main now carries code
+  comments, a stamp, and qa-log rows that all cite "ADR 0001, PR B1" with authority.
+  A reader on main is pointed at a document they cannot open. This is the same shape
+  as the stale-CLAUDE.md trap: a confident reference to a real thing that is not where
+  it is said to be. The fix is cheap, land the ADR on main in its own small PR, and
+  until then this is a tracked documentation gap, not a defect in the app.
+
+**For the founder, over lunch.** f3.01 is clean. You confirmed patch 24 on your phone,
+the delivery log agrees, and there is no bug in what you are using. Everything below is
+about a bug we did NOT ship, and why almost catching it should scare us a little.
+
+The first version of this batch stored your ledger in a new crash-safe file and made
+that file the boss. It passed every check we normally trust: the code analyzer was
+clean, all 1301 tests were green, we deliberately broke the code to prove a test would
+catch it, and you had approved the plan. And it still had two ways to permanently lose
+your money. One, after certain rollbacks an OLDER copy would win and overwrite your
+newer data. Two, if a "start fresh" was interrupted halfway, the next launch could
+bring your just-erased data back from the dead. Both are exactly the kind of thing you
+would only find out about long after it hurt you.
+
+None of our automatic checks saw it, and here is the uncomfortable reason: a test can
+only check for a future someone thought of, and the person who wrote this code had not
+thought of these futures, which is why the code was wrong. What caught it was sending
+the design to two separate reviewers whose entire job was to imagine the futures the
+author did not. They both found the same two holes, independently, and only because we
+actually ran that review as a required gate this time instead of skipping it.
+
+We fixed it the strong way. Instead of trying to teach the two stores which one is
+newer (hard, and the hard part is where the bugs were), we kept your existing store as
+the one and only truth and turned the new file into a plain backup copy that is written
+but never trusted yet. The whole family of "which one is newer" bugs is simply gone for
+this step. The real reconciliation waits for the next phase, which uses a proper
+database built for it. The two specific holes are now permanent tests that go red if
+anyone ever reintroduces them.
+
+What now makes it hard to repeat: the two holes are guarded by tests forever, and the
+whole class of bug was designed out. What we could NOT turn into a machine is the thing
+that actually saved us, a fresh pair of eyes reviewing the design for disasters the
+author could not picture. We wrote that down as a firm rule (any change to how your
+data is stored gets an independent data-loss review first), but a rule is only as good
+as our willingness to run it. If we ever skip that review to save time on a
+data-storage change, the cost is the one we just dodged: a build that is green in every
+visible way and still quietly capable of losing everything you have tracked.
+
+---
+
 ## 2026-07-30, session 19: a clean patch, and the guards that caught the near-misses before the phone did
 
 **What we believed / What was true.** We believed f2.97 shipped as patch 21,
