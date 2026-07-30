@@ -17,6 +17,7 @@ import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/section.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/pan_mood.dart';
+import '../build_flags.dart' show kTestingAids;
 import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/nav_tile.dart';
 import '../widgets/pressable_scale.dart';
@@ -300,11 +301,17 @@ class MenuScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              // Above Start fresh on purpose: this is the reversible one, and a
-              // person hunting for "let me try this" should reach it before the
-              // card that erases everything.
-              _sampleDataCard(context),
+              // Testing scaffolding, and gated so it cannot reach the store by
+              // being forgotten. The founder asked for it and asked for it to be
+              // gone before launch, months apart; kTestingAids is how the second
+              // half happens without anybody remembering on the day.
+              if (kTestingAids) ...[
+                const SizedBox(height: 12),
+                // Above Start fresh on purpose: this is the reversible one, and
+                // a person hunting for "let me try this" should reach it before
+                // the card that erases everything.
+                _sampleDataCard(context),
+              ],
               const SizedBox(height: 12),
               _startFreshCard(context),
               const SizedBox(height: 16),
