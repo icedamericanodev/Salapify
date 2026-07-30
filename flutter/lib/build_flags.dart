@@ -41,4 +41,12 @@ const bool kPreviewBuild = bool.fromEnvironment(
 /// and that is a different question from "this is scaffolding". Anything behind
 /// this name is a thing the founder wants for testing and nobody else should
 /// ever see.
+///
+/// BEFORE YOU SET THE FLAG FOR A STORE BUILD, read
+/// docs/launch-checklist.md. There is one deferred decision waiting there,
+/// about whether the ONBOARDING offer to explore sample data stays, and this is
+/// where the person who has to answer it will already be standing. A decision
+/// cannot have a test written for it; it can only be parked somewhere it is
+/// certain to be read, and the file you open to flip this flag is the only place
+/// that qualifies.
 const bool kTestingAids = kPreviewBuild;

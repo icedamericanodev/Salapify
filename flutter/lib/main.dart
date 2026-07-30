@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.94 \u00b7 Sample data is now flagged as testing only, off at launch.';
+    'f2.95 \u00b7 The one launch decision left is parked where it will be read.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
