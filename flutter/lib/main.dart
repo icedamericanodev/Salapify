@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'data/durable_ledger_repository.dart';
+import 'data/storage_bootstrap.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
 import 'services/home_tile.dart';
@@ -29,7 +29,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.01 \u00b7 Your data stays in the same trusted store, now also copied to a crash-safe file alongside it, no switch yet.';
+    'f3.02 \u00b7 Your data now lives in an encrypted database, old copy kept as a safety net until you confirm this build.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
@@ -40,12 +40,12 @@ void main() async {
   // caught. A crash reporter installed after the crash reports nothing.
   Diagnostics.install();
   Diagnostics.load();
-  // Build the store on the durable engine: the old store as the source of
-  // truth with the crash-safe file shadowing it. buildDefault resolves only
-  // the documents directory (one fast channel call, no blob read), so this
-  // does not block the first frame; it falls back to SharedPreferences alone
-  // if the file store cannot be created.
-  final repository = await DurableLedgerRepository.buildDefault();
+  // Build the store on the encrypted engine: the SQLCipher store as the source
+  // of truth, with the old plaintext kept as a frozen read-only fallback. This
+  // opens the database and resolves the Keystore key, then migrates the
+  // plaintext in on first run; it falls back to the plaintext store if the
+  // encrypted store cannot be opened, so startup never fails on storage.
+  final repository = await buildLedgerRepository();
   runApp(SalapifyApp(store: SalapifyStore(repository: repository)));
 }
 

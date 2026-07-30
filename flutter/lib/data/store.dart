@@ -23,6 +23,7 @@ import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
+import 'encrypted_store_coordinator.dart' show EncryptedStoreCoordinator, StorageHealth;
 import 'fx_service.dart' show FxService;
 import 'ledger_repository.dart';
 // The ledger key constants and the persistence boundary now live in
@@ -243,6 +244,16 @@ class SalapifyStore extends ChangeNotifier {
   SalapifyStore({LedgerRepository? repository})
     : _repo = repository ?? const SharedPrefsLedgerRepository();
 
+  /// A read-only snapshot of where the ledger is stored, for the Data safety
+  /// readout so the founder can SEE on the phone that encryption engaged rather
+  /// than silently fell back to plaintext. Reads the encrypted coordinator's
+  /// state when that engine is active; anything else is honestly plaintext.
+  StorageHealth storageHealth() {
+    final r = _repo;
+    if (r is EncryptedStoreCoordinator) return r.health;
+    return const StorageHealth.plaintext();
+  }
+
   /// Called after every notify, so anything that MIRRORS the store can follow
   /// it without the store knowing what it is mirroring onto.
   ///
@@ -417,6 +428,12 @@ class SalapifyStore extends ChangeNotifier {
         firstRun = true;
       }
       loadError = null;
+      // If the encrypted store could not be opened and we are serving the frozen
+      // plaintext fallback, go read-only: the fallback may be behind the
+      // (unreadable) encrypted store, so writing to it would diverge them and
+      // lose the encrypted-era writes. Show the data, block new writes.
+      final r = _repo;
+      storageDegraded = r is EncryptedStoreCoordinator && !r.encryptedAvailable;
     } catch (e) {
       // Never save over data we failed to read; surface the problem instead.
       loadError = e.toString();
@@ -608,12 +625,22 @@ class SalapifyStore extends ChangeNotifier {
     exportedAt: DateTime.now().toUtc().toIso8601String(),
   );
 
-  /// True when writing is safe: the store finished loading and the read did
-  /// not fail. After a failed read, saving would overwrite data we could not
-  /// read, the one unforgivable data loss, so every write path checks this.
-  /// (Importing a backup stays allowed: that is the explicit recovery action,
-  /// a whole-blob replace the user chose.)
-  bool get canWrite => loaded && loadError == null;
+  /// True when the app is showing the frozen plaintext fallback because the
+  /// encrypted store could not be opened this run (a rare Keystore key-loss
+  /// case). In that state the encrypted store is authoritative but unreadable
+  /// and MAY hold newer data than the fallback, so writing to the fallback would
+  /// diverge the two stores and lose the encrypted-era writes. The app therefore
+  /// goes READ-ONLY: the user sees their last safe copy but cannot add to it
+  /// until the encrypted store opens again (usually just reopening the app).
+  bool storageDegraded = false;
+
+  /// True when writing is safe: the store finished loading, the read did not
+  /// fail, and we are not serving the degraded plaintext fallback. After a
+  /// failed read, saving would overwrite data we could not read, the one
+  /// unforgivable data loss, so every write path checks this. (Importing a
+  /// backup stays allowed: that is the explicit recovery action, a whole-blob
+  /// replace the user chose.)
+  bool get canWrite => loaded && loadError == null && !storageDegraded;
 
   /// Mutating writes run one at a time through this queue. Two in-flight
   /// writes each snapshot `data` for rollback at their own start; without the
