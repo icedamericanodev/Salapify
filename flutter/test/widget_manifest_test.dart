@@ -80,6 +80,25 @@ void main() {
     return manifest.substring(start, end);
   }
 
+  test('Android auto-backup is off, so the ledger cannot leave the phone', () {
+    // The single machine-checkable finding of the encryption arc (session 21).
+    // PR B2 encrypts the ledger at rest, but the app also keeps data in
+    // SharedPreferences and files that Android Auto Backup would upload to the
+    // user's Google Drive in plaintext unless this is off. allowBackup="false"
+    // is what keeps a money ledger on the device. A future manifest edit that
+    // drops it would silently re-enable that upload with every other check
+    // still green, so this fails loudly the moment it goes missing. It also
+    // protects a new-phone restore: the Keystore key is not backed up, so a
+    // restored encrypted database could not be opened anyway.
+    expect(
+      manifest,
+      contains('android:allowBackup="false"'),
+      reason:
+          'without this the plaintext ledger becomes eligible for Google Drive '
+          'auto-backup, which defeats encryption at rest',
+    );
+  });
+
   test('the RECEIVER is exported, and points at its provider info', () {
     // Not doctrine, a decision: OEM launchers have a history of only
     // honouring exported providers, and the cost of being wrong here is a
