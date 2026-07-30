@@ -1117,6 +1117,52 @@ void main() {
     );
   });
 
+  testWidgets('the sample data card in Menu, both states, dark', (
+    tester,
+  ) async {
+    // A new card, so it gets looked at before it ships. Both states in one
+    // frame is not possible, so this shoots the OFFER and then the loaded state
+    // after a real tap, which also proves the label and the copy swap over
+    // rather than only the behaviour behind them.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: MenuScreen(store: store, onSwitchTab: (_) {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('TRY IT WITH SAMPLE DATA'), 300);
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/menu-sample-offer-dark.png'),
+    );
+
+    await tester.tap(find.text('Load sample data'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('SAMPLE DATA IS LOADED'), 300);
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/menu-sample-loaded-dark.png'),
+    );
+  });
+
   testWidgets('Pan, all four moods, through the real widget', (tester) async {
     // Not the PNGs on disk: the actual PanMascot widget, so this proves the
     // asset wiring AND that the errorBuilder fallback is not silently

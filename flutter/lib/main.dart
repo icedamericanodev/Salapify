@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.92 \u00b7 Two of the new self-tests were fake. They are real now.';
+    'f2.93 \u00b7 Menu can load sample data now, and take it back out.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.

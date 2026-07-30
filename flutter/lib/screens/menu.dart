@@ -17,6 +17,7 @@ import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/section.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/pan_mood.dart';
+import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/nav_tile.dart';
 import '../widgets/pressable_scale.dart';
 import 'accounts.dart';
@@ -299,6 +300,11 @@ class MenuScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              // Above Start fresh on purpose: this is the reversible one, and a
+              // person hunting for "let me try this" should reach it before the
+              // card that erases everything.
+              _sampleDataCard(context),
               const SizedBox(height: 12),
               _startFreshCard(context),
               const SizedBox(height: 16),
@@ -1330,6 +1336,67 @@ class MenuScreen extends StatelessWidget {
           ),
         );
     }
+  }
+
+  /// Load or remove the sample set, from a phone already in use.
+  ///
+  /// The generator has always existed and was reachable from exactly one place,
+  /// the last step of onboarding, so anybody already using Salapify could never
+  /// see it. The founder asked for data to poke at while they were at work and
+  /// the app had it the whole time behind a door that had already closed.
+  ///
+  /// Deliberately NOT a warning-coloured card and with no confirm dialog on the
+  /// way in, unlike Start fresh, because the two are not the same kind of
+  /// action. Loading APPENDS rows that all carry the `sample_` id prefix and
+  /// reads nothing existing; removing takes exactly that set out again. There is
+  /// no state in which either one can touch a real account, entry or utang, so a
+  /// scary dialog here would teach people to dismiss the ones that matter.
+  Widget _sampleDataCard(BuildContext context) {
+    final loaded = hasSampleData(store.data);
+    Future<void> toggle() async {
+      final messenger = ScaffoldMessenger.of(context);
+      if (loaded) {
+        await store.removeSampleData();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Sample data removed.')),
+        );
+      } else {
+        await store.addSampleData();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Sample data loaded. Remove it here any time.'),
+          ),
+        );
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Kicker(loaded ? 'SAMPLE DATA IS LOADED' : 'TRY IT WITH SAMPLE DATA'),
+            const SizedBox(height: 8),
+            Text(
+              loaded
+                  ? 'A borrowed set of accounts, entries and a card sits alongside your own. Every screen counts it, which is the point, so take it out when you are done looking.'
+                  : 'Fills the app with a pretend month so you can see how every screen reads with money in it. It is added next to your own data, never over it, and one tap takes it all back out.',
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: store.canWrite ? toggle : null,
+              child: Text(loaded ? 'Remove sample data' : 'Load sample data'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _backupCard(BuildContext context) {
