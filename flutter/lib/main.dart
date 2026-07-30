@@ -28,7 +28,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f2.98 \u00b7 Open 11 checked and closed as not a bug: a guard test and a corrected note, nothing changes for you.';
+    'f2.99 \u00b7 Ledger persistence goes through a repository boundary, no behaviour change, groundwork for the durable store.';
 
 void main() {
   // Before anything else, so an error thrown during startup is still caught.
