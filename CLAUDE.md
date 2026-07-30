@@ -164,6 +164,36 @@ The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
 the discipline around it. Use it when the founder cannot test by hand, which is
 most of the time.
 
+## Two Bash commands are refused by a hook, and why
+
+`.claude/settings.json` runs `.claude/hooks/guard-destructive-edits.sh` before
+every Bash call. It blocks exactly two shapes, both of which silently destroyed
+work here repeatedly:
+
+1. A **python here-document that writes to a file**. The shape is
+   `python3 - <<'PY' ... assert ... open(p,'w').write(s) ... PY`. When the assert
+   throws, the script exits BEFORE the write, so the edit never lands while
+   everything looks like it worked, and the next `flutter analyze` reports errors
+   from code that was never changed. Ten occurrences. Use Edit or Write, which
+   fail loudly when they do not apply.
+2. **`git checkout <path>` or `git restore <path>`.** Discards uncommitted work
+   with no confirmation and no undo. Used once to reverse a deliberate one-line
+   break and it took a whole delivery's edits with it. To undo one change, put
+   the original text back with Edit.
+
+Ordinary work is untouched, and that is deliberate: a guard that fires on normal
+commands gets switched off and is then absent for the real thing. `python3 -c`
+one-liners pass, any python that only reads passes, and `git checkout <branch>`,
+`git checkout -b`, and `git checkout origin/main` all pass. The discriminator for
+rule 2 is whether the argument EXISTS on disk, which is exactly what makes the
+command destructive; a ref is not a path.
+
+Installed at the founder's explicit request. Worth knowing how it got here: two
+consecutive retrospectives concluded "nothing in this repository can observe how
+a file gets edited, this is a rule and cannot be a machine", and neither checked
+whether the mechanism existed. It did the whole time. When a rule says something
+is impossible, read the tool, not the rule.
+
 ## Prove a new test can fail before trusting it
 
 When adding a test to guard a lesson, break the code once, watch it fail, and
