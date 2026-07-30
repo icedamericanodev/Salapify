@@ -193,12 +193,40 @@ Future<void> loadRealFonts(WidgetTester tester) async {
 /// shrink it to make a shot tidier: a tidy shot of an empty screen is what
 /// this replaces.
 final Map<String, dynamic> livedInBlob = () {
-  // Dates are relative to a FIXED day, so a shot taken today and a shot taken
-  // next month contain the same entries. Golden images that change with the
-  // calendar are noise nobody reads.
-  const y = 2026, m = 7;
+  // Dates move with the calendar, and that is a correction.
+  //
+  // They were pinned to a constant `y = 2026, m = 7` so that two shots taken a
+  // month apart would contain the same entries. The stated reason was that
+  // golden images changing with the calendar are noise nobody reads, and it
+  // protected a comparison that cannot happen: test/shots/ is gitignored,
+  // `git ls-files` on it returns nothing, and CI only ever runs the harness with
+  // `--update-goldens`, which writes and never compares. There was no baseline
+  // to churn against, so the pinning bought nothing.
+  //
+  // What it cost was a fuse. On the first of the following month every expense
+  // here falls into LAST month, so Budget renders "₱0 of ₱18,000, nothing spent
+  // yet this month" and every screen becomes the empty first-run state again,
+  // silently, by the calendar, with nobody touching a line. That is session
+  // 17's whole lesson coming back on a timer. The app's own sample data is
+  // already built from `DateTime.now()` (lib/data/store.dart), so the fixture
+  // was the only thing here that could rot.
+  //
+  // `d(n)` still means "the nth of the current month", so every call site reads
+  // the same, and it is CAPPED at today so no expense is ever dated in the
+  // future. fixture_still_lived_in_test.dart asserts the states this is here to
+  // present, so the day it stops presenting them is a red build and not a quiet
+  // one.
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  String iso(DateTime t) =>
+      '${t.year.toString().padLeft(4, '0')}-'
+      '${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
   String d(int day) =>
-      '$y-${m.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      iso(DateTime(today.year, today.month, day <= today.day ? day : today.day));
+  // Genuinely ahead of today, allowed to cross into next month, which is what a
+  // real "they still have time to pay" utang looks like.
+  String ahead(int days) => iso(today.add(Duration(days: days)));
   return <String, dynamic>{
     'schemaVersion': 12,
     'settings': {
@@ -307,7 +335,7 @@ final Map<String, dynamic> livedInBlob = () {
       //
       // A fixture where every case is the same case is a fixture that proves
       // one case.
-      {'id': 'r3', 'person': 'Migs', 'amount': 1500, 'dueDate': '$y-08-15'},
+      {'id': 'r3', 'person': 'Migs', 'amount': 1500, 'dueDate': ahead(17)},
     ],
     'payables': [
       {'id': 'y1', 'person': 'Mama', 'amount': 3000, 'dueDate': d(28)},
@@ -318,7 +346,7 @@ final Map<String, dynamic> livedInBlob = () {
         'name': 'Emergency fund',
         'target': 60000,
         'saved': 21500,
-        'targetDate': '$y-12-31',
+        'targetDate': iso(DateTime(today.year, 12, 31)),
       },
     ],
     'categories': defaultCategories.map((c) => {...c}).toList(),

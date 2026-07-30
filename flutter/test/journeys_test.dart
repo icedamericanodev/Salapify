@@ -105,6 +105,22 @@ double _balance(SalapifyStore store, String id) {
   fail('no account $id');
 }
 
+/// Everything still owed TO the person, across every receivable.
+double _openReceivableTotal(SalapifyStore store) {
+  var total = 0.0;
+  for (final r in (store.data['receivables'] as List)) {
+    final m = (r as Map).cast<String, dynamic>();
+    if (m['paid'] == true) continue;
+    var paid = 0.0;
+    for (final p in (m['payments'] is List ? m['payments'] as List : const [])) {
+      paid += amountOf((p as Map)['amount']);
+    }
+    final left = amountOf(m['amount']) - paid;
+    if (left > 0) total += left;
+  }
+  return total;
+}
+
 double _debt(SalapifyStore store, String id) {
   for (final d in (store.data['debts'] as List)) {
     final m = (d as Map).cast<String, dynamic>();
@@ -120,6 +136,26 @@ Future<void> _tap(WidgetTester tester, Finder f) async {
   await tester.tap(f.first);
   await tester.pumpAndSettle();
 }
+
+/// Everything the app has stored, as one comparable string.
+///
+/// The did-anything-happen half of every journey, made into a machine rather
+/// than left to whatever assertion looked convincing at the time.
+///
+/// It was left to judgement for exactly one day, and two of the six journeys in
+/// this file then passed with the feature under test completely dead. The
+/// transfer journey asserted `bank + cash == 23000`, which is true after a
+/// working transfer AND true after no transfer at all, because a sum is
+/// precisely what a transfer preserves. The comment above it called it the
+/// honest half.
+///
+/// The two hollow ones were both journeys whose invariant is a CONSERVATION
+/// statement, "changes nothing", "returns to the start". That is not bad luck:
+/// a conservation invariant is unfalsifiable by inaction by construction, so
+/// its companion check can never be another conservation statement. The four
+/// healthy journeys assert a DIRECTIONAL change and carry their own proof for
+/// free.
+String _storedState(SalapifyStore store) => jsonEncode(store.data);
 
 /// Log one expense through the real sheet, the way a person does.
 Future<void> _logExpense(
@@ -184,6 +220,7 @@ void main() {
     // instantly: your total cannot move because you shuffled your own money.
     final store = await _openApp(tester);
     final before = _netWorth(store);
+    final stateBefore = _storedState(store);
 
     await _tap(tester, find.byTooltip('Menu'));
     await _tap(tester, find.text('Accounts'));
@@ -205,10 +242,23 @@ void main() {
           'a transfer between two of your own accounts moved your net worth. '
           'Nothing entered or left; only the label on the money changed.',
     );
-    // And the money actually moved, rather than the invariant holding because
-    // the transfer silently did nothing at all. This is the half that keeps
-    // the test above honest.
-    expect(_balance(store, 'bank') + _balance(store, 'cash'), closeTo(23000, 0.001));
+    // And the money actually moved. DIRECTIONAL, per account, because the
+    // previous version of this line summed the two balances and 23,000 is what
+    // a transfer preserves: it passed just as happily when the transfer never
+    // happened. Bank must be down 1,500 and Cash up 1,500, which inaction
+    // cannot satisfy.
+    // Cash 3,000 - 1,500 and Bank 20,000 + 1,500. The direction is Cash to
+    // Bank, and getting it backwards first is worth recording: the sheet
+    // defaults its SOURCE to the first account in the list, and the first
+    // assertion here assumed the opposite and failed with Actual 21500. A
+    // conservation check could never have told me which way the money went.
+    expect(_balance(store, 'cash'), closeTo(1500, 0.001));
+    expect(_balance(store, 'bank'), closeTo(21500, 0.001));
+    expect(
+      _storedState(store),
+      isNot(stateBefore),
+      reason: 'nothing was written, so the transfer never happened',
+    );
   });
 
   testWidgets('paying a debt does not change net worth', (tester) async {
@@ -287,6 +337,7 @@ void main() {
     // as cash, so everything must land exactly where it began.
     final store = await _openApp(tester);
     final before = _netWorth(store);
+    final cashBefore = _balance(store, 'cash');
 
     await _tap(tester, find.text('Utang'));
     await _tap(tester, find.text('Owed to me'));
@@ -294,12 +345,28 @@ void main() {
     await tester.enterText(find.byType(TextField).at(0), 'Ana');
     await tester.enterText(find.byType(TextField).at(1), '900');
     await tester.pumpAndSettle();
+    // Pick the account the cash LEFT, which is what makes this a tracked
+    // utang. Without it the app deliberately records the debt WITHOUT moving
+    // money, because "I lent this last month, let me write it down" must not
+    // invent a withdrawal today. The first version of this journey skipped the
+    // chip and then asserted cash had fallen, so it failed against correct
+    // behaviour. Reading receivables.dart settled it: cashLeg is true only when
+    // a lending account is chosen.
+    await _tap(tester, find.widgetWithText(ChoiceChip, 'Cash'));
     await _tap(tester, find.textContaining('Save'));
 
     expect(
       find.text('Ana'),
       findsWidgets,
       reason: 'the utang was never recorded, so nothing below tests anything',
+    );
+
+    // Lending has to have MOVED the cash, or the repayment below is settling
+    // a debt that never cost anything and the round trip proves nothing.
+    expect(
+      _balance(store, 'cash'),
+      closeTo(cashBefore - 900, 0.001),
+      reason: 'the 900 never left the account, so nothing was really lent',
     );
 
     await _tap(tester, find.text('Ana'));
@@ -312,6 +379,20 @@ void main() {
       reason:
           'lent 900 and was paid back 900, so the total must be exactly what '
           'it was before either happened',
+    );
+    // DIRECTIONAL, and the reason this line exists: the invariant above is a
+    // conservation statement, so it also holds if the repayment never
+    // happened. Cash must be back where it started AND the receivable must be
+    // gone from what is still owed.
+    expect(
+      _balance(store, 'cash'),
+      closeTo(cashBefore, 0.001),
+      reason: 'the 900 never came back, so the repayment did not happen',
+    );
+    expect(
+      _openReceivableTotal(store),
+      closeTo(0, 0.001),
+      reason: 'the utang is still open, so marking it paid did nothing',
     );
   });
 }

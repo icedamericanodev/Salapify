@@ -106,10 +106,19 @@ opt-in by nature: it produces pictures, and a picture nobody opens proves
 nothing. So the parts of "readable" a machine can judge were taken off the
 human's plate. `test/palette_contrast_test.dart` measures every colour pair in
 all sixteen palettes against WCAG AA, and `test/screen_readability_test.dart`
-pumps the same lived-in fixture through every screen and fails on an overflow,
-a blank screen, or a sentence past the edge of the phone, scrolling the whole
-screen and repeating it all at 1.5x system font. Both are ordinary
-`*_test.dart` files, so they run on the branch check with everything else.
+pumps the lived-in fixture through the main screens and fails on an overflow, a
+blank screen, a sentence past the edge of the phone, text cut off by an
+ellipsis, or a stored date shown raw, scrolling the whole screen and repeating
+it at 1.5x system font. Both are ordinary `*_test.dart` files, so they run on
+the branch check with everything else.
+
+The sweep's screen list is a LIST, not every screen, and that is a known gap
+rather than a feature. It said "every screen" here for a day while covering ten
+of the fifty files in lib/screens, and Reports and Debts were missing while both
+carried a fix that had just shipped. The model for closing it properly is
+`test/palette_contrast_test.dart`, which iterates the theme registry and then
+asserts it saw all of it, so a new theme reddens the build; a derived set is a
+rule and a typed set is a promise.
 What is left for the eye is what only an eye can do: whether the screen reads
 well, not whether it fits.
 
@@ -120,26 +129,36 @@ after a runtime failure nobody wrote down.
 ## Test the app the way a person uses it, not one screen at a time
 
 `flutter/test/journeys_test.dart` taps and types through several features in one
-sitting and then checks that every screen still agrees about the money. Sixty
-other test files each drive ONE screen with a store built for it, which is good
-and is not this: a defect that is correct where it was written and wrong where it
+sitting and then checks that every screen still agrees about the money. Most of
+the other test files drive ONE screen with a store built for it, which is good
+and is not this (no count here on purpose: the last version of this sentence
+said sixty and the real figure was seventy-nine, two paragraphs from the rule
+that says numbers in prose rot): a defect that is correct where it was written and wrong where it
 is read has nowhere to be caught by those. Three false alarms in one afternoon
 came from two screens seeming to disagree, and none could be settled, because no
 test had ever put two screens in front of the same store.
 
-Journeys assert INVARIANTS, never expected values. An expected value has to be
-recomputed by hand whenever a fixture moves, and the moment that gets tedious
-somebody pastes in whatever the code printed, which asserts what the code does
-and reads like proof. An invariant is a sentence that cannot be false: moving
-money between your own accounts cannot change your net worth, paying a debt
-cannot either (an asset falls and a liability falls by the same amount), spending
-reduces it by exactly what was spent, lending and being repaid returns to the
-start.
+Journeys PREFER invariants and every literal in them has to justify itself. The
+earlier version of this paragraph said "never expected values" and the file
+already contained four literals when it was written, which is the sort of claim
+that makes the rest of a document harder to trust. An invariant is a sentence
+that cannot be false: moving money between your own accounts cannot change your
+net worth, paying a debt cannot either (an asset falls and a liability falls by
+the same amount), spending reduces it by exactly what was spent, lending and
+being repaid returns to the start.
 
 Every invariant needs a did-anything-happen check beside it, because an invariant
 also holds when the action silently did nothing: a transfer that transfers
 nothing preserves net worth perfectly. Without that second assertion the test
 passes hardest when the feature is most broken.
+
+That check must be DIRECTIONAL, and this sentence is here because the rule above
+was followed and still produced two hollow tests on its first day. The transfer
+journey's companion assertion was `bank + cash == 23000`, which is exactly what
+a transfer preserves, so it passed with the transfer deleted. A conservation
+invariant ("changes nothing", "returns to the start") is unfalsifiable by
+inaction by construction, so its companion can never be another conservation
+statement: name the per-account movement, or assert the stored blob changed.
 
 The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
 the discipline around it. Use it when the founder cannot test by hand, which is

@@ -46,6 +46,8 @@ import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/debts.dart';
+import 'package:salapify/screens/reports.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
@@ -340,6 +342,13 @@ void main() {
     'Appearance': (s) => AppearanceScreen(store: s),
     'Accounts': (s) => AccountsScreen(store: s),
     'Categories': (s) => CategoriesScreen(store: s),
+    // Reports and Debts were missing for this file's whole life, and both
+    // carry f2.88's rounding fix, so two of the four screens that change
+    // touched had never been drawn OR measured. They are here because the
+    // retrospective counted lib/screens against this map instead of trusting
+    // it, which is the difference between a rule and a list.
+    'Reports': (s) => ReportsScreen(store: s),
+    'Debts': (s) => DebtsScreen(store: s),
   };
 
   // A second face of a screen, reached the way a person reaches it. Keyed by

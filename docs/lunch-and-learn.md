@@ -10,6 +10,268 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-30, session 18: the day the guards were audited, and two were hollow
+
+Six deliveries, f2.86 to f2.91, patches 10 to 15, all mode `patch` on
+0.6.3+12. The founder confirmed with two words, "it works". Ground truth is
+docs/delivery-log.md, read before this was written: six rows for six merges, no
+`release` row, so nothing was stranded and no manual install is owed. All six
+merge commits have two parents, so nothing was squashed.
+
+The mechanical side was clean and three of the six batches changed no app code
+at all. f2.89 investigated three suspected defects and reported all three as NOT
+defects, which is the right instinct and worth saying before anything else: a
+retrospective that only rewards found bugs teaches people to find bugs.
+
+This session is long because it audited the GUARDS rather than the app, and
+that is where everything was. Two of the six journeys shipped in f2.91 passed
+with the feature under test deleted. The fixture four machines now depend on was
+two days from expiring. And the defect f2.90 hunted had been sitting, legible,
+in a rendered picture for two days.
+
+Facilitated by the lunch-and-learn agent, whose findings were then verified by
+hand before any of this was written, and whose proposed guards were built in the
+same sitting rather than carried forward. Every lesson below is CLOSED except
+where it says otherwise.
+
+### Lesson 1. Two of the six journeys passed when the feature did nothing
+
+**Evidence.** `journeys_test.dart`, the assertion sitting under a comment
+calling itself the honest half:
+
+    expect(_balance(store, 'bank') + _balance(store, 'cash'), closeTo(23000, 0.001));
+
+Bank plus cash is 23,000 after a working transfer. It is also 23,000 after a
+transfer that never happened, because a sum is exactly what a transfer
+preserves. Verified by deleting the `Move it` tap so no transfer occurred at
+all:
+
+    00:02 +1: All tests passed!
+
+Same for the utang round trip with both `Mark paid` taps removed.
+
+The two hollow ones were both journeys whose invariant is a CONSERVATION
+statement, "changes nothing", "returns to the start". That is not bad luck. A
+conservation invariant is unfalsifiable by inaction by construction, so its
+companion check can never be another conservation statement. The four healthy
+journeys assert a DIRECTIONAL change and carry their own proof for free.
+
+**What it cost.** Nothing on the phone; the cost was belief. CLAUDE.md, the
+commit message, the file header and the agent brief all warned about exactly
+this failure, in exactly this slot, and it happened anyway on the same day. A
+guard written from the right mental model still landed on an assertion that
+could not fail.
+
+**Guard.** Both journeys now assert per-account movement, plus a stored-blob
+comparison so inaction cannot satisfy them. Proven by deleting the taps again:
+`Expected <1500>, Actual <3000.0>` and "the 900 never came back, so the
+repayment did not happen". CLAUDE.md now says the companion check must be
+DIRECTIONAL and says why.
+Strength: **strong**, and closed in f2.92.
+
+**A real thing learned while fixing it.** The stronger assertions immediately
+failed for two reasons that were NOT bugs. The transfer runs Cash to Bank, not
+Bank to Cash, because the sheet defaults its source to the first account, and a
+conservation check could never have revealed which way the money went. And
+recording an utang does not move cash unless a lending account is chosen:
+`cashLeg` is true only when one is, because "I lent this last month, let me
+write it down" must not invent a withdrawal today. Both were settled by reading
+receivables.dart rather than by adjusting the app.
+
+### Lesson 2. The fixture four machines depend on was two days from expiring
+
+**Evidence.** `screens_shot.dart` pinned every fixture date to a constant:
+
+    const y = 2026, m = 7;
+
+Every screen compares against `DateTime.now()`. So on 1 August, two days after
+that fixture was written, every expense in it falls into LAST month, Budget
+renders "PHP0 of PHP18,000, nothing spent yet this month", and every screen
+becomes the first-run empty state again. Silently, by the calendar, with nobody
+touching a line. That is session 17's entire lesson returning on a timer.
+
+The narrower half had a date too: the receivable f2.90 added specifically to
+make the due-date branch reachable was the literal `2026-08-15`, sitting between
+two neighbours that used the relative helper. On 16 August every receivable is
+overdue again and the check written for that line becomes a no-op again. The
+blind spot f2.90 diagnosed was closed with a seventeen day fuse.
+
+The stated reason for pinning was that golden images changing with the calendar
+are noise. That protected a comparison which cannot happen: `test/shots/` is
+gitignored, `git ls-files` on it returns nothing, and CI only ever runs the
+harness with `--update-goldens`, which writes and never compares. The pinning
+bought nothing and cost the expiry.
+
+**What it cost.** Nothing yet, which is the cheapest possible moment to find it.
+
+**Guard.** Dates are anchored to `DateTime.now()` now, the way the app's own
+sample data already was, so only the test fixture could ever have rotted. Plus
+`test/fixture_still_lived_in_test.dart`, which asserts the states the fixture
+exists to present: spending in the CURRENT month, nothing dated in the future,
+somebody overdue AND somebody who still has time to pay, a foreign-currency
+account, a savings target, income, enough categorised expenses. Proven by
+pinning the fixture to the previous month and watching it name the failure:
+"every expense in the fixture is outside the current month, so Budget, Insights
+and the Home month card all render as a phone nobody has used."
+Strength: **strong**, and closed in f2.92.
+
+### Lesson 3. Every guard here is a list wearing the title of a rule
+
+One pattern behind four of the day's moments, and it is one lesson, not four. In
+each case a check was named for a CLASS of defect and implemented as an
+enumeration of the instances that existed the day it was written.
+
+**Evidence.**
+
+1. `no_iso_dates_in_copy_test.dart`, titled "no user-facing string interpolates
+   a raw stored date", matched four literal key names. The offender was called
+   `oldestDue`. (f2.90)
+2. The fix for it added a second-face map with exactly ONE entry, which is a
+   list of the instance just found. Appearance has a `Segmented` control and its
+   second face is still never opened.
+3. The sweep's screen set was ten typed names against fifty files in
+   `lib/screens`. Reports and Debts were in neither the sweep nor the render
+   harness, and BOTH carried f2.88's rounding fix: two of the four screens that
+   change touched had never been drawn or measured.
+4. 21 of 22 store setups in the render harness built their own private person.
+   (f2.88, f2.89)
+
+**What it cost.** Two days for the `Due 2026-08-15` defect, and an unknown
+amount of false confidence in every check named after a rule.
+
+**Guard.** Partly closed, and said plainly rather than claimed. Reports and
+Debts are in the sweep now and both pass. CLAUDE.md no longer claims the sweep
+covers every screen and names the gap as a gap. What is NOT done is the real
+fix: deriving the set from the codebase the way
+`test/palette_contrast_test.dart` already does, where one line,
+`expect(seen, barakoThemes.length * 2)`, is the whole difference between a rule
+and a list. That model was written in this repo the same week by the same author
+and was not reused.
+Strength: **medium** today. Open 7 below.
+
+### Lesson 4. The defect f2.90 hunted was legible in a picture for two days
+
+**Evidence.** Rendered from the pre-fix code in a throwaway worktree, the shot
+`money-owed-dark.png` reads:
+
+    Migs
+    Due 2026-08-15 - 1 entry                      PHP1,500
+
+That shot was created on 2026-07-27, two days before the defect was found, by a
+commit whose own comment says it exists so neither segment renders its empty
+state.
+
+**What it cost.** Two days, and something worse: the f2.90 write-up diagnosed
+the survival as a fixture blind spot, "no render could show it because no render
+had anybody who still had time to pay". That is true of the lived-in fixture and
+FALSE of the project. A render did have somebody who still had time to pay, in
+the picture built for that exact list, and it printed the defect in full. The
+comfortable half of the cause was written down and the uncomfortable half was
+not. CLAUDE.md already contains the sentence that covers it: a picture nobody
+opens proves nothing.
+
+**Guard.** No new render without a machine assertion on what it drew, which is
+the same derived-set fix as Lesson 3, so it lands with Open 7.
+Strength: **weak** today, a sentence.
+
+### Lesson 5. "Nothing can observe how a file gets edited" was never checked
+
+**Evidence.** Session 17 concluded, about the assert-before-write heredoc
+pattern failing for the seventh time: "Nothing in this repository can observe
+how a file gets edited. This one is a rule and cannot be a machine." The pattern
+was used again today, and `git checkout <file>` was used once to undo a
+deliberate break, which discarded real work that had to be rewritten. Eighth and
+ninth outings.
+
+The claim was never verified. `.claude/` has `agents/` and `skills/` and no
+`settings.json` and no hooks. A PreToolUse hook receives the Bash command string
+BEFORE the command runs and can refuse it, which is precisely a machine that
+observes how a file is about to be edited. Two consecutive retrospectives
+concluded "unguardable" without checking whether the mechanism existed, which is
+the same error as Open 3 being carried from session 1 while being false.
+
+**Guard.** A PreToolUse hook refusing a python here-document that writes to a
+path in the repo, and `git checkout` or `git restore` naming a tracked file.
+NOT installed: hook configuration is the founder's call, not an agent's, so this
+entry is the request. Until it exists the lesson is weak and should be called
+weak.
+Strength: **strong if installed**, currently **weak**. Open 8.
+
+### What went right, and is worth keeping
+
+**The prove-it-can-fail rule caught its own author twice, visibly.** In f2.86
+the first proof that the off-the-side check could fire DID NOT FIRE, because a
+900 wide box inside a vertical scroll view is clamped to the viewport width; the
+check was correctly silent and the proof was measuring air. In f2.90 the new
+machine-date check passed cleanly BEFORE the fixture and the tab were fixed, on
+an unreachable branch, and the author noticed. Both catches came from the same
+rule, and both are cases of it catching the person applying it. After Lesson 1
+this is the strongest thing in this entry.
+
+**f2.87 re-read a workflow instead of trusting a carried lesson**, found half of
+Open 3 had been false for several sessions, and found the half that was genuinely
+open in a different shape. That is the behaviour Lesson 5 says was missing
+elsewhere, done correctly in the same day.
+
+### On the reporting cadence: working, with one honest caveat
+
+Six stamps and one confirmation at the end is not a reporting failure. Every
+batch produced its delivery row before the next began, and no version number was
+spoken before its row existed, which is the session 15 rule.
+
+The caveat is what "it works" proves. Shorebird patches are cumulative, so a
+confirmation on patch 15 confirms the app AT patch 15. It does not confirm
+f2.87 or f2.89 individually, and a defect introduced in one and masked by
+another would not be separately noticed. Three of the six changed no app code,
+so for those three "it works" can only mean the app still opens and the stamp is
+right. That is the correct amount of evidence for a guard-only batch, and it is
+named so nobody later reads six confirmations where there was one.
+
+### One thing the founder asked for that was not delivered, and was not said
+
+The f2.91 request was "test data or transaction to test features", plus an
+agent. What shipped was a test file that runs on a runner and an agent brief.
+Both are valuable, and the founder cannot see or touch either. The app HAS a
+sample data generator, `lib/money/sample_data.dart`, reachable from exactly one
+place: inside `completeOnboarding`. An already onboarded founder cannot load it.
+So the literal reading, data on my phone to poke at, is one Menu action away and
+was neither built nor ruled out loud. A beginner cannot tell which reading they
+received.
+Guard: when a request has two readings, say which one is being built before
+building it. Strength: **weak**, a sentence, and no machine can read intent.
+
+### Open lessons carried forward
+
+- **Open 4 (session 17), nothing compares the phone to main: STILL OPEN.** Today
+  moved a great deal of detection from the founder to machines. Nothing compares
+  the phone to `main`. The founder remains the detector of last resort, which is
+  survivable while they are the only user and not at launch.
+- **Open 7, guard sets are typed lists rather than derived rules: OPEN.**
+  Lessons 3 and 4. The model is `palette_contrast_test.dart`: iterate what
+  exists, then assert you saw all of it. Applies to the sweep's screen set, the
+  second-face map, and the render harness's shot list.
+- **Open 8, the edit-pattern hook does not exist: OPEN, and it is the founder's
+  call.** Lesson 5. Guardable, unguarded, and now known to be guardable.
+- **Open 9, the sample data generator is unreachable after onboarding: OPEN.**
+  One Menu action. Offered to the founder rather than assumed.
+
+**Closed this session:** session 17's Open 1 (f2.85), Open 2 (f2.86) and Open 3
+(f2.87), all verified in the code rather than taken on trust, plus Lessons 1 and
+2 above, both closed in f2.92 with proven guards.
+
+### What it cost
+
+Nothing reached the phone wrong. Six patches, six rows, one confirmation, no
+money math changed, no data at risk, no manual install owed.
+
+The cost was entirely in the guards, which is why the entry is long. Two of six
+journeys did not test what they claimed, and it was provable in four minutes.
+The fixture underneath the day's other new machine had two days left. The defect
+that cost the most attention was drawn in full in a picture that sat unread for
+two days. Nothing here was a failure of care. Every one was a check that was
+narrower than its own name, which is the sentence this session exists to leave
+behind.
+
 ## 2026-07-29, session 17: sixteen screenshots with no money in them
 
 Eight deliveries in one day: f2.76 as a new base APK for the home screen
