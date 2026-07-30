@@ -14,9 +14,14 @@ import '../money/pan/ask.dart';
 import '../money/pan_mood.dart';
 import '../theme.dart';
 import '../widgets/pan_mascot.dart';
+import 'accounts.dart';
 import 'debts.dart';
+import 'goals.dart';
 import 'loan_calculator.dart';
 import 'contribution_calculator.dart';
+import 'pan_routes.dart';
+import 'payday.dart';
+import 'reports.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
@@ -84,15 +89,24 @@ class _PanScreenState extends State<PanScreen> {
     });
   }
 
-  /// Pan's CTAs use the RN route names; open what exists in the Flutter app
-  /// today and quietly skip the rest (the reply text stands on its own).
+  /// Turn a CTA's route into a navigation action, through the one typed
+  /// registry (pan_routes.dart). An unknown route returns null and renders no
+  /// button; the contract test keeps the brain from ever emitting one. The
+  /// switch is over the enum, so it is exhaustive: a new PanRoute value with no
+  /// arm here fails the analyzer rather than falling silently into a default.
   VoidCallback? _ctaAction(Map<dynamic, dynamic> cta) {
-    final route = (cta['route'] ?? '').toString();
+    final route = PanRoute.forPath((cta['route'] ?? '').toString());
+    if (route == null) return null;
+
+    VoidCallback push(Widget Function() build) => () =>
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => build()));
+
     switch (route) {
-      case '/debts':
-        // The Utang tab's "I owe" segment is the canonical home of debts
-        // now. Pop to the root first (Pan can sit two deep, under Menu) and
-        // jump; the pushed screen is only the fallback for unwired hosts.
+      case PanRoute.debts:
+        // The Utang tab's "I owe" segment is the canonical home of debts now.
+        // Pop to the root first (Pan can sit two deep, under Menu) and jump;
+        // the pushed screen is only the fallback for a host that did not wire
+        // the segment jump.
         final openPayables = widget.onOpenPayables;
         if (openPayables != null) {
           return () {
@@ -100,59 +114,69 @@ class _PanScreenState extends State<PanScreen> {
             openPayables();
           };
         }
-        return () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DebtsScreen(store: widget.store)),
-        );
-      case '/loan-calculator':
-        return () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const LoanCalculatorScreen()));
-      case '/salary-calculator':
-        return () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SalaryCalculatorScreen()),
-        );
-      case '/thirteenth-calculator':
-        return () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ThirteenthCalculatorScreen()),
-        );
-      case '/tax-calculator':
-        return () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const TaxCalculatorScreen()));
-      case '/contribution-calculator':
-        return () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const ContributionCalculatorScreen(),
-          ),
-        );
-      case '/insights':
+        return push(() => DebtsScreen(store: widget.store));
+      case PanRoute.insights:
         final onSwitchTab = widget.onSwitchTab;
         if (onSwitchTab == null) return null;
         return () {
-          // popUntil, not pop. Menu is a pushed route now, so a screen
-          // reached through it sits TWO deep, and a single pop would land the
-          // user back on Menu with the tab quietly changed behind it. Popping
-          // to the root is correct from any depth.
+          // popUntil, not pop. Menu is a pushed route now, so a screen reached
+          // through it sits TWO deep, and a single pop would land the user
+          // back on Menu with the tab quietly changed behind it. Popping to
+          // the root is correct from any depth.
           Navigator.of(context).popUntil((r) => r.isFirst);
           onSwitchTab(Destination.insights);
         };
-      case '/receivables':
+      case PanRoute.receivables:
         final openReceivables = widget.onOpenReceivables;
         final onSwitchTab = widget.onSwitchTab;
         if (openReceivables == null && onSwitchTab == null) return null;
         return () {
           Navigator.of(context).popUntil((r) => r.isFirst);
           // The segment-aware jump when the host wires it: this CTA is about
-          // money owed TO the user, and the plain tab switch would land on
-          // the "I owe" segment instead.
+          // money owed TO the user, and the plain tab switch would land on the
+          // "I owe" segment instead.
           if (openReceivables != null) {
             openReceivables();
           } else {
             onSwitchTab!(Destination.utang);
           }
         };
-      default:
-        return null;
+      case PanRoute.accounts:
+        // Previously dropped: "See accounts" / "Add accounts" rendered no
+        // button at all. Accounts is a pushed screen, and the payables jump
+        // rides along so its own "manage debts" note can route home.
+        return push(
+          () => AccountsScreen(
+            store: widget.store,
+            onOpenPayables: widget.onOpenPayables,
+          ),
+        );
+      case PanRoute.reports:
+        // "Plan payoff" points here: Reports carries the debt plan section and
+        // the debt-free projection. Previously dropped.
+        return push(
+          () => ReportsScreen(
+            store: widget.store,
+            onSwitchTab: widget.onSwitchTab,
+          ),
+        );
+      case PanRoute.goals:
+        // Previously dropped: "Add a goal" / "Goals" had no button.
+        return push(() => GoalsScreen(store: widget.store));
+      case PanRoute.setPayday:
+        // The RN "/(tabs)/more" route the "Set payday" CTA carries. In Flutter
+        // payday has its own screen; previously this dropped to no button.
+        return push(() => PaydayScreen(store: widget.store));
+      case PanRoute.loanCalculator:
+        return push(() => const LoanCalculatorScreen());
+      case PanRoute.salaryCalculator:
+        return push(() => const SalaryCalculatorScreen());
+      case PanRoute.thirteenthCalculator:
+        return push(() => const ThirteenthCalculatorScreen());
+      case PanRoute.taxCalculator:
+        return push(() => const TaxCalculatorScreen());
+      case PanRoute.contributionCalculator:
+        return push(() => const ContributionCalculatorScreen());
     }
   }
 

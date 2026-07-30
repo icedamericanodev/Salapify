@@ -121,16 +121,27 @@ void main() {
       expect(s['firstLogPrompt'], false);
     });
 
-    testWidgets('a typed 0 budget is honored and junk falls back', (
-      tester,
-    ) async {
-      // 0 is a real answer ("do not budget me"), the RN parse rule. Junk is
-      // not, and falls back to the default instead of storing NaN.
+    // The budget field, all six cases the founder asked for. The old behavior
+    // these replace: blank and junk BOTH silently became 20000, so clearing
+    // the field or fat-fingering a letter wrote a budget the person never
+    // chose. Now blank means "set later", junk is an error you must fix, zero
+    // is an explicit no-budget choice, and a value past the maximum is capped
+    // with the cap disclosed. None of this changes the stored shape: both
+    // "set later" and an explicit zero resolve to the 0 the app already reads
+    // as "no limit".
+    Future<SalapifyStore> toBasics(WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
       final store = await _boot(tester);
       await tester.tap(find.text('Get started'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), '0');
+      return store;
+    }
+
+    testWidgets('blank means set later, and stores no budget', (tester) async {
+      final store = await toBasics(tester);
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('set one anytime'), findsOneWidget);
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Start with a clean slate'));
@@ -138,17 +149,68 @@ void main() {
       expect(_settings(store)['monthlyLimit'], 0);
     });
 
-    testWidgets('junk budget input falls back to the default', (tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final store = await _boot(tester);
-      await tester.tap(find.text('Get started'));
-      await tester.pumpAndSettle();
+    testWidgets('malformed input shows an error and cannot advance', (
+      tester,
+    ) async {
+      await toBasics(tester);
       await tester.enterText(find.byType(TextField), 'abc');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Enter a number'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      // Still on the basics step: the budget field is here, the next step is
+      // not.
+      expect(find.text('Monthly spending budget'), findsOneWidget);
+      expect(find.text('How do you want to start?'), findsNothing);
+    });
+
+    testWidgets('a negative budget is rejected like other invalid input', (
+      tester,
+    ) async {
+      await toBasics(tester);
+      await tester.enterText(find.byType(TextField), '-5');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Enter a number'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.text('Monthly spending budget'), findsOneWidget);
+    });
+
+    testWidgets('a typed 0 is an explicit no-budget choice', (tester) async {
+      final store = await toBasics(tester);
+      await tester.enterText(find.byType(TextField), '0');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('No budget'), findsOneWidget);
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Start with a clean slate'));
       await tester.pumpAndSettle();
-      expect(_settings(store)['monthlyLimit'], 20000);
+      expect(_settings(store)['monthlyLimit'], 0);
+    });
+
+    testWidgets('a normal budget is stored as typed', (tester) async {
+      final store = await toBasics(tester);
+      await tester.enterText(find.byType(TextField), '18,000');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      expect(_settings(store)['monthlyLimit'], 18000);
+    });
+
+    testWidgets('a value past the maximum is capped and the cap disclosed', (
+      tester,
+    ) async {
+      final store = await toBasics(tester);
+      await tester.enterText(find.byType(TextField), '999999999999');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('maximum'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start with a clean slate'));
+      await tester.pumpAndSettle();
+      expect(_settings(store)['monthlyLimit'], 100000000);
     });
 
     testWidgets('existing data means one honest button and no seed offer', (

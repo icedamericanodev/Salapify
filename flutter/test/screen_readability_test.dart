@@ -441,6 +441,9 @@ void main() {
       // Platform plumbing with no UI.
       'app_exit_io.dart': 'no widgets, platform plumbing',
       'app_exit_stub.dart': 'no widgets, platform plumbing',
+      // Not a screen: the typed registry mapping Pan CTA routes to
+      // destinations. It builds no widgets of its own.
+      'pan_routes.dart': 'no widgets, the Pan CTA destination registry',
       // The container the swept tabs are mounted in. Sweeping it would pump
       // Home a second time and measure the same pixels twice.
       'shell.dart': 'mounts the swept tabs; covered through them',

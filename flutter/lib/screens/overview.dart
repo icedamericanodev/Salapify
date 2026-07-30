@@ -439,7 +439,10 @@ class OverviewScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => AccountsScreen(store: store),
+                              builder: (_) => AccountsScreen(
+                                store: store,
+                                onOpenPayables: onOpenPayables,
+                              ),
                             ),
                           ),
                           child: Padding(
@@ -1225,7 +1228,12 @@ class OverviewScreen extends StatelessWidget {
             Icons.handshake_outlined,
             'See who owes me',
             'Keep a who-owes-you list that adds itself up',
-            () => onSwitchTab?.call(Destination.utang),
+            // Money owed TO the user is the "Owed to me" segment of the Utang
+            // tab. Plain onSwitchTab lands on the default "I owe" segment, a
+            // screen with none of their receivables on it. Falls back to the
+            // plain tab switch only where the shell did not wire the richer
+            // jump.
+            onOpenReceivables ?? () => onSwitchTab?.call(Destination.utang),
           ),
           const SizedBox(height: 10),
           _lane(
@@ -1233,9 +1241,15 @@ class OverviewScreen extends StatelessWidget {
             Icons.trending_down,
             'Pay off a debt, formal or between friends',
             'A payoff date and the cheapest way there',
-            () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
-            ),
+            // The user's own debts live on the "I owe" segment of the Utang
+            // tab, where the bottom bar still works. Pushing the standalone
+            // DebtsScreen stranded the user on a copy of the tab with no way
+            // back to the rest of the app; it is only the fallback for a host
+            // that did not wire the segment jump.
+            onOpenPayables ??
+                () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => DebtsScreen(store: store)),
+                ),
           ),
           // The name ask lives INSIDE the welcome card, not on a screen of its
           // own in front of the app. A first-run wall asking for personal

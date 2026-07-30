@@ -11,6 +11,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/search.dart' as search;
 import '../theme.dart';
 import '../widgets/salapify_icon.dart';
+import 'accounts.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'history.dart';
@@ -26,10 +27,13 @@ const _groupIcon = <String, IconData>{
   'accounts': Icons.account_balance_wallet_outlined,
 };
 
-// Accounts are searchable in the shared logic, but the Accounts screen is not
-// ported to Flutter yet, so that group is hidden here until it lands. Every
-// other group has a destination.
-const _hiddenKinds = {'accounts'};
+// Every group the shared search logic can return now has a destination in the
+// Flutter app, so nothing is hidden. This set used to hold 'accounts' with a
+// note that the Accounts screen "is not ported to Flutter yet"; it has been
+// ported for a long time (lib/screens/accounts.dart), so the note was stale and
+// an account match silently vanished from Search. Kept as an empty set, and as
+// the one place to add a kind that genuinely has nowhere to land.
+const _hiddenKinds = <String>{};
 
 class SearchScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -64,8 +68,27 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  void _openGroup(String kind, String route) {
+  // [focusId] is the id of the specific row that was tapped, used only where a
+  // result opens a whole screen rather than a filtered one: an account tap
+  // opens Accounts scrolled to and highlighting that account. The group's
+  // "N more" link passes null, meaning "just open the screen".
+  void _openGroup(String kind, String route, {String? focusId}) {
     switch (kind) {
+      case 'accounts':
+        // The Accounts screen owns accounts, assets, and debts. It reads the
+        // live store, so an account deleted between this result rendering and
+        // this tap is simply absent from the list; the screen says so with a
+        // gentle note rather than crashing on a stale id.
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AccountsScreen(
+              store: widget.store,
+              onOpenPayables: widget.onOpenPayables,
+              focusAccountId: focusId,
+            ),
+          ),
+        );
+        break;
       case 'transactions':
         // Push History pre-filtered to the same words, so tapping a result
         // actually shows it rather than dumping the user on the full list.
@@ -353,7 +376,14 @@ class _SearchScreenState extends State<SearchScreen> {
     final sign = (it['sign'] ?? '').toString();
     final sub = (it['subtitle'] ?? '').toString();
     return InkWell(
-      onTap: () => _openGroup(kind, route),
+      // An account row carries its own id so the Accounts screen can land on
+      // exactly the one tapped; every other kind opens its whole screen, so
+      // the id is not needed and is left null.
+      onTap: () => _openGroup(
+        kind,
+        route,
+        focusId: kind == 'accounts' ? it['id']?.toString() : null,
+      ),
       child: Container(
         decoration: divided
             ? BoxDecoration(
