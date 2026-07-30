@@ -154,7 +154,13 @@ class _SearchScreenState extends State<SearchScreen> {
                 onChanged: (_) => setState(() {}),
                 style: TextStyle(color: Barako.text, fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: 'Search anything, like jollibee, Ana, or 1500',
+                  // Shortened so it FITS. The longer version, "Search
+                  // anything, like jollibee, Ana, or 1500", was cut off at
+                  // default font size on a 390pt phone, so the one example that
+                  // taught you you can search a person's name was the part that
+                  // vanished. A hint nobody can finish reading is a hint that
+                  // does nothing.
+                  hintText: 'Search jollibee, Ana, or 1500',
                   hintStyle: TextStyle(color: Barako.faint),
                   prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
                   suffixIcon: _query.text.isEmpty

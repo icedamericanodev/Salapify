@@ -48,6 +48,18 @@ import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/reports.dart';
+import 'package:salapify/screens/goals.dart';
+import 'package:salapify/screens/recurring.dart';
+import 'package:salapify/screens/search.dart';
+import 'package:salapify/screens/cashflow.dart';
+import 'package:salapify/screens/paluwagan.dart';
+import 'package:salapify/screens/tools.dart';
+import 'package:salapify/screens/treats.dart';
+import 'package:salapify/screens/pan.dart';
+import 'package:salapify/screens/payday.dart';
+import 'package:salapify/screens/notes.dart';
+import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
@@ -58,6 +70,7 @@ import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:convert' show jsonEncode;
+import 'dart:io';
 
 import 'screens_shot.dart' show livedInBlob, loadRealFonts;
 
@@ -349,6 +362,23 @@ void main() {
     // it, which is the difference between a rule and a list.
     'Reports': (s) => ReportsScreen(store: s),
     'Debts': (s) => DebtsScreen(store: s),
+    // Everything else a person can actually open, added when the coverage
+    // assertion below stopped this map being a promise and started making it
+    // account for the fifty files in lib/screens one by one.
+    'Goals': (s) => GoalsScreen(store: s),
+    'Recurring': (s) => RecurringScreen(store: s),
+    'Search': (s) => SearchScreen(store: s),
+    'Cash flow': (s) => CashFlowScreen(store: s),
+    'Paluwagan': (s) => PaluwaganScreen(store: s),
+    'Tools': (s) => ToolsScreen(store: s),
+    'Treats': (s) => TreatsScreen(store: s),
+    'Ask Pan': (s) => PanScreen(store: s),
+    'Payday': (s) => PaydayScreen(store: s),
+    'Notes': (s) => NotesScreen(store: s),
+    'Mindset': (s) => MindsetScreen(store: s),
+    // No store: this screen reads the live privacy log rather than the store,
+    // which is the one thing it exists to prove about itself.
+    'Privacy receipt': (s) => PrivacyReceiptScreen(),
   };
 
   // A second face of a screen, reached the way a person reaches it. Keyed by
@@ -382,6 +412,126 @@ void main() {
       });
     }
   }
+
+  // The set above is DERIVED against lib/screens, not trusted.
+  //
+  // This is the one line that turns this file from a promise into a rule, and
+  // the model is test/palette_contrast_test.dart, which iterates the theme
+  // registry and then asserts it saw all of it, so a ninth theme reddens the
+  // build. That trick was written in this repo the same week and not reused
+  // here, and the cost was exact: the set said ten screens while lib/screens
+  // held fifty, CLAUDE.md claimed it covered "every screen", and Goals sat
+  // outside it printing "by 2026-12-31" through three separate rounds of fixing
+  // that precise defect elsewhere.
+  //
+  // Everything not swept must be named below WITH A REASON. An exemption list is
+  // not a weaker version of coverage, it is the thing that makes a gap visible:
+  // a new file in lib/screens now fails this test until somebody decides which
+  // side it belongs on, and that decision is exactly what nobody was being
+  // asked to make.
+  test('every screen file is either swept or exempted for a stated reason', () {
+    // Keyed by filename, value is why it is not in the sweep. Short, honest,
+    // and specific enough that a reader can disagree with it.
+    const exempt = <String, String>{
+      // Not screens at all: cards and widgets that live inside a swept screen,
+      // so they are already pumped as part of it.
+      'afford_card.dart': 'a card inside Insights',
+      'windfall_card.dart': 'a card inside Insights',
+      'update_card.dart': 'a card inside Menu',
+      // Platform plumbing with no UI.
+      'app_exit_io.dart': 'no widgets, platform plumbing',
+      'app_exit_stub.dart': 'no widgets, platform plumbing',
+      // The container the swept tabs are mounted in. Sweeping it would pump
+      // Home a second time and measure the same pixels twice.
+      'shell.dart': 'mounts the swept tabs; covered through them',
+      // Bodies whose owning tab IS swept, under the name a person sees.
+      'utang.dart': 'the body of the swept Utang tab',
+      // Modal sheets. Reachable only mid-flow, each with its own widget test
+      // that drives the flow rather than pumping the sheet cold. Worth doing
+      // properly one day, and named here so the gap is visible rather than
+      // implied. This is the biggest remaining hole in this file.
+      'add_account_flow.dart': 'modal sheet, opened mid-flow',
+      'edit_sheet.dart': 'modal sheet, opened mid-flow',
+      'log_sheet.dart': 'modal sheet, opened mid-flow',
+      'split_expense.dart': 'modal sheet, opened mid-flow',
+      'quick_add_editor.dart': 'modal sheet, opened mid-flow',
+      // First-run only, and correctly rendered against an EMPTY store, which is
+      // the opposite fixture from the one this file uses.
+      'onboarding.dart': 'first-run, needs an empty store',
+      // Screens that need an argument this sweep has no sensible value for: a
+      // chosen person, a chosen month, a generated image.
+      'milestone_share.dart': 'needs a specific milestone to share',
+      'recap_share.dart': 'needs a specific month to share',
+      'csv_import.dart': 'needs a picked file',
+      'new_phone_day.dart': 'a guided handoff driven by its own test',
+      // Calculators. Every one is a full screen with money in it and every one
+      // SHOULD be here; they are pure-input screens whose interesting states all
+      // require typing, so a cold pump measures an empty form. That is a reason
+      // to drive them, not to skip them, and it is the next thing this file
+      // should grow.
+      'bnpl_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'contribution_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'currency_converter.dart': 'input-driven; cold pump shows an empty form',
+      'loan_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'salary_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'tax_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'thirteenth_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'tax_deadlines.dart': 'rendered by screens_shot; add here when it grows',
+      'year_end_tax.dart': 'rendered by screens_shot; add here when it grows',
+    };
+    // The files the swept set covers, by the screen each entry builds.
+    const sweptFiles = <String>{
+      'overview.dart', 'budget.dart', 'history.dart', 'money.dart',
+      'insights.dart', 'menu.dart', 'learn.dart', 'appearance.dart',
+      'accounts.dart', 'categories.dart', 'reports.dart', 'debts.dart',
+      'goals.dart', 'recurring.dart', 'search.dart', 'cashflow.dart',
+      'paluwagan.dart', 'tools.dart', 'treats.dart', 'pan.dart',
+      'payday.dart', 'notes.dart', 'mindset.dart', 'privacy_receipt.dart',
+    };
+    final onDisk = Directory('lib/screens')
+        .listSync()
+        .whereType<File>()
+        .map((f) => f.path.split('/').last)
+        .where((n) => n.endsWith('.dart'))
+        .toSet();
+
+    final unaccounted = onDisk
+        .where((n) => !sweptFiles.contains(n) && !exempt.containsKey(n))
+        .toList()
+      ..sort();
+    expect(
+      unaccounted,
+      isEmpty,
+      reason:
+          'these screens are neither swept nor exempted, so nothing measures '
+          'them and nobody decided that. Add each to the sweep, or to the '
+          'exemption map with a reason somebody could argue with:\n'
+          '${unaccounted.join('\n')}',
+    );
+
+    // And the accounting cannot drift the other way either: a swept or exempted
+    // name that no longer exists means somebody renamed a screen and this map
+    // is now describing a file that is gone.
+    final ghosts = [...sweptFiles, ...exempt.keys]
+        .where((n) => !onDisk.contains(n))
+        .toList()
+      ..sort();
+    expect(
+      ghosts,
+      isEmpty,
+      reason: 'named here but not on disk, so this map is stale:\n${ghosts.join('\n')}',
+    );
+
+    // Every entry in the swept set is actually built by the map above. Without
+    // this, sweptFiles is just a second list that can agree with nothing.
+    expect(
+      screens.length,
+      sweptFiles.length,
+      reason:
+          'the swept file list and the screens actually pumped have drifted '
+          'apart: ${screens.length} pumped, ${sweptFiles.length} claimed',
+    );
+  });
 
   // Proving the three checks can fail. Written after breaking each one on a
   // real screen and watching it report, then kept as the permanent version so
