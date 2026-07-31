@@ -94,6 +94,21 @@ void main() {
     expect(r.stdout, contains('CAMERA'));
   });
 
+  test('a non-android.permission (OEM/custom) permission is also caught', () {
+    // The security audit found the first cut only inspected the
+    // android.permission.* namespace, so an OEM or custom permission a
+    // dependency merges in slipped through unchecked. This proves the fix: a
+    // vendor badge permission must fail just like any other.
+    final r = check(
+      _goodManifest.replaceFirst(
+        '<application',
+        '<uses-permission android:name="com.sec.android.provider.badge.permission.WRITE"/>\n    <application',
+      ),
+    );
+    expect(r.exitCode, isNot(0));
+    expect(r.stdout, contains('com.sec.android.provider.badge.permission.WRITE'));
+  });
+
   test('a rogue exported component fails', () {
     final r = check(
       _goodManifest.replaceFirst(

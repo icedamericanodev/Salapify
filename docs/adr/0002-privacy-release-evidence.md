@@ -74,12 +74,18 @@ sets no visibility (`lib/services/notifications.dart:90-99`), so those render on
 the lock screen. A test currently ENFORCES the peso amount "on the lock-screen
 line" (`test/reminders_test.dart:137-138`); that test encodes the defect.
 
-The default becomes generic redacted text with no name and no amount. A clear
-opt-in setting turns detail back on. When detail is on, it appears only once the
-phone is unlocked: the notification is built with `VISIBILITY_PRIVATE` and a
-redacted public version, so the lock screen stays generic and the full text
-shows in the unlocked shade. The enforcing test is inverted to prove the default
-carries no amount.
+The default becomes generic redacted text with no name and no amount, on a
+channel with `VISIBILITY_PRIVATE` (the generic content is safe on the lock
+screen anyway). A clear opt-in setting turns detail back on. When detail is on,
+the reminder uses a separate `VISIBILITY_SECRET` channel, which Android keeps
+off a secure lock screen entirely regardless of the user's "show sensitive
+content" setting, so the name and amount appear only in the shade after unlock.
+`VISIBILITY_PRIVATE` was considered and rejected for the detailed case: it
+redacts only when the user has separately chosen to hide sensitive content, and
+many phones default to showing everything, so it would leak the body on the
+lock screen for those users. Titles stay generic in both modes because a title
+can still surface on the lock screen. The enforcing test is inverted to prove
+the default carries no name or amount.
 
 ### 3. Production artifact identity: separate flavors, production safe by default
 

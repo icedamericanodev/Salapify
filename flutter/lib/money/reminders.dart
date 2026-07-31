@@ -59,6 +59,15 @@ String _peso(num value) {
   return '${neg ? '-' : ''}₱$buf$centsPart';
 }
 
+// A readable date for a reminder body ("Jul 15"), kept local so the money layer
+// never imports a screen. Never a raw stored ISO string: the project rule is
+// that a stored date is never shown to the user unformatted.
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+String _niceDate(DateTime d) => '${_monthAbbrev[d.month - 1]} ${d.day}';
+
 // 'YYYY-MM-DD' to a local DateTime at the given hour, or null if the grammar
 // rejects it (a made-up 2026-02-31 would otherwise roll into March).
 DateTime? _atHour(dynamic dateStr, int hour) {
@@ -98,10 +107,11 @@ List<DateTime> _upcomingPaydays(DateTime now, dynamic schedule, int count) {
 ///     one line Android can still show on the lock screen even under
 ///     VISIBILITY_PRIVATE.
 ///  2. Names and amounts live only in the BODY, and only when [detailed] is on.
-///     The service sets VISIBILITY_PRIVATE, so the body is hidden on the lock
-///     screen and shown once the phone is unlocked. That is the founder-approved
-///     "unlocked shade only" posture: opting in reveals detail in the unlocked
-///     shade, never on the lock screen.
+///     When [detailed] is on the service uses a SECRET channel, which Android
+///     keeps off a secure lock screen entirely, so the detail appears only in
+///     the shade after unlock. That is the founder-approved "unlocked shade
+///     only" posture: opting in reveals detail in the unlocked shade, never on
+///     the lock screen.
 List<PlannedReminder> plannedReminders(
   Map data,
   DateTime now, {
@@ -219,7 +229,7 @@ List<PlannedReminder> plannedReminders(
         add(
           'Still waiting',
           detailed
-              ? "$person's $amount was due ${r['dueDate']}. A friendly follow up usually works."
+              ? "$person's $amount was due ${_niceDate(due)}. A friendly follow up usually works."
               : 'You have money that was due. Open Salapify, a friendly follow up usually works.',
           DateTime(now.year, now.month, now.day + 1, 9),
         );

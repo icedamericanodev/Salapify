@@ -73,14 +73,18 @@ in_list() {
   return 1
 }
 
-# 1. Permissions: every declared permission must be on the allowlist.
+# 1. Permissions: every declared permission must be on the allowlist. Compare
+# the FULL android:name value, not just the android.permission.* namespace: an
+# OEM or custom permission (com.sec.android...badge, a ${applicationId}.permission
+# .*, a C2DM permission) is exactly the kind a dependency merges in silently,
+# and pre-filtering to one namespace would drop it before the allowlist saw it.
 while IFS= read -r perm; do
   [ -z "$perm" ] && continue
   if ! in_list "$perm" "${ALLOWED_PERMS[@]}"; then
     fail "unexpected permission '$perm'. If it belongs, add it to ALLOWED_PERMS with a reason; if not, remove the dependency that pulled it in."
   fi
 done < <(grep -oE 'uses-permission[^>]*android:name="[^"]+"' <<<"$FLAT" \
-  | grep -oE 'android\.permission\.[A-Za-z_.]+' | sort -u)
+  | sed -E 's/.*android:name="([^"]+)".*/\1/' | sort -u)
 
 # 2. Exported components: every component tag carrying exported="true" must be
 # on the allowlist, matched by its last name segment.

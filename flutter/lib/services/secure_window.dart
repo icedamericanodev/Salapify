@@ -45,16 +45,25 @@ class SecureWindow {
   /// to call.
   static Future<void> apply(bool secure) async {
     if (secure == _applied) return;
-    _applied = secure;
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      _applied = secure; // no channel on web; record so we do not retry
+      return;
+    }
     try {
       await channel.invokeMethod('setSecure', {'secure': secure});
+      // Commit ONLY after the platform confirms. If the call throws for a
+      // transient reason, _applied stays as it was, so the next store notify
+      // retries the sync instead of falsely believing the flag is set.
+      _applied = secure;
     } on MissingPluginException {
-      // No native side here (a test, or a platform that does not register the
-      // channel). Nothing to secure, and nothing to crash over.
+      // No native side (a test, or a platform that does not register the
+      // channel). Treat as applied so we do not cross the channel on every
+      // notify; there is nothing to secure and nothing to crash over.
+      _applied = secure;
     } catch (_) {
-      // A window-flag failure must never take the app down. The worst case is
-      // a screenshot that was not blocked, never a crash on a money screen.
+      // A window-flag failure must never take the app down, and must not be
+      // recorded as success: leave _applied unchanged so a later sync retries.
+      // The worst case is a screenshot that was not blocked, never a crash.
     }
   }
 

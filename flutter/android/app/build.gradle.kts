@@ -8,9 +8,9 @@ android {
     namespace = "dev.icedamericano.salapify"
     // file_picker's flutter_plugin_android_lifecycle requires compileSdk 36, so
     // pin it here rather than the Flutter default (34/35). AGP 9 and Gradle 9
-    // support it. targetSdk stays on the Flutter default on purpose: compileSdk
-    // only allows newer APIs at build time, it does not opt into new runtime
-    // behavior the way a targetSdk bump would.
+    // support it. compileSdk only allows newer APIs at build time; it does not
+    // opt into new runtime behavior the way targetSdk does. targetSdk is set
+    // to an explicit 36 in defaultConfig below (see the comment there).
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 

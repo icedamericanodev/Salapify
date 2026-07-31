@@ -708,8 +708,9 @@ class MenuScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           'Off by default. Reminders stay generic on your lock '
-                          'screen. Turn on to show the name and amount, visible '
-                          'only after you unlock the phone.',
+                          'screen. Turn on to include the name and amount, kept '
+                          'off your lock screen and shown in the shade after you '
+                          'unlock.',
                           style: TextStyle(
                             color: Barako.muted,
                             fontSize: 12,
