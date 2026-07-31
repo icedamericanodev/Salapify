@@ -46,6 +46,7 @@ import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/reports.dart';
 import 'package:salapify/screens/goals.dart';
@@ -379,6 +380,7 @@ void main() {
     // No store: this screen reads the live privacy log rather than the store,
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
+    'Diagnostics': (s) => DiagnosticsScreen(store: s),
   };
 
   // A second face of a screen, reached the way a person reaches it. Keyed by
@@ -490,6 +492,7 @@ void main() {
       'goals.dart', 'recurring.dart', 'search.dart', 'cashflow.dart',
       'paluwagan.dart', 'tools.dart', 'treats.dart', 'pan.dart',
       'payday.dart', 'notes.dart', 'mindset.dart', 'privacy_receipt.dart',
+      'diagnostics_screen.dart',
     };
     final onDisk = Directory('lib/screens')
         .listSync()

@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.08 \u00b7 Privacy receipt now lists the on-device protections: backups off, secure screen, generic reminders.';
+    'f3.09 \u00b7 Testers can see the app\'s safe counts and recent errors on a new Diagnostics screen, nothing auto-shared.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

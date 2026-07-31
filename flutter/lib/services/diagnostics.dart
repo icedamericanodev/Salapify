@@ -192,6 +192,11 @@ class Diagnostics {
     return b.toString();
   }
 
+  /// The same safe counts the report uses, exposed so a tester-facing view can
+  /// render them as rows without parsing the report text. Ints only, never any
+  /// content, so this is exactly as safe as the report line it mirrors.
+  static Map<String, int> counts(dynamic data) => _counts(data);
+
   /// Counts of things, never their contents. The key names are deliberately
   /// generic so that adding a field to the store cannot leak a label here.
   static Map<String, int> _counts(dynamic data) {

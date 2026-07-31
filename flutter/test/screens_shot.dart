@@ -50,7 +50,9 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
+import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
+import 'package:salapify/services/diagnostics.dart';
 import 'package:salapify/screens/year_end_tax.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
@@ -1707,6 +1709,55 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/privacy-receipt-dark.png'),
+    );
+  });
+
+  testWidgets('the Diagnostics tester screen, dark', (tester) async {
+    // A lived-in shot: a couple of counts and one recorded error, so the screen
+    // shows both cards rather than an all-empty page. The store carries only
+    // ids, because the screen renders counts, never contents (proven by
+    // diagnostics_screen_test.dart), so there is no PII to show here anyway.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+    await Diagnostics.clear();
+    Diagnostics.record(
+      'RangeError (index): invalid value',
+      'package:salapify/screens/foo.dart 12:3',
+    );
+    final store = SalapifyStore();
+    store.data = {
+      'transactions': [
+        {'id': 't1'},
+        {'id': 't2'},
+      ],
+      'accounts': [
+        {'id': 'a1'},
+      ],
+      'debts': [],
+      'goals': [],
+      'utang': [],
+      'recurring': [],
+      'categories': [
+        {'id': 'c1'},
+      ],
+    };
+
+    tester.view.physicalSize = const Size(1080, 2600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: DiagnosticsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/diagnostics-dark.png'),
     );
   });
 }
