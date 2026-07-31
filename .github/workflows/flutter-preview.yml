@@ -70,7 +70,13 @@ jobs:
       - name: Test
         run: flutter test
 
-      - uses: shorebirdtech/setup-shorebird@2950e8a542a267f3b7fe8f25bf9755dd09292e9b # v1.2.1
+      # Pinned to the commit the moving v1 tag points to, which is v1.0.1 and
+      # is the exact version every prior delivery (f3.01 to f3.04) used. Do NOT
+      # "upgrade" this to v1.2.x by tag: those newer releases ship an install
+      # script that fails under the runner's /bin/sh ("Syntax error: ( unexpected"),
+      # which broke the f3.05 base APK once already. A SHA is required by the
+      # pinning policy; this is the SHA of the known-good version.
+      - uses: shorebirdtech/setup-shorebird@4dd9d7dc2d7930bfeadb053b6e94b5110779d1e5 # v1 (v1.0.1)
 
       # Shorebird model: one RELEASE per pubspec version (the base APK the
       # founder installs once), then every later push PATCHES that release
