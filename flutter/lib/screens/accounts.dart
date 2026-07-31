@@ -1757,107 +1757,131 @@ class _TransferSheetState extends State<_TransferSheet> {
               0.9,
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Move money',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+        // The fields SCROLL and the actions are PINNED below them. The old
+        // layout put the whole sheet, buttons included, in one scroll view, so
+        // on a short phone with the keyboard up, large text, or long account
+        // names the pickers could push "Move it" off the bottom and there was
+        // no signal it was down there. Flexible gives the scroll area the space
+        // left after the pinned footer, so the primary action is always visible
+        // within the maxHeight box and above the keyboard inset.
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Move money',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'This is not income and not spending, so it never touches '
+                      'your budget. It just moves the balances.',
+                      style: TextStyle(
+                        color: Barako.textSecondary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    _label('From'),
+                    _picker(list, _fromId, (v) => setState(() => _fromId = v)),
+                    _label('To'),
+                    _picker(list, _toId, (v) => setState(() => _toId = v)),
+                    _label('Amount'),
+                    TextField(
+                      controller: _amount,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: TextStyle(color: Barako.faint),
+                        prefixText: '$baseCurrencySymbol ',
+                        prefixStyle: TextStyle(
+                          color: Barako.muted,
+                          fontSize: 20,
+                        ),
+                        filled: true,
+                        fillColor: Barako.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(color: Barako.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderSide: BorderSide(color: Barako.border),
+                        ),
+                      ),
+                      onSubmitted: (_) => _save(),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'This is not income and not spending, so it never touches '
-                'your budget. It just moves the balances.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
+            ),
+            // Pinned footer: the refusal line and the actions, always on screen.
+            if (_err != null) ...[
+              const SizedBox(height: 10),
+              // liveRegion, so a screen reader announces the refusal. Without it
+              // a blind user taps "Move it", hears nothing, and has no signal
+              // that the money did not move.
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _err!,
+                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
                 ),
               ),
-              _label('From'),
-              _picker(list, _fromId, (v) => setState(() => _fromId = v)),
-              _label('To'),
-              _picker(list, _toId, (v) => setState(() => _toId = v)),
-              _label('Amount'),
-              TextField(
-                controller: _amount,
-                autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-                decoration: InputDecoration(
-                  hintText: '0',
-                  hintStyle: TextStyle(color: Barako.faint),
-                  prefixText: '$baseCurrencySymbol ',
-                  prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
-                  filled: true,
-                  fillColor: Barako.card,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    borderSide: BorderSide(color: Barako.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    borderSide: BorderSide(color: Barako.border),
-                  ),
-                ),
-                onSubmitted: (_) => _save(),
-              ),
-              if (_err != null) ...[
-                const SizedBox(height: 10),
-                // liveRegion, so a screen reader announces the refusal.
-                // Without it a blind user taps "Move it", hears nothing, and
-                // has no signal that the money did not move.
-                Semantics(
-                  liveRegion: true,
+            ],
+            const SizedBox(height: 20),
+            // Wrap, not Row: at a large text scale on a narrow phone "Cancel"
+            // and "Move it" side by side overflow the width, and a Row would
+            // paint the barber-pole overflow stripe. Wrap drops "Move it" to a
+            // second right-aligned line instead, so both stay reachable.
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
                   child: Text(
-                    _err!,
-                    style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                    'Cancel',
+                    style: TextStyle(color: Barako.textSecondary),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                  ),
+                  child: const Text(
+                    'Move it',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: Barako.textSecondary),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _saving ? null : _save,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text(
-                      'Move it',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
