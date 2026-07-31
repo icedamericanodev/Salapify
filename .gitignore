@@ -5,3 +5,4 @@ node_modules/
 # Agent scratch / probe files in tests/
 tests/_*.js
 flutter/test/shots/
+flutter/test/golden/failures/

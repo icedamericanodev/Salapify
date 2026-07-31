@@ -47,6 +47,49 @@ Future<void> _openSheet(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Open the Accounts screen on a chosen viewport and system text scale, so the
+/// transfer sheet can be tested where it is hardest to lay out: a short phone
+/// with the text turned up. The builder injects the scale ABOVE the navigator
+/// so the pushed modal inherits it too.
+Future<SalapifyStore> _openScaled(
+  WidgetTester tester, {
+  Map<String, dynamic>? blob,
+  double scale = 1.0,
+  Size size = const Size(390, 844),
+}) async {
+  tester.view.physicalSize = size * 3.0;
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.reset);
+  SharedPreferences.setMockInitialValues({
+    storageKey: jsonEncode(blob ?? _blob()),
+  });
+  final store = SalapifyStore();
+  await store.load();
+  await tester.pumpWidget(
+    MaterialApp(
+      home: AccountsScreen(store: store),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return store;
+}
+
+List<Map<String, dynamic>> _manyLongAccounts() => [
+  for (var i = 0; i < 8; i++)
+    {
+      'id': 'acct$i',
+      'name': 'My Very Long Everyday Bank Account Name Number $i',
+      'kind': 'cash',
+      'balance': 5000.0 + i,
+    },
+];
+
 List<Map<String, dynamic>> _accounts(SalapifyStore s) =>
     (s.data['accounts'] as List).cast<Map<String, dynamic>>();
 
@@ -289,5 +332,88 @@ void main() {
       store,
     ).fold<double>(0, (t, a) => t + (a['balance'] as num).toDouble());
     expect(total, closeTo(3200 + 48500.55, 0.0001));
+  });
+
+  testWidgets(
+    'the primary action stays on screen at small height and large text',
+    (tester) async {
+      // A short phone with the text turned up is where the old all-in-one
+      // scroll view could push "Move it" off the bottom. It is pinned now, so
+      // it must render within the viewport without scrolling.
+      await _openScaled(tester, scale: 1.5, size: const Size(360, 600));
+      await _openSheet(tester);
+      expect(tester.takeException(), isNull);
+
+      final moveIt = find.text('Move it');
+      expect(moveIt, findsOneWidget);
+      final screenH =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(
+        tester.getRect(moveIt).bottom,
+        lessThanOrEqualTo(screenH + 0.5),
+        reason:
+            'the pinned primary action must sit within the viewport, not be '
+            'scrolled off the bottom of the sheet',
+      );
+    },
+  );
+
+  testWidgets(
+    'with many long-named accounts the fields scroll and Move it still commits',
+    (tester) async {
+      final store = await _openScaled(
+        tester,
+        blob: _blob(accounts: _manyLongAccounts()),
+        scale: 1.3,
+        size: const Size(360, 600),
+      );
+      await _openSheet(tester);
+      expect(tester.takeException(), isNull);
+      // The action is pinned and present even though the pickers are tall.
+      expect(find.text('Move it'), findsOneWidget);
+
+      // Defaults are the first two accounts. Enter an amount, scroll the field
+      // area (dragging on a field label scrolls the sheet's inner scroll view),
+      // then activate the pinned action.
+      await tester.enterText(find.byType(TextField), '10');
+      // The sheet's own scroll view is the last one pumped (above the Accounts
+      // list). Dragging it up proves the fields scroll under the pinned action.
+      await tester.drag(
+        find.byType(SingleChildScrollView).last,
+        const Offset(0, -150),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Move it'));
+      await tester.pumpAndSettle();
+
+      // acct0 -> acct1 by 10.
+      expect(_balanceOf(store, 'acct0'), 4990.0);
+      expect(_balanceOf(store, 'acct1'), 5011.0);
+    },
+  );
+
+  testWidgets('double-tapping Move it commits exactly one transfer', (
+    tester,
+  ) async {
+    // The re-entrancy guard (_saving) sets synchronously inside _save before
+    // the await, so a second tap that lands before the first save settles is
+    // dropped. Two taps must not move the money twice.
+    final store = await _open(tester);
+    await _openSheet(tester);
+    await tester.enterText(find.byType(TextField), '100');
+    await tester.tap(find.text('Move it'));
+    // Second tap before the async save settles; the sheet may already be
+    // closing, so do not warn if it misses.
+    await tester.tap(find.text('Move it'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    final transfers = (store.data['transactions'] as List)
+        .cast<Map<String, dynamic>>()
+        .where((t) => t['type'] == 'transfer');
+    expect(transfers, hasLength(1));
+    expect(_balanceOf(store, 'cash'), 3100);
+    expect(_balanceOf(store, 'bpi'), 48600.55);
   });
 }

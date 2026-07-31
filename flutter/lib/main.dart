@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.09 \u00b7 Testers can see the app\'s safe counts and recent errors on a new Diagnostics screen, nothing auto-shared.';
+    'f3.10 \u00b7 Big-text fixes: theme picker and transfer buttons hold up, clearer Insights, scannable Income tax.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -49,6 +49,7 @@ import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
@@ -225,8 +226,9 @@ final Map<String, dynamic> livedInBlob = () {
       '${t.year.toString().padLeft(4, '0')}-'
       '${t.month.toString().padLeft(2, '0')}-'
       '${t.day.toString().padLeft(2, '0')}';
-  String d(int day) =>
-      iso(DateTime(today.year, today.month, day <= today.day ? day : today.day));
+  String d(int day) => iso(
+    DateTime(today.year, today.month, day <= today.day ? day : today.day),
+  );
   // Genuinely ahead of today, allowed to cross into next month, which is what a
   // real "they still have time to pay" utang looks like.
   String ahead(int days) => iso(today.add(Duration(days: days)));
@@ -426,6 +428,7 @@ Future<void> shoot(
   await tester.pumpWidget(
     MaterialApp(
       theme: salapifyTheme(Barako.current),
+      debugShowCheckedModeBanner: false,
       // A destination is a body now, not a Scaffold. The shell supplies the
       // Scaffold in the app, so the harness has to here, or every screen with
       // a Material widget in it asserts before it can be photographed.
@@ -506,6 +509,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -565,6 +569,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MoneyScreen(store: store, onMenu: () {}),
         ),
@@ -608,6 +613,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: SingleChildScrollView(child: QuickAddEditor(store: store)),
@@ -667,6 +673,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           // Pinned, like the widget tests. Left on the real clock these
           // three shots silently become an empty month the moment the
@@ -767,6 +774,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: SingleChildScrollView(
@@ -817,6 +825,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -901,6 +910,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -952,6 +962,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: InsightsScreen(
             store: store,
@@ -992,6 +1003,7 @@ void main() {
         data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
         child: MaterialApp(
           theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
           home: AppearanceScreen(store: store),
         ),
       ),
@@ -1033,6 +1045,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AppearanceScreen(store: store),
       ),
     );
@@ -1064,6 +1077,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
         ),
@@ -1104,6 +1118,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
         ),
@@ -1142,6 +1157,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
@@ -1179,6 +1195,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: Center(
@@ -1225,6 +1242,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: OverviewScreen(
             store: store,
@@ -1319,6 +1337,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
           // showNudge forced on: the harness runs on a desktop VM where
           // reminders are unsupported, so the real device check would hide
           // the step and this walk would photograph a flow the phone does
@@ -1396,6 +1415,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: OverviewScreen(
             store: store,
@@ -1436,6 +1456,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AccountsScreen(store: store),
       ),
     );
@@ -1486,6 +1507,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AccountsScreen(store: store),
       ),
     );
@@ -1577,6 +1599,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: CategoriesScreen(store: store),
       ),
     );
@@ -1617,6 +1640,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: TaxDeadlinesScreen(
           store: store,
           clock: () => DateTime(2026, 4, 10),
@@ -1633,6 +1657,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: YearEndTaxScreen(store: store),
       ),
     );
@@ -1645,6 +1670,37 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/year-end-tax-dark.png'),
+    );
+  });
+
+  testWidgets('the Income tax calculator with a result, dark', (tester) async {
+    // The heaviest tax screen and the only one that was in no render harness.
+    // Entering a gross figure reveals OUR PICK, both option cards (the
+    // graduated breakdown folded behind "Show the calculation"), the set-aside,
+    // the forms, and the disclaimer.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: const TaxCalculatorScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '600000');
+    await tester.pumpAndSettle();
+    expect(find.text('OUR PICK'), findsOneWidget);
+    expect(find.text('Show the calculation'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/tax-income-dark.png'),
     );
   });
 
@@ -1667,6 +1723,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: LearnScreen(store: store),
       ),
     );
@@ -1701,6 +1758,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: PrivacyReceiptScreen(),
       ),
     );
@@ -1750,6 +1808,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: DiagnosticsScreen(store: store),
       ),
     );

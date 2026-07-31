@@ -158,6 +158,32 @@ jobs:
       - name: The screenshot harness still renders
         run: flutter test test/screens_shot.dart --update-goldens
 
+      # The deterministic golden baselines, COMPARED (no --update-goldens). A
+      # small committed pixel baseline for the screens the UI work touched.
+      #
+      # continue-on-error on purpose: this is a VISUAL REFERENCE, not the gate.
+      # The real regression protection is the layout-metric tests in the `Test`
+      # step (screen_readability_test, palette_contrast, and the per-fix widget
+      # tests), which measure layout, not pixels, and cannot flake across
+      # machines. Pixel goldens are generated on one Linux box and compared on
+      # another, and CLAUDE.md is emphatic that a check which cries wolf gets its
+      # battery pulled, so this reports a drift (its own named, non-blocking
+      # step) without ever blocking a merge on a sub-pixel difference. A real
+      # visual regression still shows here, and the failure_*.png diffs are
+      # uploaded below for a look. See flutter/test/golden/README.md.
+      - name: UI golden baselines (visual reference, non-blocking)
+        id: goldens
+        continue-on-error: true
+        run: flutter test test/golden/ui_golden.dart
+
+      - name: Upload golden diffs when they drift
+        if: steps.goldens.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: golden-diffs
+          path: flutter/test/golden/**/failures/**
+          if-no-files-found: ignore
+
       # Compile Android, but ONLY when the native side of the app changed.
       #
       # A launch audit found the order was backwards: nothing here ever ran
