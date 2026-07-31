@@ -104,6 +104,42 @@ submission (the default for new apps) so a lost upload key can be reset.
 failure message, so this surfaces at the exact moment production signing is first
 attempted.
 
+### 3. Production build notes carried forward from the PR2 audit
+
+These are not open decisions, they are facts about the prod path that must not be
+forgotten at submission. Recorded here because the reader is already standing here
+when producing the AAB.
+
+- **The Play build cannot install over the preview build.** The preview APK is
+  signed with the committed preview certificate; the Play production build is
+  signed with the upload key (then re-signed by Play App Signing). Android refuses
+  to install a same-package app signed with a different certificate over an
+  existing one, so a founder or tester moving from the preview APK to the Play app
+  must UNINSTALL the preview app first, which wipes local data. Export a backup
+  first and restore it after, and verify that round trip before switching any real
+  phone across.
+
+- **versionCode must strictly increase across prod uploads.** `versionCode` comes
+  from the pubspec build number (`0.8.0+14` gives 14). Play rejects a reused
+  versionCode, so the second and every later prod AAB must carry a higher build
+  number than the last one uploaded to Play. There is no guard for this because
+  nothing in the repo knows what was last uploaded; track it by hand at
+  submission.
+
+- **Production carries no over-the-air updater, on purpose.** The prod AAB is
+  built with plain `flutter build appbundle`, not `shorebird release`, so a
+  shipped Play build never receives Dart patches: every production change is a new
+  AAB and a new Play review. That is the deliberate "production is a static,
+  reviewed build" posture (ADR 0002). If production OTA is ever wanted, that is a
+  real decision: generate a prod Shorebird app_id with `shorebird init` (never
+  reuse preview's) and add it to `flutter/shorebird.yaml` and the prod workflow.
+
+- **minSdk is still the Flutter default.** `build.gradle.kts` leaves
+  `minSdk = flutter.minSdkVersion` rather than an explicit reviewed number, unlike
+  `targetSdk` which is pinned to guard against silent drift. Consider pinning it
+  before launch so a Flutter SDK bump cannot move the floor of supported devices
+  underneath the app without review.
+
 ## Done, recorded so it is not re-litigated
 
 - **Testing scaffolding is flagged, not remembered** (f2.94). `kTestingAids` in

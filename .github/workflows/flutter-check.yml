@@ -97,6 +97,42 @@ jobs:
             exit 1
           fi
 
+      # Delivery guard, the second half of the flavor split. The publisher hands
+      # --flavor to `shorebird release/patch`, and Shorebird needs a matching
+      # entry under flavors: in shorebird.yaml to resolve an app_id. Without it,
+      # release and patch cannot find the app and delivery breaks on main, the
+      # founder's only live channel, and it breaks INVISIBLY here because the
+      # branch check never runs a real shorebird release. This asserts, pre-merge
+      # and statically, that every flavor the publisher passes to a shorebird
+      # command is mapped. It caught exactly this: --flavor preview was wired
+      # into the publisher while shorebird.yaml still had no flavors: map.
+      - name: Every Shorebird flavor is mapped in shorebird.yaml
+        working-directory: .
+        run: |
+          flavors=$(grep -oE 'shorebird +(release|patch) +android[^|&]*--flavor +[A-Za-z0-9_]+' \
+            .github/workflows/flutter-preview.yml \
+            | grep -oE '\-\-flavor +[A-Za-z0-9_]+' | awk '{print $2}' | sort -u)
+          echo "Flavors the publisher passes to shorebird: ${flavors:-<none>}"
+          if [ -z "$flavors" ]; then
+            echo "No shorebird --flavor usage found; nothing to check."
+            exit 0
+          fi
+          # Isolate the flavors: block (from the flavors: line to the next
+          # top-level key), so an unrelated indented line cannot satisfy it and
+          # an absent flavors: map yields an empty block that fails every flavor.
+          block=$(awk '/^flavors:/{f=1;next} /^[^[:space:]#]/{f=0} f' flutter/shorebird.yaml)
+          missing=
+          for f in $flavors; do
+            echo "$block" | grep -qE "^[[:space:]]+$f:" || missing="$missing $f"
+          done
+          if [ -n "$missing" ]; then
+            echo "flutter/shorebird.yaml has no flavors: entry for:$missing"
+            echo "shorebird release/patch --flavor <f> needs flavors.<f> in shorebird.yaml,"
+            echo "or delivery on main cannot resolve an app_id. Add the mapping."
+            exit 1
+          fi
+          echo "All shorebird flavors are mapped in shorebird.yaml."
+
       - name: Analyze (zero tolerance)
         run: flutter analyze
 
