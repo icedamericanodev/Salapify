@@ -147,9 +147,12 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # --flavor preview: the app has two flavors now (preview and prod), so a
+      # flavorless build is ambiguous and fails. preview is what the founder
+      # runs, so it is the one to compile here.
       - name: Android actually compiles
         if: steps.native.outputs.changed == 'true'
-        run: flutter build apk --debug
+        run: flutter build apk --debug --flavor preview
 
       # The shipped manifest is not the source manifest: plugins merge in their
       # own permissions and components at build time. This reads the MERGED
@@ -170,8 +173,12 @@ jobs:
           # library manifest under flutter/build/<plugin>/..., and those have no
           # app-level allowBackup, so a search across all of flutter/build can
           # grab the wrong file. The app module is flutter/build/app.
+          #
+          # The variant is previewDebug now (flavor + build type), so the
+          # intermediates dir is .../merged_manifest/previewDebug/... . Match it
+          # case-insensitively, and fall back to any merged app manifest.
           MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
-            -path '*merged_manifest*' -path '*debug*' 2>/dev/null | head -1)
+            -path '*merged_manifest*' 2>/dev/null | grep -i 'previewdebug' | head -1)
           if [ -z "$MANIFEST" ]; then
             MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
               -path '*merged_manifest*' 2>/dev/null | head -1)

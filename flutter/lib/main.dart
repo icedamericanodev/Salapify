@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'data/storage_bootstrap.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
+import 'build_flags.dart';
 import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
@@ -151,7 +152,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
         Barako.currentTheme = theme;
         Barako.current = theme.resolve(effectiveBrightness(mode, os));
         return MaterialApp(
-          title: 'Salapify Preview',
+          // The task-switcher / recents title follows the build: the production
+          // build must not say "Preview". kPreviewBuild is false in the store
+          // build (SALAPIFY_PREVIEW=false), matching the prod flavor's launcher
+          // label. Guarded by test/preview_only_test.dart.
+          title: kPreviewBuild ? 'Salapify Preview' : 'Salapify',
           theme: salapifyTheme(Barako.current),
           // Snap the theme, do not tween it. MaterialApp otherwise lerps every
           // Theme.of-derived colour over 200ms (the scaffold, every Card fill,
