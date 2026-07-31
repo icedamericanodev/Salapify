@@ -35,12 +35,15 @@ fi
 
 # Every permission the app is allowed to ship. Update this ONLY when a new
 # permission is a reviewed decision. INTERNET (updates + rate lookups),
-# USE_BIOMETRIC (App Lock), POST_NOTIFICATIONS + RECEIVE_BOOT_COMPLETED
+# USE_BIOMETRIC + USE_FINGERPRINT (App Lock; local_auth_android merges the
+# legacy pre-API-28 USE_FINGERPRINT alongside USE_BIOMETRIC, same biometric
+# trust, no data leaves the phone), POST_NOTIFICATIONS + RECEIVE_BOOT_COMPLETED
 # (reminders), VIBRATE (haptics), WAKE_LOCK + ACCESS_NETWORK_STATE +
 # FOREGROUND_SERVICE (home-widget plumbing, unused by us but merged in).
 ALLOWED_PERMS=(
   "android.permission.INTERNET"
   "android.permission.USE_BIOMETRIC"
+  "android.permission.USE_FINGERPRINT"
   "android.permission.POST_NOTIFICATIONS"
   "android.permission.RECEIVE_BOOT_COMPLETED"
   "android.permission.VIBRATE"
