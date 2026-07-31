@@ -10,6 +10,205 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-31, session 22: the first ship failed silently, and the missing row is what told the truth
+
+**What we believed / What was true.** We believed the Phase 1 privacy base APK shipped
+the moment PR1 merged (PR #267, merge commit `2e04b41`). It did not. The "Flutter preview
+APK" publisher ran, DIED at the "Install Shorebird" step, and shipped nothing, while the
+pull request sat there merged and green. No delivery-log row was written, which is exactly
+the signal that says "nothing reached the phone." Claude read that absence, found the failed
+run had opened issue #268, and did NOT tell the founder anything was live. The fix (PR #269,
+merge commit `efafe83`) re-ran the publisher and shipped the f3.05 base APK. The founder
+installed `0.8.0+14` by hand and reported "it works now, stamp shows f3.05." That install,
+on the real phone, is the only proof that counts, and belief and truth now match.
+
+**Timeline (with evidence).**
+- PR1 merged as `2e04b41` (`git show --no-patch --format=%P 2e04b41` gives `394eb9c ebc5cf5`,
+  a real merge, not squashed). Seven deliverables, each a commit prefixed `PR1:`, each with a
+  guard proven to fail then restored: backup exclusion (`7b02708`), native FLAG_SECURE window
+  (`d5bba77`), generic lock-screen notifications (`f0375d8`), explicit targetSdk=36
+  (`e83a828`), the merged-manifest allowlist plus SHA-pinned actions plus the PR-safe Flutter
+  check (`630738f`), and the QA-gate fixes (`766b48c`).
+- The base APK is a `release` in Shorebird terms, so it required a hand install. Prior base was
+  f3.02 at `0.7.0+13`; this one is f3.05 at `0.8.0+14`.
+- The FIRST preview run failed (run `30599031915`). Per the fix commit `0e28bc7`, it died at
+  "Install Shorebird" with `sh: 13: Syntax error: "(" unexpected`, before building or publishing
+  anything, and opened issue #268 ("Preview build failed, nothing shipped to the phone").
+  Because the publish never completed, no row was written to `docs/delivery-log.md`, and that
+  absence, not any alarm, is what said the ship failed.
+- Root cause of the failed ship. When PR1 SHA-pinned the eight Actions, the pin for
+  `shorebirdtech/setup-shorebird` was resolved by taking `tail -1` of a version-tag list, which
+  is not sorted semantically. That picked v1.2.1 (`2950e8a`). But the moving `@v1` tag that
+  every prior delivery f3.01 through f3.04 rode points to v1.0.1 (`4dd9d7d`), and the newer
+  v1.2.x ships an install script that fails under the runner's `/bin/sh`. So the pin "upgraded"
+  the installer to a version no prior ship had ever used, on the one action the branch check
+  never ran.
+- The fix (`0e28bc7`, merged as `efafe83`) re-pinned setup-shorebird to `4dd9d7d`, the exact
+  commit `@v1` resolves to and the known-good version. It also re-checked all eight pins against
+  their moving major tags; only setup-shorebird was wrong. `flutter-action` at `9a48871`
+  (v2.9.1) had already passed both the branch check and the flutter-setup step of the failed
+  preview run, so it was proven working. `flutter-preview.yml` line 79 now reads
+  `shorebirdtech/setup-shorebird@4dd9d7d...  # v1 (v1.0.1)`. Re-merging shipped f3.05, run
+  `30600383577`, and the row landed.
+- Ground truth read, not assumed. `origin/main:docs/delivery-log.md` last row:
+  `f3.05 | none | release | 0.8.0+14`. `flutter/lib/main.dart` prints
+  `f3.05 · Privacy: backup fully off, lock-screen reminders generic by default, screenshots
+  blocked when App Lock is on.` The founder's stamp reads f3.05. File and phone agree.
+
+**Root cause.** A broken delivery-action pin was INVISIBLE to the branch check, because the
+branch check (`flutter-check.yml`) never ran `setup-shorebird`. The only place that step ran
+was the preview publisher, which only runs on a merge to main, which is the single most
+expensive place to discover any failure. The pin was set by a process ("tail the tag list")
+that does not equal "what was working" ("what the moving `@vMAJOR` tag points to"), and nothing
+between the edit and the founder's phone could catch the difference.
+
+**Lessons.**
+
+1. **When SHA-pinning an action, pin the commit the moving `@vMAJOR` tag resolves to, the one
+   already working, never `tail -1` of the patch-tag list.** The tag list is not sorted
+   semantically and its last line is not what `@v1` points to. Guard: a rule in CLAUDE.md tied
+   to the moment of pinning. Strength: **medium**, because it depends on someone reading it while
+   pinning. It is not the primary guard; lesson 2 is.
+
+2. **A broken delivery-action pin now reddens the PULL REQUEST, not the base-APK build on main,
+   and that guard was built THIS session.** `flutter-check.yml` gained two steps. First, a
+   "delivery-tooling smoke test" that runs `setup-shorebird` with the EXACT same
+   pinned action the publisher uses; installing the Shorebird CLI needs no token and publishes
+   nothing, so it is safe on every branch and PR, and it fails loudly pre-merge if the pinned
+   installer cannot install. Second, a "Publisher and this check pin Shorebird identically" step
+   that greps the `setup-shorebird` SHA out of BOTH `flutter-check.yml` and `flutter-preview.yml`
+   and fails if they differ, so the pin the smoke test proves is always the exact pin that ships.
+   Without the parity step the smoke test could bless a pin that main does not use. The parity
+   check was proven both directions locally: matching pins pass, a drifted pin fails. Its
+   real-world proof is the failed run `30599031915` (setup-shorebird v1.2.1 failing to install),
+   the exact failure this now catches on the branch. Grade: **strong**, a real machine check,
+   loud, cheap, token-free, and it runs when no one is watching. This closes the gap that shipped
+   nothing on the first PR1 merge.
+
+3. **"Merged is not delivered" worked exactly as designed, and that is the win to record.** The
+   missing delivery-log row is what told the truth while the pull request looked clean and
+   merged. Claude checked before speaking, found issue #268, and never told the founder f3.05
+   was live. Guard: already in place, the delivery-log row as the sole proof of delivery, plus
+   the CLAUDE.md rule "never say a version number to the founder until its row exists." Strength:
+   the row check is **strong** (a machine writes it or it stays absent); the do-not-say-the-
+   number rule is **medium** and held here.
+
+4. **The merged-manifest check earned its keep on its very first real run.** It was built for
+   one belief the founder flagged, "do not assume the source manifest equals the shipped
+   manifest," and it caught a real gap four CI rounds running, each surfacing something the
+   4-permission, 2-component SOURCE manifest never showed but the SHIPPED app actually contains.
+   In order: a wrong-file bug where `find` matched a plugin's library manifest, fixed to search
+   `flutter/build/app` only plus a guard that rejects any manifest with no `<application>`
+   element (`8307a49`); then `USE_FINGERPRINT`, the legacy pre-API-28 biometric permission
+   `local_auth` merges (`b1f4fc7`); then the app-scoped `...DYNAMIC_RECEIVER_NOT_EXPORTED_
+   PERMISSION` that AndroidX Core auto-generates, plus a change to report ALL offenders at once
+   rather than one per five-minute native build (`85d2526`); then four AndroidX framework
+   exported components, WorkManager's `SystemJobService` and `DiagnosticsReceiver`, Glance's
+   `GlanceRemoteViewsService`, and ProfileInstaller's `ProfileInstallReceiver` (`ebc5cf5`). The
+   shipped app carries nine `android.permission.*` entries plus one app-scoped signature
+   permission and six exported components; the source declares four permissions and two exported
+   components. Each addition was vetted with a reason string in the allowlist. Guard: the check
+   itself, `.github/scripts/check-merged-manifest.sh`, driven on the branch by
+   `test/merged_manifest_guard_test.dart` and run after the native APK build. Strength:
+   **strong**, and the allowlists are TYPED sets, so a new permission or a newly-exported
+   component reddens CI until a human decides it belongs. It is a promise, not a guess.
+
+5. **The pre-merge multi-agent gate caught two real issues before the ship.** Recorded in
+   `766b48c`: the permission allowlist grep only inspected the `android.permission.*` namespace,
+   so an OEM or custom permission (a vendor badge permission, a `${applicationId}.permission.*`)
+   would slip through, defeating the guard; fixed to compare the FULL `android:name` and proven
+   with a new case that fails on `com.sec.android.provider.badge.permission.WRITE`. And the
+   detailed-notification channel used `VISIBILITY_PRIVATE` with copy promising "visible only
+   after you unlock," but PRIVATE only redacts when the user has separately turned on "hide
+   sensitive content," so on a show-everything phone the body would still show on the lock
+   screen; fixed to `VISIBILITY_SECRET`, which Android keeps off the lock screen regardless of
+   the user's setting. Both fixed and re-proven. Guard: the gate itself, recorded as a
+   `docs/qa-log.md` row that `flutter/test/qa_record_test.dart` enforces. Strength: **medium**,
+   because the gate is a process, but the qa-log row that proves it ran is machine-enforced.
+
+6. **The old test that ENFORCED the leak was inverted, and that is the sharpest evidence in the
+   arc.** Before f0375d8, `test/reminders_test.dart` asserted the peso amount, the person's
+   name, and even a raw due date belonged in the notification title and body, with no visibility
+   set, so they rendered on the lock screen. The diff shows the removed assertions on lines like
+   `"$person's $amount is due tomorrow."` and `'$person owes you $amount and it is due today.'`.
+   The suite was defending the defect, not merely missing it. The test now asserts the DEFAULT
+   reminder names no debt and no amount, proven to fail then restored. Guard: the inverted test.
+   Strength: **strong**.
+
+7. **A one-off flake was investigated, not waved away.** A `tax_screens_test` parallel-timing
+   flake was chased down, found to pass standalone and on re-run, and dismissed as a timing
+   artifact rather than a real defect. No guard needed; recorded so a future session does not
+   re-chase it.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** The paths CLAUDE.md names all
+resolve on `origin/main`: `.claude/hooks/guard-destructive-edits.sh`, `flutter/lib/main.dart`
+(the `updateStamp` constant), `flutter/test/update_stamp_test.dart`, `flutter/shorebird.yaml`,
+both workflow files, and the native `MainActivity.kt` under
+`kotlin/dev/icedamericano/salapify/`. The delivery-check-in-three-commands still reads the file
+the publisher writes. One thing changed and is worth flagging: `flutter-check.yml` now ALSO
+carries a `pull_request` trigger with a shared concurrency group
+(`flutter-check-${{ github.head_ref || github.ref_name }}`, cancel-in-progress) so push and PR
+for the same commit do not double-run. CLAUDE.md's sentence "Pushes to a claude/** branch run
+the Flutter check action" is still TRUE (the push trigger is intact), but it no longer tells the
+whole story now that PRs trigger it too, and it does not yet mention the new delivery-tooling
+smoke test or the pin-parity step. Not a falsehood, an omission worth a future edit.
+
+**Open lessons carried forward.**
+- **Open 4, nothing compares the phone to main: STILL OPEN.** It remains the one check only the
+  founder can do. The f3.05 stamp the founder read off the installed base APK is exactly that
+  check done by hand again, and this arc is a reminder of why it is irreplaceable: the machine
+  said "merged," the founder's phone said "nothing," and only the founder could close that gap.
+- **Open 7, guard sets are typed lists: ADVANCED this session.** The merged-manifest allowlists
+  (`ALLOWED_PERMS`, `ALLOWED_EXPORTED_SHORT`, `ALLOWED_EXPORTED_FULL`) are typed sets that redden
+  CI on any addition, which is a new promise in the strongest style. The remaining half is the
+  screen sweep's screen list, still a derived-versus-typed gap. STILL HALF CLOSED.
+- **Open 8, the edit-pattern hook: CONFIRMED STILL PRESENT.**
+  `.claude/hooks/guard-destructive-edits.sh` resolves on main. A future session should still trip
+  it deliberately rather than assume it bites.
+- **Open 10, whether onboarding sample data survives launch: STILL OPEN.**
+- **Open 11, the account focus-scroll cannot reach a row far below the fold: STILL OPEN.**
+- **Open 13, no test asserts `allowBackup=false`: SUPERSEDED.** The narrow string assertion from
+  session 21 is now subsumed by two broader guards shipped in this arc:
+  `test/backup_posture_test.dart` checks the full backup posture (allowBackup=false plus the
+  `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml` for Android 11 and 12+), and
+  the merged-manifest check asserts `allowBackup="false"` in the actually-shipped manifest. The
+  broader guards make the narrow one redundant, which is the right direction.
+- **The delivery-action smoke-test guard (raised and CLOSED this session).** The gap that a
+  broken delivery-action pin could only be found by shipping to main is now closed by the two
+  new `flutter-check.yml` steps described in lesson 2 (the Shorebird install smoke test and the
+  pin-parity check). Recorded here so a future audit knows to trip it deliberately, and to make
+  sure neither step is ever quietly deleted or routed around, since a deleted guard is the most
+  valuable thing a later session can find.
+
+**For the founder, over lunch.** The privacy update reached your phone as f3.05, and you
+installed it by hand because it is a new base app, not a small over-the-air patch. Here is the
+honest version of what happened. When PR1 merged, the machine that builds and ships the app
+tried to run and DIED at the very first step, installing a tool called Shorebird, so nothing
+was sent to you. It looked fine from the outside: the pull request was merged and green. The
+thing that told the truth was a small log file the shipper writes only when it actually ships,
+and this time it wrote nothing. Claude saw that blank, found the failed build had already
+filed a report (issue #268), and did not tell you anything was live. That is the system working:
+merged is not delivered, and the blank row is what proves it.
+
+Why did the shipper die? In PR1 we "pinned" each helper tool to an exact version so nobody can
+swap it under us. For one tool the pinning picked the WRONG exact version, a newer one no
+previous update had ever used, and that newer one has an install script that breaks on the build
+machine. The fix was to pin it back to the exact version every earlier delivery had ridden
+safely. Then the shipper ran clean and f3.05 went out.
+
+What now makes this impossible to repeat quietly, and what it costs if removed. Two things were
+built this session. The permission guard, the one that reads the app as actually built rather
+than as written, earned its place on its first real run by catching four real differences
+between the source and the shipped app, each vetted and written down, so the app now ships
+exactly nine phone permissions and six system components and not one more without a human
+agreeing first. And the exact failure that hid the ship, a bad Shorebird pin, is now caught on
+the pull request BEFORE it can merge: the branch check installs that tool as a free dry run and
+also confirms the shipper and the check point at the very same version, so a broken or drifted
+pin turns the pull request red instead of silently shipping you nothing. If either of those
+guards were ever deleted, we would be back to finding these problems the expensive way, on your
+phone, a day late. Until any hand-install like this one, the safety net stays the same: nothing
+is called delivered until the row exists and your phone shows the stamp.
+
 ## 2026-07-30, session 21: a separate mind found four ways to lose your money, on the change most likely to
 
 **What we believed / What was true.** We believed the encrypted-at-rest store shipped
