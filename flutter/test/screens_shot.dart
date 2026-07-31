@@ -226,8 +226,9 @@ final Map<String, dynamic> livedInBlob = () {
       '${t.year.toString().padLeft(4, '0')}-'
       '${t.month.toString().padLeft(2, '0')}-'
       '${t.day.toString().padLeft(2, '0')}';
-  String d(int day) =>
-      iso(DateTime(today.year, today.month, day <= today.day ? day : today.day));
+  String d(int day) => iso(
+    DateTime(today.year, today.month, day <= today.day ? day : today.day),
+  );
   // Genuinely ahead of today, allowed to cross into next month, which is what a
   // real "they still have time to pay" utang looks like.
   String ahead(int days) => iso(today.add(Duration(days: days)));
@@ -427,6 +428,7 @@ Future<void> shoot(
   await tester.pumpWidget(
     MaterialApp(
       theme: salapifyTheme(Barako.current),
+      debugShowCheckedModeBanner: false,
       // A destination is a body now, not a Scaffold. The shell supplies the
       // Scaffold in the app, so the harness has to here, or every screen with
       // a Material widget in it asserts before it can be photographed.
@@ -507,6 +509,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -566,6 +569,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MoneyScreen(store: store, onMenu: () {}),
         ),
@@ -609,6 +613,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: SingleChildScrollView(child: QuickAddEditor(store: store)),
@@ -668,6 +673,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           // Pinned, like the widget tests. Left on the real clock these
           // three shots silently become an empty month the moment the
@@ -768,6 +774,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: SingleChildScrollView(
@@ -818,6 +825,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -902,6 +910,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: ShellScreen(store: store),
       ),
     );
@@ -953,6 +962,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: InsightsScreen(
             store: store,
@@ -993,6 +1003,7 @@ void main() {
         data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
         child: MaterialApp(
           theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
           home: AppearanceScreen(store: store),
         ),
       ),
@@ -1034,6 +1045,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AppearanceScreen(store: store),
       ),
     );
@@ -1065,6 +1077,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
         ),
@@ -1105,6 +1118,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
         ),
@@ -1143,6 +1157,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: MenuScreen(store: store, onSwitchTab: (_) {}),
@@ -1180,6 +1195,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: Barako.background,
           body: Center(
@@ -1226,6 +1242,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: OverviewScreen(
             store: store,
@@ -1320,6 +1337,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
           // showNudge forced on: the harness runs on a desktop VM where
           // reminders are unsupported, so the real device check would hide
           // the step and this walk would photograph a flow the phone does
@@ -1397,6 +1415,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: OverviewScreen(
             store: store,
@@ -1437,6 +1456,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AccountsScreen(store: store),
       ),
     );
@@ -1487,6 +1507,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: AccountsScreen(store: store),
       ),
     );
@@ -1578,6 +1599,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: CategoriesScreen(store: store),
       ),
     );
@@ -1618,6 +1640,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: TaxDeadlinesScreen(
           store: store,
           clock: () => DateTime(2026, 4, 10),
@@ -1634,6 +1657,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: YearEndTaxScreen(store: store),
       ),
     );
@@ -1665,6 +1689,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: const TaxCalculatorScreen(),
       ),
     );
@@ -1698,6 +1723,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: LearnScreen(store: store),
       ),
     );
@@ -1732,6 +1758,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: PrivacyReceiptScreen(),
       ),
     );
@@ -1781,6 +1808,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
         home: DiagnosticsScreen(store: store),
       ),
     );

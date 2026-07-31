@@ -158,6 +158,19 @@ jobs:
       - name: The screenshot harness still renders
         run: flutter test test/screens_shot.dart --update-goldens
 
+      # The deterministic golden baselines, COMPARED (no --update-goldens). This
+      # is a different thing from the write-only harness above: test/golden/
+      # holds a small, committed pixel baseline for the screens the UI work
+      # touched, and this step fails if a render drifts from it. It is its own
+      # named step, not folded into `flutter test`, so a pixel diff is an
+      # isolated, obvious signal and never tangled with the logic tests, and so
+      # the pixel comparison stays off the ordinary `flutter test` path. The
+      # baselines are generated and compared on the same pinned Flutter and
+      # Linux, with a small scoped tolerance, so sub-pixel anti-aliasing does not
+      # flake it. See flutter/test/golden/README.md.
+      - name: UI golden baselines match
+        run: flutter test test/golden/ui_golden.dart
+
       # Compile Android, but ONLY when the native side of the app changed.
       #
       # A launch audit found the order was backwards: nothing here ever ran
