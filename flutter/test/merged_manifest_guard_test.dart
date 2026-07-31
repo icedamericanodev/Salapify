@@ -83,6 +83,21 @@ void main() {
     expect(r.exitCode, isNot(0));
   });
 
+  test('a plugin library manifest (no <application>) is rejected clearly', () {
+    // This is the wrong-file case that reached CI once: the search picked a
+    // plugin's merged library manifest, which has no <application>, and the
+    // check failed with a confusing "allowBackup is not false" instead of
+    // naming the real problem. Now it names it.
+    final r = check(
+      '<?xml version="1.0"?>\n'
+      '<manifest package="io.flutter.plugins.securestorage">\n'
+      '    <uses-sdk android:minSdkVersion="24"/>\n'
+      '</manifest>\n',
+    );
+    expect(r.exitCode, isNot(0));
+    expect(r.stdout, contains('library manifest'));
+  });
+
   test('an unexpected permission fails and is named', () {
     final r = check(
       _goodManifest.replaceFirst(

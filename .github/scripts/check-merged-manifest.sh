@@ -66,6 +66,15 @@ fail() {
   exit 1
 }
 
+# Guard against being handed the wrong file. Every plugin emits its own merged
+# LIBRARY manifest with no <application> element; checking one of those for
+# app-level attributes (allowBackup, exported activities) would fail with a
+# confusing message about the app when the real problem is the file selection.
+case "$FLAT" in
+  *'<application'*) ;;
+  *) fail "this manifest has no <application> element, so it is a library manifest, not the app's merged manifest. The caller selected the wrong file (search flutter/build/app only)." ;;
+esac
+
 in_list() {
   local needle="$1"; shift
   local x

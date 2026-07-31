@@ -138,10 +138,14 @@ jobs:
         if: steps.native.outputs.changed == 'true'
         working-directory: .
         run: |
-          MANIFEST=$(find flutter/build -type f -name AndroidManifest.xml \
+          # Search the APP module only. Every plugin also emits its own merged
+          # library manifest under flutter/build/<plugin>/..., and those have no
+          # app-level allowBackup, so a search across all of flutter/build can
+          # grab the wrong file. The app module is flutter/build/app.
+          MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
             -path '*merged_manifest*' -path '*debug*' 2>/dev/null | head -1)
           if [ -z "$MANIFEST" ]; then
-            MANIFEST=$(find flutter/build -type f -name AndroidManifest.xml \
+            MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
               -path '*merged_manifest*' 2>/dev/null | head -1)
           fi
           echo "Merged manifest: ${MANIFEST:-<none found>}"
