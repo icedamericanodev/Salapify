@@ -59,6 +59,15 @@ String _peso(num value) {
   return '${neg ? '-' : ''}₱$buf$centsPart';
 }
 
+// A readable date for a reminder body ("Jul 15"), kept local so the money layer
+// never imports a screen. Never a raw stored ISO string: the project rule is
+// that a stored date is never shown to the user unformatted.
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+String _niceDate(DateTime d) => '${_monthAbbrev[d.month - 1]} ${d.day}';
+
 // 'YYYY-MM-DD' to a local DateTime at the given hour, or null if the grammar
 // rejects it (a made-up 2026-02-31 would otherwise roll into March).
 DateTime? _atHour(dynamic dateStr, int hour) {
@@ -90,7 +99,24 @@ List<DateTime> _upcomingPaydays(DateTime now, dynamic schedule, int count) {
 
 /// The reminders to schedule, honoring each toggle. Only times strictly after
 /// [now] are returned, so a reminder never fires "in the past".
-List<PlannedReminder> plannedReminders(Map data, DateTime now) {
+///
+/// [detailed] controls whether a name or amount ever appears in the text. It is
+/// OFF by default, which is the privacy contract: a locked phone must reveal no
+/// name, amount, account, or debt detail. Two rules make that hold on any OEM:
+///  1. Titles are ALWAYS generic (no name, no amount), because the title is the
+///     one line Android can still show on the lock screen even under
+///     VISIBILITY_PRIVATE.
+///  2. Names and amounts live only in the BODY, and only when [detailed] is on.
+///     When [detailed] is on the service uses a SECRET channel, which Android
+///     keeps off a secure lock screen entirely, so the detail appears only in
+///     the shade after unlock. That is the founder-approved "unlocked shade
+///     only" posture: opting in reveals detail in the unlocked shade, never on
+///     the lock screen.
+List<PlannedReminder> plannedReminders(
+  Map data,
+  DateTime now, {
+  bool detailed = false,
+}) {
   final settings = data['settings'];
   final notifs = (settings is Map ? settings['notifications'] : null);
   final on = notifs is Map ? notifs : const {};
@@ -146,16 +172,22 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
       final remaining = amountOf(d['remaining']);
       final hasMin = min > 0;
       final minTxt = _peso(min < remaining ? min : remaining);
+      // Generic title in both modes; the debt name goes in the body and only
+      // when detailed is on. See the plannedReminders doc comment.
       add(
-        '$name is due in 3 days',
-        '${hasMin ? 'Pay in full to avoid interest, or at least $minTxt to avoid late fees.' : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'} GCash and over the counter payments can take 1 to 3 days to post, so pay early.',
+        'A bill is due in 3 days',
+        detailed
+            ? '$name is due in 3 days. ${hasMin ? 'Pay in full to avoid interest, or at least $minTxt to avoid late fees.' : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'} GCash and over the counter payments can take 1 to 3 days to post, so pay early.'
+            : 'One of your bills is due in 3 days. Open Salapify to see which and how much. GCash and over the counter payments can take 1 to 3 days to post, so pay early.',
         DateTime(due.year, due.month, due.day - 3, 18),
       );
       add(
-        '$name is due today',
-        hasMin
-            ? 'Pay at least $minTxt today to avoid penalties.'
-            : 'Pay at least the minimum on your SOA today to avoid penalties.',
+        'A bill is due today',
+        detailed
+            ? (hasMin
+                  ? '$name is due today. Pay at least $minTxt today to avoid penalties.'
+                  : '$name is due today. Pay at least the minimum on your SOA today to avoid penalties.')
+            : 'A bill is due today. Open Salapify to pay at least the minimum and avoid penalties.',
         DateTime(due.year, due.month, due.day, 9),
       );
     }
@@ -176,21 +208,29 @@ List<PlannedReminder> plannedReminders(Map data, DateTime now) {
           ? r['person'] as String
           : 'Someone';
       final amount = _peso(remaining);
+      // Generic titles; the person's name, the amount, and the raw due date go
+      // in the body and only when detailed is on.
       add(
-        'IOU due tomorrow',
-        "$person's $amount is due tomorrow.",
+        'Money to collect tomorrow',
+        detailed
+            ? "$person's $amount is due tomorrow."
+            : 'Someone owes you and it is due tomorrow. Open Salapify to see who.',
         DateTime(due.year, due.month, due.day - 1, 9),
       );
       if (due.isAfter(now)) {
         add(
           'Time to collect',
-          '$person owes you $amount and it is due today. Send a reminder from the app.',
+          detailed
+              ? '$person owes you $amount and it is due today. Send a reminder from the app.'
+              : 'You have money to collect due today. Open Salapify to send a reminder.',
           due,
         );
       } else {
         add(
           'Still waiting',
-          "$person's $amount was due ${r['dueDate']}. A friendly follow up usually works.",
+          detailed
+              ? "$person's $amount was due ${_niceDate(due)}. A friendly follow up usually works."
+              : 'You have money that was due. Open Salapify, a friendly follow up usually works.',
           DateTime(now.year, now.month, now.day + 1, 9),
         );
       }

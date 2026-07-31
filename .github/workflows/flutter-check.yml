@@ -18,6 +18,12 @@ on:
   push:
     branches:
       - 'claude/**'
+  # Every pull request to main, so a PR from ANY branch (a fork, or a branch
+  # not named claude/**) still gets a verdict. Without this, "runs on every PR"
+  # quietly depended on the branch matching the push filter above.
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 # No paths filter ON PURPOSE, even though it means running the suite on a
@@ -27,15 +33,18 @@ on:
 # no Flutter check at all. Two minutes of free runner time is a fair price for
 # every commit on the branch carrying a real verdict.
 
-# No pull_request trigger on purpose: PRs here come from branches in this same
-# repo, so the push event above already covers them. Adding both would run
-# every check twice for nothing.
-
-# A newer push to the same branch makes an in-flight check pointless. Nothing
-# here publishes, so cancelling is safe (unlike the preview publisher, which
-# must always finish).
+# Running on BOTH push and pull_request would normally double every check on a
+# claude/** branch that has a PR open. The concurrency group below prevents
+# that: it keys on the SOURCE branch, which both events resolve to
+# (github.head_ref for a pull_request, github.ref_name for a push), so the two
+# events for the same commit land in the same group and the newer cancels the
+# older. Net result: every PR gets exactly one check, from whichever event
+# fired last, and a claude/** push with no PR still gets its pre-PR check.
+#
+# Cancelling is safe here because nothing publishes (unlike the preview
+# publisher, which must always finish).
 concurrency:
-  group: flutter-check-${{ github.ref }}
+  group: flutter-check-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +55,7 @@ jobs:
       run:
         working-directory: flutter
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Full history, so the native-change detection below can find the
           # merge base with main. The default shallow clone has no merge base
@@ -54,7 +63,7 @@ jobs:
           # which is worse than not having it.
           fetch-depth: 0
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
         with:
           flutter-version: '3.44.6'
           channel: stable
@@ -113,6 +122,34 @@ jobs:
       - name: Android actually compiles
         if: steps.native.outputs.changed == 'true'
         run: flutter build apk --debug
+
+      # The shipped manifest is not the source manifest: plugins merge in their
+      # own permissions and components at build time. This reads the MERGED
+      # manifest that the debug build just produced and holds it to an
+      # allowlist (permissions, exported components, backup off with both rule
+      # files, no cleartext). Debug and release agree on all of these, and this
+      # is the PRE-MERGE gate, so an unexpected permission reddens the PR rather
+      # than being discovered on the phone. The script's logic is itself tested
+      # on the branch by flutter/test/merged_manifest_guard_test.dart.
+      #
+      # A missing manifest fails loudly rather than passing: an unverified
+      # manifest must never read as a verified one.
+      - name: The merged manifest matches the allowlist
+        if: steps.native.outputs.changed == 'true'
+        working-directory: .
+        run: |
+          # Search the APP module only. Every plugin also emits its own merged
+          # library manifest under flutter/build/<plugin>/..., and those have no
+          # app-level allowBackup, so a search across all of flutter/build can
+          # grab the wrong file. The app module is flutter/build/app.
+          MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
+            -path '*merged_manifest*' -path '*debug*' 2>/dev/null | head -1)
+          if [ -z "$MANIFEST" ]; then
+            MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
+              -path '*merged_manifest*' 2>/dev/null | head -1)
+          fi
+          echo "Merged manifest: ${MANIFEST:-<none found>}"
+          bash .github/scripts/check-merged-manifest.sh "$MANIFEST"
 
       # Informational, never a gate. Unmerged work in progress is completely
       # normal, so failing here would cry wolf on every push.

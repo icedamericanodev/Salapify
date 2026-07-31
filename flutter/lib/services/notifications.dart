@@ -6,7 +6,7 @@
 
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -87,15 +87,38 @@ class Reminders {
     }
   }
 
-  static const NotificationDetails _details = NotificationDetails(
+  // The second half of the lock-screen privacy contract (the first is that the
+  // planner keeps names and amounts out of titles) is the notification's
+  // lock-screen visibility, and it depends on whether the body carries detail:
+  //
+  //  - Detailed (opt-in): VISIBILITY_SECRET. Android keeps a SECRET
+  //    notification entirely OFF a secure lock screen, no matter how the user
+  //    has set "show sensitive content", so the name and amount appear only in
+  //    the shade after unlock. PRIVATE is not enough here: it redacts only when
+  //    the user has separately chosen to hide sensitive content, and many
+  //    phones default to showing everything, so PRIVATE would leak the body on
+  //    the lock screen for those users.
+  //  - Generic (default): VISIBILITY_PRIVATE. The content carries nothing
+  //    sensitive, so it is fine for the generic prompt to appear on the lock
+  //    screen.
+  //
+  // Two DIFFERENT channel ids on purpose. On Android 8+ a channel's
+  // lock-screen visibility is fixed when the channel is first created and later
+  // code cannot move it, so one shared id would freeze whichever visibility was
+  // created first. A separate id per level lets each keep its own.
+  @visibleForTesting
+  static NotificationDetails detailsFor(bool detailed) => NotificationDetails(
     android: AndroidNotificationDetails(
-      'reminders',
-      'Reminders',
+      detailed ? 'reminders_detailed' : 'reminders',
+      detailed ? 'Reminders (with details)' : 'Reminders',
       channelDescription: 'Log nudges, payday, bills, and IOU reminders',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      visibility: detailed
+          ? NotificationVisibility.secret
+          : NotificationVisibility.private,
     ),
-    iOS: DarwinNotificationDetails(presentSound: false),
+    iOS: const DarwinNotificationDetails(presentSound: false),
   );
 
   // Rapid resumes/toggles can start overlapping reschedules; each await yields
@@ -114,8 +137,14 @@ class Reminders {
       await _init();
       if (myRun != _runToken) return;
       await _plugin.cancelAll();
+      // Detailed reminders (names and amounts in the body) are strictly opt-in;
+      // absent key means off, so the default is the generic, redacted text.
+      final settings = data['settings'];
+      final detailed =
+          settings is Map && settings['notifDetailed'] == true;
+      final details = detailsFor(detailed);
       var id = 0;
-      for (final r in plannedReminders(data, now)) {
+      for (final r in plannedReminders(data, now, detailed: detailed)) {
         if (myRun != _runToken) return; // a newer reschedule superseded us
         if (id >= 60) break; // a sane cap on how many we ever queue
         await _plugin.zonedSchedule(
@@ -123,7 +152,7 @@ class Reminders {
           r.title,
           r.body,
           tz.TZDateTime.from(r.when, tz.local),
-          _details,
+          details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,

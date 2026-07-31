@@ -18,7 +18,9 @@
         android:label="Salapify Preview"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:allowBackup="false"><!--
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"><!--
         Data stays on the device, full stop. Android Auto Backup is OFF because
         the app holds the whole ledger locally: with backup on, that data
         (including, this release, the plaintext copy kept as a migration
@@ -27,7 +29,19 @@
         posture. It would also break a restore onto a new phone, because the
         SQLCipher key lives in the Android Keystore and is NOT backed up, so a
         restored encrypted database could not be opened. The only way data
-        leaves this phone is the user's own backup export. -->
+        leaves this phone is the user's own backup export.
+
+        allowBackup=false is the primary control, but it is not the whole story
+        on newer Android. The two rule files are defense in depth AND cover a
+        real gap: on Android 12 and newer, allowBackup=false disables cloud
+        backup but does NOT stop a device-to-device transfer, which is governed
+        by the <device-transfer> section of data_extraction_rules.xml. So:
+          - fullBackupContent -> res/xml/backup_rules.xml (Android 11 and lower)
+          - dataExtractionRules -> res/xml/data_extraction_rules.xml (Android 12+)
+        Both exclude every data domain, so financial data leaves this phone only
+        by the user's own backup export, on every Android version. Removing
+        either attribute, or flipping allowBackup, reddens
+        test/backup_posture_test.dart. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
