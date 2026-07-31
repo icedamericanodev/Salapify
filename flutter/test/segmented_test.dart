@@ -219,40 +219,38 @@ void main() {
 
     for (final scale in const [1.0, 1.3, 1.5, 2.0]) {
       for (final selected in modes) {
-        testWidgets(
-          'no overflow or clip at ${scale}x, "$selected" selected',
-          (tester) async {
-            await tester.pumpWidget(modeHarness(selected, scale: scale));
-            await tester.pumpAndSettle();
+        testWidgets('no overflow or clip at ${scale}x, "$selected" selected', (
+          tester,
+        ) async {
+          await tester.pumpWidget(modeHarness(selected, scale: scale));
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: 'the control threw during layout at ${scale}x',
+          );
+          for (final m in modes) {
+            final finder = find.text(m);
+            expect(finder, findsOneWidget, reason: '"$m" did not render');
+            final rp = tester.renderObject<RenderParagraph>(finder);
             expect(
-              tester.takeException(),
-              isNull,
-              reason: 'the control threw during layout at ${scale}x',
+              rp.didExceedMaxLines,
+              isFalse,
+              reason:
+                  '"$m" is clipped at ${scale}x with "$selected" selected; '
+                  'a label that runs out of room must get taller or the '
+                  'control must stack, never cut the word off.',
             );
-            for (final m in modes) {
-              final finder = find.text(m);
-              expect(finder, findsOneWidget, reason: '"$m" did not render');
-              final rp = tester.renderObject<RenderParagraph>(finder);
-              expect(
-                rp.didExceedMaxLines,
-                isFalse,
-                reason:
-                    '"$m" is clipped at ${scale}x with "$selected" selected; '
-                    'a label that runs out of room must get taller or the '
-                    'control must stack, never cut the word off.',
-              );
-            }
-            for (final ink
-                in tester.widgetList<InkWell>(find.byType(InkWell))) {
-              final box = tester.renderObject<RenderBox>(find.byWidget(ink));
-              expect(
-                box.size.height,
-                greaterThanOrEqualTo(48.0),
-                reason: 'a segment is under the 48px Android tap-target floor',
-              );
-            }
-          },
-        );
+          }
+          for (final ink in tester.widgetList<InkWell>(find.byType(InkWell))) {
+            final box = tester.renderObject<RenderBox>(find.byWidget(ink));
+            expect(
+              box.size.height,
+              greaterThanOrEqualTo(48.0),
+              reason: 'a segment is under the 48px Android tap-target floor',
+            );
+          }
+        });
       }
     }
 

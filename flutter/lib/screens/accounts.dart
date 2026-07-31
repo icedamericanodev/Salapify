@@ -16,8 +16,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
     show baseCurrencyOf, excludedNotice, manualRatesOf;
-import '../money/fx_totals.dart'
-    show FxOutcome, conversionNotice, resolveRate;
+import '../money/fx_totals.dart' show FxOutcome, conversionNotice, resolveRate;
 import '../money/currencies.dart'
     show baseCurrencySymbol, currencies, currencySymbol, formatConverted;
 import '../money/transfers.dart'
@@ -25,10 +24,10 @@ import '../money/transfers.dart'
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
-import '../money/institutions.dart'
-    show institutionById, institutionLabel;
+import '../money/institutions.dart' show institutionById, institutionLabel;
 import '../theme.dart';
-import 'add_account_flow.dart' show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
+import 'add_account_flow.dart'
+    show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/pressable_scale.dart';
 
@@ -248,8 +247,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                                 vertical: 4,
                               ),
                               minimumSize: Size.zero,
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: Text('Set a $code rate'),
                           ),
@@ -331,10 +329,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
     // Assets and debts are converted separately so a foreign debt lands on
     // the right side, but the SENTENCE is about the total, so the two are
     // merged for the reader.
-    final merged = FxOutcome(0, {...a.excluded, ...d.excluded}, {
-      ...a.used,
-      ...d.used,
-    });
+    final merged = FxOutcome(
+      0,
+      {...a.excluded, ...d.excluded},
+      {...a.used, ...d.used},
+    );
     return conversionNotice(t, merged);
   }
 
@@ -685,10 +684,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   /// converted value, or as nothing when there is no rate. The same three
   /// cases netWorthParts uses, so the subtotal and the total can never
   /// disagree about a row.
-  double _countedAmount(
-    (Map<String, dynamic>, AccountStore) e,
-    double amount,
-  ) {
+  double _countedAmount((Map<String, dynamic>, AccountStore) e, double amount) {
     final code = _foreignCodeOf(e.$1);
     if (code == null) return amount;
     final t = store.fxTable;
@@ -825,7 +821,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
     Widget result = onTap == null
         ? body
-        : PressableScale(child: InkWell(onTap: onTap, child: body));
+        : PressableScale(
+            child: InkWell(onTap: onTap, child: body),
+          );
     if (highlight) {
       result = DecoratedBox(
         decoration: BoxDecoration(
@@ -959,11 +957,12 @@ class _AccountFormState extends State<_AccountForm> {
     // Order matters: an existing row's own kind always wins, then the seed's
     // legacy mapping, then the default. Letting the seed win over a stored
     // kind would silently re-type an account somebody is only editing.
-    _kind = (it?['kind'] ??
-            (widget.isAccount
-                ? (widget.seed?.legacyKind ?? 'cash')
-                : (_assetKindFor(widget.seed) ?? 'crypto')))
-        .toString();
+    _kind =
+        (it?['kind'] ??
+                (widget.isAccount
+                    ? (widget.seed?.legacyKind ?? 'cash')
+                    : (_assetKindFor(widget.seed) ?? 'crypto')))
+            .toString();
     _institutionId = it?['institutionId']?.toString() ?? '';
     _currencyCode = it?['currencyCode']?.toString() ?? '';
   }
@@ -1043,10 +1042,7 @@ class _AccountFormState extends State<_AccountForm> {
               setState(() => _currencyCode = picked == base ? '' : picked);
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Row(
                 children: [
                   Expanded(
@@ -1082,7 +1078,11 @@ class _AccountFormState extends State<_AccountForm> {
     // then everything else. Not alphabetical: the answer somebody wants is
     // almost always in the first two rows, and an alphabetical list buries it.
     const common = ['USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AUD', 'CAD', 'HKD'];
-    final order = <String>{base, ...common, for (final c in currencies) c['code']!};
+    final order = <String>{
+      base,
+      ...common,
+      for (final c in currencies) c['code']!,
+    };
     return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Barako.background,
@@ -1116,10 +1116,7 @@ class _AccountFormState extends State<_AccountForm> {
                   subtitle: code == base
                       ? Text(
                           'Your app currency. Counted in every total.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Barako.muted, fontSize: 12),
                         )
                       : null,
                   trailing: current == code
@@ -1163,9 +1160,7 @@ class _AccountFormState extends State<_AccountForm> {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: _institutionId.isEmpty
-                        ? Barako.muted
-                        : Barako.text,
+                    color: _institutionId.isEmpty ? Barako.muted : Barako.text,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1924,7 +1919,6 @@ class _TransferSheetState extends State<_TransferSheet> {
   );
 }
 
-
 /// The rate dialog, as a widget rather than a local in an async function.
 ///
 /// It was a local first, and that was a CRASH, not a style problem. The
@@ -2007,9 +2001,9 @@ class _ManualRateDialogState extends State<_ManualRateDialog> {
           child: const Text('Cancel'),
         ),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(
-            double.tryParse(_ctl.text.trim().replaceAll(',', '')),
-          ),
+          onPressed: () => Navigator.of(
+            context,
+          ).pop(double.tryParse(_ctl.text.trim().replaceAll(',', ''))),
           child: const Text('Use this rate'),
         ),
       ],

@@ -409,7 +409,10 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Semantics(header: true, child: Kicker('FORMS YOU WILL FILE')),
+                      Semantics(
+                        header: true,
+                        child: Kicker('FORMS YOU WILL FILE'),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         formsText,
