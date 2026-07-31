@@ -43,6 +43,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('pins the on-device protections section', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openReceipt(tester);
+
+    // Below the permissions card, so scroll it into view before asserting.
+    await tester.scrollUntilVisible(
+      find.text('IF YOUR PHONE IS LOST OR SHARED'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    // Each of these is a behavior a test in this suite already guards, so the
+    // receipt cannot claim a protection the app does not actually ship.
+    expect(find.text('Automatic backup is off'), findsOneWidget);
+    expect(
+      find.text('The screen hides when App lock is on'),
+      findsOneWidget,
+    );
+    expect(find.text('Lock-screen reminders stay generic'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders recorded fetch attempts, newest first', (tester) async {
     tester.view.physicalSize = const Size(1200, 3200);
     tester.view.devicePixelRatio = 1.0;

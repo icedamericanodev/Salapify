@@ -1,5 +1,5 @@
 name: salapify
-description: "A new Flutter project."
+description: "Offline first budget, debt, and utang tracker for the Philippines. No account, no cloud, your money data stays on your phone."
 publish_to: 'none'
 # Bumped for Phase 1 PR1, the Android privacy contract: the secure-window
 # method channel (new Kotlin in MainActivity.kt), the two backup-rules XML
