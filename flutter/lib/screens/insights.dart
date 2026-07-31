@@ -23,6 +23,8 @@ import '../theme.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 import 'afford_card.dart';
 import 'log_sheet.dart' show showLogSheet;
 import 'overview.dart' show formatMoney, formatMoneyAbout, prettyDay;
@@ -159,16 +161,16 @@ class InsightsScreen extends StatelessWidget {
     this.onOpenPayables,
   });
 
-  // Shown before there is any data, in place of the full analytics wall.
-  Widget _emptyInsights(BuildContext context) => SafeArea(
+  // The pinned header + a single card, the shape both the empty and the error
+  // states share. onMenu is on the header here too: these branches are what a
+  // brand new user (empty) or a person with an unreadable backup (error) sees,
+  // and Menu is the only door to 16 destinations. It was missing from the empty
+  // branch once, so the emptiest account had the fewest ways out of the screen,
+  // and only a geometry probe noticed.
+  Widget _shell(BuildContext context, Widget card) => SafeArea(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // onMenu here too: this branch is what a brand new user sees, and
-        // Menu is the only door to 16 destinations. It was missing once, so
-        // the emptiest account had the fewest ways out of the screen, and
-        // only a geometry probe noticed. Pinned above the list, like every
-        // tab since the founder's call.
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: ScreenHeader(
@@ -180,63 +182,58 @@ class InsightsScreen extends StatelessWidget {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SalapifyGlyph('chart', size: 24),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Nothing to read yet, and that is fine',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Log a few entries and this turns into your safe-to-spend, where your next peso should go, and a read on the month. Nothing to set up, just log.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 14,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Barako.primary,
-                          foregroundColor: Barako.onPrimary,
-                        ),
-                        // Opens the Log sheet right here, so the button does
-                        // the thing it names. It used to switch to the Home
-                        // tab and stop, leaving the person to hunt for the Log
-                        // button themselves: a CTA that said "Start logging"
-                        // and did not. When writes are shut (an unreadable
-                        // load), there is nothing to log into, so it falls
-                        // back to Home where the error banner explains why.
-                        onPressed: () => store.canWrite
-                            ? showLogSheet(context, store)
-                            : onSwitchTab?.call(Destination.home),
-                        child: const Text('Start logging'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            children: [card],
           ),
         ),
       ],
     ),
   );
 
+  // Shown before there is any data, in place of the full analytics wall. Uses
+  // the shared EmptyState so it cannot drift from the other tabs' empties.
+  Widget _emptyInsights(BuildContext context) => _shell(
+    context,
+    EmptyState(
+      icon: 'chart',
+      title: 'Nothing to read yet, and that is fine',
+      body:
+          'Log a few entries and this turns into your safe-to-spend, where your '
+          'next peso should go, and a read on the month. Nothing to set up, '
+          'just log.',
+      actionLabel: 'Start logging',
+      // Opens the Log sheet right here, so the button does the thing it names.
+      // When writes are shut (an unreadable load), there is nothing to log
+      // into, so it falls back to Home where the error banner explains why.
+      onAction: () => store.canWrite
+          ? showLogSheet(context, store)
+          : onSwitchTab?.call(Destination.home),
+    ),
+  );
+
+  // Shown when the ledger could not be READ, which is a different thing from
+  // empty: there IS data, the app just could not open it, so the analytics
+  // would be computed over an empty fallback and read as false. Says so plainly
+  // and never implies the data is gone (an unreadable load overwrites nothing).
+  Widget _errorInsights(BuildContext context) => _shell(
+    context,
+    ErrorState(
+      title: 'Your saved data could not be read',
+      body:
+          'Nothing was overwritten, so nothing is lost. Insights reads your '
+          'data to make sense of the month, so it is waiting until the app can '
+          'open it again. Home has the details and the way to recover.',
+      actionLabel: 'Go to Home',
+      onAction: () => onSwitchTab?.call(Destination.home),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    // An unreadable ledger takes precedence over everything: computing analytics
+    // over the empty fallback would read as a confident, wrong picture of the
+    // month. Show the honest error instead.
+    if (store.loadError != null) return _errorInsights(context);
+
     final data = store.data;
     final ref = DateTime.now();
 
@@ -281,6 +278,18 @@ class InsightsScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
               children: [
+                // The one-glance takeaway, above the detail. Shown only when
+                // there ARE decisions, so it triages rather than repeats: it
+                // says how many things need a call and how urgent the first is,
+                // then the DO NEXT cards below carry the specifics. On a calm
+                // week the "You are on track" card below is already the whole
+                // story, so no summary is added.
+                if (candidates.isNotEmpty) ...[
+                  Kicker('WHAT MATTERS NOW'),
+                  const SizedBox(height: 8),
+                  _whatMattersCard(candidates),
+                  const SizedBox(height: 18),
+                ],
                 if (candidates.isNotEmpty) ...[
                   Kicker('DO NEXT'),
                   SizedBox(height: 8),
@@ -427,6 +436,58 @@ class InsightsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // The at-a-glance summary. Deliberately does NOT repeat any decision title
+  // (the DO NEXT cards below own those); it names the count and how urgent the
+  // lead is, so the reader gets the shape of the day in one line. The urgency
+  // is carried by the WORD and the glyph, never colour alone.
+  Widget _whatMattersCard(List<Map<String, dynamic>> candidates) {
+    final shown = candidates.length > 3 ? 3 : candidates.length;
+    final urgent = candidates.first['tone'] == 'urgent';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SalapifyGlyph(
+              'target',
+              size: 22,
+              color: urgent ? Barako.warning : Barako.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    urgent ? 'Needs your attention' : 'Worth a look',
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    shown == 1
+                        ? 'One money decision is waiting for you, just below.'
+                        : '$shown money decisions are waiting below, the most '
+                              'urgent first.',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

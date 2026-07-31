@@ -178,9 +178,11 @@ void main() {
     // decision must rank near the top, and Migs is years overdue.
     expect(find.text('Spending passed income this month'), findsOneWidget);
     expect(find.text('Follow up Migs'), findsOneWidget);
-    expect(find.text('SAFE TO SPEND UNTIL PAYDAY'), findsOneWidget);
-    // The lower cards live below the test viewport fold: scroll to each.
+    // The lower cards live below the test viewport fold: scroll to each. Safe
+    // to spend joined them once the WHAT MATTERS NOW summary was added above
+    // DO NEXT; it still renders, just a scroll down now.
     for (final label in [
+      'SAFE TO SPEND UNTIL PAYDAY',
       'MONEY HEALTH',
       'LAST 6 MONTHS',
       'Income',
@@ -550,4 +552,30 @@ void main() {
     expect(find.text('MONEY HEALTH'), findsNothing);
     expect(find.textContaining('Not enough history yet'), findsNothing);
   });
+
+  testWidgets(
+    'an unreadable load shows an honest error, not zeros or a fresh-start invite',
+    (tester) async {
+      // A broken blob: the ledger cannot be read, so loadError is set and writes
+      // are shut. Insights must not compute analytics over the empty fallback
+      // (a confident, wrong month) nor show the "nothing yet" invite (which
+      // implies a fresh start when there is really unreadable data).
+      SharedPreferences.setMockInitialValues({storageKey: '{broken'});
+      final store = SalapifyStore();
+      await tester.pumpWidget(SalapifyApp(store: store));
+      await tester.pumpAndSettle();
+      expect(store.loadError, isNotNull);
+
+      await goToTab(tester, 'Insights');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your saved data could not be read'), findsOneWidget);
+      expect(find.textContaining('nothing is lost'), findsOneWidget);
+      expect(find.text('Go to Home'), findsOneWidget);
+      // Neither the fresh-start invite nor the analytics wall.
+      expect(find.text('Nothing to read yet, and that is fine'), findsNothing);
+      expect(find.text('MONEY HEALTH'), findsNothing);
+      expect(find.text('WHAT MATTERS NOW'), findsNothing);
+    },
+  );
 }

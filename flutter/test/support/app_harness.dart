@@ -142,6 +142,12 @@ Future<void> openInsightsTool(WidgetTester tester, String title) async {
     200,
     scrollable: find.byType(Scrollable).first,
   );
+  // ensureVisible after scrollUntilVisible: the latter stops as soon as the
+  // launcher is painted, which can leave it flush against the viewport edge
+  // where a tap on its centre lands off-screen and is ignored. ensureVisible
+  // scrolls it fully in so the tap always registers.
+  await tester.ensureVisible(launcher);
+  await tester.pumpAndSettle();
   await tester.tap(launcher);
   await tester.pumpAndSettle();
 }
