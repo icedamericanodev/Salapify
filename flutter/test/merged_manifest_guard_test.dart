@@ -45,6 +45,16 @@ const _goodManifest = '''
         <provider
             android:name="androidx.core.content.FileProvider"
             android:exported="false"/>
+        <!-- AndroidX framework components exported by design, allowlisted by
+             full name. -->
+        <service android:name="androidx.work.impl.background.systemjob.SystemJobService"
+            android:exported="true"/>
+        <receiver android:name="androidx.work.impl.diagnostics.DiagnosticsReceiver"
+            android:exported="true"/>
+        <service android:name="androidx.glance.appwidget.GlanceRemoteViewsService"
+            android:exported="true"/>
+        <receiver android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            android:exported="true"/>
     </application>
 </manifest>
 ''';

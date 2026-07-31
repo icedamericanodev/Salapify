@@ -56,13 +56,24 @@ ALLOWED_PERMS=(
   "dev.icedamericano.salapify.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 )
 
-# The only components allowed to be exported, by their short (last-segment)
-# name. MainActivity is the launcher; YourNumberWidget is the home-screen tile
-# receiver, exported so OEM launchers honor it. Everything else must be
-# exported="false".
-ALLOWED_EXPORTED=(
+# Components allowed to be exported. OURS are matched by short (last-segment)
+# name: MainActivity is the launcher, YourNumberWidget is the home-screen tile
+# receiver (exported so OEM launchers honor it).
+ALLOWED_EXPORTED_SHORT=(
   "MainActivity"
   "YourNumberWidget"
+)
+
+# AndroidX framework components that their libraries export BY DESIGN so the OS
+# can reach them, matched by FULL name so the allowance is exact. They arrive
+# transitively: WorkManager's JobService and diagnostics receiver and Glance's
+# RemoteViewsService via home_widget, ProfileInstaller via Flutter itself. None
+# are ours, none carry app data, and all are bound only by the system or by adb.
+ALLOWED_EXPORTED_FULL=(
+  "androidx.work.impl.background.systemjob.SystemJobService"
+  "androidx.work.impl.diagnostics.DiagnosticsReceiver"
+  "androidx.glance.appwidget.GlanceRemoteViewsService"
+  "androidx.profileinstaller.ProfileInstallReceiver"
 )
 
 # Collapse to one line so a pretty-printed or minified manifest reads the same.
@@ -118,7 +129,9 @@ while IFS= read -r tag; do
   esac
   name=$(grep -oE 'android:name="[^"]+"' <<<"$tag" | head -1 | sed -E 's/.*="([^"]+)".*/\1/')
   short="${name##*.}"
-  in_list "$short" "${ALLOWED_EXPORTED[@]}" || unexpected_exported="$unexpected_exported $name"
+  in_list "$name" "${ALLOWED_EXPORTED_FULL[@]}" && continue
+  in_list "$short" "${ALLOWED_EXPORTED_SHORT[@]}" && continue
+  unexpected_exported="$unexpected_exported $name"
 done < <(grep -oE '<(activity|service|receiver|provider)[^>]*>' <<<"$FLAT")
 if [ -n "$unexpected_exported" ]; then
   fail "exported component(s) not on the allowlist:$unexpected_exported . An exported component is reachable by other apps; add it to ALLOWED_EXPORTED only if that is intended."
