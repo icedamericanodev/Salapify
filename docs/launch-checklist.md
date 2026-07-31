@@ -52,6 +52,94 @@ here, and that file is what somebody opens to set
 exact moment it has to be answered, rather than in a document somebody has to
 remember exists.
 
+### 2. Production upload key
+
+**Deferred until the first Play submission, on purpose.** Production signing
+needs an upload key that must NEVER enter the repo (unlike the committed preview
+key, which exists only so preview builds install over each other on the founder's
+phone). Until the founder is actually submitting to Play there is nothing to do
+here, and the production AAB workflow refuses to run without it, so the gap
+cannot ship anything wrong. It fails at its first step with these same
+instructions.
+
+**What the production build uses.** The `prod` flavor in
+`flutter/android/app/build.gradle.kts` reads its keystore only from the
+environment (`SALAPIFY_UPLOAD_STORE_FILE` and friends), with no fallback to the
+preview credentials. `.github/workflows/flutter-prod-aab.yml` is the only place
+that sets those, and it is manual (`workflow_dispatch`) only. So a normal push
+never touches the upload key, and a prod build with no key configured fails
+loudly at signing rather than borrowing the preview one.
+
+**How to create the upload key** (one time, when submitting to Play):
+
+    keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 \
+      -validity 10000 -alias upload
+
+Keep `upload.jks` and the passwords in a safe place OUTSIDE the repo (a password
+manager). Losing it means you can no longer update the app on Play without a key
+reset, so back it up.
+
+**How to wire it into CI.** Add these four repository secrets (Settings,
+Secrets and variables, Actions):
+
+- `SALAPIFY_UPLOAD_KEYSTORE_BASE64`: the keystore file base64 encoded, from
+  `base64 -w0 upload.jks` (macOS: `base64 -i upload.jks`).
+- `SALAPIFY_UPLOAD_STORE_PASSWORD`: the keystore password.
+- `SALAPIFY_UPLOAD_KEY_ALIAS`: the key alias (`upload` above).
+- `SALAPIFY_UPLOAD_KEY_PASSWORD`: the key password (often the same as the store
+  password).
+
+**How to produce the bundle.** Run the "Production AAB (Play)" workflow by hand
+from the Actions tab. It builds the `prod` flavor with testing aids off, then
+`.github/scripts/verify-prod-aab.sh` refuses to hand over anything that borrows
+the preview identity: the preview certificate, the "Salapify Preview" label, or
+the sample-data scaffolding. A green run uploads `salapify-production-aab` as a
+build artifact, which is what you submit to Play.
+
+**Play App Signing.** Google re-signs the app with a key it holds; the upload key
+above only proves the upload came from you. Enrol in Play App Signing at first
+submission (the default for new apps) so a lost upload key can be reset.
+
+**Where the reader will be standing.** The prod AAB workflow points here in its
+failure message, so this surfaces at the exact moment production signing is first
+attempted.
+
+### 3. Production build notes carried forward from the PR2 audit
+
+These are not open decisions, they are facts about the prod path that must not be
+forgotten at submission. Recorded here because the reader is already standing here
+when producing the AAB.
+
+- **The Play build cannot install over the preview build.** The preview APK is
+  signed with the committed preview certificate; the Play production build is
+  signed with the upload key (then re-signed by Play App Signing). Android refuses
+  to install a same-package app signed with a different certificate over an
+  existing one, so a founder or tester moving from the preview APK to the Play app
+  must UNINSTALL the preview app first, which wipes local data. Export a backup
+  first and restore it after, and verify that round trip before switching any real
+  phone across.
+
+- **versionCode must strictly increase across prod uploads.** `versionCode` comes
+  from the pubspec build number (`0.8.0+14` gives 14). Play rejects a reused
+  versionCode, so the second and every later prod AAB must carry a higher build
+  number than the last one uploaded to Play. There is no guard for this because
+  nothing in the repo knows what was last uploaded; track it by hand at
+  submission.
+
+- **Production carries no over-the-air updater, on purpose.** The prod AAB is
+  built with plain `flutter build appbundle`, not `shorebird release`, so a
+  shipped Play build never receives Dart patches: every production change is a new
+  AAB and a new Play review. That is the deliberate "production is a static,
+  reviewed build" posture (ADR 0002). If production OTA is ever wanted, that is a
+  real decision: generate a prod Shorebird app_id with `shorebird init` (never
+  reuse preview's) and add it to `flutter/shorebird.yaml` and the prod workflow.
+
+- **minSdk is still the Flutter default.** `build.gradle.kts` leaves
+  `minSdk = flutter.minSdkVersion` rather than an explicit reviewed number, unlike
+  `targetSdk` which is pinned to guard against silent drift. Consider pinning it
+  before launch so a Flutter SDK bump cannot move the floor of supported devices
+  underneath the app without review.
+
 ## Done, recorded so it is not re-litigated
 
 - **Testing scaffolding is flagged, not remembered** (f2.94). `kTestingAids` in

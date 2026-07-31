@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'data/storage_bootstrap.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
+import 'build_flags.dart';
 import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
@@ -30,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.05 \u00b7 Privacy: backup fully off, lock-screen reminders generic by default, screenshots blocked when App Lock is on.';
+    'f3.06 \u00b7 Production build identity: separate preview and prod flavors, upload key stays out of the repo.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
@@ -151,7 +152,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
         Barako.currentTheme = theme;
         Barako.current = theme.resolve(effectiveBrightness(mode, os));
         return MaterialApp(
-          title: 'Salapify Preview',
+          // The task-switcher / recents title follows the build: the production
+          // build must not say "Preview". kPreviewBuild is false in the store
+          // build (SALAPIFY_PREVIEW=false), matching the prod flavor's launcher
+          // label. Guarded by test/preview_only_test.dart.
+          title: kPreviewBuild ? 'Salapify Preview' : 'Salapify',
           theme: salapifyTheme(Barako.current),
           // Snap the theme, do not tween it. MaterialApp otherwise lerps every
           // Theme.of-derived colour over 200ms (the scaffold, every Card fill,

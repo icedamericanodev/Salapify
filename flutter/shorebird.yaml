@@ -2,3 +2,24 @@
 # Shorebird account; it is public (it ships inside the APK) and contains no
 # secret. Patching auth lives in the SHOREBIRD_TOKEN repo secret, never here.
 app_id: 27a34b94-b810-4fe1-96c3-2e746ced4654
+
+# The Android app has two Gradle flavors now (preview and prod). Shorebird
+# needs a flavors: map for a flavored app: when a release or patch runs with
+# --flavor preview it looks up flavors.preview here to resolve the app_id.
+# Without this map, `shorebird release android --flavor preview` cannot find an
+# app_id and delivery breaks. .github/workflows/flutter-check.yml asserts every
+# flavor the publisher passes to a shorebird command has an entry here, so this
+# cannot drift out of sync with the publisher again.
+#
+# preview maps to the SAME app_id as before, deliberately, so the founder's
+# existing Shorebird app and release history carry over unchanged.
+#
+# prod is intentionally ABSENT: the production AAB is built with plain
+# `flutter build appbundle` (see .github/workflows/flutter-prod-aab.yml), NOT
+# `shorebird release`, so the Play build carries no over-the-air updater and
+# every production change ships as a new, Play-reviewed AAB. That is the
+# deliberate "production is a static, reviewed build" posture. If production OTA
+# is ever wanted, generate a real prod app_id with `shorebird init` (never reuse
+# preview's, or patches would cross between the two) and add a prod: entry.
+flavors:
+  preview: 27a34b94-b810-4fe1-96c3-2e746ced4654

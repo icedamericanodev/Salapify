@@ -44,19 +44,56 @@ android {
     signingConfigs {
         // Preview key, committed on purpose so every CI build installs OVER the
         // previous one on the founder's phone (Android requires the same
-        // signature to update in place). This is NOT the Play production key;
-        // when we set up Play, a separate upload key lives outside the repo.
+        // signature to update in place). This is NOT the Play production key.
         create("preview") {
             storeFile = file("preview-keystore.jks")
             storePassword = "salapify-preview"
             keyAlias = "preview"
             keyPassword = "salapify-preview"
         }
+        // Production upload key, loaded ONLY from the environment (a CI secret),
+        // never committed. Absent for local and preview builds, which is fine:
+        // only the prod flavor's release build uses it, and only the production
+        // AAB workflow sets these variables. A prod release build with no key
+        // configured fails loudly at signing, with NO fallback to the preview
+        // key, which is exactly what CI forbids.
+        create("upload") {
+            val storeFilePath = System.getenv("SALAPIFY_UPLOAD_STORE_FILE")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("SALAPIFY_UPLOAD_STORE_PASSWORD")
+                keyAlias = System.getenv("SALAPIFY_UPLOAD_KEY_ALIAS")
+                keyPassword = System.getenv("SALAPIFY_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
+    // Two tracks, so the founder's over-the-air preview and the Play production
+    // build are separate artifacts that cannot be confused. They share one
+    // applicationId (the same app on Play), so the preview the founder runs
+    // keeps updating in place. The difference is signing (preview key vs the
+    // upload key from the secret), the launcher label (Preview vs not), and the
+    // testing aids (the production AAB workflow passes SALAPIFY_PREVIEW=false).
+    flavorDimensions += "track"
+    productFlavors {
+        create("preview") {
+            dimension = "track"
+            manifestPlaceholders["appLabel"] = "Salapify Preview"
+            signingConfig = signingConfigs.getByName("preview")
+        }
+        create("prod") {
+            dimension = "track"
+            manifestPlaceholders["appLabel"] = "Salapify"
+            signingConfig = signingConfigs.getByName("upload")
+        }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("preview")
+            // No signingConfig here on purpose: it comes from the flavor
+            // (preview -> committed preview key, prod -> upload key from the
+            // secret). Setting it here would override the flavor and sign the
+            // production build with the preview key, the one thing CI forbids.
         }
     }
 }
