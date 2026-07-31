@@ -30,7 +30,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.04 \u00b7 A guard test now locks the backup-off privacy setting on, so it can never be silently removed.';
+    'f3.05 \u00b7 Privacy: backup fully off, lock-screen reminders generic by default, screenshots blocked when App Lock is on.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
