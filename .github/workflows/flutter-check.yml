@@ -69,6 +69,34 @@ jobs:
           channel: stable
           cache: true
 
+      # Delivery guard. The publisher (flutter-preview.yml) installs Shorebird
+      # with this EXACT pinned action, but only on main after merge, so a broken
+      # pin surfaced only at the base-APK build, the most expensive place. It
+      # cost the f3.05 delivery one failed run: a tail-1 mis-pin to v1.2.x, whose
+      # install script dies under the runner's /bin/sh. This installs it here,
+      # pre-merge, so a bad pin reddens the PR. Installing needs no
+      # SHOREBIRD_TOKEN (that is only for publishing), so it is safe on the
+      # branch check.
+      - name: Shorebird installs (delivery-tooling smoke test)
+        uses: shorebirdtech/setup-shorebird@4dd9d7dc2d7930bfeadb053b6e94b5110779d1e5 # v1 (v1.0.1)
+
+      # The smoke test above proves the pin IT references installs. This proves
+      # the publisher references the SAME pin, so the two cannot drift: bumping
+      # only the publisher to a broken version would otherwise ship a pin the
+      # smoke test never exercised.
+      - name: Publisher and this check pin Shorebird identically
+        working-directory: .
+        run: |
+          check=$(grep -oE 'setup-shorebird@[0-9a-f]{40}' .github/workflows/flutter-check.yml | head -1)
+          pub=$(grep -oE 'setup-shorebird@[0-9a-f]{40}' .github/workflows/flutter-preview.yml | head -1)
+          echo "check:     $check"
+          echo "publisher: $pub"
+          if [ -z "$check" ] || [ "$check" != "$pub" ]; then
+            echo "The branch check and the publisher pin setup-shorebird to different SHAs."
+            echo "The smoke test then proves a pin that is not the one that ships. Make them match."
+            exit 1
+          fi
+
       - name: Analyze (zero tolerance)
         run: flutter analyze
 
