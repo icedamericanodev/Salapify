@@ -28,7 +28,15 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Target Android 16 (API 36) EXPLICITLY, not via flutter.targetSdkVersion.
+        // targetSdk opts the app into a platform's new runtime behaviors, so it
+        // must be a deliberate, reviewed number, not whatever the Flutter SDK
+        // happens to default to on the day of a build (that default moved us
+        // silently before). 36 clears Google Play's requirement (target API 35
+        // or higher for new and updated apps in 2026) with margin. Pinned and
+        // guarded by test/target_sdk_test.dart. Bump only after reviewing the
+        // behavior changes for the new level and updating that test.
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
