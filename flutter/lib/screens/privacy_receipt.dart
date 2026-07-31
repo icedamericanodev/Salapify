@@ -105,6 +105,10 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             const SizedBox(height: 8),
             _permissionsCard(),
             const SizedBox(height: 20),
+            Kicker('IF YOUR PHONE IS LOST OR SHARED'),
+            const SizedBox(height: 8),
+            _protectionsCard(),
+            const SizedBox(height: 20),
             Kicker('RECENT RATE FETCHES'),
             const SizedBox(height: 8),
             _fetchLogCard(),
@@ -322,6 +326,81 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               'Also widget plumbing, and also unused by Salapify. Listed '
                   'because this card claims to be the complete list, and a '
                   'complete list has to include the boring ones.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // On-device protections, not network claims: what keeps your data safe on the
+  // phone itself. Every line here is a behavior the app actually ships and a
+  // test guards, so this card can be checked the same way the connection list
+  // can. Backups: allowBackup=false plus the two backup-rules XML resources
+  // exclude every domain from Android cloud backup AND device-to-device
+  // transfer (backup_posture_test.dart). Secure screen: FLAG_SECURE is set when
+  // App lock is on (secure_window.dart, MainActivity.kt). Generic reminders:
+  // names and amounts are kept off the lock screen unless detailed reminders
+  // are opted in (notification_visibility_test.dart).
+  Widget _protectionsCard() {
+    Widget row(IconData icon, String title, String body) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Barako.primary, size: 18),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                body,
+                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            row(
+              Icons.cloud_off_outlined,
+              'Automatic backup is off',
+              'Android can copy an app\'s data to Google Drive, and to a new '
+                  'phone during setup. Both are turned off for Salapify, so '
+                  'your ledger is never uploaded or transferred behind your '
+                  'back. A backup exists only when you make one yourself.',
+            ),
+            const Divider(height: 22),
+            row(
+              Icons.screenshot_monitor_outlined,
+              'The screen hides when App lock is on',
+              'With App lock on, the app marks its screens secure, so your '
+                  'balances do not show in the app switcher preview and cannot '
+                  'be screenshotted while the app is locked.',
+            ),
+            const Divider(height: 22),
+            row(
+              Icons.notifications_off_outlined,
+              'Lock-screen reminders stay generic',
+              'A reminder on your lock screen says only that something is due, '
+                  'never the amount or the name. Turning on detailed reminders '
+                  'in the Menu adds those, but only in the notification shade '
+                  'after you unlock, never on the lock screen itself.',
             ),
           ],
         ),

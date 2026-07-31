@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.07 \u00b7 Delivery guard: the release page now shows only the current install file, no stale APK beside it.';
+    'f3.08 \u00b7 Privacy receipt now lists the on-device protections: backups off, secure screen, generic reminders.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

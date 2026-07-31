@@ -50,6 +50,7 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
+import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/year_end_tax.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/pan_mascot.dart';
@@ -1675,6 +1676,37 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/lesson-dark.png'),
+    );
+  });
+
+  testWidgets('the Privacy receipt, dark', (tester) async {
+    // A launch trust surface, so look at it whole. It provides its own
+    // Scaffold and AppBar, so render it as home directly rather than through
+    // shoot() (which wraps a bare destination in a Scaffold). Empty prefs, so
+    // the fetch log shows its honest "No rate fetches yet" state; the point of
+    // this shot is the copy and the new on-device protections card.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+
+    // Tall viewport on purpose: this is a trust surface and the whole page is
+    // worth seeing in one frame, not just the fold. A ListView only paints its
+    // viewport, so the height has to be enough to hold the whole receipt.
+    tester.view.physicalSize = const Size(1080, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: PrivacyReceiptScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/privacy-receipt-dark.png'),
     );
   });
 }
