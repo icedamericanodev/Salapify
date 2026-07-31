@@ -32,6 +32,7 @@ import 'new_phone_day.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'paluwagan.dart';
 import 'pan.dart';
+import 'diagnostics_screen.dart';
 import 'privacy_receipt.dart';
 import 'search.dart';
 import 'payday.dart';
@@ -276,6 +277,18 @@ class MenuScreen extends StatelessWidget {
                     'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => PrivacyReceiptScreen()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _navRow(
+                icon: Icons.build_outlined,
+                title: 'Diagnostics',
+                blurb:
+                    'For testers: counts and recent errors, never your amounts or names. Nothing leaves unless you share it.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => DiagnosticsScreen(store: store),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
