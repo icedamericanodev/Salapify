@@ -141,11 +141,14 @@ void main() {
     });
 
     testWidgets('large text scale, no clipping', (tester) async {
-      // At 2.0x on a 320dp content width in the real font (Jakarta), "System"
-      // wraps to two lines rather than clipping, and the reserved leading slot
-      // keeps all three segments the same height. This is the real-device
-      // behaviour; the vertical-stack safety net only fires at even narrower
-      // widths, and the segmented widget test covers that path.
+      // At 2.0x on a 320dp content width in the shipped font (Plus Jakarta
+      // Sans), "System" wraps to two lines rather than clipping, and the
+      // reserved leading slot keeps all three segments the same height. This is
+      // the real-device behaviour, and segmented_test.dart now loads the same
+      // real font, so the widget test and this baseline agree: a row here, not a
+      // stack. The vertical-stack safety net only fires at even narrower widths
+      // (about 250dp at 2.0x) or beyond 2.0x, and segmented_test.dart covers
+      // that path directly.
       await _golden(
         tester,
         name: 'system-selector-large',

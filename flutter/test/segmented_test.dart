@@ -16,6 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/segmented.dart';
 
+import 'screens_shot.dart' show loadRealFonts;
+
 Widget _harness(
   String current, {
   void Function(String)? onPick,
@@ -189,6 +191,15 @@ void main() {
   // every selected state (the check glyph used to steal width from the selected
   // label so it wrapped differently from its neighbours), and prove the control
   // stacks vertically once three labels no longer fit side by side.
+  //
+  // Every test here loads the REAL app font first. Wrap-versus-stack is decided
+  // by how wide the label is, and the label is wider in Flutter's default test
+  // font than in Plus Jakarta Sans, the face the phone actually ships. Without
+  // loadRealFonts these tests would judge a font the phone never draws: an
+  // earlier version demanded the control stack at 320dp / 2.0x, which is true in
+  // the wide test font and false on the phone, where Jakarta wraps in a row (the
+  // ui_golden.dart baseline shows exactly that). Measuring in the shipped font is
+  // the whole point.
   group('theme mode selector at accessibility scales', () {
     const modes = ['System', 'Light', 'Dark'];
 
@@ -222,6 +233,7 @@ void main() {
         testWidgets('no overflow or clip at ${scale}x, "$selected" selected', (
           tester,
         ) async {
+          await loadRealFonts(tester);
           await tester.pumpWidget(modeHarness(selected, scale: scale));
           await tester.pumpAndSettle();
           expect(
@@ -254,9 +266,10 @@ void main() {
       }
     }
 
-    testWidgets('horizontal at normal scale, stacked at 2.0x on a narrow phone', (
+    testWidgets('shares one row at normal scale in the shipped font', (
       tester,
     ) async {
+      await loadRealFonts(tester);
       await tester.pumpWidget(modeHarness('System', scale: 1.0));
       await tester.pumpAndSettle();
       expect(
@@ -266,15 +279,30 @@ void main() {
         lessThan(8),
         reason: 'at 1.0x the three segments should share one row',
       );
+    });
 
-      await tester.pumpWidget(modeHarness('System', scale: 2.0));
+    testWidgets('stacks vertically only in the extreme narrow case', (
+      tester,
+    ) async {
+      // The vertical-stack fallback is a SAFETY NET, not a device-typical
+      // layout. In the shipped font (Plus Jakarta Sans) the three labels still
+      // share a row at a normal phone width even at 2.0x: "System" wraps to two
+      // lines and fits. Measured with the real font, the control only stacks
+      // once the content box is narrower than about 250dp at 2.0x (a
+      // constrained container or split-screen), or at accessibility scales
+      // beyond 2.0x. 200dp at 2.0x sits comfortably inside that region, so this
+      // exercises the stack path honestly. At the device-typical 320dp / 2.0x
+      // the control wraps in a row instead, which the ui_golden.dart
+      // system-selector-large baseline shows.
+      await loadRealFonts(tester);
+      await tester.pumpWidget(modeHarness('System', scale: 2.0, width: 200));
       await tester.pumpAndSettle();
       expect(
         tester.getCenter(find.text('Dark')).dy -
             tester.getCenter(find.text('System')).dy,
         greaterThan(48),
         reason:
-            'at 2.0x on a narrow phone the segments should stack vertically so '
+            'in a 200dp box at 2.0x the segments should stack vertically so '
             'each label gets the full width instead of a clipped third',
       );
     });
