@@ -134,8 +134,61 @@ void main() {
       expect(plans.every((p) => p.when.isAfter(now)), true);
       expect(plans.any((p) => p.title.contains('due in 3 days')), true);
       expect(plans.any((p) => p.title.contains('due today')), true);
-      // The minimum is named on the lock-screen line.
-      expect(plans.any((p) => p.body.contains('500')), true);
+    });
+
+    test('the DEFAULT reminder names no debt and no amount, anywhere', () {
+      // The lock-screen privacy contract. With detailed off (the default), not
+      // one reminder may carry the debt name or the peso amount, in the title
+      // OR the body. This test used to assert the OPPOSITE, that 500 appeared
+      // "on the lock-screen line", which is exactly the leak it now guards
+      // against. Proven to fail by pointing plannedReminders at detailed:true.
+      final plans = plannedReminders(billData(), now);
+      expect(plans, isNotEmpty);
+      for (final p in plans) {
+        expect(
+          p.title.contains('BPI card'),
+          isFalse,
+          reason: 'debt name leaked into a default title',
+        );
+        expect(
+          p.body.contains('BPI card'),
+          isFalse,
+          reason: 'debt name leaked into a default body',
+        );
+        expect(
+          p.body.contains('500'),
+          isFalse,
+          reason: 'peso amount leaked into a default body',
+        );
+      }
+    });
+
+    test('detailed names the debt and amount, but only in the body', () {
+      final plans = plannedReminders(billData(), now, detailed: true);
+      expect(
+        plans.any((p) => p.body.contains('BPI card')),
+        isTrue,
+        reason: 'opt-in detail should name the debt in the body',
+      );
+      expect(
+        plans.any((p) => p.body.contains('500')),
+        isTrue,
+        reason: 'opt-in detail should show the amount in the body',
+      );
+      // The title stays generic even with detail on, because the title is the
+      // one line the lock screen can still show under VISIBILITY_PRIVATE.
+      for (final p in plans) {
+        expect(
+          p.title.contains('BPI card'),
+          isFalse,
+          reason: 'the debt name must never reach the title',
+        );
+        expect(
+          p.title.contains('500'),
+          isFalse,
+          reason: 'the amount must never reach the title',
+        );
+      }
     });
 
     test('a fully paid debt is not chased', () {
@@ -146,28 +199,69 @@ void main() {
   });
 
   group('utang to collect', () {
+    // Migs owes 1000, has paid 400, so 600 remains.
+    Map<String, dynamic> collectData() => withNotifs(
+      {'collect': true},
+      extra: {
+        'receivables': [
+          {
+            'id': 'r1',
+            'person': 'Migs',
+            'amount': 1000,
+            'dueDate': '2026-07-20',
+            'payments': [
+              {'amount': 400, 'date': '2026-07-10'},
+            ],
+          },
+        ],
+      },
+    );
+
     test('reminds for what is still owed after partial payment', () {
-      final data = withNotifs(
-        {'collect': true},
-        extra: {
-          'receivables': [
-            {
-              'id': 'r1',
-              'person': 'Migs',
-              'amount': 1000,
-              'dueDate': '2026-07-20',
-              'payments': [
-                {'amount': 400, 'date': '2026-07-10'},
-              ],
-            },
-          ],
-        },
-      );
-      final plans = plannedReminders(data, now);
+      final plans = plannedReminders(collectData(), now);
       expect(plans, isNotEmpty);
+      expect(plans.every((p) => p.when.isAfter(now)), true);
+    });
+
+    test('the DEFAULT collect reminder names no person and no amount', () {
+      final plans = plannedReminders(collectData(), now);
+      expect(plans, isNotEmpty);
+      for (final p in plans) {
+        expect(
+          p.title.contains('Migs') || p.body.contains('Migs'),
+          isFalse,
+          reason: 'person name leaked into a default reminder',
+        );
+        expect(
+          p.body.contains('600'),
+          isFalse,
+          reason: 'remaining amount leaked into a default body',
+        );
+      }
+    });
+
+    test('detailed names the person and remaining amount, only in the body', () {
+      final plans = plannedReminders(collectData(), now, detailed: true);
       // Owes 600 now, not the original 1000.
-      expect(plans.any((p) => p.body.contains('600')), true);
-      expect(plans.any((p) => p.body.contains('1,000')), false);
+      expect(plans.any((p) => p.body.contains('600')), isTrue);
+      expect(plans.any((p) => p.body.contains('1,000')), isFalse);
+      expect(
+        plans.any((p) => p.body.contains('Migs')),
+        isTrue,
+        reason: 'opt-in detail should name the person in the body',
+      );
+      for (final p in plans) {
+        expect(
+          p.title.contains('Migs'),
+          isFalse,
+          reason: 'the person name must never reach the title',
+        );
+        expect(
+          p.title.contains('600'),
+          isFalse,
+          reason: 'the amount must never reach the title',
+        );
+      }
     });
 
     test('a paid or fully-collected utang is silent', () {

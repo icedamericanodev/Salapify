@@ -1124,6 +1124,25 @@ class SalapifyStore extends ChangeNotifier {
     };
   });
 
+  /// Whether reminders may carry names and amounts in their body
+  /// (settings.notifDetailed). OFF by default: the privacy contract is that a
+  /// locked phone shows generic reminders only. Turning this on reveals detail
+  /// in the UNLOCKED shade (the notifications use VISIBILITY_PRIVATE), never on
+  /// the lock screen. Stored as a plain settings key, so the backup preserves
+  /// it with no migration.
+  bool get notifDetailed =>
+      (data['settings'] as Map?)?['notifDetailed'] == true;
+
+  Future<void> setNotifDetailed(bool value) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'notifDetailed': value,
+      },
+    },
+  );
+
   /// Remember the mood theme (legacy latte/barako/milktea). Kept for the old
   /// mood card and tests; new UI uses setThemeKey/setThemeMode.
   Future<void> setThemeMood(String mood) => _mutate(

@@ -574,6 +574,22 @@ class MenuScreen extends StatelessWidget {
       }
     }
 
+    // Detailed reminders are a separate, opt-in choice: whether a reminder may
+    // name the debt or person and the amount. Off by default. On reveals detail
+    // only in the unlocked shade, never on the lock screen. Reschedule after so
+    // already-queued reminders are rebuilt at the new detail level.
+    Future<void> toggleDetail(bool value) async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await store.setNotifDetailed(value);
+        await Reminders.reschedule(store.data, DateTime.now());
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Could not save that, nothing changed. $e')),
+        );
+      }
+    }
+
     // MergeSemantics, so the switch and its words are ONE thing to a screen
     // reader. A bare Switch announces "switch, on" with no hint of WHICH
     // reminder it controls; merged, it reads the title and subtitle too. The
@@ -666,6 +682,54 @@ class MenuScreen extends StatelessWidget {
               'Monthly backup',
               'A nudge on the 1st to save a fresh backup file, so a lost '
                   'phone is an errand, not a disaster.',
+            ),
+            const Divider(height: 24),
+            MergeSemantics(
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    color: Barako.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Show names and amounts',
+                          style: TextStyle(
+                            color: Barako.text,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Off by default. Reminders stay generic on your lock '
+                          'screen. Turn on to show the name and amount, visible '
+                          'only after you unlock the phone.',
+                          style: TextStyle(
+                            color: Barako.muted,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: store.notifDetailed,
+                    onChanged: toggleDetail,
+                    activeThumbColor: Barako.onPrimary,
+                    activeTrackColor: Barako.primary,
+                    inactiveThumbColor: Barako.faint,
+                    inactiveTrackColor: Barako.border,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

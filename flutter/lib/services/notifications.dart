@@ -87,6 +87,12 @@ class Reminders {
     }
   }
 
+  // VISIBILITY_PRIVATE is the second half of the lock-screen privacy contract
+  // (the first is that the planner keeps names and amounts out of titles). On a
+  // secure lock screen Android hides the body of a private notification and
+  // reveals it once unlocked, so detailed reminders show their names and
+  // amounts only in the unlocked shade. Generic reminders carry nothing
+  // sensitive anyway, so private is a safe default for all of them.
   static const NotificationDetails _details = NotificationDetails(
     android: AndroidNotificationDetails(
       'reminders',
@@ -94,6 +100,7 @@ class Reminders {
       channelDescription: 'Log nudges, payday, bills, and IOU reminders',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      visibility: NotificationVisibility.private,
     ),
     iOS: DarwinNotificationDetails(presentSound: false),
   );
@@ -114,8 +121,13 @@ class Reminders {
       await _init();
       if (myRun != _runToken) return;
       await _plugin.cancelAll();
+      // Detailed reminders (names and amounts in the body) are strictly opt-in;
+      // absent key means off, so the default is the generic, redacted text.
+      final settings = data['settings'];
+      final detailed =
+          settings is Map && settings['notifDetailed'] == true;
       var id = 0;
-      for (final r in plannedReminders(data, now)) {
+      for (final r in plannedReminders(data, now, detailed: detailed)) {
         if (myRun != _runToken) return; // a newer reschedule superseded us
         if (id >= 60) break; // a sane cap on how many we ever queue
         await _plugin.zonedSchedule(
