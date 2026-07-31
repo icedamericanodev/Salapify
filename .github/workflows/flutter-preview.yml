@@ -259,6 +259,49 @@ jobs:
             sleep 5
           done
 
+      # Keep the release page showing exactly ONE installable APK.
+      #
+      # A base-APK build uploads app-preview-release.apk to the fixed
+      # flutter-preview release. When the artifact filename CHANGES (adding the
+      # preview flavor renamed app-release.apk to app-preview-release.apk once
+      # already), the old asset is orphaned NEXT TO the new one, the same size,
+      # and the founder cannot tell which to install. Tapping the stale one
+      # silently installs an old build while everything looks done, the exact
+      # silent-delivery confusion the delivery log exists to prevent, and the
+      # founder hit it on f3.06. This deletes every .apk on the release whose name
+      # is not the current base APK, so only the current file is ever offered.
+      #
+      # Runs on every successful publish, patch and release, so a stale asset is
+      # cleaned on the very next push rather than lingering until the next base
+      # APK. continue-on-error because a cleanup hiccup must NEVER block or
+      # false-alarm a real delivery: the APK is already published and the row
+      # already written by the time this runs, so the worst a failure here does is
+      # leave a stale asset, no worse than before this step existed.
+      #
+      # EXPECTED_APK is hard-coded to match the `files:` path in the publish step
+      # above; a future artifact rename must change BOTH together.
+      - name: Remove stale base APK assets from the release page
+        if: success() && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_APK: app-preview-release.apk
+        run: |
+          names=$(gh release view flutter-preview --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name | select(endswith(".apk"))') || {
+            echo "Could not list release assets; leaving the release page as is."
+            exit 0
+          }
+          for name in $names; do
+            if [ "$name" != "$EXPECTED_APK" ]; then
+              echo "Deleting stale release asset: $name"
+              gh release delete-asset flutter-preview "$name" \
+                --repo "$GITHUB_REPOSITORY" --yes \
+                || echo "Could not delete $name; leaving it in place."
+            fi
+          done
+          echo "Release page now offers the current base APK: $EXPECTED_APK"
+
       # These two steps go LAST on purpose. A notice placed before the publish
       # step cannot report a failure IN the publish step, which is the exact
       # blind spot being closed here.
