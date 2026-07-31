@@ -49,6 +49,7 @@ import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
@@ -1645,6 +1646,36 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/year-end-tax-dark.png'),
+    );
+  });
+
+  testWidgets('the Income tax calculator with a result, dark', (tester) async {
+    // The heaviest tax screen and the only one that was in no render harness.
+    // Entering a gross figure reveals OUR PICK, both option cards (the
+    // graduated breakdown folded behind "Show the calculation"), the set-aside,
+    // the forms, and the disclaimer.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({});
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        home: const TaxCalculatorScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '600000');
+    await tester.pumpAndSettle();
+    expect(find.text('OUR PICK'), findsOneWidget);
+    expect(find.text('Show the calculation'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/tax-income-dark.png'),
     );
   });
 

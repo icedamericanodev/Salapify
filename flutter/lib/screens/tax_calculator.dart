@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../money/phtax.dart';
 import '../theme.dart';
+import '../widgets/section.dart';
 import 'overview.dart' show formatMoney;
 
 class TaxCalculatorScreen extends StatefulWidget {
@@ -41,16 +42,12 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
 
   String _m(num n) => formatMoney((n + 0.5).floorToDouble());
 
+  // The shared Kicker so these section labels match the rest of the app, and a
+  // header semantics flag so a screen reader can jump between the sections of a
+  // long form instead of reading it all as one run.
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Semantics(header: true, child: Kicker(text)),
   );
 
   Widget _row(
@@ -289,13 +286,10 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        !(r['eligible8'] as bool) ? 'HEADS UP' : 'OUR PICK',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
+                      Semantics(
+                        header: true,
+                        child: Kicker(
+                          !(r['eligible8'] as bool) ? 'HEADS UP' : 'OUR PICK',
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -358,6 +352,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                 _optionCard(
                   title: 'Graduated option',
                   win: !eightWins && meaningful,
+                  collapsibleRows: true,
                   rows: [
                     _row(
                       useOSD ? '40% standard deduction' : 'Your expenses',
@@ -414,15 +409,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'FORMS YOU WILL FILE',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
-                        ),
-                      ),
+                      Semantics(header: true, child: Kicker('FORMS YOU WILL FILE')),
                       const SizedBox(height: 6),
                       Text(
                         formsText,
@@ -474,6 +461,12 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
     required List<Widget> rows,
     required String total,
     required String note,
+    // The graduated option carries a multi-line breakdown (deduction, net,
+    // income tax, percentage tax); folding it behind a tap lets the Total tax
+    // lead and keeps the two option cards scannable side by side. The total and
+    // the note stay visible either way. The 8% card has one row, so it never
+    // collapses.
+    bool collapsibleRows = false,
   }) {
     return Card(
       shape: win
@@ -522,7 +515,30 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
               ],
             ),
             const SizedBox(height: 6),
-            ...rows,
+            if (collapsibleRows)
+              // A tap to reveal the line-by-line math. Transparent dividers so
+              // it reads as a quiet disclosure inside the card, not a new tile.
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  title: Text(
+                    'Show the calculation',
+                    style: TextStyle(
+                      color: Barako.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  children: rows,
+                ),
+              )
+            else
+              ...rows,
             Divider(color: Barako.border, height: 16),
             Row(
               children: [
