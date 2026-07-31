@@ -10,6 +10,198 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-31, session 24: a clean f3.10 patch, and the blocking test that measures a font the phone does not use
+
+**What we believed / What was true.** We believed the seven-issue UI,
+accessibility, and visual-regression batch (PR #275, stamp f3.10) would reach
+the phone as an over-the-air patch on the merge to main, with no new base APK
+needed because the app version stayed 0.9.0+15. This time belief and truth
+match. The founder opened the app and the Update stamp reads f3.10. That is the
+only proof that counts, and the delivery log backs it exactly:
+`| 2026-07-31 15:10 UTC | f3.10 | 4 | patch | 0.9.0+15 | 14d53c37 |`, the last
+row of `origin/main:docs/delivery-log.md`. Mode is `patch`, so the installed
+0.9.0+15 base APK updated itself on reopen with no manual install, which is what
+happened. `git log origin/main` shows the merge commit `14d53c3` (a real merge
+commit, PR #275) followed by `58349c1 Delivery: f3.10, patch 4 [skip ci]`. File
+and phone agree. This was a clean patch delivery, and that is the finding: no
+stamp was stranded, nothing shipped wrong, no divergence between what we
+believed shipped and what did.
+
+A clean delivery is a real outcome, not a failure to find problems, and this
+session does not invent one. What is worth writing up is a real latent trap that
+surfaced DURING development and did not reach the phone: a blocking test that
+asserts a layout the phone does not actually produce, because the test renders a
+different font than the phone. It caused a golden mismatch mid-build, was traced
+correctly, and is still sitting in the suite as a fragile assertion. A near miss
+inside the gate is exactly the kind of thing this session exists to name before
+it becomes a shipped bug.
+
+Plain-English note on the terms. A "golden" or "pixel baseline" is a saved
+screenshot the build compares new renders against, pixel by pixel, so a visual
+change reddens the run. A "layout-metric test" does not compare pixels; it reads
+positions and sizes off the rendered widgets and asserts things like "these two
+labels sit on the same row" or "this label did not clip". The "test font" is the
+plain font Flutter loads by default in a widget test; the real app ships Plus
+Jakarta Sans ("Jakarta"), which is a different, narrower shape. "Non-blocking"
+means a CI step can fail without failing the whole run.
+
+**Timeline (with evidence).**
+- PR #275 landed seven fixes, A through F. A hardened the shared `Segmented`
+  control so the theme-mode "System" label holds up at large text (a reserved
+  check-icon slot on every segment, and `LayoutBuilder` plus `TextPainter`
+  measuring fit and stacking vertically only when three labels cannot share two
+  rows). B pinned the transfer sheet's Cancel and "Move it" buttons below a
+  `Flexible` scroll view and changed the action `Row` to a `Wrap` that was
+  overflowing 32 pixels at 1.5x text. C added a "WHAT MATTERS NOW" summary to
+  Insights and a real `ErrorState` on `store.loadError`. D made the Income tax
+  screen scannable with every BIR string and deadline byte-identical, verified by
+  diff. E removed the debug ribbon from the render harnesses via a shared
+  `goldenApp()` and `debugShowCheckedModeBanner: false`. F added a deterministic
+  opt-in pixel-golden suite.
+- Ground truth read, not assumed. The three-command delivery check ran as
+  written: `git fetch origin main`, `git log origin/main --oneline`, and
+  `git show origin/main:docs/delivery-log.md | tail`. The last row names f3.10 at
+  0.9.0+15 against `14d53c37`, patch 4, mode `patch`. The stamp constant in
+  `flutter/lib/main.dart:34` reads `f3.10` and is one line, under the 120-char
+  cap. The phone reads f3.10. All three agree.
+- The new pixel-golden suite is real and committed: `flutter/test/golden/`
+  holds `ui_golden.dart`, twelve tracked baseline PNGs under `baseline/`
+  (`git ls-files` confirms they are checked in, not ignored), and a scoped
+  `flutter_test_config.dart` that installs a 0.5% tolerance comparator so
+  sub-pixel anti-aliasing between the sandbox and the runner does not false-alarm
+  while a real move (a shifted box, a wrong colour, changed copy) still fails
+  loudly. The CI step that COMPARES these baselines is deliberately
+  `continue-on-error: true` in `.github/workflows/flutter-check.yml:174-177`, so
+  a pixel drift uploads a diff artifact but does not fail the PR. The real gate
+  stays the deterministic layout-metric tests, which honours the standing
+  anti-flake rule.
+- The near miss. During development a golden mismatch on the system-mode
+  selector was traced to real-versus-test fonts. The golden suite loads Jakarta
+  (`flutter/test/font_compare.dart:24-31` is the same face list), which is
+  narrower, so the three labels wrap onto two lines and fit. The blocking widget
+  test in `test/segmented_test.dart` loads no real font, so the wider test font
+  makes the same three labels STACK vertically instead. The two disagree about
+  the layout, and both were "passing" against their own font.
+- No inverted or deleted assertion shipped in this PR. The only test-file
+  deletions in the diff were whitespace and reformatting. The one assertion that
+  looked changed, `find.text('SAFE TO SPEND UNTIL PAYDAY')` in
+  `test/insights_screen_test.dart`, was adapted from a top-level find to a
+  scroll-to-each loop (see the comment at `insights_screen_test.dart:181-183`)
+  because the new WHAT MATTERS NOW summary pushed that card below the test
+  viewport fold. It still asserts the card renders. That is a legitimate
+  adaptation to a moved layout, not a test rewritten to defend a bug.
+
+**Root cause.** There is no defect on the phone to root-cause, because delivery
+was clean and the founder confirmed f3.10. The structural point worth naming is
+narrower than a delivery failure and lives entirely inside the test suite: the
+gate that decides whether a big-text layout is acceptable measures a font the
+phone never renders. Concretely, `test/segmented_test.dart:257-280` asserts that
+at 2.0x on a 320dp phone the segments "should stack vertically", checking that
+the "Dark" label centre sits more than 48 pixels below the "System" label
+centre. That outcome is a property of the WIDE test font. On the phone, with the
+narrower Jakarta, the labels wrap onto two lines and do not stack, so the real
+render does something the blocking test does not describe. The one render that
+uses the real font and would catch this divergence, the golden
+`baseline/system-selector-large.png`, is in the non-blocking suite. So the phone
+truth is checked by a step that cannot fail the build, and the step that fails
+the build checks a font the phone does not use. That is the trap CLAUDE.md's
+"prove a new test can fail" section warns about, arriving through the font door
+rather than the mental-model door: a test that passes for a reason unrelated to
+what the user sees.
+
+Honest scope of the trap. The SIBLING assertions in the same group are safe, and
+it is worth saying why so this is not read as wider than it is. The "no overflow
+exception" and `didExceedMaxLines` is `false` checks (lines 227-244) are
+conservative against the wide test font: a wider font clips sooner, so passing
+those with the test font is a STRICTER promise than the phone needs, not a weaker
+one. The single fragile assertion is the directional "must stack" one at lines
+270-279, because it demands a specific font-dependent outcome that the narrower
+real font may legitimately not produce. The fix is not to delete it; stacking at
+some scale is genuinely wanted. The fix is to measure it against the font the
+phone ships.
+
+**Lessons.**
+
+1. A blocking layout-metric test that asserts a specific font-dependent OUTCOME
+   (stacks versus wraps, this label below that one by N pixels) can pass on the
+   wide test font while the phone, on narrower Jakarta, lays out differently. The
+   real-font render that would catch the split is the pixel golden, which is
+   non-blocking by design. GUARD, proposed, NOT built this pass: make the
+   directional assertion in `test/segmented_test.dart` (the "horizontal at normal
+   scale, stacked at 2.0x" test, lines 257-280) load the real Jakarta faces
+   before it measures. The mechanism already exists in the repo and can be copied
+   verbatim: `test/font_compare.dart:35-55` loads
+   `assets/fonts/PlusJakartaSans-Regular.ttf`, `-Bold.ttf`, and `-ExtraBold.ttf`
+   through a `FontLoader` INSIDE `tester.runAsync` (real file reads never
+   complete under the fake test clock, per the CLAUDE.md render note). Add that
+   `_load(tester)` call at the top of the test, then the stack-versus-wrap
+   assertion reflects phone metrics. Prove it fail-then-restore: with the real
+   font loaded the assertion should describe what Jakarta actually does, so if the
+   current "> 48 pixels" figure was tuned to the test font it will need
+   correcting, and that correction is the proof the fonts differed. Strength:
+   STRONGEST if built, because it is an automated check on the branch that then
+   measures phone reality instead of test-font reality. Until it is built this
+   lesson is OPEN, and the honest reason it is open is that the assertion still
+   passes today, so nothing forces the work; that is exactly the condition under
+   which latent traps survive.
+
+2. When a task asks for a "stable pixel baseline" and CLAUDE.md's standing rule
+   says cross-platform pixel goldens are flaky and shots are write-only, the two
+   are not actually in conflict once separated, and this session separated them by
+   an explicit founder decision (AskUserQuestion): a HYBRID, where the
+   layout-metric tests remain the real per-push gate, the pixel baselines live in
+   a separate opt-in suite with a documented tolerance, and the CI golden step is
+   non-blocking. That decision is now embodied in code (`test/golden/`, the 0.5%
+   tolerance comparator, the `continue-on-error` step) but it is NOT written down
+   anywhere a future session would read before re-arguing it. GUARD, proposed: a
+   short paragraph in CLAUDE.md's "Look at the screen" section stating the
+   convention and the reason, tied to the moment "when asked to add or trust a
+   pixel baseline". It should say: pixel goldens are allowed as a NON-BLOCKING
+   visual reference with a low documented tolerance; they never become the gate;
+   the gate stays the deterministic layout-metric tests; and the baseline PNGs
+   under `test/golden/baseline/` are committed on purpose while the write-only
+   `test/shots/` renders stay gitignored. Strength: MEDIUM, because a CLAUDE.md
+   rule works only when someone reads it at the right moment, which is precisely
+   the moment a new baseline request arrives. It is worth having anyway, because
+   the alternative is re-litigating the anti-flake rule from scratch every time,
+   and a re-argument is where a flaky gate slips back in.
+
+**Discipline that held.** Each new guard added in this batch was proven
+fail-then-restore before it was trusted, per the CLAUDE.md rule. That is the
+discipline whose absence has defended real bugs here, so its holding on a clean
+patch is worth recording rather than assuming.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** The paths and
+commands CLAUDE.md names still match the repo. `test/screens_shot.dart`,
+`test/palette_contrast_test.dart`, `test/screen_readability_test.dart`, and
+`test/journeys_test.dart` all exist where named. The stamp-cap discipline held:
+`flutter/lib/main.dart` carries a single-line f3.10 stamp under the cap. The
+three-command delivery check ran as written and produced the f3.10 row. No FALSE
+factual claim was found in CLAUDE.md this session. One COVERAGE gap, not a false
+claim: the "Look at the screen" section still describes only the write-only
+`screens_shot.dart` harness and its `--update-goldens` CI run, and does not yet
+mention the new committed opt-in pixel-golden suite under `test/golden/` or its
+non-blocking CI step. That is the same posture as session 23's prod-flavor gap:
+something real that CLAUDE.md does not yet describe, which is why lesson 2 above
+proposes writing it down rather than leaving the next session to rediscover it.
+
+**Open lessons carried forward.**
+- Lesson 1 of this session is itself open: the font-divergence guard is
+  described precisely but not built, and it will stay open until the blocking
+  segmented assertion measures against Jakarta. Named here so it is not mistaken
+  for done, and so the next session checks whether it was closed.
+- From session 23, still open: nothing asserts that the verify-shipped path and
+  the base-APK upload path in `flutter-preview.yml` stay EQUAL to each other, so a
+  future rename that updates one and not the other could split them. This f3.10
+  patch rode the existing paths cleanly, which is evidence they still agree today,
+  not evidence the equality is enforced.
+- From session 22, the general shape remains open: any Action step that only
+  runs on the merge to main is untested by the branch check. f3.10 was a `patch`,
+  the low-risk case, so it did not exercise that gap, but the gap is still there
+  for the next release-mode ship.
+
+---
+
 ## 2026-07-31, session 23: a clean f3.06 ship, and the two silent breaks the gate caught before they could hide
 
 **What we believed / What was true.** We believed the Phase 1 PR2 base APK

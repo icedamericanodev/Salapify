@@ -94,6 +94,18 @@ Three things about the render, learned the hard way:
   Every Barako.* read happens during build, so setting brightness afterwards
   renders the old palette while claiming to be the new one.
 
+The same font rule reaches past the render harness. A widget test that MEASURES
+layout, whether a label wraps, whether a control stacks, whether anything
+overflows or clips, must load the real fonts first with `loadRealFonts` from
+`test/screens_shot.dart`, or it judges a font the phone never draws. Flutter's
+default test font is wider than Plus Jakarta Sans, the face the app ships, so a
+layout decision can come out one way in the test and the other way on the phone.
+The theme-mode selector test did exactly this: it demanded the picker stack at
+320dp and 2.0x, which is true in the test font and false in Jakarta, where the
+labels wrap in a row (`segmented_test.dart`, and the `ui_golden.dart` baseline
+shows the row). A test that measures pixels without the shipped font passes for a
+reason unrelated to what the founder sees.
+
 The file lives under test/ but is NOT named `*_test.dart`, and both halves of
 that are deliberate. Under test/, because the analyzer only permits test-only
 APIs there and parking it in tool/ turned `flutter analyze` red. Without the
@@ -125,6 +137,21 @@ well, not whether it fits.
 CI does run it, deliberately and separately, with `--update-goldens` so it only
 writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
+
+There is also a small COMMITTED pixel baseline, and it is a reference, not the
+gate. `test/golden/ui_golden.dart` renders the screens one change set touched
+into fixed PNGs under `test/golden/baseline/`, deterministic on purpose (fixed
+size and DPR, dark theme, en locale, real fonts, animations off, an injected
+clock where a date shows). It carries NO `_test` suffix, so `flutter test` never
+collects it, and the CI step that compares it is non-blocking: a pixel diff
+across environments is information, not a red build. The real per-push regression
+gate stays the DETERMINISTIC layout-metric tests (`screen_readability_test.dart`,
+`palette_contrast_test.dart`, `segmented_test.dart` and the like), which measure
+layout rather than pixels and so cannot flake cross-platform. That split is the
+standing answer to "add a stable pixel baseline": commit one for the screens that
+can be made deterministic, keep it opt-in and non-blocking, and never let a
+cross-environment pixel diff gate a push. Do not re-litigate it into a blocking
+pixel check; that is exactly the flake the founder ruled out.
 
 ## Test the app the way a person uses it, not one screen at a time
 
