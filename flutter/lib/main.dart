@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.10 \u00b7 Big-text fixes: theme picker and transfer buttons hold up, clearer Insights, scannable Income tax.';
+    'f3.11 \u00b7 Records the test-hardening patch under its own stamp so the log and your phone agree again.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
