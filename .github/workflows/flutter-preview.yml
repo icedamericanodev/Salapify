@@ -106,13 +106,17 @@ jobs:
           # number exists, and it is what the phone shows on the Update stamp
           # row, so it is the one value that lets repo and phone be compared.
           set -o pipefail
+          # --flavor preview on BOTH: the app has two flavors now (preview and
+          # prod), so a flavorless build is ambiguous. preview is the founder's
+          # over-the-air track. The release and every later patch MUST name the
+          # same flavor or the patch lands on a release Shorebird cannot match.
           if echo "$LIST" | grep -Fq " $VERSION "; then
             echo "Release $VERSION exists; pushing an over-the-air PATCH."
-            shorebird patch android --release-version "$VERSION" --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
+            shorebird patch android --release-version "$VERSION" --flavor preview --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
             echo "mode=patch" >> "$GITHUB_OUTPUT"
           else
             echo "No release $VERSION yet; building the base APK (founder installs this once)."
-            shorebird release android --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
+            shorebird release android --flavor preview --artifact apk --flutter-version 3.44.6 --no-confirm -- --no-tree-shake-icons 2>&1 | tee ship.log
             echo "mode=release" >> "$GITHUB_OUTPUT"
           fi
           # `|| true` is load-bearing, and its absence cost a whole delivery.
@@ -164,7 +168,7 @@ jobs:
             '${{ steps.ship.outputs.mode }}' \
             '${{ steps.ship.outputs.patch }}' \
             flutter/ship.log \
-            flutter/build/app/outputs/flutter-apk/app-release.apk
+            flutter/build/app/outputs/flutter-apk/app-preview-release.apk
 
       - name: Publish the base APK to the fixed flutter-preview release
         if: steps.ship.outputs.mode == 'release'
@@ -178,7 +182,13 @@ jobs:
             app. Check the Update stamp inside the app to confirm which build
             you are on. Built from ${{ github.sha }}.
           prerelease: true
-          files: flutter/build/app/outputs/flutter-apk/app-release.apk
+          # Flavored output path: `--flavor preview` writes the APK to
+          # app-preview-release.apk, not app-release.apk. Point the upload (and
+          # the verify-shipped check above) at the flavored name, or a release
+          # run publishes to Shorebird server-side while the founder's release
+          # page gets no installable APK, the exact silent-release failure the
+          # delivery log exists to catch.
+          files: flutter/build/app/outputs/flutter-apk/app-preview-release.apk
 
       # The delivery record. This exists so "did it actually ship" is answered
       # by reading a file in the repo instead of by interrogating the Actions

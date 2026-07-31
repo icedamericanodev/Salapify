@@ -1,0 +1,93 @@
+# The production Android App Bundle for a Google Play upload.
+#
+# Manual ONLY (workflow_dispatch): production is a deliberate act, never a side
+# effect of a push. It builds the prod flavor, signed with the upload key that
+# lives OUTSIDE the repo (a secret), with testing aids off, and then refuses to
+# hand over anything that borrows the preview build's identity: not the preview
+# certificate, not "Preview" copy, not the sample-data scaffolding.
+#
+# The upload key is not in the repo and does not need to be until the founder is
+# actually submitting to Play. Until the SALAPIFY_UPLOAD_* secrets are set, this
+# workflow fails at the first step with instructions, and NOTHING else here runs
+# it, so the preview delivery pipeline is completely unaffected.
+
+name: Production AAB (Play)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and verify the production AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+
+      # Fail loudly and early if the upload keystore is not configured, rather
+      # than building an unsigned or wrongly-signed bundle.
+      - name: The upload keystore secret must be present
+        env:
+          KS: ${{ secrets.SALAPIFY_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "SALAPIFY_UPLOAD_KEYSTORE_BASE64 is not set."
+            echo "Production signing needs the upload keystore added as repo secrets."
+            echo "See docs/launch-checklist.md, 'Production upload key', for how to"
+            echo "create the keystore and add SALAPIFY_UPLOAD_KEYSTORE_BASE64,"
+            echo "SALAPIFY_UPLOAD_STORE_PASSWORD, SALAPIFY_UPLOAD_KEY_ALIAS, and"
+            echo "SALAPIFY_UPLOAD_KEY_PASSWORD."
+            exit 1
+          fi
+
+      - name: Decode the upload keystore (outside the repo, in the runner temp)
+        env:
+          KS: ${{ secrets.SALAPIFY_UPLOAD_KEYSTORE_BASE64 }}
+        run: printf '%s' "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the production AAB (prod flavor, aids off)
+        env:
+          SALAPIFY_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload.jks
+          SALAPIFY_UPLOAD_STORE_PASSWORD: ${{ secrets.SALAPIFY_UPLOAD_STORE_PASSWORD }}
+          SALAPIFY_UPLOAD_KEY_ALIAS: ${{ secrets.SALAPIFY_UPLOAD_KEY_ALIAS }}
+          SALAPIFY_UPLOAD_KEY_PASSWORD: ${{ secrets.SALAPIFY_UPLOAD_KEY_PASSWORD }}
+        run: flutter build appbundle --flavor prod --dart-define=SALAPIFY_PREVIEW=false
+
+      # The production build must not borrow the preview identity. This checks
+      # the built artifact: the signing certificate is NOT the committed preview
+      # cert, the launcher label is "Salapify" not "Salapify Preview", the merged
+      # manifest still matches the permission/backup allowlist, and the
+      # sample-data testing scaffolding was tree-shaken out.
+      - name: Production cannot use the preview certificate, copy, or aids
+        working-directory: .
+        run: |
+          AAB=flutter/build/app/outputs/bundle/prodRelease/app-prod-release.aab
+          MANIFEST=$(find flutter/build/app -type f -name AndroidManifest.xml \
+            -path '*merged_manifest*' 2>/dev/null | grep -i 'prodrelease' | head -1)
+          bash .github/scripts/verify-prod-aab.sh \
+            "$AAB" \
+            "$MANIFEST" \
+            flutter/android/app/preview-keystore.jks
+
+      - name: Upload the AAB artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: salapify-production-aab
+          path: flutter/build/app/outputs/bundle/prodRelease/app-prod-release.aab
+          if-no-files-found: error
