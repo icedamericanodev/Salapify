@@ -287,7 +287,7 @@ class InsightsScreen extends StatelessWidget {
                 if (candidates.isNotEmpty) ...[
                   Kicker('WHAT MATTERS NOW'),
                   const SizedBox(height: 8),
-                  _whatMattersCard(candidates),
+                  _whatMattersLine(candidates),
                   const SizedBox(height: 18),
                 ],
                 if (candidates.isNotEmpty) ...[
@@ -440,55 +440,47 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  // The at-a-glance summary. Deliberately does NOT repeat any decision title
-  // (the DO NEXT cards below own those); it names the count and how urgent the
-  // lead is, so the reader gets the shape of the day in one line. The urgency
-  // is carried by the WORD and the glyph, never colour alone.
-  Widget _whatMattersCard(List<Map<String, dynamic>> candidates) {
+  // The at-a-glance summary, deliberately a single LINE, not a card: it sits
+  // between the reader and the first thing to tap, so it stays light. It does
+  // NOT repeat any decision title (the DO NEXT cards own those); it names the
+  // count and how urgent the lead is, carried by the WORD and the glyph, never
+  // colour alone.
+  Widget _whatMattersLine(List<Map<String, dynamic>> candidates) {
     final shown = candidates.length > 3 ? 3 : candidates.length;
     final urgent = candidates.first['tone'] == 'urgent';
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SalapifyGlyph(
-              'target',
-              size: 22,
-              color: urgent ? Barako.warning : Barako.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    urgent ? 'Needs your attention' : 'Worth a look',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    shown == 1
-                        ? 'One money decision is waiting for you, just below.'
-                        : '$shown money decisions are waiting below, the most '
-                              'urgent first.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SalapifyGlyph(
+          'target',
+          size: 18,
+          color: urgent ? Barako.warning : Barako.primary,
         ),
-      ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: urgent ? 'Needs your attention. ' : 'Worth a look. ',
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                TextSpan(
+                  text: shown == 1
+                      ? 'One money decision is waiting just below.'
+                      : '$shown money decisions are below, the most urgent '
+                            'first.',
+                  style: TextStyle(color: Barako.textSecondary),
+                ),
+              ],
+            ),
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+        ),
+      ],
     );
   }
 

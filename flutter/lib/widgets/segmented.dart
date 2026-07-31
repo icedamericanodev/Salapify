@@ -127,7 +127,13 @@ class Segmented<T> extends StatelessWidget {
     final labelWidth =
         (totalWidth / options.length) - _leadingSlot - (Gap.xs * 2);
     if (labelWidth <= 0) return false;
-    const style = TextStyle(
+    // Measure in the SAME font the label actually renders in. The rendered Text
+    // sets no family, so it inherits the theme default (Jakarta), which runs a
+    // touch wider than the test/OS default; measuring in the default font would
+    // under-estimate the width and report "fits" when Jakarta would overflow and
+    // clip. w700 is the selected (widest) weight, the worst case for either
+    // caller.
+    final style = DefaultTextStyle.of(context).style.copyWith(
       fontSize: _labelSize,
       height: 1.2,
       fontWeight: FontWeight.w700,

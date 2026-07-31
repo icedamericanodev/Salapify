@@ -1838,6 +1838,12 @@ class _TransferSheetState extends State<_TransferSheet> {
                 liveRegion: true,
                 child: Text(
                   _err!,
+                  // Capped: this line is pinned OUTSIDE the scroll area, and the
+                  // catch branch can interpolate a raw exception, so on a very
+                  // short height a long message could otherwise overflow the
+                  // sheet. Four lines is plenty for the refusal sentences.
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Barako.warningStrong, fontSize: 13),
                 ),
               ),

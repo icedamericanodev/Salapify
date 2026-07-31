@@ -17,7 +17,7 @@ machines because they measure layout rather than pixels:
 
 ## Commands
 
-Compare against the committed baselines (this is what CI runs):
+Compare against the committed baselines:
 
     cd flutter
     flutter test test/golden/ui_golden.dart
@@ -34,9 +34,15 @@ rewrites a baseline; it only reports a difference.
 
 `flutter test` collects every `*_test.dart` file. This one is named
 `ui_golden.dart` so it is NOT collected by a plain `flutter test`, exactly like
-`screens_shot.dart`. That keeps pixel comparison off the ordinary branch check
+`screens_shot.dart`. That keeps pixel comparison off the ordinary test run
 (where a cross-platform sub-pixel difference could flake it) and behind the
-explicit command above. CI runs it as its own labelled step.
+explicit command above.
+
+CI runs the comparison as its own **non-blocking** step (`continue-on-error`),
+so a drift is reported and its `failure_*.png` diffs are uploaded as an
+artifact, but a sub-pixel difference never blocks a merge. The real per-push
+gate is the layout-metric tests listed above, which cannot flake across
+machines. A genuine visual regression still shows up here to look at.
 
 ## Determinism
 

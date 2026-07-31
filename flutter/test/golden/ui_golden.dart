@@ -96,19 +96,25 @@ Map<String, dynamic> _twoAccounts() => {
   'transactions': <Map<String, dynamic>>[],
 };
 
+// A fixed 320dp width (a small Android phone's content width), so the fit test
+// sees a concrete, predictable width: three labels fit side by side at 1.0x and
+// cannot at 2.0x, where the control stacks.
 Widget _modeSelector(String current) => Scaffold(
   body: Padding(
     padding: const EdgeInsets.all(20),
     child: Align(
       alignment: Alignment.topCenter,
-      child: Segmented<String>(
-        current: current,
-        onPick: (_) {},
-        options: const [
-          SegmentOption(value: 'system', label: 'System'),
-          SegmentOption(value: 'light', label: 'Light'),
-          SegmentOption(value: 'dark', label: 'Dark'),
-        ],
+      child: SizedBox(
+        width: 320,
+        child: Segmented<String>(
+          current: current,
+          onPick: (_) {},
+          options: const [
+            SegmentOption(value: 'system', label: 'System'),
+            SegmentOption(value: 'light', label: 'Light'),
+            SegmentOption(value: 'dark', label: 'Dark'),
+          ],
+        ),
       ),
     ),
   ),
@@ -134,12 +140,17 @@ void main() {
       );
     });
 
-    testWidgets('large text scale stacks vertically', (tester) async {
+    testWidgets('large text scale, no clipping', (tester) async {
+      // At 2.0x on a 320dp content width in the real font (Jakarta), "System"
+      // wraps to two lines rather than clipping, and the reserved leading slot
+      // keeps all three segments the same height. This is the real-device
+      // behaviour; the vertical-stack safety net only fires at even narrower
+      // widths, and the segmented widget test covers that path.
       await _golden(
         tester,
         name: 'system-selector-large',
         home: _modeSelector('system'),
-        size: const Size(360, 480),
+        size: const Size(390, 300),
         textScale: 2.0,
       );
     });
