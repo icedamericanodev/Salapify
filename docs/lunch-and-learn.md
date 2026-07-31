@@ -10,6 +10,166 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-31, session 23: a clean f3.06 ship, and the two silent breaks the gate caught before they could hide
+
+**What we believed / What was true.** We believed the Phase 1 PR2 base APK
+(stamp f3.06, app version 0.9.0+15) would reach the phone when PR #271 merged
+(merge commit `bd57a7f`) and the founder installed it by hand. This time belief
+and truth match. The founder installed 0.9.0+15 and reported the Update stamp
+reads f3.06. That install, on the real phone, is the only proof that counts. A
+delivery-log row exists to back it:
+`| 2026-07-31 05:52 UTC | f3.06 | none | release | 0.9.0+15 | bd57a7f0 |`.
+This was a `release` (a new base APK, mode is not `patch`), so it required a
+manual install; the founder did that install and confirmed. Contrast session 22,
+where the previous base APK's first ship died silently at "Install Shorebird"
+and no row was written. This ship wrote its row and the stamp agrees with it.
+
+A clean delivery is a real outcome, not a failure to find problems. What makes
+this session worth writing up is that the change was NATIVE (new Gradle flavors
+and signing), and native changes only ever prove themselves on the merge to
+main, which is the single moment the branch check cannot see. Two separate
+breaks that would each have shipped nothing while everything looked green were
+caught before the merge, one by the pre-merge audit gate and one during the
+build. Both are recorded below with their evidence, because a near miss on the
+delivery channel is exactly the shape that has cost real stamps here before.
+
+Plain-English note on the terms. A "flavor" is a build variant: this app now
+builds two, `preview` (the founder's over-the-air test channel) and `prod` (the
+future Play Store build). "Shorebird" is the service that ships Dart changes as
+over-the-air patches to one release per app version. An "app_id" is how
+Shorebird knows which app a release belongs to. "OTA" means over the air, a
+change that lands without reinstalling.
+
+**Timeline (with evidence).**
+- PR2 landed as seven commits `PR2 (1/n)` through the base APK commit `614f1dd`,
+  merged as `bd57a7f` (a real merge commit, PR #271), then `fc4691b`
+  "Delivery: f3.06, patch none [skip ci]" recorded the ship. `git log origin/main`
+  shows all of them in order.
+- The change split the Android build into `preview` and `prod` flavors and gave
+  each its own signing identity. The preview flavor keeps the committed preview
+  keystore so updates install in place; prod gets the real upload identity that
+  never enters the repo.
+- Near miss 1, caught by the pre-merge gate. The play-launch-auditor agent
+  found a hard, delivery-blocking FAIL before merge. The publisher had wired
+  `--flavor preview` into its `shorebird release android` and
+  `shorebird patch android` commands, but `flutter/shorebird.yaml` had NO
+  `flavors:` map. Shorebird needs a `flavors:` entry to resolve an app_id for a
+  flavored app, so on the next merge to main `shorebird release android --flavor
+  preview` would have been unable to find the app and delivery would have broken,
+  on the founder's ONLY live channel, and it would have broken INVISIBLY,
+  because the branch check installs Shorebird but never runs a real release. This
+  is the SAME shape as session 22's setup-shorebird pin bug: a break only
+  provable at the merge to main. The difference this time is that the gate caught
+  it pre-merge instead of the phone catching it.
+- The fix (`3f065bb`): map `preview` to the existing app_id in
+  `flutter/shorebird.yaml`, the SAME id as before, so the existing Shorebird app
+  and release history carry over unchanged. `prod` is intentionally absent,
+  because the production build is a plain `flutter build appbundle` with no
+  over-the-air updater by design; a prod entry would only be added if production
+  OTA is ever wanted, with its own id.
+- Near miss 2, caught during the build, not by the gate. A flavored build writes
+  its APK to `app-preview-release.apk`, not `app-release.apk`. The
+  verify-shipped check and the base-APK upload in `flutter-preview.yml` both
+  still pointed at the old `app-release.apk`. On a release run that would have
+  published to the Shorebird server while the founder's release page received no
+  installable APK, which is the exact silent-release failure. Both paths were
+  repointed to the flavored name.
+- Security gate: the security-privacy-auditor returned CLEAN, 0 must-fix.
+  Preview and prod identities are separated at the config, build, and artifact
+  layers; no secret leaks; backup exclusion, FLAG_SECURE, and the generic
+  lock-screen notification default are untouched. Its one cheap suggestion was
+  folded in: the prod AAB preflight now checks all four `SALAPIFY_UPLOAD_*`
+  secrets, not just the keystore.
+- Ground truth read, not assumed. `origin/main:docs/delivery-log.md` last row
+  names f3.06 at 0.9.0+15 against `bd57a7f0`. The founder's phone reads f3.06.
+  File and phone agree.
+
+**Root cause.** There is no defect on the phone to root-cause, because delivery
+was clean. The structural point worth naming is why two delivery breaks got as
+far as an open PR before anyone saw them: a NATIVE, flavored change exercises
+code paths (`shorebird release --flavor`, the flavored APK output filename) that
+the branch check, by design, never runs. Every "only provable at the merge to
+main" gap is the same gap that stranded thirteen stamps once and one base APK
+last session. The fix is not "audit harder"; it is to move each such check
+earlier so it reddens the PR statically. One of the two was already covered by
+that move; the other (the filename) is caught only by a human reading the diff,
+and its durable guard is the open lesson below.
+
+**Lessons.**
+
+1. A flavor handed to a Shorebird command with no matching `flavors:` entry in
+   `shorebird.yaml` breaks delivery invisibly, because the branch check never
+   runs a real release. GUARD, already in place and proven: `flutter-check.yml`
+   now has a step "Every Shorebird flavor is mapped in shorebird.yaml" (commit
+   `3f065bb`) that greps every `--flavor` the publisher passes to a `shorebird
+   release/patch` command, isolates the `flavors:` block in `shorebird.yaml`, and
+   fails the PR if any flavor is unmapped. It was proven by deliberate break:
+   with no map it reports "missing: preview"; with the map it passes. Strength:
+   STRONGEST. It is an automated check that fails loudly on the branch, so it
+   works when no one is watching, and it is the exact class of break that session
+   22 could only catch on the phone.
+
+2. A flavored build renames its output APK (`app-release.apk` becomes
+   `app-preview-release.apk`), and any workflow path still pointing at the old
+   name publishes server-side while leaving the founder's release page with no
+   installable file. GUARD, already in place: both consumers in
+   `flutter-preview.yml` (the verify-shipped check and the release upload) were
+   repointed to the flavored name, and the verify-shipped script fails the run if
+   the named artifact is missing, so a future rename that misses one path reddens
+   the run rather than shipping a phantom release. Strength: STRONG for the
+   specific file, because verify-shipped asserts the exact path exists before the
+   row is written. Honest limit: nothing asserts that the upload path and the
+   verify path stay EQUAL to each other, so a future rename that updates one and
+   not the other could still split them. That equality check is not built; noting
+   it here so it is not mistaken for done.
+
+3. Because the APK filename changed, the OLD f3.05 asset (`app-release.apk`) was
+   left orphaned on the fixed flutter-preview release page, sitting next to the
+   new `app-preview-release.apk`. Both are about 87 MB, so size does not tell
+   them apart. The founder had to send a screenshot asking WHICH file to install,
+   and tapping the older one would have silently left them on f3.05 while
+   everything looked done. That is precisely the silent delivery confusion the
+   whole delivery-log discipline exists to prevent. GUARD, built this session
+   (f3.07): after a successful build the publisher deletes every `.apk` asset on
+   the flutter-preview release whose name is not the current base APK
+   (`app-preview-release.apk`), so the page only ever shows one installable file.
+   It runs on every successful publish (patch and release), continue-on-error so
+   a cleanup hiccup can never block or false-alarm a real delivery, and the shell
+   selection logic was proven against a mock asset list before trusting it (it
+   deletes `app-release.apk`, keeps `app-preview-release.apk`). This f3.07 patch
+   run is itself the first exercise of it, and it removes the current orphan.
+   Honest recurrence note: the filename is stable going forward, so the orphan
+   case only recurs on a FUTURE rename; the guard now handles that automatically.
+   The keeper name is hard-coded to match the upload path a few lines above it in
+   the same file, so a future rename must change both together.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** The paths and
+workflows CLAUDE.md names still match the repo. `flutter-check.yml`,
+`flutter-preview.yml`, `verify-shipped.sh`, and `flutter/shorebird.yaml` all
+exist where named. The delivery rule "one RELEASE exists per pubspec version,
+later pushes PATCH it" held: f3.06 is a `release` at a new version 0.9.0+15 and
+was correctly flagged to the founder as a manual install. The three-command
+delivery check ran as written and produced the f3.06 row. Nothing false found in
+CLAUDE.md this session. One thing CLAUDE.md does NOT yet describe is the new prod
+flavor and the "production has no OTA by design" posture; that is a gap in
+coverage, not a false claim, and it belongs in CLAUDE.md once Phase 1 lands
+rather than being asserted mid-flight.
+
+**Open lessons carried forward.**
+- Lesson 2's honest limit: nothing asserts the verify-shipped path and the
+  upload path in `flutter-preview.yml` stay EQUAL to each other. A future rename
+  that updates one and not the other could still split them. Not built this
+  session; named so it is not mistaken for done.
+- From session 22, still holding: the setup-shorebird pin is at the known-good
+  `4dd9d7d` (`@v1`, v1.0.1). This session's f3.06 release rode that same pin
+  successfully, fresh evidence the fix is still in place. The deeper session-22
+  lesson (any Action step that only runs on the merge to main is untested by the
+  branch check) is exactly what lesson 1 above turned into a static guard for the
+  flavor case; the general version of that gap remains open for any future
+  merge-only step.
+
+---
+
 ## 2026-07-31, session 22: the first ship failed silently, and the missing row is what told the truth
 
 **What we believed / What was true.** We believed the Phase 1 privacy base APK shipped

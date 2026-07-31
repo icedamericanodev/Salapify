@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.06 \u00b7 Production build identity: separate preview and prod flavors, upload key stays out of the repo.';
+    'f3.07 \u00b7 Delivery guard: the release page now shows only the current install file, no stale APK beside it.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
