@@ -12,6 +12,7 @@ import 'money/currencies.dart' show resolveBaseCurrency;
 import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
+import 'services/secure_window.dart';
 import 'screens/onboarding.dart';
 import 'screens/shell.dart';
 import 'theme.dart';
@@ -65,6 +66,11 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     // Load, then refresh the reminder schedule from the loaded data. Both are
     // safe no-ops off a real phone (web, tests), so this never blocks startup.
     HomeTile.attach(widget.store);
+    // Keep the OS screen-security flag (FLAG_SECURE) in sync with App Lock:
+    // screenshots and the recents thumbnail are blanked exactly when the lock
+    // is on. Safe no-op on web and in tests. Attached alongside HomeTile so
+    // both follow the same store for the life of the app.
+    SecureWindow.attach(widget.store);
     // Recorded here, ACTED ON in shell.dart. A widget tap lands before the
     // store has loaded and before any shell exists.
     HomeTile.captureLaunch();

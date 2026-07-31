@@ -1468,6 +1468,12 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  /// Whether App lock is on (settings.appLock). One read, so the LockGate and
+  /// the native secure-window flag can never disagree about the lock state.
+  /// False until the store is loaded, matching the gate.
+  bool get appLockOn =>
+      loaded && (data['settings'] as Map?)?['appLock'] == true;
+
   /// Turn App lock on or off (settings.appLock). Biometric-only; the LockGate
   /// disables it automatically if the phone has no biometrics enrolled, so this
   /// can never lock the owner out.
