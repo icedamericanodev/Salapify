@@ -11,6 +11,7 @@
 // shipped inside the Appearance screen. That is the point of extracting it.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/segmented.dart';
@@ -179,6 +180,105 @@ void main() {
         find.byType(AnimatedContainer).first,
       );
       expect(box.duration, Duration.zero);
+    });
+  });
+
+  // The theme-mode selector is the reason this control got hardened: "System"
+  // is the longest of System / Light / Dark, and it wrapped or clipped at large
+  // text. These pin it clip-free across the Flutter accessibility scales in
+  // every selected state (the check glyph used to steal width from the selected
+  // label so it wrapped differently from its neighbours), and prove the control
+  // stacks vertically once three labels no longer fit side by side.
+  group('theme mode selector at accessibility scales', () {
+    const modes = ['System', 'Light', 'Dark'];
+
+    Widget modeHarness(
+      String current, {
+      required double scale,
+      double width = 320, // a small Android phone
+    }) => MaterialApp(
+      theme: salapifyTheme(Barako.current),
+      home: Scaffold(
+        body: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: Center(
+            child: SizedBox(
+              width: width,
+              child: Segmented<String>(
+                current: current,
+                onPick: (_) {},
+                options: [
+                  for (final m in modes) SegmentOption(value: m, label: m),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    for (final scale in const [1.0, 1.3, 1.5, 2.0]) {
+      for (final selected in modes) {
+        testWidgets(
+          'no overflow or clip at ${scale}x, "$selected" selected',
+          (tester) async {
+            await tester.pumpWidget(modeHarness(selected, scale: scale));
+            await tester.pumpAndSettle();
+            expect(
+              tester.takeException(),
+              isNull,
+              reason: 'the control threw during layout at ${scale}x',
+            );
+            for (final m in modes) {
+              final finder = find.text(m);
+              expect(finder, findsOneWidget, reason: '"$m" did not render');
+              final rp = tester.renderObject<RenderParagraph>(finder);
+              expect(
+                rp.didExceedMaxLines,
+                isFalse,
+                reason:
+                    '"$m" is clipped at ${scale}x with "$selected" selected; '
+                    'a label that runs out of room must get taller or the '
+                    'control must stack, never cut the word off.',
+              );
+            }
+            for (final ink
+                in tester.widgetList<InkWell>(find.byType(InkWell))) {
+              final box = tester.renderObject<RenderBox>(find.byWidget(ink));
+              expect(
+                box.size.height,
+                greaterThanOrEqualTo(48.0),
+                reason: 'a segment is under the 48px Android tap-target floor',
+              );
+            }
+          },
+        );
+      }
+    }
+
+    testWidgets('horizontal at normal scale, stacked at 2.0x on a narrow phone', (
+      tester,
+    ) async {
+      await tester.pumpWidget(modeHarness('System', scale: 1.0));
+      await tester.pumpAndSettle();
+      expect(
+        (tester.getCenter(find.text('System')).dy -
+                tester.getCenter(find.text('Dark')).dy)
+            .abs(),
+        lessThan(8),
+        reason: 'at 1.0x the three segments should share one row',
+      );
+
+      await tester.pumpWidget(modeHarness('System', scale: 2.0));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getCenter(find.text('Dark')).dy -
+            tester.getCenter(find.text('System')).dy,
+        greaterThan(48),
+        reason:
+            'at 2.0x on a narrow phone the segments should stack vertically so '
+            'each label gets the full width instead of a clipped third',
+      );
     });
   });
 }
