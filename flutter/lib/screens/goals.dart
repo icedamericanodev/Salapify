@@ -1,46 +1,107 @@
-// Goals: savings goals with progress bars, reached from the Overview. Add and
-// edit goals, add money to a goal (which only updates the goal number, it never
-// moves money out of an account), and delete one. Ported from the RN goals
-// screen. Goals is an existing backup collection, so nothing here needs a
-// migration. The per-month pace reuses the golden-locked analytics.goalPace so
-// the number matches the live app and the Insights card.
+// Goals: the plan-first list. Reached from the Overview, Menu, Search, Pan,
+// and lessons; the constructor is unchanged on purpose so every caller and
+// the readability sweep keep working.
+//
+// The screen answers, per goal, without opening anything: what it is, how
+// much is in, how much is left, what pace the plan asks, whether it is on
+// track, and the one next action. Money rule, stated where the user reads
+// it: a goal tracks a NUMBER (money usually kept in a bank or wallet), so
+// nothing on this screen moves an account balance, ever.
+//
+// Templates are authored by Salapify and carry semantic icon keys through
+// salapify_icon.dart; a goal the USER gave an emoji keeps that emoji
+// forever, because their icon field is their data.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-import '../money/analytics.dart' as analytics;
-import '../money/debtmath.dart' show formatMoneyText;
-import '../money/format.dart' show prettyMonthYear;
-import '../money/goals_calc.dart';
-import '../money/milestones.dart' show milestoneFor;
-import 'milestone_share.dart' show showMilestoneCelebration;
 import '../data/store.dart';
+import '../money/format.dart'
+    show formatMoney, formatMoneyAbout, prettyMonthYear;
+import '../money/goal_plan.dart';
+import '../money/goals_calc.dart' show goalPercent;
+import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
-import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
+import 'goal_create.dart';
+import 'goal_detail.dart';
 
-// Tabular figures so peso amounts and percents keep a steady width as they
-// change (house rule for money in rows).
 const _tabular = [FontFeature.tabularFigures()];
 
-// The three or four goals Filipinos actually start with, for the empty state.
-const _templates = [
-  {'icon': '🛟', 'name': 'Emergency fund', 'target': 10000.0},
-  {'icon': '🎄', 'name': 'Pasko fund', 'target': 5000.0},
-  {'icon': '✈️', 'name': 'Travel fund', 'target': 15000.0},
-  {'icon': '🩺', 'name': 'Health fund', 'target': 10000.0},
-];
-
-class GoalsScreen extends StatelessWidget {
+class GoalsScreen extends StatefulWidget {
   final SalapifyStore store;
   const GoalsScreen({super.key, required this.store});
 
+  @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  bool _reordering = false;
+  bool _showPaused = true;
+  bool _showCompleted = false;
+
   List<Map<String, dynamic>> _goals() {
-    final raw = store.data['goals'];
-    return [
+    final raw = widget.store.data['goals'];
+    final rows = [
       for (final g in (raw is List ? raw : const []))
         if (g is Map) g.cast<String, dynamic>(),
     ];
+    // User priority first where set; everything else keeps stored order.
+    // A plain sort would not be stable, so rank through an index pair.
+    final indexed = List.generate(rows.length, (i) => (rows[i], i));
+    indexed.sort((a, b) {
+      final pa = a.$1['priority'];
+      final pb = b.$1['priority'];
+      if ((pa is num) != (pb is num)) return pa is num ? -1 : 1;
+      if (pa is num && pb is num && pa != pb) return pa.compareTo(pb);
+      return a.$2.compareTo(b.$2);
+    });
+    return [for (final e in indexed) e.$1];
+  }
+
+  /// A goal's display figures, one place: savings goals read their own
+  /// fields, debt goals derive live from the linked debt so no balance is
+  /// ever stored twice.
+  ({double target, double saved, bool done, bool broken}) _figures(
+    Map<String, dynamic> g,
+  ) {
+    if (g['kind'] == 'debt') {
+      final f = debtGoalFigures(g, widget.store.data.cast<String, dynamic>());
+      if (f == null) return (target: 0, saved: 0, done: false, broken: true);
+      return (
+        target: amountOf(f['target']),
+        saved: amountOf(f['saved']),
+        done: f['done'] == true,
+        broken: false,
+      );
+    }
+    final target = amountOf(g['target']);
+    final saved = amountOf(g['saved']);
+    return (
+      target: target,
+      saved: saved,
+      done: target > 0 && saved >= target,
+      broken: false,
+    );
+  }
+
+  void _openCreate([GoalTemplate? t]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GoalCreateScreen(store: widget.store, template: t),
+      ),
+    );
+  }
+
+  void _openDetail(Map<String, dynamic> g) {
+    final id = g['id'];
+    if (id is! String) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GoalDetailScreen(store: widget.store, goalId: id),
+      ),
+    );
   }
 
   @override
@@ -55,7 +116,7 @@ class GoalsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => _openSheet(context, null),
+            onPressed: () => _openCreate(),
             child: Text(
               '+ Add',
               style: TextStyle(
@@ -68,658 +129,523 @@ class GoalsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: store,
+          listenable: widget.store,
           builder: (context, _) {
             final goals = _goals();
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              children: goals.isEmpty
-                  ? _emptyState(context)
-                  : [for (final g in goals) _goalCard(context, g)],
-            );
+            if (goals.isEmpty) return _emptyState(context);
+            return _activeState(context, goals);
           },
         ),
       ),
     );
   }
 
-  List<Widget> _emptyState(BuildContext context) => [
-    const SizedBox(height: 8),
-    Center(
-      child: Column(
-        children: [
-          SalapifyGlyph('target', size: 30),
-          const SizedBox(height: 10),
-          Text(
-            'No goals yet',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Start with a classic, or tap + Add for your own.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Barako.muted, fontSize: 13),
-          ),
-        ],
-      ),
-    ),
-    const SizedBox(height: 20),
-    for (final t in _templates)
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: PressableScale(
-          child: Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => _openSheet(
-                context,
-                null,
-                name: t['name'] as String,
-                target: (t['target'] as double),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Text(
-                      t['icon'] as String,
-                      style: const TextStyle(fontSize: 28),
+  // ---------------------------------------------------------------- empty
+
+  Widget _emptyState(BuildContext context) {
+    final now = DateTime.now();
+    final templates = goalTemplates(
+      widget.store.data.cast<String, dynamic>(),
+      now,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Two columns only when both the width and the text scale allow a
+        // card to keep whole words; one column everywhere else.
+        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final twoColumns = constraints.maxWidth >= 560 && textScale <= 1.3;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            const SizedBox(height: 8),
+            Center(
+              child: Column(
+                children: [
+                  SalapifyGlyph('goal', size: 34),
+                  const SizedBox(height: 12),
+                  Text(
+                    'What are you saving for?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Barako.text,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t['name'] as String,
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Suggested start: ${formatMoneyText(t['target'] as double)}. Change anything.',
-                            style: TextStyle(color: Barako.muted, fontSize: 12),
-                          ),
-                        ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choose a goal and Salapify will help you build a plan '
+                    'you can adjust anytime.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Barako.muted,
+                      fontSize: 13,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    onPressed: () => _openCreate(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
                       ),
                     ),
-                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
-                  ],
-                ),
+                    child: const Text(
+                      'Create a goal',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: Gap.xl),
+            Text('POPULAR GOAL TEMPLATES', style: Barako.kickerStyle),
+            const SizedBox(height: Gap.sm),
+            if (twoColumns)
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final t in templates)
+                    SizedBox(
+                      width: (constraints.maxWidth - 52) / 2,
+                      child: _templateCard(t),
+                    ),
+                ],
+              )
+            else
+              for (final t in templates)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _templateCard(t),
+                ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _templateCard(GoalTemplate t) {
+    // A suggested figure appears ONLY when the engine could explain it; the
+    // old cards carried fixed pesos that meant nothing about anyone.
+    final suggestion = t.suggestedTarget != null
+        ? 'Suggested: ${formatMoney(t.suggestedTarget!)}'
+        : t.suggestedDeadline != null
+        ? 'Aims at ${prettyMonthYear(t.suggestedDeadline!)}'
+        : null;
+    return PressableScale(
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.lg),
+          onTap: () => _openCreate(t),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                SalapifyGlyph(
+                  t.icon,
+                  size: 22,
+                  color: goalAccentColor(t.accent),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.name,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        t.blurb,
+                        style: TextStyle(color: Barako.muted, fontSize: 12),
+                      ),
+                      if (suggestion != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          suggestion,
+                          style: TextStyle(
+                            color: Barako.primaryText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: _tabular,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  salapifyIcon('forward'),
+                  color: Barako.faint,
+                  size: SalapifyIconSize.inline,
+                ),
+              ],
             ),
           ),
         ),
       ),
-  ];
+    );
+  }
 
-  Widget _goalCard(BuildContext context, Map<String, dynamic> g) {
-    final pace = analytics.goalPace(g, DateTime.now());
-    final saved = (pace['saved'] as num).toDouble();
-    final target = (pace['target'] as num).toDouble();
-    final pct = goalPercent(saved, target);
-    final targetDate = (pace['targetDate'] as String?) ?? '';
-    final isActive = pace['status'] == 'active';
-    final perMonth = (pace['perMonth'] as num?) ?? 0;
+  // --------------------------------------------------------------- active
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: PressableScale(
-        child: Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => _openSheet(context, g),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          g['name']?.toString() ?? 'Goal',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$pct%',
-                        style: TextStyle(
-                          color: Barako.primaryText,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          fontFeatures: _tabular,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: pct / 100,
-                      minHeight: 10,
-                      backgroundColor: Barako.border,
-                      color: Barako.primary,
+  Widget _activeState(BuildContext context, List<Map<String, dynamic>> goals) {
+    final now = DateTime.now();
+    final active = <Map<String, dynamic>>[];
+    final paused = <Map<String, dynamic>>[];
+    final completed = <Map<String, dynamic>>[];
+    var totalSaved = 0.0;
+    for (final g in goals) {
+      final f = _figures(g);
+      if (g['paused'] == true) {
+        paused.add(g);
+      } else if (f.done) {
+        completed.add(g);
+      } else {
+        active.add(g);
+        totalSaved += f.saved;
+      }
+    }
+    final focus = focusGoal(active, now);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      children: [
+        if (active.isNotEmpty) ...[
+          Text(
+            '${formatMoney(totalSaved)} saved across '
+            '${active.length == 1 ? 'one active goal' : '${active.length} active goals'}.',
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 13,
+              fontFeatures: _tabular,
+            ),
+          ),
+          const SizedBox(height: Gap.md),
+        ],
+        if (focus != null) ...[
+          Row(
+            children: [
+              Text('FOCUS', style: Barako.kickerStyle),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'a suggestion, not an order',
+                  style: TextStyle(color: Barako.faint, fontSize: 11),
+                ),
+              ),
+              if (active.length > 1)
+                TextButton(
+                  onPressed: () => setState(() => _reordering = !_reordering),
+                  child: Text(
+                    _reordering ? 'Done' : 'Reorder',
+                    style: TextStyle(
+                      color: Barako.primaryText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (!_reordering) _goalCard(focus, now, focus: true),
+          if (!_reordering) const SizedBox(height: Gap.md),
+        ],
+        for (final (i, g) in active.indexed)
+          if (_reordering || focus == null || g['id'] != focus['id'])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _reordering ? _reorderRow(g, i, active) : _goalCard(g, now),
+            ),
+        if (paused.isNotEmpty) ...[
+          const SizedBox(height: Gap.sm),
+          _sectionToggle(
+            'PAUSED',
+            paused.length,
+            _showPaused,
+            () => setState(() => _showPaused = !_showPaused),
+          ),
+          if (_showPaused)
+            for (final g in paused)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _goalCard(g, now),
+              ),
+        ],
+        if (completed.isNotEmpty) ...[
+          const SizedBox(height: Gap.sm),
+          _sectionToggle(
+            'COMPLETED',
+            completed.length,
+            _showCompleted,
+            () => setState(() => _showCompleted = !_showCompleted),
+          ),
+          if (_showCompleted)
+            for (final g in completed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _goalCard(g, now),
+              ),
+        ],
+      ],
+    );
+  }
+
+  Widget _sectionToggle(
+    String label,
+    int count,
+    bool open,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(Radii.sm),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Text('$label ($count)', style: Barako.kickerStyle),
+            const SizedBox(width: 4),
+            Icon(
+              salapifyIcon(open ? 'collapse' : 'expand'),
+              size: SalapifyIconSize.detail,
+              color: Barako.muted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _reorderRow(
+    Map<String, dynamic> g,
+    int index,
+    List<Map<String, dynamic>> active,
+  ) {
+    Future<void> move(int delta) async {
+      final ids = [for (final a in active) (a['id'] ?? '').toString()];
+      final to = index + delta;
+      if (to < 0 || to >= ids.length) return;
+      final id = ids.removeAt(index);
+      ids.insert(to, id);
+      if (widget.store.canWrite) await widget.store.reorderGoals(ids);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.md),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              (g['name'] ?? 'Goal').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Move up',
+            onPressed: index == 0 ? null : () => move(-1),
+            icon: Icon(
+              salapifyIcon('moveUp'),
+              size: SalapifyIconSize.inline,
+              color: index == 0 ? Barako.faint : Barako.primaryText,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Move down',
+            onPressed: index == active.length - 1 ? null : () => move(1),
+            icon: Icon(
+              salapifyIcon('moveDown'),
+              size: SalapifyIconSize.inline,
+              color: index == active.length - 1
+                  ? Barako.faint
+                  : Barako.primaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _goalCard(Map<String, dynamic> g, DateTime now, {bool focus = false}) {
+    final f = _figures(g);
+    final isDebt = g['kind'] == 'debt';
+    final pct = goalPercent(f.saved, f.target);
+    final accent = goalAccentColor(g['accent'] as String?);
+    final label = f.broken
+        ? 'Needs adjustment'
+        : g['paused'] == true
+        ? 'Paused'
+        : f.done
+        ? 'Completed'
+        : isDebt
+        ? 'On track'
+        : goalStatusLabel(g, now);
+    final contribution = isDebt ? null : requiredContribution(g, now);
+    final remaining = f.target - f.saved > 0 ? f.target - f.saved : 0.0;
+    final targetDate = (g['targetDate'] ?? '').toString();
+    // The status word carries the state; the tint only underlines it, so a
+    // colourblind reader loses nothing.
+    final warning = label == 'Overdue' || label == 'Needs adjustment';
+
+    String? paceLine;
+    if (contribution != null &&
+        (contribution['hasDeadline'] as bool) &&
+        (contribution['amount'] as double) > 0 &&
+        !f.done &&
+        g['paused'] != true) {
+      final word = contribution['frequency'] == 'weekly' ? 'weekly' : 'monthly';
+      paceLine =
+          '${formatMoneyAbout(contribution['amount'] as double)} $word'
+          '${targetDate.isNotEmpty ? ' · target ${prettyMonthYear(targetDate)}' : ''}';
+    } else if (isDebt && !f.broken && !f.done) {
+      paceLine = 'Moves with the payments you log on the debt.';
+    }
+
+    return PressableScale(
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.lg),
+          onTap: () => _openDetail(g),
+          child: Padding(
+            padding: EdgeInsets.all(focus ? 16 : 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _cardGlyph(g, accent),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        (g['name'] ?? 'Goal').toString(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Barako.text,
+                          fontSize: focus ? 16.5 : 15.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: warning ? Barako.warningStrong : Barako.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  f.broken
+                      ? 'The linked debt is gone. Open to sort it out.'
+                      : '${formatMoney(f.saved)} of ${formatMoney(f.target)}',
+                  style: TextStyle(
+                    color: Barako.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: _tabular,
+                  ),
+                ),
+                if (!f.broken) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                    child: LinearProgressIndicator(
+                      value: (pct / 100).clamp(0.0, 1.0),
+                      minHeight: 8,
+                      semanticsLabel: 'Progress',
+                      backgroundColor: Barako.border,
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    '${formatMoneyText(saved)} of ${formatMoneyText(target)}'
-                    // prettyMonthYear, not the raw stored value. This printed
-                    // "by 2026-12-31" for the life of the screen, the same
-                    // machine-date-in-a-sentence defect fixed on Insights and
-                    // then on the utang list. It survived both because Goals was
-                    // not in the swept set, which is why the set is now derived
-                    // from lib/screens rather than typed by hand.
-                    '${targetDate.isNotEmpty ? ' · by ${prettyMonthYear(targetDate)}' : ''}',
+                    f.done ? 'Fully funded.' : '${formatMoney(remaining)} left',
                     style: TextStyle(
                       color: Barako.muted,
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontFeatures: _tabular,
                     ),
                   ),
-                  if (isActive && perMonth > 0) ...[
-                    const SizedBox(height: 4),
+                  if (paceLine != null) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      'Save ${formatMoneyText(perMonth)} a month and you make it.',
+                      paceLine,
                       style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        color: Barako.textSecondary,
+                        fontSize: 12.5,
                         fontFeatures: _tabular,
                       ),
                     ),
                   ],
                 ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openSheet(
-    BuildContext context,
-    Map<String, dynamic>? goal, {
-    String? name,
-    double? target,
-  }) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _GoalSheet(
-        store: store,
-        goal: goal,
-        prefillName: name,
-        prefillTarget: target,
-      ),
-    );
-  }
-}
-
-/// The add/edit form, shown as a bottom sheet. Owns its own controllers so the
-/// list behind it stays clean. All writes are guarded on canWrite so a
-/// read-only store (after a failed load) never throws.
-class _GoalSheet extends StatefulWidget {
-  final SalapifyStore store;
-  final Map<String, dynamic>? goal;
-  final String? prefillName;
-  final double? prefillTarget;
-  const _GoalSheet({
-    required this.store,
-    required this.goal,
-    this.prefillName,
-    this.prefillTarget,
-  });
-
-  @override
-  State<_GoalSheet> createState() => _GoalSheetState();
-}
-
-class _GoalSheetState extends State<_GoalSheet> {
-  late final TextEditingController _name;
-  late final TextEditingController _target;
-  late final TextEditingController _saved;
-  late final TextEditingController _date;
-  final _funds = TextEditingController();
-  bool _confirmDel = false;
-
-  bool get _isEdit => widget.goal != null;
-
-  String _numStr(dynamic v) {
-    if (v is num) {
-      // Whole pesos show without a trailing .0, decimals keep their value.
-      return v == v.roundToDouble() ? v.toInt().toString() : v.toString();
-    }
-    return v?.toString() ?? '';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final g = widget.goal;
-    _name = TextEditingController(
-      text: g != null
-          ? (g['name']?.toString() ?? '')
-          : (widget.prefillName ?? ''),
-    );
-    _target = TextEditingController(
-      text: g != null
-          ? _numStr(g['target'])
-          : (widget.prefillTarget != null ? _numStr(widget.prefillTarget) : ''),
-    );
-    _saved = TextEditingController(text: g != null ? _numStr(g['saved']) : '');
-    _date = TextEditingController(
-      text: g != null ? (g['targetDate']?.toString() ?? '') : '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _target.dispose();
-    _saved.dispose();
-    _date.dispose();
-    _funds.dispose();
-    super.dispose();
-  }
-
-  // Awaited, unlike the original fire-and-forget version: a dropped Future
-  // meant a failed write closed the sheet as if it had saved, with no goal and
-  // no message. Every other write screen in the app awaits and reports.
-  Future<void> _save() async {
-    if (!widget.store.canWrite) {
-      _offBanner();
-      return;
-    }
-    final name = _name.text.trim().isEmpty ? 'Goal' : _name.text.trim();
-    final target = goalNum(_target.text);
-    final saved = goalNum(_saved.text);
-    final date = _date.text.trim();
-    final id = widget.goal?['id'];
-    // Only update when this is a real, id-carrying goal; otherwise add a fresh
-    // one. This matches RN (a falsy form.id falls through to addItem) and never
-    // crashes on a goal that a hand-edited backup left without a string id.
-    final nav = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      if (id is String) {
-        await widget.store.updateGoal(
-          id,
-          name: name,
-          target: target,
-          saved: saved,
-          targetDate: date,
-        );
-      } else {
-        await widget.store.addGoal(
-          name: name,
-          target: target,
-          saved: saved,
-          targetDate: date,
-        );
-      }
-    } catch (_) {
-      if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'That did not save. Please check the amounts and '
-              'try again.',
-            ),
-          ),
-        );
-      return;
-    }
-    if (mounted) nav.pop();
-  }
-
-  Future<void> _applyFunds() async {
-    final amt = goalNum(_funds.text);
-    final id = widget.goal?['id'];
-    if (id is! String || amt == 0) return;
-    if (!widget.store.canWrite) {
-      _offBanner();
-      return;
-    }
-    // Compute the new total from the STORED saved synchronously (the store
-    // write applies on a later microtask, so reading data back now would see
-    // the stale value and a later Save would overwrite the added funds). This
-    // is the exact protection the RN screen documents.
-    final stored = savedNum(_currentStored(id));
-    final newSaved = (stored + amt) > 0 ? stored + amt : 0.0;
-    final messenger = ScaffoldMessenger.of(context);
-    // Await BEFORE claiming the money moved. The original showed "Added X"
-    // ahead of the write, so a failed save left the user believing their
-    // savings had gone up when nothing had been stored at all.
-    final String? reached;
-    try {
-      reached = await widget.store.addGoalFunds(id, amt);
-    } catch (_) {
-      if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('That did not save, so nothing was added.'),
-          ),
-        );
-      return;
-    }
-    if (!mounted) return;
-    _saved.text = _numStr(newSaved);
-    _funds.clear();
-    FocusScope.of(context).unfocus();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            'Added ${formatMoneyText(amt)}. Saved is now ${formatMoneyText(newSaved)}.',
-          ),
-        ),
-      );
-    // If that funding just reached the target, celebrate the win and offer the
-    // branded card, the same moment a debt payoff gets.
-    if (reached != null) {
-      final win = milestoneFor(widget.store.data, reached);
-      if (win != null) await showMilestoneCelebration(context, win);
-    }
-  }
-
-  /// The goal's currently stored saved value, read before the pending write
-  /// applies (so it is the true "before" number to add onto).
-  dynamic _currentStored(String id) {
-    final g = (widget.store.data['goals'] as List? ?? const [])
-        .whereType<Map>()
-        .cast<Map<String, dynamic>>()
-        .firstWhere((x) => x['id'] == id, orElse: () => <String, dynamic>{});
-    return g['saved'];
-  }
-
-  void _delete() {
-    if (!_confirmDel) {
-      setState(() => _confirmDel = true);
-      return;
-    }
-    if (!widget.store.canWrite) {
-      _offBanner();
-      return;
-    }
-    final id = widget.goal?['id'];
-    final name = widget.goal?['name']?.toString();
-    final target = savedNum(widget.goal?['target']);
-    final saved = savedNum(widget.goal?['saved']);
-    final date = widget.goal?['targetDate']?.toString() ?? '';
-    if (id is String) {
-      widget.store.deleteGoal(id);
-      // A goal is valuable user data, so offer a one tap undo like the wins
-      // list does, rather than losing it silently on a stray tap.
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Goal deleted'),
-            // Five, matching the other delete receipt on History, and explicit
-            // rather than leaning on a framework default that has already
-            // changed under this app once.
-            duration: const Duration(seconds: 5),
-            persist: false,
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: () {
-                if (widget.store.canWrite) {
-                  widget.store.addGoal(
-                    name: name == null || name.isEmpty ? 'Goal' : name,
-                    target: target,
-                    saved: saved,
-                    targetDate: date,
-                  );
-                }
-              },
-            ),
-          ),
-        );
-    }
-    Navigator.of(context).pop();
-  }
-
-  void _offBanner() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Saving is off because your data could not be read. Import a backup to recover first.',
-          ),
-        ),
-      );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Barako.background,
-          border: Border.all(color: Barako.border),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        constraints: BoxConstraints(
-          maxHeight: (MediaQuery.of(context).size.height - bottomInset) * 0.9,
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isEdit ? 'Edit goal' : 'Add goal',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              _field(
-                'Name',
-                _name,
-                hint: 'e.g. Emergency fund',
-                action: TextInputAction.next,
-              ),
-              _field(
-                'Target amount',
-                _target,
-                hint: '0',
-                number: true,
-                action: TextInputAction.next,
-              ),
-              _field(
-                'Saved so far',
-                _saved,
-                hint: '0',
-                number: true,
-                action: TextInputAction.next,
-              ),
-              _field(
-                'Target date (optional)',
-                _date,
-                hint: 'e.g. 2026-12-31',
-                action: TextInputAction.done,
-              ),
-              if (_isEdit) ...[
-                const SizedBox(height: 18),
-                Divider(color: Barako.border, height: 1),
-                const SizedBox(height: 12),
-                Text('ADD TO SAVINGS', style: Barako.kickerStyle),
                 const SizedBox(height: 6),
-                Text(
-                  'This only updates the goal number. It does not move money out of any account.',
-                  style: TextStyle(color: Barako.faint, fontSize: 12),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: _rawInput(_funds, hint: '0', number: true)),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: _applyFunds,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Barako.primary,
-                        foregroundColor: Barako.onPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                      ),
-                      child: const Text(
-                        'Add',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    f.broken
+                        ? 'Open'
+                        : g['paused'] == true
+                        ? 'Resume'
+                        : f.done
+                        ? 'See the story'
+                        : isDebt
+                        ? 'Open the debt goal'
+                        : 'Add money',
+                    style: TextStyle(
+                      color: Barako.primaryText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
                 ),
               ],
-              const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (_isEdit)
-                    TextButton(
-                      onPressed: _delete,
-                      style: _confirmDel
-                          ? TextButton.styleFrom(
-                              backgroundColor: Barako.warningStrong.withValues(
-                                alpha: 0.12,
-                              ),
-                            )
-                          : null,
-                      child: Text(
-                        _confirmDel ? 'Tap again to delete' : 'Delete',
-                        style: TextStyle(
-                          color: Barako.warningStrong,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(color: Barako.textSecondary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed: _save,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Barako.primary,
-                          foregroundColor: Barako.onPrimary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
-                          ),
-                        ),
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _field(
-    String label,
-    TextEditingController c, {
-    String? hint,
-    bool number = false,
-    TextInputAction? action,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 14),
-        Text(label, style: TextStyle(color: Barako.muted, fontSize: 12)),
-        const SizedBox(height: 6),
-        _rawInput(c, hint: hint, number: number, action: action),
-      ],
-    );
-  }
-
-  Widget _rawInput(
-    TextEditingController c, {
-    String? hint,
-    bool number = false,
-    TextInputAction? action,
-  }) {
-    return TextField(
-      controller: c,
-      keyboardType: number
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.text,
-      textInputAction: action,
-      inputFormatters: number
-          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))]
-          : null,
-      style: TextStyle(color: Barako.text, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Barako.faint),
-        filled: true,
-        fillColor: Barako.card,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.primary),
-        ),
-      ),
+  Widget _cardGlyph(Map<String, dynamic> g, Color accent) {
+    // A user-typed emoji is their choice, rendered untouched; a template
+    // goal carries a semantic key; a legacy goal falls to the neutral goal
+    // glyph rather than to nothing.
+    final emoji = (g['icon'] ?? '').toString();
+    if (emoji.isNotEmpty) {
+      return Text(emoji, style: const TextStyle(fontSize: 20));
+    }
+    return SalapifyGlyph(
+      (g['iconKey'] ?? 'goal').toString(),
+      size: 18,
+      color: accent,
+      boxed: false,
     );
   }
 }

@@ -47,6 +47,8 @@ import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/goal_detail.dart';
+import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
@@ -416,6 +418,35 @@ final Map<String, dynamic> livedInBlob = () {
         'target': 60000,
         'saved': 21500,
         'targetDate': iso(DateTime(today.year, 12, 31)),
+        // The redesigned fields, relative dates only: a goal made four
+        // months back with history, so the detail screen renders a real
+        // plan, pace, and dated contributions instead of blank sections.
+        'kind': 'savings',
+        'iconKey': 'emergency',
+        'accent': 'primary',
+        'frequency': 'monthly',
+        'createdAt': ago(120),
+        'startSaved': 5000,
+        'contributions': [
+          {'id': 'gc1', 'amount': 6500, 'date': ago(75)},
+          {'id': 'gc2', 'amount': 10000, 'date': ago(40)},
+        ],
+      },
+      // A second goal so FOCUS has something to choose between and the
+      // reorder affordance appears.
+      {
+        'id': 'g2',
+        'name': 'Pasko fund',
+        'target': 12000,
+        'saved': 3500,
+        'targetDate':
+            '${(today.month >= 10 ? today.year + 1 : today.year)}-12-01',
+        'kind': 'savings',
+        'iconKey': 'pasko',
+        'accent': 'celebrate',
+        'frequency': 'monthly',
+        'createdAt': ago(30),
+        'startSaved': 0,
       },
     ],
     'categories': defaultCategories.map((c) => {...c}).toList(),
@@ -1327,6 +1358,74 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/pan-moods-dark.png'),
+    );
+  });
+
+  testWidgets('Goals, lived in and empty, and the detail, dark', (
+    tester,
+  ) async {
+    // The redesigned Goals surfaces, each asserting the view it claims to
+    // show before capturing (session 28 rule: a shot must prove itself).
+    await loadRealFonts(tester);
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    // The lived-in list: focus card, statuses, paces.
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    var store = SalapifyStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: GoalsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('FOCUS'), findsOneWidget);
+    expect(find.text('Emergency fund'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/goals-list-dark.png'),
+    );
+
+    // The detail of the lived-in goal: plan, estimate, what-if, history.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: GoalDetailScreen(store: store, goalId: 'g1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('THE PLAN'), findsOneWidget);
+    expect(find.text('HISTORY'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/goal-detail-dark.png'),
+    );
+
+    // The empty state with templates, from a fresh store.
+    SharedPreferences.setMockInitialValues({});
+    store = SalapifyStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: GoalsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('What are you saving for?'), findsOneWidget);
+    expect(find.text('POPULAR GOAL TEMPLATES'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/goals-empty-dark.png'),
     );
   });
 

@@ -49,6 +49,8 @@ import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/reports.dart';
+import 'package:salapify/screens/goal_create.dart';
+import 'package:salapify/screens/goal_detail.dart';
 import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/recurring.dart';
 import 'package:salapify/screens/search.dart';
@@ -380,6 +382,10 @@ void main() {
     // assertion below stopped this map being a promise and started making it
     // account for the fifty files in lib/screens one by one.
     'Goals': (s) => GoalsScreen(store: s),
+    // The lived-in fixture's goal g1, so the detail screen renders real
+    // figures, history, and the what-if instead of a not-found note.
+    'Goal detail': (s) => GoalDetailScreen(store: s, goalId: 'g1'),
+    'Goal create': (s) => GoalCreateScreen(store: s),
     'Recurring': (s) => RecurringScreen(store: s),
     'Search': (s) => SearchScreen(store: s),
     'Cash flow': (s) => CashFlowScreen(store: s),
@@ -514,6 +520,8 @@ void main() {
       'reports.dart',
       'debts.dart',
       'goals.dart',
+      'goal_create.dart',
+      'goal_detail.dart',
       'recurring.dart',
       'search.dart',
       'cashflow.dart',

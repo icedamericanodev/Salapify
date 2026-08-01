@@ -626,11 +626,10 @@ void main() {
       await _tap(tester, find.text('Goals'));
       await _tap(tester, find.text('New phone'));
 
-      // The funds box is the last field on the edit sheet. 500 crosses 4,500 to
-      // the 5,000 target.
-      await tester.enterText(find.byType(TextField).last, '500');
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Add'));
+      // The detail screen's Add money sheet. 500 crosses 4,500 to the 5,000
+      // target.
+      await _tap(tester, find.text('Add money'));
+      await tester.enterText(find.widgetWithText(TextField, 'Amount'), '500');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add'));
       await tester.pump();
@@ -660,9 +659,8 @@ void main() {
       final savedAtTarget = _goalSaved(store, 'g1');
 
       // Fund it AGAIN. Already at target, so not a new win: no sheet.
-      await tester.enterText(find.byType(TextField).last, '500');
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Add'));
+      await _tap(tester, find.text('Add money'));
+      await tester.enterText(find.widgetWithText(TextField, 'Amount'), '500');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add'));
       await tester.pump();

@@ -1,6 +1,8 @@
-// The Goals flow: open from Overview, add a goal from a template, add funds
-// (which only updates the goal number), and delete it with the tap-to-confirm.
-// Goals persist in data.goals through the store's guarded writes.
+// The Goals flow, on the redesigned screens: create from a template through
+// the creation screen, fund it from the detail screen (which only updates
+// the goal number), and delete it behind the confirm dialog with a
+// full-fidelity Undo. Goals persist in data.goals through the store's
+// guarded writes.
 
 import 'dart:convert';
 
@@ -17,23 +19,40 @@ Future<void> _openGoals(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('add a goal from a template, fund it, then delete it',
-      (tester) async {
+  testWidgets('create from a template, fund it, then delete it with undo', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
     await _openGoals(tester);
 
-    // Empty state shows the templates.
-    expect(find.text('No goals yet'), findsOneWidget);
+    // The redesigned empty state and its templates.
+    expect(find.text('What are you saving for?'), findsOneWidget);
     expect(find.text('Emergency fund'), findsWidgets);
 
-    // Tap the Emergency fund template, then Save the prefilled sheet.
+    // Template tap opens the creation screen prefilled; with no spending
+    // data the emergency fund honestly offers no number, so type one.
     await tester.tap(find.text('Emergency fund').first);
     await tester.pumpAndSettle();
-    expect(find.text('Add goal'), findsOneWidget);
-    await tester.tap(find.text('Save'));
+    expect(find.text('Not enough data for a suggestion.', findRichText: true),
+        findsNothing); // the full sentence is longer; presence checked below
+    expect(
+      find.textContaining('Not enough data for a suggestion'),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '0').first,
+      '10000',
+    );
+    await tester.scrollUntilVisible(
+      find.text('Save goal'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save goal'));
     await tester.pumpAndSettle();
 
     expect((store.data['goals'] as List).length, 1);
@@ -41,35 +60,58 @@ void main() {
     expect(goal['name'], 'Emergency fund');
     expect(goal['target'], 10000.0);
     expect(goal['saved'], 0.0);
+    expect(goal['kind'], 'savings');
+    expect(goal['iconKey'], 'emergency');
 
-    // Open it, add 2,500 to savings (comma tolerated), and confirm the number.
+    // The card is on the list; open the detail and add 2,500 (comma
+    // tolerated). The write lands on the stored goal and history records it.
     await tester.tap(find.text('Emergency fund').first);
     await tester.pumpAndSettle();
-    expect(find.text('Edit goal'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).last, '2,500');
+    await tester.tap(find.text('Add money'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Amount'),
+      '2,500',
+    );
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
-    expect(((store.data['goals'] as List).first as Map)['saved'], 2500.0);
+    final funded = (store.data['goals'] as List).first as Map;
+    expect(funded['saved'], 2500.0);
+    expect((funded['contributions'] as List).length, 1);
 
-    // Delete needs two taps (tap to confirm). The sheet is taller than the
-    // test viewport, so bring the button into view first.
-    await tester.ensureVisible(find.text('Delete'));
+    // Delete asks first, and Undo restores the FULL row: same id, history
+    // intact, not a stripped re-creation.
+    await tester.scrollUntilVisible(
+      find.text('Delete this goal'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete this goal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep it'));
+    await tester.pumpAndSettle();
+    expect((store.data['goals'] as List).length, 1, reason: 'Keep it keeps');
+
+    await tester.tap(find.text('Delete this goal'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    expect(find.text('Tap again to delete'), findsOneWidget);
-    await tester.ensureVisible(find.text('Tap again to delete'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tap again to delete'));
-    await tester.pumpAndSettle();
     expect((store.data['goals'] as List).isEmpty, isTrue);
-    expect(find.text('No goals yet'), findsOneWidget);
+
+    final beforeUndoId = funded['id'];
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    final restored = (store.data['goals'] as List).first as Map;
+    expect(restored['id'], beforeUndoId, reason: 'undo keeps the identity');
+    expect(restored['saved'], 2500.0);
+    expect((restored['contributions'] as List).length, 1,
+        reason: 'undo keeps the history');
   });
 
-  testWidgets('funds added then Save persist, not reverted to the stale field',
-      (tester) async {
-    // Regression: the fund read-back used to see stale store data, so Save
-    // wrote back the old saved and wiped the added funds.
+  testWidgets('the detail edit repaces a goal without touching its money', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({
         'goals': [
@@ -84,21 +126,24 @@ void main() {
 
     await tester.tap(find.text('Laptop').first);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '1500');
-    await tester.tap(find.text('Add'));
+    await tester.tap(find.text('Adjust the plan'));
     await tester.pumpAndSettle();
-    expect(((store.data['goals'] as List).first as Map)['saved'], 6500.0);
-
-    // Now Save the sheet. The added funds must stick, not revert to 5000.
-    await tester.ensureVisible(find.text('Save'));
-    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Target amount'),
+      '45000',
+    );
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(((store.data['goals'] as List).first as Map)['saved'], 6500.0);
+    final g = (store.data['goals'] as List).first as Map;
+    expect(g['target'], 45000.0);
+    expect(g['saved'], 5000.0, reason: 'adjusting the plan moves no money');
   });
 
-  testWidgets('editing an imported goal with no id does not crash on Save',
-      (tester) async {
+  testWidgets('a legacy goal with no id still opens and renders', (
+    tester,
+  ) async {
+    // Imported goals may carry no id; the card renders and tapping it is a
+    // no-op rather than a crash (there is no identity to open).
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({
         'goals': [
@@ -111,16 +156,51 @@ void main() {
     await tester.pumpAndSettle();
     await _openGoals(tester);
 
+    expect(find.text('Legacy goal'), findsOneWidget);
     await tester.tap(find.text('Legacy goal').first);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Save'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-
-    // No crash; an id-less goal falls through to add (matching RN), so a
-    // fresh copy now exists alongside the original.
     expect(tester.takeException(), isNull);
-    expect((store.data['goals'] as List).length, 2);
+    expect((store.data['goals'] as List).length, 1);
+  });
+
+  testWidgets('pause hides the pace and moves the goal to its own section', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode({
+        'goals': [
+          {
+            'id': 'g1',
+            'name': 'Trip',
+            'target': 20000.0,
+            'saved': 4000.0,
+            'targetDate': '2030-01-15',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await _openGoals(tester);
+
+    await tester.tap(find.text('Trip').first);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Pause this goal'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause this goal'));
+    await tester.pumpAndSettle();
+    expect(((store.data['goals'] as List).first as Map)['paused'], true);
+
+    // Back on the list: a PAUSED section with the goal inside, saved intact.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('PAUSED'), findsOneWidget);
+    expect(find.text('Paused'), findsWidgets);
+    expect(((store.data['goals'] as List).first as Map)['saved'], 4000.0);
   });
 }
