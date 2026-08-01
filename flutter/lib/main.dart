@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.12 \u00b7 Test fixture dates no longer rot at the month start, so the branch check stays green. No app change.';
+    'f3.13 \u00b7 Clearing a debt, funding a goal, or settling an utang now pops a celebration with a card to share.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

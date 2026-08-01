@@ -12,6 +12,8 @@ import '../money/analytics.dart' as analytics;
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/format.dart' show prettyMonthYear;
 import '../money/goals_calc.dart';
+import '../money/milestones.dart' show milestoneFor;
+import 'milestone_share.dart' show showMilestoneCelebration;
 import '../data/store.dart';
 import '../theme.dart';
 import '../widgets/salapify_icon.dart';
@@ -411,8 +413,9 @@ class _GoalSheetState extends State<_GoalSheet> {
     // Await BEFORE claiming the money moved. The original showed "Added X"
     // ahead of the write, so a failed save left the user believing their
     // savings had gone up when nothing had been stored at all.
+    final String? reached;
     try {
-      await widget.store.addGoalFunds(id, amt);
+      reached = await widget.store.addGoalFunds(id, amt);
     } catch (_) {
       if (!mounted) return;
       messenger
@@ -437,6 +440,12 @@ class _GoalSheetState extends State<_GoalSheet> {
           ),
         ),
       );
+    // If that funding just reached the target, celebrate the win and offer the
+    // branded card, the same moment a debt payoff gets.
+    if (reached != null) {
+      final win = milestoneFor(widget.store.data, reached);
+      if (win != null) await showMilestoneCelebration(context, win);
+    }
   }
 
   /// The goal's currently stored saved value, read before the pending write

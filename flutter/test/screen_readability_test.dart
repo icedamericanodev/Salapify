@@ -106,7 +106,8 @@ bool _insideHorizontalScroll(Element element) {
   var horizontal = false;
   element.visitAncestorElements((a) {
     final w = a.widget;
-    if (w is Scrollable && axisDirectionToAxis(w.axisDirection) == Axis.horizontal) {
+    if (w is Scrollable &&
+        axisDirectionToAxis(w.axisDirection) == Axis.horizontal) {
       horizontal = true;
       return false;
     }
@@ -184,23 +185,35 @@ List<String> _runsOffTheSide(WidgetTester tester) {
     if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
     if (ro.size.isEmpty) continue;
     if (_insideHorizontalScroll(e)) continue;
-    final Offset topLeft;
+    // BOTH corners through localToGlobal, not topLeft plus the raw size. A
+    // FittedBox (the hero-amount headlines use one) lays its child out at the
+    // child's natural width and then PAINTS it scaled down, so ro.size.width is
+    // the unscaled width while the painted width is smaller. Adding the raw size
+    // to a transformed offset mixes the two and reports a headline as off the
+    // side when it actually fits: "No income logged yet" measured 474.8 on a 390
+    // phone by that math while its painted right edge was 352. Transforming both
+    // corners applies the same scale to the width, so this measures what the
+    // phone paints. For unscaled text the two are identical, so no real overflow
+    // stops being caught.
+    final Offset topLeft, topRight;
     try {
       topLeft = ro.localToGlobal(Offset.zero);
+      topRight = ro.localToGlobal(Offset(ro.size.width, 0));
     } catch (_) {
       // Not currently painted (offstage, or inside a layer that has no
       // transform yet). Nothing to measure, and guessing would be worse.
       continue;
     }
-    final right = topLeft.dx + ro.size.width;
+    final left = topLeft.dx < topRight.dx ? topLeft.dx : topRight.dx;
+    final right = topLeft.dx > topRight.dx ? topLeft.dx : topRight.dx;
     // Half a pixel of slack, so sub-pixel rounding in the text layout is not
     // reported as a defect.
-    if (topLeft.dx < -0.5 || right > _phone.width + 0.5) {
+    if (left < -0.5 || right > _phone.width + 0.5) {
       final w = e.widget as Text;
       final s = (w.data ?? w.textSpan?.toPlainText() ?? '').trim();
       bad.add(
         '"${s.length > 40 ? '${s.substring(0, 40)}...' : s}" spans '
-        '${topLeft.dx.toStringAsFixed(1)} to ${right.toStringAsFixed(1)} '
+        '${left.toStringAsFixed(1)} to ${right.toStringAsFixed(1)} '
         'on a ${_phone.width.toStringAsFixed(0)} wide phone',
       );
     }
@@ -475,23 +488,43 @@ void main() {
       // to drive them, not to skip them, and it is the next thing this file
       // should grow.
       'bnpl_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'contribution_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'contribution_calculator.dart':
+          'input-driven; cold pump shows an empty form',
       'currency_converter.dart': 'input-driven; cold pump shows an empty form',
       'loan_calculator.dart': 'input-driven; cold pump shows an empty form',
       'salary_calculator.dart': 'input-driven; cold pump shows an empty form',
       'tax_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'thirteenth_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'thirteenth_calculator.dart':
+          'input-driven; cold pump shows an empty form',
       'tax_deadlines.dart': 'rendered by screens_shot; add here when it grows',
       'year_end_tax.dart': 'rendered by screens_shot; add here when it grows',
     };
     // The files the swept set covers, by the screen each entry builds.
     const sweptFiles = <String>{
-      'overview.dart', 'budget.dart', 'history.dart', 'money.dart',
-      'insights.dart', 'menu.dart', 'learn.dart', 'appearance.dart',
-      'accounts.dart', 'categories.dart', 'reports.dart', 'debts.dart',
-      'goals.dart', 'recurring.dart', 'search.dart', 'cashflow.dart',
-      'paluwagan.dart', 'tools.dart', 'treats.dart', 'pan.dart',
-      'payday.dart', 'notes.dart', 'mindset.dart', 'privacy_receipt.dart',
+      'overview.dart',
+      'budget.dart',
+      'history.dart',
+      'money.dart',
+      'insights.dart',
+      'menu.dart',
+      'learn.dart',
+      'appearance.dart',
+      'accounts.dart',
+      'categories.dart',
+      'reports.dart',
+      'debts.dart',
+      'goals.dart',
+      'recurring.dart',
+      'search.dart',
+      'cashflow.dart',
+      'paluwagan.dart',
+      'tools.dart',
+      'treats.dart',
+      'pan.dart',
+      'payday.dart',
+      'notes.dart',
+      'mindset.dart',
+      'privacy_receipt.dart',
       'diagnostics_screen.dart',
     };
     final onDisk = Directory('lib/screens')
@@ -501,10 +534,11 @@ void main() {
         .where((n) => n.endsWith('.dart'))
         .toSet();
 
-    final unaccounted = onDisk
-        .where((n) => !sweptFiles.contains(n) && !exempt.containsKey(n))
-        .toList()
-      ..sort();
+    final unaccounted =
+        onDisk
+            .where((n) => !sweptFiles.contains(n) && !exempt.containsKey(n))
+            .toList()
+          ..sort();
     expect(
       unaccounted,
       isEmpty,
@@ -518,14 +552,15 @@ void main() {
     // And the accounting cannot drift the other way either: a swept or exempted
     // name that no longer exists means somebody renamed a screen and this map
     // is now describing a file that is gone.
-    final ghosts = [...sweptFiles, ...exempt.keys]
-        .where((n) => !onDisk.contains(n))
-        .toList()
-      ..sort();
+    final ghosts = [
+      ...sweptFiles,
+      ...exempt.keys,
+    ].where((n) => !onDisk.contains(n)).toList()..sort();
     expect(
       ghosts,
       isEmpty,
-      reason: 'named here but not on disk, so this map is stale:\n${ghosts.join('\n')}',
+      reason:
+          'named here but not on disk, so this map is stale:\n${ghosts.join('\n')}',
     );
 
     // Every entry in the swept set is actually built by the map above. Without
@@ -597,6 +632,48 @@ void main() {
       expect(problems.join('\n'), contains('off the side'));
     });
 
+    testWidgets('a label a FittedBox scaled down to fit is NOT reported', (
+      tester,
+    ) async {
+      // The false positive the transform-aware measurement fixes. The
+      // hero-amount headlines wrap their text in a FittedBox, which lays a long
+      // label out at its natural width and PAINTS it scaled to fit, so the label
+      // fits on the phone. The old topLeft-plus-raw-width math flagged it anyway
+      // ("No income logged yet" measured 474.8 on a 390 phone while its painted
+      // edge was 352). This label is far wider than any phone at full size; the
+      // check must read the painted width and stay silent. Reverting the
+      // measurement to topLeft plus size.width reddens this test.
+      final problems = await _inspect(
+        tester,
+        'fitted',
+        // Several ordinary lines so the screen is not judged blank, plus the
+        // one FittedBox-scaled label that is the actual probe.
+        (_) => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('An ordinary first line of content'),
+              Text('An ordinary second line of content'),
+              Text('An ordinary third line of content'),
+              Text('An ordinary fourth line of content'),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'A very long headline far wider than any phone at full size',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 44),
+                ),
+              ),
+            ],
+          ),
+        ),
+        1.0,
+      );
+      expect(problems, isEmpty);
+    });
+
     testWidgets('a defect BELOW the fold is reported', (tester) async {
       // The guard on the scroll sweep. Without this, `_mainScroller` returning
       // null on every screen would look exactly like a clean bill of health:
@@ -608,7 +685,8 @@ void main() {
         'deep',
         (_) => ListView(
           children: [
-            for (var i = 0; i < 30; i++) SizedBox(height: 80, child: Text('row $i')),
+            for (var i = 0; i < 30; i++)
+              SizedBox(height: 80, child: Text('row $i')),
             const Row(
               children: [
                 Text('A sentence long enough to need the whole width.'),

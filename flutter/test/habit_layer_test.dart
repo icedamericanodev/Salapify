@@ -29,8 +29,13 @@ void main() {
         {'id': 'c', 'type': 'income', 'amount': 1, 'date': '2026-07-25'},
         {'id': 'd', 'type': 'expense', 'amount': 1, 'date': '2026-07-01'},
       ], ref);
-      expect(s.count, 2, reason: 'The transfer and the out-of-window day '
-          'must not count; records are written by machinery.');
+      expect(
+        s.count,
+        2,
+        reason:
+            'The transfer and the out-of-window day '
+            'must not count; records are written by machinery.',
+      );
       expect(s.todayDone, isTrue);
       expect(s.days.first.iso, '2026-07-21');
       expect(s.days.last.iso, '2026-07-27');
@@ -82,9 +87,7 @@ void main() {
       tester.view.physicalSize = const Size(1200, 3600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
-      SharedPreferences.setMockInitialValues({
-        storageKey: jsonEncode(blob),
-      });
+      SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
       final store = SalapifyStore();
       await tester.pumpWidget(SalapifyApp(store: store));
       await tester.pumpAndSettle();
@@ -150,8 +153,8 @@ void main() {
       );
       await tester.tap(find.text('I did it today'));
       await tester.pumpAndSettle();
-      final treats =
-          ((store.data['settings'] as Map)['treats'] as List).cast<Map>();
+      final treats = ((store.data['settings'] as Map)['treats'] as List)
+          .cast<Map>();
       expect(
         (treats.single['checkIns'] as List),
         hasLength(1),
@@ -199,17 +202,23 @@ void main() {
       await tester.pumpAndSettle();
       // The confirm dialog.
       await tester.tap(find.text('Mark paid').last);
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
+      // Settling a real balance now celebrates AND offers the branded card to
+      // share: the sheet opens with the 'Settled up' card, and the confetti
+      // fires after it closes.
       expect(
-        find.text('Migs paid you back in full.'),
+        find.text('Share the card'),
         findsOneWidget,
         reason:
-            'Settling a real balance is the happiest moment in the app, and '
-            'it must celebrate, not just close a sheet.',
+            'Settling a real balance is the happiest moment in the app, and it '
+            'must offer the shareable card, not just close a sheet.',
       );
-      // The overlay dismisses itself; let its timers finish.
+      expect(find.text('Settled up'), findsWidgets);
+      // Dismiss the sheet; the confetti then fires and dismisses itself.
+      await tester.tap(find.text('Maybe later'));
       await tester.pumpAndSettle(const Duration(seconds: 2));
-      expect(find.text('Migs paid you back in full.'), findsNothing);
+      expect(find.text('Share the card'), findsNothing);
     });
   });
 }

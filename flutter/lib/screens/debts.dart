@@ -14,8 +14,10 @@ import '../money/account_taxonomy.dart' show AccountSubtype;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/ledger.dart' show amountOf;
+import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
 import '../widgets/celebration.dart';
+import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, formatMoneyAbout;
@@ -536,9 +538,18 @@ class _DebtSheetState extends State<DebtSheet> {
 
   void _celebrate(String name) {
     // The single most rewarding moment in the app finally looks like one:
-    // the confetti overlay (reduce-motion aware, auto-dismissing) instead of
-    // the snackbar this used to be. Same message, bigger moment.
-    showCelebration(context, '$name paid off! Debt free.');
+    // confetti, then the branded card offered to share right there, so the
+    // moment people already screenshot becomes a one-tap post.
+    //
+    // milestoneFor returns null for a debt cleared to zero with no logged
+    // payment pesos (the engine excludes hand-zeroing); that is not a shareable
+    // milestone, but the payoff still earns the confetti, so fall back to it.
+    final win = milestoneFor(widget.store.data, widget.debtId);
+    if (win != null) {
+      showMilestoneCelebration(context, win);
+    } else {
+      showCelebration(context, '$name paid off! Debt free.');
+    }
   }
 
   Future<void> _logPayment(Map<String, dynamic> d) async {
@@ -944,12 +955,7 @@ class DebtFormSheet extends StatefulWidget {
   /// See [showDebtFormSheet]. Null when editing, or when this sheet is opened
   /// from a path that never asked what kind of debt it is.
   final AccountSubtype? seed;
-  const DebtFormSheet({
-    super.key,
-    required this.store,
-    this.debt,
-    this.seed,
-  });
+  const DebtFormSheet({super.key, required this.store, this.debt, this.seed});
 
   @override
   State<DebtFormSheet> createState() => _DebtFormSheetState();
@@ -983,11 +989,14 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     // subtype maps to the one string the payment engine branches on
     // (money/debts.dart keys on exactly 'credit card'), everything else to
     // 'other'. Only then the default.
-    type = (d?['type'] ??
-            (widget.seed == null
-                ? 'credit card'
-                : (widget.seed!.id == 'credit_card' ? 'credit card' : 'other')))
-        .toString();
+    type =
+        (d?['type'] ??
+                (widget.seed == null
+                    ? 'credit card'
+                    : (widget.seed!.id == 'credit_card'
+                          ? 'credit card'
+                          : 'other')))
+            .toString();
     remaining = TextEditingController(
       text: d != null ? _rateText(amountOf(d['remaining'])) : '',
     );
@@ -1023,26 +1032,28 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
       error = null;
     });
     try {
-      await widget.store.saveDebt({
-        'id': widget.debt != null
-            ? (widget.debt!['id'] ?? '').toString()
-            : null,
-        'name': name.text,
-        'type': type,
-        'remaining': remaining.text,
-        'monthlyRate': rateCtl.text,
-        'minPayment': minPay.text,
-        'dueDay': dueDay.text,
-        'statementDay': statementDay.text,
-        'graceDays': graceDays.text,
-        'creditLimit': creditLimit.text,
-      },
-      // Only on create, and only when the person actually answered. Writing it
-      // on an edit would let opening and saving an untouched row reclassify
-      // it. sanitizeData drops it if it does not belong to debts.
-      meta: widget.debt == null && widget.seed != null
-          ? {'subtype': widget.seed!.id}
-          : const {});
+      await widget.store.saveDebt(
+        {
+          'id': widget.debt != null
+              ? (widget.debt!['id'] ?? '').toString()
+              : null,
+          'name': name.text,
+          'type': type,
+          'remaining': remaining.text,
+          'monthlyRate': rateCtl.text,
+          'minPayment': minPay.text,
+          'dueDay': dueDay.text,
+          'statementDay': statementDay.text,
+          'graceDays': graceDays.text,
+          'creditLimit': creditLimit.text,
+        },
+        // Only on create, and only when the person actually answered. Writing it
+        // on an edit would let opening and saving an untouched row reclassify
+        // it. sanitizeData drops it if it does not belong to debts.
+        meta: widget.debt == null && widget.seed != null
+            ? {'subtype': widget.seed!.id}
+            : const {},
+      );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
