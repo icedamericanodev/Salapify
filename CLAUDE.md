@@ -310,6 +310,19 @@ replies and example chips are English. Never
 promise "free forever" in marketing; the truthful lines are core features
 free forever, free during early access, and early users keep Pro free.
 
+## Enhance what exists, never regress it (founder direction, 2026-08-01)
+
+Existing features are not frozen. Touch them freely, but the goal of every
+touch is to enhance, improve, or innovate on what is already there. Prior
+work is never discarded wholesale or quietly degraded: a change to a shipped
+surface keeps what users already have working (the tests that guard the old
+behavior stay green, and nothing a user already has moves behind a wall) and
+builds on top of it. The Sweldo Timeline is the pattern to copy: it grew
+INSIDE the existing Cash flow screen, the old free month view stayed the
+default, and every prior figure kept its meaning. When a vision-spec idea
+touches a shipped feature, read docs/Product_Vision_Spec.md's inventory
+first so the enhancement lands on what exists instead of beside it.
+
 ## Development workflow
 
 1. Develop on the session's assigned claude/** working branch and open PRs
