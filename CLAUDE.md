@@ -71,6 +71,13 @@ prose as a wall of text, and lessons losing their completed tick. Both were
 obvious at a glance and invisible to 673 passing tests, because a test checks
 what someone thought to check.
 
+And SHOW the founder the picture, do not just look at it yourself. For every
+feature or enhancement, render the screen(s) it touches and surface the PNG in
+the chat (SendUserFile), so the founder can review the same image you did, now
+and when the next change builds on it. Founder request, 2026-08-01: screenshots
+of what shipped belong in the conversation, not only in a gitignored shots
+folder nobody opens. Dark is what the founder uses, so show dark first.
+
 It renders against a LIVED-IN phone, and that sentence is the whole point of
 this paragraph. For most of the harness's life every per-tab shot used an EMPTY
 store, so sixteen images at two brightnesses were all first-run welcome
