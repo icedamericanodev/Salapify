@@ -13,6 +13,7 @@ import '../analytics.dart'
 import '../commitments.dart' show bankDueDate, safeToSpend, upcomingCommitments;
 import '../debtmath.dart' show cardForecast, debtFreeProjection;
 import '../ledger.dart' show amountOf;
+import '../plan.dart' show planStatus;
 import '../recap.dart' show monthRecap;
 import '../schedule.dart' show daysUntilPayday, nextPayday, scheduleLabel;
 import '../utang.dart' show utangAging;
@@ -36,6 +37,13 @@ typedef Resolver =
     Map<String, dynamic> Function(Map<String, dynamic> data, PanCtx ctx);
 
 final Map<String, Resolver> resolvers = {
+  // The standing plan: facts from money/plan.dart, the only reader of
+  // settings.activePlan, so Pan can never claim memory it does not hold.
+  'plan': (data, ctx) {
+    final s = planStatus(data, ctx.now);
+    if (s == null) return {'kind': 'plan', 'has': false};
+    return {'kind': 'plan', 'has': true, ...s};
+  },
   'safeToSpend': (data, ctx) {
     final s = safeToSpend(data, ctx.now);
     return {'kind': 'safe_to_spend', ...s};

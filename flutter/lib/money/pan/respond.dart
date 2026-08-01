@@ -50,8 +50,48 @@ String _fmtTarget(dynamic iso) {
       : '$mon ${mt.group(1)}';
 }
 
+/// One sentence of plan status, shared by the 'plan' intent reply and the
+/// screen's opening line, so Pan can never say two different things about
+/// the same plan. Facts in, phrasing out, per this file's contract. Copy
+/// follows the house voice: warm, specific, never a shame word.
+String planLine(Map<String, dynamic> s) {
+  final label = (s['label'] ?? 'Our plan').toString();
+  final period = s['cadence'] == 'weekly' ? 'week' : 'month';
+  final lead = (s['leadPeriods'] as num?)?.toInt() ?? 0;
+  switch (s['state']) {
+    case 'done':
+      return '$label made it. The plan finished its job; drop it whenever you like and we can set the next one.';
+    case 'orphaned':
+      return 'The ${s['kind'] == 'debt' ? 'debt' : 'goal'} our plan pointed at is gone. Drop the plan and we can make a new one anytime.';
+    case 'started':
+      return '$label is set: ${_m(s['amount'])} a $period. First check in after the first $period, no pressure before then.';
+    case 'ahead':
+      final units = lead == 1 ? period : '${period}s';
+      return '$label: you are $lead $units ahead of our pace. ${_m(s['actual'])} in since we started, ${_m(s['remaining'])} to go.';
+    case 'behind':
+      return '$label: a little behind our pace, ${_m((s['delta'] as num).abs())} to catch up. No drama, one small move gets us back. ${_m(s['remaining'])} to go.';
+    default:
+      return '$label: right on pace. ${_m(s['actual'])} in since we started, ${_m(s['remaining'])} to go.';
+  }
+}
+
 Map<String, dynamic> respond(Map<String, dynamic> facts) {
   switch (facts['kind']) {
+    case 'plan':
+      {
+        if (facts['has'] != true) {
+          return {
+            'mood': 'idle',
+            'text':
+                'We do not have a standing plan yet. Ask me when you will be debt free, or how a goal is pacing, and I can turn the answer into one.',
+          };
+        }
+        final state = facts['state'];
+        return {
+          'mood': state == 'done' || state == 'ahead' ? 'happy' : 'idle',
+          'text': planLine(facts),
+        };
+      }
     case 'safe_to_spend':
       {
         if ((facts['available'] as double) <= 0) {

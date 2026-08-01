@@ -10,8 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/store.dart';
+import '../money/debtmath.dart' show formatMoneyText;
 import '../money/pan/ask.dart';
+import '../money/pan/normalize.dart' show extractAmount;
+import '../money/pan/respond.dart' show planLine;
 import '../money/pan_mood.dart';
+import '../money/plan.dart';
 import '../theme.dart';
 import '../widgets/pan_mascot.dart';
 import 'accounts.dart';
@@ -72,6 +76,21 @@ class _PanScreenState extends State<PanScreen> {
     final text = raw.trim();
     if (text.isEmpty) return;
     final reply = ask(widget.store.data, text);
+    // The make-it-a-plan offer rides on the MESSAGE, attached here at the
+    // screen layer under a private key, never inside the golden-locked
+    // reply the brain produced: the brain's replies must not change shape.
+    // Derived fresh from the data, and re-checked at render so an old offer
+    // disappears the moment a plan exists.
+    final intentId = (reply['intent'] ?? '').toString();
+    if (intentId == 'debt_free' || intentId == 'goal_pace') {
+      final offer = planOfferFor(
+        widget.store.data.cast<String, dynamic>(),
+        intentId,
+        DateTime.now(),
+        askedAmount: extractAmount(text),
+      );
+      if (offer != null) reply['_planOffer'] = offer;
+    }
     setState(() {
       messages.add(_Msg('user', {'text': text}));
       messages.add(_Msg('pan', reply));
@@ -98,8 +117,10 @@ class _PanScreenState extends State<PanScreen> {
     final route = PanRoute.forPath((cta['route'] ?? '').toString());
     if (route == null) return null;
 
-    VoidCallback push(Widget Function() build) => () =>
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => build()));
+    VoidCallback push(Widget Function() build) =>
+        () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => build()));
 
     switch (route) {
       case PanRoute.debts:
@@ -203,16 +224,22 @@ class _PanScreenState extends State<PanScreen> {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
-                controller: scroll,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                children: [
-                  _panBubble(greeting, greetingChips: true),
-                  for (final m in messages)
-                    m.role == 'user'
-                        ? _userBubble((m.reply['text'] ?? '').toString())
-                        : _panBubble(m.reply),
-                ],
+              child: ListenableBuilder(
+                listenable: widget.store,
+                builder: (context, _) => ListView(
+                  controller: scroll,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  children: [
+                    // The plan card first: what Pan remembers, fully visible,
+                    // editable, droppable. The trust rule made a widget.
+                    ..._planCard(),
+                    _panBubble(greeting, greetingChips: true),
+                    for (final m in messages)
+                      m.role == 'user'
+                          ? _userBubble((m.reply['text'] ?? '').toString())
+                          : _panBubble(m.reply),
+                  ],
+                ),
               ),
             ),
             Container(
@@ -244,6 +271,248 @@ class _PanScreenState extends State<PanScreen> {
         ),
       ),
     );
+  }
+
+  /// The plan card: everything Pan remembers, in one glance. Change and Drop
+  /// live right on it, so "memory" is never a mystery and never a trap.
+  List<Widget> _planCard() {
+    final status = planStatus(
+      widget.store.data.cast<String, dynamic>(),
+      DateTime.now(),
+    );
+    if (status == null) return const [];
+    final actual = (status['actual'] as num).toDouble();
+    final remaining = (status['remaining'] as num).toDouble();
+    final journey = actual + remaining;
+    final pct = journey > 0 ? (actual / journey).clamp(0.0, 1.0) : 0.0;
+    final state = status['state'].toString();
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Barako.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Barako.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('OUR PLAN', style: Barako.kickerStyle),
+              const SizedBox(height: 6),
+              Text(
+                planLine(status),
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+              ),
+              if (state != 'orphaned' && state != 'done') ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 6,
+                    backgroundColor: Barako.border,
+                    valueColor: AlwaysStoppedAnimation(Barako.primary),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _editPlan,
+                    child: Text(
+                      'Change',
+                      style: TextStyle(
+                        color: Barako.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _dropPlan,
+                    child: Text(
+                      'Drop the plan',
+                      style: TextStyle(
+                        color: Barako.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _dropPlan() async {
+    // Plans change; dropping one is allowed to feel light. A receipt, not a
+    // guilt trip.
+    await widget.store.clearActivePlan();
+    if (!mounted) return;
+    setState(() {
+      messages.add(
+        _Msg('pan', {
+          'mood': 'idle',
+          'text':
+              'Plan dropped. Nothing else changed, your money is exactly '
+              'where it was. We can make a new one whenever you like.',
+        }),
+      );
+    });
+  }
+
+  Future<void> _editPlan() async {
+    final plan = widget.store.activePlan;
+    if (plan == null) return;
+    final controllerAmt = TextEditingController(
+      text: (amountOfPlan(plan)).toStringAsFixed(0),
+    );
+    final saved = await showModalBottomSheet<double?>(
+      context: context,
+      backgroundColor: Barako.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Change the plan',
+                style: TextStyle(
+                  color: Barako.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Same plan, new pace. Pick an amount that fits real life.',
+                style: TextStyle(color: Barako.muted, fontSize: 12.5),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controllerAmt,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: plan['cadence'] == 'weekly'
+                      ? 'Amount per week'
+                      : 'Amount per month',
+                  labelStyle: TextStyle(color: Barako.muted),
+                ),
+                style: TextStyle(color: Barako.text),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(null),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Barako.muted),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () {
+                      final v = double.tryParse(
+                        controllerAmt.text.replaceAll(',', ''),
+                      );
+                      if (v == null ||
+                          !(v > 0) ||
+                          !v.isFinite ||
+                          v > 100000000) {
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Enter an amount above zero, up to 100 million.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      Navigator.of(sheetContext).pop(v);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                    ),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (saved == null) return;
+    await widget.store.setActivePlan({...plan, 'amount': saved});
+    if (!mounted) return;
+    final status = planStatus(
+      widget.store.data.cast<String, dynamic>(),
+      DateTime.now(),
+    );
+    if (status != null) {
+      setState(() {
+        messages.add(
+          _Msg('pan', {'mood': 'idle', 'text': 'Noted. ${planLine(status)}'}),
+        );
+      });
+    }
+  }
+
+  static double amountOfPlan(Map<String, dynamic> plan) {
+    final a = plan['amount'];
+    return a is num && a.isFinite && a > 0 ? a.toDouble() : 0;
+  }
+
+  Future<void> _acceptOffer(Map<String, dynamic> offer) async {
+    await widget.store.setActivePlan(offer);
+    if (!mounted) return;
+    final status = planStatus(
+      widget.store.data.cast<String, dynamic>(),
+      DateTime.now(),
+    );
+    setState(() {
+      messages.add(
+        _Msg('pan', {
+          'mood': 'happy',
+          'text': status != null
+              ? 'Deal. ${planLine(status)} I will keep score and you can '
+                    'change or drop it on the card anytime.'
+              : 'Deal, the plan is set. You can change or drop it on the '
+                    'card anytime.',
+        }),
+      );
+    });
   }
 
   Widget _userBubble(String text) => Padding(
@@ -375,6 +644,31 @@ class _PanScreenState extends State<PanScreen> {
                   onPressed: action,
                   child: Text(
                     (cta as Map)['label'].toString(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+              // The make-it-a-plan offer: attached by the screen at send
+              // time, re-checked here so it vanishes once any plan exists
+              // (one plan at a time, and a stale offer must not overwrite
+              // it).
+              if (reply['_planOffer'] is Map &&
+                  widget.store.activePlan == null) ...[
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () => _acceptOffer(
+                    (reply['_planOffer'] as Map).cast<String, dynamic>(),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                  ),
+                  icon: const Icon(Icons.flag_outlined, size: 16),
+                  label: Text(
+                    'Make it a plan: ${formatMoneyText(amountOfPlan((reply['_planOffer'] as Map).cast<String, dynamic>()))} monthly',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
