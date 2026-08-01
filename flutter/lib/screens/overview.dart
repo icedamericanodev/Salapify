@@ -986,54 +986,61 @@ class OverviewScreen extends StatelessWidget {
           : 'Steady to the end of the month at this pace.';
     }
     return [
-      Card(
-        child: Semantics(
-          button: true,
-          label: 'The road ahead. $caption',
-          child: ExcludeSemantics(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => CashFlowScreen(store: store)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'THE ROAD AHEAD',
-                            style: Barako.kickerStyle,
+      // PressableScale, the house rule for every tappable Home card: a card
+      // that navigates but does not press reads as static and never gets
+      // tapped.
+      PressableScale(
+        child: Card(
+          child: Semantics(
+            button: true,
+            label: 'The road ahead. $caption',
+            child: ExcludeSemantics(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CashFlowScreen(store: store),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'THE ROAD AHEAD',
+                              style: Barako.kickerStyle,
+                            ),
                           ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: Barako.faint,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    TimelineSparkline(
-                      days: days,
-                      anyNegative: anyNegative,
-                      lowDate: lowDate,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      caption,
-                      style: TextStyle(
-                        color: anyNegative
-                            ? Barako.warningStrong
-                            : Barako.textSecondary,
-                        fontSize: 12.5,
-                        height: 1.35,
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Barako.faint,
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      TimelineSparkline(
+                        days: days,
+                        anyNegative: anyNegative,
+                        lowDate: lowDate,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        caption,
+                        style: TextStyle(
+                          color: anyNegative
+                              ? Barako.warningStrong
+                              : Barako.textSecondary,
+                          fontSize: 12.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

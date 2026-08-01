@@ -110,12 +110,26 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     }
   }
 
-  void _proNudge() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'The longer view is a Pro feature. Unlock Pro in Menu, free during '
-          'early access.',
+  /// The Pro gate, with a working door: the snackbar's action unlocks Pro
+  /// right here (free during early access, same self-served unlock the
+  /// recurring screen offers) and then applies what the user was trying to
+  /// do. A gate that points at a Menu row that does not exist teaches the
+  /// user the app is broken, not that Pro exists.
+  void _proNudge(String message, VoidCallback afterUnlock) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Unlock free',
+          onPressed: () async {
+            await store.setPro(true);
+            if (mounted) {
+              setState(() {});
+              afterUnlock();
+            }
+          },
         ),
       ),
     );
@@ -140,9 +154,11 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             final data = store.data.cast<String, dynamic>();
             final ref = widget.now ?? DateTime.now();
             final scenarios = store.timelineScenarios;
+            // Scenarios overlay the chart only for Pro (categories precedent:
+            // a stored Pro thing on a non-Pro store is inert, not active).
             final active = [
               for (final s in scenarios)
-                if (s['on'] != false) s,
+                if (_pro && s['on'] != false) s,
             ];
             final tl = sweldoTimeline(
               data,
@@ -269,11 +285,17 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               child: ChoiceChip(
                 selected: _horizon == key,
                 onSelected: (_) {
-                  HapticFeedback.selectionClick();
                   if (needsPro && !_pro) {
-                    _proNudge();
+                    // No haptic here: a buzz says "that worked" and the gate
+                    // is about to say it did not.
+                    _proNudge(
+                      'The longer view is part of Pro, free during early '
+                      'access.',
+                      () => setState(() => _horizon = key),
+                    );
                     return;
                   }
+                  HapticFeedback.selectionClick();
                   setState(() => _horizon = key);
                 },
                 label: Row(
@@ -308,14 +330,18 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     List<String> paydays,
     Map<String, dynamic> assumptions,
   ) {
+    final r = assumptions['recurringCount'] as int;
+    final d = assumptions['debtCount'] as int;
+    final counts = [
+      if (r > 0) '$r recurring item${r == 1 ? '' : 's'}',
+      if (d > 0) '$d debt schedule${d == 1 ? '' : 's'}',
+    ].join(' and ');
     final lines = <String>[
       if (bandRate > 0)
         'Shaded: after your usual day to day spending, an estimate from '
             'your last 4 weeks.',
-      if (paydays.isNotEmpty) 'Dots on the line mark your paydays.',
-      'Counts ${assumptions['recurringCount']} recurring and '
-          '${assumptions['debtCount']} debt schedule(s). Money owed to you '
-          'is never counted as income.',
+      if (paydays.isNotEmpty) 'Hollow dots on the line mark your paydays.',
+      'Counts $counts. Money owed to you is never counted as income.',
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,13 +383,9 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             OutlinedButton.icon(
               onPressed: () {
                 if (!_pro) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'What ifs are a Pro feature. Unlock Pro in Menu, '
-                        'free during early access.',
-                      ),
-                    ),
+                  _proNudge(
+                    'What ifs are part of Pro, free during early access.',
+                    () => _editScenario(null),
                   );
                   return;
                 }
@@ -425,60 +447,120 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
   Widget _scenarioRow(List<Map<String, dynamic>> scenarios, int i) {
     final s = scenarios[i];
-    final on = s['on'] != false;
+    // The categories precedent: a stored Pro thing on a non-Pro store renders
+    // INERT, never active. A saved scenario survives (it is the user's data)
+    // but stops overlaying the chart, dims, and both of its actions route to
+    // the unlock nudge instead of quietly working.
+    final locked = !_pro;
+    final on = !locked && s['on'] != false;
     final label = (s['label'] is String && (s['label'] as String).isNotEmpty)
         ? s['label'] as String
         : 'What if';
-    return MergeSemantics(
-      child: InkWell(
-        onTap: () => _editScenario(i),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Icon(_scenarioIcon(s['kind']), size: 18, color: Barako.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+    // Deliberately NOT one MergeSemantics over the whole row: this row has
+    // TWO actions (tap edits, the switch toggles) and merging them hands a
+    // screen reader only one. The text half is one button node, the switch
+    // announces its own label.
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: locked
+                  ? '$label, ${_scenarioSummary(s)}, part of Pro, double tap '
+                        'to unlock'
+                  : '$label, ${_scenarioSummary(s)}, double tap to edit',
+              child: ExcludeSemantics(
+                child: InkWell(
+                  onTap: locked
+                      ? () => _proNudge(
+                          'What ifs are part of Pro, free during early '
+                          'access.',
+                          () {},
+                        )
+                      : () => _editScenario(i),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _scenarioIcon(s['kind']),
+                        size: 18,
+                        color: locked ? Barako.faint : Barako.primary,
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      _scenarioSummary(s),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: locked
+                                          ? Barako.muted
+                                          : Barako.text,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                // The explicit edit affordance: without it
+                                // this row reads as a settings toggle (the
+                                // Menu grammar) and tap-to-edit is never
+                                // discovered.
+                                Icon(
+                                  locked
+                                      ? Icons.lock_outline
+                                      : Icons.edit_outlined,
+                                  size: 14,
+                                  color: Barako.faint,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              _scenarioSummary(s),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: locked ? Barako.faint : Barako.muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Switch(
-                value: on,
-                onChanged: (v) {
-                  HapticFeedback.selectionClick();
-                  final next = [...scenarios];
-                  next[i] = {...s, 'on': v};
-                  store.setTimelineScenarios(next);
-                },
-                activeThumbColor: Barako.onPrimary,
-                activeTrackColor: Barako.primary,
-                inactiveThumbColor: Barako.faint,
-                inactiveTrackColor: Barako.border,
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Semantics(
+            label: label,
+            child: Switch(
+              value: on,
+              onChanged: locked
+                  ? null
+                  : (v) {
+                      HapticFeedback.selectionClick();
+                      final next = [...scenarios];
+                      next[i] = {...s, 'on': v};
+                      store.setTimelineScenarios(next);
+                    },
+              activeThumbColor: Barako.onPrimary,
+              activeTrackColor: Barako.primary,
+              inactiveThumbColor: Barako.faint,
+              inactiveTrackColor: Barako.border,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -499,7 +581,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     );
     if (result == null) return;
     final next = [...scenarios];
-    if (result['delete'] == true) {
+    final removed = result['delete'] == true;
+    if (removed) {
       if (index != null) next.removeAt(index);
     } else if (index != null) {
       next[index] = result;
@@ -507,6 +590,13 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       next.add(result);
     }
     await store.setTimelineScenarios(next);
+    if (removed && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('What if removed. The line is back to plain facts.'),
+        ),
+      );
+    }
   }
 
   Widget _decisionCard(
@@ -650,6 +740,17 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               style: TextStyle(color: Barako.muted, fontSize: 12),
             ),
             const SizedBox(height: 8),
+            // A short free window (To payday a few days out) can hold zero
+            // events while recurring items exist; a kicker over nothing reads
+            // as a bug, so say what the emptiness means.
+            if (events.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Nothing due in this window. A longer view will have more.',
+                  style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                ),
+              ),
             for (var i = 0; i < events.length; i++) ...[
               if (i > 0) Divider(height: 1, color: Barako.border),
               _eventRow(events[i]),
@@ -850,142 +951,153 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
         top: 16,
         bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Barako.border,
-                borderRadius: BorderRadius.circular(2),
+      // Scrollable, because at large system text the kind chips wrap to
+      // several rows and the keyboard takes the bottom half; a bare Column
+      // would overflow on exactly the phones the readability sweep protects.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Barako.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            widget.existing == null ? 'Add a what if' : 'Edit what if',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+            const SizedBox(height: 14),
+            Text(
+              widget.existing == null ? 'Add a what if' : 'Edit what if',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final (k, name) in _kinds)
-                ChoiceChip(
-                  selected: kind == k,
-                  onSelected: (_) => setState(() => kind = k),
-                  label: Text(name),
-                  labelStyle: TextStyle(
-                    color: kind == k ? Barako.onPrimary : Barako.text,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (k, name) in _kinds)
+                  ChoiceChip(
+                    selected: kind == k,
+                    onSelected: (_) => setState(() => kind = k),
+                    label: Text(name),
+                    labelStyle: TextStyle(
+                      color: kind == k ? Barako.onPrimary : Barako.text,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    selectedColor: Barako.primary,
+                    backgroundColor: Barako.card,
+                    side: BorderSide(color: Barako.border),
+                    showCheckmark: false,
                   ),
-                  selectedColor: Barako.primary,
-                  backgroundColor: Barako.card,
-                  side: BorderSide(color: Barako.border),
-                  showCheckmark: false,
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: label,
-            maxLength: 40,
-            decoration: InputDecoration(
-              labelText: 'Name (optional)',
-              counterText: '',
-              labelStyle: TextStyle(color: Barako.muted),
+              ],
             ),
-            style: TextStyle(color: Barako.text),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: amountLabel,
-              labelStyle: TextStyle(color: Barako.muted),
-            ),
-            style: TextStyle(color: Barako.text),
-          ),
-          if (needsDay) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             TextField(
-              controller: day,
-              keyboardType: TextInputType.number,
+              controller: label,
+              maxLength: 40,
               decoration: InputDecoration(
-                labelText: 'Day of the month (1 to 31)',
+                labelText: 'Name (optional)',
+                counterText: '',
                 labelStyle: TextStyle(color: Barako.muted),
               ),
               style: TextStyle(color: Barako.text),
             ),
-          ],
-          if (kind == 'purchase') ...[
             const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: date,
-                  firstDate: widget.ref,
-                  lastDate: DateTime(
-                    widget.ref.year,
-                    widget.ref.month,
-                    widget.ref.day + 90,
-                  ),
-                );
-                if (picked != null) setState(() => date = picked);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Barako.text,
-                side: BorderSide(color: Barako.border),
+            TextField(
+              controller: amount,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              icon: const Icon(Icons.event, size: 18),
-              label: Text('On ${_pretty(_iso(date))}'),
+              decoration: InputDecoration(
+                labelText: amountLabel,
+                labelStyle: TextStyle(color: Barako.muted),
+              ),
+              style: TextStyle(color: Barako.text),
             ),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              if (widget.existing != null)
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop({'delete': true}),
-                  child: Text(
-                    'Remove',
-                    style: TextStyle(
-                      color: Barako.warningStrong,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+            if (needsDay) ...[
+              const SizedBox(height: 10),
+              TextField(
+                controller: day,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Day of the month (1 to 31)',
+                  labelStyle: TextStyle(color: Barako.muted),
                 ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(null),
-                child: Text('Cancel', style: TextStyle(color: Barako.muted)),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
+                style: TextStyle(color: Barako.text),
               ),
             ],
-          ),
-        ],
+            if (kind == 'purchase') ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    // A stored date can be in the past by the time it is edited
+                    // (saved last week, opened this week); an initialDate before
+                    // firstDate asserts inside the picker.
+                    initialDate: date.isBefore(widget.ref) ? widget.ref : date,
+                    firstDate: widget.ref,
+                    lastDate: DateTime(
+                      widget.ref.year,
+                      widget.ref.month,
+                      widget.ref.day + 90,
+                    ),
+                  );
+                  if (picked != null) setState(() => date = picked);
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Barako.text,
+                  side: BorderSide(color: Barako.border),
+                ),
+                icon: const Icon(Icons.event, size: 18),
+                label: Text('On ${_pretty(_iso(date))}'),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                if (widget.existing != null)
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.of(context).pop({'delete': true}),
+                    child: Text(
+                      'Remove',
+                      style: TextStyle(
+                        color: Barako.warningStrong,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1016,7 +1128,8 @@ class _BalanceChart extends StatelessWidget {
     return Semantics(
       label: anyNegative
           ? 'Projected balance chart. Cash runs out around ${_pretty(lowDate)}.'
-          : 'Projected balance chart for the window ahead.',
+          : 'Projected balance from ${_pretty(first)} to ${_pretty(last)}, '
+                'tightest around ${_pretty(lowDate)}.',
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1033,6 +1146,7 @@ class _BalanceChart extends StatelessWidget {
                   label: Barako.muted,
                   grid: Barako.border,
                   payday: Barako.primaryText,
+                  cardFill: Barako.card,
                   anyNegative: anyNegative,
                   lowDate: lowDate,
                   showBand: showBand,
@@ -1070,6 +1184,7 @@ class _BalancePainter extends CustomPainter {
   final Color grid;
   final Color label;
   final Color payday;
+  final Color cardFill;
   final bool anyNegative;
   final String lowDate;
   final bool showBand;
@@ -1083,6 +1198,7 @@ class _BalancePainter extends CustomPainter {
     required this.grid,
     required this.label,
     required this.payday,
+    required this.cardFill,
     required this.anyNegative,
     required this.lowDate,
     required this.showBand,
@@ -1171,11 +1287,22 @@ class _BalancePainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // Payday dots on the line.
+    // Payday dots: HOLLOW (card fill, line-colored ring). primaryText equals
+    // primary across all sixteen palettes, so a solid dot in either color
+    // disappears into the line; a hole in the line reads in every palette
+    // with no new contrast pair.
     for (var i = 0; i < days.length; i++) {
       if (days[i]['isPayday'] == true) {
-        final px = x(i).clamp(3.0, size.width - 3.0);
-        canvas.drawCircle(Offset(px, y(vals[i])), 3.0, Paint()..color = payday);
+        final p = Offset(x(i).clamp(3.0, size.width - 3.0), y(vals[i]));
+        canvas.drawCircle(p, 3.0, Paint()..color = cardFill);
+        canvas.drawCircle(
+          p,
+          3.0,
+          Paint()
+            ..color = payday
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
       }
     }
 
@@ -1226,6 +1353,12 @@ class _BalancePainter extends CustomPainter {
     lx = lx.clamp(0.0, size.width - tp.width);
     final aboveY = markY - tp.height - 6;
     final ly = aboveY < 0 ? markY + 8 : aboveY;
+    // A card-colored backing so the day reads even when the label crosses the
+    // dashed zero line or the band.
+    canvas.drawRect(
+      Rect.fromLTWH(lx - 2, ly - 1, tp.width + 4, tp.height + 2),
+      Paint()..color = cardFill,
+    );
     tp.paint(canvas, Offset(lx, ly));
   }
 

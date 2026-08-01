@@ -111,11 +111,27 @@ void main() {
     await tester.pumpAndSettle();
     // The gate speaks, and the window does not move.
     expect(
-      find.textContaining('The longer view is a Pro feature'),
+      find.textContaining('The longer view is part of Pro'),
       findsOneWidget,
     );
     expect(find.text('From today to the end of the month'), findsOneWidget);
     expect(find.text('The next 60 days'), findsNothing);
+  });
+
+  testWidgets('the gate has a working door: Unlock free applies the choice', (
+    tester,
+  ) async {
+    // The gate must never point at a door that does not exist; its snackbar
+    // action unlocks Pro (free during early access) and then applies the
+    // chip the user was trying to reach.
+    final store = await _seed(projectable());
+    await _pump(tester, store);
+    await tester.tap(find.text('60 days'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock free'));
+    await tester.pumpAndSettle();
+    expect((store.data['settings'] as Map)['pro'], true);
+    expect(find.text('The next 60 days'), findsOneWidget);
   });
 
   testWidgets('Pro switches the horizon and the labels follow', (tester) async {
@@ -175,7 +191,7 @@ void main() {
     );
     await tester.tap(find.text('Add a what if'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('What ifs are a Pro feature'), findsOneWidget);
+    expect(find.textContaining('What ifs are part of Pro'), findsOneWidget);
     expect(store.timelineScenarios, isEmpty);
   });
 
