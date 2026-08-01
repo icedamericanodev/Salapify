@@ -707,6 +707,14 @@ class MenuScreen extends StatelessWidget {
             ),
             const Divider(height: 24),
             row(
+              'goals',
+              salapifyIcon('goal'),
+              'Goal check-in',
+              'A gentle monthly nudge for the goals you are saving toward. '
+                  'Whatever fits is enough.',
+            ),
+            const Divider(height: 24),
+            row(
               'comeback',
               salapifyIcon('greeting'),
               'Come back',

@@ -943,6 +943,12 @@ class SalapifyStore extends ChangeNotifier {
             g,
       ];
       if (moved <= 0) return {...d, 'goals': afterFrom};
+      // The destination must still EXIST before the deduction is kept: a
+      // goal deleted on another screen between opening the sheet and
+      // tapping Move would otherwise keep the minus and drop the plus,
+      // destroying tracked money. No destination, no transfer at all.
+      final toExists = afterFrom.any((g) => g is Map && g['id'] == toId);
+      if (!toExists) return d;
       return {
         ...d,
         'goals': [
@@ -956,7 +962,7 @@ class SalapifyStore extends ChangeNotifier {
                     : (cur is String ? (double.tryParse(cur) ?? 0) : 0.0);
                 return {
                   ...gm,
-                  'saved': base + moved,
+                  'saved': base + moved * 0.9,
                   'contributions': [
                     ...(gm['contributions'] as List? ?? const []),
                     {
