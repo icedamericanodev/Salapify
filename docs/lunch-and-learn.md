@@ -10,6 +10,188 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-01, session 28: a clean delivery, three gates that earned their keep, and an exit code that lied
+
+**What we believed / What was true.** We believed the Sweldo Timeline, the
+biggest money-math change since the port, would ship as f3.15 on the first
+try. What was true: it did. The founder confirmed it on the phone ("it
+works"), and the delivery log's last row is
+`| 2026-08-01 09:56 UTC | f3.15 | 10 | patch | 0.9.0+15 | d6d8fd17 |`,
+patch 10, a Shorebird patch over the air on the f3.06 base APK, no manual
+install. Every delivery guard held: unique stamp, qa-log row present before
+the merge (docs/qa-log.md, the f3.15 row), Flutter check green on a real
+runner, merge commit d6d8fd1, publisher wrote the row itself. There is no
+delivery gap to explain. This session exists because the interesting part
+all happened BEFORE the merge: one real engine bug that twenty-one passing
+tests could not see, two visual defects only an eye caught, two old guards
+that fired exactly as built, and one near-miss where a shell command
+reported success over a failing test suite.
+
+Plain terms used below. A "primitive" is a small shared function other code
+builds on; here it is `bankDueDate`, the one function that answers "when is
+this debt actually due", and its documented behavior is that a due date
+landing on a weekend or holiday moves forward to the next banking day. A
+"vector" is a test with hand-computed expected numbers. A "pipeline" is two
+shell commands joined by `|`, the output of one feeding the other.
+
+**Timeline (with evidence).**
+- The feature. Commit dbe1504 built the Sweldo Timeline (a rolling day by
+  day cash projection that crosses month boundaries, with what-if
+  scenarios), merged as d6d8fd1 (PR #287), shipped as patch 10. The full
+  gate record is the f3.15 row in docs/qa-log.md: three lenses, qa-tester,
+  flutter-ux-craftsman, journey-tester, all pre-merge.
+- The engine bug, caught by the qa-tester gate. The new debt-cycle loop in
+  flutter/lib/money/timeline.dart composed `bankDueDate` without honoring
+  its documented contract: the primitive keeps the previous raw due date in
+  the running while its weekend-adjusted date is still ahead, so a cursor
+  that stepped just past the raw due saw the same adjusted date twice, and
+  the loop's duplicate check then broke out entirely, silently discarding
+  every later cycle. Trigger condition: any due date that is weekend or
+  holiday moved, which is roughly two of every seven due days. Effect: the
+  "conservative" projection understated debt outflow, the one direction a
+  conservative line must never err. The fix (commit f6faf64) steps past the
+  adjusted date and continues; the loop comment in timeline.dart records
+  the contract. Proven fail-first with a weekend-due vector before the fix
+  was trusted: flutter/test/timeline_test.dart, "a weekend-moved due does
+  NOT swallow the later cycles", dueDay 18, Jul 18 2026 is a Saturday, and
+  the test demands all three cycles land
+  (`['2026-07-20', '2026-08-18', '2026-09-18']`).
+- Why twenty-one vectors missed it. Every hand vector used convenient
+  dates: dueDay 10 lands on clean weekdays throughout the fixture window,
+  so the weekend adjustment, the primitive's ONE documented edge, never
+  fired in any test. The vectors were correct and complete about everything
+  except the thing the primitive exists to handle.
+- The eye caught what tests could not, twice, in one rendered shot. First:
+  the initial render of the Pro 60-day view silently showed the WRONG view,
+  because the "60 days" chip was off-screen and the tap landed on nothing.
+  The harness printed a hit-test warning; it was in the output and
+  initially unread. Fixed with an `ensureVisible` before the tap, with a
+  comment naming the miss (flutter/test/screens_shot.dart). Second: two
+  grey boxes floating in the chart turned out to be the dip label drawn in
+  Ahem, the all-boxes test-default font, because a raw TextPainter inherits
+  no theme font. The same missing fontFamily meant the PHONE would have
+  drawn that label in Roboto instead of Jakarta, so the harness artifact
+  was pointing at a real shipped-font defect. Fixed in
+  flutter/lib/screens/cashflow.dart, and the first version of that fix used
+  a literal font string, which font_choice_test correctly reddened;
+  corrected to `Barako.bodyFont` (commit 15f7191). A grey box in a render
+  is evidence, not noise.
+- Two old guards fired exactly as designed. The full suite went red on two
+  real integration regressions the change introduced: the new Home card
+  displaced MONEY CHECK-IN out of the lazy list's first viewport
+  (flutter/test/smoke_test.dart), and the new action-carrying snackbar did
+  not state its persist behavior (flutter/test/snackbar_persist_test.dart).
+  Both guards predate this change. Both fixed in commit 6440431: the
+  check-in card kept its slot and the road-ahead card moved below it. This
+  is the machinery working while nobody was watching, and it is recorded as
+  such, not as a finding.
+- The near-miss, and it is the sharpest lesson. The full-suite verification
+  ran as `flutter test | tail -2` inside a background chain, and the chain
+  reported exit 0 WHILE TWO TESTS WERE FAILING, because a pipeline's exit
+  code is the LAST command's, and `tail` succeeded. It was caught only
+  because the two kept lines happened to include the "Failing tests:"
+  block; a tail that landed on passing-looking lines would have produced a
+  confident, false "suite green" into the merge decision. The backstop
+  held in principle: the Flutter check on the runner runs the same suite
+  and would have reddened the PR before merge, so main was never actually
+  at risk. What WAS at risk is the claim, a false green reported as fact.
+- Concurrency, assessed and found acceptable. Three agents worked the same
+  tree at once (qa-tester with a temporary probe test, journey-tester in
+  journeys_test.dart, the builder in cashflow.dart). One Edit hit the
+  tool's stale-read rejection and was redone against the fresh file; one
+  intermediate file state briefly looked like a dropped condition and was
+  fine on re-read; the probe file was cleaned up. No damage. The machine
+  that prevented the only real hazard already exists inside the Edit tool
+  itself, which refuses to write over a file it read stale. The practice
+  worth keeping is disjoint file ownership per agent, and that is a habit,
+  named honestly as the weakest kind of guard, acceptable here because the
+  tool-level check is the real one.
+- Also in the batch: the founder's standing direction became a CLAUDE.md
+  rule, "Enhance what exists, never regress it" (commit 5e6d9c9, PR #288),
+  and the vision spec merged earlier (PR #286, commit 850335e).
+
+**Root cause.** For the engine bug: hand-computed vectors gravitate to
+dates that are easy to hand-compute, and easy dates are exactly the dates
+where a date primitive's edge never fires. Nothing required the first
+vectors for a new consumer of `bankDueDate` to exercise the one behavior
+`bankDueDate` exists to provide, so twenty-one correct tests built a
+picture in which the adjustment never happened. For the near-miss: a
+pipeline's exit code is defined by the shell to be the last command's, so
+`anything | tail` structurally cannot report the test run's failure without
+`pipefail`. Neither cause is anyone's attention; one is a missing
+convention about which vector comes first, the other is a property of the
+shell.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. When new code composes a locked primitive, the FIRST test vector must
+   exercise that primitive's documented edge, because convenient test data
+   and the edge are mutually exclusive by construction. **Guard: the
+   weekend-due vector (timeline_test.dart), proven fail-first, which locks
+   this bug out permanently, plus the convention itself.** Strength: the
+   test is strong, an automated check that fails loudly and cannot be
+   satisfied by the broken loop. The convention ("edge vector first for any
+   new consumer of a date primitive") is medium, a sentence that depends on
+   being read; it belongs beside the porting-money-logic skill's golden
+   vector rule and is recorded here so the next engine gets it.
+
+2. A screenshot must prove it shows what it claims to show, because a tap
+   that misses is silent and the shot of the wrong view looks exactly like
+   a shot of the right one. **Guard: the `ensureVisible` before the tap in
+   screens_shot.dart, with the comment naming the first-render miss.**
+   Strength: medium. It fixes the known miss, but nothing yet asserts the
+   60-day view is actually on screen before the golden captures, so a
+   renamed chip could miss silently again; the sharper form (assert
+   something only the tapped view shows, before capturing) is carried
+   forward as open. The other half, actually reading the harness's
+   hit-test warning in the output, is a rule and is stated as one.
+
+3. An artifact that only appears in the harness can still be a phone bug
+   wearing a costume: the Ahem grey boxes were the render being honest
+   about a TextPainter that named no font, which the phone would have
+   rendered as the wrong font rather than as boxes. **Guard: for the
+   literal-string half, font_choice_test, which fired on the first fix in
+   this very batch and forced `Barako.bodyFont`; for the no-font-at-all
+   half, the render itself, where Ahem boxes are unmissable.** Strength:
+   the test is strong; the render half is medium because it requires an
+   eye on the shot, which is exactly the standing look-before-shipping
+   rule doing its job.
+
+4. A pipeline reports the LAST command's exit code, so `flutter test |
+   tail` saying 0 is a statement about tail, not about the tests. **Guard:
+   BUILT IN THIS SAME CHANGE, not left open. Rule 3 in
+   .claude/hooks/guard-destructive-edits.sh now refuses a `flutter test`
+   invocation piped onward unless pipefail appears in the command, proven
+   both halves before trusting it: it fired on the two bad shapes (a
+   piped suite run, a piped run inside an && chain) and stayed silent on
+   six good ones (pipefail present, no pipe, the shape merely MENTIONED in
+   a commit message or heredoc, a piped analyze, ordinary commands).** The
+   mention cases matter: rule 1's install-day lesson was that a guard that
+   cannot tell an invocation from a mention blocks writing about the thing
+   it guards, and this entry itself contains the banned shape several
+   times. Strength: strong for the exact shape, honest about scope: it
+   guards `flutter test` only, and the runner branch check remains the
+   structural backstop that keeps main safe regardless. CLAUDE.md's hook
+   section was updated in the same change so it does not claim "exactly
+   two shapes" while the script enforces three.
+
+**Open lessons carried forward.**
+- NEW, small: the shot-asserts-its-view sharpening (lesson 2), an
+  assertion before the golden capture that the tapped horizon is actually
+  displayed.
+- CLAUDE.md factual claims load-bearing to this batch were re-checked and
+  held: .github/scripts/check-stamp-unique.sh, both Flutter workflows, the
+  journey-tester agent file and journeys_test.dart all exist where named;
+  the delivery three-command read produced the real f3.15 row; the new
+  "Enhance what exists" section matches what PR #288 merged; the Sweldo
+  Timeline is named in that section as the pattern to copy and now
+  actually exists, so the sentence became true the day it shipped. Not
+  every claim was re-audited; the exercised ones matched.
+- From session 27: the shared `_hasAnyData` gate and its utang-only tests
+  are in place and green; nothing to reopen.
+
+---
+
 ## 2026-08-01, session 27: a clean patch, and a blind spot that was copied before it was ever tested
 
 **What we believed / What was true.** We believed f3.14 would ship the

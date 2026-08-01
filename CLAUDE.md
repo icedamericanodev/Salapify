@@ -210,11 +210,11 @@ The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
 the discipline around it. Use it when the founder cannot test by hand, which is
 most of the time.
 
-## Two Bash commands are refused by a hook, and why
+## Three Bash commands are refused by a hook, and why
 
 `.claude/settings.json` runs `.claude/hooks/guard-destructive-edits.sh` before
-every Bash call. It blocks exactly two shapes, both of which silently destroyed
-work here repeatedly:
+every Bash call. It blocks exactly three shapes, each of which silently
+destroyed work or truth here:
 
 1. A **python here-document that writes to a file**. The shape is
    `python3 - <<'PY' ... assert ... open(p,'w').write(s) ... PY`. When the assert
@@ -226,13 +226,20 @@ work here repeatedly:
    with no confirmation and no undo. Used once to reverse a deliberate one-line
    break and it took a whole delivery's edits with it. To undo one change, put
    the original text back with Edit.
+3. **`flutter test` piped into another command without pipefail.** A pipeline's
+   exit code is the LAST command's, so `flutter test | tail -2` reports 0 from
+   tail while the suite fails. That exact shape reported "suite green" over two
+   red tests once (session 28). Prefix `set -o pipefail;` and the pipeline
+   reports the test run's real exit code.
 
 Ordinary work is untouched, and that is deliberate: a guard that fires on normal
 commands gets switched off and is then absent for the real thing. `python3 -c`
 one-liners pass, any python that only reads passes, and `git checkout <branch>`,
 `git checkout -b`, and `git checkout origin/main` all pass. The discriminator for
 rule 2 is whether the argument EXISTS on disk, which is exactly what makes the
-command destructive; a ref is not a path.
+command destructive; a ref is not a path. Rule 3 matches only an INVOCATION
+(command position on the first line), so a commit message or document that
+merely mentions the banned shape passes.
 
 Installed at the founder's explicit request. Worth knowing how it got here: two
 consecutive retrospectives concluded "nothing in this repository can observe how

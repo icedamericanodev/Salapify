@@ -22,6 +22,14 @@
 #    Used once to revert a deliberate one-line break and it took an entire
 #    delivery's edits with it, which then had to be rewritten from memory.
 #
+# 3. A TEST RUN PIPED INTO ANOTHER COMMAND WITHOUT pipefail.
+#    The shape is `flutter test ... | tail -2` (or any pipe). A pipeline's
+#    exit code is the LAST command's, so the chain reports 0 from tail while
+#    the suite is failing. On 2026-08-01 (session 28) exactly this reported
+#    "suite green" over two red tests, and it was caught only because the
+#    kept lines happened to include the failure list. `set -o pipefail`
+#    anywhere in the command makes the pipeline honest and passes this guard.
+#
 # What is deliberately NOT blocked, because a guard that fires on ordinary work
 # gets switched off and is then absent for the real thing:
 #   - `python3 -c '...'` one-liners, and any python that only reads. No heredoc,
@@ -125,6 +133,33 @@ MSG
       exit 2
     fi
   done
+fi
+
+# ---------------------------------------------------------------- rule 3
+# A `flutter test` invocation piped onward, with no pipefail in the command.
+#
+# Invocation, not mention: the match requires flutter to sit at a command
+# position (start of line 1, or right after `;`, `&`, or `|`), so a commit
+# message or echo that merely CONTAINS the words "flutter test | tail" is
+# preceded by a quote or a plain space and passes. Only line 1 is examined,
+# for the same reason rule 1 only reads the head command: the dangerous
+# shape is always the command itself, and heredoc bodies (commit messages,
+# documents describing this very rule) live on later lines. Under-blocks by
+# design.
+line1=$(printf '%s' "$cmd" | sed -n '1p')
+if printf '%s' "$line1" | grep -qE '(^|[;&|])[[:space:]]*flutter[[:space:]]+test[^|]*\|' \
+  && ! printf '%s' "$cmd" | grep -q 'pipefail'; then
+  cat >&2 <<'MSG'
+BLOCKED: flutter test piped into another command without pipefail.
+
+A pipeline's exit code is the LAST command's, so `flutter test | tail`
+reporting 0 is a statement about tail, not about the tests. This exact shape
+reported "suite green" over two failing tests on 2026-08-01.
+
+Prefix the command with `set -o pipefail;` (or include it anywhere in the
+chain) and the pipeline will report the test run's real exit code.
+MSG
+  exit 2
 fi
 
 exit 0
