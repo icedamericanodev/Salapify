@@ -197,38 +197,38 @@ Future<void> loadRealFonts(WidgetTester tester) async {
 /// shrink it to make a shot tidier: a tidy shot of an empty screen is what
 /// this replaces.
 final Map<String, dynamic> livedInBlob = () {
-  // Dates move with the calendar, and that is a correction.
+  // Dates are RELATIVE to today, and that is the whole point.
   //
-  // They were pinned to a constant `y = 2026, m = 7` so that two shots taken a
-  // month apart would contain the same entries. The stated reason was that
-  // golden images changing with the calendar are noise nobody reads, and it
-  // protected a comparison that cannot happen: test/shots/ is gitignored,
-  // `git ls-files` on it returns nothing, and CI only ever runs the harness with
-  // `--update-goldens`, which writes and never compares. There was no baseline
-  // to churn against, so the pinning bought nothing.
+  // They were once pinned to a constant `y = 2026, m = 7` so two shots a month
+  // apart matched. That protected a comparison that cannot happen (test/shots/
+  // is gitignored and CI only runs the harness with `--update-goldens`, which
+  // writes and never compares), and it cost a fuse: on the first of the next
+  // month every expense fell into LAST month and every screen reverted to its
+  // empty first-run state, silently, by the calendar. That is session 17 on a
+  // timer.
   //
-  // What it cost was a fuse. On the first of the following month every expense
-  // here falls into LAST month, so Budget renders "₱0 of ₱18,000, nothing spent
-  // yet this month" and every screen becomes the empty first-run state again,
-  // silently, by the calendar, with nobody touching a line. That is session
-  // 17's whole lesson coming back on a timer. The app's own sample data is
-  // already built from `DateTime.now()` (lib/data/store.dart), so the fixture
-  // was the only thing here that could rot.
+  // The fix after that was `d(n)`, "the nth of the current month, capped at
+  // today". It rotted a DIFFERENT way, found on 2026-08-01 (session 26): on the
+  // 1st and 2nd of a month the cap collapses every entry onto today, so the
+  // weekday-spending pattern has one active day and does not render, and no
+  // receivable is dated before today so the Overdue branch is unreachable. A cap
+  // to today cannot express "earlier this week" at the start of a month, because
+  // earlier this week is last month.
   //
-  // `d(n)` still means "the nth of the current month", so every call site reads
-  // the same, and it is CAPPED at today so no expense is ever dated in the
-  // future. fixture_still_lived_in_test.dart asserts the states this is here to
-  // present, so the day it stops presenting them is a red build and not a quiet
-  // one.
+  // `ago(k)` is k days before today: always in the past, never future, and a
+  // spread of k values lands on many weekdays across several weeks, crossing the
+  // month boundary exactly as a real phone's recent spending does. `ago(0)` is
+  // today, so there is ALWAYS spending in the current month. This cannot collapse
+  // at a month boundary. fixture_still_lived_in_test.dart asserts every state
+  // this must present, so a regression is a red build and not a quiet one.
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   String iso(DateTime t) =>
       '${t.year.toString().padLeft(4, '0')}-'
       '${t.month.toString().padLeft(2, '0')}-'
       '${t.day.toString().padLeft(2, '0')}';
-  String d(int day) => iso(
-    DateTime(today.year, today.month, day <= today.day ? day : today.day),
-  );
+  // k days before today. Past, never future, and calendar-boundary proof.
+  String ago(int k) => iso(today.subtract(Duration(days: k)));
   // Genuinely ahead of today, allowed to cross into next month, which is what a
   // real "they still have time to pay" utang looks like.
   String ahead(int days) => iso(today.add(Duration(days: days)));
@@ -323,12 +323,12 @@ final Map<String, dynamic> livedInBlob = () {
         'id': 'r1',
         'person': 'Ana',
         'amount': 1500,
-        'dueDate': d(12),
+        'dueDate': ago(20),
         'payments': [
-          {'id': 'p1', 'amount': 500, 'date': d(18)},
+          {'id': 'p1', 'amount': 500, 'date': ago(15)},
         ],
       },
-      {'id': 'r2', 'person': 'Ben', 'amount': 2200, 'dueDate': d(2)},
+      {'id': 'r2', 'person': 'Ben', 'amount': 2200, 'dueDate': ago(6)},
       // A receivable that is NOT yet overdue, and the reason it had to exist.
       //
       // Both rows above are past their due date, so the Owed to me list only
@@ -343,7 +343,7 @@ final Map<String, dynamic> livedInBlob = () {
       {'id': 'r3', 'person': 'Migs', 'amount': 1500, 'dueDate': ahead(17)},
     ],
     'payables': [
-      {'id': 'y1', 'person': 'Mama', 'amount': 3000, 'dueDate': d(28)},
+      {'id': 'y1', 'person': 'Mama', 'amount': 3000, 'dueDate': ahead(9)},
     ],
     'goals': [
       {
@@ -361,7 +361,12 @@ final Map<String, dynamic> livedInBlob = () {
         'type': 'income',
         'label': 'Salary',
         'amount': 32000,
-        'date': d(15),
+        // ago(0) is today: the only offset guaranteed to be in the CURRENT month
+        // on the 1st, so Reports and Insights always have this-month income to
+        // show (the old day-of-month date kept income in-month every day; this
+        // preserves that). Without it, on the 1st the income falls into last
+        // month and Reports renders its "No income logged yet" empty state.
+        'date': ago(0),
         'accountId': 'pay',
       },
       // categoryId, NOT a plain 'category' string. The first version of this
@@ -371,19 +376,24 @@ final Map<String, dynamic> livedInBlob = () {
       // rather than the screenshot is what caught it, and it is a small
       // example of the same lesson this whole fixture exists for: a render
       // that exercises the wrong path proves the wrong thing.
+      // The fourth field is DAYS AGO, not a day of the month. The first is 0, so
+      // there is always at least one expense dated today (in the current month,
+      // whatever the calendar day), and the rest fan out across the last four
+      // weeks so the weekday-spending pattern always has a spread to draw. This
+      // is what stops the month-boundary collapse the old day-of-month dates had.
       for (final (i, e) in const [
-        ('Groceries', 'cat_groceries', 2450.75, 3),
-        ('Jeep and bus', 'cat_transport', 620, 4),
+        ('Groceries', 'cat_groceries', 2450.75, 0),
+        ('Jeep and bus', 'cat_transport', 620, 3),
         ('Coffee', 'cat_food', 185, 5),
-        ('Electricity', 'cat_bills', 3120.50, 8),
-        ('Load', 'cat_load', 300, 9),
-        ('Lunch out', 'cat_food', 480, 11),
-        ('Grab', 'cat_transport', 265, 12),
-        ('Medicine', 'cat_health', 890.25, 14),
-        ('Groceries', 'cat_groceries', 1980, 17),
-        ('Water', 'cat_bills', 410, 19),
-        ('Movie', 'cat_fun', 700, 21),
-        ('Groceries', 'cat_groceries', 2210.40, 24),
+        ('Electricity', 'cat_bills', 3120.50, 7),
+        ('Load', 'cat_load', 300, 10),
+        ('Lunch out', 'cat_food', 480, 12),
+        ('Grab', 'cat_transport', 265, 14),
+        ('Medicine', 'cat_health', 890.25, 18),
+        ('Groceries', 'cat_groceries', 1980, 20),
+        ('Water', 'cat_bills', 410, 24),
+        ('Movie', 'cat_fun', 700, 27),
+        ('Groceries', 'cat_groceries', 2210.40, 31),
       ].indexed)
         {
           'id': 'e$i',
@@ -391,7 +401,7 @@ final Map<String, dynamic> livedInBlob = () {
           'label': e.$1,
           'categoryId': e.$2,
           'amount': e.$3,
-          'date': d(e.$4),
+          'date': ago(e.$4),
           'accountId': 'gcash',
         },
     ],
