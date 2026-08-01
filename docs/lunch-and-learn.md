@@ -10,6 +10,121 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-01, session 27: a clean patch, and a blind spot that was copied before it was ever tested
+
+**What we believed / What was true.** We believed f3.14 would ship the
+comeback notification cadence cleanly on the first try. What was true: it did.
+The founder confirmed it on the phone, and the delivery log's last row is
+`| 2026-08-01 04:43 UTC | f3.14 | 9 | patch | 0.9.0+15 |`, patch 9, a Shorebird
+patch over the air on the f3.06 base APK with no manual install. Every prior
+delivery guard held: a unique stamp, a qa-log row, the Flutter check green on a
+real runner, a merge commit, and the publisher wrote the row itself. There is
+no delivery gap to explain here. This session exists to record the one real
+thing QA caught before the merge, and one small stale-doc residue, and to
+confirm a guard proposed two sessions ago has since landed.
+
+Plain terms used below. A "reminder gate" is the yes-or-no check the planner
+runs before it schedules a reminder: only fire the monthly backup nudge, or the
+new comeback ping, if there is data on the phone worth coming back to. An
+"utang-only user" is someone who tracks only who owes whom (debts and
+receivables) and has never opened a cash or bank account or logged a spend.
+That user is not an edge case here; they are the core audience the app was
+named for.
+
+**Timeline (with evidence).**
+- The feature. A new pure `comeback` kind in
+  flutter/lib/money/reminders.dart arms a re-engagement ladder relative to
+  "now": with the nightly nudge off it fires at now+2, +4, +7, +14 days at
+  11:00; with the nightly nudge on it fires ONLY the day-14 catch, so it never
+  double-pings the 20:00 daily nudge. It is silent for active users by
+  construction, because the service wipes and rebuilds the whole schedule on
+  every open (flutter/lib/services/notifications.dart, `cancelAll()` then a
+  loop over `plannedReminders`), so every reopen cancels the old day-2 ping and
+  re-arms it two days past the new open. Default on with the nightly nudge at
+  onboarding (lib/data/store.dart, `'comeback': true`), toggle in Menu
+  (lib/screens/menu.dart, the "Come back" row).
+- The design deviation. The written roadmap acceptance criterion
+  (docs/Product_Backlog.md) sketched "normal days 1 to 3, one comeback message
+  day 7". The behavior-scientist persona retuned this before build to
+  2, 4, 7, 14 (day 1 reads as clingy and drives opt-outs; day 14 is the last
+  catch before a lapsed user goes permanently silent) and added the daily-gate
+  to kill double-ping days. The shipped cadence therefore differs from the
+  written line, on purpose.
+- The QA finding, and it is the point of this session. The qa-tester found zero
+  must-fix and one should-fix: the comeback data gate was COPIED from the
+  monthly backup nudge, and that gate counted only accounts and transactions.
+  So it silently skipped an utang-only user for BOTH the comeback ping AND the
+  monthly backup nudge. The backup half was a pre-existing bug, latent and
+  untested, that copying carried into the new feature.
+- The fix. One shared helper, `_hasAnyData`
+  (flutter/lib/money/reminders.dart), counts accounts, transactions, debts,
+  OR receivables, and both the backup nudge and the comeback ladder now call
+  it. Two new tests lock it in: "fires for an utang-only user" for backup and
+  "FIRES for an utang-only user, no account or transaction" for comeback
+  (flutter/test/reminders_test.dart).
+- The alarm rule was followed on both halves. Silencing the comeback branch
+  reddened the FIRES test while the two SILENT tests correctly stayed green,
+  and removing the daily-gate reddened the "daily ON fires ONLY day 14" test
+  while FIRES stayed green. Both breaks were restored only after the runs
+  reported.
+- Evidence trail: commit f3fce3a "Add notification comeback cadence (f3.14)",
+  merged as cf0165f (PR #284), delivery row patch 9.
+
+**Root cause.** For the utang-only skip: a gate copied by value carries its
+untested blind spot with it. The backup nudge's accounts-or-transactions check
+had never been exercised against an utang-only phone, so nothing in the suite
+knew it was wrong, and copying it produced a second wrong gate rather than
+exposing the first. This is worth stating precisely, because it is NOT the
+"a test had to change, so the suite was defending the bug" trap: no test was
+inverted or deleted for this fix. The suite was SILENT on the utang-only case,
+not asserting against it. Silence is weaker evidence than an inverted
+assertion, but it is the same structural fault, a check nobody thought to
+write, and it let a bug sit latent in shipped code until a persona happened to
+re-derive the gate's meaning from the audience.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A reminder gate copied from another kind copies that kind's blind spot, and
+   the backup gate's blind spot was the app's own core audience. **Guard: the
+   shared `_hasAnyData` helper that both kinds now call, plus the two new
+   utang-only tests.** Strength: strong, and structurally so. There is now ONE
+   gate, not two copies that can drift, and it is pinned by a test that asserts
+   the utang-only user gets both nudges. A future third kind that needs the same
+   gate calls the same function and inherits the same coverage. The deeper
+   lesson under the guard: when you copy a predicate, you copy what it was never
+   tested against, so the copy should become a shared, tested function at the
+   moment of the second use, not a paste.
+
+2. A persona retuning a rough roadmap number into a researched cadence is the
+   expected and healthy path, not a defect, and this session records it as such.
+   The only durable residue was that docs/Product_Backlog.md still read
+   "normal days 1 to 3, one comeback message day 7", a false factual claim
+   about a shipped feature, the same stale-doc trap that has twice bitten
+   CLAUDE.md. **Guard: the acceptance line was updated to the shipped 2/4/7/14
+   cadence in this same change.** Strength: medium, because it is a sentence in
+   a doc and depends on someone reading it at the right moment; no machine can
+   catch a roadmap line that names a real feature but the wrong numbers. Stated
+   plainly, not dressed up as strong. Unlike most doc lessons this one was
+   closed in the same commit rather than carried forward.
+
+**Open lessons carried forward.**
+- From session 26, lesson 2 (the proposed data-level guard that the lived-in
+  fixture spans at least three distinct spending weekdays, so the WHEN YOU SPEND
+  card's precondition reddens on the DATA and not only when a screen render
+  happens to fail): this has since LANDED. It is
+  flutter/test/fixture_still_lived_in_test.dart, "spending spans at least
+  three distinct weekdays in the last 8 weeks", whose failure message names "the
+  session 26 rot" directly. It was bundled into f3.13 and is green. A proposed
+  guard that actually got built is the good outcome; recording it here closes
+  the loop so a later session does not re-propose it.
+- The CLAUDE.md factual claims load-bearing to THIS batch held: the delivery
+  three-command read produced a real row, the publisher wrote it, and the
+  unique-stamp guard did not need to fire because the stamp was unique. Not
+  every claim in CLAUDE.md was re-audited this pass; the ones this delivery
+  exercised matched the repository.
+
+---
+
 ## 2026-08-01, session 26: the calendar turned over and two tests went red, on a build that changed nothing
 
 **What we believed / What was true.** We believed main was green and would stay
