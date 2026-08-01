@@ -155,6 +155,39 @@ void main() {
       expect(balanceOn(tl, '2026-09-10'), 21000.0);
     });
 
+    test('a weekend-moved due does NOT swallow the later cycles', () {
+      // The QA-gate catch: Jul 18 2026 is a Saturday, so the July cycle
+      // bank-adjusts to Mon Jul 20. bankDueDate keeps the previous raw due in
+      // the running while its ADJUSTED date is still ahead, so a cursor that
+      // only steps past the raw due sees the same adjusted date twice, and
+      // the first version of this loop then broke out entirely, silently
+      // discarding August and September. Roughly two in seven due days are
+      // weekend-moved, so this was not an edge case; it made the
+      // "conservative" line understate debt outflow.
+      final data = fixture();
+      data['debts'] = [
+        {
+          'id': 'd1',
+          'name': 'Home Credit',
+          'remaining': 12000,
+          'minPayment': 2500,
+          'dueDay': 18,
+        },
+      ];
+      final tl = sweldoTimeline(data, now, horizonDays: 90);
+      final dueDays = (tl['days'] as List)
+          .cast<Map<String, dynamic>>()
+          .where(
+            (d) =>
+                (d['events'] as List).any((e) => e['label'] == 'Home Credit'),
+          )
+          .map((d) => d['date'])
+          .toList();
+      // Jul 18 Sat -> Mon Jul 20; Aug 18 is a Tuesday and Sep 18 a Friday,
+      // no adjustment. All three cycles must land.
+      expect(dueDays, ['2026-07-20', '2026-08-18', '2026-09-18']);
+    });
+
     test('a fully paid debt is silent', () {
       final data = fixture();
       data['debts'] = [

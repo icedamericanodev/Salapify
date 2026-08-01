@@ -100,7 +100,9 @@ List<String> _paydaysInWindow(
   final schedule = settings is Map ? settings['paydaySchedule'] : null;
   final out = <String>[];
   var cursor = today;
-  for (var guard = 0; guard < 12; guard++) {
+  // Guard 15: a weekly schedule fits 13 paydays in a 90 day window, and a
+  // guard of 12 silently unmarked the last one.
+  for (var guard = 0; guard < 15; guard++) {
     final p = nextPayday(cursor, schedule);
     if (p.isAfter(end)) break;
     out.add(_iso(p));
@@ -201,14 +203,28 @@ Map<String, dynamic> sweldoTimeline(
     final name = (d['name'] is String && (d['name'] as String).isNotEmpty)
         ? d['name'] as String
         : 'Debt';
+    // Parity note, on purpose: like the month calendar (upcomingDues), a
+    // cycle counts while remaining > 0 even if the user already paid early
+    // this cycle; there is no per-cycle posted marker on debts to read. The
+    // projection is conservative in the safe direction (it can overstate a
+    // due, never silently drop one).
     var counted = false;
     final seen = <String>{};
     var cursor = today;
-    for (var guard = 0; guard < 6; guard++) {
+    for (var guard = 0; guard < 12; guard++) {
       final due = bankDueDate(d, cursor);
       if (due == null || due.date.isAfter(end)) break;
       final key = _iso(due.date);
-      if (!seen.add(key)) break;
+      if (!seen.add(key)) {
+        // bankDueDate keeps the previous raw due in the running while its
+        // ADJUSTED date is still ahead, so a cursor just past the raw due
+        // sees the same adjusted date again. Step past the adjusted date and
+        // keep going; breaking here silently discarded every later cycle
+        // whenever a due was weekend or holiday moved, which is roughly two
+        // of every seven due days. Proven by the weekend-due test vector.
+        cursor = DateTime(due.date.year, due.date.month, due.date.day + 1);
+        continue;
+      }
       add(key, name, amount, 'debt');
       counted = true;
       cursor = DateTime(due.raw.year, due.raw.month, due.raw.day + 1);
@@ -297,9 +313,19 @@ Map<String, dynamic> sweldoTimeline(
     final moneyOut = day != null ? day['out'] as double : 0.0;
     final events = <Map<String, dynamic>>[];
     if (day != null) {
+      // Money in posts before money out WITHIN a day, so a same-day salary
+      // and rent never shows a scary negative balanceAfter on a day that
+      // ends fine. Same-day ordering is a presentation choice, not a fact
+      // the data holds; this is the kind choice.
+      final ordered = [
+        for (final e in (day['events'] as List))
+          if ((e as Map)['kind'] == 'income' || e['kind'] == 'scenarioIn') e,
+        for (final e in (day['events'] as List))
+          if ((e as Map)['kind'] != 'income' && e['kind'] != 'scenarioIn') e,
+      ];
       var running = balance;
-      for (final e in (day['events'] as List)) {
-        final ev = (e as Map).cast<String, dynamic>();
+      for (final e in ordered) {
+        final ev = e.cast<String, dynamic>();
         final amt = amountOf(ev['amount']);
         final isIn = ev['kind'] == 'income' || ev['kind'] == 'scenarioIn';
         running = _fin(running + (isIn ? amt : -amt));
@@ -367,9 +393,24 @@ int freeHorizonDays(Map<String, dynamic> data, DateTime ref) {
   if (hasExplicitPaydaySchedule(data)) {
     final settings = data['settings'];
     final schedule = settings is Map ? settings['paydaySchedule'] : null;
-    final p = nextPayday(today, schedule);
-    final d = DateTime(p.year, p.month, p.day).difference(today).inDays;
+    var p = nextPayday(today, schedule);
+    var d = DateTime(p.year, p.month, p.day).difference(today).inDays;
+    if (d < 1) {
+      // Payday IS today: the honest free window is to the NEXT one, not a
+      // one-point chart.
+      p = nextPayday(
+        DateTime(today.year, today.month, today.day + 1),
+        schedule,
+      );
+      d = DateTime(p.year, p.month, p.day).difference(today).inDays;
+    }
     if (d >= 1) return d;
   }
-  return DateTime(today.year, today.month + 1, 0).difference(today).inDays;
+  final monthEnd = DateTime(today.year, today.month + 1, 0);
+  if (!monthEnd.isAfter(today)) {
+    // The last day of the month: roll to the end of NEXT month for the same
+    // reason.
+    return DateTime(today.year, today.month + 2, 0).difference(today).inDays;
+  }
+  return monthEnd.difference(today).inDays;
 }

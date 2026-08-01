@@ -153,6 +153,12 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
           builder: (context, _) {
             final data = store.data.cast<String, dynamic>();
             final ref = widget.now ?? DateTime.now();
+            // A Pro horizon must not outlive Pro: toggle Pro off elsewhere
+            // with this screen on the stack and the 90 day view would keep
+            // rendering for a free user until reopen.
+            if (!_pro && const {'30', '60', '90'}.contains(_horizon)) {
+              _horizon = 'month';
+            }
             final scenarios = store.timelineScenarios;
             // Scenarios overlay the chart only for Pro (categories precedent:
             // a stored Pro thing on a non-Pro store is inert, not active).
@@ -203,6 +209,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                   end,
                   lowBal,
                   lowDate,
+                  tl['firstNegativeDate'] as String?,
                   anyNegative,
                   noEvents,
                 ),
@@ -245,6 +252,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                             days: days,
                             anyNegative: anyNegative,
                             lowDate: lowDate,
+                            runOutDate:
+                                (tl['firstNegativeDate'] as String?) ?? lowDate,
                             showBand: bandRate > 0,
                             paydays: paydays,
                           ),
@@ -255,7 +264,10 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _scenarioCard(scenarios),
+                  _scenarioCard(
+                    scenarios,
+                    days.isNotEmpty ? days.last['date'].toString() : '',
+                  ),
                   const SizedBox(height: 14),
                   _eventsCard(events),
                 ],
@@ -360,7 +372,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
   // The what-if overlay: saved scenarios, each toggleable, all Pro. The line
   // only changes here, never the real money; that sentence is on the card.
-  Widget _scenarioCard(List<Map<String, dynamic>> scenarios) {
+  Widget _scenarioCard(List<Map<String, dynamic>> scenarios, String endIso) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
@@ -377,7 +389,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             const SizedBox(height: 6),
             for (var i = 0; i < scenarios.length; i++) ...[
               if (i > 0) Divider(height: 1, color: Barako.border),
-              _scenarioRow(scenarios, i),
+              _scenarioRow(scenarios, i, endIso),
             ],
             const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -445,7 +457,11 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     }
   }
 
-  Widget _scenarioRow(List<Map<String, dynamic>> scenarios, int i) {
+  Widget _scenarioRow(
+    List<Map<String, dynamic>> scenarios,
+    int i,
+    String endIso,
+  ) {
     final s = scenarios[i];
     // The categories precedent: a stored Pro thing on a non-Pro store renders
     // INERT, never active. A saved scenario survives (it is the user's data)
@@ -524,7 +540,16 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              _scenarioSummary(s),
+                              // A purchase dated past the visible window
+                              // contributes nothing to THIS view; say so
+                              // instead of looking silently ignored.
+                              (s['kind'] == 'purchase' &&
+                                      s['date'] is String &&
+                                      endIso.isNotEmpty &&
+                                      (s['date'] as String).compareTo(endIso) >
+                                          0)
+                                  ? '${_scenarioSummary(s)} · after this view'
+                                  : _scenarioSummary(s),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -580,12 +605,17 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       ),
     );
     if (result == null) return;
-    final next = [...scenarios];
+    // Re-read AFTER the await: the list can change while the sheet is open
+    // (a restore finishing underneath, a second window), and applying the
+    // edit against the pre-sheet copy would misapply it or throw RangeError.
+    final fresh = store.timelineScenarios;
+    final next = [...fresh];
     final removed = result['delete'] == true;
+    final safeIndex = index != null && index < next.length ? index : null;
     if (removed) {
-      if (index != null) next.removeAt(index);
-    } else if (index != null) {
-      next[index] = result;
+      if (safeIndex != null) next.removeAt(safeIndex);
+    } else if (safeIndex != null) {
+      next[safeIndex] = result;
     } else {
       next.add(result);
     }
@@ -604,6 +634,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     double end,
     double lowBal,
     String lowDate,
+    String? firstNegativeDate,
     bool anyNegative,
     bool noEvents,
   ) {
@@ -618,8 +649,12 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       color = Barako.muted;
     } else if (anyNegative) {
       head = 'Heads up, cash runs short';
+      // The day cash FIRST crosses zero, never the lowest day: the lookahead
+      // reminder names the crossing, and a push about one date opening an app
+      // that shows another is how trust dies.
+      final runOut = firstNegativeDate ?? lowDate;
       body =
-          'At this pace your spendable cash is projected to run out around ${_pretty(lowDate)}. '
+          'At this pace your spendable cash is projected to run out around ${_pretty(runOut)}. '
           'Move a bill, hold a big buy, or set aside from your next payday so you do not get caught.';
       color = Barako.warningStrong;
     } else if (lowBal < start) {
@@ -868,8 +903,16 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    kind = (e?['kind'] as String?) ?? 'purchase';
-    label = TextEditingController(text: (e?['label'] as String?) ?? '');
+    // Backups preserve settings.timelineScenarios verbatim, so a restored
+    // scenario can carry ANY shape; `is` checks, never casts, or a junk
+    // backup crashes the sheet. Unknown kinds also fall back to purchase so
+    // firstWhere below can never miss.
+    final rawKind = e?['kind'];
+    kind = rawKind is String && _kinds.any((k) => k.$1 == rawKind)
+        ? rawKind
+        : 'purchase';
+    final rawLabel = e?['label'];
+    label = TextEditingController(text: rawLabel is String ? rawLabel : '');
     final amt = e?[kind == 'cutSpending' ? 'amountPerMonth' : 'amount'];
     amount = TextEditingController(
       text: amt is num && amt > 0 ? amt.toStringAsFixed(0) : '',
@@ -907,9 +950,16 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
 
   void _save() {
     final amt = double.tryParse(amount.text.replaceAll(',', '')) ?? 0;
-    if (!(amt > 0)) {
+    // isFinite matters: double.tryParse accepts 'Infinity' and '1e999', which
+    // pass amt > 0, then jsonEncode throws in the store write AFTER the sheet
+    // already closed showing success, so the scenario silently never exists.
+    // The 100 million cap keeps a fat-fingered paste from drawing an absurd
+    // chart; nobody is what-iffing a bigger peso figure in this app.
+    if (!(amt > 0) || !amt.isFinite || amt > 100000000) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter an amount above zero.')),
+        const SnackBar(
+          content: Text('Enter an amount above zero, up to 100 million.'),
+        ),
       );
       return;
     }
@@ -1111,12 +1161,17 @@ class _BalanceChart extends StatelessWidget {
   final List<Map<String, dynamic>> days;
   final bool anyNegative;
   final String lowDate;
+
+  /// The day cash first crosses zero (falls back to the lowest day), the
+  /// same date the decision card and the lookahead reminder name.
+  final String runOutDate;
   final bool showBand;
   final List<String> paydays;
   const _BalanceChart({
     required this.days,
     required this.anyNegative,
     required this.lowDate,
+    required this.runOutDate,
     required this.showBand,
     required this.paydays,
   });
@@ -1127,7 +1182,7 @@ class _BalanceChart extends StatelessWidget {
     final last = days.isNotEmpty ? days.last['date'].toString() : '';
     return Semantics(
       label: anyNegative
-          ? 'Projected balance chart. Cash runs out around ${_pretty(lowDate)}.'
+          ? 'Projected balance chart. Cash runs out around ${_pretty(runOutDate)}.'
           : 'Projected balance from ${_pretty(first)} to ${_pretty(last)}, '
                 'tightest around ${_pretty(lowDate)}.',
       child: ExcludeSemantics(

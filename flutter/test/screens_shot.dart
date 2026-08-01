@@ -303,6 +303,16 @@ final Map<String, dynamic> livedInBlob = () {
     // road-ahead card project a lived-in month instead of the set-up prompt.
     // Day-of-month items cannot rot at a calendar boundary: the engine clamps
     // and iterates months. The salary day matches the payday schedule above.
+    //
+    // lastPosted is stamped to the CURRENT month, and that stamp is
+    // load-bearing: store.load() runs postDueRecurring with the REAL clock,
+    // so without it every consumer of this fixture (the render harness, the
+    // readability sweep, the pixel baseline) would gain extra posted
+    // transactions on any run on or after each item's day of month, and the
+    // fixture's content would depend on the calendar day the suite runs.
+    // That is the session 26 rot class wearing a new coat. The cost is that
+    // the timeline shows next month's occurrences instead of this month's,
+    // which the 60-day shot covers fine.
     'recurring': [
       {
         'id': 'rec-sweldo',
@@ -310,6 +320,8 @@ final Map<String, dynamic> livedInBlob = () {
         'label': 'Sweldo',
         'amount': 32000,
         'dayOfMonth': 30,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
       },
       {
         'id': 'rec-rent',
@@ -317,6 +329,8 @@ final Map<String, dynamic> livedInBlob = () {
         'label': 'Rent',
         'amount': 9500,
         'dayOfMonth': 5,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
       },
       {
         'id': 'rec-net',
@@ -324,6 +338,8 @@ final Map<String, dynamic> livedInBlob = () {
         'label': 'Internet',
         'amount': 1699,
         'dayOfMonth': 18,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
       },
     ],
     'debts': [

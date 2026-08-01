@@ -973,8 +973,12 @@ class OverviewScreen extends StatelessWidget {
     final hasPayday = (tl['paydays'] as List).isNotEmpty;
     final String caption;
     if (anyNegative) {
+      // The day cash FIRST crosses zero, matching the decision card and the
+      // lookahead reminder; naming the lowest day here showed a different
+      // date for the same event.
+      final runOut = (tl['firstNegativeDate'] as String?) ?? lowDate;
       caption =
-          'Cash is projected to run short around ${prettyDay(lowDate)}. '
+          'Cash is projected to run short around ${prettyDay(runOut)}. '
           'Tap to see the tight days.';
     } else if (lowBal < start) {
       caption =
