@@ -11,6 +11,8 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/format.dart' show prettyDay, prettyMonthYear;
+import '../money/ledger.dart' show amountOf;
 import '../money/pan/ask.dart';
 import '../money/pan/normalize.dart' show extractAmount;
 import '../money/pan/respond.dart' show planLine;
@@ -88,6 +90,9 @@ class _PanScreenState extends State<PanScreen> {
         intentId,
         DateTime.now(),
         askedAmount: extractAmount(text),
+        // The raw message, so a goal offer follows the goal the user NAMED,
+        // the same way the resolver picks its focus.
+        raw: text,
       );
       if (offer != null) reply['_planOffer'] = offer;
     }
@@ -97,6 +102,13 @@ class _PanScreenState extends State<PanScreen> {
       mood = (reply['mood'] ?? 'idle').toString();
       controller.clear();
     });
+    _scrollToEnd();
+  }
+
+  /// Bring the newest bubble into view. Every path that appends a message
+  /// calls this, including the plan receipts: a settings write whose receipt
+  /// lands below the fold is a write the user never saw happen.
+  void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scroll.hasClients) {
         scroll.animateTo(
@@ -281,11 +293,20 @@ class _PanScreenState extends State<PanScreen> {
       DateTime.now(),
     );
     if (status == null) return const [];
-    final actual = (status['actual'] as num).toDouble();
-    final remaining = (status['remaining'] as num).toDouble();
-    final journey = actual + remaining;
-    final pct = journey > 0 ? (actual / journey).clamp(0.0, 1.0) : 0.0;
+    final pct = (status['progress'] as num).toDouble();
     final state = status['state'].toString();
+    // The facts line: the trust rule says everything Pan remembers is ON the
+    // card, and planLine only says the amount in the started state. Amount,
+    // cadence, and start date, always visible, never only inside the editor.
+    final startIso = (widget.store.activePlan?['startDate'] ?? '').toString();
+    final thisYear =
+        startIso.length >= 4 &&
+        startIso.substring(0, 4) == DateTime.now().year.toString();
+    final since = thisYear ? prettyDay(startIso) : prettyMonthYear(startIso);
+    final cadenceWord = status['cadence'] == 'weekly' ? 'weekly' : 'monthly';
+    final factsLine =
+        '${formatMoneyText((status['amount'] as num).toDouble())} '
+        '$cadenceWord since $since';
     return [
       Padding(
         padding: const EdgeInsets.only(top: 10),
@@ -300,7 +321,12 @@ class _PanScreenState extends State<PanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('OUR PLAN', style: Barako.kickerStyle),
+              Text('OUR PLAN', style: Barako.cardKickerStyle),
+              const SizedBox(height: 4),
+              Text(
+                factsLine,
+                style: TextStyle(color: Barako.muted, fontSize: 12.5),
+              ),
               const SizedBox(height: 6),
               Text(
                 planLine(status),
@@ -317,6 +343,7 @@ class _PanScreenState extends State<PanScreen> {
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 6,
+                    semanticsLabel: 'Plan progress',
                     backgroundColor: Barako.border,
                     valueColor: AlwaysStoppedAnimation(Barako.primary),
                   ),
@@ -325,17 +352,20 @@ class _PanScreenState extends State<PanScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  TextButton(
-                    onPressed: _editPlan,
-                    child: Text(
-                      'Change',
-                      style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                  // No Change on a finished or orphaned plan: there is no
+                  // pace left to edit, only a card to let go of.
+                  if (state != 'orphaned' && state != 'done')
+                    TextButton(
+                      onPressed: _editPlan,
+                      child: Text(
+                        'Change',
+                        style: TextStyle(
+                          color: Barako.primaryText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
                   TextButton(
                     onPressed: _dropPlan,
                     child: Text(
@@ -357,9 +387,49 @@ class _PanScreenState extends State<PanScreen> {
   }
 
   Future<void> _dropPlan() async {
-    // Plans change; dropping one is allowed to feel light. A receipt, not a
-    // guilt trip.
-    await widget.store.clearActivePlan();
+    // Light in tone, confirmed in fact: dropping erases the start date and
+    // start level, so the tracked pace history cannot come back, and the
+    // button sits one mis-tap away from Change. Light and confirmed are
+    // compatible; light and unrecoverable are not.
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text(
+          'Drop the plan?',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Your money does not change, only the score keeping stops. '
+          'We can always start a new one.',
+          style: TextStyle(color: Barako.muted, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Keep it', style: TextStyle(color: Barako.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Drop it',
+              style: TextStyle(
+                color: Barako.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (sure != true) return;
+    try {
+      await widget.store.clearActivePlan();
+    } catch (_) {
+      if (!mounted) return;
+      _writeFailed();
+      return;
+    }
     if (!mounted) return;
     setState(() {
       messages.add(
@@ -371,14 +441,16 @@ class _PanScreenState extends State<PanScreen> {
         }),
       );
     });
+    _scrollToEnd();
   }
 
   Future<void> _editPlan() async {
     final plan = widget.store.activePlan;
     if (plan == null) return;
-    final controllerAmt = TextEditingController(
-      text: (amountOfPlan(plan)).toStringAsFixed(0),
-    );
+    // Prefill keeps the stored decimals: rounding 1500.50 to "1501" here
+    // would make an untouched Save silently rewrite the amount by 50
+    // centavos, a write the user never asked for.
+    final prefill = amountOfPlan(plan);
     final saved = await showModalBottomSheet<double?>(
       context: context,
       backgroundColor: Barako.card,
@@ -386,106 +458,41 @@ class _PanScreenState extends State<PanScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Change the plan',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Same plan, new pace. Pick an amount that fits real life.',
-                style: TextStyle(color: Barako.muted, fontSize: 12.5),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controllerAmt,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: InputDecoration(
-                  labelText: plan['cadence'] == 'weekly'
-                      ? 'Amount per week'
-                      : 'Amount per month',
-                  labelStyle: TextStyle(color: Barako.muted),
-                ),
-                style: TextStyle(color: Barako.text),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(null),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: Barako.muted),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () {
-                      final v = double.tryParse(
-                        controllerAmt.text.replaceAll(',', ''),
-                      );
-                      if (v == null ||
-                          !(v > 0) ||
-                          !v.isFinite ||
-                          v > 100000000) {
-                        ScaffoldMessenger.of(sheetContext).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Enter an amount above zero, up to 100 million.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      Navigator.of(sheetContext).pop(v);
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                    ),
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      builder: (sheetContext) => _PlanEditSheet(
+        initial: prefill == prefill.roundToDouble()
+            ? prefill.toStringAsFixed(0)
+            : prefill.toString(),
+        weekly: plan['cadence'] == 'weekly',
       ),
     );
     if (saved == null) return;
-    await widget.store.setActivePlan({...plan, 'amount': saved});
+    try {
+      await widget.store.setActivePlan({...plan, 'amount': saved});
+    } catch (_) {
+      if (!mounted) return;
+      _writeFailed();
+      return;
+    }
     if (!mounted) return;
     final status = planStatus(
       widget.store.data.cast<String, dynamic>(),
       DateTime.now(),
     );
     if (status != null) {
+      // The receipt echoes what was actually written: after 2,000 becomes
+      // 3,000, "Noted" alone never states the new amount.
+      final word = plan['cadence'] == 'weekly' ? 'week' : 'month';
       setState(() {
         messages.add(
-          _Msg('pan', {'mood': 'idle', 'text': 'Noted. ${planLine(status)}'}),
+          _Msg('pan', {
+            'mood': 'idle',
+            'text':
+                'Noted, ${formatMoneyText(saved)} a $word now. '
+                '${planLine(status)}',
+          }),
         );
       });
+      _scrollToEnd();
     }
   }
 
@@ -495,7 +502,58 @@ class _PanScreenState extends State<PanScreen> {
   }
 
   Future<void> _acceptOffer(Map<String, dynamic> offer) async {
-    await widget.store.setActivePlan(offer);
+    // The chip stays tappable in chat history, so the offer it carries can
+    // be stale: the debt paid down since, days passed, the target deleted.
+    // Progress is measured from startDate and startLevel, so committing the
+    // frozen ones would count money moved BEFORE the commitment. Re-anchor
+    // both to today, and check the target still exists at all.
+    final data = widget.store.data.cast<String, dynamic>();
+    final kind = (offer['kind'] ?? '').toString();
+    Map<String, dynamic>? target;
+    for (final row
+        in (data[kind == 'debt' ? 'debts' : 'goals'] is List
+            ? data[kind == 'debt' ? 'debts' : 'goals'] as List
+            : const [])) {
+      if (row is Map && row['id'] == offer['targetId']) {
+        target = row.cast<String, dynamic>();
+        break;
+      }
+    }
+    if (target == null) {
+      setState(() {
+        messages.add(
+          _Msg('pan', {
+            'mood': 'idle',
+            'text':
+                'That one is gone from your book now, so there is nothing '
+                'to plan against. Ask me again and we can make a fresh one.',
+          }),
+        );
+      });
+      _scrollToEnd();
+      return;
+    }
+    final now = DateTime.now();
+    final level = kind == 'debt'
+        ? amountOf(target['remaining'])
+        : amountOf(target['saved']);
+    final fresh = {
+      ...offer,
+      'startDate':
+          '${now.year.toString().padLeft(4, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}',
+      'startLevel': level,
+    };
+    try {
+      await widget.store.setActivePlan(fresh);
+    } catch (_) {
+      // Catch-all on purpose: read-only mode throws StateError, an Error
+      // not an Exception, and a save failure can surface as either.
+      if (!mounted) return;
+      _writeFailed();
+      return;
+    }
     if (!mounted) return;
     final status = planStatus(
       widget.store.data.cast<String, dynamic>(),
@@ -513,6 +571,24 @@ class _PanScreenState extends State<PanScreen> {
         }),
       );
     });
+    _scrollToEnd();
+  }
+
+  /// The shared receipt for a plan write that did not land: a tap that
+  /// silently does nothing reads as a broken button, and worse, as a plan
+  /// the user believes exists.
+  void _writeFailed() {
+    setState(() {
+      messages.add(
+        _Msg('pan', {
+          'mood': 'idle',
+          'text':
+              'I could not save that just now, so nothing changed. '
+              'Please try again in a moment.',
+        }),
+      );
+    });
+    _scrollToEnd();
   }
 
   Widget _userBubble(String text) => Padding(
@@ -655,29 +731,169 @@ class _PanScreenState extends State<PanScreen> {
               // time, re-checked here so it vanishes once any plan exists
               // (one plan at a time, and a stale offer must not overwrite
               // it).
+              // activePlanOf, not the raw getter: a junk activePlan from a
+              // hand-edited backup is non-null but renders no card, and a
+              // raw check here would then block every future offer with no
+              // way out. Shape-checked, junk reads as "no plan" everywhere.
               if (reply['_planOffer'] is Map &&
-                  widget.store.activePlan == null) ...[
+                  activePlanOf(widget.store.data.cast<String, dynamic>()) ==
+                      null) ...[
                 const SizedBox(height: 10),
-                FilledButton.icon(
-                  onPressed: () => _acceptOffer(
-                    (reply['_planOffer'] as Map).cast<String, dynamic>(),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary,
-                  ),
-                  icon: const Icon(Icons.flag_outlined, size: 16),
-                  label: Text(
-                    'Make it a plan: ${formatMoneyText(amountOfPlan((reply['_planOffer'] as Map).cast<String, dynamic>()))} monthly',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                Builder(
+                  builder: (context) {
+                    final offer = (reply['_planOffer'] as Map)
+                        .cast<String, dynamic>();
+                    // The cadence word comes from the offer itself, so the
+                    // chip can never say monthly over a weekly plan. Icon
+                    // and label are laid out by hand because
+                    // FilledButton.icon does not let its label wrap, and a
+                    // seven digit amount at 320dp needs to.
+                    final word = offer['cadence'] == 'weekly'
+                        ? 'weekly'
+                        : 'monthly';
+                    return FilledButton(
+                      onPressed: () => _acceptOffer(offer),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Barako.primary,
+                        foregroundColor: Barako.onPrimary,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.flag_outlined, size: 16),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              // The target is NAMED on the button: a goal
+                              // offer follows the reply's focus goal, and
+                              // the name is how the user verifies that
+                              // before committing, not after.
+                              'Make it a plan: ${offer['label']}, '
+                              '${formatMoneyText(amountOfPlan(offer))} $word',
+                              softWrap: true,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The amount-only edit sheet. A real StatefulWidget rather than a
+/// StatefulBuilder so the text controller is disposed by the framework
+/// AFTER the sheet's exit animation: disposing it right after the pop left
+/// the closing sheet building a dead controller. The validation error
+/// renders inline on the field; a SnackBar here draws behind the modal
+/// barrier and the keyboard, so Save looked like it did nothing at all.
+class _PlanEditSheet extends StatefulWidget {
+  const _PlanEditSheet({required this.initial, required this.weekly});
+
+  final String initial;
+  final bool weekly;
+
+  @override
+  State<_PlanEditSheet> createState() => _PlanEditSheetState();
+}
+
+class _PlanEditSheetState extends State<_PlanEditSheet> {
+  late final TextEditingController amt = TextEditingController(
+    text: widget.initial,
+  );
+  String? error;
+
+  @override
+  void dispose() {
+    amt.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Change the plan',
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Same plan, new pace. Pick an amount that fits real life.',
+              style: TextStyle(color: Barako.muted, fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amt,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: widget.weekly
+                    ? 'Amount per week'
+                    : 'Amount per month',
+                labelStyle: TextStyle(color: Barako.muted),
+                errorText: error,
+              ),
+              style: TextStyle(color: Barako.text),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () {
+                    final v = double.tryParse(amt.text.replaceAll(',', ''));
+                    if (v == null || !(v > 0) || !v.isFinite || v > 100000000) {
+                      setState(() {
+                        error =
+                            'Enter an amount above zero, up to 100 million.';
+                      });
+                      return;
+                    }
+                    Navigator.of(context).pop(v);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

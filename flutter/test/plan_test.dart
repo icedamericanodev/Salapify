@@ -72,6 +72,8 @@ void main() {
       expect(s['delta'], 500.0);
       expect(s['state'], 'onTrack');
       expect(s['leadPeriods'], 0);
+      // The card's bar: 2500 in of a 12000 journey (2500 + 9500 left).
+      expect(s['progress'], closeTo(2500 / 12000, 1e-9));
     });
 
     test('ahead by two full periods says so', () {
@@ -231,7 +233,12 @@ void main() {
           'name': 'Pasko fund',
           'target': 12000,
           'saved': 6000,
-          'dueDate': '2027-01-15',
+          // targetDate, the field goals really store. The first version of
+          // this fixture said dueDate, the same wrong mental model as the
+          // code it was testing, so the deadline-pace branch passed while
+          // being dead in production. Field names in fixtures must match
+          // the writer (store.addGoal), not the reader's guess.
+          'targetDate': '2027-01-15',
         },
       ],
     };
@@ -251,6 +258,108 @@ void main() {
       expect(offer['targetId'], 'g1');
       expect(offer['amount'], 1000.0);
       expect(offer['startLevel'], 6000.0);
+    });
+
+    test(
+      'a pace that rounds to zero kills the offer instead of storing it',
+      () {
+        // Target 1000, saved 995, no date: gap 5 over a default year is 0.42,
+        // which rounds to 0. A zero-amount plan is one activePlanOf rejects,
+        // so accepting it would create a plan with no card, no Drop button,
+        // and a permanent block on every future offer. The offer must die
+        // here, before it can be tapped.
+        final nearDone = {
+          'settings': <String, dynamic>{},
+          'goals': [
+            {'id': 'g9', 'name': 'Trip', 'target': 1000, 'saved': 995},
+          ],
+        };
+        expect(planOfferFor(nearDone, 'goal_pace', now), isNull);
+      },
+    );
+
+    test('an absurd asked amount falls back to the minimum payment', () {
+      // The edit sheet refuses anything over 100 million; the chip must
+      // never offer what the sheet would refuse to save.
+      final offer = planOfferFor(
+        data,
+        'debt_free',
+        now,
+        askedAmount: 999999999999,
+      )!;
+      expect(offer['amount'], 1250.0);
+    });
+
+    test('the goal offer follows the goal the message names', () {
+      final twoGoals = {
+        'settings': <String, dynamic>{},
+        'goals': [
+          {
+            'id': 'g1',
+            'name': 'Emergency fund',
+            'target': 60000,
+            'saved': 30000,
+          },
+          {'id': 'g2', 'name': 'Pasko fund', 'target': 12000, 'saved': 6000},
+        ],
+      };
+      final offer = planOfferFor(
+        twoGoals,
+        'goal_pace',
+        now,
+        raw: 'am I on track for the pasko fund?',
+      )!;
+      expect(offer['targetId'], 'g2');
+      expect(offer['label'], 'Save for Pasko fund');
+    });
+
+    test('with nothing named, the offer follows the behind goal first', () {
+      // The resolver's focus order is named, then behind, then lowest pct.
+      // The offer must land on the SAME goal the reply is talking about;
+      // the first version took the first unfinished goal in list order, so
+      // the reply could discuss one goal while the button silently
+      // committed to another.
+      final twoGoals = {
+        'settings': <String, dynamic>{},
+        'goals': [
+          // Listed first, healthy: no deadline, half way.
+          {
+            'id': 'g1',
+            'name': 'Emergency fund',
+            'target': 60000,
+            'saved': 30000,
+          },
+          // Behind: the deadline is already past.
+          {
+            'id': 'g2',
+            'name': 'Pasko fund',
+            'target': 12000,
+            'saved': 6000,
+            'targetDate': '2026-06-01',
+          },
+        ],
+      };
+      final offer = planOfferFor(twoGoals, 'goal_pace', now)!;
+      expect(offer['targetId'], 'g2');
+    });
+
+    test('a month-only target date still gets the deadline pace', () {
+      // Goals may store YYYY-MM; goalPace reads it, so the offer must too.
+      // Jul 2026 to Jan 2027 is 6 whole months; 6000 short: 1000 a month.
+      final monthOnly = {
+        'settings': <String, dynamic>{},
+        'goals': [
+          {
+            'id': 'g1',
+            'name': 'Pasko fund',
+            'target': 12000,
+            'saved': 6000,
+            'targetDate': '2027-01',
+          },
+        ],
+      };
+      final offer = planOfferFor(monthOnly, 'goal_pace', now)!;
+      expect(offer['amount'], 1000.0);
     });
 
     test('one plan at a time: an existing plan blocks every offer', () {

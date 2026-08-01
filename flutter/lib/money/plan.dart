@@ -21,6 +21,7 @@
 // Every figure here derives from the data. Junk shapes return null status
 // rather than throwing, matching the money layer.
 
+import 'analytics.dart' show goalPace;
 import 'ledger.dart' show amountOf;
 
 Map<String, dynamic>? _asMap(dynamic v) =>
@@ -135,6 +136,7 @@ Map<String, dynamic>? planStatus(Map<String, dynamic> data, DateTime now) {
       'delta': 0.0,
       'periods': 0,
       'remaining': 0.0,
+      'progress': 0.0,
     };
   }
 
@@ -185,27 +187,45 @@ Map<String, dynamic>? planStatus(Map<String, dynamic> data, DateTime now) {
     // Whole periods of lead or lag, for "two weeks ahead" phrasing. Rounded
     // toward zero so a half-period lead never overclaims.
     'leadPeriods': amount > 0 ? (delta / amount).truncate() : 0,
+    // The card's bar, computed HERE and not on the screen: a debt that grows
+    // (interest posted after the plan started) makes actual negative, and
+    // the clamp that hides that is a money decision, not a layout one.
+    'progress': (actual + remaining) > 0
+        ? (actual / (actual + remaining)).clamp(0.0, 1.0).toDouble()
+        : 0.0,
   };
 }
+
+/// The edit sheet's ceiling, applied here too so a chip can never offer an
+/// amount the sheet itself would refuse to save.
+const double maxPlanAmount = 100000000;
 
 /// The prefilled plan an intent reply can OFFER, derived from the data at
 /// the moment of asking, never carried inside the golden-locked reply
 /// itself. Returns null when a plan already exists (one at a time), when
-/// the intent has no plannable target, or when the amount is not positive.
+/// the intent has no plannable target, or when the amount would round to
+/// zero or exceed [maxPlanAmount]. A zero-amount offer once created a plan
+/// that activePlanOf rejects: invisible on the card, undroppable, and
+/// blocking every future offer, which is the exact trap this guard closes.
 ///
 /// For 'debt_free' the offer follows the avalanche order's top debt with
 /// the asked extra amount (or the debt's own minimum when none was asked).
-/// For 'goal_pace' it follows the first goal still short of target, at the
-/// monthly amount its own deadline pace suggests, when one exists.
+/// For 'goal_pace' it follows the SAME goal the resolver focuses on (named
+/// in the message, else first behind, else lowest pct) at the per-month
+/// pace goalPace computes, so the button can never commit a number that
+/// contradicts the sentence above it. goalPace reads targetDate, the field
+/// goals actually store, including month-only YYYY-MM values.
 Map<String, dynamic>? planOfferFor(
   Map<String, dynamic> data,
   String intentId,
   DateTime now, {
   double? askedAmount,
+  String raw = '',
 }) {
   if (activePlanOf(data) != null) return null;
   String iso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  bool sane(double a) => a > 0 && a <= maxPlanAmount;
 
   if (intentId == 'debt_free') {
     Map<String, dynamic>? top;
@@ -220,10 +240,10 @@ Map<String, dynamic>? planOfferFor(
       }
     }
     if (top == null) return null;
-    final amount = (askedAmount != null && askedAmount > 0)
+    final amount = (askedAmount != null && sane(askedAmount))
         ? askedAmount
         : amountOf(top['minPayment']);
-    if (!(amount > 0)) return null;
+    if (!sane(amount)) return null;
     final name = (top['name'] is String && (top['name'] as String).isNotEmpty)
         ? top['name'] as String
         : 'the costliest debt';
@@ -239,36 +259,71 @@ Map<String, dynamic>? planOfferFor(
   }
 
   if (intentId == 'goal_pace') {
-    for (final g in _rows(data['goals'])) {
-      final target = amountOf(g['target']);
-      final saved = amountOf(g['saved']);
-      if (!(target > 0) || saved >= target) continue;
-      final due = _parseIso(g['dueDate'] ?? g['due']);
-      final gap = target - saved;
-      double amount;
-      if (due != null && due.isAfter(now)) {
-        final monthsLeft = (due.year - now.year) * 12 + (due.month - now.month);
-        amount = monthsLeft > 0 ? gap / monthsLeft : gap;
-      } else {
-        // No deadline: a year-long default pace, honest and adjustable on
-        // the card.
-        amount = gap / 12;
+    final goals = [
+      for (final g in _rows(data['goals']))
+        if (amountOf(g['target']) > 0 &&
+            amountOf(g['saved']) < amountOf(g['target']))
+          g,
+    ];
+    if (goals.isEmpty) return null;
+    // Mirror the resolver's focus, in its exact order, so the offered goal
+    // is the one the reply is talking about: named in the message, else the
+    // first behind its deadline, else the lowest percentage.
+    Map<String, dynamic>? focus;
+    final rawLower = raw.toLowerCase();
+    if (rawLower.isNotEmpty) {
+      for (final g in goals) {
+        final n = g['name'];
+        final name = (n is String && n.isNotEmpty) ? n.toLowerCase() : '';
+        if (name.isNotEmpty && rawLower.contains(name)) {
+          focus = g;
+          break;
+        }
       }
-      if (!(amount > 0)) continue;
-      final name = (g['name'] is String && (g['name'] as String).isNotEmpty)
-          ? g['name'] as String
-          : 'the goal';
-      return {
-        'kind': 'goal',
-        'targetId': g['id'],
-        'label': 'Save for $name',
-        'amount': double.parse(amount.toStringAsFixed(0)),
-        'cadence': 'monthly',
-        'startDate': iso(now),
-        'startLevel': saved,
-      };
     }
-    return null;
+    if (focus == null) {
+      for (final g in goals) {
+        if (goalPace(g, now)['status'] == 'behind') {
+          focus = g;
+          break;
+        }
+      }
+    }
+    if (focus == null) {
+      focus = goals.first;
+      var lowest = amountOf(goalPace(focus, now)['pct']);
+      for (final g in goals.skip(1)) {
+        final pct = amountOf(goalPace(g, now)['pct']);
+        if (pct < lowest) {
+          lowest = pct;
+          focus = g;
+        }
+      }
+    }
+    final g0 = focus!;
+    final pace = goalPace(g0, now);
+    final gap = amountOf(pace['remaining']);
+    // The deadline pace the reply quotes when a date exists; a no-date goal
+    // gets a year-long default pace, honest and adjustable on the card.
+    final perMonth = amountOf(pace['perMonth']);
+    final amount = double.parse(
+      (perMonth > 0 ? perMonth : gap / 12).toStringAsFixed(0),
+    );
+    // Rounded FIRST, then bounded: a 0.42 pace rounds to zero, and a zero
+    // must kill the offer, never survive into a stored plan.
+    if (!sane(amount)) return null;
+    final name = (g0['name'] is String && (g0['name'] as String).isNotEmpty)
+        ? g0['name'] as String
+        : 'the goal';
+    return {
+      'kind': 'goal',
+      'targetId': g0['id'],
+      'label': 'Save for $name',
+      'amount': amount,
+      'cadence': 'monthly',
+      'startDate': iso(now),
+      'startLevel': amountOf(g0['saved']),
+    };
   }
 
   return null;

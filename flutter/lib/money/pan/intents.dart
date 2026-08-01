@@ -319,10 +319,11 @@ const List<Intent> intents = [
     // Multi-word phrases only, and an EMPTY any-list, on purpose: the word
     // "plan" appears in ordinary money questions that belong to other
     // intents (a payoff plan is debt_free's business), and the golden
-    // replay locks those routings. Bare "plan" falls through to help, which
-    // is acceptable; stealing "when will i be debt free, what is the plan"
-    // from debt_free is not. plano normalizes to plan in normalize.dart, so
-    // the Taglish forms land here too.
+    // replay locks those routings. A bare "plan" message still lands here
+    // through the fuzzy token pass (four-plus letter words score against
+    // intent ids), which is fine; stealing "when will i be debt free, what
+    // is the plan" from debt_free is not. plano normalizes to plan in
+    // normalize.dart, so the Taglish forms land here too.
     strong: [
       'my plan',
       'our plan',

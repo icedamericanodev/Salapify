@@ -1161,7 +1161,11 @@ class SalapifyStore extends ChangeNotifier {
   );
 
   Future<void> clearActivePlan() => _mutate((d) {
-    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    // Copy, never cast-and-remove: cast returns a VIEW of d['settings'],
+    // and removing through it would mutate the rollback snapshot _mutate
+    // holds, so a failed save would "roll back" to a state that already
+    // lost the plan. Every sibling writer here spreads; so does this.
+    final s = Map<String, dynamic>.from((d['settings'] as Map?) ?? const {});
     s.remove('activePlan');
     return {...d, 'settings': s};
   });

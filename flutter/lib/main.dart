@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.15 \u00b7 Cash flow now projects up to 90 days ahead with what if scenarios, and Home gains a road ahead card.';
+    'f3.16 \u00b7 Pan can now hold one standing plan: make it from a debt or goal answer, see it, change it, drop it.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

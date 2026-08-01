@@ -75,8 +75,46 @@ void main() {
     expect(plan['kind'], 'debt');
     expect(plan['targetId'], 'card');
     expect(plan['amount'], 1500.0);
+    // Accepting re-anchors the start to the debt's level at TAP time, so a
+    // chip left sitting in chat history can never backdate the commitment.
+    expect(plan['startLevel'], 12000.0);
     expect(find.text('OUR PLAN'), findsOneWidget);
     expect(find.textContaining('Deal.'), findsOneWidget);
+  });
+
+  testWidgets('a junk stored plan never blocks new offers', (tester) async {
+    // A hand-edited or zero-amount plan in a restored backup is non-null
+    // but fails the shape check: no card renders, so no Drop button exists.
+    // If the offer guard read the raw value, that phone could never make a
+    // plan again. Junk must read as "no plan" everywhere.
+    await pumpPan(
+      tester,
+      blob(
+        settings: {
+          'activePlan': {
+            'kind': 'debt',
+            'targetId': 'card',
+            'amount': 0,
+            'cadence': 'monthly',
+            'startDate': '2026-01-15',
+          },
+        },
+      ),
+    );
+    expect(find.text('OUR PLAN'), findsNothing);
+    await tester.enterText(
+      find.byType(TextField),
+      'When will I be debt free with 1500 extra?',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    final offer = find.textContaining('Make it a plan');
+    await tester.scrollUntilVisible(
+      offer,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(offer, findsOneWidget);
   });
 
   testWidgets('the card shows the standing plan and Change repaces it', (
@@ -108,7 +146,8 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(store.activePlan!['amount'], 2000.0);
-    expect(find.textContaining('Noted.'), findsOneWidget);
+    // The receipt echoes the amount that was actually written.
+    expect(find.textContaining('a month now'), findsOneWidget);
     // The rest of the plan survives a repace untouched.
     expect(store.activePlan!['targetId'], 'card');
     expect(store.activePlan!['startLevel'], 20000);
@@ -134,6 +173,18 @@ void main() {
       ),
     );
     await tester.tap(find.text('Drop the plan'));
+    await tester.pumpAndSettle();
+    // Dropping confirms first: it erases the start date and start level,
+    // which no remake can bring back, and the button sits one mis-tap from
+    // Change. Keep it first, to prove the dialog is not a rubber stamp.
+    await tester.tap(find.text('Keep it'));
+    await tester.pumpAndSettle();
+    expect(store.activePlan, isNotNull);
+    expect(find.text('OUR PLAN'), findsOneWidget);
+
+    await tester.tap(find.text('Drop the plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Drop it'));
     await tester.pumpAndSettle();
     expect(store.activePlan, isNull);
     expect(find.text('OUR PLAN'), findsNothing);
@@ -173,6 +224,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'how is my plan');
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
-    expect(find.textContaining('ahead of our pace'), findsWidgets);
+    // TWO, not "some": the card and the reply bubble each carry planLine.
+    // findsWidgets here once passed on the card alone while the reply was
+    // the fallback "I did not catch that one", which is exactly the bug
+    // this test claimed to guard against.
+    expect(find.textContaining('ahead of our pace'), findsNWidgets(2));
   });
 }

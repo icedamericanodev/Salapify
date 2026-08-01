@@ -42,7 +42,12 @@ final Map<String, Resolver> resolvers = {
   'plan': (data, ctx) {
     final s = planStatus(data, ctx.now);
     if (s == null) return {'kind': 'plan', 'has': false};
-    return {'kind': 'plan', 'has': true, ...s};
+    // Spread FIRST, then pin the discriminator: planStatus carries its own
+    // 'kind' ('debt'/'goal'), and spreading it last overwrote 'plan', so
+    // respond() fell to the fallback and Pan answered "I did not catch that
+    // one" to the very question this intent exists for. The plan's own kind
+    // travels as 'planKind'.
+    return {...s, 'planKind': s['kind'], 'kind': 'plan', 'has': true};
   },
   'safeToSpend': (data, ctx) {
     final s = safeToSpend(data, ctx.now);
