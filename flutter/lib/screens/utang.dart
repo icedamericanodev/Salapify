@@ -15,7 +15,9 @@ import '../money/statement.dart';
 import '../money/splits.dart' as splits;
 import '../money/utang.dart';
 import '../theme.dart';
+import '../money/milestones.dart' show milestoneFor;
 import '../widgets/celebration.dart';
+import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show parseAmount;
@@ -556,10 +558,22 @@ class _PersonSheetState extends State<PersonSheet> {
         payController.clear();
         payingFor = null;
         if (settles) {
-          showCelebration(context, '${widget.name} paid you back in full.');
+          _celebrateUtang(r);
         }
       }
     });
+  }
+
+  // Confetti, then the branded card to share. milestoneFor returns null for a
+  // shape the engine does not count as a settled utang, in which case the
+  // moment still earns the plain confetti.
+  void _celebrateUtang(Map<String, dynamic> r) {
+    final win = milestoneFor(widget.store.data, (r['id'] ?? '').toString());
+    if (win != null) {
+      showMilestoneCelebration(context, win);
+    } else {
+      showCelebration(context, '${widget.name} paid you back in full.');
+    }
   }
 
   Future<void> _markPaid(Map<String, dynamic> r) async {

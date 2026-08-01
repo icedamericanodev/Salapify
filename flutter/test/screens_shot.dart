@@ -52,6 +52,8 @@ import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
+import 'package:salapify/screens/milestone_share.dart' show showMilestoneCelebration;
+import 'package:salapify/money/milestones.dart' show Milestone;
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/services/diagnostics.dart';
 import 'package:salapify/screens/year_end_tax.dart';
@@ -1828,5 +1830,51 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/diagnostics-dark.png'),
     );
+  });
+
+  testWidgets('the milestone celebration sheet, dark', (tester) async {
+    await loadRealFonts(tester);
+    tester.view.physicalSize = const Size(1170, 2200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    const win = Milestone(
+      kind: 'goal',
+      id: 'g1',
+      name: 'Emergency fund',
+      amount: 60000,
+      headline: 'Goal reached',
+      sub: 'Emergency fund, fully funded',
+      amountLabel: 'Saved up',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: Builder(
+          builder: (context) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showMilestoneCelebration(context, win);
+            });
+            return const Scaffold(body: SizedBox.expand());
+          },
+        ),
+      ),
+    );
+    // Let the sheet open and the celebration overlay fully retire (its entry
+    // removes itself on a timer; capturing before that leaves an undisposed
+    // OverlayEntry and the tree will not finalize).
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/milestone-celebration-dark.png'),
+    );
+
+    // Close the sheet so nothing is left on the navigator at teardown.
+    await tester.tap(find.text('Maybe later'));
+    await tester.pumpAndSettle();
   });
 }

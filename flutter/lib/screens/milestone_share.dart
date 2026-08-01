@@ -19,6 +19,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/milestones.dart';
 import '../money/pan_mood.dart';
 import '../theme.dart';
+import '../widgets/celebration.dart' show showCelebration;
 import '../widgets/pan_mascot.dart' show PanCupPainter, PanPalette;
 
 // The same baked Barako brand colors as the recap card: the image is brand
@@ -39,6 +40,89 @@ const PanPalette _panBrand = PanPalette(
   worried: _cream,
   happy: _cream,
 );
+
+// Capture a RepaintBoundary to PNG bytes, or null if it is not ready. Shared by
+// the share screen and the celebration sheet so the capture recipe lives once.
+Future<Uint8List?> _captureCard(GlobalKey key) async {
+  final ctx = key.currentContext;
+  if (ctx == null) return null;
+  final obj = ctx.findRenderObject();
+  if (obj is! RenderRepaintBoundary) return null;
+  final image = await obj.toImage(pixelRatio: 3);
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  return data?.buffer.asUint8List();
+}
+
+// The text fallback that cannot fail; used by both surfaces.
+Future<void> _shareCardText(Milestone win, bool hideAmounts) async {
+  try {
+    await Share.share(milestoneText(win, formatMoneyText, hideAmounts));
+  } catch (_) {
+    // The user closing the sheet is not an error worth surfacing.
+  }
+}
+
+/// Capture the branded card at [key] and hand it to the OS share sheet, writing
+/// a temp PNG that is deleted after. On any failure it falls back to sharing the
+/// text, so a win is never un-shareable. Shared by the picker screen and the
+/// live celebration sheet so the temp-file discipline lives in one place.
+Future<void> _shareCardImage(
+  BuildContext context,
+  GlobalKey key,
+  Milestone win,
+  bool hideAmounts,
+) async {
+  File? file;
+  try {
+    final bytes = await _captureCard(key);
+    if (bytes == null) throw StateError('no snapshot');
+    final dir = await getTemporaryDirectory();
+    file = File('${dir.path}/salapify-win-${win.kind}.png');
+    await file.writeAsBytes(bytes);
+    await Share.shareXFiles([
+      XFile(file.path, mimeType: 'image/png'),
+    ], text: 'A win worth sharing');
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not build the image. Sharing as text instead.'),
+          ),
+        );
+    }
+    await _shareCardText(win, hideAmounts);
+  } finally {
+    try {
+      if (file != null && await file.exists()) await file.delete();
+    } catch (_) {}
+  }
+}
+
+/// The live celebration moment: fire the confetti the app already shows for a
+/// win, then offer the branded card to share right there, instead of leaving it
+/// buried in the menu. [win] comes from the tested milestone engine
+/// (milestoneFor), so this invents nothing. Non-blocking: dismissing shares
+/// nothing, and a caller with no milestone for the id should just show its own
+/// confetti instead of calling this.
+Future<void> showMilestoneCelebration(
+  BuildContext context,
+  Milestone win,
+) async {
+  showCelebration(context, '${win.headline}. ${win.sub}');
+  if (!context.mounted) return;
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Barako.card,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => _CelebrationSheet(win: win),
+  );
+}
 
 class MilestoneShareScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -282,6 +366,159 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
         Switch(
           value: _hideAmounts,
           onChanged: (v) => setState(() => _hideAmounts = v),
+          activeThumbColor: Barako.onPrimary,
+          activeTrackColor: Barako.primary,
+          inactiveThumbColor: Barako.faint,
+          inactiveTrackColor: Barako.border,
+        ),
+      ],
+    ),
+  );
+}
+
+// The live celebration sheet: the branded card for the win the user just
+// finished, with one tap to share it. Reuses the same card and share pipeline
+// as the picker screen; it just shows ONE win, the one that just happened,
+// with no chooser.
+class _CelebrationSheet extends StatefulWidget {
+  final Milestone win;
+  const _CelebrationSheet({required this.win});
+
+  @override
+  State<_CelebrationSheet> createState() => _CelebrationSheetState();
+}
+
+class _CelebrationSheetState extends State<_CelebrationSheet> {
+  final GlobalKey _cardKey = GlobalKey();
+  bool _hideAmounts = false;
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = _MilestoneCard(win: widget.win, hideAmounts: _hideAmounts);
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'You just made it',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Barako.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Turn this into a card you can post or send. You choose if peso '
+              'amounts show.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Barako.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // The card is shown AND is the capture source: wrapping the visible
+            // card in the RepaintBoundary means what shares is exactly what the
+            // user sees, so there is no hidden second copy to drift.
+            Center(
+              child: RepaintBoundary(
+                key: _cardKey,
+                child: FittedBox(fit: BoxFit.scaleDown, child: card),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _HideAmountsToggle(
+              value: _hideAmounts,
+              onChanged: (v) => setState(() => _hideAmounts = v),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _busy ? null : _share,
+              style: FilledButton.styleFrom(
+                backgroundColor: Barako.primary,
+                foregroundColor: Barako.onPrimary,
+                disabledBackgroundColor: Barako.primary.withValues(alpha: 0.5),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: Text(
+                _busy ? 'Preparing...' : 'Share the card',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _busy ? null : () => _shareCardText(widget.win, _hideAmounts),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Barako.textSecondary,
+                side: BorderSide(color: Barako.border),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text(
+                'Share as text',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
+              child: Text(
+                'Maybe later',
+                style: TextStyle(color: Barako.muted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _share() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await _shareCardImage(context, _cardKey, widget.win, _hideAmounts);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+}
+
+// The hide-amounts toggle, shared shape as the picker screen's.
+class _HideAmountsToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _HideAmountsToggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: Barako.background,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Barako.border),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Hide peso amounts',
+            style: TextStyle(
+              color: Barako.text,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
           activeThumbColor: Barako.onPrimary,
           activeTrackColor: Barako.primary,
           inactiveThumbColor: Barako.faint,

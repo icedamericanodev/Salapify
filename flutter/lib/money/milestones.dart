@@ -26,6 +26,11 @@ class Milestone {
   final String headline; // the Fraunces line on the card
   final String sub; // the honest line under it
   final String amountLabel; // row label when amount > 0
+  // The source entity's id (the debt, goal, receivable or payable). Lets a
+  // screen celebrate the EXACT thing the user just finished, by looking up the
+  // one milestone that matches the id it just acted on. Defaults to '' so the
+  // engine's own tests, which build Milestones directly, are unchanged.
+  final String id;
   const Milestone({
     required this.kind,
     required this.name,
@@ -33,6 +38,7 @@ class Milestone {
     required this.headline,
     required this.sub,
     required this.amountLabel,
+    this.id = '',
   });
 }
 
@@ -95,6 +101,7 @@ List<Milestone> milestones(dynamic data) {
     out.add(
       Milestone(
         kind: 'debt',
+        id: (id ?? '').toString(),
         name: name,
         amount: paid,
         headline: revolving ? 'Back to zero' : 'Debt free',
@@ -116,6 +123,7 @@ List<Milestone> milestones(dynamic data) {
     out.add(
       Milestone(
         kind: 'goal',
+        id: (g['id'] ?? '').toString(),
         name: name,
         amount: target,
         headline: 'Goal reached',
@@ -136,6 +144,7 @@ List<Milestone> milestones(dynamic data) {
     out.add(
       Milestone(
         kind: 'utangIn',
+        id: (r['id'] ?? '').toString(),
         name: person,
         amount: amountOf(r['amount']),
         headline: 'Settled up',
@@ -154,6 +163,7 @@ List<Milestone> milestones(dynamic data) {
     out.add(
       Milestone(
         kind: 'utangOut',
+        id: (r['id'] ?? '').toString(),
         name: person,
         amount: amountOf(r['amount']),
         headline: 'All paid back',
@@ -164,6 +174,20 @@ List<Milestone> milestones(dynamic data) {
   }
 
   return out;
+}
+
+/// The milestone for one entity id right now, or null if that entity is not
+/// currently an achieved win. A screen calls this straight after a save with
+/// the id it just acted on, so the celebration shows the EXACT thing the user
+/// finished, built by the same tested engine as the share picker. Returns null
+/// for an empty id or a shape the engine did not count, so a caller can fall
+/// back to a plain confetti message without special-casing.
+Milestone? milestoneFor(dynamic data, String id) {
+  if (id.isEmpty) return null;
+  for (final m in milestones(data)) {
+    if (m.id == id) return m;
+  }
+  return null;
 }
 
 /// The plain-text fallback for a milestone, mirroring recapText's shape.

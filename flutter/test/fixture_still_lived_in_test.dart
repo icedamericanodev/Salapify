@@ -95,6 +95,32 @@ void main() {
     );
   });
 
+  test('spending spans at least three distinct weekdays in the last 8 weeks', () {
+    // The reports half of the session 26 month-boundary lesson. The Reports
+    // WHEN YOU SPEND card only renders with at least three active weekdays in
+    // the last eight weeks (lib/screens/reports.dart's activeDays < 3 gate), and
+    // the fixture collapsing every date onto today at the start of a month is
+    // exactly what hid it. The overdue self-check above caught the utang half at
+    // the data level; this catches the spending half the same way, so a
+    // regression is a red build and not a screen that quietly stops rendering a
+    // card.
+    final cutoff = today.subtract(const Duration(days: 56));
+    final weekdays = _rows('transactions')
+        .where((t) => t['type'] == 'expense')
+        .map((t) => _parse(t['date'] as String))
+        .where((d) => !d.isBefore(cutoff))
+        .map((d) => d.weekday)
+        .toSet();
+    expect(
+      weekdays.length,
+      greaterThanOrEqualTo(3),
+      reason:
+          'expenses land on ${weekdays.length} distinct weekday(s) in the last '
+          'eight weeks, so the weekday-spending pattern has no spread and '
+          'Reports hides its WHEN YOU SPEND card, the session 26 rot.',
+    );
+  });
+
   test('the money that makes screens interesting is all present', () {
     // A short, blunt inventory. Not elegant, and better than the alternative:
     // somebody trimming the fixture to make one shot tidier and quietly

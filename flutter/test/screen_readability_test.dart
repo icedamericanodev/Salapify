@@ -184,23 +184,35 @@ List<String> _runsOffTheSide(WidgetTester tester) {
     if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
     if (ro.size.isEmpty) continue;
     if (_insideHorizontalScroll(e)) continue;
-    final Offset topLeft;
+    // BOTH corners through localToGlobal, not topLeft plus the raw size. A
+    // FittedBox (the hero-amount headlines use one) lays its child out at the
+    // child's natural width and then PAINTS it scaled down, so ro.size.width is
+    // the unscaled width while the painted width is smaller. Adding the raw size
+    // to a transformed offset mixes the two and reports a headline as off the
+    // side when it actually fits: "No income logged yet" measured 474.8 on a 390
+    // phone by that math while its painted right edge was 352. Transforming both
+    // corners applies the same scale to the width, so this measures what the
+    // phone paints. For unscaled text the two are identical, so no real overflow
+    // stops being caught.
+    final Offset topLeft, topRight;
     try {
       topLeft = ro.localToGlobal(Offset.zero);
+      topRight = ro.localToGlobal(Offset(ro.size.width, 0));
     } catch (_) {
       // Not currently painted (offstage, or inside a layer that has no
       // transform yet). Nothing to measure, and guessing would be worse.
       continue;
     }
-    final right = topLeft.dx + ro.size.width;
+    final left = topLeft.dx < topRight.dx ? topLeft.dx : topRight.dx;
+    final right = topLeft.dx > topRight.dx ? topLeft.dx : topRight.dx;
     // Half a pixel of slack, so sub-pixel rounding in the text layout is not
     // reported as a defect.
-    if (topLeft.dx < -0.5 || right > _phone.width + 0.5) {
+    if (left < -0.5 || right > _phone.width + 0.5) {
       final w = e.widget as Text;
       final s = (w.data ?? w.textSpan?.toPlainText() ?? '').trim();
       bad.add(
         '"${s.length > 40 ? '${s.substring(0, 40)}...' : s}" spans '
-        '${topLeft.dx.toStringAsFixed(1)} to ${right.toStringAsFixed(1)} '
+        '${left.toStringAsFixed(1)} to ${right.toStringAsFixed(1)} '
         'on a ${_phone.width.toStringAsFixed(0)} wide phone',
       );
     }
@@ -595,6 +607,48 @@ void main() {
         1.0,
       );
       expect(problems.join('\n'), contains('off the side'));
+    });
+
+    testWidgets('a label a FittedBox scaled down to fit is NOT reported', (
+      tester,
+    ) async {
+      // The false positive the transform-aware measurement fixes. The
+      // hero-amount headlines wrap their text in a FittedBox, which lays a long
+      // label out at its natural width and PAINTS it scaled to fit, so the label
+      // fits on the phone. The old topLeft-plus-raw-width math flagged it anyway
+      // ("No income logged yet" measured 474.8 on a 390 phone while its painted
+      // edge was 352). This label is far wider than any phone at full size; the
+      // check must read the painted width and stay silent. Reverting the
+      // measurement to topLeft plus size.width reddens this test.
+      final problems = await _inspect(
+        tester,
+        'fitted',
+        // Several ordinary lines so the screen is not judged blank, plus the
+        // one FittedBox-scaled label that is the actual probe.
+        (_) => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('An ordinary first line of content'),
+              Text('An ordinary second line of content'),
+              Text('An ordinary third line of content'),
+              Text('An ordinary fourth line of content'),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'A very long headline far wider than any phone at full size',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 44),
+                ),
+              ),
+            ],
+          ),
+        ),
+        1.0,
+      );
+      expect(problems, isEmpty);
     });
 
     testWidgets('a defect BELOW the fold is reported', (tester) async {

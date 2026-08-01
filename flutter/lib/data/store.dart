@@ -860,28 +860,41 @@ class SalapifyStore extends ChangeNotifier {
   /// Add money to a goal's saved total. Adds on top of the STORED saved, never
   /// the editable form field, and floors at zero, matching the RN applyFunds
   /// so clearing the field first can never wipe the real saved amount.
-  Future<void> addGoalFunds(String id, double amount) => _mutate(
-    (d) => {
-      ...d,
-      'goals': [
-        for (final g in (d['goals'] as List? ?? const []))
-          if (g is Map && g['id'] == id)
-            {
-              ...g.cast<String, dynamic>(),
-              'saved': () {
-                final cur = g['saved'];
+  /// Returns the goal id if this funding just carried it from below its target
+  /// to at or past it (so the caller celebrates the win exactly once), or null
+  /// otherwise. The saved math is unchanged; only the crossing is observed.
+  Future<String?> addGoalFunds(String id, double amount) async {
+    String? reached;
+    await _mutate(
+      (d) => {
+        ...d,
+        'goals': [
+          for (final g in (d['goals'] as List? ?? const []))
+            if (g is Map && g['id'] == id)
+              () {
+                final gm = g.cast<String, dynamic>();
+                final cur = gm['saved'];
                 final base = cur is num
                     ? cur.toDouble()
                     : (cur is String ? (double.tryParse(cur) ?? 0) : 0);
                 final next = base + amount;
-                return next > 0 ? next : 0.0;
-              }(),
-            }
-          else
-            g,
-      ],
-    },
-  );
+                final saved = next > 0 ? next : 0.0;
+                final t = gm['target'];
+                final target = t is num
+                    ? t.toDouble()
+                    : (t is String ? (double.tryParse(t) ?? 0) : 0);
+                if (target > 0 && base < target && saved >= target) {
+                  reached = id;
+                }
+                return {...gm, 'saved': saved};
+              }()
+            else
+              g,
+        ],
+      },
+    );
+    return reached;
+  }
 
   /// Delete a goal.
   Future<void> deleteGoal(String id) => _mutate(
