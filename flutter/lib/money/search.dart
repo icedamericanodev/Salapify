@@ -286,6 +286,12 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
   final goals = <Map<String, dynamic>>[];
   for (final g in _arr(d['goals'])) {
     if (g is! Map) continue;
+    // Debt-payoff goals store target 0 and derive their figures live from
+    // the linked debt, so the stored numbers here would render as a wrong
+    // "0 of 0" row. The debt itself is already searchable in its own group.
+    // A Flutter-era field, absent from every RN golden fixture, so the
+    // golden replay is unaffected.
+    if (g['kind'] == 'debt') continue;
     final h = _hay([
       g['name'],
       _amountHay(g['target']),

@@ -133,6 +133,10 @@ const Map<String, IconData> _icons = {
   // house rule for active states, same as the bottom bar.
   'selected': Icons.check_circle,
   'unselected': Icons.circle_outlined,
+  // Multi-select boxes, distinct from the choose-one circles above: a
+  // check-all list drawn with radio circles tells the user to pick one.
+  'checked': Icons.check_box,
+  'unchecked': Icons.check_box_outline_blank,
   // A finished STEP in a list (outlined, calm), distinct from 'selected'
   // (filled, active): a done lesson is not a chosen option.
   'done': Icons.check_circle_outline,

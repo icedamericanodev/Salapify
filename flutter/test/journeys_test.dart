@@ -40,6 +40,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/money/commitments.dart' show liquidKinds;
 import 'package:salapify/money/debtmath.dart' show formatMoneyText;
 import 'package:salapify/money/format.dart' show formatMoney;
+import 'package:salapify/money/goal_plan.dart' show debtGoalFigures;
 import 'package:salapify/money/ledger.dart' show amountOf;
 import 'package:salapify/money/milestones.dart' show milestoneFor;
 import 'package:salapify/money/pan/respond.dart' show planLine;
@@ -259,6 +260,32 @@ double _goalSaved(SalapifyStore store, String id) {
   }
   fail('no goal $id');
 }
+
+Map<String, dynamic> _goalRow(SalapifyStore store, String id) {
+  for (final g in (store.data['goals'] as List)) {
+    final m = (g as Map).cast<String, dynamic>();
+    if (m['id'] == id) return m;
+  }
+  fail('no goal $id');
+}
+
+/// A goal's contribution history, the rows the detail screen's HISTORY card
+/// draws. Read from the store so the assertions stay money checks, not
+/// formatter checks.
+List<Map<String, dynamic>> _contributions(SalapifyStore store, String id) => [
+  for (final c in (_goalRow(store, id)['contributions'] as List? ?? const []))
+    (c as Map).cast<String, dynamic>(),
+];
+
+/// A debt-payoff goal's DERIVED saved figure, through the same engine call
+/// both the Goals list and the goal detail use. Nothing on the goal row
+/// stores this number; that is the design under test.
+double _debtGoalSaved(SalapifyStore store, String id) => amountOf(
+  debtGoalFigures(
+    _goalRow(store, id),
+    store.data.cast<String, dynamic>(),
+  )?['saved'],
+);
 
 /// Tap something that may be below the fold, scrolling to it first.
 Future<void> _tap(WidgetTester tester, Finder f) async {
@@ -830,7 +857,8 @@ void main() {
     expect(
       store.timelineScenarios,
       hasLength(1),
-      reason: 'the save never reached the store, so the invariant above held '
+      reason:
+          'the save never reached the store, so the invariant above held '
           'by doing nothing',
     );
     expect(
@@ -1304,4 +1332,265 @@ void main() {
       reason: 'the drop never reached storage, so a restart brings it back',
     );
   });
+
+  // The Goals redesign journeys. The invariants they defend: a goal tracks a
+  // NUMBER, so nothing done on a goal screen may move a peso of real money,
+  // and a debt-payoff goal is a VIEW of its debt, so the debt screens move it
+  // without Goals ever writing. Both are conservation-shaped, so every one of
+  // them carries directional companions: the per-goal movement by name, the
+  // history rows the movement leaves behind, or the stored blob proven
+  // unchanged where unchanged is the feature.
+
+  testWidgets(
+    'moving money between two goals is bookkeeping both cards can retell',
+    (tester) async {
+      // Two savings goals in the seed; the money to move is added first
+      // through the real Add money sheet, so the whole story (add, then
+      // move) went through screens a person actually touches.
+      final seed = _seed();
+      seed['goals'] = [
+        {'id': 'fund', 'name': 'Emergency fund', 'target': 30000, 'saved': 0},
+        {'id': 'trip', 'name': 'Palawan trip', 'target': 20000, 'saved': 500},
+      ];
+      final store = await _openApp(tester, seed);
+      final worthAtStart = _netWorth(store);
+
+      await _tap(tester, find.byTooltip('Menu'));
+      await _tap(tester, find.text('Goals'));
+      await _tap(tester, find.text('Emergency fund'));
+
+      // Add 2,000 through the sheet. A round-trip literal: typed here, read
+      // back out of the store two lines down. Well short of the 30,000
+      // target on purpose, so no milestone sheet interrupts the journey.
+      await _tap(tester, find.text('Add money'));
+      await tester.enterText(find.widgetWithText(TextField, 'Amount'), '2000');
+      await tester.pumpAndSettle();
+      await _tap(tester, find.text('Add'));
+      expect(
+        _goalSaved(store, 'fund'),
+        closeTo(2000, 0.001),
+        reason: 'the add never landed, so the move below has nothing to move',
+      );
+
+      final sumBefore = _goalSaved(store, 'fund') + _goalSaved(store, 'trip');
+      final fundRowsBefore = _contributions(store, 'fund').length;
+      final tripRowsBefore = _contributions(store, 'trip').length;
+
+      // Move part of it through the real sheet. The destination stays the
+      // prefilled default on purpose (the only other goal is preselected);
+      // a test that re-picks it would never notice the default breaking.
+      // 750.25 rather than a round number, so a leg that rounds or floors
+      // centavos cannot pass.
+      await _tap(tester, find.text('Move money to another goal'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Amount to move'),
+        '750.25',
+      );
+      await tester.pumpAndSettle();
+      await _tap(tester, find.text('Move'));
+
+      // The invariants: net worth to the centavo, and the two goals' sum,
+      // because a move between two tracked numbers cannot create or destroy
+      // a peso.
+      expect(
+        _netWorth(store),
+        closeTo(worthAtStart, 0.001),
+        reason:
+            'goal bookkeeping moved net worth; a tracked number crossed into '
+            'the real books',
+      );
+      expect(
+        _goalSaved(store, 'fund') + _goalSaved(store, 'trip'),
+        closeTo(sumBefore, 0.001),
+        reason: 'the move minted or ate money between the two goals',
+      );
+      // Directional, per goal, because both invariants above also hold when
+      // the move silently does nothing: the source fell by exactly the
+      // amount and the destination rose by exactly the amount.
+      expect(
+        _goalSaved(store, 'fund'),
+        closeTo(2000 - 750.25, 0.001),
+        reason: 'the source goal did not fall by exactly what was moved',
+      );
+      expect(
+        _goalSaved(store, 'trip'),
+        closeTo(500 + 750.25, 0.001),
+        reason: 'the destination goal did not rise by exactly what was moved',
+      );
+      // And both sides carry the story as a new history row: negative on the
+      // source, positive on the destination, each saying which way it went.
+      final outRows = _contributions(store, 'fund');
+      final inRows = _contributions(store, 'trip');
+      expect(outRows.length, fundRowsBefore + 1);
+      expect(inRows.length, tripRowsBefore + 1);
+      expect(amountOf(outRows.last['amount']), closeTo(-750.25, 0.001));
+      expect(outRows.last['note'], 'moved to another goal');
+      expect(amountOf(inRows.last['amount']), closeTo(750.25, 0.001));
+      expect(inRows.last['note'], 'moved from another goal');
+      // The detail screen's own HISTORY card retells it where the person
+      // stands.
+      expect(
+        find.text('moved to another goal'),
+        findsOneWidget,
+        reason: 'the source history card does not show the move',
+      );
+
+      // Back on the list, the headline total agrees with the engine sum,
+      // through the same formatMoney the screen uses.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      final total = _goalSaved(store, 'fund') + _goalSaved(store, 'trip');
+      expect(
+        find.text('${formatMoney(total)} put toward 2 active goals.'),
+        findsOneWidget,
+        reason: 'the Goals list total disagrees with the store after the move',
+      );
+
+      // And it all survives the disk: a move that lives only in memory is
+      // half the money gone on restart.
+      final reopened = SalapifyStore();
+      await reopened.load();
+      expect(_goalSaved(reopened, 'fund'), closeTo(2000 - 750.25, 0.001));
+      expect(_goalSaved(reopened, 'trip'), closeTo(500 + 750.25, 0.001));
+      expect(
+        _contributions(reopened, 'fund').last['note'],
+        'moved to another goal',
+        reason: 'the source history row never reached storage',
+      );
+      expect(
+        _contributions(reopened, 'trip').last['note'],
+        'moved from another goal',
+        reason: 'the destination history row never reached storage',
+      );
+    },
+  );
+
+  testWidgets(
+    'a debt payoff goal follows payments logged on the debts screen',
+    (tester) async {
+      // The goal row is seeded in exactly the shape the create screen's Debt
+      // payoff template writes (goal_create.dart: kind debt, linkedDebtId,
+      // startLevel = the balance at creation, target stored 0). Seeded rather
+      // than driven through the create screen because the seam under test is
+      // DOWNSTREAM of creation: a payment logged on the debts screen must
+      // move the goal without Goals writing anything.
+      final seed = _seed();
+      seed['goals'] = [
+        {
+          'id': 'gdebt',
+          'name': 'Goodbye BPI',
+          'kind': 'debt',
+          'linkedDebtId': 'card',
+          'target': 0,
+          'saved': 0,
+          'startLevel': 8000,
+        },
+      ];
+      final store = await _openApp(tester, seed);
+      final worthAtStart = _netWorth(store);
+      final owedBefore = _debt(store, 'card');
+      final cashBefore = _balance(store, 'cash');
+      final goalsBlobBefore = jsonEncode(store.data['goals']);
+      expect(
+        _debtGoalSaved(store, 'gdebt'),
+        closeTo(0, 0.001),
+        reason:
+            'seed sanity: nothing paid yet, so the derived progress below is '
+            'entirely the payment under test',
+      );
+
+      // Pay through the real debts screen, the prefilled minimum (1000 in
+      // this seed) from Cash: the default a person taps straight through.
+      await _tap(tester, find.text('Utang'));
+      await _tap(tester, find.text('BPI card'));
+      expect(find.text('LOG A PAYMENT'), findsOneWidget);
+      await _tap(tester, find.text('Cash'));
+      await _tap(tester, find.text('Log payment'));
+      // The payment sheet stays open for another entry; close it the way a
+      // person does, tapping outside it.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // The invariant: paying a debt cannot change net worth. An asset fell
+      // by 1,000 and a liability fell by 1,000.
+      expect(
+        _netWorth(store),
+        closeTo(worthAtStart, 0.001),
+        reason: 'paying the debt moved net worth',
+      );
+      // Directional: the debt fell by exactly the payment, the cash left,
+      // and the goal's DERIVED saved rose by the same amount.
+      expect(_debt(store, 'card'), closeTo(owedBefore - 1000, 0.001));
+      expect(_balance(store, 'cash'), closeTo(cashBefore - 1000, 0.001));
+      expect(
+        _debtGoalSaved(store, 'gdebt'),
+        closeTo(1000, 0.001),
+        reason:
+            'the payment on the debts screen did not move the linked goal '
+            'forward',
+      );
+      // WITHOUT any goal write: the goal is a view of the debt, and a write
+      // here would be the same peso stored twice. Byte for byte on purpose;
+      // unchanged is the feature.
+      expect(
+        jsonEncode(store.data['goals']),
+        goalsBlobBefore,
+        reason:
+            'the goal moved because something wrote to it; a debt goal must '
+            'derive, never copy',
+      );
+
+      // The Goals list retells the payment, through the same engine call and
+      // the same formatMoney the card uses.
+      await _tap(tester, find.byTooltip('Menu'));
+      await _tap(tester, find.text('Goals'));
+      final figures = debtGoalFigures(
+        _goalRow(store, 'gdebt'),
+        store.data.cast<String, dynamic>(),
+      )!;
+      final figure =
+          '${formatMoney(amountOf(figures['saved']))} of '
+          '${formatMoney(amountOf(figures['target']))}';
+      expect(
+        find.text(figure),
+        findsOneWidget,
+        reason: 'the Goals card does not show the payment as progress',
+      );
+      expect(
+        find.text('Moves with the payments you log on the debt.'),
+        findsOneWidget,
+        reason: 'the card no longer says where a debt goal moves from',
+      );
+
+      // The detail screen tells the same story, and offers no Add money of
+      // its own: a debt goal that could be funded by hand would count the
+      // same peso twice.
+      await _tap(tester, find.text('Goodbye BPI'));
+      expect(
+        find.text(figure),
+        findsOneWidget,
+        reason: 'the goal detail disagrees with the list about the progress',
+      );
+      expect(find.text('LINKED TO YOUR DEBT'), findsOneWidget);
+      expect(
+        find.text('Add money'),
+        findsNothing,
+        reason:
+            'a debt goal offered its own Add money; its add is the debt '
+            'payment flow, or a peso gets counted twice',
+      );
+
+      // And the progress survives the disk, because what persists is the
+      // DEBT: the derived figure must come back identical on reload.
+      final reopened = SalapifyStore();
+      await reopened.load();
+      expect(
+        _debtGoalSaved(reopened, 'gdebt'),
+        closeTo(1000, 0.001),
+        reason:
+            'reloaded from disk, the goal no longer shows the payment; the '
+            'debt write never persisted',
+      );
+    },
+  );
 }

@@ -299,7 +299,8 @@ List<PlannedReminder> plannedReminders(
     // cap-friendly). The generic title carries no goal name or amount, per
     // the lock-screen rule; the detailed body may.
     final activeDated = <Map<String, dynamic>>[];
-    for (final raw in (data['goals'] is List ? data['goals'] as List : const [])) {
+    for (final raw
+        in (data['goals'] is List ? data['goals'] as List : const [])) {
       if (raw is! Map) continue;
       final g = raw.cast<String, dynamic>();
       if (g['paused'] == true) continue;

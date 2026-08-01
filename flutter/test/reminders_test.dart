@@ -541,46 +541,56 @@ void main() {
     );
 
     test('FIRES monthly for a dated active goal, generic title', () {
-      final rs = plannedReminders(goalData(), now)
-          .where((r) => r.title == 'Goal check-in')
-          .toList();
+      final rs = plannedReminders(
+        goalData(),
+        now,
+      ).where((r) => r.title == 'Goal check-in').toList();
       expect(rs, hasLength(2), reason: 'the 1st of the next two months');
       expect(rs.first.when, DateTime(2026, 8, 1, 10));
       // The generic body names no goal, no amount, no date.
       expect(rs.first.body.contains('Pasko'), isFalse);
     });
 
-    test('the detailed body may name the goal, the title still never does',
-        () {
-      final rs = plannedReminders(goalData(), now, detailed: true)
-          .where((r) => r.title == 'Goal check-in')
-          .toList();
+    test('the detailed body may name the goal, the title still never does', () {
+      final rs = plannedReminders(
+        goalData(),
+        now,
+        detailed: true,
+      ).where((r) => r.title == 'Goal check-in').toList();
       expect(rs.first.body.contains('Pasko fund'), isTrue);
       expect(rs.first.title.contains('Pasko'), isFalse);
     });
 
     test('SILENT when off, paused, undated, or already funded', () {
       expect(
-        plannedReminders(goalData(on: false), now)
-            .where((r) => r.title == 'Goal check-in'),
+        plannedReminders(
+          goalData(on: false),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
         isEmpty,
         reason: 'toggle off',
       );
       expect(
-        plannedReminders(goalData(paused: true), now)
-            .where((r) => r.title == 'Goal check-in'),
+        plannedReminders(
+          goalData(paused: true),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
         isEmpty,
         reason: 'paused goals owe nothing',
       );
       expect(
-        plannedReminders(goalData(targetDate: ''), now)
-            .where((r) => r.title == 'Goal check-in'),
+        plannedReminders(
+          goalData(targetDate: ''),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
         isEmpty,
         reason: 'no deadline, no nag',
       );
       expect(
-        plannedReminders(goalData(saved: 12000), now)
-            .where((r) => r.title == 'Goal check-in'),
+        plannedReminders(
+          goalData(saved: 12000),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
         isEmpty,
         reason: 'a funded goal is finished, not nagged',
       );
@@ -603,9 +613,10 @@ void main() {
         },
       );
       expect(
-        plannedReminders(data, now)
-            .where((r) => r.title == 'Goal check-in')
-            .length,
+        plannedReminders(
+          data,
+          now,
+        ).where((r) => r.title == 'Goal check-in').length,
         4,
         reason: 'two goals, two months each',
       );

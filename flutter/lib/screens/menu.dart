@@ -537,7 +537,11 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ),
                     trailing: c['code'] == code
-                        ? Icon(salapifyIcon('check'), size: 18, color: Barako.primary)
+                        ? Icon(
+                            salapifyIcon('check'),
+                            size: 18,
+                            color: Barako.primary,
+                          )
                         : null,
                     onTap: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -1053,7 +1057,11 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop('save'),
               child: Row(
                 children: [
-                  Icon(salapifyIcon('download'), size: 20, color: Barako.primaryText),
+                  Icon(
+                    salapifyIcon('download'),
+                    size: 20,
+                    color: Barako.primaryText,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     'Save to this phone',
@@ -1066,7 +1074,11 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop('share'),
               child: Row(
                 children: [
-                  Icon(salapifyIcon('share'), size: 20, color: Barako.primaryText),
+                  Icon(
+                    salapifyIcon('share'),
+                    size: 20,
+                    color: Barako.primaryText,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     'Share (Drive, email, chat)',

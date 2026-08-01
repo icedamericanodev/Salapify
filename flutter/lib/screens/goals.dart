@@ -94,12 +94,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  void _openDetail(Map<String, dynamic> g) {
+  void _openDetail(Map<String, dynamic> g, {bool openAddMoney = false}) {
     final id = g['id'];
     if (id is! String) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GoalDetailScreen(store: widget.store, goalId: id),
+        builder: (_) => GoalDetailScreen(
+          store: widget.store,
+          goalId: id,
+          openAddMoney: openAddMoney,
+        ),
       ),
     );
   }
@@ -323,7 +327,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
       children: [
         if (active.isNotEmpty) ...[
           Text(
-            '${formatMoney(totalSaved)} saved across '
+            // "put toward", not "saved": a debt goal's figure is paid-off
+            // debt, and calling that savings would overstate what is in the
+            // bank.
+            '${formatMoney(totalSaved)} put toward '
             '${active.length == 1 ? 'one active goal' : '${active.length} active goals'}.',
             style: TextStyle(
               color: Barako.textSecondary,
@@ -333,40 +340,58 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ),
           const SizedBox(height: Gap.md),
         ],
-        if (focus != null) ...[
+        // The header row exists whenever there is something to arrange, NOT
+        // only when a focus exists: two debt-payoff goals produce no focus
+        // (their raw target is zero) and still deserve Reorder. And a single
+        // active goal skips the FOCUS treatment entirely; a suggestion with
+        // no alternative answers a question nobody asked.
+        if (active.length > 1) ...[
           Row(
             children: [
-              Text('FOCUS', style: Barako.kickerStyle),
+              Text(
+                _reordering
+                    ? 'YOUR ORDER'
+                    : (focus != null ? 'FOCUS' : 'YOUR GOALS'),
+                style: Barako.kickerStyle,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'a suggestion, not an order',
+                  _reordering
+                      ? 'top is first'
+                      : (focus != null ? 'a suggestion, not an order' : ''),
                   style: TextStyle(color: Barako.faint, fontSize: 11),
                 ),
               ),
-              if (active.length > 1)
-                TextButton(
-                  onPressed: () => setState(() => _reordering = !_reordering),
-                  child: Text(
-                    _reordering ? 'Done' : 'Reorder',
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
+              TextButton(
+                onPressed: () => setState(() => _reordering = !_reordering),
+                child: Text(
+                  _reordering ? 'Done' : 'Reorder',
+                  style: TextStyle(
+                    color: Barako.primaryText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          if (!_reordering) _goalCard(focus, now, focus: true),
-          if (!_reordering) const SizedBox(height: Gap.md),
+          if (!_reordering && focus != null) ...[
+            _goalCard(focus, now, focus: true),
+            const SizedBox(height: Gap.md),
+          ],
         ],
         for (final (i, g) in active.indexed)
-          if (_reordering || focus == null || g['id'] != focus['id'])
+          if (_reordering ||
+              active.length == 1 ||
+              focus == null ||
+              g['id'] != focus['id'])
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _reordering ? _reorderRow(g, i, active) : _goalCard(g, now),
+              child: _reordering
+                  ? _reorderRow(g, i, active)
+                  : _goalCard(g, now),
             ),
         if (paused.isNotEmpty) ...[
           const SizedBox(height: Gap.sm),
@@ -412,7 +437,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
       borderRadius: BorderRadius.circular(Radii.sm),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        // 12 vertical keeps the toggle at a real 44dp touch target; 8 left
+        // it around 31dp.
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
             Text('$label ($count)', style: Barako.kickerStyle),
@@ -492,7 +519,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final f = _figures(g);
     final isDebt = g['kind'] == 'debt';
     final pct = goalPercent(f.saved, f.target);
-    final accent = goalAccentColor(g['accent'] as String?);
+    final accent = goalAccentColor(
+      g['accent'] is String ? g['accent'] as String : null,
+    );
     final label = f.broken
         ? 'Needs adjustment'
         : g['paused'] == true
@@ -534,28 +563,39 @@ class _GoalsScreenState extends State<GoalsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _cardGlyph(g, accent),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        (g['name'] ?? 'Goal').toString(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: focus ? 16.5 : 15.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: warning ? Barako.warningStrong : Barako.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                      // Status UNDER the name, the detail screen's layout: a
+                      // side-by-side status word crushed long names into an
+                      // ellipsis stub at 320dp with large fonts.
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (g['name'] ?? 'Goal').toString(),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Barako.text,
+                              fontSize: focus ? 16.5 : 15.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              color: warning
+                                  ? Barako.warningStrong
+                                  : Barako.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -605,23 +645,35 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     ),
                   ],
                 ],
-                const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text(
-                    f.broken
-                        ? 'Open'
-                        : g['paused'] == true
-                        ? 'Resume'
-                        : f.done
-                        ? 'See the story'
-                        : isDebt
-                        ? 'Open the debt goal'
-                        : 'Add money',
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                  // A real button, not a label in button costume, and "Add
+                  // money" delivers: it opens the detail WITH the add sheet
+                  // already up, one tap from the list to money logged.
+                  child: TextButton(
+                    onPressed: () => _openDetail(
+                      g,
+                      openAddMoney:
+                          !f.broken &&
+                          g['paused'] != true &&
+                          !f.done &&
+                          !isDebt,
+                    ),
+                    child: Text(
+                      f.broken
+                          ? 'Open'
+                          : g['paused'] == true
+                          ? 'Resume'
+                          : f.done
+                          ? 'See the story'
+                          : isDebt
+                          ? 'Open the debt goal'
+                          : 'Add money',
+                      style: TextStyle(
+                        color: Barako.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

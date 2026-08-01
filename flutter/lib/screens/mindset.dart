@@ -334,7 +334,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
         child: Row(
           children: [
             Icon(
-              on ? salapifyIcon('selected') : salapifyIcon('unselected'),
+              on ? salapifyIcon('checked') : salapifyIcon('unchecked'),
               color: on ? Barako.primary : Barako.muted,
               size: 22,
             ),

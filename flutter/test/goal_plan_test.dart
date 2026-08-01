@@ -184,12 +184,27 @@ void main() {
       expect(r['finishDate'], '2026-08-12');
     });
 
+    test('a month-end start clamps instead of skipping short months', () {
+      // Jan 31 plus one monthly period is Feb 28, not a rollover to Mar 3
+      // that would make February unreachable from the last days of any
+      // month. Same clamp rule as every month walker in the app.
+      final r = goalWhatIf(
+        {'target': 1000, 'saved': 0},
+        DateTime(2026, 1, 31),
+        perPeriod: 1000,
+      )!;
+      expect(r['finishDate'], '2026-02-28');
+    });
+
     test('a pace too small to finish inside the cap answers null', () {
       expect(
         goalWhatIf({'target': 1000000, 'saved': 0}, now, perPeriod: 1),
         isNull,
       );
-      expect(goalWhatIf({'target': 1000, 'saved': 0}, now, perPeriod: 0), isNull);
+      expect(
+        goalWhatIf({'target': 1000, 'saved': 0}, now, perPeriod: 0),
+        isNull,
+      );
     });
   });
 
@@ -219,8 +234,10 @@ void main() {
 
   group('essentialMonthly and the emergency suggestion', () {
     test('no data means null, never a made-up figure', () {
-      expect(essentialMonthly({'recurring': [], 'transactions': []}, now),
-          isNull);
+      expect(
+        essentialMonthly({'recurring': [], 'transactions': []}, now),
+        isNull,
+      );
     });
 
     test('recurring bills plus trailing spend, scaled honestly', () {
@@ -243,7 +260,10 @@ void main() {
         ],
         'transactions': <Map<String, dynamic>>[],
       };
-      final t = goalTemplates(data, now).firstWhere((t) => t.key == 'emergency');
+      final t = goalTemplates(
+        data,
+        now,
+      ).firstWhere((t) => t.key == 'emergency');
       // 8050 * 3 = 24150, ceil to hundreds: 24200.
       expect(t.suggestedTarget, 24200.0);
       expect(t.why, isNotNull);
@@ -257,15 +277,17 @@ void main() {
 
     test('pasko aims at December 1, flipping to next year from October', () {
       expect(
-        goalTemplates({}, DateTime(2026, 7, 15))
-            .firstWhere((t) => t.key == 'pasko')
-            .suggestedDeadline,
+        goalTemplates(
+          {},
+          DateTime(2026, 7, 15),
+        ).firstWhere((t) => t.key == 'pasko').suggestedDeadline,
         '2026-12-01',
       );
       expect(
-        goalTemplates({}, DateTime(2026, 10, 2))
-            .firstWhere((t) => t.key == 'pasko')
-            .suggestedDeadline,
+        goalTemplates(
+          {},
+          DateTime(2026, 10, 2),
+        ).firstWhere((t) => t.key == 'pasko').suggestedDeadline,
         '2027-12-01',
       );
     });
@@ -343,12 +365,7 @@ void main() {
   group('focusGoal', () {
     test('user priority beats every rule', () {
       final f = focusGoal([
-        {
-          'id': 'a',
-          'target': 100,
-          'saved': 0,
-          'targetDate': '2026-06-01',
-        },
+        {'id': 'a', 'target': 100, 'saved': 0, 'targetDate': '2026-06-01'},
         {'id': 'b', 'target': 100, 'saved': 0, 'priority': 0},
       ], now);
       expect(f!['id'], 'b');

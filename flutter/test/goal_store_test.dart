@@ -18,16 +18,16 @@ Future<SalapifyStore> _store(List<Map<String, dynamic>> goals) async {
 }
 
 double _saved(SalapifyStore s, String id) {
-  final g = (s.data['goals'] as List)
-      .whereType<Map>()
-      .firstWhere((x) => x['id'] == id);
+  final g = (s.data['goals'] as List).whereType<Map>().firstWhere(
+    (x) => x['id'] == id,
+  );
   return (g['saved'] as num).toDouble();
 }
 
 List _contribs(SalapifyStore s, String id) {
-  final g = (s.data['goals'] as List)
-      .whereType<Map>()
-      .firstWhere((x) => x['id'] == id);
+  final g = (s.data['goals'] as List).whereType<Map>().firstWhere(
+    (x) => x['id'] == id,
+  );
   return (g['contributions'] as List? ?? const []);
 }
 

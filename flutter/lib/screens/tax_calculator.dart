@@ -209,8 +209,8 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                     const SizedBox(width: 10),
                     Icon(
                       mixedIncome
-                          ? salapifyIcon('selected')
-                          : salapifyIcon('unselected'),
+                          ? salapifyIcon('checked')
+                          : salapifyIcon('unchecked'),
                       color: mixedIncome ? Barako.primary : Barako.muted,
                     ),
                   ],

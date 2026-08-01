@@ -36,16 +36,15 @@ void main() {
     // data the emergency fund honestly offers no number, so type one.
     await tester.tap(find.text('Emergency fund').first);
     await tester.pumpAndSettle();
-    expect(find.text('Not enough data for a suggestion.', findRichText: true),
-        findsNothing); // the full sentence is longer; presence checked below
+    expect(
+      find.text('Not enough data for a suggestion.', findRichText: true),
+      findsNothing,
+    ); // the full sentence is longer; presence checked below
     expect(
       find.textContaining('Not enough data for a suggestion'),
       findsOneWidget,
     );
-    await tester.enterText(
-      find.widgetWithText(TextField, '0').first,
-      '10000',
-    );
+    await tester.enterText(find.widgetWithText(TextField, '0').first, '10000');
     await tester.scrollUntilVisible(
       find.text('Save goal'),
       300,
@@ -69,10 +68,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add money'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Amount'),
-      '2,500',
-    );
+    await tester.enterText(find.widgetWithText(TextField, 'Amount'), '2,500');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     final funded = (store.data['goals'] as List).first as Map;
@@ -105,8 +101,11 @@ void main() {
     final restored = (store.data['goals'] as List).first as Map;
     expect(restored['id'], beforeUndoId, reason: 'undo keeps the identity');
     expect(restored['saved'], 2500.0);
-    expect((restored['contributions'] as List).length, 1,
-        reason: 'undo keeps the history');
+    expect(
+      (restored['contributions'] as List).length,
+      1,
+      reason: 'undo keeps the history',
+    );
   });
 
   testWidgets('the detail edit repaces a goal without touching its money', (

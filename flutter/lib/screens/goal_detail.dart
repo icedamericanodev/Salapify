@@ -31,10 +31,16 @@ const _tabular = [FontFeature.tabularFigures()];
 class GoalDetailScreen extends StatefulWidget {
   final SalapifyStore store;
   final String goalId;
+
+  /// Open the Add money sheet as soon as the screen lands. The list card's
+  /// "Add money" action passes this, so the promise on the card is one tap
+  /// away from money logged, not a scavenger hunt.
+  final bool openAddMoney;
   const GoalDetailScreen({
     super.key,
     required this.store,
     required this.goalId,
+    this.openAddMoney = false,
   });
 
   @override
@@ -44,6 +50,20 @@ class GoalDetailScreen extends StatefulWidget {
 class _GoalDetailScreenState extends State<GoalDetailScreen> {
   double _whatIfAmount = 0;
   bool _showEstimateParts = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openAddMoney) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final g = _goal();
+        if (g != null && g['kind'] != 'debt' && g['paused'] != true) {
+          _addMoneySheet(g);
+        }
+      });
+    }
+  }
 
   Map<String, dynamic>? _goal() {
     for (final g
@@ -128,7 +148,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
               : (debtFigures['done'] == true ? 'Completed' : 'On track'))
         : goalStatusLabel(g, now);
     final paused = g['paused'] == true;
-    final accent = goalAccentColor(g['accent'] as String?);
+    final accent = goalAccentColor(
+      g['accent'] is String ? g['accent'] as String : null,
+    );
     final contribution = requiredContribution(g, now);
     final quarters = quartersReached(
       isDebt ? {'target': target, 'saved': saved} : g,
@@ -222,31 +244,41 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     ? 'No milestones reached yet'
                     : 'Milestones reached: ${quarters.join(', ')} percent',
                 child: ExcludeSemantics(
-                  child: Row(
+                  // Wrap, not Row: four groups at 2.0x on a 320dp phone
+                  // overflow a Row, and the sweep runs at 390dp so only a
+                  // Wrap keeps this honest everywhere.
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
                     children: [
-                      for (final q in const [25, 50, 75, 100]) ...[
-                        Icon(
-                          salapifyIcon(
-                            quarters.contains(q) ? 'selected' : 'unselected',
-                          ),
-                          size: SalapifyIconSize.detail,
-                          color: quarters.contains(q)
-                              ? accent
-                              : Barako.faint,
+                      for (final q in const [25, 50, 75, 100])
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              salapifyIcon(
+                                quarters.contains(q)
+                                    ? 'selected'
+                                    : 'unselected',
+                              ),
+                              size: SalapifyIconSize.detail,
+                              color: quarters.contains(q)
+                                  ? accent
+                                  : Barako.faint,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$q%',
+                              style: TextStyle(
+                                color: quarters.contains(q)
+                                    ? Barako.text
+                                    : Barako.faint,
+                                fontSize: 11,
+                                fontFeatures: _tabular,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$q%',
-                          style: TextStyle(
-                            color: quarters.contains(q)
-                                ? Barako.text
-                                : Barako.faint,
-                            fontSize: 11,
-                            fontFeatures: _tabular,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                      ],
                     ],
                   ),
                 ),
@@ -380,26 +412,29 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
               borderRadius: BorderRadius.circular(Radii.sm),
               onTap: () =>
                   setState(() => _showEstimateParts = !_showEstimateParts),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Estimated safe amount right now: '
-                      '${formatMoneyAbout(estimate['amount'] as double)}',
-                      style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: _tabular,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Estimated safe amount right now: '
+                        '${formatMoneyAbout(estimate['amount'] as double)}',
+                        style: TextStyle(
+                          color: Barako.primaryText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: _tabular,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(
-                    salapifyIcon(_showEstimateParts ? 'collapse' : 'expand'),
-                    size: SalapifyIconSize.inline,
-                    color: Barako.muted,
-                  ),
-                ],
+                    Icon(
+                      salapifyIcon(_showEstimateParts ? 'collapse' : 'expand'),
+                      size: SalapifyIconSize.inline,
+                      color: Barako.muted,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (_showEstimateParts) ...[
@@ -443,7 +478,13 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       if (base <= 0) 1000,
       if (base <= 0) 2000,
     }.where((a) => a > 0).toList();
-    final picked = _whatIfAmount > 0 ? _whatIfAmount : chips.first;
+    // Default to the PLAN's own pace, so the card opens agreeing with the
+    // plan and the other chips read as what-if-less and what-if-more. A
+    // stale pick (the pace changed under it via Adjust the plan) resets
+    // rather than leaving no chip selected.
+    final picked = chips.contains(_whatIfAmount)
+        ? _whatIfAmount
+        : (base > 0 ? base.roundToDouble() : chips.first);
     final projection = goalWhatIf(g, now, perPeriod: picked, frequency: freq);
     return Container(
       width: double.infinity,
@@ -463,10 +504,19 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             children: [
               for (final a in chips)
                 ChoiceChip(
-                  label: Text('${formatMoney(a)} a $word'),
+                  // No unit in the chip: the sentence below names it, and a
+                  // seven-digit pace at 2.0x needs the room.
+                  label: Text(formatMoney(a)),
                   selected: picked == a,
                   onSelected: (_) => setState(() => _whatIfAmount = a),
                   selectedColor: Barako.primary,
+                  avatar: picked == a
+                      ? Icon(
+                          salapifyIcon('check'),
+                          size: 16,
+                          color: Barako.onPrimary,
+                        )
+                      : null,
                   labelStyle: TextStyle(
                     color: picked == a ? Barako.onPrimary : Barako.text,
                     fontSize: 12.5,
@@ -480,8 +530,11 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             projection == null
                 ? 'That pace would take more than ten years. Try a bigger '
                       'amount, or a smaller target.'
+                // prettyMonthYear, never a day without a year: "Apr 1" for
+                // a projection landing next April reads as this year, on
+                // the one card whose whole job is an honest estimate.
                 : 'At ${formatMoney(picked)} a $word, this finishes around '
-                      '${prettyDay(projection['finishDate'] as String)}'
+                      '${prettyMonthYear(projection['finishDate'] as String)}'
                       '${(g['targetDate'] ?? '').toString().isNotEmpty ? (projection['meetsDeadline'] as bool ? ', inside your target date.' : ', after your target date.') : '.'}'
                       ' Nothing changes unless you adjust the plan yourself.',
             style: TextStyle(
@@ -526,7 +579,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
 
   Widget _historyCard(Map<String, dynamic> g) {
     final rows = [
-      for (final c in (g['contributions'] as List? ?? const []))
+      for (final c
+          in (g['contributions'] is List
+              ? g['contributions'] as List
+              : const []))
         if (c is Map) c.cast<String, dynamic>(),
     ].reversed.toList();
     return Container(
@@ -566,9 +622,13 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        (c['note'] ?? 'Added').toString() == 'Added'
-                            ? 'Added'
-                            : (c['note'] as String),
+                        // toString, never a cast: a restored backup can put
+                        // anything in a note, and junk must not take the
+                        // screen down.
+                        () {
+                          final note = (c['note'] ?? '').toString().trim();
+                          return note.isEmpty ? 'Added' : note;
+                        }(),
                         style: TextStyle(color: Barako.text, fontSize: 13),
                       ),
                     ),
@@ -589,6 +649,14 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   ],
                 ),
               ),
+          if (rows.length > 12) ...[
+            const SizedBox(height: 4),
+            Text(
+              'and ${rows.length - 12} earlier '
+              '${rows.length - 12 == 1 ? 'contribution' : 'contributions'}',
+              style: TextStyle(color: Barako.faint, fontSize: 12),
+            ),
+          ],
         ],
       ),
     );
@@ -622,7 +690,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       'while paused.',
             onTap: () => _togglePause(g, paused),
           ),
-          if (g['kind'] != 'debt' && otherGoals.isNotEmpty)
+          // Hidden while paused, same as Add money: pause means the number
+          // is frozen until the user says otherwise, in every direction.
+          if (g['kind'] != 'debt' && !paused && otherGoals.isNotEmpty)
             _moreRow(
               icon: 'swap',
               label: 'Move money to another goal',
@@ -632,7 +702,8 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
           _moreRow(
             icon: 'delete',
             label: 'Delete this goal',
-            sub: 'Asks first, and Undo brings back everything, history '
+            sub:
+                'Asks first, and Undo brings back everything, history '
                 'included.',
             warning: true,
             onTap: () => _delete(g),
@@ -786,9 +857,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     }
     final q = quarterCrossed(before, after, target);
     if (q != null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('$q% there. Steady on.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('$q% there. Steady on.')));
     }
   }
 
@@ -797,6 +866,14 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     List<Map<String, dynamic>> others,
   ) async {
     String? toId = others.first['id'] as String?;
+    // The controller lives OUTSIDE the StatefulBuilder: created inside the
+    // builder, every goal-row tap rebuilt a fresh one and silently wiped the
+    // typed amount.
+    final amt = TextEditingController();
+    // What the source really holds; Move validates against it inline so the
+    // receipt can never claim more than actually moved.
+    final available = amountOf(g['saved']);
+    String? moveError;
     final result = await showModalBottomSheet<(String, double)?>(
       context: context,
       backgroundColor: Barako.card,
@@ -806,7 +883,6 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
-          final amt = TextEditingController();
           return Padding(
             padding: EdgeInsets.only(
               left: 20,
@@ -877,6 +953,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     decoration: InputDecoration(
                       labelText: 'Amount to move',
                       labelStyle: TextStyle(color: Barako.muted),
+                      errorText: moveError,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -884,8 +961,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () =>
-                            Navigator.of(sheetContext).pop(null),
+                        onPressed: () => Navigator.of(sheetContext).pop(null),
                         child: Text(
                           'Cancel',
                           style: TextStyle(color: Barako.muted),
@@ -896,7 +972,20 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                         onPressed: () {
                           final v = goalNum(amt.text);
                           final id = toId;
-                          if (v <= 0 || id == null) return;
+                          if (v <= 0 || id == null) {
+                            setSheetState(() {
+                              moveError = 'Enter an amount above zero.';
+                            });
+                            return;
+                          }
+                          if (v > available) {
+                            setSheetState(() {
+                              moveError =
+                                  'This goal holds ${formatMoney(available)}; '
+                                  'that is the most you can move.';
+                            });
+                            return;
+                          }
                           Navigator.of(sheetContext).pop((id, v));
                         },
                         style: FilledButton.styleFrom(
@@ -924,17 +1013,11 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     }
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await widget.store.transferGoalFunds(
-        widget.goalId,
-        result.$1,
-        result.$2,
-      );
+      await widget.store.transferGoalFunds(widget.goalId, result.$1, result.$2);
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('That did not save, so nothing moved.'),
-        ),
+        const SnackBar(content: Text('That did not save, so nothing moved.')),
       );
       return;
     }
@@ -949,11 +1032,15 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
   }
 
   Future<void> _editSheet(Map<String, dynamic> g) async {
+    String numText(double v) =>
+        v == v.roundToDouble() ? v.toInt().toString() : v.toString();
     final name = TextEditingController(text: (g['name'] ?? '').toString());
-    final target = TextEditingController(
-      text: amountOf(g['target']) == amountOf(g['target']).roundToDouble()
-          ? amountOf(g['target']).toInt().toString()
-          : amountOf(g['target']).toString(),
+    final target = TextEditingController(text: numText(amountOf(g['target'])));
+    // Saved is editable HERE, in both directions: the old screen allowed
+    // correcting a typo downward and the first redesign quietly lost that,
+    // leaving a fat-fingered "Completed" goal unfixable short of deletion.
+    final savedField = TextEditingController(
+      text: numText(amountOf(g['saved'])),
     );
     var deadline = (g['targetDate'] ?? '').toString();
     var frequency = g['frequency'] == 'weekly' ? 'weekly' : 'monthly';
@@ -1009,6 +1096,21 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   style: TextStyle(color: Barako.text),
                   decoration: InputDecoration(
                     labelText: 'Target amount',
+                    labelStyle: TextStyle(color: Barako.muted),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: savedField,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: TextStyle(color: Barako.text),
+                  decoration: InputDecoration(
+                    labelText: 'Saved so far',
+                    helperText:
+                        'Correct this number any time. It moves no money.',
+                    helperStyle: TextStyle(color: Barako.faint, fontSize: 11),
                     labelStyle: TextStyle(color: Barako.muted),
                   ),
                 ),
@@ -1108,6 +1210,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                               ? 'Goal'
                               : name.text.trim(),
                           'target': t,
+                          // goalNum floors junk at 0, so a cleared field
+                          // reads as zero saved, which is a valid correction.
+                          'saved': goalNum(savedField.text),
                           'targetDate': deadline,
                           'frequency': frequency,
                         });
@@ -1144,6 +1249,21 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       );
       return;
     }
+    if (!mounted) return;
+    // The receipt states the new pace: a plan change is a monetary write,
+    // and a write shows what actually happened.
+    final after = _goal();
+    final r = after != null
+        ? requiredContribution(after, DateTime.now())
+        : null;
+    final pace =
+        r != null && (r['hasDeadline'] as bool) && (r['amount'] as double) > 0
+        ? ' New pace: about ${formatMoneyAbout(r['amount'] as double)} each '
+              '${r['frequency'] == 'weekly' ? 'week' : 'month'}.'
+        : '';
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Plan updated.$pace')));
   }
 
   Future<void> _delete(Map<String, dynamic> g) async {

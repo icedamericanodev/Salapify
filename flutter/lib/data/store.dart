@@ -134,6 +134,12 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
     ('accounts', 'acct'),
     ('debts', 'debt'),
     ('assets', 'asset'),
+    // Goals joined when the redesign made ids load-bearing: addGoalFunds
+    // credits EVERY row matching an id, deleteGoal deletes every match,
+    // and a card with no id can never be opened. A duplicated goal id from
+    // a merged backup therefore multiplied money in and swallowed rows on
+    // delete, which is exactly the class this guard exists to stop.
+    ('goals', 'goals'),
   ]) {
     final rows = result[key];
     if (rows is! List) continue;
@@ -929,7 +935,9 @@ class SalapifyStore extends ChangeNotifier {
                 ...gm,
                 'saved': base - moved,
                 'contributions': [
-                  ...(gm['contributions'] as List? ?? const []),
+                  ...(gm['contributions'] is List
+                      ? gm['contributions'] as List
+                      : const []),
                   {
                     'id': _genId('goalTx'),
                     'amount': -moved,
@@ -942,7 +950,10 @@ class SalapifyStore extends ChangeNotifier {
           else
             g,
       ];
-      if (moved <= 0) return {...d, 'goals': afterFrom};
+      // Nothing moved: return the ORIGINAL data, not afterFrom, which
+      // already carries a rewritten source with a zero history row. A no-op
+      // transfer must leave no fingerprints.
+      if (moved <= 0) return d;
       // The destination must still EXIST before the deduction is kept: a
       // goal deleted on another screen between opening the sheet and
       // tapping Move would otherwise keep the minus and drop the plus,
@@ -962,9 +973,11 @@ class SalapifyStore extends ChangeNotifier {
                     : (cur is String ? (double.tryParse(cur) ?? 0) : 0.0);
                 return {
                   ...gm,
-                  'saved': base + moved * 0.9,
+                  'saved': base + moved,
                   'contributions': [
-                    ...(gm['contributions'] as List? ?? const []),
+                    ...(gm['contributions'] is List
+                        ? gm['contributions'] as List
+                        : const []),
                     {
                       'id': _genId('goalTx'),
                       'amount': moved,
@@ -1044,14 +1057,13 @@ class SalapifyStore extends ChangeNotifier {
                   // rows, additive, and preserved by backup like every other
                   // unknown goal key; the saved math above is unchanged.
                   'contributions': [
-                    ...(gm['contributions'] as List? ?? const []),
+                    ...(gm['contributions'] is List
+                        ? gm['contributions'] as List
+                        : const []),
                     {
                       'id': _genId('goalTx'),
                       'amount': saved - base,
-                      'date': DateTime.now().toIso8601String().substring(
-                        0,
-                        10,
-                      ),
+                      'date': DateTime.now().toIso8601String().substring(0, 10),
                     },
                   ],
                 };

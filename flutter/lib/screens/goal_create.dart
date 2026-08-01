@@ -12,30 +12,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
-import '../money/format.dart' show formatMoney, formatMoneyAbout, prettyMonthYear;
+import '../money/format.dart'
+    show formatMoney, formatMoneyAbout, prettyMonthYear;
 import '../money/goal_plan.dart';
 import '../money/goals_calc.dart' show goalNum;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import '../widgets/salapify_icon.dart';
 
-/// The curated icon choices for a new goal, all semantic names. A goal saved
-/// from here stores the KEY; a goal whose owner typed an emoji in the edit
-/// sheet keeps the emoji. Both are honored forever by the cards.
-const List<String> goalIconChoices = [
-  'goal',
-  'emergency',
-  'pasko',
-  'travel',
-  'education',
-  'familySupport',
-  'health',
-  'gadget',
-  'wedding',
-  'house',
-  'savings',
-  'cash',
-];
+/// The curated icon choices for a new goal, semantic key to the spoken
+/// label a screen reader announces (a raw key like "familySupport" read
+/// aloud is nobody's language). A goal saved from here stores the KEY; a
+/// goal whose owner typed an emoji in the edit sheet keeps the emoji. Both
+/// are honored forever by the cards.
+const Map<String, String> goalIconChoices = {
+  'goal': 'Target',
+  'emergency': 'Emergency fund',
+  'pasko': 'Pasko',
+  'travel': 'Travel',
+  'education': 'Education',
+  'familySupport': 'Family support',
+  'health': 'Health',
+  'gadget': 'Gadget',
+  'wedding': 'Wedding',
+  'house': 'House',
+  'savings': 'Savings',
+  'cash': 'Cash',
+};
 
 /// The accent choices, as theme token NAMES so a palette switch or a
 /// restored backup can never carry a stale hex.
@@ -216,6 +219,13 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
       return;
     }
     final saved = goalNum(_saved.text);
+    // A custom goal must be NAMED: its template name is the picker copy
+    // ("Your own goal"), which would read like the app named it.
+    if (_name.text.trim().isEmpty &&
+        (widget.template == null || widget.template!.key == 'custom')) {
+      setState(() => _error = 'Give this goal a name.');
+      return;
+    }
     final name = _name.text.trim().isEmpty
         ? (widget.template?.name ?? 'Goal')
         : _name.text.trim();
@@ -274,8 +284,10 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WHERE THIS SUGGESTION COMES FROM',
-                        style: Barako.kickerStyle),
+                    Text(
+                      'WHERE THIS SUGGESTION COMES FROM',
+                      style: Barako.kickerStyle,
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       t.why!,
@@ -458,11 +470,12 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final key in goalIconChoices)
+                for (final MapEntry(key: key, value: spoken)
+                    in goalIconChoices.entries)
                   Semantics(
                     button: true,
                     selected: _icon == key,
-                    label: 'Icon $key',
+                    label: '$spoken icon',
                     child: InkWell(
                       borderRadius: BorderRadius.circular(Radii.md),
                       onTap: () => setState(() => _icon = key),
@@ -509,8 +522,8 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                         child: Column(
                           children: [
                             Container(
-                              width: 40,
-                              height: 40,
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
                                 color: goalAccentColor(key),
                                 shape: BoxShape.circle,

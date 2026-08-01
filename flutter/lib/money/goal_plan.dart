@@ -82,10 +82,7 @@ String goalStatusLabel(Map<String, dynamic> goal, DateTime now) {
 /// carries no createdAt or no valid future-of-creation date. Returns
 /// {expected, monthShare, elapsedDays, totalDays} so the screen can say
 /// "by today the plan expected about X".
-Map<String, dynamic>? expectedByToday(
-  Map<String, dynamic> goal,
-  DateTime now,
-) {
+Map<String, dynamic>? expectedByToday(Map<String, dynamic> goal, DateTime now) {
   final created = _parseIso(goal['createdAt']);
   final deadline = _parseIso(_paddedDate(goal));
   if (created == null || deadline == null) return null;
@@ -180,9 +177,19 @@ Map<String, dynamic>? goalWhatIf(
   var periods = (remaining / perPeriod).ceil();
   if (periods > cap) return null;
   if (periods < 1) periods = 1;
-  final finish = weekly
-      ? now.add(Duration(days: 7 * periods))
-      : DateTime(now.year, now.month + periods, now.day);
+  final DateTime finish;
+  if (weekly) {
+    finish = now.add(Duration(days: 7 * periods));
+  } else {
+    // Clamp the day like every month walker in the app: Jan 31 plus one
+    // month is Feb 28, not a rollover that skips February entirely.
+    final lastDay = DateTime(now.year, now.month + periods + 1, 0).day;
+    finish = DateTime(
+      now.year,
+      now.month + periods,
+      now.day < lastDay ? now.day : lastDay,
+    );
+  }
   final deadline = _parseIso(_paddedDate(goal));
   return {
     'finishDate': _iso(finish),
@@ -223,7 +230,10 @@ int? quarterCrossed(double before, double after, double target) {
 /// month. Null when there is genuinely nothing to read (no recurring
 /// expenses AND no spending history), because a made-up essentials figure is
 /// worse than none.
-Map<String, dynamic>? essentialMonthly(Map<String, dynamic> data, DateTime now) {
+Map<String, dynamic>? essentialMonthly(
+  Map<String, dynamic> data,
+  DateTime now,
+) {
   var recurringTotal = 0.0;
   var recurringCount = 0;
   for (final raw
@@ -405,9 +415,12 @@ List<GoalTemplate> goalTemplates(Map<String, dynamic> data, DateTime now) {
 /// bill, otherwise "available until payday" is a number about nothing and
 /// the honest answer is to ask for bills or income dates.
 Map<String, dynamic>? safeToSetAside(Map<String, dynamic> data, DateTime now) {
-  final hasLiquid = (data['accounts'] is List ? data['accounts'] as List : const [])
-      .whereType<Map>()
-      .any((a) => const ['cash', 'ewallet', 'checking'].contains(a['kind']));
+  final hasLiquid =
+      (data['accounts'] is List ? data['accounts'] as List : const [])
+          .whereType<Map>()
+          .any(
+            (a) => const ['cash', 'ewallet', 'checking'].contains(a['kind']),
+          );
   if (!hasLiquid) return null;
   final s = safeToSpend(data, now);
   final settings = data['settings'];
@@ -437,7 +450,10 @@ Map<String, dynamic>? safeToSetAside(Map<String, dynamic> data, DateTime now) {
 /// 3. Soonest target date.
 /// A suggestion for the top of the screen, never an instruction; ties keep
 /// list order so the answer is stable.
-Map<String, dynamic>? focusGoal(List<Map<String, dynamic>> goals, DateTime now) {
+Map<String, dynamic>? focusGoal(
+  List<Map<String, dynamic>> goals,
+  DateTime now,
+) {
   final active = [
     for (final g in goals)
       if (g['paused'] != true &&
@@ -488,7 +504,8 @@ Map<String, dynamic>? debtGoalFigures(
   if (goal['kind'] != 'debt') return null;
   final id = goal['linkedDebtId'];
   if (id is! String || id.isEmpty) return null;
-  for (final raw in (data['debts'] is List ? data['debts'] as List : const [])) {
+  for (final raw
+      in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is Map && raw['id'] == id) {
       final remaining = amountOf(raw['remaining']);
       final startLevel = amountOf(goal['startLevel']);
