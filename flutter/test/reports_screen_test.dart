@@ -22,6 +22,14 @@ String _monthsAgo(int months, int day) {
   return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
+// k days before today. Always in the past and never collapses at a month
+// boundary, unlike a fixed day of the current month, which on the 1st is a
+// FUTURE date the weekday pattern (counted up to now) correctly ignores.
+String _daysAgo(int k) {
+  final d = DateTime.now().subtract(Duration(days: k));
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
 Future<void> _openReports(WidgetTester tester) async {
   await openFromMenu(tester, 'Reports');
 }
@@ -195,11 +203,13 @@ void main() {
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 12000},
         ],
         'transactions': [
-          // This month: income plus expenses on five different weekdays, so the
-          // weekday pattern has a real peak to draw.
+          // Recent: income plus expenses on five different recent weekdays, so
+          // the weekday pattern has a real peak to draw. Dated days-ago rather
+          // than fixed days of this month, which on the 1st would be FUTURE and
+          // the pattern (counted up to now) would ignore them.
           {
             'id': 'i0',
-            'date': _thisMonth(15),
+            'date': _daysAgo(1),
             'type': 'income',
             'label': 'Sweldo',
             'amount': 20000,
@@ -207,7 +217,7 @@ void main() {
           },
           {
             'id': 'e1',
-            'date': _thisMonth(2),
+            'date': _daysAgo(2),
             'type': 'expense',
             'label': 'Food',
             'amount': 400,
@@ -215,7 +225,7 @@ void main() {
           },
           {
             'id': 'e2',
-            'date': _thisMonth(3),
+            'date': _daysAgo(3),
             'type': 'expense',
             'label': 'Grab',
             'amount': 300,
@@ -223,7 +233,7 @@ void main() {
           },
           {
             'id': 'e3',
-            'date': _thisMonth(4),
+            'date': _daysAgo(4),
             'type': 'expense',
             'label': 'Food',
             'amount': 900,
@@ -231,7 +241,7 @@ void main() {
           },
           {
             'id': 'e4',
-            'date': _thisMonth(5),
+            'date': _daysAgo(5),
             'type': 'expense',
             'label': 'Bills',
             'amount': 200,
@@ -239,7 +249,7 @@ void main() {
           },
           {
             'id': 'e5',
-            'date': _thisMonth(6),
+            'date': _daysAgo(6),
             'type': 'expense',
             'label': 'Food',
             'amount': 600,
