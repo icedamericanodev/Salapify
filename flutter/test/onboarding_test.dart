@@ -506,6 +506,13 @@ void main() {
         final notifs = _settings(store)['notifications'] as Map;
         expect(notifs['daily'], true);
         expect(
+          notifs['comeback'],
+          true,
+          reason:
+              'the comeback ladder rides along with the nightly nudge; it can '
+              'never fire for an active user, so on by default costs nothing',
+        );
+        expect(
           notifs['payday'],
           isNot(true),
           reason:

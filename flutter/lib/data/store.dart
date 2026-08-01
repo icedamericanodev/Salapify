@@ -1619,6 +1619,12 @@ class SalapifyStore extends ChangeNotifier {
             ...((settings['notifications'] as Map?) ?? const {})
                 .cast<String, dynamic>(),
             'daily': true,
+            // The comeback ladder rides along with the nightly nudge: someone
+            // who said yes to reminders is exactly who benefits from being
+            // brought back if they lapse. It is toggleable in Menu, and it can
+            // never fire for an active user (a reopen re-arms it), so switching
+            // it on by default costs nothing to a user who keeps showing up.
+            'comeback': true,
             if (hasExplicitPaydaySchedule(next)) 'payday': true,
           }
         : null;

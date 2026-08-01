@@ -1148,6 +1148,46 @@ void main() {
     );
   });
 
+  testWidgets('the notifications card in Menu, comeback on, dark', (
+    tester,
+  ) async {
+    // The new Come back toggle sits low in a tall card, so it would otherwise
+    // ship never looked at. Rendered in its shipped-on state (a user who
+    // accepted the nightly nudge gets daily and comeback on), so the new row
+    // reads the way the founder will actually see it.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+    await store.setNotifPref('daily', true);
+    await store.setNotifPref('comeback', true);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: MenuScreen(store: store, onSwitchTab: (_) {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Come back'), 300);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/menu-notifications-dark.png'),
+    );
+  });
+
   testWidgets('the sample data card in Menu, both states, dark', (
     tester,
   ) async {
