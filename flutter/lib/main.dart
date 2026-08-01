@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.14 \u00b7 A gentle come back nudge brings you back if you drift away, before your other reminders run dry.';
+    'f3.15 \u00b7 Cash flow now projects up to 90 days ahead with what if scenarios, and Home gains a road ahead card.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

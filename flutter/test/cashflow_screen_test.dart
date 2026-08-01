@@ -77,6 +77,108 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  Map<String, dynamic> projectable({bool pro = false}) => {
+    'settings': {
+      if (pro) 'pro': true,
+      'paydaySchedule': {'mode': 'monthly', 'day': 28},
+    },
+    'accounts': [
+      {'id': 'g', 'name': 'GCash', 'kind': 'ewallet', 'balance': 8000},
+    ],
+    'recurring': [
+      {
+        'id': 'r1',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 20000,
+        'dayOfMonth': 28,
+      },
+      {
+        'id': 'r2',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 6000,
+        'dayOfMonth': 20,
+      },
+    ],
+  };
+
+  testWidgets('the longer horizons are gated until Pro', (tester) async {
+    final store = await _seed(projectable());
+    await _pump(tester, store);
+    expect(find.text('From today to the end of the month'), findsOneWidget);
+    await tester.tap(find.text('60 days'));
+    await tester.pumpAndSettle();
+    // The gate speaks, and the window does not move.
+    expect(
+      find.textContaining('The longer view is a Pro feature'),
+      findsOneWidget,
+    );
+    expect(find.text('From today to the end of the month'), findsOneWidget);
+    expect(find.text('The next 60 days'), findsNothing);
+  });
+
+  testWidgets('Pro switches the horizon and the labels follow', (tester) async {
+    final store = await _seed(projectable(pro: true));
+    await _pump(tester, store);
+    await tester.tap(find.text('60 days'));
+    await tester.pumpAndSettle();
+    expect(find.text('The next 60 days'), findsOneWidget);
+    expect(find.text('IN 60 DAYS'), findsOneWidget);
+    // The payday chip exists because a schedule exists.
+    await tester.tap(find.text('To payday'));
+    await tester.pumpAndSettle();
+    expect(find.text('From today to your next payday'), findsOneWidget);
+    expect(find.text('AT PAYDAY'), findsOneWidget);
+  });
+
+  testWidgets('a Pro user saves a what if and it overlays the plan', (
+    tester,
+  ) async {
+    final store = await _seed(projectable(pro: true));
+    await _pump(tester, store);
+    await tester.scrollUntilVisible(
+      find.text('Add a what if'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Add a what if'));
+    await tester.pumpAndSettle();
+    // Default kind is A big buy, dated a week out, inside every window.
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Name (optional)'),
+      'New phone',
+    );
+    await tester.enterText(find.widgetWithText(TextField, 'Amount'), '12000');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    // Persisted through the store, not widget state.
+    expect(store.timelineScenarios, hasLength(1));
+    expect(store.timelineScenarios.single['amount'], 12000.0);
+    // The row renders and the event list marks the overlay as a what if.
+    expect(find.text('New phone'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('New phone (what if)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('New phone (what if)'), findsOneWidget);
+  });
+
+  testWidgets('the free user is told what ifs are Pro', (tester) async {
+    final store = await _seed(projectable());
+    await _pump(tester, store);
+    await tester.scrollUntilVisible(
+      find.text('Add a what if'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Add a what if'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('What ifs are a Pro feature'), findsOneWidget);
+    expect(store.timelineScenarios, isEmpty);
+  });
+
   testWidgets('a tight month shows the run-out warning', (tester) async {
     // 500 cash, a 12,000 rent later this month, no income until the far future.
     final store = await _seed({

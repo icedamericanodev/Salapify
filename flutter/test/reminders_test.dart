@@ -437,6 +437,87 @@ void main() {
     });
   });
 
+  group('cash flow lookahead', () {
+    // Liquid 1000 and a 5000 bill on Jul 22: the conservative projection
+    // first dips below zero on the 22nd, so the heads up lands the evening
+    // before, Jul 21 at 18:00.
+    Map<String, dynamic> tightData() => withNotifs(
+      {'lookahead': true},
+      extra: {
+        'accounts': [
+          {'id': 'a', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
+        ],
+        'recurring': [
+          {
+            'id': 'r1',
+            'type': 'bill',
+            'label': 'Rent',
+            'amount': 5000,
+            'dayOfMonth': 22,
+          },
+        ],
+      },
+    );
+
+    test('FIRES the evening before the projected dip', () {
+      final plans = plannedReminders(tightData(), now);
+      final heads = plans
+          .where((p) => p.title == 'Cash flow heads up')
+          .toList();
+      expect(heads, hasLength(1), reason: 'one dip, one heads up, never more');
+      expect(heads.single.when, DateTime(2026, 7, 21, 18));
+    });
+
+    test('SILENT when the projection stays positive', () {
+      final data = tightData();
+      (data['accounts'] as List)[0]['balance'] = 50000;
+      final plans = plannedReminders(data, now);
+      expect(
+        plans.where((p) => p.title == 'Cash flow heads up'),
+        isEmpty,
+        reason:
+            'an alarm that fires on a healthy projection cries wolf, and a '
+            'wolf-crying alarm gets its battery taken out',
+      );
+    });
+
+    test('SILENT with the toggle off', () {
+      final data = tightData();
+      ((data['settings'] as Map)['notifications'] as Map).remove('lookahead');
+      expect(
+        plannedReminders(
+          data,
+          now,
+        ).where((p) => p.title == 'Cash flow heads up'),
+        isEmpty,
+      );
+    });
+
+    test('the DEFAULT heads up carries no amount, name, or date', () {
+      final p = plannedReminders(
+        tightData(),
+        now,
+      ).firstWhere((p) => p.title == 'Cash flow heads up');
+      expect(p.body.contains('₱'), isFalse);
+      expect(p.body.contains('1,000'), isFalse);
+      expect(p.body.contains('5,000'), isFalse);
+      expect(p.body.contains('Rent'), isFalse);
+      expect(p.body.contains('Jul'), isFalse);
+    });
+
+    test('detailed names the date only, never an amount or a name', () {
+      final p = plannedReminders(
+        tightData(),
+        now,
+        detailed: true,
+      ).firstWhere((p) => p.title == 'Cash flow heads up');
+      expect(p.body.contains('Jul 22'), isTrue);
+      expect(p.body.contains('₱'), isFalse);
+      expect(p.body.contains('5,000'), isFalse);
+      expect(p.body.contains('Rent'), isFalse);
+    });
+  });
+
   test('junk data never throws', () {
     final data = {
       'settings': {

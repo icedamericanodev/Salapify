@@ -29,7 +29,10 @@ import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/format.dart' show formatMoney, formatMoneyAbout, prettyDay;
 import '../money/sample_data.dart' show hasSampleData;
+import '../money/timeline.dart' show sweldoTimeline, freeHorizonDays;
 import '../widgets/pressable_scale.dart';
+import '../widgets/timeline_sparkline.dart';
+import 'cashflow.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
@@ -315,6 +318,13 @@ class OverviewScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
+                // The road ahead at a glance: the Sweldo Timeline's free
+                // window as a sparkline, with the tightest day named. Only
+                // once something is projectable (a recurring item or a debt
+                // schedule); an empty projection is a flat line that says
+                // nothing. Tapping opens the full Cash flow screen.
+                if (hasStarted)
+                  ..._timelineCard(context, data.cast<String, dynamic>(), now),
                 // The payday ritual once the salary IS logged: below the number it
                 // just refreshed, because at that point it reports rather than asks.
                 if (ritual.isPayday && ritual.salaryLogged) ...[
@@ -935,6 +945,105 @@ class OverviewScreen extends StatelessWidget {
   /// money is tight, and that is the wrong moment to add a second card with
   /// an opinion in it. The coach's check-in above already owns the message;
   /// this only answers "how long".
+  /// The Sweldo Timeline glance card: the free window's balance line as a
+  /// sparkline plus one sentence naming the tightest day. Returns an empty
+  /// list when nothing is projectable yet, so Home pays no pixels for a
+  /// flat line that says nothing.
+  List<Widget> _timelineCard(
+    BuildContext context,
+    Map<String, dynamic> data,
+    DateTime ref,
+  ) {
+    final tl = sweldoTimeline(
+      data,
+      ref,
+      horizonDays: freeHorizonDays(data, ref),
+    );
+    final assumptions = (tl['assumptions'] as Map).cast<String, dynamic>();
+    if ((assumptions['recurringCount'] as int) == 0 &&
+        (assumptions['debtCount'] as int) == 0) {
+      return const [];
+    }
+    final days = (tl['days'] as List).cast<Map<String, dynamic>>();
+    final lowest = tl['lowest'] as Map;
+    final lowBal = (lowest['balance'] as num).toDouble();
+    final lowDate = lowest['date'].toString();
+    final start = (tl['startBalance'] as num).toDouble();
+    final anyNegative = tl['anyNegative'] == true;
+    final hasPayday = (tl['paydays'] as List).isNotEmpty;
+    final String caption;
+    if (anyNegative) {
+      caption =
+          'Cash is projected to run short around ${prettyDay(lowDate)}. '
+          'Tap to see the tight days.';
+    } else if (lowBal < start) {
+      caption =
+          'Tightest around ${prettyDay(lowDate)} at ${formatMoney(lowBal)}, '
+          'then it recovers.';
+    } else {
+      caption = hasPayday
+          ? 'Steady to payday at this pace.'
+          : 'Steady to the end of the month at this pace.';
+    }
+    return [
+      Card(
+        child: Semantics(
+          button: true,
+          label: 'The road ahead. $caption',
+          child: ExcludeSemantics(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => CashFlowScreen(store: store)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'THE ROAD AHEAD',
+                            style: Barako.kickerStyle,
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: Barako.faint,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TimelineSparkline(
+                      days: days,
+                      anyNegative: anyNegative,
+                      lowDate: lowDate,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      caption,
+                      style: TextStyle(
+                        color: anyNegative
+                            ? Barako.warningStrong
+                            : Barako.textSecondary,
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
   Widget _daysToPaydayCard(Map<String, dynamic> dues) {
     final days = dues['daysLeft'] as int;
     final payday = (dues['payday'] ?? '').toString();

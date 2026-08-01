@@ -157,6 +157,21 @@ void main() {
       reason: 'no income, so every rate and ratio in the app reads as zero',
     );
     expect(
+      _rows('recurring'),
+      isNotEmpty,
+      reason:
+          'no recurring salary or bills, so the Sweldo Timeline and the Home '
+          'road-ahead card render the set-up prompt instead of a projection, '
+          'the exact empty-fixture blindness this file exists to prevent',
+    );
+    expect(
+      _rows('recurring').where((r) => r['type'] == 'income'),
+      isNotEmpty,
+      reason:
+          'no recurring income, so the projected line only ever falls and '
+          'the recovery-after-payday state is unreachable from this fixture',
+    );
+    expect(
       _rows('transactions').where((t) => (t['categoryId'] ?? '') != '').length,
       greaterThanOrEqualTo(8),
       reason:
