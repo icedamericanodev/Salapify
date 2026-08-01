@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../data/fx_service.dart';
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/salapify_icon.dart';
 
 const _months = [
   'Jan',
@@ -81,7 +82,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             Kicker('EVERY CONNECTION THIS APP CAN MAKE'),
             const SizedBox(height: 8),
             _connectionCard(
-              Icons.currency_exchange,
+              salapifyIcon('exchange'),
               'Live exchange rates',
               'Only when you use the currency converter, the app asks a public '
                   'rate service for the day\'s rates. The request carries one '
@@ -90,7 +91,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const SizedBox(height: 10),
             _connectionCard(
-              Icons.system_update_alt,
+              salapifyIcon('install'),
               'App updates',
               'On launch, and when you tap Check for updates in the Menu, '
                   'the app checks for an updated version of its own code so '
@@ -130,7 +131,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.verified_user_outlined,
+                  salapifyIcon('protected'),
                   color: Barako.primary,
                   size: 22,
                 ),
@@ -208,7 +209,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Barako.celebrate, size: 20),
+            Icon(salapifyIcon('done'), color: Barako.celebrate, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -268,14 +269,14 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             row(
-              Icons.wifi,
+              salapifyIcon('network'),
               'Internet',
               'Exists only for the two connections above: rate lookups and '
                   'app code updates.',
             ),
             const Divider(height: 22),
             row(
-              Icons.fingerprint,
+              salapifyIcon('biometric'),
               'Fingerprint or face',
               'Powers App lock. Your phone does the checking and only tells '
                   'the app yes or no; the app never sees or stores your '
@@ -283,7 +284,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const Divider(height: 22),
             row(
-              Icons.notifications_none,
+              salapifyIcon('notifications'),
               'Notifications',
               'Your reminders (log nudge, payday, bills, IOUs) are built and '
                   'shown on the phone itself. Nothing is sent to a server to '
@@ -291,14 +292,14 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const Divider(height: 22),
             row(
-              Icons.restart_alt,
+              salapifyIcon('startOver'),
               'Run after restart',
               'Lets your scheduled reminders survive a phone reboot. That is '
                   'all it does.',
             ),
             const Divider(height: 22),
             row(
-              Icons.vibration,
+              salapifyIcon('vibration'),
               'Vibrate',
               'The small buzz when a button is pressed or a reminder arrives. '
                   'It reads nothing.',
@@ -311,7 +312,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             // can do", so a list that is short by five is not a small
             // omission, it is the one claim on the screen being false.
             row(
-              Icons.widgets_outlined,
+              salapifyIcon('widgets'),
               'Keep the phone awake briefly, and check if there is a network',
               'Both come with the home screen widget plumbing. Salapify uses '
                   'neither to move your money data anywhere. They are the '
@@ -321,7 +322,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const Divider(height: 22),
             row(
-              Icons.play_circle_outline,
+              salapifyIcon('play'),
               'Run a short task in the foreground',
               'Also widget plumbing, and also unused by Salapify. Listed '
                   'because this card claims to be the complete list, and a '
@@ -378,7 +379,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             row(
-              Icons.cloud_off_outlined,
+              salapifyIcon('offline'),
               'Automatic backup is off',
               'Android can copy an app\'s data to Google Drive, and to a new '
                   'phone during setup. Both are turned off for Salapify, so '
@@ -387,7 +388,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const Divider(height: 22),
             row(
-              Icons.screenshot_monitor_outlined,
+              salapifyIcon('screen'),
               'The screen hides when App lock is on',
               'With App lock on, the app marks its screens secure, so your '
                   'balances do not show in the app switcher preview and cannot '
@@ -395,7 +396,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             ),
             const Divider(height: 22),
             row(
-              Icons.notifications_off_outlined,
+              salapifyIcon('notificationsOff'),
               'Lock-screen reminders stay generic',
               'A reminder on your lock screen says only that something is due, '
                   'never the amount or the name. Turning on detailed reminders '
@@ -452,8 +453,8 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                       children: [
                         Icon(
                           e['ok'] == true
-                              ? Icons.cloud_done_outlined
-                              : Icons.cloud_off_outlined,
+                              ? salapifyIcon('backedUp')
+                              : salapifyIcon('offline'),
                           size: 16,
                           color: e['ok'] == true
                               ? Barako.celebrate
@@ -493,7 +494,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.airplanemode_active,
+                  salapifyIcon('travel'),
                   color: Barako.primary,
                   size: 20,
                 ),

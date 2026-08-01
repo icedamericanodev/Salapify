@@ -14,6 +14,7 @@ import '../data/store.dart';
 import '../main.dart' show updateStamp;
 import '../services/diagnostics.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import 'app_exit_stub.dart' if (dart.library.io) 'app_exit_io.dart';
 
 class UpdateCard extends StatefulWidget {
@@ -277,7 +278,7 @@ class _UpdateCardState extends State<UpdateCard> {
                             color: Barako.muted,
                           ),
                         )
-                      : const Icon(Icons.refresh, size: 16),
+                      : Icon(salapifyIcon('refresh'), size: 16),
                   label: Text(busy ? 'Working...' : 'Check for update'),
                 ),
                 // The one thing that could not be got off the phone before.
@@ -289,7 +290,7 @@ class _UpdateCardState extends State<UpdateCard> {
                     foregroundColor: Barako.textSecondary,
                   ),
                   onPressed: _copyDiagnostics,
-                  icon: const Icon(Icons.bug_report_outlined, size: 16),
+                  icon: Icon(salapifyIcon('diagnostics'), size: 16),
                   label: const Text('Copy diagnostics'),
                 ),
               ],
@@ -329,7 +330,7 @@ class _StorageRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Icon(
-                encrypted ? Icons.lock_outline : Icons.lock_open_outlined,
+                encrypted ? salapifyIcon('locked') : salapifyIcon('unlocked'),
                 size: 14,
                 color: encrypted ? Barako.primary : Barako.muted,
               ),

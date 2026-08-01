@@ -134,6 +134,12 @@ Map<String, dynamic> ensureEntityIds(Map<String, dynamic> data) {
     ('accounts', 'acct'),
     ('debts', 'debt'),
     ('assets', 'asset'),
+    // Goals joined when the redesign made ids load-bearing: addGoalFunds
+    // credits EVERY row matching an id, deleteGoal deletes every match,
+    // and a card with no id can never be opened. A duplicated goal id from
+    // a merged backup therefore multiplied money in and swallowed rows on
+    // delete, which is exactly the class this guard exists to stop.
+    ('goals', 'goals'),
   ]) {
     final rows = result[key];
     if (rows is! List) continue;
@@ -817,6 +823,16 @@ class SalapifyStore extends ChangeNotifier {
     required double target,
     required double saved,
     required String targetDate,
+    // The redesigned fields. All optional so every existing caller (and the
+    // undo path for legacy rows) keeps working; all survive backup because
+    // sanitize spreads unknown goal keys through untouched.
+    String? kind, // 'savings' | 'debt'
+    String? iconKey, // semantic icon, template-authored goals only
+    String? accent, // 'primary' | 'caramel' | 'celebrate'
+    String? frequency, // 'monthly' | 'weekly'
+    String? linkedDebtId, // debt-payoff goals: the debt it follows
+    double? startLevel, // debt-payoff goals: the balance at creation
+    String? createdAt, // ISO date, anchors the expected-by-today pace
   }) => _mutate(
     (d) => {
       ...d,
@@ -828,10 +844,155 @@ class SalapifyStore extends ChangeNotifier {
           'saved': saved,
           'targetDate': targetDate,
           'id': _genId('goals'),
+          'kind': ?kind,
+          'iconKey': ?iconKey,
+          'accent': ?accent,
+          'frequency': ?frequency,
+          'linkedDebtId': ?linkedDebtId,
+          'startLevel': ?startLevel,
+          'createdAt': ?createdAt,
+          if (createdAt != null) 'startSaved': saved,
         },
       ],
     },
   );
+
+  /// Restore a goal EXACTLY as it was, for the delete-undo path. Re-adding
+  /// through addGoal would mint a fresh id and drop the contribution
+  /// history, priority, and pause state, which turns "Undo" into a quiet
+  /// lie; this puts the captured row back verbatim.
+  Future<void> restoreGoalRow(Map<String, dynamic> row) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        ...(d['goals'] as List? ?? const []),
+        {...row},
+      ],
+    },
+  );
+
+  /// Patch arbitrary fields on one goal (pause, priority, icon, accent,
+  /// frequency, reminder preference). Spread-first, so unknown and legacy
+  /// keys survive, same contract as updateGoal.
+  Future<void> patchGoal(String id, Map<String, dynamic> fields) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        for (final g in (d['goals'] as List? ?? const []))
+          if (g is Map && g['id'] == id)
+            {...g.cast<String, dynamic>(), ...fields}
+          else
+            g,
+      ],
+    },
+  );
+
+  /// Persist the user's goal order: priority 0, 1, 2... in the order given.
+  /// Ids not in the list keep their row but lose no data; they simply sort
+  /// after the ranked ones.
+  Future<void> reorderGoals(List<String> idsInOrder) => _mutate(
+    (d) => {
+      ...d,
+      'goals': [
+        for (final g in (d['goals'] as List? ?? const []))
+          if (g is Map && idsInOrder.contains(g['id']))
+            {
+              ...g.cast<String, dynamic>(),
+              'priority': idsInOrder.indexOf(g['id'] as String),
+            }
+          else
+            g,
+      ],
+    },
+  );
+
+  /// Move part of one goal's saved amount to another goal. Pure bookkeeping
+  /// between two tracked numbers: no account, no transaction, and therefore
+  /// no net-worth change, by construction. Clamped to what the source
+  /// actually holds; both sides record the movement in their contribution
+  /// history so the story is visible on both cards.
+  Future<void> transferGoalFunds(
+    String fromId,
+    String toId,
+    double amount,
+  ) async {
+    if (!(amount > 0) || !amount.isFinite || fromId == toId) return;
+    await _mutate((d) {
+      final goals = (d['goals'] as List? ?? const []);
+      double moved = 0;
+      final date = DateTime.now().toIso8601String().substring(0, 10);
+      final afterFrom = [
+        for (final g in goals)
+          if (g is Map && g['id'] == fromId)
+            () {
+              final gm = g.cast<String, dynamic>();
+              final cur = gm['saved'];
+              final base = cur is num
+                  ? cur.toDouble()
+                  : (cur is String ? (double.tryParse(cur) ?? 0) : 0.0);
+              moved = amount < base ? amount : base;
+              return {
+                ...gm,
+                'saved': base - moved,
+                'contributions': [
+                  ...(gm['contributions'] is List
+                      ? gm['contributions'] as List
+                      : const []),
+                  {
+                    'id': _genId('goalTx'),
+                    'amount': -moved,
+                    'date': date,
+                    'note': 'moved to another goal',
+                  },
+                ],
+              };
+            }()
+          else
+            g,
+      ];
+      // Nothing moved: return the ORIGINAL data, not afterFrom, which
+      // already carries a rewritten source with a zero history row. A no-op
+      // transfer must leave no fingerprints.
+      if (moved <= 0) return d;
+      // The destination must still EXIST before the deduction is kept: a
+      // goal deleted on another screen between opening the sheet and
+      // tapping Move would otherwise keep the minus and drop the plus,
+      // destroying tracked money. No destination, no transfer at all.
+      final toExists = afterFrom.any((g) => g is Map && g['id'] == toId);
+      if (!toExists) return d;
+      return {
+        ...d,
+        'goals': [
+          for (final g in afterFrom)
+            if (g is Map && g['id'] == toId)
+              () {
+                final gm = g.cast<String, dynamic>();
+                final cur = gm['saved'];
+                final base = cur is num
+                    ? cur.toDouble()
+                    : (cur is String ? (double.tryParse(cur) ?? 0) : 0.0);
+                return {
+                  ...gm,
+                  'saved': base + moved,
+                  'contributions': [
+                    ...(gm['contributions'] is List
+                        ? gm['contributions'] as List
+                        : const []),
+                    {
+                      'id': _genId('goalTx'),
+                      'amount': moved,
+                      'date': date,
+                      'note': 'moved from another goal',
+                    },
+                  ],
+                };
+              }()
+            else
+              g,
+        ],
+      };
+    });
+  }
 
   /// Update a goal's editable fields, preserving any others (unknown keys and
   /// a legacy shape survive the spread).
@@ -889,7 +1050,23 @@ class SalapifyStore extends ChangeNotifier {
                 if (target > 0 && base < target && saved >= target) {
                   reached = id;
                 }
-                return {...gm, 'saved': saved};
+                return {
+                  ...gm,
+                  'saved': saved,
+                  // The contribution history the detail screen shows. Dated
+                  // rows, additive, and preserved by backup like every other
+                  // unknown goal key; the saved math above is unchanged.
+                  'contributions': [
+                    ...(gm['contributions'] is List
+                        ? gm['contributions'] as List
+                        : const []),
+                    {
+                      'id': _genId('goalTx'),
+                      'amount': saved - base,
+                      'date': DateTime.now().toIso8601String().substring(0, 10),
+                    },
+                  ],
+                };
               }()
             else
               g,

@@ -17,6 +17,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/salapify_icon.dart';
 
 class CategoriesScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -125,10 +126,15 @@ class CategoriesScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                Text(
-                  '${row.cat['icon'] ?? '🏷️'}',
-                  style: const TextStyle(fontSize: 18),
-                ),
+                if ('${row.cat['icon'] ?? ''}'.isEmpty)
+                  // The display fallback is ours to style; a stored emoji is
+                  // the user's choice and renders untouched below.
+                  SalapifyGlyph('categories', size: 18, boxed: false)
+                else
+                  Text(
+                    '${row.cat['icon']}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -153,7 +159,7 @@ class CategoriesScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+                Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
               ],
             ),
           ),

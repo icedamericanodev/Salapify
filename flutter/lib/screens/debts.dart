@@ -19,6 +19,7 @@ import '../theme.dart';
 import '../widgets/celebration.dart';
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
+import '../widgets/salapify_icon.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, formatMoneyAbout;
 
@@ -107,7 +108,7 @@ class DebtsScreen extends StatelessWidget {
       floatingActionButton: store.canWrite
           ? FloatingActionButton.extended(
               onPressed: () => showDebtFormSheet(context, store),
-              icon: const Icon(Icons.add),
+              icon: Icon(salapifyIcon('add')),
               label: const Text(
                 'Add debt',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -706,7 +707,8 @@ class _DebtSheetState extends State<DebtSheet> {
                     ),
                     if (widget.store.canWrite) ...[
                       IconButton(
-                        icon: Icon(Icons.edit_outlined, color: Barako.muted),
+                        tooltip: 'Edit debt',
+                        icon: Icon(salapifyIcon('edit'), color: Barako.muted),
                         onPressed: busy
                             ? null
                             : () => showDebtFormSheet(
@@ -716,7 +718,8 @@ class _DebtSheetState extends State<DebtSheet> {
                               ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.delete_outline, color: Barako.muted),
+                        tooltip: 'Delete debt',
+                        icon: Icon(salapifyIcon('delete'), color: Barako.muted),
                         onPressed: busy ? null : () => _delete(d),
                       ),
                     ],

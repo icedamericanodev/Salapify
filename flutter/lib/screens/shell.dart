@@ -296,7 +296,7 @@ class _ShellScreenState extends State<ShellScreen> {
               backgroundColor: Barako.primary,
               foregroundColor: Barako.onPrimary,
               onPressed: () => showLogSheet(context, widget.store),
-              icon: const Icon(Icons.add),
+              icon: Icon(salapifyIcon('add')),
               label: Text('Log', style: TextStyle(fontWeight: FontWeight.w700)),
             )
           : null,

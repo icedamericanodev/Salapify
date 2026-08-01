@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/widgets/salapify_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/app_harness.dart';
@@ -79,7 +80,7 @@ void main() {
     await _openReports(tester);
 
     // Step back a month, so the number on screen is last month's.
-    await tester.tap(find.byIcon(Icons.chevron_left).first);
+    await tester.tap(find.byIcon(salapifyIcon('previous')).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Food').first);
     await tester.pumpAndSettle();

@@ -35,6 +35,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 /// One choice in a [Segmented].
 class SegmentOption<T> {
@@ -208,7 +209,7 @@ class Segmented<T> extends StatelessWidget {
                     // Excluded from semantics because the Semantics wrapper
                     // above already announces the selected state, and a screen
                     // reader saying "check, Dark, selected" is noise.
-                    Icon(Icons.check, size: 16, color: Barako.onPrimary),
+                    Icon(salapifyIcon('check'), size: 16, color: Barako.onPrimary),
                     const SizedBox(width: Gap.xs),
                   ] else
                     const SizedBox(width: _leadingSlot),

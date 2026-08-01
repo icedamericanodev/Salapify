@@ -12,6 +12,7 @@ import '../data/store.dart';
 import '../money/currencies.dart';
 import '../money/fxrates.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 const List<String> _mos = [
   'Jan',
@@ -161,7 +162,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
             Center(
               child: TextButton.icon(
                 onPressed: _swap,
-                icon: Icon(Icons.swap_vert, color: Barako.primary, size: 18),
+                icon: Icon(salapifyIcon('swap'), color: Barako.primary, size: 18),
                 label: Text(
                   'Swap',
                   style: TextStyle(

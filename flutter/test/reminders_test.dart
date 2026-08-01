@@ -518,6 +518,111 @@ void main() {
     });
   });
 
+  group('goal check-in', () {
+    Map<String, dynamic> goalData({
+      bool on = true,
+      bool paused = false,
+      String targetDate = '2026-12-01',
+      double saved = 1000,
+    }) => withNotifs(
+      {'goals': on},
+      extra: {
+        'goals': [
+          {
+            'id': 'g1',
+            'name': 'Pasko fund',
+            'target': 12000,
+            'saved': saved,
+            'targetDate': targetDate,
+            if (paused) 'paused': true,
+          },
+        ],
+      },
+    );
+
+    test('FIRES monthly for a dated active goal, generic title', () {
+      final rs = plannedReminders(
+        goalData(),
+        now,
+      ).where((r) => r.title == 'Goal check-in').toList();
+      expect(rs, hasLength(2), reason: 'the 1st of the next two months');
+      expect(rs.first.when, DateTime(2026, 8, 1, 10));
+      // The generic body names no goal, no amount, no date.
+      expect(rs.first.body.contains('Pasko'), isFalse);
+    });
+
+    test('the detailed body may name the goal, the title still never does', () {
+      final rs = plannedReminders(
+        goalData(),
+        now,
+        detailed: true,
+      ).where((r) => r.title == 'Goal check-in').toList();
+      expect(rs.first.body.contains('Pasko fund'), isTrue);
+      expect(rs.first.title.contains('Pasko'), isFalse);
+    });
+
+    test('SILENT when off, paused, undated, or already funded', () {
+      expect(
+        plannedReminders(
+          goalData(on: false),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
+        isEmpty,
+        reason: 'toggle off',
+      );
+      expect(
+        plannedReminders(
+          goalData(paused: true),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
+        isEmpty,
+        reason: 'paused goals owe nothing',
+      );
+      expect(
+        plannedReminders(
+          goalData(targetDate: ''),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
+        isEmpty,
+        reason: 'no deadline, no nag',
+      );
+      expect(
+        plannedReminders(
+          goalData(saved: 12000),
+          now,
+        ).where((r) => r.title == 'Goal check-in'),
+        isEmpty,
+        reason: 'a funded goal is finished, not nagged',
+      );
+    });
+
+    test('two goals at most, whatever the collection holds', () {
+      final data = withNotifs(
+        {'goals': true},
+        extra: {
+          'goals': [
+            for (var i = 0; i < 5; i++)
+              {
+                'id': 'g$i',
+                'name': 'Goal $i',
+                'target': 1000,
+                'saved': 0,
+                'targetDate': '2026-12-01',
+              },
+          ],
+        },
+      );
+      expect(
+        plannedReminders(
+          data,
+          now,
+        ).where((r) => r.title == 'Goal check-in').length,
+        4,
+        reason: 'two goals, two months each',
+      );
+    });
+  });
+
   test('junk data never throws', () {
     final data = {
       'settings': {

@@ -27,37 +27,38 @@ import 'package:shared_preferences/shared_preferences.dart';
 Widget _bar(double committed, double free) => MaterialApp(
   theme: salapifyTheme(Barako.current),
   home: Scaffold(
-    body: SpokenForBar(
-      committed: committed,
-      free: free,
-      format: formatMoney,
-    ),
+    body: SpokenForBar(committed: committed, free: free, format: formatMoney),
   ),
 );
 
 void main() {
   group('the engine carries both halves', () {
-    test('liquid rides along with available, from one safeToSpend call', () async {
-      SharedPreferences.setMockInitialValues({});
-      final store = SalapifyStore();
-      await store.load();
-      await store.addEntry({
-        'type': 'income',
-        'amount': 20000.0,
-        'date': DateTime.now().toIso8601String(),
-      });
+    test(
+      'liquid rides along with available, from one safeToSpend call',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final store = SalapifyStore();
+        await store.load();
+        await store.addEntry({
+          'type': 'income',
+          'amount': 20000.0,
+          'date': DateTime.now().toIso8601String(),
+        });
 
-      final s = cycleStatus(store.data, DateTime.now());
-      if (!s.show) return; // A state with no number to show; nothing to check.
-      expect(
-        s.liquid,
-        greaterThanOrEqualTo(s.available),
-        reason:
-            'Committed is liquid minus available, so liquid below available '
-            'would render a negative segment. If these ever come from two '
-            'different reads they can drift into exactly that.',
-      );
-    });
+        final s = cycleStatus(store.data, DateTime.now());
+        if (!s.show) {
+          return; // A state with no number to show; nothing to check.
+        }
+        expect(
+          s.liquid,
+          greaterThanOrEqualTo(s.available),
+          reason:
+              'Committed is liquid minus available, so liquid below available '
+              'would render a negative segment. If these ever come from two '
+              'different reads they can drift into exactly that.',
+        );
+      },
+    );
 
     test('a silent state defaults both to zero rather than to junk', () {
       const s = CycleStatus(show: false, reason: 'quiet');

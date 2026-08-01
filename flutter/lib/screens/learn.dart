@@ -314,7 +314,7 @@ class _LearnScreenState extends State<LearnScreen> {
             if (recommended) ...[
               Row(
                 children: [
-                  Icon(Icons.star_rounded, size: 15, color: Barako.primary),
+                  Icon(salapifyIcon('star'), size: 15, color: Barako.primary),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -496,10 +496,10 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             Icon(
               done
-                  ? Icons.check_circle
+                  ? salapifyIcon('selected')
                   : started
-                  ? Icons.pause_circle_outline
-                  : Icons.circle_outlined,
+                  ? salapifyIcon('paused')
+                  : salapifyIcon('unselected'),
               size: 18,
               color: done
                   ? Barako.primary
@@ -832,8 +832,8 @@ class _LessonReaderState extends State<_LessonReader> {
                     children: [
                       Icon(
                         answered && i == c.correctIndex
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
+                            ? salapifyIcon('selected')
+                            : salapifyIcon('unselected'),
                         size: 18,
                         color: answered && i == c.correctIndex
                             ? Barako.primary
@@ -897,7 +897,7 @@ class _LessonReaderState extends State<_LessonReader> {
       ? Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, size: 18, color: Barako.primary),
+            Icon(salapifyIcon('selected'), size: 18, color: Barako.primary),
             const SizedBox(width: 8),
             Flexible(
               child: Text(

@@ -162,13 +162,28 @@ class _MindsetScreenState extends State<MindsetScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              'Read this and more in Money courses ›',
-                              style: TextStyle(
-                                color: Barako.primaryText,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            // The go-deeper affordance is a real glyph now,
+                            // not a '›' typeset into the sentence.
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Read this and more in Money courses',
+                                    style: TextStyle(
+                                      color: Barako.primaryText,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(
+                                  salapifyIcon('forward'),
+                                  size: 16,
+                                  color: Barako.primaryText,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -319,7 +334,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
         child: Row(
           children: [
             Icon(
-              on ? Icons.check_box : Icons.check_box_outline_blank,
+              on ? salapifyIcon('checked') : salapifyIcon('unchecked'),
               color: on ? Barako.primary : Barako.muted,
               size: 22,
             ),
@@ -361,7 +376,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
             visualDensity: VisualDensity.standard,
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             tooltip: 'Delete win',
-            icon: Icon(Icons.close, color: Barako.faint),
+            icon: Icon(salapifyIcon('close'), color: Barako.faint),
           ),
         ],
       ),

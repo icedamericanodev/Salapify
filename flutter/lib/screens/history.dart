@@ -14,6 +14,7 @@ import '../theme.dart';
 import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
+import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney, prettyDay;
 import 'edit_sheet.dart' show showEntrySheet;
 
@@ -282,11 +283,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
               decoration: InputDecoration(
                 hintText: 'Filter entries, like jollibee or 1500',
                 hintStyle: TextStyle(color: Barako.faint),
-                prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
+                prefixIcon: Icon(salapifyIcon('search'), color: Barako.faint, size: 20),
                 suffixIcon: _query.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: Icon(Icons.close, color: Barako.muted, size: 18),
+                        icon: Icon(salapifyIcon('close'), color: Barako.muted, size: 18),
                         tooltip: 'Clear filter',
                         onPressed: () => setState(() => _query.clear()),
                       ),
@@ -476,7 +477,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           if (showSplitHint) ...[
             ExcludeSemantics(
-              child: Icon(Icons.call_split, size: 16, color: Barako.muted),
+              child: Icon(salapifyIcon('split'), size: 16, color: Barako.muted),
             ),
             const SizedBox(width: 10),
           ],
@@ -546,7 +547,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         // Palette-driven ink so the icon clears contrast on the warning
         // fill in every mood (white sat at 2.97:1 in the dark moods).
-        child: Icon(Icons.delete_outline, color: Barako.onPrimary),
+        child: Icon(salapifyIcon('delete'), color: Barako.onPrimary),
       ),
       confirmDismiss: (_) async {
         final messenger = ScaffoldMessenger.of(context);

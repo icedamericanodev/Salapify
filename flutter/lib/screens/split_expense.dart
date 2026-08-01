@@ -13,6 +13,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/splits.dart' as splits;
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
 
 /// Open the split sheet for a logged expense transaction. No-op if the txn is
 /// not a plain expense with a positive amount.
@@ -392,7 +393,7 @@ class _SplitSheetState extends State<_SplitSheet> {
           ),
           if (!p.isYou)
             IconButton(
-              icon: Icon(Icons.close, size: 20, color: Barako.faint),
+              icon: Icon(salapifyIcon('close'), size: 20, color: Barako.faint),
               tooltip: 'Remove ${p.name}',
               onPressed: () => setState(() {
                 p.custom.dispose();
@@ -418,7 +419,7 @@ class _SplitSheetState extends State<_SplitSheet> {
       ),
     ),
     child: p.included
-        ? Icon(Icons.check, size: 16, color: Barako.onPrimary)
+        ? Icon(salapifyIcon('check'), size: 16, color: Barako.onPrimary)
         : null,
   );
 

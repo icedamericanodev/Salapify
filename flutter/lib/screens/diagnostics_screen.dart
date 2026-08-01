@@ -24,6 +24,7 @@ import '../main.dart' show updateStamp;
 import '../services/diagnostics.dart';
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/salapify_icon.dart';
 
 class DiagnosticsScreen extends StatefulWidget {
   /// Optional so the screen renders in tests and on the base build; when
@@ -129,7 +130,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.build_outlined, color: Barako.primary, size: 20),
+                Icon(salapifyIcon('setup'), color: Barako.primary, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -241,12 +242,12 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             foregroundColor: Barako.onPrimary,
           ),
           onPressed: _copy,
-          icon: const Icon(Icons.copy, size: 18),
+          icon: Icon(salapifyIcon('copy'), size: 18),
           label: const Text('Copy safe report'),
         ),
         OutlinedButton.icon(
           onPressed: _share,
-          icon: const Icon(Icons.ios_share, size: 18),
+          icon: Icon(salapifyIcon('share'), size: 18),
           label: const Text('Share'),
         ),
         TextButton(

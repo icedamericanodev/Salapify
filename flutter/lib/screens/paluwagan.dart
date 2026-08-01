@@ -14,6 +14,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/paluwagan.dart' as eng;
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
 
 const List<String> _months = [
   'Jan',
@@ -119,7 +120,7 @@ class PaluwaganScreen extends StatelessWidget {
     padding: const EdgeInsets.only(top: 24),
     child: Column(
       children: [
-        Icon(Icons.groups_outlined, color: Barako.faint, size: 40),
+        Icon(salapifyIcon('group'), color: Barako.faint, size: 40),
         const SizedBox(height: 10),
         Text(
           'No paluwagan yet',
@@ -144,7 +145,7 @@ class PaluwaganScreen extends StatelessWidget {
             foregroundColor: Barako.onPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
-          icon: const Icon(Icons.add, size: 18),
+          icon: Icon(salapifyIcon('add'), size: 18),
           label: const Text(
             'Add your first paluwagan',
             style: TextStyle(fontWeight: FontWeight.w700),
@@ -211,7 +212,7 @@ class _PaluwaganCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          Icons.groups_outlined,
+                          salapifyIcon('group'),
                           color: Barako.primaryText,
                           size: 20,
                         ),
@@ -259,7 +260,7 @@ class _PaluwaganCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     if (behind && !done)
                       _note(
-                        Icons.error_outline,
+                        salapifyIcon('error'),
                         'Behind by ${formatMoneyText(behindBy)}. Catch up your '
                         'contributions so the group stays whole.',
                         Barako.warningStrong,
@@ -378,14 +379,14 @@ class _PaluwaganCard extends StatelessWidget {
   Widget _dealRead(String dealType, bool done, bool received) {
     if (done) {
       return _note(
-        Icons.check_circle_outline,
+        salapifyIcon('done'),
         'This round is finished. Everyone paid in and took out once.',
         Barako.primaryText,
       );
     }
     if (received) {
       return _note(
-        Icons.check_circle_outline,
+        salapifyIcon('done'),
         'You already collected the pot. Keep paying your contribution until the '
         'round finishes so the group stays whole.',
         Barako.primaryText,
@@ -394,21 +395,21 @@ class _PaluwaganCard extends StatelessWidget {
     switch (dealType) {
       case 'early':
         return _note(
-          Icons.trending_up,
+          salapifyIcon('growth'),
           'Early turn: like a 0% loan from the group. You get the pot now '
           'and pay it back over the rest of the round. Set the contribution aside.',
           Barako.primaryText,
         );
       case 'late':
         return _note(
-          Icons.savings_outlined,
+          salapifyIcon('savings'),
           'Late turn: 0% forced savings. You pay in first and collect a lump '
           'sum later. Great if you struggle to save on your own.',
           Barako.primaryText,
         );
       default:
         return _note(
-          Icons.balance,
+          salapifyIcon('balance'),
           'Middle turn: roughly even, no strong loan or savings tilt.',
           Barako.muted,
         );
@@ -824,7 +825,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
             child: Row(
               children: [
                 Icon(
-                  Icons.calendar_today_outlined,
+                  salapifyIcon('calendarDay'),
                   size: 16,
                   color: Barako.muted,
                 ),

@@ -25,6 +25,7 @@ import '../widgets/screen_header.dart';
 import '../widgets/segmented.dart';
 import 'debts.dart';
 import 'utang.dart';
+import '../widgets/salapify_icon.dart';
 
 /// The two directions of owing.
 enum MoneySegment { owe, owed }
@@ -92,7 +93,7 @@ class MoneyScreenState extends State<MoneyScreen> {
                       ? FilledButton.icon(
                           onPressed: () =>
                               showDebtFormSheet(context, widget.store),
-                          icon: const Icon(Icons.add, size: 18),
+                          icon: Icon(salapifyIcon('add'), size: 18),
                           label: const Text('New'),
                           style: FilledButton.styleFrom(
                             backgroundColor: Barako.primary,

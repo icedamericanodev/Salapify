@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 
 import '../content/lesson_blocks.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 /// Fade and rise, once, on first build. Stagger is capped so a long lesson
 /// never makes the last card arrive noticeably late.
@@ -96,7 +97,7 @@ class InsightView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            personalized ? Icons.auto_awesome : Icons.lock_clock_outlined,
+            personalized ? salapifyIcon('sparkle') : salapifyIcon('autoLock'),
             size: 16,
             color: personalized ? Barako.primary : Barako.faint,
           ),
@@ -164,7 +165,7 @@ class NuggetsView extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.check, size: 16, color: Barako.primary),
+              Icon(salapifyIcon('check'), size: 16, color: Barako.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -320,7 +321,7 @@ class DiagramView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Icon(
-              Icons.keyboard_arrow_down,
+              salapifyIcon('expand'),
               size: 18,
               color: Barako.faint,
             ),
@@ -403,7 +404,7 @@ class ChallengeView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.bolt_outlined, size: 16, color: Barako.primary),
+            Icon(salapifyIcon('quick'), size: 16, color: Barako.primary),
             const SizedBox(width: 6),
             Flexible(
               child: Text('ONE MINUTE CHALLENGE', style: Barako.kickerStyle),

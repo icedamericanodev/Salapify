@@ -520,8 +520,11 @@ Map<String, dynamic>? pickWin(Map<String, dynamic>? data, DateTime ref) {
     }
   }
   if (best != null) {
+    // No emoji in authored copy. A deliberate divergence from the RN line;
+    // the golden row was updated with it, because the golden records what we
+    // SHIP, and what we ship changed on purpose.
     return best.pct >= 1
-        ? {'text': '${best.name} is fully funded. 🎉'}
+        ? {'text': '${best.name} is fully funded.'}
         : {
             'text':
                 'Almost there: ${best.name} is ${_jsRound(best.pct * 100).toInt()}% funded.',

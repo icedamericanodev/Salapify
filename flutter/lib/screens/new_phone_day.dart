@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import 'overview.dart' show ImportScreen;
 
 class NewPhoneDayScreen extends StatefulWidget {
@@ -160,7 +161,7 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
-                      Icons.verified_user_outlined,
+                      salapifyIcon('protected'),
                       color: Barako.primary,
                       size: 20,
                     ),

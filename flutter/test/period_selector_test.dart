@@ -14,6 +14,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/money/period.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/widgets/period_selector.dart';
+import 'package:salapify/widgets/salapify_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 DateTime _now() => DateTime(2026, 7, 28);
@@ -173,7 +174,7 @@ void main() {
     await _openHistory(tester);
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.chevron_left));
+    await tester.tap(find.widgetWithIcon(IconButton, salapifyIcon('previous')));
     await tester.pumpAndSettle();
     expect(find.text('June 2026'), findsOneWidget);
     expect(_row('LastMonth'), findsOneWidget);
@@ -186,11 +187,11 @@ void main() {
     // it.
     await _mountSelector(tester, Period.monthOf(_now()));
     expect(
-      _stepButton(tester, Icons.chevron_right).onPressed,
+      _stepButton(tester, salapifyIcon('forward')).onPressed,
       isNull,
       reason: 'no stepping into an empty future',
     );
-    expect(_stepButton(tester, Icons.chevron_left).onPressed, isNotNull);
+    expect(_stepButton(tester, salapifyIcon('previous')).onPressed, isNotNull);
   });
 
   testWidgets('the forward step comes alive once you are in the past', (
@@ -198,7 +199,7 @@ void main() {
   ) async {
     // The half that proves the guard is a guard and not just an off switch.
     await _mountSelector(tester, const Period.month('2026-06'));
-    expect(_stepButton(tester, Icons.chevron_right).onPressed, isNotNull);
+    expect(_stepButton(tester, salapifyIcon('forward')).onPressed, isNotNull);
   });
 
   testWidgets('Custom opens showing everything, not nothing', (tester) async {
@@ -243,7 +244,7 @@ void main() {
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.chevron_left));
+      await tester.tap(find.widgetWithIcon(IconButton, salapifyIcon('previous')));
       await tester.pumpAndSettle();
     }
     expect(find.text('No entries match'), findsOneWidget);
@@ -305,7 +306,7 @@ void main() {
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
     expect(
-      _stepButton(tester, Icons.chevron_right).onPressed,
+      _stepButton(tester, salapifyIcon('forward')).onPressed,
       isNull,
       reason: 'nothing ahead, so the stop stays',
     );
@@ -337,7 +338,7 @@ void main() {
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
     expect(
-      _stepButton(tester, Icons.chevron_right).onPressed,
+      _stepButton(tester, salapifyIcon('forward')).onPressed,
       isNotNull,
       reason: 'there is data ahead, so the stop moves out to it',
     );

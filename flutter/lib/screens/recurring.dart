@@ -12,6 +12,7 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
 
 // Free plan keeps up to five recurring items; Pro is unlimited.
 const int freeLimit = 5;
@@ -135,7 +136,7 @@ class RecurringScreen extends StatelessWidget {
     padding: const EdgeInsets.only(top: 24),
     child: Column(
       children: [
-        Icon(Icons.event_repeat_outlined, color: Barako.faint, size: 40),
+        Icon(salapifyIcon('recurringDate'), color: Barako.faint, size: 40),
         const SizedBox(height: 10),
         Text(
           'No recurring items yet',
@@ -159,7 +160,7 @@ class RecurringScreen extends StatelessWidget {
             foregroundColor: Barako.onPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
-          icon: const Icon(Icons.add, size: 18),
+          icon: Icon(salapifyIcon('add'), size: 18),
           label: const Text(
             'Add your first recurring item',
             style: TextStyle(fontWeight: FontWeight.w700),
@@ -193,7 +194,7 @@ class RecurringScreen extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    isIncome ? Icons.south_west : Icons.north_east,
+                    isIncome ? salapifyIcon('incoming') : salapifyIcon('outgoing'),
                     color: isIncome ? Barako.primaryText : Barako.warningStrong,
                     size: 20,
                   ),

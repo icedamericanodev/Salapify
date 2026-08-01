@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/notecalc.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
 
 class NotesScreen extends StatelessWidget {
@@ -50,7 +51,7 @@ class NotesScreen extends StatelessWidget {
           floatingActionButton: store.canWrite
               ? FloatingActionButton.extended(
                   onPressed: () => _openNew(context),
-                  icon: const Icon(Icons.add),
+                  icon: Icon(salapifyIcon('add')),
                   label: const Text(
                     'New note',
                     style: TextStyle(fontWeight: FontWeight.w700),
@@ -345,7 +346,8 @@ class _NoteEditorState extends State<NoteEditor> {
           backgroundColor: Barako.background,
           foregroundColor: Barako.text,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back',
+            icon: Icon(salapifyIcon('back')),
             onPressed: _close,
           ),
           title: Text(
@@ -354,7 +356,8 @@ class _NoteEditorState extends State<NoteEditor> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.delete_outline, color: Barako.muted),
+              tooltip: 'Delete note',
+              icon: Icon(salapifyIcon('delete'), color: Barako.muted),
               onPressed: _delete,
             ),
           ],

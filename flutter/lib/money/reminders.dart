@@ -291,6 +291,44 @@ List<PlannedReminder> plannedReminders(
     }
   }
 
+  if (on['goals'] == true) {
+    // A gentle monthly check-in for the goals the user is actively saving
+    // toward: dated (deadline set), not paused, not finished. Up to TWO
+    // goals so a collector of goals is not spammed, on the 1st at 10:00 for
+    // the next two months (the same shape as the backup nudge, and equally
+    // cap-friendly). The generic title carries no goal name or amount, per
+    // the lock-screen rule; the detailed body may.
+    final activeDated = <Map<String, dynamic>>[];
+    for (final raw
+        in (data['goals'] is List ? data['goals'] as List : const [])) {
+      if (raw is! Map) continue;
+      final g = raw.cast<String, dynamic>();
+      if (g['paused'] == true) continue;
+      final target = amountOf(g['target']);
+      final saved = amountOf(g['saved']);
+      if (!(target > 0) || saved >= target) continue;
+      if ((g['targetDate'] ?? '').toString().isEmpty) continue;
+      activeDated.add(g);
+    }
+    for (final g in activeDated.take(2)) {
+      final name = (g['name'] ?? 'a goal').toString();
+      // The 1st of the NEXT two months: this month's 1st is already behind
+      // us for most of the month, and add() would drop it anyway.
+      for (var i = 1; i <= 2; i++) {
+        final d = DateTime(now.year, now.month + i, 1, 10);
+        add(
+          'Goal check-in',
+          detailed
+              ? 'A small add to $name this month keeps the plan honest. '
+                    'Whatever fits is enough.'
+              : 'One of your goals could use a small add this month. '
+                    'Whatever fits is enough.',
+          d,
+        );
+      }
+    }
+  }
+
   if (on['lookahead'] == true) {
     // One heads up, the evening before the conservative projection first
     // dips below zero in the next 14 days. Conservative line only, never the

@@ -16,6 +16,7 @@ import '../money/schedule.dart' show daysUntilPayday;
 import '../money/treats.dart' as treats;
 import '../screens/treats.dart' show TreatsScreen;
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 class TreatCard extends StatelessWidget {
   final SalapifyStore store;
@@ -84,7 +85,7 @@ class TreatCard extends StatelessWidget {
                   ),
                   ExcludeSemantics(
                     child: Icon(
-                      Icons.chevron_right,
+                      salapifyIcon('forward'),
                       size: 18,
                       color: Barako.muted,
                     ),
@@ -172,7 +173,7 @@ class TreatCard extends StatelessWidget {
                     else
                       ExcludeSemantics(
                         child: Icon(
-                          Icons.chevron_right,
+                          salapifyIcon('forward'),
                           size: 18,
                           color: Barako.muted,
                         ),
@@ -184,10 +185,13 @@ class TreatCard extends StatelessWidget {
             const SizedBox(height: Gap.sm),
             Row(
               children: [
-                Text(
-                  (pick['emoji'] ?? '☕').toString(),
-                  style: const TextStyle(fontSize: 24),
-                ),
+                if ((pick['emoji'] ?? '').toString().isEmpty)
+                  SalapifyGlyph('treat', size: 22, boxed: false)
+                else
+                  Text(
+                    (pick['emoji'] ?? '').toString(),
+                    style: const TextStyle(fontSize: 24),
+                  ),
                 const SizedBox(width: Gap.sm),
                 Expanded(
                   child: Text(
@@ -246,7 +250,7 @@ class TreatCard extends StatelessWidget {
                         onPressed: () => store.toggleTreatCheckIn(
                           (pick!['id'] ?? '').toString(),
                         ),
-                        icon: const Icon(Icons.check_circle, size: 18),
+                        icon: Icon(salapifyIcon('selected'), size: 18),
                         label: const Text('Done for today, tap to undo'),
                         style: FilledButton.styleFrom(
                           backgroundColor: Barako.primary,
@@ -258,7 +262,7 @@ class TreatCard extends StatelessWidget {
                         onPressed: () => store.toggleTreatCheckIn(
                           (pick!['id'] ?? '').toString(),
                         ),
-                        icon: const Icon(Icons.circle_outlined, size: 18),
+                        icon: Icon(salapifyIcon('unselected'), size: 18),
                         label: const Text('I did it today'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Barako.primaryText,

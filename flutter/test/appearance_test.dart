@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/salapify_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The largest single channel gap between two colors, 0 to 255.
@@ -192,7 +193,7 @@ void main() {
       // Exactly one check badge, and it belongs to the selected theme. A ring
       // in the accent colour is not enough on its own: it is invisible to a
       // colourblind user, and this is a screen made entirely of colour.
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+      expect(find.byIcon(salapifyIcon('chosen')), findsOneWidget);
 
       // ThemeTile's own root Semantics, not whichever ancestor happens to be
       // outermost. Semantics is the first thing its build returns.

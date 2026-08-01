@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.16 \u00b7 Pan can now hold one standing plan: make it from a debt or goal answer, see it, change it, drop it.';
+    'f3.17 \u00b7 Goals rebuilt with plans, templates and a what if, plus one icon system across the whole app.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

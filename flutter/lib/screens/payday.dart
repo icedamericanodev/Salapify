@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 const List<String> _weekdayNames = [
   'Sunday',
@@ -312,8 +313,8 @@ class _PaydayScreenState extends State<PaydayScreen> {
                   children: [
                     Icon(
                       selected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
+                          ? salapifyIcon('selected')
+                          : salapifyIcon('unselected'),
                       color: selected ? Barako.primary : Barako.faint,
                       size: 20,
                     ),
