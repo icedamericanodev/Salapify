@@ -4,6 +4,14 @@ Sprint 1, 2026-07-10. The epic level backlog for the next 6 to 12 months.
 Priorities: P0 (first), P1 (soon), P2 (planned), P3 (later). Complexity: S,
 M, L, XL as elsewhere. Week by week sequencing lives in Sprint_Plan.md.
 
+Vision context: docs/Product_Vision_Spec.md (2026-08-01) answers the
+founder's full cloud-and-coach brief and triages every idea in it as
+buildable-now, native-later, or cloud-pivot-only. Ideas from that spec map
+onto these epics; this backlog stays the authority on priority and order.
+The founder's standing decision recorded there: the live app stays
+offline-first and no-account; nothing cloud ships without a separate
+decision.
+
 Standing definition of done, inherited by every epic unless extended: code
 compiles under the Expo Babel preset; the jest suite passes locally and in
 CI; a QA pass ran on the changed code with every must fix fixed and
