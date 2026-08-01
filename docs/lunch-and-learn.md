@@ -10,6 +10,238 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-01, session 29: one clean delivery, three gates with disjoint catches, and a test that knew more than its own comment
+
+**What we believed / What was true.** We believed Pan With a Plan would ship
+as f3.16 in one merge, and the delivery log says it did:
+`| 2026-08-01 12:00 UTC | f3.16 | 11 | patch | 0.9.0+15 | 2f5a81bc |`,
+patch 11, a Shorebird patch over the air on the f3.06 base APK, no manual
+install. One honest caveat before anything else: the founder asked for this
+retrospective right after the delivery report and has NOT yet confirmed the
+f3.16 stamp on the phone. This session's ground truth is therefore the
+delivery row, which the publisher writes only after it actually ships, the
+best available evidence short of the phone itself. The phone check is still
+owed, and it stays in the open lessons below. Patch numbers ran 10 then 11
+with nothing between, so no unrecorded patch slipped through. Every delivery
+guard held: unique stamp, qa-log row f3.16 present before the merge
+(docs/qa-log.md), Flutter check green on a real runner, merge commit 2f5a81b
+(PR #290), publisher wrote the row itself. Earlier the same day PR #289 (the
+session 28 retro plus the pipefail hook) merged touching only
+.claude/hooks/guard-destructive-edits.sh, CLAUDE.md, and
+docs/lunch-and-learn.md, no flutter/ path, so it correctly published nothing.
+That is the session 25 lesson applied right: the "ships nothing" claim was
+made from the merge's file paths, not from a belief.
+
+There is no delivery gap to explain. The session's material is what happened
+before the merge: one wrong test vector caught by its own red run, one
+fixture that shared its author's wrong guess with the code it tested, one
+finder satisfied by the wrong widget, one near-miss between two actors
+proving failures in the same tree, and three parallel QA gates that each
+found a real, disjoint bug.
+
+Plain terms used below. A "fixture" is the pretend saved data a test builds
+so a screen has something to show. A "finder" is the line in a widget test
+that locates a piece of text or a control on the simulated screen. The
+"resolver" is the routing table that decides which kind of question the Pan
+chat was asked; its "discriminator" is the one field naming that kind.
+"Prove-fail" is the standing rule that a new test must be shown to go red
+against deliberately broken code before it is trusted.
+
+**Timeline (with evidence).**
+- The feature, engine first. Commit f7e14fd built money/plan.dart with
+  sixteen edge-first vectors, the Jan 31 month-clamp vector FIRST per
+  session 28's convention (flutter/test/plan_test.dart line 12), prove-fail
+  done on the clamp. Then the Pan intent wiring with an empty any-list so no
+  old routing was stolen (goldens replayed green), then the screen. Merged
+  as 2f5a81b, shipped as patch 11.
+- A vector was wrong on first write, and the test caught its own author. The
+  "how is my plan" widget test first used startDate 2020-01-15 with 8000
+  paid in, and its comment said "far past the pace". At 1000 a month, 79
+  elapsed months means far BEHIND, the exact opposite. The comment carried a
+  wrong mental model; the failing run corrected it, not any reading of the
+  comment. Fixed with a relative date about three periods back, with the
+  arithmetic stated where the belief used to be
+  (flutter/test/plan_card_test.dart lines 199 to 207).
+- qa-tester's catch one, a permanent data trap. A near-complete goal
+  produced a "Make it a plan: P0 monthly" chip because the greater-than-zero
+  bound ran before rounding, and accepting stored a plan the shape-checker
+  rejects: no card, no Drop button, and the raw-getter offer guard then
+  blocked every future offer, surviving backup export. Fixed by rounding
+  before the bound and switching the guard to activePlanOf, proven
+  fail-first (the disabled guard reddened exactly the zero-offer vector,
+  amount 0.0 stored). Recorded in the qa-log f3.16 row.
+- qa-tester's catch two, a dead branch defended by its own fixture. The goal
+  offer read a field named dueDate. Goals never store that field; the
+  writer, store.addGoal, writes targetDate (flutter/lib/data/store.dart
+  line 829). The deadline branch was dead code, and it passed its test
+  because the FIXTURE used the same wrong field name as the code, both
+  copied from the same guess. This is the exact passing-for-the-wrong-reason
+  failure mode CLAUDE.md warns about, in fixture form. Fixed by deriving
+  from goalPace over targetDate, fixture corrected, month-only and
+  behind-goal vectors added.
+- flutter-ux-craftsman's catches. The plan card violated the feature's own
+  trust rule: amount, cadence, and start date were invisible in every
+  ongoing state, on a card whose entire premise is that Pan shows everything
+  he remembers. Fixed with an always-visible facts line. The edit sheet's
+  error SnackBar drew behind the modal barrier so Save looked dead; replaced
+  with inline errorText. And Drop erased startDate and startLevel, which no
+  remake restores, with no confirmation; now behind a one-line confirm.
+- journey-tester's catch, a real routing bug the single-screen test had
+  waved through. With a standing plan, "how is my plan" got the fallback
+  reply, because the resolver spread planStatus last and its own kind (debt
+  or goal) overwrote the 'plan' discriminator, so respond() missed its plan
+  case. The single-screen test had passed because the CARD behind the chat
+  carried the expected text and the finder accepted it in place of the
+  REPLY. Failure line, quoted from commit 928a3e1: Found 1 widget with text
+  "I did not catch that one." / "Pan answered 'how is my plan' with the
+  fallback while a plan stands". Fixed by pinning kind after the spread; the
+  tests now demand the engine's own planLine appear exactly TWICE, card and
+  reply, assert the fallback absent BY NAME, and require the line to contain
+  the paid amount so agreement on empty sentences cannot pass
+  (flutter/test/journeys_test.dart lines 1160 to 1181,
+  flutter/test/plan_card_test.dart line 231).
+- The near-miss between two actors. While journey-tester was mid prove-fail,
+  its deliberate multiply-by-0.9 break sitting in planStatus while it waited
+  for its red run, the main session ran the FULL suite in the same tree and
+  watched the journey fail. The main session recognized the break as the
+  agent's and did not touch it; the agent restored it after its run
+  reported, per the rule. But the rule as written speaks to ONE actor about
+  its OWN break. It says nothing to a second actor who finds a break it did
+  not make. A helpful "fix" of the 0.9 while the agent's run was still
+  compiling would have made that run compile the fixed code and print a
+  false pass, the exact outcome the rule exists to prevent, produced by
+  following no rule at all.
+- A Flutter mechanics bug on first write. Disposing the edit sheet's text
+  controller right after the pop crashed the sheet's exit animation, because
+  the framework builds the closing sheet one more time on the way out. Fixed
+  by making the sheet a real StatefulWidget whose State owns and disposes
+  the controller (flutter/lib/screens/pan.dart lines 794 to 819, with a
+  comment naming why). The widget tests that pump the sheet closed now
+  exercise that path on every run.
+- The shot asserts its view. The new pan-plan shot asserts OUR PLAN is in
+  frame before capturing (flutter/test/screens_shot.dart lines 1359 to
+  1363), which closes session 28's open sharpening for this screen. The
+  original 60-day cashflow shot still captures with no such assertion after
+  its tap (lines 2073 to 2081), so that half stays open, now narrowed to one
+  named shot.
+- Follow-ups, verified rather than trusted. Of the follow-ups this session
+  named, exactly ONE is written down: the pinned compact plan card, in the
+  qa-log f3.16 row ("not silently dropped"). Five others existed only in
+  conversation: goal-kind and repace-then-pay journeys, the plan-done
+  milestone interplay, a coach plan nudge kind, milestone plan checkpoints,
+  and horizon persistence. They are recorded here so this entry is now the
+  record; a follow-up that lives in nobody's file is a follow-up that
+  already happened to someone else.
+
+**Root cause.** For the wrong vector and the wrong fixture, one cause
+wearing two costumes: a hand-written belief (a comment's "far past the
+pace", a fixture's dueDate) has no machine against it unless something
+independent computes the truth. The vector was saved because the engine
+disagreed with the comment's arithmetic and the run went red. The fixture
+had no such savior, because the code under test shared the same belief, so
+agreement was guaranteed; only reading the WRITER's code (store.addGoal)
+broke the loop. For the finder, "find this text anywhere on screen" is
+satisfied by any surface showing it, and the busier the screen the more
+surfaces there are, so the assertion is weakest exactly when the screen is
+fullest. For the near-miss, the prove-fail rule was scoped to one actor
+because one actor is who it was written for, and nothing in a shared
+working tree records whose uncommitted break is whose.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A test's comment is a belief; only its red run is a fact. The vector
+   whose comment said ahead while its data said behind was corrected by
+   failing, not by being read, and the fix that lasts is making the
+   assertion computed rather than transcribed. **Guard: the journey computes
+   planLine from the engine over the live store and demands the screen match
+   it, with a directional companion (the line must contain the paid amount)
+   so two empty sentences cannot agree their way to green
+   (journeys_test.dart lines 1145 to 1181); the widget vector now uses a
+   relative date with its arithmetic shown (plan_card_test.dart lines 199 to
+   207).** Strength: strong for these tests. The general convention, assert
+   computed truth rather than transcribed truth, is medium, a sentence that
+   depends on being read.
+
+2. A fixture is a second implementation of the data schema, and one written
+   from memory can share the code's wrong guess and then defend it forever.
+   The dueDate fixture passed a dead branch precisely because fixture and
+   code were wrong TOGETHER. **Guard: for plans this is already a machine,
+   activePlanOf is the sole shape-checker and junk reads as no plan
+   everywhere, so a malformed plan fixture cannot quietly pass. For goals
+   and the other user-data shapes the guard is named but NOT built: build
+   fixtures through the writer (store.addGoal and kin) instead of raw maps,
+   or add a shape test that constructs one of each entity via its writer and
+   asserts fixture keys against that canonical shape.** Strength: the plan
+   half is strong; the general half is currently only this entry, which is
+   to say weak, and it is listed under open lessons until a machine exists.
+
+3. A finder that accepts the text anywhere passes hardest when the screen is
+   busiest, because the more surfaces show related text, the more wrong
+   widgets can satisfy it. The routing bug hid behind the card while the
+   reply was broken. **Guard: the three-part pattern now in the tests: exact
+   count (findsNWidgets(2), one per surface that must agree), the failure
+   text asserted absent BY NAME (the fallback sentence, findsNothing), and a
+   directional companion on the content. plan_card_test.dart line 231
+   carries the comment naming the miss so the pattern explains itself to the
+   next reader.** Strength: strong where written. As a general rule for
+   future two-surface screens it is medium, and it belongs in the
+   journey-tester agent's discipline; noted here for the next time that file
+   is edited.
+
+4. A deliberate break you did not make is not yours to fix. The prove-fail
+   rule needs its second clause: in a shared tree, a red test may be another
+   actor's proof in flight, so before fixing a surprising failure, check
+   whether an agent is mid prove-fail and ask the actor, and keep the
+   session 28 habit of disjoint file ownership per agent. **Guard: this
+   clause, a rule.** Strength: weak to medium, stated honestly: nothing in
+   the repository can observe whose uncommitted edit a break is, the same
+   reason the original prove-fail ordering rule is a rule and not a machine.
+   The near-miss cost nothing this time because the one actor who could have
+   broken it happened to know; the clause exists so the next actor does not
+   have to happen to know.
+
+5. Three parallel gates finding three disjoint real bugs is the process
+   WORKING, and it is recorded as a positive result. qa-tester found what
+   only reading the engine against the data shapes could find (the trap and
+   the dead branch), flutter-ux-craftsman found what only looking finds (the
+   trust rule broken on screen, the buried SnackBar, the unguarded Drop),
+   and journey-tester found what only crossing screens finds (the routing
+   bug). None of the three could have made another's catch. **Guard: the
+   standing three-lens gate itself, already enforced by the qa-log row
+   requirement (flutter/test/qa_record_test.dart fails the runner when the
+   stamp has no row).** Strength: strong, and already in place; this lesson
+   is a confirmation, not a change.
+
+**Open lessons carried forward.**
+- NEW: founder phone confirmation of f3.16 is pending. If the phone shows
+  anything other than f3.16 patch 11, that finding outranks everything
+  above.
+- NEW: the fixture-through-the-writer guard for goals and other user-data
+  shapes (lesson 2), a machine not yet built; until it exists, hand fixtures
+  for goals are checked only by review.
+- NEW, small: the five unrecorded follow-ups are now recorded in the
+  timeline above; the next session should check whether any moved from this
+  entry into the backlog or a test.
+- Narrowed from session 28: the shot-asserts-its-view sharpening is done for
+  the pan-plan shot and still missing on the 60-day cashflow shot
+  (screens_shot.dart lines 2073 to 2081).
+- Guards from earlier sessions re-checked and standing: the pipefail hook
+  rule 3 is present (.claude/hooks/guard-destructive-edits.sh lines 139 to
+  159), the weekend-due vector holds in timeline_test.dart, _hasAnyData is
+  shared by both reminder gates in reminders.dart, and
+  check-stamp-unique.sh plus both Flutter workflows exist with the triggers
+  CLAUDE.md claims (claude/** plus pull_request for the check; main with
+  flutter/** paths for the publisher).
+- CLAUDE.md factual claims exercised this batch all matched: every named
+  path exists (qa_record_test.dart, update_stamp_test.dart,
+  salapify_icon.dart, test/golden/ui_golden.dart, the five skills including
+  writing-skills, the journey-tester and lunch-and-learn agent files), the
+  delivery three-command read produced the real f3.16 row, and the stamp in
+  flutter/lib/main.dart line 34 is f3.16, matching that row. Not every
+  claim was re-audited; the exercised ones held.
+
+---
+
 ## 2026-08-01, session 28: a clean delivery, three gates that earned their keep, and an exit code that lied
 
 **What we believed / What was true.** We believed the Sweldo Timeline, the
