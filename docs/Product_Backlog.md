@@ -251,9 +251,10 @@ Acceptance criteria:
   view; nothing transmits.
 - Shared reminder and statement texts carry the attribution line with a
   visible setting to disable it.
-- Lapsed notification cadence: normal days 1 to 3, one comeback message
-  day 7, then silence until next open; tested against the scheduling
-  logic.
+- Lapsed notification cadence (shipped f3.14): comeback pings on days 2, 4,
+  7, and 14 after the last app open, or day 14 only when the daily nudge is
+  on so it never double-pings; silent for active users because a reopen
+  re-arms it; tested against the scheduling logic.
 - Store listing has seasonal variants prepared for November and Q1.
 Definition of done: standing definition plus: the aso-marketer and
 legal-compliance agents review listing copy changes; no new notification
