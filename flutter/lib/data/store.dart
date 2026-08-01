@@ -1140,6 +1140,36 @@ class SalapifyStore extends ChangeNotifier {
     };
   });
 
+  /// The standing plan Pan holds the user to (settings.activePlan). One at
+  /// a time, fully visible on the plan card, erased by Start fresh with the
+  /// rest of settings. Stored as a plain map so the backup preserves it with
+  /// no migration; money/plan.dart owns the shape check.
+  Map<String, dynamic>? get activePlan {
+    final s = data['settings'];
+    final p = s is Map ? s['activePlan'] : null;
+    return p is Map ? p.cast<String, dynamic>() : null;
+  }
+
+  Future<void> setActivePlan(Map<String, dynamic> plan) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'activePlan': plan,
+      },
+    },
+  );
+
+  Future<void> clearActivePlan() => _mutate((d) {
+    // Copy, never cast-and-remove: cast returns a VIEW of d['settings'],
+    // and removing through it would mutate the rollback snapshot _mutate
+    // holds, so a failed save would "roll back" to a state that already
+    // lost the plan. Every sibling writer here spreads; so does this.
+    final s = Map<String, dynamic>.from((d['settings'] as Map?) ?? const {});
+    s.remove('activePlan');
+    return {...d, 'settings': s};
+  });
+
   /// The saved what-if scenarios the Sweldo Timeline overlays
   /// (settings.timelineScenarios). Stored as plain maps so the backup
   /// preserves them with no migration; the engine ignores junk shapes.

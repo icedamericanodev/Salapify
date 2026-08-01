@@ -47,6 +47,7 @@ import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
@@ -247,6 +248,22 @@ final Map<String, dynamic> livedInBlob = () {
       // CONVERTED state and the sentence that owns up to where the rate came
       // from, rather than only the excluded one.
       'manualRates': {'USD': 56.5},
+      // A standing plan Pan holds, so the Pan screen renders the plan card
+      // and not only the first-ask state. Relative start on purpose: 75 days
+      // back is always exactly two completed monthly periods (a third needs
+      // about 90), so with the card at 12480.40 the actual is 4019.60 against
+      // an expected 3000, inside one period of pace, onTrack every day of
+      // the year. An absolute date here would drift through ahead, onTrack
+      // and behind as the calendar moved.
+      'activePlan': {
+        'kind': 'debt',
+        'targetId': 'card',
+        'label': 'Extra to BPI card',
+        'amount': 1500,
+        'cadence': 'monthly',
+        'startDate': ago(75),
+        'startLevel': 16500,
+      },
     },
     'accounts': [
       {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 2340},
@@ -1310,6 +1327,43 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/pan-moods-dark.png'),
+    );
+  });
+
+  testWidgets('Pan with a standing plan, dark', (tester) async {
+    // The plan card is the trust surface of Pan With a Plan: everything Pan
+    // "remembers" must be on it. The lived-in fixture carries a standing
+    // debt plan, and the shot ASSERTS the card is in view before capturing,
+    // per the session 28 lesson: a shot that does not prove it shows what it
+    // claims can silently photograph the wrong state.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: PanScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('OUR PLAN'),
+      findsOneWidget,
+      reason: 'the plan card must be in the frame this shot claims to show',
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/pan-plan-dark.png'),
     );
   });
 

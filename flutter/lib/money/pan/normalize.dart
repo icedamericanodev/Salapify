@@ -37,6 +37,7 @@ const Map<String, String> _synonyms = {
   'sweldo': 'payday',
   'suweldo': 'payday',
   'sahod': 'payday',
+  'plano': 'plan',
   'kinsenas': 'payday',
   'katapusan': 'payday',
   'gastos': 'spending',

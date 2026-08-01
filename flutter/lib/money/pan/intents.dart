@@ -313,6 +313,34 @@ const List<Intent> intents = [
     examples: ['When is my next payday?', 'How many days until payday?'],
   ),
   Intent(
+    id: 'plan',
+    title: 'Our plan',
+    resolve: 'plan',
+    // Multi-word phrases only, and an EMPTY any-list, on purpose: the word
+    // "plan" appears in ordinary money questions that belong to other
+    // intents (a payoff plan is debt_free's business), and the golden
+    // replay locks those routings. A bare "plan" message still lands here
+    // through the fuzzy token pass (four-plus letter words score against
+    // intent ids), which is fine; stealing "when will i be debt free, what
+    // is the plan" from debt_free is not. plano normalizes to plan in
+    // normalize.dart, so the Taglish forms land here too.
+    strong: [
+      'my plan',
+      'our plan',
+      'how is my plan',
+      'how is the plan',
+      'how is our plan',
+      'kamusta ang plan',
+      'kamusta plan',
+      'plan progress',
+      'standing plan',
+      'check the plan',
+      'check my plan',
+    ],
+    any: [],
+    examples: ['How is my plan going?', 'How is the plan?'],
+  ),
+  Intent(
     id: 'tool_take_home',
     title: 'Take-home pay',
     pointer: {
