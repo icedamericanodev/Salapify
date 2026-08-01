@@ -121,6 +121,12 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
+        // Says its persist behavior out loud, per snackbar_persist_test: this
+        // nudge must NOT sit on screen forever; the gate reappears on the
+        // next tap, so timing out loses nothing. Six seconds is enough to
+        // read the sentence and reach the action.
+        persist: false,
+        duration: const Duration(seconds: 6),
         action: SnackBarAction(
           label: 'Unlock free',
           onPressed: () async {

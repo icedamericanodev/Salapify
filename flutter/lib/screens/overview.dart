@@ -318,13 +318,6 @@ class OverviewScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // The road ahead at a glance: the Sweldo Timeline's free
-                // window as a sparkline, with the tightest day named. Only
-                // once something is projectable (a recurring item or a debt
-                // schedule); an empty projection is a flat line that says
-                // nothing. Tapping opens the full Cash flow screen.
-                if (hasStarted)
-                  ..._timelineCard(context, data.cast<String, dynamic>(), now),
                 // The payday ritual once the salary IS logged: below the number it
                 // just refreshed, because at that point it reports rather than asks.
                 if (ritual.isPayday && ritual.salaryLogged) ...[
@@ -343,6 +336,17 @@ class OverviewScreen extends StatelessWidget {
                   _checkInCard(context, checkIn),
                   const SizedBox(height: 12),
                 ],
+                // The road ahead at a glance: the Sweldo Timeline's free
+                // window as a sparkline, with the tightest day named. Only
+                // once something is projectable (a recurring item or a debt
+                // schedule); an empty projection is a flat line that says
+                // nothing. Tapping opens the full Cash flow screen. BELOW the
+                // check-in on purpose: a glance at the future must not push
+                // today's one decision out of the first viewport, which is
+                // exactly what happened when this card sat above it (caught
+                // by the smoke test, not by an eye).
+                if (hasStarted)
+                  ..._timelineCard(context, data.cast<String, dynamic>(), now),
                 // Only invite a fresh start when the store really is empty. After a
                 // failed read the data looks empty but is not, writes are blocked,
                 // and the error banner above already explains it, so the welcome
