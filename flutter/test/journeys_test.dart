@@ -39,10 +39,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/commitments.dart' show liquidKinds;
 import 'package:salapify/money/debtmath.dart' show formatMoneyText;
+import 'package:salapify/money/format.dart' show formatMoney;
 import 'package:salapify/money/ledger.dart' show amountOf;
 import 'package:salapify/money/milestones.dart' show milestoneFor;
+import 'package:salapify/money/pan/respond.dart' show planLine;
+import 'package:salapify/money/plan.dart' show activePlanOf, planStatus;
 import 'package:salapify/money/statements.dart' show netWorthParts;
 import 'package:salapify/main.dart';
+import 'package:salapify/screens/pan.dart' show PanScreen;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A phone tall enough that a lazy list builds the rows a journey needs.
@@ -981,6 +985,325 @@ void main() {
       _realMoney(store),
       booksBefore,
       reason: 'toggling a what if wrote into the real books',
+    );
+  });
+
+  // The Pan With a Plan journeys. The invariant they defend: a plan is a
+  // PROMISE, not a transaction. Making one, keeping score on one, and dropping
+  // one may never move a peso. The money only ever moves through the real pay
+  // flow on the debts screen, and the plan must then agree with the debt about
+  // exactly how much moved, because Pan's card, Pan's chat reply, and the
+  // debts screen all read the same store and none of them is told about the
+  // others.
+
+  testWidgets(
+    'a plan made in Pan keeps score against a payment made on the debts screen',
+    (tester) async {
+      final store = await _openApp(tester);
+      final worthAtStart = _netWorth(store);
+      final booksBefore = _realMoney(store);
+
+      // Pan lives behind the Menu's Ask Pan banner.
+      await _tap(tester, find.byTooltip('Menu'));
+      await _tap(tester, find.text('Ask Pan'));
+
+      // Ask the debt-free question with an extra amount, the way the offer is
+      // born. 1500 is a round-trip literal: typed into the question here, read
+      // back out of the stored plan below, so it justifies itself.
+      await tester.enterText(
+        find.byType(TextField),
+        'When will I be debt free with 1500 extra?',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await _tap(tester, find.textContaining('Make it a plan'));
+
+      final plan = activePlanOf(store.data.cast<String, dynamic>());
+      expect(
+        plan,
+        isNotNull,
+        reason: 'the offer chip wrote no plan, so nothing below tests anything',
+      );
+      expect(
+        amountOf(plan!['amount']),
+        closeTo(1500, 0.001),
+        reason: 'the plan arrived with a different amount than was asked',
+      );
+      expect(
+        plan['targetId'],
+        'card',
+        reason: 'the offer must follow the only open debt in the seed',
+      );
+      expect(
+        amountOf(plan['startLevel']),
+        closeTo(_debt(store, 'card'), 0.001),
+        reason:
+            'startLevel is the debt the day the plan was made; every peso of '
+            'progress below is measured from here',
+      );
+      expect(find.text('OUR PLAN'), findsOneWidget);
+
+      // The promise half of the invariant: making a plan moved nothing.
+      expect(
+        _netWorth(store),
+        closeTo(worthAtStart, 0.001),
+        reason: 'making a plan moved net worth; a promise spent real money',
+      );
+      expect(
+        _realMoney(store),
+        booksBefore,
+        reason: 'making a plan wrote into the real books, not just settings',
+      );
+
+      // Time passes: age the plan by one monthly period so the score line
+      // below speaks in numbers instead of the just-started greeting. Test
+      // scaffolding, said out loud: the app has no control that moves time,
+      // and only startDate is touched, the one field the calendar owns. 32
+      // days is always exactly one completed monthly period and never two,
+      // because the second anniversary is at least 59 days out.
+      await store.setActivePlan({
+        ...plan,
+        'startDate': _isoDate(
+          DateTime.now().subtract(const Duration(days: 32)),
+        ),
+      });
+
+      // Back out of Pan and Menu the way a person does, then pay the debt
+      // through the real pay flow on the Utang tab.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      final owedBefore = _debt(store, 'card');
+      final cashBefore = _balance(store, 'cash');
+      await _tap(tester, find.text('Utang'));
+      await _tap(tester, find.text('BPI card'));
+      // The prefilled minimum, 1000 in this seed, paid from Cash: the default
+      // a real person taps straight through, same as the older debt journey.
+      expect(find.text('LOG A PAYMENT'), findsOneWidget);
+      await _tap(tester, find.text('Cash'));
+      await _tap(tester, find.text('Log payment'));
+      // The payment sheet stays open for another entry; close it the way a
+      // person does, tapping outside it, or the Menu tap below lands on the
+      // sheet's barrier and silently does nothing.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // The invariant: paying a debt cannot change net worth.
+      expect(
+        _netWorth(store),
+        closeTo(worthAtStart, 0.001),
+        reason:
+            'paying the debt moved net worth. An asset fell and a liability '
+            'fell by the same amount, so the total cannot have changed.',
+      );
+      // Directional: the debt fell by the prefilled minimum, the cash left,
+      // and the plan scored exactly the amount paid. The last line is the seam
+      // under test: the payment happened on the debts screen and the plan saw
+      // it without either feature knowing about the other.
+      expect(_debt(store, 'card'), closeTo(owedBefore - 1000, 0.001));
+      expect(_balance(store, 'cash'), closeTo(cashBefore - 1000, 0.001));
+      final status = planStatus(
+        store.data.cast<String, dynamic>(),
+        DateTime.now(),
+      );
+      expect(status, isNotNull);
+      expect(
+        amountOf(status!['actual']),
+        closeTo(owedBefore - _debt(store, 'card'), 0.001),
+        reason:
+            "the plan's actual must be exactly the movement of the debt it "
+            'points at',
+      );
+      expect(
+        amountOf(status['actual']),
+        closeTo(1000, 0.001),
+        reason: 'the plan scored a different amount than was paid',
+      );
+
+      // Back into Pan. The card's progress bar must draw the engine's own
+      // fraction, computed here from the same status rather than a literal so
+      // a fixture edit cannot detune it. Scoped to PanScreen because Home
+      // keeps its own progress bars alive in the tree behind the route.
+      await _tap(tester, find.byTooltip('Menu'));
+      await _tap(tester, find.text('Ask Pan'));
+      final actual = amountOf(status['actual']);
+      final remaining = amountOf(status['remaining']);
+      final bar = tester.widget<LinearProgressIndicator>(
+        find.descendant(
+          of: find.byType(PanScreen),
+          matching: find.byType(LinearProgressIndicator),
+        ),
+      );
+      expect(
+        bar.value,
+        closeTo(actual / (actual + remaining), 0.001),
+        reason: "the plan card's progress bar disagrees with the engine",
+      );
+
+      // Ask, and demand ONE story: the chat reply and the plan card must both
+      // render the exact planLine the engine computes over this store, which
+      // after one period and one payment speaks the paid amount out loud.
+      await tester.enterText(find.byType(TextField), 'how is my plan');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      final line = planLine(
+        planStatus(store.data.cast<String, dynamic>(), DateTime.now())!,
+      );
+      // The question Pan owns must never draw the not-understood fallback
+      // while a plan stands. Asserted by name because that is exactly how
+      // this journey first failed for real: the resolver's facts spread let
+      // the plan's own kind overwrite the facts kind, respond() missed its
+      // 'plan' case, and only the card behind the chat kept the single-screen
+      // test green.
+      expect(
+        find.text('I did not catch that one.'),
+        findsNothing,
+        reason:
+            "Pan answered 'how is my plan' with the fallback while a plan "
+            'stands',
+      );
+      expect(
+        line,
+        contains(formatMoneyText(1000)),
+        reason:
+            'sanity: after one period the plan line must speak the paid '
+            'amount, or the agreement check below compares empty sentences',
+      );
+      expect(
+        find.text(line),
+        findsNWidgets(2),
+        reason:
+            'the plan card and the chat reply must tell the same story the '
+            'engine tells; a count of one means two surfaces disagree about '
+            'the same plan',
+      );
+
+      // And the whole thing survives the disk, like every write in this file:
+      // a plan that never reaches storage is a promise the app forgets on
+      // restart, which reads exactly like Pan eating the commitment.
+      final reopened = SalapifyStore();
+      await reopened.load();
+      final planOnDisk = activePlanOf(reopened.data.cast<String, dynamic>());
+      expect(
+        planOnDisk,
+        isNotNull,
+        reason: 'the plan never reached storage, so a restart forgets it',
+      );
+      expect(amountOf(planOnDisk!['amount']), closeTo(1500, 0.001));
+      expect(
+        amountOf(
+          planStatus(
+            reopened.data.cast<String, dynamic>(),
+            DateTime.now(),
+          )!['actual'],
+        ),
+        closeTo(1000, 0.001),
+        reason: 'reloaded from disk, the plan must still score the payment',
+      );
+    },
+  );
+
+  testWidgets('dropping the plan in Pan forgets the promise, not the money', (
+    tester,
+  ) async {
+    // The plan arrives from PERSISTED settings, the shape a previous session
+    // leaves behind, so this also covers the read seam the journey above
+    // cannot: written by one session, obeyed and then dropped by the next.
+    final seed = _seed();
+    ((seed['settings'] as Map).cast<String, dynamic>())['activePlan'] = {
+      'kind': 'debt',
+      'targetId': 'card',
+      'label': 'Extra to BPI card',
+      // The same pace the offer chip writes in the journey above, one monthly
+      // period old, started level with the debt as the chip would have written
+      // it. All of it is inert for a drop; it only makes this a real
+      // mid-flight plan rather than an empty one.
+      'amount': 1500,
+      'cadence': 'monthly',
+      'startDate': _isoDate(DateTime.now().subtract(const Duration(days: 32))),
+      'startLevel': 8000,
+    };
+    final store = await _openApp(tester, seed);
+    final before = _netWorth(store);
+    final booksBefore = _realMoney(store);
+    final owedBefore = _debt(store, 'card');
+    expect(
+      activePlanOf(store.data.cast<String, dynamic>()),
+      isNotNull,
+      reason: 'seed sanity: the plan to drop must exist and be valid',
+    );
+
+    await _tap(tester, find.byTooltip('Menu'));
+    await _tap(tester, find.text('Ask Pan'));
+    expect(find.text('OUR PLAN'), findsOneWidget);
+    await _tap(tester, find.text('Drop the plan'));
+    // Dropping asks first, because the start date and level cannot come back.
+    // Confirm, through the dialog's own button.
+    await _tap(tester, find.text('Drop it'));
+
+    // Directional: the plan is genuinely gone, from the store and the card,
+    // and Pan hands over a receipt in chat.
+    expect(
+      activePlanOf(store.data.cast<String, dynamic>()),
+      isNull,
+      reason: 'Drop did not clear the stored plan',
+    );
+    expect(find.text('OUR PLAN'), findsNothing);
+    expect(
+      find.textContaining('Plan dropped.'),
+      findsOneWidget,
+      reason: 'the drop left no receipt in chat',
+    );
+
+    // Ask, on the same screen, and Pan must not claim memory it no longer
+    // holds: the same question the journey above got a score line for now has
+    // to say there is no plan.
+    await tester.enterText(find.byType(TextField), 'how is my plan');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('We do not have a standing plan yet'),
+      findsOneWidget,
+      reason: 'asked after the drop, Pan still spoke about a dropped plan',
+    );
+
+    // The invariant: dropping a plan never moves money.
+    expect(
+      _netWorth(store),
+      closeTo(before, 0.001),
+      reason: 'dropping the plan moved net worth',
+    );
+    expect(
+      _realMoney(store),
+      booksBefore,
+      reason: 'dropping the plan wrote into the real books',
+    );
+
+    // And the debts screen agrees, on the screen a person would go check: the
+    // debt the plan pointed at still owes exactly what it owed.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.text('Utang'));
+    expect(_debt(store, 'card'), closeTo(owedBefore, 0.001));
+    expect(
+      find.text(formatMoney(owedBefore)),
+      findsWidgets,
+      reason:
+          'the debts screen does not show the untouched remaining through the '
+          "same formatter the screen uses, so it disagrees with the store",
+    );
+
+    // A drop that evaporates on restart resurrects the plan.
+    final reopened = SalapifyStore();
+    await reopened.load();
+    expect(
+      activePlanOf(reopened.data.cast<String, dynamic>()),
+      isNull,
+      reason: 'the drop never reached storage, so a restart brings it back',
     );
   });
 }
