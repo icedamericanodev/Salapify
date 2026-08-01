@@ -15,6 +15,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 /// Fire the celebration over the current screen. Safe to call from any
 /// context inside the app's navigator; auto-dismisses itself.
@@ -192,7 +193,7 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.celebration, size: 22, color: Barako.celebrate),
+                    Icon(salapifyIcon('celebrate'), size: 22, color: Barako.celebrate),
                     const SizedBox(width: Gap.sm),
                     Flexible(
                       child: Text(

@@ -43,6 +43,7 @@ import 'tools.dart';
 import 'treats.dart';
 import 'update_card.dart';
 import 'shell.dart';
+import '../widgets/salapify_icon.dart';
 
 class MenuScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -271,7 +272,7 @@ class MenuScreen extends StatelessWidget {
               Kicker('PRIVACY'),
               const SizedBox(height: 8),
               _navRow(
-                icon: Icons.verified_user_outlined,
+                icon: salapifyIcon('protected'),
                 title: 'Privacy receipt',
                 blurb:
                     'Every connection this app can make, in plain words. Check it yourself with airplane mode.',
@@ -281,7 +282,7 @@ class MenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _navRow(
-                icon: Icons.build_outlined,
+                icon: salapifyIcon('setup'),
                 title: 'Diagnostics',
                 blurb:
                     'For testers: counts and recent errors, never your amounts or names. Nothing leaves unless you share it.',
@@ -304,7 +305,7 @@ class MenuScreen extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               _navRow(
-                icon: Icons.phonelink_ring_outlined,
+                icon: salapifyIcon('phoneRing'),
                 title: 'New phone day',
                 blurb:
                     'Moving phones? A two minute guided handoff, no cloud in the middle.',
@@ -414,7 +415,7 @@ class MenuScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: Gap.sm),
-              Icon(Icons.chevron_right, color: Barako.onPrimary, size: 20),
+              Icon(salapifyIcon('forward'), color: Barako.onPrimary, size: 20),
             ],
           ),
         ),
@@ -458,7 +459,7 @@ class MenuScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
               ],
             ),
           ),
@@ -477,7 +478,7 @@ class MenuScreen extends StatelessWidget {
     final label = themeForKey(rawKey).label;
     final mode = appearanceModeLabels[currentMode] ?? currentMode;
     return _navRow(
-      icon: Icons.palette_outlined,
+      icon: salapifyIcon('appearance'),
       title: 'Appearance',
       blurb: '$label, $mode',
       onTap: () => Navigator.of(
@@ -494,7 +495,7 @@ class MenuScreen extends StatelessWidget {
     final code = (settings['currencyCode'] as String?) ?? 'PHP';
     final symbol = (settings['currency'] as String?) ?? '₱';
     return _navRow(
-      icon: Icons.payments_outlined,
+      icon: salapifyIcon('cash'),
       title: 'Currency',
       blurb: '$code $symbol',
       onTap: () => showModalBottomSheet<void>(
@@ -536,7 +537,7 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ),
                     trailing: c['code'] == code
-                        ? Icon(Icons.check, size: 18, color: Barako.primary)
+                        ? Icon(salapifyIcon('check'), size: 18, color: Barako.primary)
                         : null,
                     onTap: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -663,28 +664,28 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 14),
             row(
               'daily',
-              Icons.edit_calendar_outlined,
+              salapifyIcon('editDate'),
               'Log reminder',
               'An evening nudge to log, skipped once you already did.',
             ),
             const Divider(height: 24),
             row(
               'payday',
-              Icons.payments_outlined,
+              salapifyIcon('cash'),
               'Payday',
               'A morning ping on payday to plan the money before it goes.',
             ),
             const Divider(height: 24),
             row(
               'bills',
-              Icons.credit_card_outlined,
+              salapifyIcon('card'),
               'Bills due',
               'A heads up before a card or loan is due, so no late fees.',
             ),
             const Divider(height: 24),
             row(
               'lookahead',
-              Icons.query_stats,
+              salapifyIcon('stats'),
               'Cash flow heads up',
               'One evening warning when the plan ahead looks tight, so a '
                   'squeeze is never a surprise.',
@@ -692,14 +693,14 @@ class MenuScreen extends StatelessWidget {
             const Divider(height: 24),
             row(
               'collect',
-              Icons.handshake_outlined,
+              salapifyIcon('handshake'),
               'Money to collect',
               'A reminder when someone owes you and it is due.',
             ),
             const Divider(height: 24),
             row(
               'backup',
-              Icons.save_outlined,
+              salapifyIcon('save'),
               'Monthly backup',
               'A nudge on the 1st to save a fresh backup file, so a lost '
                   'phone is an errand, not a disaster.',
@@ -707,7 +708,7 @@ class MenuScreen extends StatelessWidget {
             const Divider(height: 24),
             row(
               'comeback',
-              Icons.waving_hand_outlined,
+              salapifyIcon('greeting'),
               'Come back',
               'A gentle nudge to return if you have been away a while. Never '
                   'fires while you are still opening the app.',
@@ -716,7 +717,7 @@ class MenuScreen extends StatelessWidget {
             MergeSemantics(
               child: Row(
                 children: [
-                  Icon(Icons.lock_outline, color: Barako.primary, size: 20),
+                  Icon(salapifyIcon('locked'), color: Barako.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -903,7 +904,7 @@ class MenuScreen extends StatelessWidget {
         child: MergeSemantics(
           child: Row(
             children: [
-              Icon(Icons.fingerprint, color: Barako.primary, size: 22),
+              Icon(salapifyIcon('biometric'), color: Barako.primary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -972,7 +973,7 @@ class MenuScreen extends StatelessWidget {
         child: MergeSemantics(
           child: Row(
             children: [
-              Icon(Icons.visibility_off, color: Barako.primary, size: 22),
+              Icon(salapifyIcon('hidden'), color: Barako.primary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1044,7 +1045,7 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop('save'),
               child: Row(
                 children: [
-                  Icon(Icons.download, size: 20, color: Barako.primaryText),
+                  Icon(salapifyIcon('download'), size: 20, color: Barako.primaryText),
                   const SizedBox(width: 12),
                   Text(
                     'Save to this phone',
@@ -1057,7 +1058,7 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop('share'),
               child: Row(
                 children: [
-                  Icon(Icons.ios_share, size: 20, color: Barako.primaryText),
+                  Icon(salapifyIcon('share'), size: 20, color: Barako.primaryText),
                   const SizedBox(width: 12),
                   Text(
                     'Share (Drive, email, chat)',
@@ -1119,7 +1120,7 @@ class MenuScreen extends StatelessWidget {
                     side: BorderSide(color: Barako.border),
                     foregroundColor: Barako.text,
                   ),
-                  icon: const Icon(Icons.grid_on, size: 18),
+                  icon: Icon(salapifyIcon('grid'), size: 18),
                   onPressed: () => run(
                     context,
                     'the CSV',
@@ -1134,7 +1135,7 @@ class MenuScreen extends StatelessWidget {
                     side: BorderSide(color: Barako.border),
                     foregroundColor: Barako.text,
                   ),
-                  icon: const Icon(Icons.table_chart_outlined, size: 18),
+                  icon: Icon(salapifyIcon('table'), size: 18),
                   onPressed: () => run(
                     context,
                     'the Excel file',
@@ -1151,7 +1152,7 @@ class MenuScreen extends StatelessWidget {
                     side: BorderSide(color: Barako.border),
                     foregroundColor: Barako.text,
                   ),
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  icon: Icon(salapifyIcon('pdf'), size: 18),
                   onPressed: () => run(
                     context,
                     'the PDF',
@@ -1321,7 +1322,7 @@ class MenuScreen extends StatelessWidget {
                 foregroundColor: Barako.warningStrong,
               ),
               onPressed: onStartFresh,
-              icon: const Icon(Icons.delete_forever_outlined, size: 18),
+              icon: Icon(salapifyIcon('deleteForever'), size: 18),
               label: const Text(
                 'Start fresh (erase everything)',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -1572,7 +1573,7 @@ class MenuScreen extends StatelessWidget {
                   foregroundColor: Barako.textSecondary,
                   minimumSize: const Size(0, 48),
                 ),
-                icon: const Icon(Icons.table_view_outlined, size: 18),
+                icon: Icon(salapifyIcon('table'), size: 18),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => CsvImportScreen(store: store),

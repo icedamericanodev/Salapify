@@ -114,7 +114,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                   if (open != null)
                     IconButton(
                       onPressed: () => setState(() => _open = null),
-                      icon: Icon(Icons.arrow_back, color: Barako.text),
+                      icon: Icon(salapifyIcon('back'), color: Barako.text),
                       tooltip: 'Back',
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -220,7 +220,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
               ],
             ),
           ),
@@ -351,9 +351,9 @@ class _InstitutionPickerState extends State<_InstitutionPicker> {
                 controller: _query,
                 onChanged: (_) => setState(() {}),
                 style: TextStyle(color: Barako.text),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search, or type your own',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(salapifyIcon('search')),
                 ),
               ),
             ),
@@ -373,7 +373,7 @@ class _InstitutionPickerState extends State<_InstitutionPicker> {
                         ),
                       ),
                       trailing: widget.current == i.id
-                          ? Icon(Icons.check, color: Barako.primary)
+                          ? Icon(salapifyIcon('check'), color: Barako.primary)
                           : null,
                       onTap: () => Navigator.of(context).pop(i.id),
                     ),

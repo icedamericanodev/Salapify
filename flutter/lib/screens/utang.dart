@@ -20,6 +20,7 @@ import '../widgets/celebration.dart';
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
+import '../widgets/salapify_icon.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' as ledger;
@@ -157,7 +158,7 @@ class UtangScreen extends StatelessWidget {
 Widget newUtangButton(BuildContext context, SalapifyStore store) =>
     FilledButton.icon(
       onPressed: () => showAddUtangSheet(context, store),
-      icon: const Icon(Icons.add, size: 18),
+      icon: Icon(salapifyIcon('add'), size: 18),
       label: const Text('New'),
       style: FilledButton.styleFrom(
         backgroundColor: Barako.primary,
@@ -319,7 +320,7 @@ class UtangBody extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Icon(Icons.call_split, size: 18, color: Barako.primaryText),
+          Icon(salapifyIcon('split'), size: 18, color: Barako.primaryText),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -425,7 +426,7 @@ class _PersonRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+            Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
           ],
         ),
       ),
@@ -832,7 +833,7 @@ class _PersonSheetState extends State<PersonSheet> {
                 minimumSize: const Size(0, 44),
               ),
               onPressed: busy ? null : () => _remind(owed),
-              icon: const Icon(Icons.send_outlined, size: 16),
+              icon: Icon(salapifyIcon('send'), size: 16),
               label: const Text('Remind'),
             ),
             const SizedBox(width: 8),
@@ -845,7 +846,7 @@ class _PersonSheetState extends State<PersonSheet> {
                 minimumSize: const Size(0, 44),
               ),
               onPressed: busy ? null : () => _shareStatement(all),
-              icon: const Icon(Icons.description_outlined, size: 16),
+              icon: Icon(salapifyIcon('document'), size: 16),
               label: const Text('Share statement'),
             ),
           ),
@@ -874,7 +875,7 @@ class _PersonSheetState extends State<PersonSheet> {
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Barako.muted, size: 15),
+            Icon(salapifyIcon('done'), color: Barako.muted, size: 15),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -949,10 +950,18 @@ class _PersonSheetState extends State<PersonSheet> {
                 onTap: busy ? null : () => _removePayment(source.$1, source.$2),
                 customBorder: const CircleBorder(),
                 // A real 44dp tap target around a deliberately small icon.
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(Icons.close, color: Barako.faint, size: 14),
+                child: Semantics(
+                  button: true,
+                  label: 'Remove this payment',
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      salapifyIcon('close'),
+                      color: Barako.faint,
+                      size: 14,
+                    ),
+                  ),
                 ),
               )
             else
@@ -1319,7 +1328,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                     ? null
                     : IconButton(
                         tooltip: 'Clear due date',
-                        icon: Icon(Icons.close, size: 18, color: Barako.muted),
+                        icon: Icon(salapifyIcon('close'), size: 18, color: Barako.muted),
                         onPressed: () => setState(() => dueController.clear()),
                       ),
               ),

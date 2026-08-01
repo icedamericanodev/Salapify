@@ -256,7 +256,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left),
+          icon: Icon(salapifyIcon('previous')),
           color: _monthOffset < 12 ? Barako.primaryText : Barako.faint,
           onPressed: _monthOffset < 12
               ? () => setState(() => _monthOffset++)
@@ -272,7 +272,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right),
+          icon: Icon(salapifyIcon('forward')),
           color: _monthOffset > 0 ? Barako.primaryText : Barako.faint,
           onPressed: _monthOffset > 0
               ? () => setState(() => _monthOffset--)
@@ -601,7 +601,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
                 const SizedBox(width: 2),
-                Icon(Icons.chevron_right, size: 16, color: Barako.faint),
+                Icon(salapifyIcon('forward'), size: 16, color: Barako.faint),
               ],
             ),
             // The flag rides on its own line with the actual overage, the number a
@@ -611,7 +611,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Row(
                 children: [
                   Icon(
-                    Icons.trending_up,
+                    salapifyIcon('growth'),
                     size: 13,
                     color: Barako.warningStrong,
                   ),
@@ -980,7 +980,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ? _debtLocked()
                 : !hasDebt
                 ? Text(
-                    'No debts to project. You are already free. 🎉',
+                    'No debts to project. You are already free.',
                     style: TextStyle(
                       color: Barako.primaryText,
                       fontSize: 15,

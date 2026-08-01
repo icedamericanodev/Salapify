@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/csv_import.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 class CsvImportScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -216,7 +217,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
                 foregroundColor: Barako.onPrimary,
               ),
               onPressed: _busy ? null : _pick,
-              icon: const Icon(Icons.upload_file),
+              icon: Icon(salapifyIcon('import')),
               label: Text(
                 _fileName == null
                     ? 'Choose CSV file'

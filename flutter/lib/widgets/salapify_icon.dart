@@ -43,6 +43,7 @@ const Map<String, IconData> _icons = {
   'inspect': Icons.travel_explore_outlined,
   'handshake': Icons.handshake_outlined,
   'calendar': Icons.calendar_month_outlined,
+  'calendarDay': Icons.calendar_today_outlined,
   'work': Icons.work_outline,
   'receipt': Icons.receipt_long_outlined,
   'foundation': Icons.foundation_outlined,
@@ -88,7 +89,137 @@ const Map<String, IconData> _icons = {
   'utang': Icons.handshake_outlined,
   'insights': Icons.insights_outlined,
   'menu': Icons.grid_view_outlined,
+
+  // Affordances: the small chrome every screen shares. These existed as two
+  // hundred raw Icons.* constants across fifty files; now the meaning lives
+  // here and a screen says what it wants, not which glyph draws it.
+  'forward': Icons.chevron_right,
+  // 'previous' is forward's mirror for steppers; 'back' is the app-bar
+  // arrow. Different meanings, deliberately different pictures.
+  'previous': Icons.chevron_left,
+  'back': Icons.arrow_back,
+  'up': Icons.arrow_upward,
+  'expand': Icons.expand_more,
+  'collapse': Icons.expand_less,
+  'add': Icons.add,
+  'subtract': Icons.remove,
+  'close': Icons.close,
+  'check': Icons.check,
+  // The theme tile's picked badge. Distinct from 'check' on purpose: the
+  // appearance screen shows both at once, and a test proves exactly one
+  // picked badge exists, which two meanings sharing one picture would break.
+  'chosen': Icons.check_rounded,
+  'refresh': Icons.refresh,
+  'startOver': Icons.restart_alt,
+  'swap': Icons.swap_vert,
+  'split': Icons.call_split,
+  'copy': Icons.copy,
+  'download': Icons.download,
+  'import': Icons.upload_file,
+  'install': Icons.system_update_alt,
+  'edit': Icons.edit_outlined,
+  'editDate': Icons.edit_calendar_outlined,
+  'save': Icons.save_outlined,
+  'delete': Icons.delete_outline,
+  'deleteForever': Icons.delete_forever_outlined,
+  'moveUp': Icons.arrow_upward,
+  'moveDown': Icons.arrow_downward,
+
+  // Selection and state. ONE canonical pair on purpose: the app had grown
+  // four different "checked" glyphs (check, check_rounded, check_circle,
+  // check_box) and three different "unchecked" ones for the same meaning,
+  // which is exactly the drift a meaning map exists to stop. The selected
+  // form is FILLED, the resting form is outlined; that asymmetry is the
+  // house rule for active states, same as the bottom bar.
+  'selected': Icons.check_circle,
+  'unselected': Icons.circle_outlined,
+  // A finished STEP in a list (outlined, calm), distinct from 'selected'
+  // (filled, active): a done lesson is not a chosen option.
+  'done': Icons.check_circle_outline,
+  'cut': Icons.content_cut,
+  // The display fallback for a treat whose emoji field is empty. The emoji
+  // a user typed stays theirs; this is only what WE draw when there is none.
+  'treat': Icons.local_cafe_outlined,
+  'paused': Icons.pause_circle_outline,
+  'play': Icons.play_circle_outline,
+  'locked': Icons.lock_outline,
+  'unlocked': Icons.lock_open_outlined,
+  'autoLock': Icons.lock_clock_outlined,
+  'blocked': Icons.block,
+  'error': Icons.error_outline,
+  'warning': Icons.warning_amber_rounded,
+  'help': Icons.help_outline,
+  'hidden': Icons.visibility_off,
+  'protected': Icons.verified_user_outlined,
+  'biometric': Icons.fingerprint,
+  'star': Icons.star_rounded,
+  'sparkle': Icons.auto_awesome,
+  'greeting': Icons.waving_hand_outlined,
+
+  // Feature domains that had no name yet.
+  'note': Icons.sticky_note_2_outlined,
+  'document': Icons.description_outlined,
+  'pdf': Icons.picture_as_pdf_outlined,
+  'folder': Icons.folder_open,
+  'table': Icons.table_view_outlined,
+  'grid': Icons.grid_on,
+  'shopping': Icons.shopping_bag_outlined,
+  'outgoing': Icons.north_east,
+  'incoming': Icons.south_west,
+  'event': Icons.event,
+  'scheduled': Icons.event_available_outlined,
+  'recurringDate': Icons.event_repeat_outlined,
+  'exchange': Icons.currency_exchange,
+  'percent': Icons.percent,
+  'stats': Icons.query_stats,
+  'offline': Icons.cloud_off_outlined,
+  'backedUp': Icons.cloud_done_outlined,
+  'network': Icons.wifi,
+  'notifications': Icons.notifications_none,
+  'notificationsOff': Icons.notifications_off_outlined,
+  'phoneRing': Icons.phonelink_ring_outlined,
+  'vibration': Icons.vibration,
+  'appearance': Icons.palette_outlined,
+  'mindset': Icons.self_improvement_outlined,
+  'learning': Icons.school_outlined,
+  'plan': Icons.flag_outlined,
+  'diagnostics': Icons.bug_report_outlined,
+  'screen': Icons.screenshot_monitor_outlined,
+  'widgets': Icons.widgets_outlined,
+  'billing': Icons.request_quote_outlined,
+  'checklist': Icons.fact_check_outlined,
+  'setup': Icons.build_outlined,
+  'bank': Icons.account_balance_outlined,
+  'send': Icons.send_outlined,
+  'quick': Icons.bolt_outlined,
+
+  // Goal templates. Content declares which fund a template is; the pictures
+  // stay swappable here. The old goal template emoji (a lifebuoy, a tree, a
+  // plane, a stethoscope) were the last authored emoji on a screen; a goal
+  // the USER already saved keeps whatever emoji they picked, because that is
+  // their data, not ours.
+  'goal': Icons.my_location_outlined,
+  'emergency': Icons.support_outlined,
+  'pasko': Icons.park_outlined,
+  'travel': Icons.flight_takeoff,
+  'education': Icons.school_outlined,
+  'familySupport': Icons.volunteer_activism_outlined,
+  'gadget': Icons.devices_outlined,
+  'wedding': Icons.favorite_outline,
+  'house': Icons.cottage_outlined,
+  'debtPayoff': Icons.trending_down_outlined,
 };
+
+/// Icon size tokens. Passive detail 16, inline with text 20, action 24,
+/// feature or template card 32, empty-state composition 48. A size outside
+/// this scale is a design decision to defend in review, not a default.
+abstract final class SalapifyIconSize {
+  static const double detail = 16;
+  static const double inline = 20;
+  static const double action = 24;
+  static const double feature = 32;
+  static const double hero = 48;
+}
 
 /// The filled twin of a destination icon, for the selected tab.
 ///
@@ -104,6 +235,10 @@ const Map<String, IconData> _filled = {
   'insights': Icons.insights,
   'menu': Icons.grid_view,
 };
+
+/// Every name the map knows, so the guard test can prove each one resolves
+/// and the goal template registry can assert its keys are real.
+Iterable<String> get salapifyIconNames => _icons.keys;
 
 /// The glyph for a name. An unknown name draws a neutral marker rather than
 /// throwing or drawing nothing: a missing icon must never take a screen down,

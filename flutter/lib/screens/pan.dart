@@ -32,6 +32,7 @@ import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'thirteenth_calculator.dart';
 import 'shell.dart';
+import '../widgets/salapify_icon.dart';
 
 class _Msg {
   final String role; // 'user' or 'pan'
@@ -274,7 +275,7 @@ class _PanScreenState extends State<PanScreen> {
                   const SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: () => _send(controller.text),
-                    icon: const Icon(Icons.arrow_upward),
+                    icon: Icon(salapifyIcon('up')),
                   ),
                 ],
               ),
@@ -673,7 +674,7 @@ class _PanScreenState extends State<PanScreen> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.copy, size: 14),
+                        icon: Icon(salapifyIcon('copy'), size: 14),
                         label: const Text('Copy reminder'),
                       ),
                     ],
@@ -760,7 +761,7 @@ class _PanScreenState extends State<PanScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.flag_outlined, size: 16),
+                          Icon(salapifyIcon('plan'), size: 16),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(

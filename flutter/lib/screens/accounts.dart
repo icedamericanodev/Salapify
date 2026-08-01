@@ -30,6 +30,7 @@ import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
 
 const _accountKinds = [
   ('cash', 'Cash'),
@@ -598,7 +599,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
         );
       case AccountStore.assets:
         return _row(
-          icon: '📈',
+          // Salapify-authored rows carry system glyphs; only USER-picked
+          // icons stay emoji, and an asset row's marker was never theirs.
+          icon: '',
+          leading: SalapifyGlyph('growth', size: 20, boxed: false),
           name: row['name']?.toString() ?? 'Asset',
           sub: parts.join(' · '),
           amount: amountOf(row['value']),
@@ -610,7 +614,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
         // the account form on one would offer fields that do not apply and drop
         // the ones that do.
         return _row(
-          icon: '💳',
+          icon: '',
+          leading: SalapifyGlyph('card', size: 20, boxed: false),
           name: row['name']?.toString() ?? 'Debt',
           sub: parts.join(' · '),
           amount: amountOf(row['remaining']),
@@ -664,9 +669,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final bankId = (a['institutionId'] ?? '').toString();
     return _row(
       foreignCode: _foreignCodeOf(a),
-      icon: storedIcon.isEmpty ? '💵' : storedIcon,
-      leading: storedIcon.isEmpty && bankId.isNotEmpty
-          ? InstitutionAvatar(id: bankId, size: 30)
+      icon: storedIcon,
+      // Empty icon field: the bank's avatar when one was chosen, else the
+      // system's cash glyph. The DISPLAY fallback is Salapify's to style;
+      // only a stored emoji is the user's.
+      leading: storedIcon.isEmpty
+          ? (bankId.isNotEmpty
+                ? InstitutionAvatar(id: bankId, size: 30)
+                : SalapifyGlyph('cash', size: 22, boxed: false))
           : null,
       name: a['name']?.toString() ?? 'Account',
       sub: sub,
@@ -1054,7 +1064,7 @@ class _AccountFormState extends State<_AccountForm> {
                       ),
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                  Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
                 ],
               ),
             ),
@@ -1120,7 +1130,7 @@ class _AccountFormState extends State<_AccountForm> {
                         )
                       : null,
                   trailing: current == code
-                      ? Icon(Icons.check, color: Barako.primary)
+                      ? Icon(salapifyIcon('check'), color: Barako.primary)
                       : null,
                   onTap: () => Navigator.of(ctx).pop(code),
                 ),
@@ -1165,7 +1175,7 @@ class _AccountFormState extends State<_AccountForm> {
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+              Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
             ],
           ),
         ),

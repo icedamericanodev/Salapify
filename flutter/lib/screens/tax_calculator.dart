@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../money/phtax.dart';
 import '../theme.dart';
 import '../widgets/section.dart';
+import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
 
 class TaxCalculatorScreen extends StatefulWidget {
@@ -208,8 +209,8 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                     const SizedBox(width: 10),
                     Icon(
                       mixedIncome
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
+                          ? salapifyIcon('selected')
+                          : salapifyIcon('unselected'),
                       color: mixedIncome ? Barako.primary : Barako.muted,
                     ),
                   ],

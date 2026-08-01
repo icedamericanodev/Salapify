@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../money/period.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 class PeriodSelector extends StatelessWidget {
   final Period period;
@@ -166,7 +167,7 @@ class PeriodSelector extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: () => onChange(shiftPeriod(period, -1)!),
-                icon: const Icon(Icons.chevron_left),
+                icon: Icon(salapifyIcon('previous')),
                 color: Barako.text,
                 tooltip: 'Previous period',
               ),
@@ -188,7 +189,7 @@ class PeriodSelector extends StatelessWidget {
                 onPressed: canForward
                     ? () => onChange(shiftPeriod(period, 1)!)
                     : null,
-                icon: const Icon(Icons.chevron_right),
+                icon: Icon(salapifyIcon('forward')),
                 color: Barako.text,
                 disabledColor: Barako.faint,
                 tooltip: 'Next period',
@@ -268,7 +269,7 @@ class PeriodSelector extends StatelessWidget {
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: Icon(Icons.close, size: 16, color: Barako.faint),
+                  child: Icon(salapifyIcon('close'), size: 16, color: Barako.faint),
                 ),
               ),
             ),

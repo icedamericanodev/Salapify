@@ -18,13 +18,16 @@ import 'history.dart';
 import 'notes.dart';
 import 'shell.dart';
 
-const _groupIcon = <String, IconData>{
-  'transactions': Icons.receipt_long_outlined,
-  'utang': Icons.handshake_outlined,
-  'debts': Icons.credit_card_outlined,
-  'goals': Icons.savings_outlined,
-  'notes': Icons.sticky_note_2_outlined,
-  'accounts': Icons.account_balance_wallet_outlined,
+// Semantic names, resolved through the icon system at draw time. This was a
+// const IconData table, which is exactly the private re-implementation of
+// salapify_icon.dart that the meaning map exists to absorb.
+const _groupIcon = <String, String>{
+  'transactions': 'receipt',
+  'utang': 'handshake',
+  'debts': 'card',
+  'goals': 'savings',
+  'notes': 'note',
+  'accounts': 'wallet',
 };
 
 // Every group the shared search logic can return now has a destination in the
@@ -185,12 +188,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   // does nothing.
                   hintText: 'Search jollibee, Ana, or 1500',
                   hintStyle: TextStyle(color: Barako.faint),
-                  prefixIcon: Icon(Icons.search, color: Barako.faint, size: 20),
+                  prefixIcon: Icon(salapifyIcon('search'), color: Barako.faint, size: 20),
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
+                          tooltip: 'Clear search',
                           icon: Icon(
-                            Icons.close,
+                            salapifyIcon('close'),
                             color: Barako.muted,
                             size: 18,
                           ),
@@ -299,7 +303,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Row(
               children: [
                 Icon(
-                  _groupIcon[kind] ?? Icons.search,
+                  salapifyIcon(_groupIcon[kind] ?? 'search'),
                   size: 15,
                   color: Barako.muted,
                 ),
@@ -350,7 +354,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            Icons.chevron_right,
+                            salapifyIcon('forward'),
                             size: 16,
                             color: Barako.primaryText,
                           ),
@@ -423,8 +427,20 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             if (amount != null) ...[
               const SizedBox(width: 8),
+              // The engine's transfer sign stays the RN byte ('⇄', golden
+              // locked); the SCREEN draws it as a real glyph so no authored
+              // symbol is typeset as text chrome.
+              if (sign == search.transferSign) ...[
+                Icon(
+                  salapifyIcon('swap'),
+                  size: 14,
+                  color: _amountColor(sign),
+                  semanticLabel: 'transfer',
+                ),
+                const SizedBox(width: 2),
+              ],
               Text(
-                '${sign.isNotEmpty ? '$sign ' : ''}${formatMoneyText((amount as num).toDouble())}',
+                '${sign.isNotEmpty && sign != search.transferSign ? '$sign ' : ''}${formatMoneyText((amount as num).toDouble())}',
                 style: TextStyle(
                   color: _amountColor(sign),
                   fontSize: 14,

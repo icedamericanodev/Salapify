@@ -25,6 +25,7 @@ import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/section.dart';
 import '../widgets/segmented.dart';
+import '../widgets/salapify_icon.dart';
 
 const Map<String, String> appearanceModeLabels = {
   'system': 'System',
@@ -457,6 +458,6 @@ class _CheckBadge extends StatelessWidget {
       shape: BoxShape.circle,
       border: Border.all(color: Barako.card, width: 2),
     ),
-    child: Icon(Icons.check_rounded, size: 12, color: Barako.onPrimary),
+    child: Icon(salapifyIcon('chosen'), size: 12, color: Barako.onPrimary),
   );
 }

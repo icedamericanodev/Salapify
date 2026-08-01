@@ -326,7 +326,7 @@ class InsightsScreen extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        Icons.celebration_outlined,
+                        salapifyIcon('celebrate'),
                         color: Barako.primary,
                         size: 16,
                       ),
@@ -540,7 +540,7 @@ class InsightsScreen extends StatelessWidget {
                     ),
                   ),
                   if (utang && onSwitchTab != null)
-                    Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
                 ],
               ),
               const SizedBox(height: 4),
@@ -1549,7 +1549,7 @@ class _CollapsibleToolState extends State<_CollapsibleTool> {
                   ),
                   ExcludeSemantics(
                     child: Icon(
-                      open ? Icons.expand_less : Icons.expand_more,
+                      open ? salapifyIcon('collapse') : salapifyIcon('expand'),
                       color: Barako.muted,
                     ),
                   ),

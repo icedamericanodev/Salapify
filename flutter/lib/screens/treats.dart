@@ -13,6 +13,7 @@ import '../data/store.dart';
 import '../money/treats.dart' as treats;
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/salapify_icon.dart';
 
 // A user can keep three treats at a time, same as the RN app: enough to bundle
 // a few habits, few enough that the list stays a glance, not a chore.
@@ -114,7 +115,7 @@ class TreatsScreen extends StatelessWidget {
           side: BorderSide(color: Barako.border),
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        icon: const Icon(Icons.add, size: 18),
+        icon: Icon(salapifyIcon('add'), size: 18),
         label: const Text(
           'Add another treat',
           style: TextStyle(fontWeight: FontWeight.w700),
@@ -163,7 +164,7 @@ class TreatsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
                   ],
                 ),
               ),
@@ -201,7 +202,7 @@ class TreatsScreen extends StatelessWidget {
     final lifetime = st['lifetime'] as int;
     final treatName = (t['treat']?.toString() ?? 'Treat');
     final action = (t['action']?.toString() ?? 'your action');
-    final emoji = st['emoji']?.toString() ?? '☕';
+    final emoji = st['emoji']?.toString() ?? '';
 
     final line = earned
         ? 'Earned. Enjoy your ${treatName.toLowerCase()}, you paid for it in '
@@ -233,7 +234,10 @@ class TreatsScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 26)),
+                if (emoji.isEmpty)
+                  SalapifyGlyph('treat', size: 24, boxed: false)
+                else
+                  Text(emoji, style: const TextStyle(fontSize: 26)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -270,7 +274,7 @@ class TreatsScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.check_circle,
+                          salapifyIcon('selected'),
                           color: Barako.onPrimary,
                           size: 13,
                         ),
@@ -431,8 +435,8 @@ class _CheckInButton extends StatelessWidget {
                       ScaleTransition(scale: anim, child: child),
                   child: Icon(
                     doneToday
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
+                        ? salapifyIcon('selected')
+                        : salapifyIcon('unselected'),
                     key: ValueKey(doneToday),
                     color: doneToday ? Barako.onPrimary : Barako.primary,
                     size: 18,
@@ -752,7 +756,7 @@ class _TreatSheetState extends State<_TreatSheet> {
     return Row(
       children: [
         _stepBtn(
-          Icons.remove,
+          salapifyIcon('subtract'),
           'Fewer check-ins to earn',
           () => setState(() => _target = _target > 1 ? _target - 1 : 1),
         ),
@@ -772,7 +776,7 @@ class _TreatSheetState extends State<_TreatSheet> {
           ),
         ),
         _stepBtn(
-          Icons.add,
+          salapifyIcon('add'),
           'More check-ins to earn',
           () => setState(
             () => _target = _target < _windowDays ? _target + 1 : _windowDays,

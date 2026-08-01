@@ -20,6 +20,7 @@ import 'tax_deadlines.dart';
 import 'year_end_tax.dart';
 import 'thirteenth_calculator.dart';
 import 'shell.dart';
+import '../widgets/salapify_icon.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -46,7 +47,7 @@ class ToolsScreen extends StatelessWidget {
           children: [
             _tool(
               context,
-              icon: Icons.percent,
+              icon: salapifyIcon('percent'),
               title: 'Loan calculator',
               blurb:
                   'The real monthly payment and the TRUE rate hiding behind an add-on quote.',
@@ -56,7 +57,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.shopping_bag_outlined,
+              icon: salapifyIcon('shopping'),
               title: 'Installment true cost',
               blurb:
                   'Is that 0% really 0%? The plan versus paying cash, honestly.',
@@ -66,7 +67,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.payments_outlined,
+              icon: salapifyIcon('cash'),
               title: 'Take-home pay',
               blurb:
                   'Gross to net with SSS, PhilHealth, Pag-IBIG, and the BIR table.',
@@ -78,7 +79,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.card_giftcard_outlined,
+              icon: salapifyIcon('gift'),
               title: '13th month pay',
               blurb:
                   'What you should get by 24 December, and the tax-free ceiling.',
@@ -90,7 +91,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.request_quote_outlined,
+              icon: salapifyIcon('billing'),
               title: 'Income tax',
               blurb:
                   'Freelancers and pros: the flat 8% versus graduated, compared.',
@@ -100,7 +101,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.event_available_outlined,
+              icon: salapifyIcon('scheduled'),
               title: 'BIR dates',
               blurb:
                   'The next filing deadlines for a freelancer, counted from today.',
@@ -112,7 +113,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.fact_check_outlined,
+              icon: salapifyIcon('checklist'),
               title: 'Year-end tax check',
               blurb: 'Employees: a refund coming, or still something to pay?',
               open: () => Navigator.of(context).push(
@@ -123,7 +124,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.account_balance_outlined,
+              icon: salapifyIcon('bank'),
               title: 'Contribution checker',
               blurb: 'Monthly SSS, PhilHealth, and Pag-IBIG for any salary.',
               open: () => Navigator.of(context).push(
@@ -134,7 +135,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.currency_exchange,
+              icon: salapifyIcon('exchange'),
               title: 'Currency converter',
               blurb:
                   'What your money is worth in another currency. Works offline once rates are saved.',
@@ -146,7 +147,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.sticky_note_2_outlined,
+              icon: salapifyIcon('note'),
               title: 'Notes',
               blurb: 'Lines with amounts add themselves up, like a receipt.',
               open: () => Navigator.of(context).push(
@@ -155,7 +156,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.school_outlined,
+              icon: salapifyIcon('learning'),
               title: 'Money courses',
               blurb:
                   'Short, plain reads on your money and habits. Free, always.',
@@ -168,7 +169,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             _tool(
               context,
-              icon: Icons.self_improvement_outlined,
+              icon: salapifyIcon('mindset'),
               title: 'Money mindset',
               blurb:
                   "Today's lesson, a quick impulse check before you buy, and your small wins.",
@@ -224,7 +225,7 @@ class ToolsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                  Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
                 ],
               ),
             ),

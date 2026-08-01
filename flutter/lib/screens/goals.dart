@@ -150,7 +150,7 @@ class GoalsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Barako.faint, size: 20),
+                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
                   ],
                 ),
               ),

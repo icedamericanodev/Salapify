@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quick_adds.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
@@ -300,7 +301,7 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
         ),
         IconButton(
           onPressed: _busy ? null : () => _remove(index),
-          icon: const Icon(Icons.close, size: 18),
+          icon: Icon(salapifyIcon('close'), size: 18),
           color: Barako.faint,
           // Named for the button it removes, so a screen reader user is never
           // choosing between four identical "Remove" controls.

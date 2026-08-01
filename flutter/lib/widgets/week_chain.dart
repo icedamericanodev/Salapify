@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../money/chain.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 class WeekChainCard extends StatelessWidget {
   final dynamic transactions;
@@ -74,7 +75,7 @@ class WeekChainCard extends StatelessWidget {
                         child: d.done
                             ? ExcludeSemantics(
                                 child: Icon(
-                                  Icons.check,
+                                  salapifyIcon('check'),
                                   size: 16,
                                   color: Barako.onPrimary,
                                 ),

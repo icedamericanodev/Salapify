@@ -40,6 +40,7 @@ import 'pan.dart';
 import 'accounts.dart';
 import 'search.dart';
 import 'shell.dart';
+import '../widgets/salapify_icon.dart';
 
 // formatMoney moved to money/format.dart so the home screen tile, which must
 // stay free of Flutter imports, can use the SAME function rather than the
@@ -390,7 +391,7 @@ class OverviewScreen extends StatelessWidget {
                                   if (onSwitchTab != null)
                                     ExcludeSemantics(
                                       child: Icon(
-                                        Icons.chevron_right,
+                                        salapifyIcon('forward'),
                                         size: 18,
                                         color: Barako.muted,
                                       ),
@@ -470,7 +471,7 @@ class OverviewScreen extends StatelessWidget {
                                     const Spacer(),
                                     ExcludeSemantics(
                                       child: Icon(
-                                        Icons.chevron_right,
+                                        salapifyIcon('forward'),
                                         size: 18,
                                         color: Barako.muted,
                                       ),
@@ -769,7 +770,7 @@ class OverviewScreen extends StatelessWidget {
                               // real decision.
                               if (good)
                                 Icon(
-                                  Icons.check_circle_outline,
+                                  salapifyIcon('done'),
                                   color: Barako.primary,
                                   size: 16,
                                 )
@@ -798,7 +799,7 @@ class OverviewScreen extends StatelessWidget {
                               // somewhere to go: the coach's destination, or
                               // Ask Pan when there is not one.
                               Icon(
-                                Icons.chevron_right,
+                                salapifyIcon('forward'),
                                 color: Barako.faint,
                                 size: 18,
                               ),
@@ -852,7 +853,7 @@ class OverviewScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.payments_outlined, color: Barako.primary, size: 18),
+                Icon(salapifyIcon('cash'), color: Barako.primary, size: 18),
                 const SizedBox(width: 8),
                 Kicker('PAYDAY'),
               ],
@@ -1024,7 +1025,7 @@ class OverviewScreen extends StatelessWidget {
                             ),
                           ),
                           Icon(
-                            Icons.chevron_right,
+                            salapifyIcon('forward'),
                             size: 18,
                             color: Barako.faint,
                           ),
@@ -1147,7 +1148,7 @@ class OverviewScreen extends StatelessWidget {
                     children: [
                       Kicker('YOUR NUMBER'),
                       const Spacer(),
-                      Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+                      Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1339,7 +1340,7 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: 14),
           _lane(
             context,
-            Icons.receipt_long_outlined,
+            salapifyIcon('receipt'),
             'Track my spending',
             'Log what you spend and see where it goes',
             () {
@@ -1349,7 +1350,7 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: 10),
           _lane(
             context,
-            Icons.handshake_outlined,
+            salapifyIcon('handshake'),
             'See who owes me',
             'Keep a who-owes-you list that adds itself up',
             // Money owed TO the user is the "Owed to me" segment of the Utang
@@ -1362,7 +1363,7 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: 10),
           _lane(
             context,
-            Icons.trending_down,
+            salapifyIcon('decline'),
             'Pay off a debt, formal or between friends',
             'A payoff date and the cheapest way there',
             // The user's own debts live on the "I owe" segment of the Utang
@@ -1463,7 +1464,7 @@ class OverviewScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Barako.faint, size: 18),
+              Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
             ],
           ),
         ),
@@ -1767,7 +1768,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.download),
+                        : Icon(salapifyIcon('download')),
                     label: Text(
                       _saving ? 'Saving...' : 'Save to this phone',
                       style: const TextStyle(
@@ -1793,7 +1794,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.ios_share),
+                        : Icon(salapifyIcon('share')),
                     label: Text(
                       _sharing ? 'Preparing...' : 'Share a file',
                       style: const TextStyle(
@@ -1824,7 +1825,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.copy),
+                  icon: Icon(salapifyIcon('copy')),
                   label: const Text(
                     'Copy backup text',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
@@ -1996,7 +1997,7 @@ class _ImportScreenState extends State<ImportScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: busy ? null : _pickFile,
-                  icon: const Icon(Icons.folder_open),
+                  icon: Icon(salapifyIcon('folder')),
                   label: const Text(
                     'Choose a backup file',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),

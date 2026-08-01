@@ -13,6 +13,7 @@ import 'package:local_auth/local_auth.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 
 /// The biometric check, behind an interface so tests can inject a fake instead
 /// of the real platform channel (which does not exist in a widget test).
@@ -263,7 +264,7 @@ class _LockScreen extends StatelessWidget {
                         border: Border.all(color: Barako.border),
                       ),
                       child: Icon(
-                        Icons.fingerprint,
+                        salapifyIcon('biometric'),
                         size: 44,
                         color: Barako.primary,
                       ),

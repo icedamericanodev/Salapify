@@ -9,6 +9,11 @@
 
 import 'debtmath.dart' show formatMoneyText;
 
+/// The transfer sign the RN engine emits, byte-locked by the search goldens.
+/// The SCREEN never typesets it: search.dart compares against this constant
+/// and draws the swap glyph instead, so the byte lives here exactly once.
+const String transferSign = '⇄';
+
 String _lower(dynamic s) => (s == null ? '' : s.toString()).toLowerCase();
 
 List _arr(dynamic x) => x is List ? x : const [];
@@ -186,7 +191,7 @@ Map<String, dynamic> search(dynamic data, String rawQuery) {
     final sign = type == 'income'
         ? '+'
         : type == 'transfer'
-        ? '⇄'
+        ? transferSign
         : type == 'debt'
         ? ''
         : type == 'adjustment'

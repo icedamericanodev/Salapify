@@ -15,6 +15,7 @@ import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/timeline.dart';
 import '../theme.dart';
 import 'recurring.dart';
+import '../widgets/salapify_icon.dart';
 
 const _months = [
   'Jan',
@@ -232,7 +233,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                       foregroundColor: Barako.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: Icon(salapifyIcon('add'), size: 18),
                     label: const Text(
                       'Add your salary and bills',
                       style: TextStyle(fontWeight: FontWeight.w700),
@@ -320,7 +321,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (needsPro && !_pro) ...[
-                      Icon(Icons.lock_outline, size: 13, color: Barako.faint),
+                      Icon(salapifyIcon('locked'), size: 13, color: Barako.faint),
                       const SizedBox(width: 4),
                     ],
                     Text(label),
@@ -414,7 +415,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 side: BorderSide(color: Barako.border),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              icon: const Icon(Icons.add, size: 18),
+              icon: Icon(salapifyIcon('add'), size: 18),
               label: const Text(
                 'Add a what if',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -451,15 +452,15 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
   IconData _scenarioIcon(dynamic kind) {
     switch (kind) {
       case 'purchase':
-        return Icons.shopping_bag_outlined;
+        return salapifyIcon('shopping');
       case 'extraMonthly':
-        return Icons.trending_down;
+        return salapifyIcon('decline');
       case 'incomeChange':
-        return Icons.trending_up;
+        return salapifyIcon('growth');
       case 'cutSpending':
-        return Icons.content_cut;
+        return salapifyIcon('cut');
       default:
-        return Icons.help_outline;
+        return salapifyIcon('help');
     }
   }
 
@@ -537,8 +538,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                                 // discovered.
                                 Icon(
                                   locked
-                                      ? Icons.lock_outline
-                                      : Icons.edit_outlined,
+                                      ? salapifyIcon('locked')
+                                      : salapifyIcon('edit'),
                                   size: 14,
                                   color: Barako.faint,
                                 ),
@@ -687,8 +688,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               children: [
                 Icon(
                   anyNegative
-                      ? Icons.warning_amber_rounded
-                      : Icons.event_available_outlined,
+                      ? salapifyIcon('warning')
+                      : salapifyIcon('scheduled'),
                   color: color,
                   size: 20,
                 ),
@@ -824,8 +825,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             children: [
               Icon(
                 isScenario
-                    ? Icons.auto_awesome_outlined
-                    : (isIn ? Icons.south_west : Icons.north_east),
+                    ? salapifyIcon('sparkle')
+                    : (isIn ? salapifyIcon('incoming') : salapifyIcon('outgoing')),
                 size: 18,
                 color: color,
               ),
@@ -1114,7 +1115,7 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
                   foregroundColor: Barako.text,
                   side: BorderSide(color: Barako.border),
                 ),
-                icon: const Icon(Icons.event, size: 18),
+                icon: Icon(salapifyIcon('event'), size: 18),
                 label: Text('On ${_pretty(_iso(date))}'),
               ),
             ],

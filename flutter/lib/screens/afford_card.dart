@@ -15,6 +15,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../money/afford.dart';
 import '../theme.dart';
+import '../widgets/salapify_icon.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 class AffordCard extends StatefulWidget {
@@ -263,16 +264,16 @@ class _AffordCardState extends State<AffordCard> {
     'comfortable' => (
       _mode == AffordMode.installment ? 'There is room' : 'You can afford this',
       Barako.primary,
-      Icons.check_circle_outline,
+      salapifyIcon('done'),
     ),
-    'tight' => ('Doable, but tight', Barako.warning, Icons.balance),
+    'tight' => ('Doable, but tight', Barako.warning, salapifyIcon('balance')),
     'heavy' => (
       'Heavy on the budget',
       Barako.warningStrong,
-      Icons.warning_amber_rounded,
+      salapifyIcon('warning'),
     ),
-    'no-fit' => ('Not yet affordable', Barako.warningStrong, Icons.block),
-    _ => ('Not enough data yet', Barako.muted, Icons.help_outline),
+    'no-fit' => ('Not yet affordable', Barako.warningStrong, salapifyIcon('blocked')),
+    _ => ('Not enough data yet', Barako.muted, salapifyIcon('help')),
   };
 
   // Each line: (text, isEmphasised). Emphasised lines take the verdict color.
