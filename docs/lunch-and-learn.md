@@ -10,6 +10,198 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-01, session 26: the calendar turned over and two tests went red, on a build that changed nothing
+
+**What we believed / What was true.** We believed main was green and would stay
+green until someone changed something. What was true: on 2026-08-01, with no code
+change at all, the "Flutter check" branch check (the analyze-and-test action that
+runs on every claude/** branch and on main) went red, 1383 passed and 2 failed.
+The trigger was not a diff. It was the date rolling over to the first of the
+month. The same red reproduced on a branch that carried zero flutter/ changes,
+which is the proof it was a property of main and not of any diff. Ground truth
+now: the founder confirmed "confirmed" on the phone, and the delivery log's last
+row is `| 2026-08-01 01:03 UTC | f3.12 | 7 | patch | 0.9.0+15 | 4ba7a1f1 |`. The
+app the founder is holding is byte-for-byte the same behaviour as f3.11; the only
+thing that differs between the two builds is the stamp string
+(flutter/lib/main.dart:34, `f3.12 ... Test fixture dates no longer rot at the
+month start ... No app change.`). Nothing about the app was broken. Two tests
+were, by a fixture that expressed dates in a way the calendar could collapse.
+
+Plain terms used below. A "fixture" is fake but realistic data a test feeds the
+app so a screen has something to draw. The "lived-in fixture" is the shared one
+(flutter/test/screens_shot.dart, `livedInBlob`) that four separate machines read
+so the screens under test look like a phone somebody actually uses. "Rot" means a
+test that quietly stops testing what it was written to test, without anyone
+touching it, because the world moved (here, the date).
+
+**Timeline (with evidence).**
+- The two failures, both on main, both date-driven, neither a code defect:
+  - flutter/test/reports_screen_test.dart, "the new decision graphs render
+    without overflow": the WHEN YOU SPEND weekday-pattern card did not render, so
+    a `find` for the text "WHEN YOU SPEND" matched 0 widgets. That card is guarded
+    in lib/screens/reports.dart:681, `if (peak.activeDays < 3 || peak.peakDay < 0)
+    return const SizedBox.shrink();`. It needs at least three distinct active
+    weekdays to draw anything.
+  - flutter/test/fixture_still_lived_in_test.dart, "somebody is overdue AND
+    somebody still has time to pay": Expected non-empty, Actual []. No receivable
+    was dated before today, so the Overdue branch was unreachable.
+- The mechanism. Before the fix, both fixtures dated entries as "the nth of the
+  CURRENT month, capped at today". In screens_shot.dart the helper was
+  `d(n) => DateTime(today.year, today.month, day <= today.day ? day : today.day)`;
+  in reports_screen_test it was a bare `_thisMonth(day)` with no cap, which on the
+  1st is a FUTURE date that the weekday pattern (counted only up to now) correctly
+  ignores. On the 1st and 2nd of a month the cap collapses every date onto today:
+  one active spending weekday instead of many, and nothing dated before today.
+  One collapse hid the weekday card; the other emptied the overdue branch.
+- What went well, and it is the point of this session. The overdue collapse was
+  caught by a guard that exists for exactly this: fixture_still_lived_in_test.dart
+  is a DATA-level self-check on the fixture, deliberately about the data and not
+  about any screen, and its third test asserts the fixture presents both an
+  overdue receivable and a not-yet-due one. It went red the instant the fixture
+  stopped presenting the overdue half (`due.where((d) => d.isBefore(today))` was
+  empty). The reports card collapse was caught by the screen render in
+  reports_screen_test.dart. Neither shipped a bad screen. Both blocked the merge.
+  That is the machinery working while nobody was watching.
+- The fix, PR #280 (commit 08d1c0f, merged at 4ba7a1f, shipped as f3.12 patch 7).
+  It dates entries RELATIVE to today. `ago(k) => iso(today.subtract(Duration(days:
+  k)))`, so `ago(0)` is always today and therefore always in the current month,
+  and a spread of k values lands on many weekdays across the last four weeks,
+  crossing the month boundary exactly as a real phone's recent spending does.
+  Receivables use `ago()` for overdue (`ago(20)`, `ago(6)`) and `ahead()` for
+  still-has-time (`ahead(17)`), the single income is `ago(0)` so Reports and
+  Insights always have this-month income, and the twelve expenses fan out from
+  `ago(0)` to `ago(31)`. reports_screen_test got the same treatment via a new
+  `_daysAgo(k)` helper. The full suite went 1385 green (up two, the two that had
+  failed).
+
+**Root cause.** A fixture that encoded dates as positions inside the current
+month, so the meaning of every date depended on where in the month "today" sat.
+On the first of the month there is no "earlier this week" inside the current
+month, because earlier this week is last month, and a cap-to-today has no way to
+say it. This is the THIRD rotation of one lesson. First the fixture was pinned to
+a constant July 2026, which would have dropped every entry into last month on the
+first of August (that is session 17 on a timer, and the old comment in
+screens_shot.dart warned about exactly that collapse). Then it was changed to
+`d(n)`, capped at today, to stop the future-dating. Now the cap itself rotted at
+the month start. The structural fault common to all three: any date expressed as
+a day-of-month is a value the calendar can reinterpret. The root cause is not
+"we forgot to test on the 1st"; it is "the fixture did month arithmetic at all".
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. Dates in a test fixture must be relative to today, never a day of the month,
+   because a day-of-month is a value the calendar reinterprets and a Duration from
+   today is not. **Guard: the relative-date model that already shipped in #280**
+   (`ago(k)`, `ahead(k)` in screens_shot.dart and `_daysAgo(k)` in
+   reports_screen_test.dart). Strength: strong, and this time structurally so, for
+   a reason worth stating plainly. The new model does no month arithmetic. It
+   never constructs `DateTime(year, month, day)`; it only subtracts a `Duration`
+   from `today`. There is no day-of-month field to overflow (the old day-29-to-31
+   clamp problem cannot arise) and no month index to roll. So the answer to "is it
+   finally rot-proof" is yes for the month-boundary failure that has bitten three
+   times: it cannot recur, because the arithmetic that caused it is gone.
+   The one residual I can name honestly, and it is not the same class of bug:
+   Dart's `subtract(Duration(days: k))` moves absolute time, not calendar days, so
+   across a daylight-saving transition a result could land an hour early or late
+   and shift a date by one day. That would never collapse the spread or move
+   everything onto today (it is a one-day nudge on one entry at most), and it does
+   not arise in practice because the runner clock is UTC, which has no DST, and the
+   app's audience is the Philippines, which has none either. `ago(0)` in particular
+   is exact, no subtraction, so the "always in the current month" guarantee holds
+   with zero DST exposure. I am recording this as a named non-issue rather than a
+   silent one, so a future session that sees a one-day wobble knows where it came
+   from and does not mistake it for a return of the collapse.
+
+2. The overdue half had a data-level self-check and was caught by it; the
+   weekday-spending half did not, and was caught only because a screen render
+   happened to fail. That asymmetry is the real gap. **Guard, proposed and NOT
+   implemented this pass:** add a fourth assertion to
+   fixture_still_lived_in_test.dart that mirrors the WHEN YOU SPEND guard at the
+   DATA level, so the regression reddens on the data and not only when a picture is
+   rendered. Precisely: collect the expense transactions in `livedInBlob`
+   (`type == 'expense'`) whose date is within the last eight weeks (`!date.isBefore(
+   today.subtract(const Duration(days: 56)))` and `!date.isAfter(today)`), map each
+   to `DateTime.parse(date).weekday`, put those in a `Set<int>`, and
+   `expect(set.length, greaterThanOrEqualTo(3), reason: ...)`. That is the same
+   threshold reports.dart:681 uses (`peak.activeDays < 3`), so the day the fixture
+   stops spanning three weekdays is a red DATA test, not a silent screen. Strength
+   when built: strong (an automated assertion that fails loudly, independent of any
+   render). Until it is built the lesson is partly open: the weekday card's fixture
+   coverage still leans on a screen test rather than on the self-check whose whole
+   job is to promise the fixture reaches the states it exists to reach.
+
+**Open lessons carried forward.**
+- NEW, open: the Reports "No income logged yet" empty state overflows at 1.5x
+  system font. When there is no income in the current month but there is spending,
+  reports.dart:304 renders the head "No income logged yet"
+  (`income == 0 && expenses > 0`), and screen_readability_test.dart measured that
+  head spanning from x=38.0 to x=474.8 on a 390-wide phone, so it runs off the
+  right edge. This is a real latent LAYOUT bug in lib, pre-existing and independent
+  of the fixture, found only because the old fixture briefly lost this-month income
+  on the 1st. It was deliberately left for a later fix, and the fixture now always
+  carries this-month income (`ago(0)`), so the sweep no longer walks through it.
+  That is precisely the risk: the machine that catches it (screen_readability_test)
+  only reaches it when the fixture has no this-month income, which is now never.
+  The fix belongs in reports.dart's income==0-and-expenses>0 branch (wrap or size
+  the "No income logged yet" head so it fits at 1.5x on a 390 phone). Recorded here
+  so it is not lost; the readability sweep is the machine that will re-catch it the
+  moment any fixture loses this-month income again.
+- From session 25, now CLOSED and confirmed: the optional pre-merge
+  stamp-versus-main branch check was built. .github/scripts/check-stamp-unique.sh
+  exists and is wired into flutter-check.yml:167, so a flutter/-touching branch
+  whose stamp still equals the delivered one reddens before the merge, in front of
+  the publisher's existing backstop. The two-builds-one-stamp lesson now has a
+  guard at both ends.
+- From session 24, now confirmed: the segmented_test.dart "must stack" assertion
+  was re-anchored to the shipped font rather than deleted. segmented_test.dart
+  loads the real Plus Jakarta Sans via `loadRealFonts` (lines 236 and 272) before
+  it measures, so the layout test judges what the phone draws. The real-font
+  version is the one gating.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** Every path this
+session touched exists where CLAUDE.md says: flutter/test/screens_shot.dart is
+under test/ and is not `*_test.dart` (so `flutter test` never collects it, as
+claimed), flutter/test/screen_readability_test.dart and
+flutter/test/palette_contrast_test.dart are ordinary `*_test.dart` files that run
+on the branch check, and .github/scripts/check-stamp-unique.sh exists. The
+publisher trigger CLAUDE.md describes still matches: flutter-preview.yml fires on
+push to `main` with paths `flutter/**`. Nothing false found this pass.
+
+**For the founder, over lunch.** Here is the whole story, plainly. Nothing about
+your app broke, and nothing bad reached your phone. What happened is that our
+tests use pretend data to fill the screens, and that pretend data described its
+dates as "the 3rd of this month, the 8th of this month", and so on. When the
+calendar rolled over to the 1st of August, "earlier this month" suddenly meant
+nothing, because on the 1st there is no earlier this month yet. So two tests
+looked at screens that had gone empty and correctly said "this is wrong", and the
+build went red all on its own, with nobody having changed a single line. That is
+not a failure, it is a smoke alarm doing its job: one of those two tests exists
+for exactly this, and it went off the instant the pretend data stopped looking
+like a real phone.
+
+The fix was to describe the dates as "3 days ago, 8 days ago" instead of "the 3rd,
+the 8th". "Days ago" means the same thing every day of the year, so it can never
+collapse at the start of a month again. This is the third time this same kind of
+date problem has bitten us, and this fix is the one that ends it, because the new
+way does no month-and-day juggling at all, it just counts backwards from today.
+The build you confirmed, f3.12, behaves exactly like f3.11 did; the only change is
+the little version line and the test data behind the scenes.
+
+Two honest notes so nothing is buried. First, one of the two tripwires (the one
+for the weekday spending chart) only caught this because a screen picture happened
+to fail; its proper data-level check does not exist yet. I have written down
+exactly how to add it, so a future session can make that tripwire as reliable as
+the other one. Second, while chasing this I found a separate, older cosmetic bug:
+on the Reports screen, if you have spending but no income logged this month, the
+words "No income logged yet" run off the edge of the phone at the largest text
+size. I left it for later on purpose, but I have written it down here so it is not
+forgotten. The cost if either of these notes is ignored: the weekday-chart
+tripwire stays half-reliable, and that text-overflow bug can quietly reappear the
+day our pretend data ever again has no income for the current month, because the
+one check that spots it only runs into it in that exact situation.
+
+---
+
 ## 2026-07-31, session 25: a test-only merge shipped anyway, and the guard caught it after the phone already had it
 
 **What we believed / What was true.** We believed PR #276, a banked test and
