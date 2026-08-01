@@ -1403,7 +1403,7 @@ class _BalancePainter extends CustomPainter {
           color: label,
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Jakarta',
+          fontFamily: Barako.bodyFont,
         ),
       ),
       textDirection: TextDirection.ltr,
