@@ -106,7 +106,8 @@ bool _insideHorizontalScroll(Element element) {
   var horizontal = false;
   element.visitAncestorElements((a) {
     final w = a.widget;
-    if (w is Scrollable && axisDirectionToAxis(w.axisDirection) == Axis.horizontal) {
+    if (w is Scrollable &&
+        axisDirectionToAxis(w.axisDirection) == Axis.horizontal) {
       horizontal = true;
       return false;
     }
@@ -487,23 +488,43 @@ void main() {
       // to drive them, not to skip them, and it is the next thing this file
       // should grow.
       'bnpl_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'contribution_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'contribution_calculator.dart':
+          'input-driven; cold pump shows an empty form',
       'currency_converter.dart': 'input-driven; cold pump shows an empty form',
       'loan_calculator.dart': 'input-driven; cold pump shows an empty form',
       'salary_calculator.dart': 'input-driven; cold pump shows an empty form',
       'tax_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'thirteenth_calculator.dart': 'input-driven; cold pump shows an empty form',
+      'thirteenth_calculator.dart':
+          'input-driven; cold pump shows an empty form',
       'tax_deadlines.dart': 'rendered by screens_shot; add here when it grows',
       'year_end_tax.dart': 'rendered by screens_shot; add here when it grows',
     };
     // The files the swept set covers, by the screen each entry builds.
     const sweptFiles = <String>{
-      'overview.dart', 'budget.dart', 'history.dart', 'money.dart',
-      'insights.dart', 'menu.dart', 'learn.dart', 'appearance.dart',
-      'accounts.dart', 'categories.dart', 'reports.dart', 'debts.dart',
-      'goals.dart', 'recurring.dart', 'search.dart', 'cashflow.dart',
-      'paluwagan.dart', 'tools.dart', 'treats.dart', 'pan.dart',
-      'payday.dart', 'notes.dart', 'mindset.dart', 'privacy_receipt.dart',
+      'overview.dart',
+      'budget.dart',
+      'history.dart',
+      'money.dart',
+      'insights.dart',
+      'menu.dart',
+      'learn.dart',
+      'appearance.dart',
+      'accounts.dart',
+      'categories.dart',
+      'reports.dart',
+      'debts.dart',
+      'goals.dart',
+      'recurring.dart',
+      'search.dart',
+      'cashflow.dart',
+      'paluwagan.dart',
+      'tools.dart',
+      'treats.dart',
+      'pan.dart',
+      'payday.dart',
+      'notes.dart',
+      'mindset.dart',
+      'privacy_receipt.dart',
       'diagnostics_screen.dart',
     };
     final onDisk = Directory('lib/screens')
@@ -513,10 +534,11 @@ void main() {
         .where((n) => n.endsWith('.dart'))
         .toSet();
 
-    final unaccounted = onDisk
-        .where((n) => !sweptFiles.contains(n) && !exempt.containsKey(n))
-        .toList()
-      ..sort();
+    final unaccounted =
+        onDisk
+            .where((n) => !sweptFiles.contains(n) && !exempt.containsKey(n))
+            .toList()
+          ..sort();
     expect(
       unaccounted,
       isEmpty,
@@ -530,14 +552,15 @@ void main() {
     // And the accounting cannot drift the other way either: a swept or exempted
     // name that no longer exists means somebody renamed a screen and this map
     // is now describing a file that is gone.
-    final ghosts = [...sweptFiles, ...exempt.keys]
-        .where((n) => !onDisk.contains(n))
-        .toList()
-      ..sort();
+    final ghosts = [
+      ...sweptFiles,
+      ...exempt.keys,
+    ].where((n) => !onDisk.contains(n)).toList()..sort();
     expect(
       ghosts,
       isEmpty,
-      reason: 'named here but not on disk, so this map is stale:\n${ghosts.join('\n')}',
+      reason:
+          'named here but not on disk, so this map is stale:\n${ghosts.join('\n')}',
     );
 
     // Every entry in the swept set is actually built by the map above. Without
@@ -662,7 +685,8 @@ void main() {
         'deep',
         (_) => ListView(
           children: [
-            for (var i = 0; i < 30; i++) SizedBox(height: 80, child: Text('row $i')),
+            for (var i = 0; i < 30; i++)
+              SizedBox(height: 80, child: Text('row $i')),
             const Row(
               children: [
                 Text('A sentence long enough to need the whole width.'),

@@ -88,7 +88,9 @@ Future<void> _shareCardImage(
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Could not build the image. Sharing as text instead.'),
+            content: Text(
+              'Could not build the image. Sharing as text instead.',
+            ),
           ),
         );
     }
@@ -110,18 +112,24 @@ Future<void> showMilestoneCelebration(
   BuildContext context,
   Milestone win,
 ) async {
-  showCelebration(context, '${win.headline}. ${win.sub}');
-  if (!context.mounted) return;
+  // The sheet is the moment: "You just made it" plus the card to keep and
+  // share. The confetti fires AFTER it closes, over the screen the user returns
+  // to, not at the same instant, where the modal's scrim would bury the burst
+  // and its pill would just repeat the card headline. The sheet announces the
+  // win to a screen reader on open, so accessibility does not wait for the
+  // confetti.
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    showDragHandle: true,
     backgroundColor: Barako.card,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (_) => _CelebrationSheet(win: win),
   );
+  if (context.mounted) showCelebration(context, win.headline);
 }
 
 class MilestoneShareScreen extends StatefulWidget {
@@ -282,54 +290,17 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
     );
   }
 
-  Future<Uint8List?> _capture() async {
-    final ctx = _cardKey.currentContext;
-    if (ctx == null) return null;
-    final obj = ctx.findRenderObject();
-    if (obj is! RenderRepaintBoundary) return null;
-    final image = await obj.toImage(pixelRatio: 3);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data?.buffer.asUint8List();
-  }
-
-  Future<void> _shareText(Milestone win) async {
-    try {
-      await Share.share(milestoneText(win, formatMoneyText, _hideAmounts));
-    } catch (_) {
-      // The user closing the sheet is not an error worth surfacing.
-    }
-  }
+  // Both share actions delegate to the file-level helpers, so the capture and
+  // temp-file recipe genuinely lives once (see _shareCardImage / _shareCardText
+  // at the top of this file). The screen only adds its own busy state.
+  Future<void> _shareText(Milestone win) => _shareCardText(win, _hideAmounts);
 
   Future<void> _shareImage(Milestone win) async {
     if (_busy) return;
     setState(() => _busy = true);
-    File? file;
     try {
-      final bytes = await _capture();
-      if (bytes == null) throw StateError('no snapshot');
-      final dir = await getTemporaryDirectory();
-      file = File('${dir.path}/salapify-win-${win.kind}.png');
-      await file.writeAsBytes(bytes);
-      await Share.shareXFiles([
-        XFile(file.path, mimeType: 'image/png'),
-      ], text: 'A win worth sharing');
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Could not build the image. Sharing as text instead.',
-              ),
-            ),
-          );
-      }
-      await _shareText(win);
+      await _shareCardImage(context, _cardKey, win, _hideAmounts);
     } finally {
-      try {
-        if (file != null && await file.exists()) await file.delete();
-      } catch (_) {}
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -394,16 +365,55 @@ class _CelebrationSheetState extends State<_CelebrationSheet> {
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Speak the win as the sheet opens, so a screen-reader user hears it now
+    // rather than waiting for the confetti that fires after dismiss.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          '${widget.win.headline}. ${widget.win.sub}',
+          TextDirection.ltr,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final card = _MilestoneCard(win: widget.win, hideAmounts: _hideAmounts);
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
+      child: Stack(
+        children: [
+          _body(card),
+          // The capture source is a FULL-SIZE card off-screen, the picker's
+          // trick, so the shared PNG is the same crisp 330-wide image on every
+          // phone. Capturing the visible FittedBox instead would export a
+          // smaller, lower-res card on a narrow phone.
+          Positioned(
+            left: -_cardW * 4,
+            top: 0,
+            child: RepaintBoundary(
+              key: _cardKey,
+              child: _MilestoneCard(win: widget.win, hideAmounts: _hideAmounts),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body(Widget card) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(
               'You just made it',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -412,69 +422,64 @@ class _CelebrationSheetState extends State<_CelebrationSheet> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Turn this into a card you can post or send. You choose if peso '
-              'amounts show.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Turn this into a card you can post or send. You choose if peso '
+            'amounts show.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Barako.textSecondary,
+              fontSize: 13,
+              height: 1.4,
             ),
-            const SizedBox(height: 16),
-            // The card is shown AND is the capture source: wrapping the visible
-            // card in the RepaintBoundary means what shares is exactly what the
-            // user sees, so there is no hidden second copy to drift.
-            Center(
-              child: RepaintBoundary(
-                key: _cardKey,
-                child: FittedBox(fit: BoxFit.scaleDown, child: card),
-              ),
+          ),
+          const SizedBox(height: 16),
+          // Shown scaled to fit the sheet width; the crisp full-size copy that
+          // actually shares is the off-screen RepaintBoundary in build().
+          Center(
+            child: FittedBox(fit: BoxFit.scaleDown, child: card),
+          ),
+          const SizedBox(height: 16),
+          _HideAmountsToggle(
+            value: _hideAmounts,
+            onChanged: (v) => setState(() => _hideAmounts = v),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy ? null : _share,
+            style: FilledButton.styleFrom(
+              backgroundColor: Barako.primary,
+              foregroundColor: Barako.onPrimary,
+              disabledBackgroundColor: Barako.primary.withValues(alpha: 0.5),
+              padding: const EdgeInsets.symmetric(vertical: 15),
             ),
-            const SizedBox(height: 16),
-            _HideAmountsToggle(
-              value: _hideAmounts,
-              onChanged: (v) => setState(() => _hideAmounts = v),
+            child: Text(
+              _busy ? 'Preparing...' : 'Share the card',
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _busy ? null : _share,
-              style: FilledButton.styleFrom(
-                backgroundColor: Barako.primary,
-                foregroundColor: Barako.onPrimary,
-                disabledBackgroundColor: Barako.primary.withValues(alpha: 0.5),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-              child: Text(
-                _busy ? 'Preparing...' : 'Share the card',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _busy
+                ? null
+                : () => _shareCardText(widget.win, _hideAmounts),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Barako.textSecondary,
+              side: BorderSide(color: Barako.border),
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: _busy ? null : () => _shareCardText(widget.win, _hideAmounts),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Barako.textSecondary,
-                side: BorderSide(color: Barako.border),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text(
-                'Share as text',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
+            child: const Text(
+              'Share as text',
+              style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 4),
-            TextButton(
-              onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
-              child: Text(
-                'Maybe later',
-                style: TextStyle(color: Barako.muted),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
+            child: Text('Maybe later', style: TextStyle(color: Barako.muted)),
+          ),
+        ],
       ),
     );
   }
@@ -503,28 +508,48 @@ class _HideAmountsToggle extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: Barako.border),
     ),
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Hide peso amounts',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+    clipBehavior: Clip.antiAlias,
+    // The whole row toggles, not just the 48dp switch, and it reads as one
+    // control to a screen reader.
+    child: MergeSemantics(
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hide peso amounts',
+                      style: TextStyle(
+                        color: Barako.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Share the win, keep the numbers private.',
+                      style: TextStyle(color: Barako.faint, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: Barako.onPrimary,
+                activeTrackColor: Barako.primary,
+                inactiveThumbColor: Barako.faint,
+                inactiveTrackColor: Barako.border,
+              ),
+            ],
           ),
         ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Barako.onPrimary,
-          activeTrackColor: Barako.primary,
-          inactiveThumbColor: Barako.faint,
-          inactiveTrackColor: Barako.border,
-        ),
-      ],
+      ),
     ),
   );
 }

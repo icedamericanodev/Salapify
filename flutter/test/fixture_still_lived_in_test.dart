@@ -29,7 +29,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'screens_shot.dart' show livedInBlob;
 
 List<Map<String, dynamic>> _rows(String key) => [
-  for (final r in (livedInBlob[key] is List ? livedInBlob[key] as List : const []))
+  for (final r
+      in (livedInBlob[key] is List ? livedInBlob[key] as List : const []))
     if (r is Map) r.cast<String, dynamic>(),
 ];
 
@@ -126,7 +127,11 @@ void main() {
     // somebody trimming the fixture to make one shot tidier and quietly
     // emptying four machines at once. CLAUDE.md says do not shrink it; this is
     // that sentence with a machine behind it.
-    expect(_rows('accounts').length, greaterThanOrEqualTo(4), reason: 'accounts');
+    expect(
+      _rows('accounts').length,
+      greaterThanOrEqualTo(4),
+      reason: 'accounts',
+    );
     expect(
       _rows('accounts').where((a) => (a['currencyCode'] ?? '') != ''),
       isNotEmpty,

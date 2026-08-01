@@ -12,8 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:math';
 
-import '../money/base_currency_scope.dart'
-    show baseCurrencyOf, manualRatesOf;
+import '../money/base_currency_scope.dart' show baseCurrencyOf, manualRatesOf;
 import '../money/fx_totals.dart' show FxTable;
 import '../money/greeting.dart';
 import '../money/lesson_progress.dart';
@@ -23,14 +22,19 @@ import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
-import 'encrypted_store_coordinator.dart' show EncryptedStoreCoordinator, StorageHealth;
+import 'encrypted_store_coordinator.dart'
+    show EncryptedStoreCoordinator, StorageHealth;
 import 'fx_service.dart' show FxService;
 import 'ledger_repository.dart';
 // The ledger key constants and the persistence boundary now live in
 // ledger_repository.dart; re-exported so the ~40 tests (and any caller) that
 // import storageKey from store.dart keep working unchanged.
 export 'ledger_repository.dart'
-    show storageKey, previousBackupKey, LedgerRepository, SharedPrefsLedgerRepository;
+    show
+        storageKey,
+        previousBackupKey,
+        LedgerRepository,
+        SharedPrefsLedgerRepository;
 import '../money/sample_data.dart' show hasSampleData, isSampleId, sampleData;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/transfers.dart' as transfers;
@@ -38,7 +42,6 @@ import '../money/categories.dart' as categories;
 import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
-
 
 /// Transaction ids must be present and unique before the store accepts a
 /// blob: removeTransaction drops every row matching an id but reverses the

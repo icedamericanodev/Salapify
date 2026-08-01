@@ -604,7 +604,7 @@ class _PersonSheetState extends State<PersonSheet> {
     // settled row is bookkeeping, the RN guard.
     await _run(() => widget.store.markUtangPaid((r['id'] ?? '').toString()));
     if (mounted && remaining > 0) {
-      showCelebration(context, '${widget.name} paid you back in full.');
+      _celebrateUtang(r);
     }
   }
 

@@ -955,12 +955,7 @@ class DebtFormSheet extends StatefulWidget {
   /// See [showDebtFormSheet]. Null when editing, or when this sheet is opened
   /// from a path that never asked what kind of debt it is.
   final AccountSubtype? seed;
-  const DebtFormSheet({
-    super.key,
-    required this.store,
-    this.debt,
-    this.seed,
-  });
+  const DebtFormSheet({super.key, required this.store, this.debt, this.seed});
 
   @override
   State<DebtFormSheet> createState() => _DebtFormSheetState();
@@ -994,11 +989,14 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     // subtype maps to the one string the payment engine branches on
     // (money/debts.dart keys on exactly 'credit card'), everything else to
     // 'other'. Only then the default.
-    type = (d?['type'] ??
-            (widget.seed == null
-                ? 'credit card'
-                : (widget.seed!.id == 'credit_card' ? 'credit card' : 'other')))
-        .toString();
+    type =
+        (d?['type'] ??
+                (widget.seed == null
+                    ? 'credit card'
+                    : (widget.seed!.id == 'credit_card'
+                          ? 'credit card'
+                          : 'other')))
+            .toString();
     remaining = TextEditingController(
       text: d != null ? _rateText(amountOf(d['remaining'])) : '',
     );
@@ -1034,26 +1032,28 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
       error = null;
     });
     try {
-      await widget.store.saveDebt({
-        'id': widget.debt != null
-            ? (widget.debt!['id'] ?? '').toString()
-            : null,
-        'name': name.text,
-        'type': type,
-        'remaining': remaining.text,
-        'monthlyRate': rateCtl.text,
-        'minPayment': minPay.text,
-        'dueDay': dueDay.text,
-        'statementDay': statementDay.text,
-        'graceDays': graceDays.text,
-        'creditLimit': creditLimit.text,
-      },
-      // Only on create, and only when the person actually answered. Writing it
-      // on an edit would let opening and saving an untouched row reclassify
-      // it. sanitizeData drops it if it does not belong to debts.
-      meta: widget.debt == null && widget.seed != null
-          ? {'subtype': widget.seed!.id}
-          : const {});
+      await widget.store.saveDebt(
+        {
+          'id': widget.debt != null
+              ? (widget.debt!['id'] ?? '').toString()
+              : null,
+          'name': name.text,
+          'type': type,
+          'remaining': remaining.text,
+          'monthlyRate': rateCtl.text,
+          'minPayment': minPay.text,
+          'dueDay': dueDay.text,
+          'statementDay': statementDay.text,
+          'graceDays': graceDays.text,
+          'creditLimit': creditLimit.text,
+        },
+        // Only on create, and only when the person actually answered. Writing it
+        // on an edit would let opening and saving an untouched row reclassify
+        // it. sanitizeData drops it if it does not belong to debts.
+        meta: widget.debt == null && widget.seed != null
+            ? {'subtype': widget.seed!.id}
+            : const {},
+      );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {

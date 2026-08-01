@@ -153,6 +153,12 @@ List<Milestone> milestones(dynamic data) {
       ),
     );
   }
+  // utangOut milestones (a payable you cleared in full) appear in the Share a
+  // win picker and render the same card, but there is no LIVE celebration sheet
+  // for them yet: utang.dart is the receivables screen, and paying a payable
+  // routes through the debts view (money.dart), so only receivables (utangIn)
+  // pop the sheet at the moment of settling. A symmetric live celebration for
+  // payables is a deliberate follow-up, not a forgotten wire-up.
   for (final r in _maps(d['payables'])) {
     if (!_settled(r)) continue;
     final person = _fitName(

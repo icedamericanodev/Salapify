@@ -52,7 +52,8 @@ import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
-import 'package:salapify/screens/milestone_share.dart' show showMilestoneCelebration;
+import 'package:salapify/screens/milestone_share.dart'
+    show showMilestoneCelebration;
 import 'package:salapify/money/milestones.dart' show Milestone;
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/services/diagnostics.dart';
