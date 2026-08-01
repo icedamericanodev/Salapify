@@ -10,6 +10,232 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-07-31, session 25: a test-only merge shipped anyway, and the guard caught it after the phone already had it
+
+**What we believed / What was true.** We believed PR #276, a banked test and
+docs change from the f3.10 retrospective, would reach the phone as NOTHING. The
+plan, approved by the founder, was "bank now, ship with the next feature": no
+stamp bump, on the stated belief that a test-only change "changes no app bytes,
+so no over-the-air update, nothing on the phone." That belief was false. When
+#276 merged to main (af16665), the publisher ran, Shorebird shipped "patch 5",
+and it went live on the founder's phone still reading the OLD stamp f3.10, the
+same stamp patch 4 already carried. The founder had been told nothing would
+reach the phone; the merge commit title says so in writing: "Merge pull request
+#276: theme-picker layout test judges the shipped font (banked, no OTA)". Two
+different builds then existed under one name, which is the one thing the
+delivery log exists to make impossible.
+
+What was also true, and is the good news of this session: the publisher's
+one-stamp-one-build guard fired at the exact instant of the collision, refused
+to write a false record, and opened a tracking issue. Ground truth now: the
+founder confirmed "stamp is 3.11" on the phone, and the delivery log's last row
+is `| 2026-07-31 17:08 UTC | f3.11 | 6 | patch | 0.9.0+15 | af3f40bd |`. The
+phone and the file agree again. This was NOT a clean patch. It was a
+self-inflicted process error, caught by a machine that was doing its job while
+nobody was watching, and recovered without a single wrong record ever being
+written.
+
+Plain-English note on the terms. "Over the air" (OTA) means the app updates
+itself when reopened, with no new install. A "patch" is one such over-the-air
+update; Shorebird, the tool that ships them, numbers them (patch 4, patch 5,
+patch 6) against one installed base APK. A "stamp" is the short line the app
+prints so the founder can read which build they are running. The publisher is
+the "Flutter preview APK" GitHub Action (.github/workflows/flutter-preview.yml)
+that builds and ships on every merge to main that touches flutter/.
+
+**Timeline (with evidence).**
+- PR #276 (a12a126, "Make the theme-picker layout test judge the shipped
+  font") touched four files and NO app code: `git show --stat a12a126` lists
+  CLAUDE.md, docs/lunch-and-learn.md, flutter/test/golden/ui_golden.dart, and
+  flutter/test/segmented_test.dart. The change makes segmented_test.dart load
+  the real Plus Jakarta Sans font (`+import 'screens_shot.dart' show
+  loadRealFonts;` and `+ await loadRealFonts(tester);`) so the theme-picker
+  layout test judges what the phone draws instead of Flutter's wider default
+  test font. Nothing under flutter/lib/ changed.
+- The trap is in the trigger. flutter-preview.yml:10-19 fires on push to main
+  with paths flutter/**. flutter/test/ is under flutter/, so a test-only change
+  to main runs the full publisher. There is no path that merges flutter/ to
+  main WITHOUT shipping. The belief "no app code, so no ship" read the wrong
+  boundary: the filter is flutter/**, not flutter/lib/.
+- Shorebird ships on build BYTES, not on functional diffs. Even with the
+  compiled app functionally identical to f3.10, the build differed and
+  Shorebird published patch 5. So patch 5 went live, functionally the same as
+  patch 4, but a distinct build.
+- Patch 5 shipped under the UNCHANGED stamp f3.10. The publisher's "Record what
+  actually shipped" step (flutter-preview.yml:201-230) computes STAMP from
+  main.dart and PREV from the last delivery-log row, and at lines 226-230 does
+  `if [ "$STAMP" = "$PREV" ]` then echoes "Stamp $STAMP was already delivered,
+  and this is a different build." and exits 1. Both were f3.10, so the step
+  exited 1.
+- That failure is BY DESIGN and comes AFTER the publish. The step's own comment
+  (lines 221-223): "This fails AFTER the publish on purpose. The patch is
+  already out, so refusing to record it would be the worse lie. Fail loudly."
+  Consequences: the run concluded failure; no delivery-log row was written for
+  patch 5, so patch 5 was live but unrecorded; and the failure step opened
+  issue #277 titled "Preview build failed, nothing shipped to the phone." That
+  title is slightly misleading in this case: patch 5 DID ship; it was the
+  recording that failed.
+- The fix, PR #278 (c945051, "f3.11: record the already-live patch under a
+  unique stamp"), changed exactly two files: `git show --stat c945051` lists
+  docs/qa-log.md (+1) and flutter/lib/main.dart (2 changed). It bumped
+  updateStamp to f3.11 (a genuinely distinct build, since the stamp string
+  itself changed) and added the required qa-log row with the agent gate
+  recorded as SKIPPED and its reason (no new app behavior to review). On merge
+  (af3f40b) the publisher shipped patch 6 under f3.11, wrote the delivery-log
+  row, and #277 auto-closed on the green run.
+- Reverting #276 was explicitly NOT an option, and this is worth recording
+  because it is counterintuitive: a revert is another flutter/ push to main,
+  which would run the publisher again under the still-unchanged stamp f3.10 and
+  fail the exact same guard. The only way out of a stamp collision is forward,
+  with a new stamp.
+
+**Root cause.** A human false belief, not a code defect: "a test-only change
+under flutter/ changes no app bytes, so it ships nothing." Two facts break it,
+and neither was stated plainly anywhere the plan would be read. First, the
+publisher's trigger is flutter/**, so a test-only or docs-under-flutter merge
+to main ships just like a lib/ change; there is no "merge flutter/ without
+shipping" path. Second, Shorebird patches on build bytes, so "the compiled app
+is functionally identical" does not mean "no patch is produced." The existing
+rule to bump the stamp "on every push" was overridden by the belief that this
+case was exempt, and nothing contradicted the exemption in words.
+
+This is structural, not "someone should have checked harder." The fix that
+survives a busy day is a sentence that removes the exemption from the mental
+model, backed by the machine that already refuses the collision.
+
+**What went well, credited honestly.** The publisher's one-stamp-one-build
+guard is the hero of this session. It caught the collision the instant it
+happened, refused to write a delivery row that would have lied (the phone would
+have said f3.10 and so would the log, while the phone actually ran the later of
+two different builds), and opened a self-closing issue that closed on the fix.
+That guard was proven to fail on the branch check before it ever mattered
+(flutter/test/publisher_guard_test.dart). This is exactly the kind of guard
+this project is built to have: it works when no one is watching, and it worked.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. There is no "merge flutter/ without shipping" path, and no "functionally
+   identical, so no patch" either. Every merge to main that touches flutter/,
+   including test-only and docs-under-flutter changes, runs the publisher and
+   ships a Shorebird patch, because the trigger is flutter/** and Shorebird
+   patches on build bytes. So every such merge needs a unique stamp.
+   - GUARD, primary, MEDIUM strength (a rule in CLAUDE.md tied to a specific
+     moment). Add to CLAUDE.md's Flutter rebuild rule 1, after the sentence that
+     ends "delivery happens at the merge to main, and is not real until that run
+     is green", this exact wording:
+     "There is no path that merges flutter/ to main without shipping. The
+     publisher's trigger is flutter/**, so a test-only or docs-under-flutter
+     merge ships exactly like a lib/ change, and Shorebird patches on build
+     bytes, so a functionally identical build is still a NEW patch under a new
+     patch number. Every merge to main that touches flutter/ therefore needs a
+     unique updateStamp, with no exception for test-only, docs-only, or 'no app
+     bytes changed' changes. Never plan a flutter/ merge on the belief that it
+     ships nothing."
+     It is honestly labeled a human lesson: the failure was a belief, and a rule
+     is what corrects a belief. It is medium strength because it only works if
+     read at the right moment.
+   - GUARD, backstop, STRONG and ALREADY IN PLACE (an automated check that fails
+     loudly): the one-stamp-one-build record step in flutter-preview.yml:226-230
+     already refuses to write a false record and raises an issue. It did its job
+     here. No new machine is required for correctness, because the worst
+     outcome, a delivery record that silently lies, is already impossible.
+   - GUARD, optional strengthening, STRONGEST if built, NOT built this pass and
+     offered as a decision to the founder: a pre-merge branch-check step that
+     fails the "Flutter check" when a PR touches flutter/ and its updateStamp
+     equals origin/main's. That would catch the missing bump BEFORE the merge,
+     so no unrecorded patch ever reaches the phone, upgrading the guard from
+     "catch after the phone already has it" to "prevent." It is deterministic (a
+     string compare against main), so it cannot flake. It is offered, not
+     manufactured, because the existing backstop already prevents the only
+     UNRECOVERABLE harm (a false record); this would only save the founder the
+     scary issue #277 and a false "nothing shipped" message. If accepted, prove
+     it fails then passes before trusting it, per the standing rule.
+
+2. Do not tell the founder a delivery OUTCOME that depends on a mechanism not
+   fully understood. "Nothing will reach your phone" turned out as wrong, and as
+   expensive to a beginner, as a false "it shipped." The project already forbids
+   saying a stamp is live before its row exists; this is the same coin's other
+   face. Until a delivery row settles the matter, describe the plan ("this is a
+   test-only change, banked for the next feature") without asserting the phone
+   result.
+   - GUARD, MEDIUM strength (a rule; a chat sentence cannot be read by a
+     machine). Fold into the existing "never say a version number until its row
+     exists" discipline in CLAUDE.md: the same caution applies to asserting
+     nothing shipped. The delivery-log row is the only statement about the phone
+     that is safe to make, in either direction.
+
+**Residual integrity gap, decided in the open.** Patch 5 shipped and is
+permanently absent from the delivery log: the log jumps f3.10 patch 4
+(14d53c37) straight to f3.11 patch 6 (af3f40bd), and `git log origin/main`
+confirms the two merges af16665 (#276) and af3f40b (#278) between them with no
+patch-5 row. DECISION: leave the hole, and record the reason here rather than
+backfill it. Reasoning, honestly: (1) patch 5 was functionally identical to
+patch 4 and is now fully superseded by patch 6, which the founder confirmed on
+the phone, so nothing live depends on it. (2) Patch 5 never carried a distinct
+stamp; it shipped under f3.10, which already has its own row for patch 4. There
+is nothing the founder could ever look up on the phone that would point at
+patch 5, because the phone only ever showed f3.10 for it. (3) The delivery log
+is written by the publisher itself and read by automation as ground truth; a
+hand-written row would break the "written by the publisher" contract and could
+confuse a future read, a worse risk than a one-number gap in Shorebird's patch
+counter. The only visible symptom is that the patch numbers skip 5, and this
+entry is where a future reader who notices it finds the answer. This retro IS
+the backfill, placed where explanations belong.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** Checked against
+the repo this session: flutter-preview.yml does trigger on push to main with
+paths flutter/** (lines 10-19), as CLAUDE.md's Flutter rule 1 describes;
+.github/workflows/flutter-check.yml exists and runs the branch check;
+flutter/test/update_stamp_test.dart and flutter/test/qa_record_test.dart both
+exist where CLAUDE.md names them. Every factual claim inspected still matches
+the repository. The one gap is not a false claim but a SILENCE: CLAUDE.md
+nowhere stated plainly that a test-only or docs-under-flutter merge still ships,
+which is what lesson 1's new sentence fills.
+
+**Open lessons carried forward.**
+- From session 24: the blocking segmented_test.dart "must stack" assertion at
+  large text still measures against a font the phone does not draw. #276 was the
+  banked fix for exactly this (it now loads the real font), and #276 is what
+  triggered this session's incident. Confirm on a future retro that the
+  real-font version is the one gating, and that the fragile "must stack"
+  directional assertion was re-anchored to the shipped font rather than deleted.
+- New, open until the founder decides: whether to build the pre-merge
+  stamp-versus-main branch check (lesson 1's optional strengthening). Until then
+  the standing guard is the CLAUDE.md rule plus the already-working publisher
+  backstop.
+
+**For the founder, over lunch.** Here is what happened, plainly. Last time we
+"banked" a small change that only touched test files, and I told you it would
+put nothing on your phone. That was wrong. Any change under the flutter/ folder
+that merges into the main line gets shipped to your phone, even if it is just
+test code, because the shipping robot watches the whole folder, not just the app
+code, and the update tool makes a fresh update whenever the build is even
+slightly different, whether or not the app behaves differently. So a build did
+reach your phone, but it still carried the OLD name f3.10, the same name as the
+one before it. Two different builds with one name is the exact thing our safety
+check is built to stop.
+
+And it stopped it. The publisher noticed the name had not changed, refused to
+write a record it knew would be misleading, and raised a flag (issue #277). I
+fixed it the only safe way, by moving forward: I bumped the name to f3.11 and
+shipped once more, which is the f3.11 you just confirmed. Going backwards would
+have shipped the same clashing name again and hit the same wall.
+
+Why this is now hard to repeat: I am adding one clear sentence to our rules that
+says there is no way to merge flutter/ without shipping, and every such merge
+needs a fresh name, with no exception for "it's only tests." That sentence is a
+reminder, so it is only as strong as me reading it at the right moment. The
+strong part is the safety check that already exists and already caught this; it
+does not rely on anyone remembering anything. If that safety check were ever
+removed, we would go back to the old danger: your phone could quietly run a
+different build than the log claims, and you would have no way to tell. So it
+stays. One honest cost remains: there is a one-number gap in the update count
+(it skips 5), because that in-between build was never recorded. It was identical
+to the one before it and is now replaced by f3.11, so it is harmless, and this
+write-up is where that gap is explained so no one is puzzled by it later.
+
+---
+
 ## 2026-07-31, session 24: a clean f3.10 patch, and the blocking test that measures a font the phone does not use
 
 **What we believed / What was true.** We believed the seven-issue UI,

@@ -19,9 +19,21 @@ Flutter track:
    (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
    flutter test, then Shorebird ships it. So a push touching flutter/ on the
    working branch publishes NOTHING; delivery happens at the merge to main,
-   and is not real until that run is green. One RELEASE exists per pubspec
-   version (the base APK at the fixed flutter-preview release tag, installed
-   once); every later push PATCHES that release over the air and the
+   and is not real until that run is green. THERE IS NO PATH THAT MERGES
+   flutter/ TO main WITHOUT SHIPPING: the publisher's trigger is flutter/**,
+   so a test-only or docs-under-flutter merge ships exactly like a lib/ change,
+   and Shorebird patches on build BYTES, so a functionally identical build is
+   still a NEW patch under a new patch number. Every merge to main that touches
+   flutter/ therefore needs a unique updateStamp, with no exception for
+   test-only, docs-only, or "no app bytes changed" work; never plan a flutter/
+   merge on the belief that it ships nothing. That belief shipped f3.10 patch 5
+   unrecorded (docs/lunch-and-learn.md session 25). Two guards now hold this: the
+   branch check reddens a flutter/-touching PR whose stamp still equals the
+   delivered one (.github/scripts/check-stamp-unique.sh), and the publisher's own
+   record step is the backstop that refuses to write a colliding row. One RELEASE
+   exists per pubspec version (the base APK at the fixed flutter-preview release
+   tag, installed once); every later push PATCHES that release over the air and
+   the
    installed app updates itself on reopen. Bump the pubspec version ONLY for
    native-level changes; that forces a new base APK and one manual install,
    flag it loudly to the founder. Auth is the SHOREBIRD_TOKEN repo secret;
@@ -411,6 +423,14 @@ not a machine, because what went wrong was a sentence in a chat and no test
 can read a sentence. If it happens again, the escalation is already decided:
 stop giving progress updates between merges entirely, and speak exactly twice
 per batch, at the start and when the row lands.
+
+The same caution runs the OTHER way, learned in session 25: do not assert that
+nothing shipped either, until the log settles it. "This is banked, nothing
+reaches your phone" was said of a test-only merge and was false, because a
+flutter/ merge always ships (see rule 1 above). A false "nothing shipped" costs
+a beginner founder exactly as much as a false "it shipped". Until the
+delivery-log row exists, the only safe statement about the phone is the plan
+("this is a test-only change, banked for the next feature"), never the outcome.
 
 After the founder confirms a patch on the phone, run the lunch and learn: a
 short blameless retrospective, facilitated by the lunch-and-learn agent,

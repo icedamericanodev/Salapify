@@ -133,6 +133,39 @@ jobs:
           fi
           echo "All shorebird flavors are mapped in shorebird.yaml."
 
+      # PREVENT the two-builds-one-stamp collision BEFORE the merge, the
+      # strengthening decided after f3.10 patch 5 (docs/lunch-and-learn.md
+      # session 25). The publisher already REFUSES to record such a collision
+      # and opens an issue, but only AFTER the patch is already live on the
+      # phone. This catches the same condition here, on the PR, so the collision
+      # never merges. It fires only when this branch changes files under flutter/
+      # (so a merge would actually ship a Shorebird patch) AND its stamp equals
+      # the one already delivered. A docs-only or non-flutter change ships
+      # nothing and is never gated, which is why this very kind of check-and-
+      # docs PR does not trip it.
+      #
+      # This runs BEFORE the --depth=1 fetch further down, so origin/main is
+      # still the full clone (fetch-depth: 0 above) and merge-base resolves. The
+      # decision logic is a pure function in a script so it can be proven in
+      # isolation, the same shape as check-merged-manifest.sh.
+      - name: A flutter/ change must not reuse a delivered stamp
+        working-directory: .
+        run: |
+          BRANCH=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'")
+          DELIVERED=$(git show origin/main:docs/delivery-log.md 2>/dev/null \
+            | grep -oE '\| f[0-9]+\.[0-9]+ \|' | tail -1 | tr -d '| ')
+          BASE=$(git merge-base origin/main HEAD 2>/dev/null || echo "")
+          if [ -z "$BASE" ]; then
+            # No merge base found (unusual): assume it might ship, so the guard
+            # still protects rather than silently passing.
+            TOUCHES=yes
+          elif git diff --name-only "$BASE"...HEAD | grep -qE '^flutter/'; then
+            TOUCHES=yes
+          else
+            TOUCHES=no
+          fi
+          bash .github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED" "$TOUCHES"
+
       - name: Analyze (zero tolerance)
         run: flutter analyze
 
