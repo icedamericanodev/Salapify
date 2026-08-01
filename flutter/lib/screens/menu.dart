@@ -683,6 +683,14 @@ class MenuScreen extends StatelessWidget {
             ),
             const Divider(height: 24),
             row(
+              'lookahead',
+              Icons.query_stats,
+              'Cash flow heads up',
+              'One evening warning when the plan ahead looks tight, so a '
+                  'squeeze is never a surprise.',
+            ),
+            const Divider(height: 24),
+            row(
               'collect',
               Icons.handshake_outlined,
               'Money to collect',

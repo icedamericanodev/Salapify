@@ -1140,6 +1140,29 @@ class SalapifyStore extends ChangeNotifier {
     };
   });
 
+  /// The saved what-if scenarios the Sweldo Timeline overlays
+  /// (settings.timelineScenarios). Stored as plain maps so the backup
+  /// preserves them with no migration; the engine ignores junk shapes.
+  List<Map<String, dynamic>> get timelineScenarios {
+    final s = data['settings'];
+    final raw = s is Map ? s['timelineScenarios'] : null;
+    return [
+      for (final e in (raw is List ? raw : const []))
+        if (e is Map) e.cast<String, dynamic>(),
+    ];
+  }
+
+  Future<void> setTimelineScenarios(List<Map<String, dynamic>> scenarios) =>
+      _mutate(
+        (d) => {
+          ...d,
+          'settings': {
+            ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+            'timelineScenarios': scenarios,
+          },
+        },
+      );
+
   /// Whether reminders may carry names and amounts in their body
   /// (settings.notifDetailed). OFF by default: the privacy contract is that a
   /// locked phone shows generic reminders only. Turning this on reveals detail

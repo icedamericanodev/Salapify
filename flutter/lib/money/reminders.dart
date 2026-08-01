@@ -15,6 +15,9 @@
 //  - comeback: a gentle re-engagement ladder (day 2, 4, 7, 14 from the last
 //    app open) so a lapsing user is brought back before every other reminder
 //    runs dry; silent for active users because a reopen re-arms it
+//  - lookahead: one heads up the evening before the Sweldo Timeline's
+//    conservative projection first dips below zero in the next 14 days, so a
+//    tight stretch is a plan and not a surprise
 //
 // Every peso here is read from the data, never invented. Non-finite and bad
 // dates are guarded, matching the rest of the money layer.
@@ -24,6 +27,7 @@ import 'ledger.dart' show amountOf;
 import 'sample_data.dart' show sampleTxIds;
 import 'schedule.dart' show hasExplicitPaydaySchedule, nextPayday;
 import 'statements.dart' show todayISO;
+import 'timeline.dart' show sweldoTimeline;
 
 class PlannedReminder {
   final String title;
@@ -282,6 +286,34 @@ List<PlannedReminder> plannedReminders(
               'Two taps in Menu saves a fresh backup file to a place you '
               'choose.',
           d,
+        );
+      }
+    }
+  }
+
+  if (on['lookahead'] == true) {
+    // One heads up, the evening before the conservative projection first
+    // dips below zero in the next 14 days. Conservative line only, never the
+    // band: an alarm built on an estimate cries wolf, and a wolf-crying
+    // alarm gets its battery taken out. One ping per reschedule by
+    // construction (there is exactly one first negative day), and a dip
+    // that is already today schedules nothing because add() drops the past;
+    // the timeline screen still shows it.
+    final tl = sweldoTimeline(
+      data is Map<String, dynamic> ? data : <String, dynamic>{...data},
+      now,
+      horizonDays: 14,
+    );
+    final firstNegative = tl['firstNegativeDate'];
+    if (firstNegative is String) {
+      final dip = _atHour(firstNegative, 18);
+      if (dip != null) {
+        add(
+          'Cash flow heads up',
+          detailed
+              ? 'Your projected cash dips below zero around ${_niceDate(dip)}. A small move today beats a scramble later.'
+              : 'The plan for the days ahead looks tight. Open Salapify to see which day and adjust early.',
+          DateTime(dip.year, dip.month, dip.day - 1, 18),
         );
       }
     }

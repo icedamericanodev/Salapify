@@ -37,6 +37,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/commitments.dart' show liquidKinds;
+import 'package:salapify/money/debtmath.dart' show formatMoneyText;
 import 'package:salapify/money/ledger.dart' show amountOf;
 import 'package:salapify/money/milestones.dart' show milestoneFor;
 import 'package:salapify/money/statements.dart' show netWorthParts;
@@ -127,6 +129,66 @@ Map<String, dynamic> _winSeed() => {
   'receivables': <Map<String, dynamic>>[],
   'payments': <Map<String, dynamic>>[],
 };
+
+String _isoDate(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// A store the Sweldo Timeline can project from: spendable cash, a savings pot
+/// the timeline must NOT count, and one recurring bill so the projection has
+/// something to stand on. The Cash flow screen is reached through the real app
+/// (Menu tile or the Home road-ahead card), which passes NO fixed reference
+/// date, so this seed has to be stable under the REAL clock: the bill is
+/// stamped as already posted this month on purpose, because store.load() posts
+/// due recurring items with DateTime.now() and an unstamped bill would debit
+/// the seeded balances on some days of the month and not on others, making
+/// every figure below depend on when the suite runs.
+Map<String, dynamic> _timelineSeed({bool pro = false}) {
+  return {
+    'schemaVersion': 12,
+    'settings': {
+      'onboarded': true,
+      if (pro) 'pro': true,
+      'paydaySchedule': {'mode': 'monthly', 'day': 30},
+    },
+    'accounts': [
+      // Liquid 5,000 against a total of 55,000: the ten-to-one gap is the
+      // fixture's whole point. A NOW figure that quietly counted savings as
+      // spendable would print a number ten times too rich, and the seam under
+      // test could not hide behind two figures that happen to be close.
+      {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+      {'id': 'bank', 'name': 'Savings', 'kind': 'savings', 'balance': 50000},
+    ],
+    'recurring': [
+      {
+        'id': 'rent',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 2000,
+        'dayOfMonth': 1,
+        // The current month key, so postDueRecurring on load skips it.
+        'lastPosted': _isoDate(DateTime.now()).substring(0, 7),
+      },
+    ],
+    'debts': <Map<String, dynamic>>[],
+    'categories': <Map<String, dynamic>>[],
+    'transactions': <Map<String, dynamic>>[],
+    'receivables': <Map<String, dynamic>>[],
+  };
+}
+
+/// Every real-money blob the app stores, as one comparable string. The what-if
+/// journeys assert this is IDENTICAL across a save or a toggle: a scenario is
+/// a plan, and a plan that reaches accounts, transactions, debts, receivables,
+/// or goals has crossed into the books. Deliberately narrower than
+/// _storedState, which the scenario write is SUPPOSED to change (it lives in
+/// settings); asserting the whole blob unchanged would fail a working save.
+String _realMoney(SalapifyStore store) => jsonEncode({
+  'accounts': store.data['accounts'],
+  'transactions': store.data['transactions'],
+  'debts': store.data['debts'],
+  'receivables': store.data['receivables'],
+  'goals': store.data['goals'],
+});
 
 Future<SalapifyStore> _openApp(
   WidgetTester tester, [
@@ -706,5 +768,219 @@ void main() {
       reason: 'a hand-zeroed debt spuriously offered the milestone card',
     );
     expect(_debt(store, 'zeroed'), closeTo(0, 0.001));
+  });
+
+  // The Sweldo Timeline journeys. The invariant they all defend: a what if is
+  // a PLAN. The card on the screen promises "Only the line changes, never your
+  // real money", and these hold the app to that sentence through the real
+  // sheet, the real switch, and the real store, while the directional halves
+  // prove the plan itself genuinely lands, overlays, and lifts.
+
+  testWidgets('saving a what if changes the plan and not one peso of money', (
+    tester,
+  ) async {
+    final store = await _openApp(tester, _timelineSeed(pro: true));
+    final before = _netWorth(store);
+    final booksBefore = _realMoney(store);
+    expect(
+      store.timelineScenarios,
+      isEmpty,
+      reason: 'seed sanity: the scenario below must be the save under test',
+    );
+
+    await _tap(tester, find.byTooltip('Menu'));
+    await _tap(tester, find.text('Cash flow'));
+    // The 30 day horizon first (a Pro chip, and the seed is Pro). The sheet
+    // defaults the purchase date to a week out, which the free month window
+    // EXCLUDES whenever the suite runs in the last week of a month; 30 days
+    // contains a-week-from-today on every date the calendar has.
+    await _tap(tester, find.text('30 days'));
+    await _tap(tester, find.text('Add a what if'));
+    // Prefilled defaults on purpose, the way a person taps through: the kind
+    // stays "A big buy", the date stays a week out, and the name stays empty
+    // so the app's own fallback has to label it. Only the amount is typed,
+    // because the sheet refuses to save without one.
+    await tester.enterText(find.widgetWithText(TextField, 'Amount'), '2500');
+    await tester.pumpAndSettle();
+    await _tap(tester, find.text('Save'));
+
+    // The invariant, exactly as the card words it: net worth to the centavo,
+    // and every account, transaction, debt, receivable, and goal byte for
+    // byte. A what if that moved any of them is a transaction wearing a
+    // costume.
+    expect(
+      _netWorth(store),
+      closeTo(before, 0.001),
+      reason: 'saving a what if moved net worth; a plan spent real money',
+    );
+    expect(
+      _realMoney(store),
+      booksBefore,
+      reason:
+          'saving a what if wrote into the real books, not just the plan '
+          'in settings',
+    );
+
+    // The did-anything-happen half, directional: the scenario reached
+    // settings carrying the 2,500 that was typed two taps ago (the literal is
+    // the round trip: entered up there, read back here), and the screen
+    // overlays it as an event honestly labeled a what if.
+    expect(
+      store.timelineScenarios,
+      hasLength(1),
+      reason: 'the save never reached the store, so the invariant above held '
+          'by doing nothing',
+    );
+    expect(
+      amountOf(store.timelineScenarios.single['amount']),
+      closeTo(2500, 0.001),
+      reason: 'the scenario arrived with a different amount than was typed',
+    );
+    expect(
+      find.text('A big buy (what if)'),
+      findsOneWidget,
+      reason: 'the saved what if never overlaid the event list',
+    );
+
+    // And the plan survives the disk, like any other write in this file: a
+    // scenario that evaporates on restart looks like the app eating the plan.
+    final reopened = SalapifyStore();
+    await reopened.load();
+    expect(
+      reopened.timelineScenarios,
+      hasLength(1),
+      reason: 'the what if was never persisted, so a restart loses it',
+    );
+    expect(
+      amountOf(reopened.timelineScenarios.single['amount']),
+      closeTo(2500, 0.001),
+    );
+  });
+
+  testWidgets('the timeline NOW figure is the spendable cash the store holds', (
+    tester,
+  ) async {
+    // The cross-screen agreement check: the figure the Cash flow screen calls
+    // NOW must be the same money the rest of the app calls spendable, the
+    // liquid accounts only. Savings sit one field away in the same list, so
+    // the plausible wrong number is the total, and a person who keeps their
+    // ipon untouched would read that as the app inviting them to spend it.
+    final store = await _openApp(tester, _timelineSeed());
+
+    // Both sums from the store through the app's own liquidKinds rule, not
+    // hand-copied from the seed, so a fixture edit cannot silently detune the
+    // check. The seed guarantees they differ tenfold.
+    var liquid = 0.0;
+    var total = 0.0;
+    for (final a in (store.data['accounts'] as List)) {
+      final m = (a as Map).cast<String, dynamic>();
+      total += amountOf(m['balance']);
+      if (liquidKinds.contains(m['kind'])) liquid += amountOf(m['balance']);
+    }
+    expect(liquid, closeTo(5000, 0.001), reason: 'seed sanity: the cash');
+    expect(
+      total,
+      closeTo(55000, 0.001),
+      reason: 'seed sanity: cash plus the savings the timeline must not touch',
+    );
+
+    // In through the front door a person actually uses: the road-ahead card
+    // on Home, which only renders because the seed has something projectable.
+    await _tap(tester, find.text('THE ROAD AHEAD'));
+    expect(find.text('NOW'), findsOneWidget);
+    // Rendered through the same formatMoneyText the screen uses, so this
+    // stays a money test and never becomes a formatter test: a grouping or
+    // rounding change moves both sides at once.
+    expect(
+      find.text(formatMoneyText(liquid)),
+      findsWidgets,
+      reason: 'the NOW figure disagrees with the liquid sum the store holds',
+    );
+    expect(
+      find.text(formatMoneyText(total)),
+      findsNothing,
+      reason:
+          'the savings-inflated total appears on the timeline; the projection '
+          'is counting money the person is protecting',
+    );
+  });
+
+  testWidgets('flipping a what if off lifts the overlay and touches nothing', (
+    tester,
+  ) async {
+    // The scenario arrives from PERSISTED settings, the shape a backup or a
+    // previous session leaves behind, so this also covers the read seam the
+    // save journey cannot: written by one session, obeyed by the next.
+    final seed = _timelineSeed(pro: true);
+    final now = DateTime.now();
+    (seed['settings'] as Map)['timelineScenarios'] = [
+      {
+        'kind': 'purchase',
+        'label': 'Beach trip',
+        // 3,000 a week out: like the sheet's own default, always inside the
+        // 30 day window the journey selects, whatever today's real date is.
+        'amount': 3000,
+        'date': _isoDate(DateTime(now.year, now.month, now.day + 7)),
+        'on': true,
+      },
+    ];
+    final store = await _openApp(tester, seed);
+    final before = _netWorth(store);
+    final booksBefore = _realMoney(store);
+
+    await _tap(tester, find.byTooltip('Menu'));
+    await _tap(tester, find.text('Cash flow'));
+    await _tap(tester, find.text('30 days'));
+    expect(
+      find.text('Beach trip (what if)'),
+      findsOneWidget,
+      reason:
+          'the persisted scenario never overlaid, so the toggle below has '
+          'nothing to prove',
+    );
+
+    // Off. The overlay must lift AND the off state must reach the store;
+    // either alone is the switch lying in one direction.
+    await _tap(tester, find.byType(Switch));
+    expect(
+      find.text('Beach trip (what if)'),
+      findsNothing,
+      reason: 'switched off, but the what if still shapes the event list',
+    );
+    expect(
+      store.timelineScenarios.single['on'],
+      isFalse,
+      reason:
+          'the row disappeared but the store still says on; a reopen would '
+          'bring the overlay back',
+    );
+    expect(
+      find.text('Beach trip'),
+      findsOneWidget,
+      reason: 'off must silence the scenario, not delete it from the card',
+    );
+
+    // And back on, so the switch is proven directional both ways rather than
+    // a one-way trapdoor.
+    await _tap(tester, find.byType(Switch));
+    expect(
+      find.text('Beach trip (what if)'),
+      findsOneWidget,
+      reason: 'switched back on, but the overlay never returned',
+    );
+    expect(store.timelineScenarios.single['on'], isTrue);
+
+    // Toggling a plan is bookkeeping about a hypothetical: no direction of it
+    // may move real money.
+    expect(
+      _netWorth(store),
+      closeTo(before, 0.001),
+      reason: 'toggling a what if moved net worth',
+    );
+    expect(
+      _realMoney(store),
+      booksBefore,
+      reason: 'toggling a what if wrote into the real books',
+    );
   });
 }

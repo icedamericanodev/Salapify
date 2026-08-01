@@ -44,6 +44,7 @@ import 'package:salapify/screens/utang.dart';
 import 'package:salapify/screens/quick_add_editor.dart';
 import 'package:salapify/widgets/period_selector.dart';
 import 'package:salapify/screens/shell.dart';
+import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
 import 'package:salapify/screens/onboarding.dart';
@@ -297,6 +298,49 @@ final Map<String, dynamic> livedInBlob = () {
       // A thing you own that is not spendable, so the Accounts screen shows
       // more than one category and net worth stops being a synonym for cash.
       {'id': 'car', 'name': 'Motorcycle', 'kind': 'vehicle', 'value': 85000},
+    ],
+    // A salary and two bills, so the Sweldo Timeline (Cash flow) and the Home
+    // road-ahead card project a lived-in month instead of the set-up prompt.
+    // Day-of-month items cannot rot at a calendar boundary: the engine clamps
+    // and iterates months. The salary day matches the payday schedule above.
+    //
+    // lastPosted is stamped to the CURRENT month, and that stamp is
+    // load-bearing: store.load() runs postDueRecurring with the REAL clock,
+    // so without it every consumer of this fixture (the render harness, the
+    // readability sweep, the pixel baseline) would gain extra posted
+    // transactions on any run on or after each item's day of month, and the
+    // fixture's content would depend on the calendar day the suite runs.
+    // That is the session 26 rot class wearing a new coat. The cost is that
+    // the timeline shows next month's occurrences instead of this month's,
+    // which the 60-day shot covers fine.
+    'recurring': [
+      {
+        'id': 'rec-sweldo',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 32000,
+        'dayOfMonth': 30,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
+      },
+      {
+        'id': 'rec-rent',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 9500,
+        'dayOfMonth': 5,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
+      },
+      {
+        'id': 'rec-net',
+        'type': 'expense',
+        'label': 'Internet',
+        'amount': 1699,
+        'dayOfMonth': 18,
+        'lastPosted':
+            '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}',
+      },
     ],
     'debts': [
       {
@@ -1917,5 +1961,69 @@ void main() {
     // Close the sheet so nothing is left on the navigator at teardown.
     await tester.tap(find.text('Maybe later'));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('the Sweldo Timeline, Pro 60 day view with a what if, dark', (
+    tester,
+  ) async {
+    // The fullest state the screen has: a rolling Pro horizon crossing a
+    // month boundary, the variable-spend band from the fixture's logged
+    // spending, payday dots, and one saved what-if overlaying the line. The
+    // free month view is already covered by the readability sweep; this shot
+    // is the part only Pro sees, looked at before it ships.
+    await loadRealFonts(tester);
+    final today = DateTime.now();
+    final buyDate = today.add(const Duration(days: 12));
+    String iso(DateTime t) =>
+        '${t.year.toString().padLeft(4, '0')}-'
+        '${t.month.toString().padLeft(2, '0')}-'
+        '${t.day.toString().padLeft(2, '0')}';
+    final blob = {
+      ...livedInBlob,
+      'settings': {
+        ...(livedInBlob['settings'] as Map).cast<String, dynamic>(),
+        'pro': true,
+        'timelineScenarios': [
+          {
+            'kind': 'purchase',
+            'label': 'New phone',
+            'amount': 18000,
+            'date': iso(buyDate),
+            'on': true,
+          },
+        ],
+      },
+    };
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: CashFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The 60 day chip sits past the right edge of the chip row; bring it on
+    // screen first or the tap lands on nothing and the shot quietly shows
+    // the month view instead (which is exactly what happened on the first
+    // render of this shot).
+    await tester.ensureVisible(find.text('60 days'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('60 days'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/cashflow-timeline-dark.png'),
+    );
   });
 }
