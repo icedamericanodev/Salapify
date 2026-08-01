@@ -3,7 +3,7 @@
 // (rescheduleAll), but kept PURE and separate from the plugin so the
 // what-to-fire logic is unit tested and the plugin adapter stays a thin shell.
 //
-// Five kinds, each behind its own settings toggle (settings.notifications):
+// Six kinds, each behind its own settings toggle (settings.notifications):
 //  - daily: an evening log nudge, skipped tonight if you already logged today
 //  - payday: 9am on each upcoming payday (your own schedule)
 //  - bills: a debt due in 3 days (evening) and the morning it is due
@@ -12,6 +12,9 @@
 //  - backup: 10am on the 1st of each month, only once there is data worth
 //    backing up; offline data has no cloud safety net, so the nudge IS the
 //    safety net
+//  - comeback: a gentle re-engagement ladder (day 2, 4, 7, 14 from the last
+//    app open) so a lapsing user is brought back before every other reminder
+//    runs dry; silent for active users because a reopen re-arms it
 //
 // Every peso here is read from the data, never invented. Non-finite and bad
 // dates are guarded, matching the rest of the money layer.
@@ -63,8 +66,18 @@ String _peso(num value) {
 // never imports a screen. Never a raw stored ISO string: the project rule is
 // that a stored date is never shown to the user unformatted.
 const _monthAbbrev = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 String _niceDate(DateTime d) => '${_monthAbbrev[d.month - 1]} ${d.day}';
 
@@ -82,6 +95,26 @@ DateTime? _atHour(dynamic dateStr, int hour) {
 
 List<Map<String, dynamic>> _list(dynamic x) =>
     x is List ? x.whereType<Map<String, dynamic>>().toList() : const [];
+
+// Whether the store holds anything worth keeping or coming back to. Used by the
+// backup nudge (nothing to back up on an empty phone) and the comeback ladder
+// (no "come back" ping to someone who never put anything in). Deliberately
+// wider than accounts and transactions: Salapify is an utang tracker first, so
+// a user who only recorded debts or receivables, and never opened an account or
+// logged a spend, still has real data. The narrow accounts-or-transactions gate
+// silently skipped both nudges for exactly that user, who is the core audience.
+bool _hasAnyData(Map data) {
+  for (final key in const [
+    'accounts',
+    'transactions',
+    'debts',
+    'receivables',
+  ]) {
+    final v = data[key];
+    if (v is List && v.isNotEmpty) return true;
+  }
+  return false;
+}
 
 // The upcoming paydays on the user's own schedule, from "now" forward.
 List<DateTime> _upcomingPaydays(DateTime now, dynamic schedule, int count) {
@@ -238,13 +271,9 @@ List<PlannedReminder> plannedReminders(
   }
 
   if (on['backup'] == true) {
-    // Only nag once there is something to lose.
-    final accounts = data['accounts'];
-    final transactions = data['transactions'];
-    final hasData =
-        (accounts is List && accounts.isNotEmpty) ||
-        (transactions is List && transactions.isNotEmpty);
-    if (hasData) {
+    // Only nag once there is something to lose. Debts and receivables count:
+    // an utang-only user has data worth a backup file too.
+    if (_hasAnyData(data)) {
       for (var i = 0; i < 3; i++) {
         final d = DateTime(now.year, now.month + i, 1, 10);
         add(
@@ -254,6 +283,77 @@ List<PlannedReminder> plannedReminders(
               'choose.',
           d,
         );
+      }
+    }
+  }
+
+  if (on['comeback'] == true) {
+    // The re-engagement ladder for a user who stops opening the app. Every
+    // other reminder is armed relative to the LAST time the app was opened,
+    // and the schedule is only rebuilt on open, so a user who lapses eventually
+    // runs dry and nothing brings them back. These pings, armed from `now` on
+    // every open, are the safety net.
+    //
+    // They stay SILENT for an active user for free: the service wipes and
+    // rebuilds the whole schedule on every open, so each open cancels the old
+    // "day 2" ping and re-arms it two days past the NEW open. Only a genuinely
+    // lapsed user (no reopen) ever lets one fire. So "day 2" means "two days
+    // after you last opened Salapify", never a fixed calendar date.
+    //
+    // Only for a phone with something to come back to (the same gate backup
+    // uses): a first-run user who bounced is onboarding's job, not a reminder
+    // that says we miss you. "Something" includes debts and receivables, so an
+    // utang-only user, the core audience, is not silently skipped.
+    if (_hasAnyData(data)) {
+      // A lapsed daily-nudge user is ALREADY getting a 20:00 log nudge every
+      // evening for 14 days, so firing the early comeback pings on top would be
+      // pure redundancy and the fatigue that gets a whole channel muted. So
+      // when daily is on, comeback fires ONLY the day 14 catch, the morning
+      // after daily's last evening nudge (day 13) and right before the shared
+      // silence cliff. When daily is off (the majority this exists for) the
+      // full ladder runs. Either way there is never a double-ping day.
+      //
+      // One asymmetry worth naming: the daily-on catch is a single ping at
+      // now+14, the farthest-future item in the whole plan, so it is the first
+      // thing the service's soonest-first 60-notification cap would drop. That
+      // only bites a user with dozens of debts (each debt is two reminders);
+      // realistic plans stay well under the cap, and the daily-off ladder sorts
+      // near the front and always survives.
+      //
+      // The messages carry no name, amount, or date, so they are lock-screen
+      // safe as-is and read the same whether or not detail is opted in.
+      const dawn = <(int, String, String)>[
+        (
+          2,
+          'Still here when you are',
+          'No rush and no catch up needed. Open Salapify and pick up right where you left off.',
+        ),
+        (
+          4,
+          'No catching up needed',
+          'Life gets busy. Two minutes in Salapify and you are back in the loop with your money.',
+        ),
+        (
+          7,
+          'A fresh start this week',
+          'New week, clean slate. Just log one thing and you are current again. Nothing to catch up on.',
+        ),
+        (
+          14,
+          'Whenever you are ready',
+          'Your numbers are safe on this phone, exactly as you left them. Open Salapify anytime to pick back up.',
+        ),
+      ];
+      const lastOnly = <(int, String, String)>[
+        (
+          14,
+          'Whenever you are ready',
+          'Your numbers are safe on this phone, exactly as you left them. Open Salapify anytime to pick back up.',
+        ),
+      ];
+      final steps = on['daily'] == true ? lastOnly : dawn;
+      for (final (days, title, body) in steps) {
+        add(title, body, DateTime(now.year, now.month, now.day + days, 11));
       }
     }
   }

@@ -56,6 +56,24 @@ void main() {
         reason: 'an empty store has nothing worth nagging about',
       );
     });
+
+    test('fires for an utang-only user (debts, no account or transaction)', () {
+      // Salapify is an utang tracker first: a debts-only user has data worth a
+      // backup file, so the nudge must reach them. The old accounts-or-
+      // transactions gate silently skipped this exact user.
+      final plans = plannedReminders(
+        withNotifs(
+          {'backup': true},
+          extra: {
+            'debts': [
+              {'id': 'd1', 'name': 'BPI card', 'remaining': 8000},
+            ],
+          },
+        ),
+        now,
+      );
+      expect(plans.where((p) => p.title == 'Monthly backup'), isNotEmpty);
+    });
   });
 
   test('no reminders when every toggle is off', () {
@@ -240,29 +258,32 @@ void main() {
       }
     });
 
-    test('detailed names the person and remaining amount, only in the body', () {
-      final plans = plannedReminders(collectData(), now, detailed: true);
-      // Owes 600 now, not the original 1000.
-      expect(plans.any((p) => p.body.contains('600')), isTrue);
-      expect(plans.any((p) => p.body.contains('1,000')), isFalse);
-      expect(
-        plans.any((p) => p.body.contains('Migs')),
-        isTrue,
-        reason: 'opt-in detail should name the person in the body',
-      );
-      for (final p in plans) {
+    test(
+      'detailed names the person and remaining amount, only in the body',
+      () {
+        final plans = plannedReminders(collectData(), now, detailed: true);
+        // Owes 600 now, not the original 1000.
+        expect(plans.any((p) => p.body.contains('600')), isTrue);
+        expect(plans.any((p) => p.body.contains('1,000')), isFalse);
         expect(
-          p.title.contains('Migs'),
-          isFalse,
-          reason: 'the person name must never reach the title',
+          plans.any((p) => p.body.contains('Migs')),
+          isTrue,
+          reason: 'opt-in detail should name the person in the body',
         );
-        expect(
-          p.title.contains('600'),
-          isFalse,
-          reason: 'the amount must never reach the title',
-        );
-      }
-    });
+        for (final p in plans) {
+          expect(
+            p.title.contains('Migs'),
+            isFalse,
+            reason: 'the person name must never reach the title',
+          );
+          expect(
+            p.title.contains('600'),
+            isFalse,
+            reason: 'the amount must never reach the title',
+          );
+        }
+      },
+    );
 
     test('a paid or fully-collected utang is silent', () {
       final data = withNotifs(
@@ -289,6 +310,130 @@ void main() {
         },
       );
       expect(plannedReminders(data, now), isEmpty);
+    });
+  });
+
+  group('comeback ladder', () {
+    // The four generic titles the comeback kind uses. Kept here so the tests
+    // read by intent and a copy change is one edit.
+    const comebackTitles = {
+      'Still here when you are', // day 2
+      'No catching up needed', // day 4
+      'A fresh start this week', // day 7
+      'Whenever you are ready', // day 14
+    };
+    List<PlannedReminder> comeback(List<PlannedReminder> plans) =>
+        plans.where((p) => comebackTitles.contains(p.title)).toList();
+
+    // A phone with something to come back to. Comeback shares the backup gate:
+    // an empty store gets nothing.
+    final withData = {
+      'accounts': [
+        {'id': 'a', 'name': 'Cash', 'kind': 'cash', 'balance': 100},
+      ],
+    };
+
+    test('FIRES the full 2/4/7/14 ladder for a lapsed user, daily off', () {
+      // The whole point of the feature: daily is OFF (the majority case), the
+      // user has data, and nothing else is bringing them back. All four pings
+      // land at 11:00, at now + 2, 4, 7 and 14 days.
+      final plans = plannedReminders(
+        withNotifs({'comeback': true}, extra: withData),
+        now,
+      );
+      final pings = comeback(plans);
+      expect(pings.map((p) => p.when).toList(), [
+        DateTime(2026, 7, 17, 11), // +2
+        DateTime(2026, 7, 19, 11), // +4
+        DateTime(2026, 7, 22, 11), // +7
+        DateTime(2026, 7, 29, 11), // +14
+      ]);
+      expect(pings.every((p) => p.when.hour == 11), true);
+      // Carries no name, amount, or date, so it is lock-screen safe as-is.
+      for (final p in pings) {
+        expect(p.body.contains('₱'), isFalse);
+      }
+    });
+
+    test('SILENT with the toggle off', () {
+      final plans = plannedReminders(withNotifs({}, extra: withData), now);
+      expect(comeback(plans), isEmpty);
+    });
+
+    test('SILENT for an empty store, nothing to come back to', () {
+      final plans = plannedReminders(withNotifs({'comeback': true}), now);
+      expect(
+        comeback(plans),
+        isEmpty,
+        reason: 'a first-run user who bounced is onboarding\'s job, not this',
+      );
+    });
+
+    test('FIRES for an utang-only user, no account or transaction', () {
+      // The core audience: someone who tracks only who owes whom, never opens
+      // an account or logs a spend. The old accounts-or-transactions gate
+      // silently skipped them; "something to come back to" must include a
+      // receivable.
+      final plans = plannedReminders(
+        withNotifs(
+          {'comeback': true},
+          extra: {
+            'receivables': [
+              {'id': 'r1', 'person': 'Migs', 'amount': 600},
+            ],
+          },
+        ),
+        now,
+      );
+      expect(
+        comeback(plans),
+        isNotEmpty,
+        reason: 'an utang-only user has real data and must be brought back',
+      );
+    });
+
+    test('with daily ON, fires ONLY the day 14 catch, no double-ping', () {
+      // A lapsed daily user already gets a 20:00 nudge every evening for 14
+      // days, so the early comeback pings would only pile on. Comeback then
+      // fires exactly one ping, the morning after daily runs dry.
+      final plans = plannedReminders(
+        withNotifs({'comeback': true, 'daily': true}, extra: withData),
+        now,
+      );
+      final pings = comeback(plans);
+      expect(pings.map((p) => p.title).toList(), ['Whenever you are ready']);
+      expect(pings.single.when, DateTime(2026, 7, 29, 11)); // +14 only
+    });
+
+    test('a reopen re-arms the ladder, so an active user never lets one fire', () {
+      // The structural silent-for-active-users property, at the planner level.
+      // The service wipes and rebuilds on every open, so the plan produced at a
+      // LATER open must push the whole ladder forward: the day-2 ping the first
+      // open armed is gone, replaced by one two days past the new open. An
+      // active user who keeps reopening therefore never lets a ping stand.
+      final firstOpen = plannedReminders(
+        withNotifs({'comeback': true}, extra: withData),
+        now, // noon, 15 Jul
+      );
+      final laterOpen = plannedReminders(
+        withNotifs({'comeback': true}, extra: withData),
+        now.add(const Duration(days: 3)), // reopened noon, 18 Jul
+      );
+      final firstEarliest = comeback(firstOpen).first.when;
+      final laterEarliest = comeback(laterOpen).first.when;
+      expect(firstEarliest, DateTime(2026, 7, 17, 11));
+      expect(laterEarliest, DateTime(2026, 7, 20, 11));
+      expect(
+        laterEarliest.isAfter(firstEarliest),
+        isTrue,
+        reason: 'reopening must move the ladder forward, not leave it in place',
+      );
+      expect(
+        comeback(laterOpen).any((p) => p.when == firstEarliest),
+        isFalse,
+        reason:
+            'the ping the earlier open armed must be gone once the user returns',
+      );
     });
   });
 

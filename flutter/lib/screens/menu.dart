@@ -697,14 +697,18 @@ class MenuScreen extends StatelessWidget {
                   'phone is an errand, not a disaster.',
             ),
             const Divider(height: 24),
+            row(
+              'comeback',
+              Icons.waving_hand_outlined,
+              'Come back',
+              'A gentle nudge to return if you have been away a while. Never '
+                  'fires while you are still opening the app.',
+            ),
+            const Divider(height: 24),
             MergeSemantics(
               child: Row(
                 children: [
-                  Icon(
-                    Icons.lock_outline,
-                    color: Barako.primary,
-                    size: 20,
-                  ),
+                  Icon(Icons.lock_outline, color: Barako.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1461,7 +1465,9 @@ class MenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker(loaded ? 'SAMPLE DATA IS LOADED' : 'TRY IT WITH SAMPLE DATA'),
+            Kicker(
+              loaded ? 'SAMPLE DATA IS LOADED' : 'TRY IT WITH SAMPLE DATA',
+            ),
             const SizedBox(height: 8),
             Text(
               loaded

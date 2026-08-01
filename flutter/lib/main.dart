@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.13 \u00b7 Clearing a debt, funding a goal, or settling an utang now pops a celebration with a card to share.';
+    'f3.14 \u00b7 A gentle come back nudge brings you back if you drift away, before your other reminders run dry.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
