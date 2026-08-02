@@ -231,6 +231,18 @@ void main() {
             buf.writeAll([prompt, compare], ' ');
           case ReflectionBlock(:final line):
             buf.write(line);
+          case OfficialSourceBlock(
+            :final agency,
+            :final sourceTitle,
+            :final issuanceOrCircularNumber,
+          ):
+            buf.writeAll([
+              agency,
+              sourceTitle,
+              issuanceOrCircularNumber ?? '',
+            ], ' ');
+          case RiskWarningBlock(:final title, :final text):
+            buf.writeAll([title, text], ' ');
         }
       }
       final all = buf.toString();
@@ -321,6 +333,18 @@ Iterable<String> _allSentences(MoneyLesson l) {
         buf.writeAll([prompt, compare], ' ');
       case ReflectionBlock(:final line):
         buf.write(line);
+      case OfficialSourceBlock(
+        :final agency,
+        :final sourceTitle,
+        :final issuanceOrCircularNumber,
+      ):
+        buf.writeAll([
+          agency,
+          sourceTitle,
+          issuanceOrCircularNumber ?? '',
+        ], ' ');
+      case RiskWarningBlock(:final title, :final text):
+        buf.writeAll([title, text], ' ');
     }
     buf.write(' ');
   }

@@ -95,6 +95,53 @@ class ReflectionBlock extends LessonBlock {
   const ReflectionBlock(this.line);
 }
 
+/// A regulator or government agency's own published source, shown as a
+/// citation card rather than folded into the lesson's own prose, so a reader
+/// can tell Salapify's coaching apart from the regulator's own words and
+/// check a claim against where it came from.
+class OfficialSourceBlock extends LessonBlock {
+  final String agency;
+  final String sourceTitle;
+  final String canonicalUrl;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? lastVerifiedDate;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? effectiveDate;
+  final String? issuanceOrCircularNumber;
+
+  const OfficialSourceBlock({
+    required this.agency,
+    required this.sourceTitle,
+    required this.canonicalUrl,
+    this.lastVerifiedDate,
+    this.effectiveDate,
+    this.issuanceOrCircularNumber,
+  });
+}
+
+/// How much presentation weight a caution deserves. Two levels, not a full
+/// severity scale: the block stays a calm, factual note either way, and
+/// `caution` only asks for a slightly stronger visual signal, never for the
+/// destructive-error styling a lost or overdue peso already owns elsewhere in
+/// the app.
+enum RiskSeverity { notice, caution }
+
+/// A financial or regulatory warning, decoupled from [CourseRegion] on
+/// purpose so it can sit on any lesson, not only a Philippine scoped one.
+class RiskWarningBlock extends LessonBlock {
+  final String title;
+  final String text;
+  final RiskSeverity severity;
+
+  const RiskWarningBlock({
+    required this.title,
+    required this.text,
+    this.severity = RiskSeverity.notice,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Authoring conversion. Blocks are authored as maps in lessons.dart, because
 // content reads better as data than as constructors.
@@ -143,6 +190,39 @@ LessonBlock? blockFromMap(dynamic raw) {
     case 'reflection':
       final l = _str(raw['line']);
       return l.isEmpty ? null : ReflectionBlock(l);
+    case 'officialSource':
+      final agency = _str(raw['agency']);
+      final title = _str(raw['sourceTitle']);
+      final url = _str(raw['canonicalUrl']);
+      return (agency.isEmpty || title.isEmpty || url.isEmpty)
+          ? null
+          : OfficialSourceBlock(
+              agency: agency,
+              sourceTitle: title,
+              canonicalUrl: url,
+              lastVerifiedDate: raw['lastVerifiedDate'] is String
+                  ? raw['lastVerifiedDate'] as String
+                  : null,
+              effectiveDate: raw['effectiveDate'] is String
+                  ? raw['effectiveDate'] as String
+                  : null,
+              issuanceOrCircularNumber:
+                  raw['issuanceOrCircularNumber'] is String
+                  ? raw['issuanceOrCircularNumber'] as String
+                  : null,
+            );
+    case 'riskWarning':
+      final title = _str(raw['title']);
+      final text = _str(raw['text']);
+      return (title.isEmpty || text.isEmpty)
+          ? null
+          : RiskWarningBlock(
+              title: title,
+              text: text,
+              severity: raw['severity'] == 'caution'
+                  ? RiskSeverity.caution
+                  : RiskSeverity.notice,
+            );
     default:
       final paras = _strings(raw['body']);
       return paras.isEmpty

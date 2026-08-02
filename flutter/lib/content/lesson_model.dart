@@ -23,6 +23,84 @@ enum CourseRegion { global, philippines }
 /// yet another identical paragraph.
 enum SectionKind { context, concept, steps, example, warning, takeaway }
 
+/// How often a lesson's facts can realistically change. Not a measure of how
+/// important a lesson is, only of how fast it can go stale: a definition is
+/// evergreen, a contribution table is annual, a rate or circular a regulator
+/// can revise mid year is high.
+enum ContentVolatility { evergreen, annual, high }
+
+/// Where a lesson's facts stand in their own review cycle, separate from
+/// whether the lesson's prose is finished.
+enum ReviewStatus { verified, reviewDue, withdrawn }
+
+/// One place a lesson's facts came from. A lesson can cite more than one
+/// source (a law and the circular that implements it, for example), so this
+/// is a list on [MoneyLesson] rather than a single field.
+///
+/// Dates stay as plain strings ('YYYY-MM' or 'YYYY-MM-DD'), the same
+/// convention [MoneyLesson.factCheckedOn] already uses. The authoring lists
+/// in lessons.dart are `const List<Map<String, dynamic>>` literals, and a
+/// DateTime value is never a compile time constant, so a DateTime field here
+/// would force every existing lesson map to give up const construction just
+/// to satisfy one new field none of them set yet.
+class LessonSourceInfo {
+  /// The issuing body, e.g. "Bangko Sentral ng Pilipinas".
+  final String agency;
+
+  /// The document's own title, e.g. "Circular No. 1133".
+  final String title;
+  final String canonicalUrl;
+
+  /// The law, circular, or issuance number, when the source has one.
+  final String? issuanceOrCircularNumber;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? effectiveDate;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? lastVerifiedDate;
+
+  const LessonSourceInfo({
+    required this.agency,
+    required this.title,
+    required this.canonicalUrl,
+    this.issuanceOrCircularNumber,
+    this.effectiveDate,
+    this.lastVerifiedDate,
+  });
+}
+
+/// The review state of a lesson's facts, kept apart from [MoneyLesson.check]
+/// and the prose. A lesson's writing can be finished while its facts are
+/// still due for a periodic check, and this is what lets a reviewer see that
+/// difference without rereading the lesson.
+class LessonGovernance {
+  final ContentVolatility volatility;
+  final ReviewStatus reviewStatus;
+
+  /// Bumped when the lesson's facts change, not when its prose is polished.
+  final int contentVersion;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? lastVerifiedDate;
+
+  /// 'YYYY-MM' or 'YYYY-MM-DD'.
+  final String? reviewDueDate;
+
+  /// Who last verified the facts. An initial or a role, never a full name in
+  /// content that ships to every phone.
+  final String? reviewerId;
+
+  const LessonGovernance({
+    this.volatility = ContentVolatility.evergreen,
+    this.reviewStatus = ReviewStatus.verified,
+    this.contentVersion = 1,
+    this.lastVerifiedDate,
+    this.reviewDueDate,
+    this.reviewerId,
+  });
+}
+
 class LessonSection {
   final SectionKind kind;
 
@@ -117,10 +195,33 @@ class MoneyLesson {
   /// When the facts were last checked, for content that can go stale. Tax
   /// rates, thresholds, and deadlines drift; a lesson that quietly presents
   /// last year's rules as current is worse than one that says it is unsure.
+  ///
+  /// Superseded by [governance].lastVerifiedDate for any lesson that adopts
+  /// the structured governance model below: a future content pass can move a
+  /// lesson's date into an authored `governance` map and drop this field for
+  /// that lesson, one lesson at a time, the same track by track discipline
+  /// the block redesign used. Kept here unchanged, never removed or migrated
+  /// in this phase, because none of the existing 22 lessons set it today.
   final String? factCheckedOn; // 'YYYY-MM' or 'YYYY-MM-DD'
 
   /// Developer-facing only, never rendered: where a factual claim came from.
+  ///
+  /// Superseded by [sources] for a lesson that wants its citation actually
+  /// shown to the reader (an [OfficialSourceBlock] in [authoredBlocks]); this
+  /// field stays for lessons that only need a developer note, not a
+  /// renderable citation.
   final List<String> sourceNotes;
+
+  /// Structured citations for this lesson's facts, renderable via
+  /// [OfficialSourceBlock]. Empty by default; none of the existing 22
+  /// lessons set this.
+  final List<LessonSourceInfo> sources;
+
+  /// This lesson's place in its own review cycle. Defaults to an evergreen,
+  /// verified, version 1 lesson with no due date, which is exactly what every
+  /// existing lesson already is by convention; authoring this explicitly is
+  /// opt in.
+  final LessonGovernance governance;
 
   const MoneyLesson({
     required this.id,
@@ -140,6 +241,8 @@ class MoneyLesson {
     this.action,
     this.factCheckedOn,
     this.sourceNotes = const [],
+    this.sources = const [],
+    this.governance = const LessonGovernance(),
   });
 
   /// What the reader actually renders.
@@ -232,6 +335,69 @@ SectionKind _kindFrom(String? name) => switch (name) {
   'takeaway' => SectionKind.takeaway,
   _ => SectionKind.concept,
 };
+
+List<LessonSourceInfo> _sourcesFrom(dynamic raw) {
+  if (raw is! List) return const [];
+  final out = <LessonSourceInfo>[];
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    final agency = (entry['agency'] ?? '').toString();
+    final title = (entry['title'] ?? '').toString();
+    final url = (entry['canonicalUrl'] ?? '').toString();
+    // A source missing its agency, title, or link is not a usable citation,
+    // so it is dropped rather than shown half blank.
+    if (agency.isEmpty || title.isEmpty || url.isEmpty) continue;
+    out.add(
+      LessonSourceInfo(
+        agency: agency,
+        title: title,
+        canonicalUrl: url,
+        issuanceOrCircularNumber: entry['issuanceOrCircularNumber'] is String
+            ? entry['issuanceOrCircularNumber'] as String
+            : null,
+        effectiveDate: entry['effectiveDate'] is String
+            ? entry['effectiveDate'] as String
+            : null,
+        lastVerifiedDate: entry['lastVerifiedDate'] is String
+            ? entry['lastVerifiedDate'] as String
+            : null,
+      ),
+    );
+  }
+  return out;
+}
+
+ContentVolatility _volatilityFrom(dynamic raw) => switch (raw) {
+  'annual' => ContentVolatility.annual,
+  'high' => ContentVolatility.high,
+  _ => ContentVolatility.evergreen,
+};
+
+ReviewStatus _reviewStatusFrom(dynamic raw) => switch (raw) {
+  'reviewDue' => ReviewStatus.reviewDue,
+  'withdrawn' => ReviewStatus.withdrawn,
+  _ => ReviewStatus.verified,
+};
+
+LessonGovernance _governanceFrom(dynamic raw) {
+  if (raw is! Map) return const LessonGovernance();
+  return LessonGovernance(
+    volatility: _volatilityFrom(raw['volatility']),
+    reviewStatus: _reviewStatusFrom(raw['reviewStatus']),
+    contentVersion: raw['contentVersion'] is int
+        ? raw['contentVersion'] as int
+        : 1,
+    lastVerifiedDate: raw['lastVerifiedDate'] is String
+        ? raw['lastVerifiedDate'] as String
+        : null,
+    reviewDueDate: raw['reviewDueDate'] is String
+        ? raw['reviewDueDate'] as String
+        : null,
+    reviewerId: raw['reviewerId'] is String
+        ? raw['reviewerId'] as String
+        : null,
+  );
+}
 
 KnowledgeCheck? _checkFrom(dynamic raw) {
   if (raw is! Map) return null;
@@ -337,6 +503,8 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
         ? m['factCheckedOn'] as String
         : null,
     sourceNotes: _strings(m['sourceNotes']),
+    sources: _sourcesFrom(m['sources']),
+    governance: _governanceFrom(m['governance']),
   );
 }
 
