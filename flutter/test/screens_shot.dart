@@ -56,6 +56,7 @@ import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
+import 'package:salapify/screens/mindset.dart';
 import 'package:salapify/screens/milestone_share.dart'
     show showMilestoneCelebration;
 import 'package:salapify/money/milestones.dart' show Milestone;
@@ -1279,6 +1280,127 @@ void main() {
       matchesGoldenFile('shots/menu-notifications-dark.png'),
     );
   });
+
+  testWidgets(
+    'the Waiting section on Money mindset, one due and one not, dark',
+    (tester) async {
+      // Money Mindset Phase 3: two paused items layered onto the lived-in
+      // fixture's settings, one already due (reads "Ready to revisit") and
+      // one not (reads "Revisit in Nh"), so both row states render at once,
+      // plus a long-ish amount to check the row does not overflow.
+      await loadRealFonts(tester);
+      final now = DateTime.now();
+      final blob = {
+        ...livedInBlob,
+        'settings': {
+          ...(livedInBlob['settings'] as Map).cast<String, dynamic>(),
+          'mindsetWaiting': [
+            {
+              'id': 'w1',
+              'itemName': 'New running shoes',
+              'amount': 3499.0,
+              'essential': false,
+              'affordableWithoutReserved': true,
+              'waited24h': false,
+              'result': 'pause24h',
+              'createdAt': now
+                  .subtract(const Duration(hours: 25))
+                  .toIso8601String(),
+              'revisitAt': now
+                  .subtract(const Duration(hours: 1))
+                  .toIso8601String(),
+              'status': 'waiting',
+            },
+            {
+              'id': 'w2',
+              'itemName': 'A new phone case',
+              'amount': 899.0,
+              'essential': false,
+              'affordableWithoutReserved': true,
+              'waited24h': false,
+              'result': 'pause24h',
+              'createdAt': now.toIso8601String(),
+              'revisitAt': now.add(const Duration(hours: 20)).toIso8601String(),
+              'status': 'waiting',
+            },
+          ],
+        },
+      };
+      SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+      final store = SalapifyStore();
+      await store.load();
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: MindsetScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('WAITING'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('WAITING'), findsOneWidget);
+      expect(find.text('New running shoes'), findsOneWidget);
+      expect(find.text('Ready to revisit'), findsOneWidget);
+      expect(find.textContaining('Revisit in'), findsOneWidget);
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-waiting-dark.png'),
+      );
+
+      // The Revisit in 24 hours button itself: answer to a Pause for 24
+      // hours verdict (essential No, affordable Yes, waited No).
+      await tester.scrollUntilVisible(
+        find.text('Is this essential right now?'),
+        -400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('No').at(0)); // essential
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes').at(1)); // affordable without reserved
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('No').at(2)); // waited 24h
+      await tester.pumpAndSettle();
+      expect(find.text('Pause for 24 hours'), findsOneWidget);
+      expect(find.text('Revisit in 24 hours'), findsOneWidget);
+      await tester.ensureVisible(find.text('Revisit in 24 hours'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-revisit-button-dark.png'),
+      );
+
+      // The Do you still want this? sheet, opened from the due row.
+      await tester.scrollUntilVisible(
+        find.text('Ready to revisit'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ready to revisit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Do you still want this?'), findsOneWidget);
+      expect(find.text('Yes, review again'), findsOneWidget);
+      expect(find.text('No, skip it'), findsOneWidget);
+      expect(find.text('Not sure, wait another 24 hours'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-revisit-prompt-dark.png'),
+      );
+    },
+  );
 
   testWidgets('the sample data card in Menu, both states, dark', (
     tester,

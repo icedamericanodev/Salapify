@@ -145,6 +145,9 @@ const Map<String, IconData> _icons = {
   // a user typed stays theirs; this is only what WE draw when there is none.
   'treat': Icons.local_cafe_outlined,
   'paused': Icons.pause_circle_outline,
+  // A paused decision sitting in the Money Mindset Waiting list, counting
+  // down to its Do you still want this? check-in.
+  'waiting': Icons.hourglass_top_outlined,
   'play': Icons.play_circle_outline,
   'locked': Icons.lock_outline,
   'unlocked': Icons.lock_open_outlined,

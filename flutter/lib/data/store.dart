@@ -1370,6 +1370,83 @@ class SalapifyStore extends ChangeNotifier {
         },
       );
 
+  List<Map<String, dynamic>> _mindsetWaitingOf(Map<String, dynamic> d) {
+    final s = d['settings'];
+    final raw = s is Map ? s['mindsetWaiting'] : null;
+    return [
+      for (final e in (raw is List ? raw : const []))
+        if (e is Map) e.cast<String, dynamic>(),
+    ];
+  }
+
+  /// Money Mindset Phase 3's "Pause for 24 hours" queue
+  /// (settings.mindsetWaiting): each paused purchase with its original
+  /// answers and result, when it was saved, when it is due for its "Do you
+  /// still want this?" check-in, and its status (waiting / reviewed /
+  /// dismissed / skipped). Stored as plain maps under settings so the backup
+  /// preserves it with no migration, the same passthrough activePlan and
+  /// timelineScenarios already use for a Flutter-era collection with no RN
+  /// counterpart.
+  List<Map<String, dynamic>> get mindsetWaiting => _mindsetWaitingOf(data);
+
+  /// Save a paused purchase to the Waiting queue. Always optional to call:
+  /// reaching "Pause for 24 hours" never saves anything on its own, only a
+  /// person tapping "Revisit in 24 hours" does. amount and categoryId are a
+  /// reference for the eventual re-check; this is not a transaction and
+  /// moves no balance.
+  Future<void> addMindsetWaitingItem({
+    required String itemName,
+    double? amount,
+    String? categoryId,
+    required bool essential,
+    required bool affordableWithoutReserved,
+    required bool waited24h,
+    required String result,
+  }) {
+    final now = DateTime.now();
+    final item = {
+      'id': _genId('mindsetWaiting'),
+      'itemName': itemName,
+      'amount': ?amount,
+      'categoryId': ?categoryId,
+      'essential': essential,
+      'affordableWithoutReserved': affordableWithoutReserved,
+      'waited24h': waited24h,
+      'result': result,
+      'createdAt': now.toIso8601String(),
+      'revisitAt': now.add(const Duration(hours: 24)).toIso8601String(),
+      'status': 'waiting',
+    };
+    return _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'mindsetWaiting': [..._mindsetWaitingOf(d), item],
+        },
+      },
+    );
+  }
+
+  /// Patch arbitrary fields on one waiting item: a status change (reviewed,
+  /// dismissed, skipped) or an extended revisitAt. Spread-first, so unknown
+  /// or future fields survive, same contract as patchGoal.
+  Future<void> patchMindsetWaitingItem(
+    String id,
+    Map<String, dynamic> fields,
+  ) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'mindsetWaiting': [
+          for (final w in _mindsetWaitingOf(d))
+            if (w['id'] == id) {...w, ...fields} else w,
+        ],
+      },
+    },
+  );
+
   /// Whether reminders may carry names and amounts in their body
   /// (settings.notifDetailed). OFF by default: the privacy contract is that a
   /// locked phone shows generic reminders only. Turning this on reveals detail

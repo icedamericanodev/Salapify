@@ -686,6 +686,14 @@ class MenuScreen extends StatelessWidget {
             ),
             const Divider(height: 24),
             row(
+              'waiting',
+              salapifyIcon('waiting'),
+              'Paused purchase check-ins',
+              'A ping when the 24 hours are up on something you paused in '
+                  'Money mindset, so a paused decision is never forgotten.',
+            ),
+            const Divider(height: 24),
+            row(
               'comeback',
               salapifyIcon('greeting'),
               'Come back',
@@ -702,10 +710,7 @@ class MenuScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Show names and amounts',
-                          style: AppText.label.w7,
-                        ),
+                        Text('Show names and amounts', style: AppText.label.w7),
                         const SizedBox(height: 2),
                         Text(
                           'Off by default. Reminders stay generic on your lock '
@@ -1049,9 +1054,9 @@ class MenuScreen extends StatelessWidget {
             Text(
               'Save your entries as a spreadsheet, or this month as a PDF report. '
               'Save straight to this phone, or share it to Files, Drive, or email.',
-              style: AppText.label.w4.tint(
-                Barako.textSecondary,
-              ).copyWith(height: 1.4),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -1234,9 +1239,9 @@ class MenuScreen extends StatelessWidget {
               'Erase everything Salapify keeps on this phone and begin again '
               'from zero. This is also the way out if your stored data can no '
               'longer be read.',
-              style: AppText.label.w4.tint(
-                Barako.textSecondary,
-              ).copyWith(height: 1.4),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -1403,9 +1408,9 @@ class MenuScreen extends StatelessWidget {
               loaded
                   ? 'A borrowed set of accounts, entries and a card sits alongside your own. Every screen counts it, which is the point, so take it out when you are done looking.'
                   : 'Fills the app with a pretend month so you can see how every screen reads with money in it. It is added next to your own data, never over it, and one tap takes it all back out.',
-              style: AppText.label.w4.tint(
-                Barako.textSecondary,
-              ).copyWith(height: 1.4),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
@@ -1434,9 +1439,9 @@ class MenuScreen extends StatelessWidget {
               store.hasData
                   ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
                   : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, IOUs, goals, settings.',
-              style: AppText.label.w4.tint(
-                Barako.textSecondary,
-              ).copyWith(height: 1.4),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             // Wrap, not Row: on a narrow phone or with a large system font, the

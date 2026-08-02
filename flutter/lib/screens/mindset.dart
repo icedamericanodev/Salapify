@@ -23,6 +23,8 @@ import '../money/categories.dart'
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
+import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
+import '../services/notifications.dart' show Reminders;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/salapify_icon.dart';
@@ -178,6 +180,12 @@ class MindsetScreen extends StatefulWidget {
 class _MindsetScreenState extends State<MindsetScreen> {
   final List<bool?> _answers = List<bool?>.filled(_questions.length, null);
   final _winText = TextEditingController();
+  // "Review again" (from the Waiting section, which sits below the fold)
+  // refills the considering fields, but a person who scrolled down to open
+  // the prompt would otherwise see no visible change: the viewport stays
+  // wherever it was, on the now-empty Waiting card, with only a snackbar to
+  // notice. Scrolled back to the top so the refilled section is on screen.
+  final _listController = ScrollController();
 
   // "What are you considering?": all three are optional context for the
   // decision check, never a transaction. Nothing here is saved; it lives only
@@ -209,6 +217,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
     _winText.dispose();
     _itemName.dispose();
     _amountText.dispose();
+    _listController.dispose();
     super.dispose();
   }
 
@@ -349,6 +358,358 @@ class _MindsetScreenState extends State<MindsetScreen> {
     }
   }
 
+  // Never blank in a Waiting row, a notification body, or a restored check:
+  // the item name is optional to type, so this is what stands in for it.
+  static const _untitledWaitingItem = "Something you're considering";
+
+  String _waitingDisplayName(Map<String, dynamic> item) {
+    final name = item['itemName'];
+    return (name is String && name.trim().isNotEmpty)
+        ? name.trim()
+        : _untitledWaitingItem;
+  }
+
+  // Reschedule is guarded and swallows its own failures (see
+  // services/notifications.dart), so every waiting-list write follows it with
+  // a best-effort call rather than waiting for the next app resume to notice
+  // an item that changed or disappeared.
+  // Guards _saveToWaiting the same way every other save action in this app
+  // guards itself (payday.dart, recurring.dart, paluwagan.dart, treats.dart):
+  // the button stays enabled until this flips true, so a fast double tap
+  // fired _saveToWaiting twice on identical answers and produced two waiting
+  // items with two independently scheduled reminders.
+  bool _savingToWaiting = false;
+
+  Future<void> _saveToWaiting() async {
+    if (!widget.store.canWrite || _savingToWaiting) return;
+    if (_answers.any((a) => a == null)) return; // pause24h implies all answered
+    setState(() => _savingToWaiting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.addMindsetWaitingItem(
+        itemName: _itemName.text.trim().isEmpty
+            ? _untitledWaitingItem
+            : _itemName.text.trim(),
+        amount: _validAmount,
+        categoryId: _categoryId,
+        essential: _answers[0]!,
+        affordableWithoutReserved: _answers[1]!,
+        waited24h: _answers[2]!,
+        result: 'pause24h',
+      );
+    } catch (e) {
+      if (mounted) setState(() => _savingToWaiting = false);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(widget.store.data, DateTime.now());
+    if (!mounted) return;
+    setState(() => _savingToWaiting = false);
+    _clearCheck();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Saved to Waiting. We'll check back with you in 24 hours.",
+        ),
+      ),
+    );
+  }
+
+  // Awaits the patch before rescheduling, unlike an earlier version of this
+  // function: _mutate queues writes on _writes.then(...), and .then() always
+  // defers to a microtask even on an already-completed Future, so calling
+  // Reminders.reschedule on the very next line (no await in between) read
+  // widget.store.data from BEFORE the status flip landed. The reschedule
+  // wipes and rebuilds the whole notification schedule from whatever data it
+  // is handed, so Cancel silently failed to cancel the item's own reminder;
+  // it kept firing until the next unrelated reschedule happened to run.
+  Future<void> _cancelWaitingItem(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.patchMindsetWaitingItem(id, {'status': 'dismissed'});
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(widget.store.data, DateTime.now());
+    if (!mounted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Removed from Waiting'),
+          duration: const Duration(seconds: 5),
+          persist: false,
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              if (!widget.store.canWrite) return;
+              try {
+                await widget.store.patchMindsetWaitingItem(id, {
+                  'status': 'waiting',
+                });
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Could not undo, nothing was restored. $e'),
+                  ),
+                );
+                return;
+              }
+              await Reminders.reschedule(widget.store.data, DateTime.now());
+            },
+          ),
+        ),
+      );
+  }
+
+  // A confirm step for the one real way this screen can lose typed-but-not-
+  // saved work: a DIFFERENT waiting item comes due while the person still
+  // has their own in-progress considering fields or win text sitting
+  // unsaved, and reviewing or skipping that item would silently overwrite
+  // it. Nothing persisted is ever at risk (the store never held that text),
+  // but a silent overwrite of what somebody just typed is still a real loss.
+  Future<bool> _confirmOverwrite(String message) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text(
+          'Replace what you have?',
+          style: TextStyle(color: Barako.text),
+        ),
+        content: Text(message, style: TextStyle(color: Barako.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Replace',
+              style: TextStyle(color: Barako.warningStrong),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  // "Review again": restores the item into the decision tool. Only the
+  // considering fields come back; the three answers are cleared so the
+  // person actually re-answers rather than inheriting a stale "have I
+  // wanted it 24 hours" from before the 24 hours were even up.
+  Future<void> _reviewAgain(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    final hasUnsavedConsidering =
+        _itemName.text.trim().isNotEmpty ||
+        _amountText.text.trim().isNotEmpty ||
+        _categoryId != null ||
+        _answers.any((a) => a != null);
+    if (hasUnsavedConsidering &&
+        !await _confirmOverwrite(
+          "This replaces what you're currently checking above with this "
+          "waiting item. Nothing you already typed there is saved.",
+        )) {
+      return;
+    }
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.patchMindsetWaitingItem(id, {'status': 'reviewed'});
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(widget.store.data, DateTime.now());
+    if (!mounted) return;
+    final name = item['itemName'];
+    final amount = item['amount'];
+    final categoryId = item['categoryId'];
+    setState(() {
+      _itemName.text = (name is String && name.trim().isNotEmpty) ? name : '';
+      _amountText.text = amount is num
+          ? (amount == amount.roundToDouble()
+                ? amount.toInt().toString()
+                : amount.toString())
+          : '';
+      _categoryId = categoryId is String && categoryId.isNotEmpty
+          ? categoryId
+          : null;
+      for (var i = 0; i < _answers.length; i++) {
+        _answers[i] = null;
+      }
+    });
+    // Back to the top: the WAITING card the person just tapped from is below
+    // the fold, and it is about to lose this row entirely (status is no
+    // longer 'waiting'), so without this the refilled considering section
+    // sits off screen with nothing but a snackbar to say anything happened.
+    if (_listController.hasClients) {
+      _listController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Brought back. Answer the three questions again.'),
+      ),
+    );
+  }
+
+  // "Skip it": can prefill Small Wins, deliberately never auto-saves it. The
+  // person still taps Add themselves, the same as typing a win by hand.
+  Future<void> _skipItem(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    if (_winText.text.trim().isNotEmpty &&
+        !await _confirmOverwrite(
+          'This replaces the win you were typing below.',
+        )) {
+      return;
+    }
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.patchMindsetWaitingItem(id, {'status': 'skipped'});
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(widget.store.data, DateTime.now());
+    if (!mounted) return;
+    setState(() {
+      _winText.text = 'Skipped ${_waitingDisplayName(item)}';
+    });
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Skipped. Log it as a win below if you would like.'),
+      ),
+    );
+  }
+
+  Future<void> _waitAnotherDay(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final next = DateTime.now().add(const Duration(hours: 24));
+    try {
+      await widget.store.patchMindsetWaitingItem(id, {
+        'revisitAt': next.toIso8601String(),
+      });
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(widget.store.data, DateTime.now());
+    messenger.showSnackBar(
+      const SnackBar(content: Text("We'll check back again in 24 hours.")),
+    );
+  }
+
+  // "Do you still want this?" with three choices, never a fourth silent one:
+  // reviewing, skipping, and extending are the only ways this item's status
+  // changes, and each is a single deliberate tap.
+  void _openRevisitPrompt(Map<String, dynamic> item) {
+    final name = _waitingDisplayName(item);
+    final amount = item['amount'];
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: Barako.background,
+          border: Border.all(color: Barako.border),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Do you still want this?',
+                style: AppText.title.copyWith(fontSize: 20),
+              ),
+              const SizedBox(height: 6),
+              Text(name, style: AppText.bodyLg.w7),
+              if (amount is num) ...[
+                const SizedBox(height: 2),
+                Text(formatMoney(amount), style: AppText.body),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _reviewAgain(item);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Yes, review again'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _skipItem(item);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Barako.textSecondary,
+                    side: BorderSide(color: Barako.border),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('No, skip it'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _waitAnotherDay(item);
+                  },
+                  child: Text(
+                    'Not sure, wait another 24 hours',
+                    style: TextStyle(color: Barako.muted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -387,7 +748,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
                 _categoryId != null;
             final showClear = answered || hasConsiderInput;
             final wins = _wins().reversed.toList();
+            final now = DateTime.now();
+            final waiting = waitingItems(
+              widget.store.data['settings'] is Map
+                  ? (widget.store.data['settings'] as Map)['mindsetWaiting']
+                  : null,
+            );
             return ListView(
+              controller: _listController,
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 // The decision check: the primary reason someone opens this
@@ -448,6 +816,29 @@ class _MindsetScreenState extends State<MindsetScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Waiting: every paused purchase still counting down to its
+                // Do you still want this? check-in. Hidden entirely when
+                // empty, the same as SMALL WINS is not, because an empty
+                // Waiting list is the common case and a permanent "nothing
+                // waiting" line would just be more of the screen to skip.
+                if (waiting.isNotEmpty) ...[
+                  Text('WAITING', style: Barako.kickerStyle),
+                  const SizedBox(height: 8),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < waiting.length; i++)
+                            _waitingRow(waiting[i], i > 0, now),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Today's lesson: a doorway into the Learn track.
                 PressableScale(
@@ -695,6 +1086,24 @@ class _MindsetScreenState extends State<MindsetScreen> {
             _whyText(verdict, _answers, impact),
             style: AppText.small.copyWith(height: 1.4),
           ),
+          if (verdict == _Verdict.pause24h) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (widget.store.canWrite && !_savingToWaiting)
+                    ? _saveToWaiting
+                    : null,
+                icon: Icon(salapifyIcon('waiting'), size: 18),
+                label: const Text('Revisit in 24 hours'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Barako.primaryText,
+                  side: BorderSide(color: Barako.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -985,6 +1394,91 @@ class _MindsetScreenState extends State<MindsetScreen> {
             icon: Icon(salapifyIcon('close'), color: Barako.faint),
           ),
         ],
+      ),
+    );
+  }
+
+  // Tappable only once due: before then there is nothing to decide yet, and
+  // a tap that silently did nothing would read as broken rather than early.
+  Widget _waitingRow(Map<String, dynamic> item, bool divided, DateTime now) {
+    final due = isDue(item, now);
+    final name = _waitingDisplayName(item);
+    final amount = item['amount'];
+    return Container(
+      decoration: divided
+          ? BoxDecoration(
+              border: Border(top: BorderSide(color: Barako.border, width: 0.5)),
+            )
+          : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: due ? () => _openRevisitPrompt(item) : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                // Dimmed as a whole, not just tinted: a colour-only signal
+                // (icon and label tint alone) reads too close between muted
+                // and faint in the light palette, so a not-due row also
+                // loses opacity, a structural cue that survives at a glance.
+                Opacity(
+                  opacity: due ? 1 : 0.6,
+                  child: Icon(
+                    salapifyIcon('waiting'),
+                    size: 18,
+                    color: due ? Barako.primaryText : Barako.faint,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Opacity(
+                    opacity: due ? 1 : 0.6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.body,
+                        ),
+                        if (amount is num) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            formatMoney(amount),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.small.tint(Barako.muted).tabular,
+                          ),
+                        ],
+                        const SizedBox(height: 2),
+                        Text(
+                          revisitLabel(item, now),
+                          style: AppText.small.w6.tint(
+                            due ? Barako.primaryText : Barako.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _cancelWaitingItem(item),
+                  iconSize: 18,
+                  visualDensity: VisualDensity.standard,
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  tooltip: 'Cancel',
+                  icon: Icon(salapifyIcon('close'), color: Barako.faint),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
