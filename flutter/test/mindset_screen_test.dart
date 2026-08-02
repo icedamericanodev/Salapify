@@ -49,6 +49,14 @@ Future<SalapifyStore> _openDirect(
   return store;
 }
 
+/// Leaves the amount field the way a person actually would, so its error
+/// caption (only evaluated while the field is NOT focused, see
+/// _amountFocus in mindset.dart) has a chance to appear.
+Future<void> _blurAmountField(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+}
+
 Future<void> _openMindset(WidgetTester tester) async {
   await openFromMenu(tester, 'Tools');
   await tester.scrollUntilVisible(
@@ -239,7 +247,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openMindset(tester);
       await tester.scrollUntilVisible(
-        find.text('SMALL WINS'),
+        find.text('No wins yet. Add a small one above.'),
         400,
         scrollable: find.byType(Scrollable).first,
       );
@@ -284,7 +292,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openMindset(tester);
       await tester.scrollUntilVisible(
-        find.text('SMALL WINS'),
+        find.text('Legacy win'),
         400,
         scrollable: find.byType(Scrollable).first,
       );
@@ -329,19 +337,24 @@ void main() {
     testWidgets('non-numeric and negative amounts show a validation message', (
       tester,
     ) async {
+      // The error caption only shows once the field is no longer focused (a
+      // deliberate change from flutter-ux-craftsman's review: validating on
+      // every keystroke flashed the error at the "." in "150." and cleared
+      // it the moment the next digit landed), so each entry blurs before the
+      // assertion, the way a person actually leaves the field.
       await _openDirect(tester, _blob());
       final amountField = find.byKey(const Key('mindsetAmount'));
 
       await tester.enterText(amountField, 'abc');
-      await tester.pumpAndSettle();
+      await _blurAmountField(tester);
       expect(find.text('Enter a valid amount.'), findsOneWidget);
 
       await tester.enterText(amountField, '-100');
-      await tester.pumpAndSettle();
+      await _blurAmountField(tester);
       expect(find.text('Enter a valid amount.'), findsOneWidget);
 
       await tester.enterText(amountField, '0');
-      await tester.pumpAndSettle();
+      await _blurAmountField(tester);
       expect(find.text('Enter a valid amount.'), findsOneWidget);
     });
 
@@ -354,7 +367,7 @@ void main() {
         find.byKey(const Key('mindsetAmount')),
         '9999999999999',
       );
-      await tester.pumpAndSettle();
+      await _blurAmountField(tester);
 
       expect(find.text('That amount is too large to check.'), findsOneWidget);
     });

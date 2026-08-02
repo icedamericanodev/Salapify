@@ -180,6 +180,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // check is tapped.
   final _itemName = TextEditingController();
   final _amountText = TextEditingController();
+  final _amountFocus = FocusNode();
   String? _categoryId;
 
   // A ceiling past which a typed amount stops meaning anything for a
@@ -187,6 +188,19 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // display math, so a pasted absurd number reads as an error instead of
   // silently producing a nonsense budget comparison.
   static const double _amountCeiling = 1e12;
+
+  @override
+  void initState() {
+    super.initState();
+    // The error caption only shows once the field is no longer focused.
+    // parseAmount rejects a bare trailing decimal point, so validating on
+    // every keystroke flashed "Enter a valid amount." the instant someone
+    // typed the "." in "150." and cleared it the moment the next digit
+    // landed: a flicker on completely ordinary decimal entry. Rebuilding on
+    // focus change (not on every character) is what makes the error appear
+    // only once the person has actually moved on.
+    _amountFocus.addListener(() => setState(() {}));
+  }
 
   void _clearCheck() {
     setState(() {
@@ -204,6 +218,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
     _winText.dispose();
     _itemName.dispose();
     _amountText.dispose();
+    _amountFocus.dispose();
     super.dispose();
   }
 
@@ -218,9 +233,11 @@ class _MindsetScreenState extends State<MindsetScreen> {
   }
 
   /// A validation message for the amount field, or null when it is empty
-  /// (a legitimate "not answering this" state, not an error) or holds a
-  /// usable number.
+  /// (a legitimate "not answering this" state, not an error), holds a usable
+  /// number, or the field is still focused (mid-type: see _amountFocus above,
+  /// this is deliberately not evaluated while the person is still typing).
   String? get _amountError {
+    if (_amountFocus.hasFocus) return null;
     final text = _amountText.text.trim();
     if (text.isEmpty) return null;
     final v = parseAmount(text);
@@ -373,15 +390,17 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     child: Column(
                       children: [
                         Container(
+                          margin: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Barako.border,
-                                width: 0.5,
-                              ),
-                            ),
+                            // A distinct panel, not just a hairline: the
+                            // "considering" step and the yes/no questions read
+                            // as one long form without something more than a
+                            // 0.5dp border marking them as two separate steps.
+                            color: Barako.background,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Barako.border),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -737,6 +756,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
   Widget _amountField() => TextField(
     key: const Key('mindsetAmount'),
     controller: _amountText,
+    focusNode: _amountFocus,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     onChanged: (_) => setState(() {}),
     style: AppText.body,
@@ -822,7 +842,17 @@ class _MindsetScreenState extends State<MindsetScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('BUDGET IMPACT · $categoryName', style: Barako.cardKickerStyle),
+          Text('BUDGET IMPACT', style: Barako.cardKickerStyle),
+          const SizedBox(height: 2),
+          // The category name off the all-caps kicker line: a real name like
+          // "Food & Dining" dropping to mixed case mid kicker read like a
+          // typo, not a label.
+          Text(
+            categoryName,
+            style: AppText.small.w7,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
           const SizedBox(height: 8),
           _impactRow('Category budget remaining', formatMoney(remainingBefore)),
           _impactRow('Purchase amount', formatMoney(amount)),
@@ -868,16 +898,36 @@ class _MindsetScreenState extends State<MindsetScreen> {
     bool emphasize = false,
     bool warn = false,
   }) {
+    // The amount field allows anything up to _amountCeiling (a trillion), so
+    // the value here can run to fifteen-plus characters. Neither side is a
+    // bare Text: the label ellipsizes and the value scales down rather than
+    // overflowing a 320dp phone, the way budget.dart's own limit card guards
+    // its big figure.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppText.small.tint(Barako.muted)),
-          Text(
-            value,
-            style: (emphasize ? AppText.small.w7 : AppText.small.w6).tabular
-                .tint(warn ? Barako.warningStrong : Barako.text),
+          Expanded(
+            child: Text(
+              label,
+              style: AppText.small.tint(Barako.muted),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: (emphasize ? AppText.small.w7 : AppText.small.w6).tabular
+                    .tint(warn ? Barako.warningStrong : Barako.text),
+              ),
+            ),
           ),
         ],
       ),
