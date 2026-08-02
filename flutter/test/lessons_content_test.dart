@@ -114,6 +114,33 @@ void main() {
     }
   });
 
+  test('freelancer-only advice is flagged, and nothing else is', () {
+    // Distinct from PH scoping above: a lesson can be Philippine and still
+    // apply to a salaried reader (tax-forms covers employees too). This flag
+    // is only for advice that is actively WRONG for someone with an
+    // employer: setting aside your own tax, restarting your own
+    // SSS/PhilHealth/Pag-IBIG. The swing-income lessons (steady-salary,
+    // lean-month-plan) mention freelancers as one example of irregular
+    // income but apply just as much to a commissioned salesperson or a
+    // driver, so they must stay unflagged, or the label would train readers
+    // to tune it out.
+    final flagged = lessons
+        .where((l) => l['forFreelancers'] == true)
+        .map((l) => l['id'])
+        .toSet();
+    expect(flagged, {'freelancer-setaside', 'own-your-benefits'});
+    // Every flagged lesson is also Philippine scoped: the specific
+    // employer-replaces-this-for-you facts (BIR set-aside, SSS/PhilHealth/
+    // Pag-IBIG) are all Philippine rules.
+    for (final id in flagged) {
+      expect(
+        lessonById(id)!['region'],
+        'PH',
+        reason: '$id is freelancer-only advice and should be PH scoped',
+      );
+    }
+  });
+
   test('the coach deep links still resolve', () {
     for (final id in [
       'thirteenth-month',

@@ -291,6 +291,15 @@ String mindsetLessonTitle(Map<String, dynamic> rawLesson) =>
 String mindsetLessonSummary(Map<String, dynamic> rawLesson) =>
     _lessonSummaryOf(lessonFromMap(rawLesson));
 
+/// Whether a raw lesson map should carry the "For freelancers" label on this
+/// screen's Today's lesson card. A missing or non-bool 'forFreelancers' key
+/// safely reads as false (lessonFromMap's own === true check), the same
+/// "never guess, default to the safe reading" contract every other optional
+/// field on this screen follows.
+@visibleForTesting
+bool mindsetLessonForFreelancers(Map<String, dynamic> rawLesson) =>
+    lessonFromMap(rawLesson).forFreelancers;
+
 class MindsetScreen extends StatefulWidget {
   /// Threaded through to Money courses so lesson actions that jump to a
   /// bottom tab keep working when courses are opened from here.
@@ -391,7 +400,19 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // into view (ensureVisible, or a long card above a taller screen) can
     // leave the just-reset neutral state sitting above the fold with
     // nothing on screen to show anything changed.
-    if (_listController.hasClients) {
+    _scrollToTop();
+  }
+
+  /// Jumps the list back to the top, honoring reduce-motion the same way
+  /// Segmented and PressableScale do: the setting means no animation, not a
+  /// shorter one. Shared by _clearCheck and _reviewAgain, the two places that
+  /// need the person to actually see the section they just refilled.
+  void _scrollToTop() {
+    if (!_listController.hasClients) return;
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduce) {
+      _listController.jumpTo(0);
+    } else {
       _listController.animateTo(
         0,
         duration: const Duration(milliseconds: 300),
@@ -1021,13 +1042,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // the fold, and it is about to lose this row entirely (status is no
     // longer 'waiting'), so without this the refilled considering section
     // sits off screen with nothing but a snackbar to say anything happened.
-    if (_listController.hasClients) {
-      _listController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    _scrollToTop();
     messenger.showSnackBar(
       const SnackBar(
         content: Text('Brought back. Answer the three questions again.'),
@@ -1118,70 +1133,82 @@ class _MindsetScreenState extends State<MindsetScreen> {
           border: Border.all(color: Barako.border),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        // A long typed item name (itemName has no length cap) plus a large
+        // system text scale overflows a plain Column here with no way to
+        // reach the buttons below the fold: SingleChildScrollView, the same
+        // fix _EditWinSheet already applies below, so the sheet scrolls
+        // instead of clipping.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          24 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
         child: SafeArea(
           top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Do you still want this?',
-                style: AppText.title.copyWith(fontSize: 20),
-              ),
-              const SizedBox(height: 6),
-              Text(name, style: AppText.bodyLg.w7),
-              if (amount is num) ...[
-                const SizedBox(height: 2),
-                Text(formatMoney(amount), style: AppText.body),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Do you still want this?',
+                  style: AppText.title.copyWith(fontSize: 20),
+                ),
+                const SizedBox(height: 6),
+                Text(name, style: AppText.bodyLg.w7),
+                if (amount is num) ...[
+                  const SizedBox(height: 2),
+                  Text(formatMoney(amount), style: AppText.body),
+                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _reviewAgain(item);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Yes, review again'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _skipItem(item);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Barako.textSecondary,
+                      side: BorderSide(color: Barako.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('No, skip it'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _waitAnotherDay(item);
+                    },
+                    child: Text(
+                      'Not sure, wait another 24 hours',
+                      style: TextStyle(color: Barako.muted),
+                    ),
+                  ),
+                ),
               ],
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    _reviewAgain(item);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Barako.primary,
-                    foregroundColor: Barako.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('Yes, review again'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    _skipItem(item);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Barako.textSecondary,
-                    side: BorderSide(color: Barako.border),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('No, skip it'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    _waitAnotherDay(item);
-                  },
-                  child: Text(
-                    'Not sure, wait another 24 hours',
-                    style: TextStyle(color: Barako.muted),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1422,6 +1449,23 @@ class _MindsetScreenState extends State<MindsetScreen> {
                                 color: Barako.primaryText,
                               ),
                             ),
+                            if (lesson.forFreelancers) ...[
+                              const SizedBox(height: 4),
+                              // A text label, not a color swatch: this lesson
+                              // is wrong advice for a salaried reader (it
+                              // covers setting aside your OWN tax or
+                              // restarting your OWN SSS/PhilHealth/Pag-IBIG),
+                              // so it says who it is for instead of quietly
+                              // reading as advice for everyone. Never derived
+                              // from a guess at who the reader is; Salapify
+                              // has no employment-status field to guess from.
+                              Text(
+                                'For freelancers',
+                                style: AppText.caption.w6.tint(
+                                  Barako.textSecondary,
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1657,6 +1701,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
     final (word, color, icon) = _verdictHead(verdict);
     return Semantics(
       liveRegion: true,
+      // Without this, the live region has no boundary of its own: its flag
+      // and text merge upward into whatever plain-text SemanticsNode sits
+      // above it in the same Card (the WHAT ARE YOU CONSIDERING? kicker and
+      // all three questions), so a screen reader replays the ENTIRE form
+      // from the top every time an answer changes the verdict. container:
+      // true gives this block its own node, so only the verdict, its
+      // reason, and the Revisit button announce.
+      container: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1929,6 +1981,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
           fieldKey: const Key('mindsetCreditInstallmentsCount'),
           controller: _creditInstallmentsCountText,
           hint: 'e.g. 12',
+          decimal: false,
         ),
         const SizedBox(height: 12),
         _labeledNumberField(
@@ -1952,6 +2005,11 @@ class _MindsetScreenState extends State<MindsetScreen> {
     required TextEditingController controller,
     required String hint,
     String? prefix,
+    // Number of installments is a whole-number count; a "." key that can
+    // only ever produce an invalid value for that one field is worth
+    // hiding, even though _numericFieldError still accepts a typed decimal
+    // the same forgiving way every other field here does.
+    bool decimal = true,
   }) {
     final error = _numericFieldError(controller.text);
     return Column(
@@ -1962,7 +2020,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
         TextField(
           key: fieldKey,
           controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: TextInputType.numberWithOptions(decimal: decimal),
           onChanged: (_) => setState(() {}),
           style: AppText.body,
           decoration: InputDecoration(
@@ -2047,11 +2105,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
           // text-matching widget test, since Text.data still holds the full
           // string regardless of whether it visually truncates.
           _impactRow('Total repayment', formatMoney(totalPaid)),
-          _impactRow(
-            'Extra cost',
-            formatMoney(extraCost),
-            warn: extraCost > 0,
-          ),
+          _impactRow('Extra cost', formatMoney(extraCost), warn: extraCost > 0),
           _impactRow('Monthly payment', formatMoney(monthly)),
           if (hasCommitments) ...[
             const SizedBox(height: 4),
@@ -2516,9 +2570,13 @@ class _MindsetScreenState extends State<MindsetScreen> {
                   onPressed: () => _deleteWin(w),
                   iconSize: 18,
                   visualDensity: VisualDensity.standard,
+                  // 48, not 44: segmented.dart's own comment states the rule
+                  // for this app explicitly ("Android wants 48"); these two
+                  // destructive-ish row actions (delete a win, cancel a
+                  // waiting item) should not be an unforced exception to it.
                   constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
+                    minWidth: 48,
+                    minHeight: 48,
                   ),
                   tooltip: 'Delete win',
                   icon: Icon(salapifyIcon('close'), color: Barako.faint),
@@ -2736,9 +2794,13 @@ class _MindsetScreenState extends State<MindsetScreen> {
                   onPressed: () => _cancelWaitingItem(item),
                   iconSize: 18,
                   visualDensity: VisualDensity.standard,
+                  // 48, not 44: segmented.dart's own comment states the rule
+                  // for this app explicitly ("Android wants 48"); these two
+                  // destructive-ish row actions (delete a win, cancel a
+                  // waiting item) should not be an unforced exception to it.
                   constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
+                    minWidth: 48,
+                    minHeight: 48,
                   ),
                   tooltip: 'Cancel',
                   icon: Icon(salapifyIcon('close'), color: Barako.faint),

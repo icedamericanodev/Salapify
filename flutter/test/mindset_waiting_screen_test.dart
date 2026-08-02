@@ -301,6 +301,47 @@ void main() {
       expect(find.text('Not sure, wait another 24 hours'), findsOneWidget);
     });
 
+    testWidgets(
+      'the prompt scrolls instead of overflowing at a large text scale',
+      (tester) async {
+        // A real, common Android accessibility setting (2x "Largest font"),
+        // on a small screen, with a longer real-world item name (itemName
+        // has no length cap): the plain, non-scrolling Column this sheet
+        // used to be built from overflowed by hundreds of pixels here, with
+        // no way to reach "Not sure, wait another 24 hours" at all.
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1.0;
+        tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await _openDirect(
+          tester,
+          _blob(
+            waiting: [
+              _waitingItem(
+                itemName: 'A proper winter jacket for the Baguio trip',
+                revisitAt: DateTime.now().subtract(const Duration(hours: 1)),
+              ),
+            ],
+          ),
+        );
+
+        await _scrollTo(tester, find.text('Ready to revisit'));
+        await _tap(tester, find.text('Ready to revisit'));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Do you still want this?'), findsOneWidget);
+        await tester.dragUntilVisible(
+          find.text('Not sure, wait another 24 hours'),
+          find.byType(SingleChildScrollView),
+          const Offset(0, -50),
+        );
+        expect(find.text('Not sure, wait another 24 hours'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets('a not-due item does not open the prompt on tap', (
       tester,
     ) async {
