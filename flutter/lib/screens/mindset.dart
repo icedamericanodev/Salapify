@@ -18,11 +18,15 @@ import 'package:flutter/material.dart';
 import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
+import '../money/bnpl.dart' show bnplCost;
 import '../money/categories.dart'
     show CategoryRow, categoryTree, spentByCategory;
+import '../money/commitmentload.dart' show commitmentLoad;
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
+import '../money/mindset_purchase.dart'
+    show goalTradeoff, subscriptionEquivalents;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
 import '../money/mindset_wins.dart'
     show MindsetSnapshot, mindsetInsight, mindsetSnapshot;
@@ -108,41 +112,143 @@ String _verdictKey(_Verdict v) => switch (v) {
 /// reason (or part of it) behind a notInPlan verdict, per the founder's
 /// result-integration rule: the budget impact belongs in this text, not just
 /// in the card above it.
-String _whyText(_Verdict v, List<bool?> answers, Map<String, dynamic>? impact) {
+///
+/// [subscriptionInfo], [creditInfo], [commitmentInfo], and [goalInfo] add
+/// zero or more trailing sentences describing the purchase-type and
+/// goal-tradeoff context (Money Mindset Phase 5). They never change which
+/// verdict was reached, only what the sentence explains about it: per the
+/// founder's rule, selecting Credit or BNPL must never automatically turn a
+/// result negative on its own.
+String _whyText(
+  _Verdict v,
+  List<bool?> answers,
+  Map<String, dynamic>? impact, {
+  required String purchaseType,
+  Map<String, dynamic>? subscriptionInfo,
+  Map<String, dynamic>? creditInfo,
+  Map<String, dynamic>? commitmentInfo,
+  Map<String, dynamic>? goalInfo,
+}) {
   final essential = answers[0]!;
   final waited24h = answers[2]!;
   final affordableWithoutReserved = answers[1]!;
   final overBudget = impact != null && impact['exceeds'] == true;
+  final String base;
   switch (v) {
     case _Verdict.notInPlan:
       if (!affordableWithoutReserved) {
-        return overBudget
+        base = overBudget
             ? 'It would use money already reserved for bills, debt, or '
                   'goals, and ${_budgetClause(impact)}'
             : 'It would use money already reserved for bills, debt, or goals.';
+      } else if (impact == null) {
+        // _computeVerdict only reaches notInPlan with
+        // affordableWithoutReserved true when the budget check is what
+        // pushed it there, so impact is never null here in practice.
+        // assert() is stripped in release builds though, so this stays a
+        // null check with a safe fallback sentence rather than an operator
+        // that would crash in production if that invariant were ever broken
+        // by a future edit to _computeVerdict.
+        base = 'This does not fit your plan right now.';
+      } else {
+        base = 'The other answers fit your plan, but ${_budgetClause(impact)}';
       }
-      // _computeVerdict only reaches notInPlan with affordableWithoutReserved
-      // true when the budget check is what pushed it there, so impact is
-      // never null here in practice. assert() is stripped in release builds
-      // though, so this stays a null check with a safe fallback sentence
-      // rather than an operator that would crash in production if that
-      // invariant were ever broken by a future edit to _computeVerdict.
-      if (impact == null) return 'This does not fit your plan right now.';
-      return 'The other answers fit your plan, but ${_budgetClause(impact)}';
     case _Verdict.pause24h:
-      return "It is not essential right now, and you have not wanted it for "
+      base =
+          "It is not essential right now, and you have not wanted it for "
           "a full 24 hours yet.";
     case _Verdict.fitsPlan:
       if (essential) {
-        return 'It is essential, and it will not touch money reserved for '
+        base =
+            'It is essential, and it will not touch money reserved for '
             'bills, debt, or goals.';
+      } else {
+        // _computeVerdict only reaches fitsPlan with essential == false when
+        // waited24h == true; otherwise it would have returned pause24h.
+        assert(waited24h);
+        base =
+            'It is not essential, but you have wanted it for at least 24 '
+            'hours and it will not touch your reserved money.';
       }
-      // _computeVerdict only reaches fitsPlan with essential == false when
-      // waited24h == true; otherwise it would have returned pause24h.
-      assert(waited24h);
-      return 'It is not essential, but you have wanted it for at least 24 '
-          'hours and it will not touch your reserved money.';
   }
+  final extras = _purchaseContextSentences(
+    purchaseType: purchaseType,
+    subscriptionInfo: subscriptionInfo,
+    creditInfo: creditInfo,
+    commitmentInfo: commitmentInfo,
+    goalInfo: goalInfo,
+  );
+  return extras.isEmpty ? base : '$base ${extras.join(' ')}';
+}
+
+/// The subscription, credit, and goal-tradeoff sentences _whyText appends,
+/// split out so it stays readable. Each sentence only appears when its own
+/// data is actually reliable (a parsed subscription amount, a complete
+/// credit plan, existing debt minimums, or a goal comparison), the same
+/// "explainable or absent" rule goal_plan.dart's own suggestions follow.
+List<String> _purchaseContextSentences({
+  required String purchaseType,
+  Map<String, dynamic>? subscriptionInfo,
+  Map<String, dynamic>? creditInfo,
+  Map<String, dynamic>? commitmentInfo,
+  Map<String, dynamic>? goalInfo,
+}) {
+  final extras = <String>[];
+  if (purchaseType == 'subscription' && subscriptionInfo != null) {
+    extras.add(
+      'This subscription runs about '
+      '${formatMoney(subscriptionInfo['monthly'] as double)} a month, '
+      '${formatMoney(subscriptionInfo['annual'] as double)} a year.',
+    );
+  }
+  if (purchaseType == 'credit' && creditInfo != null) {
+    final cash = creditInfo['cash'] as double;
+    final totalPaid = creditInfo['totalPaid'] as double;
+    final extraCost = creditInfo['extraCost'] as double;
+    extras.add(
+      creditInfo['trulyFree'] == true
+          ? 'Paying this way costs nothing extra: ${formatMoney(totalPaid)} '
+                'total, the same as the ${formatMoney(cash)} cash price.'
+          : 'Paying this way costs ${formatMoney(extraCost)} more than the '
+                '${formatMoney(cash)} cash price, ${formatMoney(totalPaid)} '
+                'in total.',
+    );
+    if (commitmentInfo != null &&
+        commitmentInfo['applicable'] == true &&
+        (commitmentInfo['minimumsCount'] as int) > 0) {
+      extras.add(
+        'You already commit about '
+        '${formatMoney(commitmentInfo['minimumsTotal'] as double)} a month '
+        'to other debt minimums.',
+      );
+    }
+  }
+  if (goalInfo != null) {
+    final pct = goalInfo['percentOfRemaining'] as double;
+    final name = goalInfo['goalName'] as String;
+    final sentence = StringBuffer(
+      pct >= 100
+          ? 'This is more than what is left on "$name".'
+          : 'This is about ${pct.round()}% of what is left on "$name".',
+    );
+    final delay = goalInfo['delay'] as Map<String, dynamic>?;
+    if (delay != null) {
+      final periods = delay['periods'] as int;
+      sentence.write(
+        ' At your current pace, it could push that goal about $periods '
+        '${_periodWord(delay['frequency'] as String, periods)} later.',
+      );
+    }
+    extras.add(sentence.toString());
+  }
+  return extras;
+}
+
+/// "week"/"weeks" or "month"/"month" for a goal delay estimate's frequency
+/// and count.
+String _periodWord(String frequency, int count) {
+  final unit = frequency == 'weekly' ? 'week' : 'month';
+  return count == 1 ? unit : '${unit}s';
 }
 
 /// The lower-case clause describing exactly how far over the category's cap
@@ -231,6 +337,30 @@ class _MindsetScreenState extends State<MindsetScreen> {
   final _amountText = TextEditingController();
   String? _categoryId;
 
+  // Money Mindset Phase 5: which shape of purchase the fields below collect.
+  // 'oneTime' is the original Phase 2 flow above, untouched by default.
+  // Switching types never clears what was typed in another type's fields;
+  // only the active type's fields feed the verdict and the cards below.
+  String _purchaseType = 'oneTime';
+
+  // Subscription fields: a recurring amount and how often it bills.
+  final _subAmountText = TextEditingController();
+  String _subFrequency = 'monthly';
+
+  // Credit or BNPL fields, mirroring bnplCost's own inputs (bnpl.dart) so the
+  // true-cost engine already used elsewhere in the app (afford_card.dart)
+  // powers this card too, rather than a second copy of that math.
+  final _creditCashText = TextEditingController();
+  final _creditDownText = TextEditingController();
+  final _creditInstallmentText = TextEditingController();
+  final _creditInstallmentsCountText = TextEditingController();
+  final _creditFeesText = TextEditingController();
+
+  // Goal trade-off: which existing goal, if any, to compare this purchase
+  // against. Read-only, like everything else on this screen: nothing here
+  // ever writes to goals.dart's own saved/target fields.
+  String? _goalId;
+
   // A ceiling past which a typed amount stops meaning anything for a
   // purchase estimate, the same guard afford_card.dart uses for its own
   // display math, so a pasted absurd number reads as an error instead of
@@ -245,6 +375,15 @@ class _MindsetScreenState extends State<MindsetScreen> {
       _itemName.clear();
       _amountText.clear();
       _categoryId = null;
+      _purchaseType = 'oneTime';
+      _subAmountText.clear();
+      _subFrequency = 'monthly';
+      _creditCashText.clear();
+      _creditDownText.clear();
+      _creditInstallmentText.clear();
+      _creditInstallmentsCountText.clear();
+      _creditFeesText.clear();
+      _goalId = null;
       _checkLogged = false;
     });
     // Same reasoning as _reviewAgain's own scroll-to-top: Clear check sits
@@ -268,6 +407,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
     _winNoteText.dispose();
     _itemName.dispose();
     _amountText.dispose();
+    _subAmountText.dispose();
+    _creditCashText.dispose();
+    _creditDownText.dispose();
+    _creditInstallmentText.dispose();
+    _creditInstallmentsCountText.dispose();
+    _creditFeesText.dispose();
     _listController.dispose();
     super.dispose();
   }
@@ -308,10 +453,105 @@ class _MindsetScreenState extends State<MindsetScreen> {
     return null;
   }
 
+  /// The same "empty is fine, junk is not, absurd is not" contract as
+  /// [_validAmount], reused for every subscription and credit field below
+  /// instead of five near-identical copies. Empty and blank are both valid
+  /// "not answering this yet" states here, same as [_amountError]'s own
+  /// empty case.
+  double? _numericFieldValue(String text) {
+    final v = parseAmount(text);
+    if (v == null || v > _amountCeiling) return null;
+    return v;
+  }
+
+  String? _numericFieldError(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _midDecimalEntry.hasMatch(trimmed)) return null;
+    final v = parseAmount(trimmed);
+    if (v == null) return 'Enter a valid amount.';
+    if (v > _amountCeiling) return 'That amount is too large to check.';
+    return null;
+  }
+
+  /// The recurring amount and frequency turned into a monthly and annual
+  /// size, or null until a usable amount is typed. Purely a display and
+  /// budget-impact input; never saved anywhere.
+  Map<String, double>? get _subscriptionSummary {
+    final amount = _numericFieldValue(_subAmountText.text);
+    if (amount == null || amount <= 0) return null;
+    return subscriptionEquivalents(amount, _subFrequency);
+  }
+
+  /// The full BNPL/credit read, or null until cash price, installment
+  /// amount, and number of installments are all present and valid: the same
+  /// "every input needed for a trustworthy comparison" gate _budgetImpact
+  /// already applies to the one-time budget check. Down payment and fees
+  /// default to zero (both are genuinely optional, per the founder's spec),
+  /// covering the zero-interest and no-fee cases without a separate branch.
+  Map<String, dynamic>? get _creditSummary {
+    final cash = _numericFieldValue(_creditCashText.text);
+    final installment = _numericFieldValue(_creditInstallmentText.text);
+    final installments = _numericFieldValue(_creditInstallmentsCountText.text);
+    if (cash == null ||
+        cash <= 0 ||
+        installment == null ||
+        installment <= 0 ||
+        installments == null ||
+        installments <= 0) {
+      return null;
+    }
+    final down = _numericFieldValue(_creditDownText.text) ?? 0;
+    final fees = _numericFieldValue(_creditFeesText.text) ?? 0;
+    return bnplCost({
+      'cashPrice': cash,
+      'downpayment': down,
+      'months': installments,
+      'monthlyPayment': installment,
+      'upfrontFee': fees,
+    });
+  }
+
+  /// The amount this purchase would put at risk right now, by purchase
+  /// type: the typed one-time amount, a subscription's monthly bite, or a
+  /// BNPL plan's own installment (never its total repayment, so the
+  /// affordability self-report stays about the recurring commitment, the
+  /// same "never focus only on the small installment amount" rule the
+  /// screen's copy also follows for the totals shown separately).
+  double? get _effectiveAmount => switch (_purchaseType) {
+    'subscription' => _subscriptionSummary?['monthly'],
+    'credit' => _creditSummary?['monthly'] as double?,
+    _ => _validAmount,
+  };
+
+  /// The amount to weigh against a chosen savings goal: a one-time price,
+  /// what a subscription would cost across a year (the goal comparison is a
+  /// lump-sum question, unlike the monthly budget check above), or a BNPL
+  /// plan's real total repayment, never just its installment, so the goal
+  /// trade-off never understates what the plan actually costs.
+  double? get _goalTradeoffAmount => switch (_purchaseType) {
+    'subscription' => _subscriptionSummary?['annual'],
+    'credit' => _creditSummary?['totalPaid'] as double?,
+    _ => _validAmount,
+  };
+
   List<Map<String, dynamic>> _categories() => [
     for (final c in (widget.store.data['categories'] as List? ?? const []))
       if (c is Map) c.cast<String, dynamic>(),
   ];
+
+  List<Map<String, dynamic>> _goals() => [
+    for (final g in (widget.store.data['goals'] as List? ?? const []))
+      if (g is Map) g.cast<String, dynamic>(),
+  ];
+
+  Map<String, dynamic>? _selectedGoal(List<Map<String, dynamic>> goals) {
+    final id = _goalId;
+    if (id == null) return null;
+    for (final g in goals) {
+      if ('${g['id']}' == id) return g;
+    }
+    return null;
+  }
 
   /// Only non-null when every input needed for a trustworthy comparison is
   /// actually present: a usable amount, a category the user picked, Pro
@@ -323,10 +563,18 @@ class _MindsetScreenState extends State<MindsetScreen> {
   /// history (afford.dart's territory) even though it would be easy to bolt
   /// on here; a balance is not disposable money and mixing the two engines
   /// would misrepresent both.
+  ///
+  /// Credit or BNPL purchases skip this entirely: Phase 5 shows their own
+  /// total-repayment and existing-commitments cards instead, and comparing a
+  /// single installment against a monthly category cap the same way a
+  /// one-time purchase or a subscription's monthly bite does would read as
+  /// a claim this screen never actually checked (a BNPL plan's real cost is
+  /// the total repayment, not the installment alone).
   Map<String, dynamic>? _budgetImpact(List<Map<String, dynamic>> categories) {
+    if (_purchaseType == 'credit') return null;
     final categoryId = _categoryId;
     if (categoryId == null) return null;
-    final amount = _validAmount;
+    final amount = _effectiveAmount;
     if (amount == null) return null;
     final pro = (widget.store.data['settings'] as Map?)?['pro'] == true;
     if (!pro) return null;
@@ -577,7 +825,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
         itemName: _itemName.text.trim().isEmpty
             ? _untitledWaitingItem
             : _itemName.text.trim(),
-        amount: _validAmount,
+        // The effective amount for whichever purchase type is active, so a
+        // subscription or BNPL item revisited from Waiting still recalls the
+        // figure its own decision check actually weighed.
+        amount: _effectiveAmount,
         categoryId: _categoryId,
         essential: _answers[0]!,
         affordableWithoutReserved: _answers[1]!,
@@ -701,6 +952,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
         _itemName.text.trim().isNotEmpty ||
         _amountText.text.trim().isNotEmpty ||
         _categoryId != null ||
+        _purchaseType != 'oneTime' ||
+        _subAmountText.text.trim().isNotEmpty ||
+        _creditCashText.text.trim().isNotEmpty ||
+        _creditDownText.text.trim().isNotEmpty ||
+        _creditInstallmentText.text.trim().isNotEmpty ||
+        _creditInstallmentsCountText.text.trim().isNotEmpty ||
+        _creditFeesText.text.trim().isNotEmpty ||
+        _goalId != null ||
         _answers.any((a) => a != null);
     if (hasUnsavedConsidering &&
         !await _confirmOverwrite(
@@ -734,6 +993,20 @@ class _MindsetScreenState extends State<MindsetScreen> {
       _categoryId = categoryId is String && categoryId.isNotEmpty
           ? categoryId
           : null;
+      // A waiting item only ever remembers a one-time-shaped amount and
+      // category (addMindsetWaitingItem's own fields), so a review always
+      // comes back into the one-time flow; whatever a subscription or
+      // credit section held is cleared with it, the same clean-slate
+      // contract Clear check gives those fields.
+      _purchaseType = 'oneTime';
+      _subAmountText.clear();
+      _subFrequency = 'monthly';
+      _creditCashText.clear();
+      _creditDownText.clear();
+      _creditInstallmentText.clear();
+      _creditInstallmentsCountText.clear();
+      _creditFeesText.clear();
+      _goalId = null;
       for (var i = 0; i < _answers.length; i++) {
         _answers[i] = null;
       }
@@ -940,12 +1213,34 @@ class _MindsetScreenState extends State<MindsetScreen> {
             // snapshot that this ListenableBuilder can never refresh, the
             // same trap categories.dart's own comment already warns about
             // for spentByCategory.
-            final lesson = lessonFromMap(lessonOfTheDay(DateTime.now()));
+            final now = DateTime.now();
+            final lesson = lessonFromMap(lessonOfTheDay(now));
             final lessonTitle = _lessonTitleOf(lesson);
             final lessonSummary = _lessonSummaryOf(lesson);
             final categories = _categories();
             final impact = _budgetImpact(categories);
             final verdict = _computeVerdict(_answers, impact);
+            // Money Mindset Phase 5's purchase-type context, computed once
+            // here (not inside the widgets that render them) so the verdict
+            // card's "Why this result" and the considering section's own
+            // cards always agree, the same single-source rule impact above
+            // already follows for the budget check.
+            final subscriptionSummary = _purchaseType == 'subscription'
+                ? _subscriptionSummary
+                : null;
+            final creditSummary = _purchaseType == 'credit'
+                ? _creditSummary
+                : null;
+            final commitLoad = _purchaseType == 'credit'
+                ? commitmentLoad(widget.store.data, now)
+                : null;
+            final goals = _goals();
+            final selectedGoal = _selectedGoal(goals);
+            final goalInfo = goalTradeoff(
+              goal: selectedGoal,
+              purchaseAmount: _goalTradeoffAmount,
+              now: now,
+            );
             // One log row per completed check, the moment all three answers
             // first line up. Scheduled for after this frame rather than
             // called straight from build(): logMindsetCheck writes through
@@ -962,10 +1257,17 @@ class _MindsetScreenState extends State<MindsetScreen> {
             final hasConsiderInput =
                 _itemName.text.trim().isNotEmpty ||
                 _amountText.text.trim().isNotEmpty ||
-                _categoryId != null;
+                _categoryId != null ||
+                _purchaseType != 'oneTime' ||
+                _subAmountText.text.trim().isNotEmpty ||
+                _creditCashText.text.trim().isNotEmpty ||
+                _creditDownText.text.trim().isNotEmpty ||
+                _creditInstallmentText.text.trim().isNotEmpty ||
+                _creditInstallmentsCountText.text.trim().isNotEmpty ||
+                _creditFeesText.text.trim().isNotEmpty ||
+                _goalId != null;
             final showClear = answered || hasConsiderInput;
             final wins = _wins().reversed.toList();
-            final now = DateTime.now();
             final waiting = waitingItems(
               widget.store.data['settings'] is Map
                   ? (widget.store.data['settings'] as Map)['mindsetWaiting']
@@ -1014,7 +1316,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _considerSection(categories),
+                              _considerSection(
+                                categories,
+                                goals,
+                                commitLoad,
+                                goalInfo,
+                              ),
                               if (impact != null) ...[
                                 const SizedBox(height: 14),
                                 _budgetImpactSection(impact),
@@ -1026,7 +1333,15 @@ class _MindsetScreenState extends State<MindsetScreen> {
                           _questionRow(i),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          child: _verdictSection(verdict, impact),
+                          child: _verdictSection(
+                            verdict,
+                            impact,
+                            purchaseType: _purchaseType,
+                            subscriptionInfo: subscriptionSummary,
+                            creditInfo: creditSummary,
+                            commitmentInfo: commitLoad,
+                            goalInfo: goalInfo,
+                          ),
                         ),
                         if (showClear)
                           Padding(
@@ -1316,7 +1631,15 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // verdict word, why it landed there, and updates live as an answer changes
   // because it is derived straight from _answers on every build. [impact]
   // flows into _whyText so the budget numbers can show up in the reason.
-  Widget _verdictSection(_Verdict? verdict, Map<String, dynamic>? impact) {
+  Widget _verdictSection(
+    _Verdict? verdict,
+    Map<String, dynamic>? impact, {
+    required String purchaseType,
+    Map<String, dynamic>? subscriptionInfo,
+    Map<String, dynamic>? creditInfo,
+    Map<String, dynamic>? commitmentInfo,
+    Map<String, dynamic>? goalInfo,
+  }) {
     if (verdict == null) {
       return Row(
         children: [
@@ -1348,7 +1671,16 @@ class _MindsetScreenState extends State<MindsetScreen> {
           Text('Why this result', style: AppText.small.w6),
           const SizedBox(height: 2),
           Text(
-            _whyText(verdict, _answers, impact),
+            _whyText(
+              verdict,
+              _answers,
+              impact,
+              purchaseType: purchaseType,
+              subscriptionInfo: subscriptionInfo,
+              creditInfo: creditInfo,
+              commitmentInfo: commitmentInfo,
+              goalInfo: goalInfo,
+            ),
             style: AppText.small.copyWith(height: 1.4),
           ),
           if (verdict == _Verdict.pause24h) ...[
@@ -1377,17 +1709,57 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // "What are you considering?": item name, estimated amount, and category,
   // all optional. Nothing here creates a transaction or touches a balance;
   // it only feeds the budget-impact comparison below and the verdict above.
-  Widget _considerSection(List<Map<String, dynamic>> categories) {
-    final amountError = _amountError;
+  Widget _considerSection(
+    List<Map<String, dynamic>> categories,
+    List<Map<String, dynamic>> goals,
+    Map<String, dynamic>? commitLoad,
+    Map<String, dynamic>? goalInfo,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('WHAT ARE YOU CONSIDERING?', style: Barako.cardKickerStyle),
         const SizedBox(height: 10),
+        _purchaseTypeSelector(),
+        const SizedBox(height: 12),
         Text('Item (optional)', style: AppText.caption.tint(Barako.muted)),
         const SizedBox(height: 6),
         _itemNameField(),
         const SizedBox(height: 12),
+        switch (_purchaseType) {
+          'subscription' => _subscriptionFields(categories),
+          'credit' => _creditFields(commitLoad),
+          _ => _oneTimeFields(categories),
+        },
+        if (goals.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _goalTradeoffSection(goals, goalInfo),
+        ],
+      ],
+    );
+  }
+
+  // Money Mindset Phase 5's purchase-type picker: which shape the fields
+  // below collect. One-time is first and is what a blank check still opens
+  // to, so nothing about Phase 2's original flow changes for someone who
+  // never touches this control.
+  Widget _purchaseTypeSelector() => Segmented<String>(
+    options: const [
+      SegmentOption(value: 'oneTime', label: 'One-time purchase'),
+      SegmentOption(value: 'subscription', label: 'Subscription'),
+      SegmentOption(value: 'credit', label: 'Credit or BNPL'),
+    ],
+    current: _purchaseType,
+    onPick: (v) => setState(() => _purchaseType = v),
+  );
+
+  // Phase 2's original considering fields, unchanged: an estimated amount
+  // and an optional category, feeding the budget-impact card above.
+  Widget _oneTimeFields(List<Map<String, dynamic>> categories) {
+    final amountError = _amountError;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           'Estimated amount (optional)',
           style: AppText.caption.tint(Barako.muted),
@@ -1408,6 +1780,401 @@ class _MindsetScreenState extends State<MindsetScreen> {
           _categoryChips(categories),
         ],
       ],
+    );
+  }
+
+  // A recurring amount, how often it bills, the monthly and annual size
+  // that comes out of, and the same optional category the one-time flow
+  // offers (so a subscription's monthly bite can still show against a
+  // category's cap through the shared budget-impact card above).
+  Widget _subscriptionFields(List<Map<String, dynamic>> categories) {
+    final amountError = _numericFieldError(_subAmountText.text);
+    final summary = _subscriptionSummary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Recurring amount', style: AppText.caption.tint(Barako.muted)),
+        const SizedBox(height: 6),
+        _subAmountField(),
+        if (amountError != null) ...[
+          const SizedBox(height: 4),
+          Text(amountError, style: AppText.caption.tint(Barako.warningStrong)),
+        ],
+        const SizedBox(height: 12),
+        Text('Frequency', style: AppText.caption.tint(Barako.muted)),
+        const SizedBox(height: 6),
+        _subFrequencySelector(),
+        if (summary != null) ...[
+          const SizedBox(height: 12),
+          _summaryCard([
+            _impactRow('Monthly equivalent', formatMoney(summary['monthly']!)),
+            _impactRow('Annual equivalent', formatMoney(summary['annual']!)),
+          ]),
+        ],
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Category (optional)',
+            style: AppText.caption.tint(Barako.muted),
+          ),
+          const SizedBox(height: 6),
+          _categoryChips(categories),
+        ],
+      ],
+    );
+  }
+
+  Widget _subAmountField() => TextField(
+    key: const Key('mindsetSubAmount'),
+    controller: _subAmountText,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    onChanged: (_) => setState(() {}),
+    style: AppText.body,
+    decoration: InputDecoration(
+      prefixText: '$baseCurrencySymbol ',
+      prefixStyle: AppText.body.tint(Barako.textSecondary),
+      hintText: 'e.g. 149',
+      hintStyle: TextStyle(color: Barako.faint),
+      filled: true,
+      fillColor: Barako.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.primary),
+      ),
+    ),
+  );
+
+  // Four options, not Segmented's two or three: "Monthly" and "Quarterly"
+  // do not fit a quarter-width column as one unbroken word, so Segmented's
+  // own line-fit check (which only asks whether a label fits in two lines,
+  // not whether a wrap lands somewhere readable) let it hyphen-less
+  // mid-word wrap into "Mont/hly" and "Quart/erly", caught by actually
+  // looking at the render. ChoiceChips in a Wrap sidestep it entirely: each
+  // chip is a whole word that only ever wraps as a whole chip to a new
+  // line, the same pattern goal_create.dart's own frequency picker already
+  // uses.
+  Widget _subFrequencySelector() => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final f in const [
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('annual', 'Annual'),
+      ])
+        ChoiceChip(
+          label: Text(f.$2),
+          selected: _subFrequency == f.$1,
+          onSelected: (_) => setState(() => _subFrequency = f.$1),
+          selectedColor: Barako.primary,
+          backgroundColor: Barako.background,
+          labelStyle: TextStyle(
+            color: _subFrequency == f.$1
+                ? Barako.onPrimary
+                : Barako.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+          side: BorderSide(color: Barako.border),
+        ),
+    ],
+  );
+
+  // Cash price, an optional down payment, the installment amount, how many
+  // installments, and any known fee, mirroring bnplCost's own fields
+  // (bnpl.dart) exactly so that engine's true-cost math, not a second copy
+  // of it, produces everything shown here. No category: Phase 5's spec
+  // does not ask for a BNPL budget-impact card, only its own totals and
+  // existing debt commitments.
+  Widget _creditFields(Map<String, dynamic>? commitLoad) {
+    final summary = _creditSummary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _labeledNumberField(
+          label: 'Cash price',
+          fieldKey: const Key('mindsetCreditCash'),
+          controller: _creditCashText,
+          hint: 'e.g. 15000',
+          prefix: baseCurrencySymbol,
+        ),
+        const SizedBox(height: 12),
+        _labeledNumberField(
+          label: 'Down payment (optional)',
+          fieldKey: const Key('mindsetCreditDown'),
+          controller: _creditDownText,
+          hint: 'e.g. 3000',
+          prefix: baseCurrencySymbol,
+        ),
+        const SizedBox(height: 12),
+        _labeledNumberField(
+          label: 'Installment amount',
+          fieldKey: const Key('mindsetCreditInstallment'),
+          controller: _creditInstallmentText,
+          hint: 'e.g. 1500',
+          prefix: baseCurrencySymbol,
+        ),
+        const SizedBox(height: 12),
+        _labeledNumberField(
+          label: 'Number of installments',
+          fieldKey: const Key('mindsetCreditInstallmentsCount'),
+          controller: _creditInstallmentsCountText,
+          hint: 'e.g. 12',
+        ),
+        const SizedBox(height: 12),
+        _labeledNumberField(
+          label: 'Known fees (optional)',
+          fieldKey: const Key('mindsetCreditFees'),
+          controller: _creditFeesText,
+          hint: 'e.g. 0',
+          prefix: baseCurrencySymbol,
+        ),
+        if (summary != null) ...[
+          const SizedBox(height: 14),
+          _creditSummaryCard(summary, commitLoad),
+        ],
+      ],
+    );
+  }
+
+  Widget _labeledNumberField({
+    required String label,
+    required Key fieldKey,
+    required TextEditingController controller,
+    required String hint,
+    String? prefix,
+  }) {
+    final error = _numericFieldError(controller.text);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppText.caption.tint(Barako.muted)),
+        const SizedBox(height: 6),
+        TextField(
+          key: fieldKey,
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => setState(() {}),
+          style: AppText.body,
+          decoration: InputDecoration(
+            prefixText: prefix == null ? null : '$prefix ',
+            prefixStyle: AppText.body.tint(Barako.textSecondary),
+            hintText: hint,
+            hintStyle: TextStyle(color: Barako.faint),
+            filled: true,
+            fillColor: Barako.card,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Barako.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Barako.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Barako.primary),
+            ),
+          ),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 4),
+          Text(error, style: AppText.caption.tint(Barako.warningStrong)),
+        ],
+      ],
+    );
+  }
+
+  // A plain bordered panel of rows, the same shape _budgetImpactSection
+  // already uses for its own card, reused here for the subscription and
+  // credit summaries instead of a third near-identical container.
+  Widget _summaryCard(List<Widget> rows) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Barako.background,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Barako.border),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows),
+  );
+
+  Widget _creditSummaryCard(
+    Map<String, dynamic> summary,
+    Map<String, dynamic>? commitLoad,
+  ) {
+    final totalPaid = summary['totalPaid'] as double;
+    final extraCost = summary['extraCost'] as double;
+    final cash = summary['cash'] as double;
+    final monthly = summary['monthly'] as double;
+    final underpays = summary['underpays'] as bool;
+    final hasCommitments =
+        commitLoad != null &&
+        commitLoad['applicable'] == true &&
+        (commitLoad['minimumsCount'] as int) > 0;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Barako.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: underpays ? Barako.warningStrong : Barako.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('TOTAL COST', style: Barako.cardKickerStyle),
+          const SizedBox(height: 8),
+          // Short labels on purpose: _impactRow splits its row 50/50 between
+          // label and value, and this card's own padding leaves each side
+          // under 150dp on a 390dp-wide phone. "Difference from cash price"
+          // and "Your other debt minimums (monthly)" both hard-wrapped
+          // mid-word into unreadable ellipsized fragments in the actual
+          // render, caught by looking at the screenshot rather than by any
+          // text-matching widget test, since Text.data still holds the full
+          // string regardless of whether it visually truncates.
+          _impactRow('Total repayment', formatMoney(totalPaid)),
+          _impactRow(
+            'Extra cost',
+            formatMoney(extraCost),
+            warn: extraCost > 0,
+          ),
+          _impactRow('Monthly payment', formatMoney(monthly)),
+          if (hasCommitments) ...[
+            const SizedBox(height: 4),
+            _impactRow(
+              'Debt minimums',
+              formatMoney(commitLoad['minimumsTotal'] as double),
+            ),
+          ],
+          if (underpays) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  salapifyIcon('warning'),
+                  color: Barako.warningStrong,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'These numbers do not add up: the payments do not cover '
+                    'the ${formatMoney(cash)} cash price.',
+                    style: AppText.small
+                        .tint(Barako.warningStrong)
+                        .copyWith(height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Money Mindset Phase 5's goal trade-off: an optional, read-only compare
+  // against one existing goal. Selecting a chip never writes to
+  // goals.dart's own data; it only feeds goalTradeoff (mindset_purchase.dart)
+  // for the card below.
+  Widget _goalTradeoffSection(
+    List<Map<String, dynamic>> goals,
+    Map<String, dynamic>? goalInfo,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('COMPARE TO A GOAL (OPTIONAL)', style: Barako.cardKickerStyle),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final g in goals)
+              ChoiceChip(
+                label: Text('${g['name'] ?? 'Goal'}'),
+                selected: _goalId == '${g['id']}',
+                onSelected: (_) => setState(() {
+                  final id = '${g['id']}';
+                  _goalId = _goalId == id ? null : id;
+                }),
+                selectedColor: Barako.primary,
+                backgroundColor: Barako.background,
+                labelStyle: TextStyle(
+                  color: _goalId == '${g['id']}'
+                      ? Barako.onPrimary
+                      : Barako.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(color: Barako.border),
+              ),
+          ],
+        ),
+        if (goalInfo != null) ...[
+          const SizedBox(height: 12),
+          _goalTradeoffCard(goalInfo),
+        ],
+      ],
+    );
+  }
+
+  Widget _goalTradeoffCard(Map<String, dynamic> info) {
+    final remaining = info['remaining'] as double;
+    final amount = info['purchaseAmount'] as double;
+    final pct = info['percentOfRemaining'] as double;
+    final name = info['goalName'] as String;
+    final delay = info['delay'] as Map<String, dynamic>?;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Barako.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            name,
+            style: AppText.small.w7,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          const SizedBox(height: 8),
+          // Short labels, same reason as _creditSummaryCard just above:
+          // "Remaining goal amount" and "Percent of what is left" both
+          // hard-wrapped mid-word in the actual render at this card's
+          // narrow width, caught by looking at the screenshot.
+          _impactRow('Purchase amount', formatMoney(amount)),
+          _impactRow('Goal remaining', formatMoney(remaining)),
+          _impactRow('Percent left', '${pct.round()}%', emphasize: true),
+          if (delay != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'At your current pace, this could push that goal about '
+              '${delay['periods']} '
+              '${_periodWord(delay['frequency'] as String, delay['periods'] as int)} '
+              'later.',
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

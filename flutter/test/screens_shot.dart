@@ -1491,6 +1491,102 @@ void main() {
     );
   });
 
+  testWidgets(
+    'the purchase-type picker on Money mindset, all three types, dark '
+    '(Phase 5)',
+    (tester) async {
+      // Money Mindset Phase 5: subscription equivalents, a credit or BNPL
+      // plan's total repayment against the lived-in fixture's own BPI card
+      // minimum, and a goal trade-off against the fixture's real Emergency
+      // fund goal (which already carries a deadline and history, so the
+      // delay estimate has something real to compute from).
+      await loadRealFonts(tester);
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode(livedInBlob),
+      });
+      final store = SalapifyStore();
+      await store.load();
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: MindsetScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Subscription.
+      await tester.tap(find.text('Subscription'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('mindsetSubAmount')),
+        '149',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Monthly equivalent'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-subscription-dark.png'),
+      );
+
+      // Credit or BNPL, with the fixture's own BPI card minimum showing
+      // alongside it.
+      await tester.tap(find.text('Credit or BNPL'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('mindsetCreditCash')),
+        '15000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('mindsetCreditDown')),
+        '3000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('mindsetCreditInstallment')),
+        '1200',
+      );
+      await tester.enterText(
+        find.byKey(const Key('mindsetCreditInstallmentsCount')),
+        '10',
+      );
+      await tester.enterText(find.byKey(const Key('mindsetCreditFees')), '299');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Total repayment'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Total repayment'), findsOneWidget);
+      expect(find.text('Debt minimums'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-credit-dark.png'),
+      );
+
+      // Goal trade-off against the fixture's real Emergency fund goal.
+      await tester.scrollUntilVisible(
+        find.text('COMPARE TO A GOAL (OPTIONAL)'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Emergency fund'));
+      await tester.pumpAndSettle();
+      expect(find.text('Purchase amount'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/mindset-goal-tradeoff-dark.png'),
+      );
+    },
+  );
+
   testWidgets('the sample data card in Menu, both states, dark', (
     tester,
   ) async {
