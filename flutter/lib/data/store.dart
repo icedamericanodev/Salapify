@@ -14,6 +14,7 @@ import 'dart:math';
 
 import '../money/base_currency_scope.dart' show baseCurrencyOf, manualRatesOf;
 import '../money/fx_totals.dart' show FxTable;
+import '../money/expansion_progress.dart';
 import '../money/greeting.dart';
 import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
@@ -1705,6 +1706,77 @@ class SalapifyStore extends ChangeNotifier {
       ...d,
       'settings': {...s, 'lessonsRead': read.toList()},
     };
+  });
+
+  /// Progress for the future expansion learning paths (Grow Your Money,
+  /// Protect Your Future, Build Your Business, and any path after those),
+  /// kept in settings.expansionProgress, a namespace entirely separate from
+  /// settings.lessonProgress/lessonsRead above. Writing here can never
+  /// change the core 22 lessons' progress or their "X of 22" figure, and a
+  /// write to the core progress above can never touch this key.
+  ///
+  /// This is the small API widgets are meant to use; none of them read
+  /// settings.expansionProgress directly.
+  Map<String, LessonState> expansionProgressFor(String pathId) {
+    final s = data['settings'];
+    final all = parseExpansionProgress(
+      s is Map ? s['expansionProgress'] : null,
+    );
+    return all[pathId] ?? const {};
+  }
+
+  /// Completed and total lesson counts for one path. [lessonIds] comes from
+  /// the path's own content (LearningPath.lessonIds), never guessed here.
+  PathProgress expansionPathProgress({
+    required String pathId,
+    required List<String> lessonIds,
+  }) => pathProgressFor(
+    pathId: pathId,
+    lessonIds: lessonIds,
+    progress: expansionProgressFor(pathId),
+  );
+
+  Future<void> _setExpansionLessonState(
+    String pathId,
+    String lessonId,
+    LessonState state,
+  ) => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final progress = withExpansionLessonState(
+      s['expansionProgress'],
+      pathId,
+      lessonId,
+      state,
+    );
+    return {
+      ...d,
+      'settings': {...s, 'expansionProgress': progress},
+    };
+  });
+
+  /// Record that a learner opened an expansion lesson. Never demotes a
+  /// lesson already at understood/completed/applied.
+  Future<void> markExpansionLessonStarted(String pathId, String lessonId) =>
+      _setExpansionLessonState(pathId, lessonId, LessonState.viewed);
+
+  /// Record that a learner finished an expansion lesson. This is the only
+  /// write that counts toward a path's completed count; opening a lesson
+  /// alone never does.
+  Future<void> markExpansionLessonCompleted(String pathId, String lessonId) =>
+      _setExpansionLessonState(pathId, lessonId, LessonState.completed);
+
+  /// Clear progress for exactly one expansion path. Every other path, and
+  /// the core 22 lessons' progress, are untouched. Not a global reset.
+  Future<void> resetExpansionPath(String pathId) => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final progress = withExpansionPathCleared(s['expansionProgress'], pathId);
+    final settings = {...s};
+    if (progress.isEmpty) {
+      settings.remove('expansionProgress');
+    } else {
+      settings['expansionProgress'] = progress;
+    }
+    return {...d, 'settings': settings};
   });
 
   /// Earn-your-treats rules, kept in settings.treats. Every write goes through
