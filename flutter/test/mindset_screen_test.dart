@@ -69,6 +69,25 @@ Future<void> _answer(WidgetTester tester, int i, bool yes) async {
   await tester.pumpAndSettle();
 }
 
+// The Impulse check card above Small Wins is tall enough that the win entry
+// row is not always inside the ListView's first-layout cache, so ensureVisible
+// alone (which only nudges something already built) is not enough; this
+// forces the sliver to build further down, the same fix scrollUntilVisible
+// gives the existing "a small win can be added and removed" test.
+Future<void> _scrollToWinEntry(WidgetTester tester) =>
+    tester.scrollUntilVisible(
+      find.byKey(const Key('mindsetWinText')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+Future<void> _tapNear(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('the lesson card never shows a missing field as null or blank', () {
     test('a lesson with no title falls back to a safe title', () {
@@ -298,6 +317,453 @@ void main() {
       // The idless win cannot be targeted, so it stays and nothing throws.
       expect(tester.takeException(), isNull);
       expect(find.text('Legacy win'), findsOneWidget);
+    });
+
+    testWidgets(
+      'a legacy win with no amount or note shows no Spending avoided or '
+      'reflection line',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({
+          'salapify_data_v2': jsonEncode({
+            'wins': [
+              {'text': 'Legacy win', 'date': '2026-07-01', 'id': 'w_legacy'},
+            ],
+          }),
+        });
+        final store = SalapifyStore();
+        await tester.pumpWidget(SalapifyApp(store: store));
+        await tester.pumpAndSettle();
+        await _openMindset(tester);
+        await tester.scrollUntilVisible(
+          find.text('Legacy win'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        expect(find.text('Legacy win'), findsOneWidget);
+        // "Spending avoided" alone also names a 30-day snapshot stat label
+        // further down the screen; the win row's own amount line always
+        // reads "Spending avoided: <amount>", so that colon is what
+        // distinguishes "this win recorded no amount" from "the snapshot
+        // card exists".
+        expect(find.textContaining('Spending avoided:'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('small wins: optional amount and reflection (Phase 4)', () {
+    testWidgets(
+      'the amount and reflection fields start collapsed; plain manual '
+      'entry (no amount) still saves exactly as before',
+      (tester) async {
+        final store = await _openDirect(tester, _blob());
+        await _scrollToWinEntry(tester);
+
+        expect(find.byKey(const Key('mindsetWinAmount')), findsNothing);
+        expect(find.byKey(const Key('mindsetWinNote')), findsNothing);
+        expect(
+          find.text('+ Add spending avoided or a reflection'),
+          findsOneWidget,
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('mindsetWinText')),
+          'Packed lunch all week',
+        );
+        await _tapNear(tester, find.text('Add'));
+
+        expect(find.text('Packed lunch all week'), findsOneWidget);
+        final win = (store.data['wins'] as List).single as Map;
+        expect(win['amount'], isNull);
+        expect(win['note'], isNull);
+      },
+    );
+
+    testWidgets('an amount and a reflection are saved and shown as "Spending '
+        'avoided", never as "money saved"', (tester) async {
+      await _openDirect(tester, _blob());
+      await _scrollToWinEntry(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('mindsetWinText')),
+        'New shoes',
+      );
+      await _tapNear(
+        tester,
+        find.text('+ Add spending avoided or a reflection'),
+      );
+      await tester.enterText(find.byKey(const Key('mindsetWinAmount')), '850');
+      await tester.enterText(
+        find.byKey(const Key('mindsetWinNote')),
+        'Already have three pairs',
+      );
+      await _tapNear(tester, find.text('Add'));
+
+      expect(find.text('Spending avoided: ₱850'), findsOneWidget);
+      expect(find.text('Already have three pairs'), findsOneWidget);
+      expect(find.textContaining('money saved'), findsNothing);
+    });
+
+    testWidgets('a blank text entry is never saved', (tester) async {
+      final store = await _openDirect(tester, _blob());
+      await _scrollToWinEntry(tester);
+
+      await _tapNear(tester, find.text('Add'));
+
+      expect(store.data['wins'], isEmpty);
+      expect(find.text('No wins yet. Add a small one above.'), findsOneWidget);
+    });
+
+    testWidgets('an unparsable typed amount blocks the submission instead '
+        'of being silently dropped', (tester) async {
+      final store = await _openDirect(tester, _blob());
+      await _scrollToWinEntry(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('mindsetWinText')),
+        'New shoes',
+      );
+      await _tapNear(
+        tester,
+        find.text('+ Add spending avoided or a reflection'),
+      );
+      await tester.enterText(
+        find.byKey(const Key('mindsetWinAmount')),
+        'not a number',
+      );
+      await _tapNear(tester, find.text('Add'));
+
+      expect(store.data['wins'], isEmpty);
+      expect(find.text('Enter a valid amount.'), findsOneWidget);
+    });
+  });
+
+  group('duplicate protection (store level)', () {
+    test('a rapid identical resubmission collapses into one win', () async {
+      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+      final store = SalapifyStore();
+      await store.load();
+
+      final a = store.addWin('Skipped bubble tea', amount: 120);
+      final b = store.addWin('Skipped bubble tea', amount: 120);
+      await a;
+      await b;
+
+      expect(store.data['wins'], hasLength(1));
+    });
+
+    test('different content submitted back to back is not treated as a '
+        'duplicate', () async {
+      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+      final store = SalapifyStore();
+      await store.load();
+
+      final a = store.addWin('Skipped bubble tea');
+      final b = store.addWin('Skipped a taxi, walked instead');
+      await a;
+      await b;
+
+      expect(store.data['wins'], hasLength(2));
+    });
+
+    test('a blank submission is a no-op, not a saved empty win', () async {
+      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+      final store = SalapifyStore();
+      await store.load();
+
+      await store.addWin('   ');
+
+      expect(store.data['wins'], isEmpty);
+    });
+  });
+
+  group('editing and deleting a win (Phase 4)', () {
+    testWidgets(
+      'tapping a win opens an edit sheet that updates its text, amount, '
+      'and note',
+      (tester) async {
+        final store = await _openDirect(tester, _blob());
+        await store.addWin('New shoes', amount: 1500, note: 'Old note');
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.text('New shoes'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('New shoes'));
+        await tester.pumpAndSettle();
+        expect(find.text('Edit win'), findsOneWidget);
+
+        await tester.enterText(
+          find.byKey(const Key('mindsetEditWinText')),
+          'New shoes, decided against',
+        );
+        await tester.enterText(
+          find.byKey(const Key('mindsetEditWinAmount')),
+          '1200',
+        );
+        await tester.enterText(
+          find.byKey(const Key('mindsetEditWinNote')),
+          'Found a cheaper pair',
+        );
+        await tester.tap(find.text('Save changes'));
+        await tester.pumpAndSettle();
+
+        final win = (store.data['wins'] as List).single as Map;
+        expect(win['text'], 'New shoes, decided against');
+        expect(win['amount'], 1200.0);
+        expect(win['note'], 'Found a cheaper pair');
+        expect(find.text('New shoes, decided against'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Delete inside the edit sheet asks for confirmation before removing '
+      'the win',
+      (tester) async {
+        final store = await _openDirect(tester, _blob());
+        await store.addWin('New shoes', amount: 1500);
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.text('New shoes'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('New shoes'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Delete win'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Delete this win?'), findsOneWidget);
+        expect(store.data['wins'], hasLength(1), reason: 'not deleted yet');
+
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(store.data['wins'], isEmpty);
+        expect(find.text('New shoes'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'the quick delete icon still offers Undo, and Undo restores the '
+      'amount and note verbatim',
+      (tester) async {
+        final store = await _openDirect(tester, _blob());
+        await store.addWin('New shoes', amount: 1500, note: 'Found cheaper');
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.byIcon(Icons.close),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pumpAndSettle();
+        expect(store.data['wins'], isEmpty);
+
+        await tester.tap(find.text('Undo'));
+        await tester.pumpAndSettle();
+
+        final win = (store.data['wins'] as List).single as Map;
+        expect(win['text'], 'New shoes');
+        expect(win['amount'], 1500.0);
+        expect(win['note'], 'Found cheaper');
+      },
+    );
+
+    test('editWin clearing the amount and note removes them, rather than '
+        'leaving the old values behind under a spread', () async {
+      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+      final store = SalapifyStore();
+      await store.load();
+      await store.addWin('New shoes', amount: 1500, note: 'Old note');
+      final id = (store.data['wins'] as List).single['id'] as String;
+
+      await store.editWin(id, text: 'New shoes');
+
+      final win = (store.data['wins'] as List).single as Map;
+      expect(win['text'], 'New shoes');
+      expect(win.containsKey('amount'), isFalse);
+      expect(win.containsKey('note'), isFalse);
+    });
+  });
+
+  group('offline persistence (Phase 4)', () {
+    test('a win with an amount and note reloads from disk unchanged', () async {
+      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+      final storeA = SalapifyStore();
+      await storeA.load();
+      await storeA.addWin('New shoes', amount: 1500, note: 'Found cheaper');
+
+      final storeB = SalapifyStore();
+      await storeB.load();
+
+      final win = (storeB.data['wins'] as List).single as Map;
+      expect(win['text'], 'New shoes');
+      expect(win['amount'], 1500.0);
+      expect(win['note'], 'Found cheaper');
+    });
+  });
+
+  group('the 30-day snapshot (Phase 4)', () {
+    testWidgets(
+      'reads all zero and a neutral message before any history exists',
+      (tester) async {
+        await _openDirect(tester, _blob());
+        await tester.scrollUntilVisible(
+          find.text('30-DAY SNAPSHOT'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        expect(find.text('Decision checks'), findsOneWidget);
+        expect(find.text('Purchases paused'), findsOneWidget);
+        expect(find.text('Purchases skipped'), findsOneWidget);
+        expect(find.text('Spending avoided'), findsOneWidget);
+        expect(
+          find.textContaining('Add an amount to a small win'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'completing a decision check logs once, not once per answer flip',
+      (tester) async {
+        SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
+        final store = SalapifyStore();
+        await tester.pumpWidget(SalapifyApp(store: store));
+        await tester.pumpAndSettle();
+        await _openMindset(tester);
+
+        await _answer(tester, 0, false); // not essential
+        await _answer(tester, 1, true); // affordable
+        await _answer(tester, 2, false); // has not waited
+        expect(find.text('Pause for 24 hours'), findsOneWidget);
+        expect(store.mindsetChecks, hasLength(1));
+
+        // Flipping an already-answered question changes the verdict but
+        // does not log a second completed check.
+        await _answer(tester, 2, true);
+        expect(find.text('Pause for 24 hours'), findsNothing);
+        expect(find.text('Fits your plan'), findsOneWidget);
+        expect(store.mindsetChecks, hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'the spending-avoided total counts only wins with a valid amount, '
+      'and only within the last 30 days',
+      (tester) async {
+        final now = DateTime.now();
+        String daysAgo(int n) =>
+            now.subtract(Duration(days: n)).toIso8601String().substring(0, 10);
+        SharedPreferences.setMockInitialValues({
+          storageKey: jsonEncode({
+            'schemaVersion': 12,
+            'settings': {'onboarded': true},
+            'wins': [
+              {
+                'id': 'w1',
+                'text': 'Skipped shoes',
+                'amount': 1500,
+                'date': daysAgo(1),
+              },
+              {'id': 'w2', 'text': 'No amount noted', 'date': daysAgo(1)},
+              {
+                'id': 'w3',
+                'text': 'Too old to count',
+                'amount': 5000,
+                'date': daysAgo(45),
+              },
+              {
+                'id': 'w4',
+                'text': 'Packed lunch',
+                'amount': 200,
+                'date': daysAgo(10),
+              },
+            ],
+          }),
+        });
+        final store = SalapifyStore();
+        await store.load();
+        await tester.pumpWidget(MaterialApp(home: MindsetScreen(store: store)));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('₱1,700'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        expect(find.text('₱1,700'), findsOneWidget);
+        expect(find.textContaining('From 2 small wins'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows the skip-pattern insight once three skips exist in the '
+        'window, never fewer', (tester) async {
+      final now = DateTime.now();
+      Map<String, dynamic> skipped(String id) => {
+        'id': id,
+        'itemName': 'Item $id',
+        'essential': false,
+        'affordableWithoutReserved': true,
+        'waited24h': false,
+        'result': 'pause24h',
+        'createdAt': now.subtract(const Duration(days: 1)).toIso8601String(),
+        'revisitAt': now.subtract(const Duration(hours: 1)).toIso8601String(),
+        'status': 'skipped',
+      };
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {
+            'onboarded': true,
+            'mindsetWaiting': [skipped('a'), skipped('b')],
+          },
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await tester.pumpWidget(MaterialApp(home: MindsetScreen(store: store)));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('30-DAY SNAPSHOT'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.textContaining('Waiting 24 hours helped you skip'),
+        findsNothing,
+        reason: 'only 2 skips so far',
+      );
+
+      // A third skip in the window crosses the minimum.
+      await store.patchMindsetWaitingItem('a', {}); // no-op, keeps id
+      await store.addMindsetWaitingItem(
+        itemName: 'Item c',
+        essential: false,
+        affordableWithoutReserved: true,
+        waited24h: false,
+        result: 'pause24h',
+      );
+      final thirdId = store.mindsetWaiting.last['id'] as String;
+      await store.patchMindsetWaitingItem(thirdId, {'status': 'skipped'});
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.textContaining('Waiting 24 hours helped you skip'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(
+        find.text('Waiting 24 hours helped you skip 3 purchases this month.'),
+        findsOneWidget,
+      );
     });
   });
 

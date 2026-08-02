@@ -43,6 +43,14 @@ import '../money/paluwagan.dart' as paluwagan;
 import '../money/splits.dart' as splits;
 import 'backup.dart';
 
+/// A raw dynamic list, filtered to its Map entries and cast to the shape
+/// every collection in this store reads and writes. Junk-in-junk-out: a
+/// non-list or non-Map entry is simply dropped rather than thrown on.
+List<Map<String, dynamic>> _maps(dynamic raw) => [
+  for (final e in (raw is List ? raw : const []))
+    if (e is Map) e.cast<String, dynamic>(),
+];
+
 /// Transaction ids must be present and unique before the store accepts a
 /// blob: removeTransaction drops every row matching an id but reverses the
 /// balance only once, so a duplicated id in a merged or hand-edited backup
@@ -1232,18 +1240,99 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
-  /// Add a small win, stamped with today's date, matching the RN Mindset
-  /// screen (addItem('wins', { text, date })). Kept in data.wins so the
-  /// backup already carries it.
-  Future<void> addWin(String text) => _mutate(
-    (d) => {
+  /// A rapid identical re-submission (a fast double tap on Add, or two
+  /// near-simultaneous callers) collapses into a single win instead of two,
+  /// rather than relying on the UI alone to debounce it. Matched against
+  /// only the most recently added win, since that is the one a double tap
+  /// could possibly duplicate.
+  static const _duplicateWinWindow = Duration(seconds: 3);
+
+  /// Add a small win: what was decided not to buy ([text], required), an
+  /// optional amount ("Spending avoided", never "money saved" since no real
+  /// transfer happens here), and an optional short reflection. Stamped with
+  /// today's date, matching the RN Mindset screen's original addItem('wins',
+  /// { text, date }) shape; amount and note are additive fields an older
+  /// build or a hand-edited backup simply will not have. Kept in data.wins
+  /// so the backup already carries it, no migration needed.
+  ///
+  /// A blank [text] is a no-op, not a saved empty win, and a genuine rapid
+  /// duplicate (same text, amount, and note as the last win, added within
+  /// [_duplicateWinWindow]) is also a no-op rather than a second row.
+  Future<void> addWin(String text, {double? amount, String? note}) =>
+      _mutate((d) {
+        final trimmed = text.trim();
+        if (trimmed.isEmpty) return d;
+        final cleanNote = (note != null && note.trim().isNotEmpty)
+            ? note.trim()
+            : null;
+        final wins = _maps(d['wins']);
+        if (wins.isNotEmpty) {
+          final last = wins.last;
+          final lastAt = DateTime.tryParse('${last['createdAt'] ?? ''}');
+          final sameContent =
+              last['text'] == trimmed &&
+              (last['amount'] as num?)?.toDouble() == amount &&
+              (last['note'] as String?) == cleanNote;
+          if (sameContent &&
+              lastAt != null &&
+              DateTime.now().difference(lastAt) < _duplicateWinWindow) {
+            return d;
+          }
+        }
+        return {
+          ...d,
+          'wins': [
+            ...wins,
+            {
+              'id': _genId('wins'),
+              'text': trimmed,
+              'date': _todayISO(),
+              'createdAt': DateTime.now().toIso8601String(),
+              'amount': ?amount,
+              'note': ?cleanNote,
+            },
+          ],
+        };
+      });
+
+  /// Update an existing win's text, amount, and note in place, preserving
+  /// its id and original date. Clearing the amount or note field (passing
+  /// null) removes that key entirely rather than leaving the old value
+  /// behind, since a spread of the old map would otherwise silently keep it.
+  /// A blank [text] is refused (the row keeps its previous text) the same
+  /// way addWin refuses a blank one.
+  Future<void> editWin(
+    String id, {
+    required String text,
+    double? amount,
+    String? note,
+  }) => _mutate((d) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return d;
+    final cleanNote = (note != null && note.trim().isNotEmpty)
+        ? note.trim()
+        : null;
+    return {
       ...d,
       'wins': [
-        ...(d['wins'] as List? ?? const []),
-        {'text': text, 'date': _todayISO(), 'id': _genId('wins')},
+        for (final w in _maps(d['wins']))
+          if (w['id'] == id)
+            (() {
+              final base = Map<String, dynamic>.from(w)
+                ..remove('amount')
+                ..remove('note');
+              return {
+                ...base,
+                'text': trimmed,
+                'amount': ?amount,
+                'note': ?cleanNote,
+              };
+            })()
+          else
+            w,
       ],
-    },
-  );
+    };
+  });
 
   /// Delete a small win.
   Future<void> deleteWin(String id) => _mutate(
@@ -1252,6 +1341,21 @@ class SalapifyStore extends ChangeNotifier {
       'wins': [
         for (final w in (d['wins'] as List? ?? const []))
           if (!(w is Map && w['id'] == id)) w,
+      ],
+    },
+  );
+
+  /// Restore a deleted win EXACTLY as it was, for delete's Undo. Re-adding
+  /// through addWin would mint a fresh id and could re-trim or drop an
+  /// amount or note, turning "Undo" into a quiet, partial lie the same way
+  /// restoreGoalRow's own comment warns about for goals; this puts the
+  /// captured row back verbatim.
+  Future<void> restoreWinRow(Map<String, dynamic> row) => _mutate(
+    (d) => {
+      ...d,
+      'wins': [
+        ...(d['wins'] as List? ?? const []),
+        {...row},
       ],
     },
   );
@@ -1442,6 +1546,40 @@ class SalapifyStore extends ChangeNotifier {
         'mindsetWaiting': [
           for (final w in _mindsetWaitingOf(d))
             if (w['id'] == id) {...w, ...fields} else w,
+        ],
+      },
+    },
+  );
+
+  List<Map<String, dynamic>> _mindsetChecksOf(Map<String, dynamic> d) {
+    final s = d['settings'];
+    return _maps(s is Map ? s['mindsetChecks'] : null);
+  }
+
+  /// Money Mindset Phase 4's local decision-check log
+  /// (settings.mindsetChecks): one row per completed three-question check,
+  /// whatever it decided, recording only the day and the verdict. Powers the
+  /// 30-day snapshot's "decision checks completed" count; never a
+  /// transaction, never leaves the device. Same Flutter-only passthrough
+  /// pattern activePlan, timelineScenarios, and mindsetWaiting already use.
+  List<Map<String, dynamic>> get mindsetChecks => _mindsetChecksOf(data);
+
+  /// Record that a decision check completed (all three questions answered),
+  /// once per check, whichever of the three results it landed on. Called
+  /// once per check by the screen itself, guarded there so flipping an
+  /// already-answered question back and forth does not log twice.
+  Future<void> logMindsetCheck({required String verdict}) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'mindsetChecks': [
+          ..._mindsetChecksOf(d),
+          {
+            'id': _genId('mindsetChecks'),
+            'verdict': verdict,
+            'date': _todayISO(),
+          },
         ],
       },
     },

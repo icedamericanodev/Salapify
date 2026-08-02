@@ -24,6 +24,8 @@ import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
+import '../money/mindset_wins.dart'
+    show MindsetSnapshot, mindsetInsight, mindsetSnapshot;
 import '../services/notifications.dart' show Reminders;
 import '../theme.dart';
 import '../typography.dart';
@@ -66,6 +68,23 @@ _Verdict? _computeVerdict(List<bool?> answers, Map<String, dynamic>? impact) {
   if (!essential && !waited24h) return _Verdict.pause24h;
   return _Verdict.fitsPlan;
 }
+
+/// A number-typed string for a controller: a whole number prints without a
+/// trailing ".0", a fractional one keeps its decimals. Used both to prefill
+/// Small Wins from a waiting item's amount and to seed the edit sheet's own
+/// amount field.
+String _amountControllerText(num amount) => amount == amount.roundToDouble()
+    ? amount.toInt().toString()
+    : amount.toString();
+
+/// The stable string a completed check's verdict is logged under
+/// (settings.mindsetChecks, see the store), matching the 'result' string
+/// addMindsetWaitingItem already writes for its own pause24h saves.
+String _verdictKey(_Verdict v) => switch (v) {
+  _Verdict.fitsPlan => 'fitsPlan',
+  _Verdict.pause24h => 'pause24h',
+  _Verdict.notInPlan => 'notInPlan',
+};
 
 /// The verdict word, its color, and a non-chromatic severity icon. Mirrors
 /// the shape of AffordCard's _verdictHead in afford_card.dart.
@@ -180,6 +199,23 @@ class MindsetScreen extends StatefulWidget {
 class _MindsetScreenState extends State<MindsetScreen> {
   final List<bool?> _answers = List<bool?>.filled(_questions.length, null);
   final _winText = TextEditingController();
+  final _winAmountText = TextEditingController();
+  final _winNoteText = TextEditingController();
+  // Collapsed by default so the plain text-and-Add flow (manual entry) reads
+  // exactly as it always has; a person who wants to record an amount or a
+  // reflection opts into the extra fields instead of always seeing them.
+  bool _winDetailsExpanded = false;
+  // Guards Add the same way _savingToWaiting guards Revisit in 24 hours: the
+  // button stays disabled until the write settles, so a fast double tap
+  // cannot fire addWin twice before the first call's write has landed (the
+  // store's own duplicate guard is the real backstop; this just avoids
+  // queuing a second write that the store would then have to catch).
+  bool _addingWin = false;
+  // True once THIS considering session has already logged a completed
+  // decision check, so flipping an answer back and forth after all three are
+  // answered logs the check once, not once per flip. Reset by _clearCheck
+  // and by _reviewAgain, the two places the three answers go blank again.
+  bool _checkLogged = false;
   // "Review again" (from the Waiting section, which sits below the fold)
   // refills the considering fields, but a person who scrolled down to open
   // the prompt would otherwise see no visible change: the viewport stays
@@ -209,12 +245,27 @@ class _MindsetScreenState extends State<MindsetScreen> {
       _itemName.clear();
       _amountText.clear();
       _categoryId = null;
+      _checkLogged = false;
     });
+    // Same reasoning as _reviewAgain's own scroll-to-top: Clear check sits
+    // near the bottom of the Impulse check card, so whatever scrolled it
+    // into view (ensureVisible, or a long card above a taller screen) can
+    // leave the just-reset neutral state sitting above the fold with
+    // nothing on screen to show anything changed.
+    if (_listController.hasClients) {
+      _listController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
   void dispose() {
     _winText.dispose();
+    _winAmountText.dispose();
+    _winNoteText.dispose();
     _itemName.dispose();
     _amountText.dispose();
     _listController.dispose();
@@ -309,15 +360,54 @@ class _MindsetScreenState extends State<MindsetScreen> {
     };
   }
 
-  void _addWin() {
+  /// A typed amount that does not parse blocks the whole submission rather
+  /// than being silently dropped, the same "do not guess" rule the
+  /// considering amount field follows; a blank amount field is simply
+  /// optional, not an error.
+  String? get _winAmountError {
+    final text = _winAmountText.text.trim();
+    if (text.isEmpty) return null;
+    return parseAmount(text) == null ? 'Enter a valid amount.' : null;
+  }
+
+  Future<void> _addWin() async {
+    if (_addingWin) return;
     final text = _winText.text.trim();
     if (text.isEmpty) return;
     // If saving is off (a prior load failed), keep the typed win in the box
     // rather than silently eating it, and never write over data we could not
     // read.
     if (!widget.store.canWrite) return;
-    widget.store.addWin(text);
+    final amountText = _winAmountText.text.trim();
+    double? amount;
+    if (amountText.isNotEmpty) {
+      amount = parseAmount(amountText);
+      if (amount == null) return; // _winAmountError already flags this
+    }
+    final note = _winNoteText.text.trim();
+    setState(() => _addingWin = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.addWin(
+        text,
+        amount: amount,
+        note: note.isEmpty ? null : note,
+      );
+    } catch (e) {
+      if (mounted) setState(() => _addingWin = false);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    if (!mounted) return;
     _winText.clear();
+    _winAmountText.clear();
+    _winNoteText.clear();
+    setState(() {
+      _addingWin = false;
+      _winDetailsExpanded = false;
+    });
     FocusScope.of(context).unfocus();
   }
 
@@ -335,27 +425,124 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // of crashing, matching the RN screen.
     final id = w['id'];
     if (id is! String || !widget.store.canWrite) return;
-    final text = w['text'];
     widget.store.deleteWin(id);
-    // A win is user-typed content, so offer a one tap undo rather than losing
-    // it silently on a stray tap.
-    if (text is String && text.isNotEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Win removed'),
-            duration: const Duration(seconds: 5),
-            persist: false,
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: () {
-                if (widget.store.canWrite) widget.store.addWin(text);
-              },
+    // A win is user-recorded content, so offer a one tap undo rather than
+    // losing it silently on a stray tap. Restored verbatim (id, date, amount,
+    // note included) through restoreWinRow rather than re-added through
+    // addWin, which would mint a fresh id and drop the amount and note.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Win removed'),
+          duration: const Duration(seconds: 5),
+          persist: false,
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (widget.store.canWrite) widget.store.restoreWinRow(w);
+            },
+          ),
+        ),
+      );
+  }
+
+  /// "Delete" inside the edit sheet: a deliberate, out-of-context destructive
+  /// action (unlike the row's own quick delete-with-undo icon, which is
+  /// already a single unambiguous tap), so it gets a real confirm dialog,
+  /// the same pattern notes.dart's editor uses for "Delete this note?".
+  Future<void> _confirmDeleteWin(String id, Map<String, dynamic> win) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Barako.card,
+        title: Text('Delete this win?', style: TextStyle(color: Barako.text)),
+        content: Text(
+          'This removes it from your Small Wins list.',
+          style: TextStyle(color: Barako.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Barako.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Barako.warningStrong),
             ),
           ),
-        );
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || !widget.store.canWrite) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.store.deleteWin(id);
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete, nothing was changed. $e')),
+      );
+      return;
     }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Win removed'),
+          duration: const Duration(seconds: 5),
+          persist: false,
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (widget.store.canWrite) widget.store.restoreWinRow(win);
+            },
+          ),
+        ),
+      );
+  }
+
+  /// Edit an existing win's text, amount, and note in a bottom sheet, the
+  /// same interaction pattern _openRevisitPrompt already uses on this
+  /// screen. A win with no id (a hand-edited backup, sanitize keeps wins
+  /// verbatim) cannot be targeted, so this no-ops rather than throwing,
+  /// matching _deleteWin's own guard. The sheet's own fields are owned by
+  /// _EditWinSheet (a real State with a real dispose()), not created loose in
+  /// this closure: three TextEditingControllers created here and handed to a
+  /// stateless builder would never be disposed once the sheet closes, the
+  /// same leak every other form sheet in this app (DebtFormSheet and
+  /// siblings) avoids by being its own StatefulWidget.
+  void _openEditWinSheet(Map<String, dynamic> w) {
+    final id = w['id'];
+    if (id is! String || !widget.store.canWrite) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _EditWinSheet(
+        win: w,
+        onSave: (text, amount, note) async {
+          try {
+            await widget.store.editWin(
+              id,
+              text: text,
+              amount: amount,
+              note: note,
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Could not save that, nothing changed. $e'),
+              ),
+            );
+          }
+        },
+        onDelete: () => _confirmDeleteWin(id, w),
+      ),
+    );
   }
 
   // Never blank in a Waiting row, a notification body, or a restored check:
@@ -550,6 +737,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
       for (var i = 0; i < _answers.length; i++) {
         _answers[i] = null;
       }
+      // Without this, re-answering all three questions in this new
+      // considering session would never log a fresh completed check:
+      // _checkLogged would still be true from whatever check this screen
+      // last completed, so the postFrameCallback's guard would silently
+      // skip it.
+      _checkLogged = false;
     });
     // Back to the top: the WAITING card the person just tapped from is below
     // the fold, and it is about to lose this row entirely (status is no
@@ -594,12 +787,24 @@ class _MindsetScreenState extends State<MindsetScreen> {
     if (!mounted) return;
     setState(() {
       _winText.text = 'Skipped ${_waitingDisplayName(item)}';
+      _prefillWinAmount(item);
     });
     messenger.showSnackBar(
       const SnackBar(
         content: Text('Skipped. Log it as a win below if you would like.'),
       ),
     );
+  }
+
+  /// Fills the optional amount field (and opens the details panel to show
+  /// it) from a waiting item's own estimated amount, when it had one.
+  /// Called with setState already in progress by the caller.
+  void _prefillWinAmount(Map<String, dynamic> item) {
+    final amount = item['amount'];
+    if (amount is num) {
+      _winAmountText.text = _amountControllerText(amount);
+      _winDetailsExpanded = true;
+    }
   }
 
   Future<void> _waitAnotherDay(Map<String, dynamic> item) async {
@@ -741,6 +946,18 @@ class _MindsetScreenState extends State<MindsetScreen> {
             final categories = _categories();
             final impact = _budgetImpact(categories);
             final verdict = _computeVerdict(_answers, impact);
+            // One log row per completed check, the moment all three answers
+            // first line up. Scheduled for after this frame rather than
+            // called straight from build(): logMindsetCheck writes through
+            // the store and calls notifyListeners, and doing that WHILE this
+            // very ListenableBuilder is still building is exactly the kind
+            // of build-time side effect Flutter (rightly) does not allow.
+            if (verdict != null && !_checkLogged && widget.store.canWrite) {
+              _checkLogged = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                widget.store.logMindsetCheck(verdict: _verdictKey(verdict));
+              });
+            }
             final answered = _answers.any((a) => a != null);
             final hasConsiderInput =
                 _itemName.text.trim().isNotEmpty ||
@@ -753,6 +970,20 @@ class _MindsetScreenState extends State<MindsetScreen> {
               widget.store.data['settings'] is Map
                   ? (widget.store.data['settings'] as Map)['mindsetWaiting']
                   : null,
+            );
+            final snapshot = mindsetSnapshot(
+              wins: widget.store.data['wins'],
+              mindsetChecks: widget.store.mindsetChecks,
+              mindsetWaiting: widget.store.mindsetWaiting,
+              now: now,
+            );
+            final categoryNameById = {
+              for (final c in categories) '${c['id']}': '${c['name'] ?? ''}',
+            };
+            final insight = mindsetInsight(
+              mindsetWaiting: widget.store.mindsetWaiting,
+              now: now,
+              categoryName: (id) => categoryNameById[id],
             );
             return ListView(
               controller: _listController,
@@ -840,6 +1071,13 @@ class _MindsetScreenState extends State<MindsetScreen> {
                   const SizedBox(height: 16),
                 ],
 
+                // 30-day snapshot: local, on-device counts only, built from
+                // this screen's own records (mindsetChecks, mindsetWaiting,
+                // wins). Always shown, even at zero, so the numbers read as
+                // a running tally rather than something that only appears
+                // once it has good news.
+                _snapshotSection(snapshot, insight),
+
                 // Today's lesson: a doorway into the Learn track.
                 PressableScale(
                   child: Card(
@@ -924,7 +1162,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Small wins.
+                // Small wins: what you decided not to buy. The plain
+                // text-and-Add row is manual entry exactly as it always was;
+                // the optional amount and reflection are a step you opt into
+                // below it, never a requirement to log a win at all.
                 Text('SMALL WINS', style: Barako.kickerStyle),
                 const SizedBox(height: 8),
                 Row(
@@ -963,7 +1204,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
-                      onPressed: _addWin,
+                      onPressed: _addingWin ? null : _addWin,
                       style: FilledButton.styleFrom(
                         backgroundColor: Barako.primary,
                         foregroundColor: Barako.onPrimary,
@@ -979,6 +1220,30 @@ class _MindsetScreenState extends State<MindsetScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                if (_winDetailsExpanded) ...[
+                  _winAmountField(),
+                  if (_winAmountError != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _winAmountError!,
+                      style: AppText.caption.tint(Barako.warningStrong),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  _winNoteField(),
+                ] else
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () =>
+                          setState(() => _winDetailsExpanded = true),
+                      child: Text(
+                        '+ Add spending avoided or a reflection',
+                        style: AppText.small.w6.tint(Barako.primaryText),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 Card(
                   clipBehavior: Clip.antiAlias,
@@ -1371,30 +1636,266 @@ class _MindsetScreenState extends State<MindsetScreen> {
     );
   }
 
+  Widget _winAmountField() => TextField(
+    key: const Key('mindsetWinAmount'),
+    controller: _winAmountText,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    onChanged: (_) => setState(() {}),
+    style: AppText.body,
+    decoration: InputDecoration(
+      labelText: 'Spending avoided (optional)',
+      labelStyle: TextStyle(color: Barako.muted),
+      prefixText: '$baseCurrencySymbol ',
+      prefixStyle: AppText.body.tint(Barako.textSecondary),
+      hintText: 'e.g. 150',
+      hintStyle: TextStyle(color: Barako.faint),
+      filled: true,
+      fillColor: Barako.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.primary),
+      ),
+    ),
+  );
+
+  Widget _winNoteField() => TextField(
+    key: const Key('mindsetWinNote'),
+    controller: _winNoteText,
+    maxLines: 2,
+    style: AppText.body,
+    decoration: InputDecoration(
+      labelText: 'Reflection (optional)',
+      labelStyle: TextStyle(color: Barako.muted),
+      hintText: 'e.g. I already have enough of these',
+      hintStyle: TextStyle(color: Barako.faint),
+      filled: true,
+      fillColor: Barako.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Barako.primary),
+      ),
+    ),
+  );
+
+  /// One line per win: what was decided not to buy, plus the amount and
+  /// reflection when they were recorded. Tapping the row opens the edit
+  /// sheet; the trailing icon stays a quick delete-with-undo, unchanged from
+  /// before Phase 4. A legacy win with no id (a hand-edited backup) simply
+  /// cannot be tapped into an edit sheet, matching _deleteWin's own guard.
   Widget _winRow(Map<String, dynamic> w, bool divided) {
+    final amount = w['amount'];
+    final note = w['note'];
     return Container(
       decoration: divided
           ? BoxDecoration(
               border: Border(top: BorderSide(color: Barako.border, width: 0.5)),
             )
           : null,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          SalapifyGlyph('celebrate', size: 18, boxed: false),
-          const SizedBox(width: 8),
-          Expanded(child: Text('${w['text'] ?? ''}', style: AppText.body)),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => _deleteWin(w),
-            iconSize: 18,
-            visualDensity: VisualDensity.standard,
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            tooltip: 'Delete win',
-            icon: Icon(salapifyIcon('close'), color: Barako.faint),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openEditWinSheet(w),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SalapifyGlyph('celebrate', size: 18, boxed: false),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${w['text'] ?? ''}', style: AppText.body),
+                      if (amount is num) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Spending avoided: ${formatMoney(amount)}',
+                          style: AppText.small.tint(Barako.muted).tabular,
+                        ),
+                      ],
+                      if (note is String && note.trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          note.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.small.tint(Barako.faint),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _deleteWin(w),
+                  iconSize: 18,
+                  visualDensity: VisualDensity.standard,
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  tooltip: 'Delete win',
+                  icon: Icon(salapifyIcon('close'), color: Barako.faint),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  /// The 30-day snapshot card: four local, on-device counts plus the
+  /// spending-avoided disclaimer, and the single rule-based insight when
+  /// there is enough data for one. Nothing here is a transaction; the
+  /// spending-avoided figure is never framed as money added anywhere.
+  Widget _snapshotSection(MindsetSnapshot snap, String? insight) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('30-DAY SNAPSHOT', style: Barako.kickerStyle),
+        const SizedBox(height: 8),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _snapStat(
+                        'Decision checks',
+                        '${snap.decisionChecksCompleted}',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _snapStat(
+                        'Purchases paused',
+                        '${snap.purchasesPaused}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _snapStat(
+                        'Purchases skipped',
+                        '${snap.purchasesSkipped}',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _snapStat(
+                        'Spending avoided',
+                        formatMoney(snap.confirmedSpendingAvoided),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  snap.spendingAvoidedRecordCount > 0
+                      ? 'From ${snap.spendingAvoidedRecordCount} small '
+                            '${snap.spendingAvoidedRecordCount == 1 ? 'win' : 'wins'} '
+                            'with an amount. This does not add to your account '
+                            'balance, it reflects what you chose not to spend.'
+                      : 'Add an amount to a small win to start tracking '
+                            'spending avoided. It never adds to your account '
+                            'balance.',
+                  style: AppText.caption
+                      .tint(Barako.muted)
+                      .copyWith(height: 1.4),
+                ),
+                if (insight != null) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Barako.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Barako.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              salapifyIcon('insights'),
+                              size: 18,
+                              color: Barako.primaryText,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                insight,
+                                style: AppText.small.w6.copyWith(height: 1.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'From your own recorded decisions, not an '
+                          'analysis of your spending.',
+                          style: AppText.caption.tint(Barako.faint),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _snapStat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.caption.tint(Barako.muted),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.bodyLg.w7.tabular,
+        ),
+      ],
     );
   }
 
@@ -1477,6 +1978,213 @@ class _MindsetScreenState extends State<MindsetScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bottom sheet _openEditWinSheet opens: what was decided not to buy,
+/// its optional amount and reflection, Save, and Delete. A real StatefulWidget
+/// (not a plain builder closure) so its three TextEditingControllers get a
+/// real dispose(), the same discipline every other form sheet in this app
+/// (DebtFormSheet in debts.dart and its siblings) already follows.
+class _EditWinSheet extends StatefulWidget {
+  final Map<String, dynamic> win;
+
+  /// Called once Save passes validation, with the trimmed text and the
+  /// parsed, already-validated amount and note (note null when blank). The
+  /// sheet is already popped by the time this runs.
+  final Future<void> Function(String text, double? amount, String? note) onSave;
+
+  /// Called after the sheet is popped by its own Delete button; the caller
+  /// owns the confirm dialog and the actual delete.
+  final VoidCallback onDelete;
+
+  const _EditWinSheet({
+    required this.win,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_EditWinSheet> createState() => _EditWinSheetState();
+}
+
+class _EditWinSheetState extends State<_EditWinSheet> {
+  late final TextEditingController _textCtl;
+  late final TextEditingController _amountCtl;
+  late final TextEditingController _noteCtl;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtl = TextEditingController(text: '${widget.win['text'] ?? ''}');
+    final amountValue = widget.win['amount'];
+    _amountCtl = TextEditingController(
+      text: amountValue is num ? _amountControllerText(amountValue) : '',
+    );
+    _noteCtl = TextEditingController(text: '${widget.win['note'] ?? ''}');
+  }
+
+  @override
+  void dispose() {
+    _textCtl.dispose();
+    _amountCtl.dispose();
+    _noteCtl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _textCtl.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = 'Say what you decided not to buy.');
+      return;
+    }
+    final amountText = _amountCtl.text.trim();
+    double? amount;
+    if (amountText.isNotEmpty) {
+      amount = parseAmount(amountText);
+      if (amount == null) {
+        setState(() => _error = 'Enter a valid amount.');
+        return;
+      }
+    }
+    final note = _noteCtl.text.trim();
+    Navigator.of(context).pop();
+    await widget.onSave(text, amount, note.isEmpty ? null : note);
+  }
+
+  InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
+      InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Barako.faint),
+        prefixText: prefix,
+        prefixStyle: AppText.body.tint(Barako.textSecondary),
+        filled: true,
+        fillColor: Barako.card,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Barako.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Barako.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Barako.primary),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Barako.background,
+        border: Border.all(color: Barako.border),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit win', style: AppText.title.copyWith(fontSize: 20)),
+              const SizedBox(height: 16),
+              Text(
+                'What did you decide not to buy?',
+                style: AppText.caption.tint(Barako.muted),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                key: const Key('mindsetEditWinText'),
+                controller: _textCtl,
+                style: AppText.body,
+                decoration: _fieldDecoration(hint: 'e.g. New shoes'),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Spending avoided (optional)',
+                style: AppText.caption.tint(Barako.muted),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                key: const Key('mindsetEditWinAmount'),
+                controller: _amountCtl,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: AppText.body,
+                decoration: _fieldDecoration(
+                  hint: 'e.g. 150',
+                  prefix: '$baseCurrencySymbol ',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Reflection (optional)',
+                style: AppText.caption.tint(Barako.muted),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                key: const Key('mindsetEditWinNote'),
+                controller: _noteCtl,
+                maxLines: 2,
+                style: AppText.body,
+                decoration: _fieldDecoration(hint: 'A short reflection'),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _error!,
+                  style: AppText.caption.tint(Barako.warningStrong),
+                ),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Save changes'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onDelete();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Barako.warningStrong,
+                    side: BorderSide(color: Barako.border),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Delete win'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
