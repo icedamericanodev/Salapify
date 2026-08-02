@@ -291,6 +291,15 @@ String mindsetLessonTitle(Map<String, dynamic> rawLesson) =>
 String mindsetLessonSummary(Map<String, dynamic> rawLesson) =>
     _lessonSummaryOf(lessonFromMap(rawLesson));
 
+/// Whether a raw lesson map should carry the "For freelancers" label on this
+/// screen's Today's lesson card. A missing or non-bool 'forFreelancers' key
+/// safely reads as false (lessonFromMap's own === true check), the same
+/// "never guess, default to the safe reading" contract every other optional
+/// field on this screen follows.
+@visibleForTesting
+bool mindsetLessonForFreelancers(Map<String, dynamic> rawLesson) =>
+    lessonFromMap(rawLesson).forFreelancers;
+
 class MindsetScreen extends StatefulWidget {
   /// Threaded through to Money courses so lesson actions that jump to a
   /// bottom tab keep working when courses are opened from here.
@@ -391,7 +400,19 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // into view (ensureVisible, or a long card above a taller screen) can
     // leave the just-reset neutral state sitting above the fold with
     // nothing on screen to show anything changed.
-    if (_listController.hasClients) {
+    _scrollToTop();
+  }
+
+  /// Jumps the list back to the top, honoring reduce-motion the same way
+  /// Segmented and PressableScale do: the setting means no animation, not a
+  /// shorter one. Shared by _clearCheck and _reviewAgain, the two places that
+  /// need the person to actually see the section they just refilled.
+  void _scrollToTop() {
+    if (!_listController.hasClients) return;
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduce) {
+      _listController.jumpTo(0);
+    } else {
       _listController.animateTo(
         0,
         duration: const Duration(milliseconds: 300),
@@ -1021,13 +1042,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // the fold, and it is about to lose this row entirely (status is no
     // longer 'waiting'), so without this the refilled considering section
     // sits off screen with nothing but a snackbar to say anything happened.
-    if (_listController.hasClients) {
-      _listController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    _scrollToTop();
     messenger.showSnackBar(
       const SnackBar(
         content: Text('Brought back. Answer the three questions again.'),
@@ -1422,6 +1437,23 @@ class _MindsetScreenState extends State<MindsetScreen> {
                                 color: Barako.primaryText,
                               ),
                             ),
+                            if (lesson.forFreelancers) ...[
+                              const SizedBox(height: 4),
+                              // A text label, not a color swatch: this lesson
+                              // is wrong advice for a salaried reader (it
+                              // covers setting aside your OWN tax or
+                              // restarting your OWN SSS/PhilHealth/Pag-IBIG),
+                              // so it says who it is for instead of quietly
+                              // reading as advice for everyone. Never derived
+                              // from a guess at who the reader is; Salapify
+                              // has no employment-status field to guess from.
+                              Text(
+                                'For freelancers',
+                                style: AppText.caption.w6.tint(
+                                  Barako.textSecondary,
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2047,11 +2079,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
           // text-matching widget test, since Text.data still holds the full
           // string regardless of whether it visually truncates.
           _impactRow('Total repayment', formatMoney(totalPaid)),
-          _impactRow(
-            'Extra cost',
-            formatMoney(extraCost),
-            warn: extraCost > 0,
-          ),
+          _impactRow('Extra cost', formatMoney(extraCost), warn: extraCost > 0),
           _impactRow('Monthly payment', formatMoney(monthly)),
           if (hasCommitments) ...[
             const SizedBox(height: 4),

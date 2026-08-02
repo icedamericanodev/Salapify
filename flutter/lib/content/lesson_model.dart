@@ -94,6 +94,15 @@ class MoneyLesson {
   final String objective;
 
   final CourseRegion region;
+
+  /// True only for advice that does not apply to a salaried employee: setting
+  /// aside your own tax, restarting your own SSS/PhilHealth/Pag-IBIG. A
+  /// lesson about irregular income in general (drivers, sellers, commission
+  /// work) is NOT this, even though freelancers are one group who has it;
+  /// this flag is for content that would be actively wrong advice for
+  /// someone with an employer, not merely content freelancers relate to.
+  final bool forFreelancers;
+
   final List<LessonSection> sections;
 
   /// Blocks authored in the coaching shape. Empty means this lesson has not
@@ -122,6 +131,7 @@ class MoneyLesson {
     required this.summary,
     required this.objective,
     this.region = CourseRegion.global,
+    this.forFreelancers = false,
     required this.sections,
     this.authoredBlocks = const [],
     this.commonMistake = '',
@@ -311,6 +321,7 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
     region: m['region'] == 'PH'
         ? CourseRegion.philippines
         : CourseRegion.global,
+    forFreelancers: m['forFreelancers'] == true,
     sections: sections,
     authoredBlocks: _authoredBlocks(m),
     commonMistake: (m['commonMistake'] ?? '').toString(),

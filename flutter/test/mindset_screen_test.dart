@@ -119,6 +119,25 @@ void main() {
       expect(mindsetLessonSummary(const {}), isNot(contains('null')));
     });
 
+    test('a lesson is only flagged for freelancers when it says so', () {
+      expect(mindsetLessonForFreelancers(const {}), isFalse);
+      expect(
+        mindsetLessonForFreelancers(const {'forFreelancers': false}),
+        isFalse,
+      );
+      // A malformed value (not a real bool) reads as false, never crashes
+      // and never defaults to true: showing the label on ordinary advice
+      // would be the worse mistake of the two.
+      expect(
+        mindsetLessonForFreelancers(const {'forFreelancers': 'yes'}),
+        isFalse,
+      );
+      expect(
+        mindsetLessonForFreelancers(const {'forFreelancers': true}),
+        isTrue,
+      );
+    });
+
     testWidgets('the live screen never prints the word null anywhere', (
       tester,
     ) async {
