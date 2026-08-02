@@ -44,8 +44,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/appearance.dart';
+import 'package:salapify/screens/bnpl_calculator.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/categories.dart';
+import 'package:salapify/screens/contribution_calculator.dart';
+import 'package:salapify/screens/currency_converter.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/reports.dart';
@@ -66,9 +69,13 @@ import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/loan_calculator.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/salary_calculator.dart';
+import 'package:salapify/screens/tax_calculator.dart';
+import 'package:salapify/screens/thirteenth_calculator.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,6 +245,13 @@ Future<List<String>> _inspect(
   /// copy and no check here could see it, because nothing had ever pressed the
   /// button that shows it.
   String? thenTap,
+
+  /// (field hint, value) pairs to type before inspecting, for the
+  /// input-driven calculators: a cold pump shows an empty form, which is not
+  /// the state that ships to a phone. The hints match the ones the calculator
+  /// screen tests already type into (e.g. loan_screen_test.dart), so a hint
+  /// rename fails there first.
+  List<(String, String)>? typeInto,
 }) async {
   await loadRealFonts(tester);
   SharedPreferences.setMockInitialValues({
@@ -262,6 +276,12 @@ Future<List<String>> _inspect(
     ),
   );
   await tester.pumpAndSettle();
+  if (typeInto != null) {
+    for (final (hint, value) in typeInto) {
+      await tester.enterText(find.widgetWithText(TextField, hint), value);
+    }
+    await tester.pumpAndSettle();
+  }
   if (thenTap != null) {
     await tester.tap(find.text(thenTap));
     await tester.pumpAndSettle();
@@ -400,18 +420,61 @@ void main() {
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
     'Diagnostics': (s) => DiagnosticsScreen(store: s),
+    // The calculators. Each was exempted as "input-driven; cold pump shows an
+    // empty form", which was a reason to drive them, not to skip them (this
+    // file's own long-standing note). Typed with typedInput below, the same
+    // hints their own screen tests already type into (e.g.
+    // loan_screen_test.dart), so a hint rename fails there first and this
+    // sweep stops silently measuring an empty form.
+    'Loan calculator': (s) => const LoanCalculatorScreen(),
+    'Tax calculator': (s) => const TaxCalculatorScreen(),
+    'BNPL calculator': (s) => const BnplCalculatorScreen(),
+    'Salary calculator': (s) => const SalaryCalculatorScreen(),
+    '13th month calculator': (s) => const ThirteenthCalculatorScreen(),
+    'Contribution calculator': (s) => const ContributionCalculatorScreen(),
+    'Currency converter': (s) => CurrencyConverterScreen(store: s),
   };
 
   // A second face of a screen, reached the way a person reaches it. Keyed by
   // the label to press once the screen has settled.
   const secondFace = <String, String>{'Utang': 'Owed to me'};
 
+  // Field hint to typed value, per calculator, so the first inspected frame
+  // shows a real computed figure rather than an empty form. Values match what
+  // the calculators' own screen tests already type (loan_screen_test.dart,
+  // tax_screen_test.dart, bnpl_screen_test.dart, salary_screen_test.dart,
+  // thirteenth_screen_test.dart, contribution_screen_test.dart,
+  // currency_converter_test.dart).
+  const typedInput = <String, List<(String, String)>>{
+    'Loan calculator': [
+      ('e.g. 100,000', '120,000'),
+      ('e.g. 12', '24'),
+      ('e.g. 1.5', '1.5'),
+    ],
+    'Tax calculator': [('e.g. 600,000', '600,000')],
+    'BNPL calculator': [
+      ('e.g. 12,000', '12,000'),
+      ('e.g. 6', '6'),
+      ('e.g. 2,100', '2000'),
+    ],
+    'Salary calculator': [('e.g. 25,000', '25,000')],
+    '13th month calculator': [('e.g. 25,000', '25,000')],
+    'Contribution calculator': [('e.g. 25,000', '25,000')],
+    'Currency converter': [('0', '1000')],
+  };
+
   for (final entry in screens.entries) {
     for (final scale in _scales) {
       testWidgets('${entry.key} lays out at ${scale}x system font', (
         tester,
       ) async {
-        final problems = await _inspect(tester, entry.key, entry.value, scale);
+        final problems = await _inspect(
+          tester,
+          entry.key,
+          entry.value,
+          scale,
+          typeInto: typedInput[entry.key],
+        );
         if (secondFace[entry.key] case final tap?) {
           problems.addAll(
             await _inspect(
@@ -488,20 +551,9 @@ void main() {
       'recap_share.dart': 'needs a specific month to share',
       'csv_import.dart': 'needs a picked file',
       'new_phone_day.dart': 'a guided handoff driven by its own test',
-      // Calculators. Every one is a full screen with money in it and every one
-      // SHOULD be here; they are pure-input screens whose interesting states all
-      // require typing, so a cold pump measures an empty form. That is a reason
-      // to drive them, not to skip them, and it is the next thing this file
-      // should grow.
-      'bnpl_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'contribution_calculator.dart':
-          'input-driven; cold pump shows an empty form',
-      'currency_converter.dart': 'input-driven; cold pump shows an empty form',
-      'loan_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'salary_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'tax_calculator.dart': 'input-driven; cold pump shows an empty form',
-      'thirteenth_calculator.dart':
-          'input-driven; cold pump shows an empty form',
+      // The calculators used to sit here as "input-driven; cold pump shows an
+      // empty form", with a note that this was a reason to drive them, not to
+      // skip them. They are swept now, typed via typedInput above.
       'tax_deadlines.dart': 'rendered by screens_shot; add here when it grows',
       'year_end_tax.dart': 'rendered by screens_shot; add here when it grows',
     };
@@ -534,6 +586,13 @@ void main() {
       'mindset.dart',
       'privacy_receipt.dart',
       'diagnostics_screen.dart',
+      'loan_calculator.dart',
+      'tax_calculator.dart',
+      'bnpl_calculator.dart',
+      'salary_calculator.dart',
+      'thirteenth_calculator.dart',
+      'contribution_calculator.dart',
+      'currency_converter.dart',
     };
     final onDisk = Directory('lib/screens')
         .listSync()
