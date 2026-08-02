@@ -83,10 +83,11 @@ String _whyText(_Verdict v, List<bool?> answers) {
         return 'It is essential, and it will not touch money reserved for '
             'bills, debt, or goals.';
       }
-      return waited24h
-          ? 'It is not essential, but you have wanted it for at least 24 '
-                'hours and it will not touch your reserved money.'
-          : 'It will not touch money reserved for bills, debt, or goals.';
+      // _computeVerdict only reaches fitsPlan with essential == false when
+      // waited24h == true; otherwise it would have returned pause24h.
+      assert(waited24h);
+      return 'It is not essential, but you have wanted it for at least 24 '
+          'hours and it will not touch your reserved money.';
   }
 }
 
@@ -98,19 +99,26 @@ String _safe(String value, String fallback) =>
 const _lessonTitleFallback = "Today's lesson";
 const _lessonSummaryFallback = 'Check back soon for a new tip.';
 
+String _lessonTitleOf(MoneyLesson lesson) =>
+    _safe(lesson.title, _lessonTitleFallback);
+String _lessonSummaryOf(MoneyLesson lesson) =>
+    _safe(lesson.summary, _lessonSummaryFallback);
+
 /// The exact title and summary the lesson card renders for a raw authoring
-/// map, fallbacks included. Exposed only so a lesson with a missing title or
-/// summary can be proven safe directly, without waiting for the day-of-year
-/// rotation in lessonOfTheDay to land on a broken real entry (today's real
-/// content never is one; this is what stops a future one from reprinting the
-/// "null" bug this screen shipped with).
+/// map, fallbacks included: build() below calls the same two functions
+/// above, just already holding the converted MoneyLesson. Exposed only so a
+/// lesson with a missing title or summary can be proven safe directly,
+/// without waiting for the day-of-year rotation in lessonOfTheDay to land on
+/// a broken real entry (today's real content never is one; this is what
+/// stops a future one from reprinting the "null" bug this screen shipped
+/// with).
 @visibleForTesting
 String mindsetLessonTitle(Map<String, dynamic> rawLesson) =>
-    _safe(lessonFromMap(rawLesson).title, _lessonTitleFallback);
+    _lessonTitleOf(lessonFromMap(rawLesson));
 
 @visibleForTesting
 String mindsetLessonSummary(Map<String, dynamic> rawLesson) =>
-    _safe(lessonFromMap(rawLesson).summary, _lessonSummaryFallback);
+    _lessonSummaryOf(lessonFromMap(rawLesson));
 
 class MindsetScreen extends StatefulWidget {
   /// Threaded through to Money courses so lesson actions that jump to a
@@ -193,8 +201,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
   @override
   Widget build(BuildContext context) {
     final lesson = lessonFromMap(lessonOfTheDay(DateTime.now()));
-    final lessonTitle = _safe(lesson.title, _lessonTitleFallback);
-    final lessonSummary = _safe(lesson.summary, _lessonSummaryFallback);
+    final lessonTitle = _lessonTitleOf(lesson);
+    final lessonSummary = _lessonSummaryOf(lesson);
     final verdict = _computeVerdict(_answers);
     final answered = _answers.any((a) => a != null);
 
@@ -419,6 +427,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
   }
 
   Widget _questionRow(int i) {
+    final question = _questions[i];
     return Container(
       decoration: i > 0
           ? BoxDecoration(
@@ -429,12 +438,24 @@ class _MindsetScreenState extends State<MindsetScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_questions[i], style: AppText.body),
+          Text(question, style: AppText.body),
           const SizedBox(height: 10),
           Segmented<bool?>(
-            options: const [
-              SegmentOption(value: true, label: 'Yes'),
-              SegmentOption(value: false, label: 'No'),
+            // Explicit semanticLabel per option: without it a screen reader
+            // landing on the control directly (not swiping in from the
+            // question text above it) hears only "Yes, button", with no
+            // question context.
+            options: [
+              SegmentOption(
+                value: true,
+                label: 'Yes',
+                semanticLabel: 'Yes, $question',
+              ),
+              SegmentOption(
+                value: false,
+                label: 'No',
+                semanticLabel: 'No, $question',
+              ),
             ],
             current: _answers[i],
             onPick: (v) => setState(() => _answers[i] = v),
