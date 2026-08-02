@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.19 \u00b7 The 7 calculators now get an automated overflow check too.';
+    'f3.20 \u00b7 Money mindset: fixed the null lesson title, Yes/No decision check.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
