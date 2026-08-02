@@ -15,6 +15,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../money/afford.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 
@@ -72,11 +73,7 @@ class _AffordCardState extends State<AffordCard> {
             const SizedBox(height: 6),
             Text(
               'Eyeing something? See what it does to your money before you commit.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              style: AppText.small.copyWith(height: 1.4),
             ),
             const SizedBox(height: 14),
             _modeChips(),
@@ -94,14 +91,14 @@ class _AffordCardState extends State<AffordCard> {
                 _mode == AffordMode.installment
                     ? 'Enter the monthly amount to see if it fits your month.'
                     : 'Enter a price to see if it fits your spendable cash.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               )
             else
               _verdict(r),
             const SizedBox(height: 14),
             Text(
               'This mirrors your own numbers against a typical and a lean month. It is not advice to buy. The final decision is yours.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),
@@ -164,20 +161,12 @@ class _AffordCardState extends State<AffordCard> {
     controller: _controller,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     onChanged: (_) => setState(() {}),
-    style: TextStyle(
-      color: Barako.text,
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
-    ),
+    style: AppText.heading,
     decoration: InputDecoration(
       prefixText: '$baseCurrencySymbol ',
-      prefixStyle: TextStyle(
-        color: Barako.textSecondary,
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-      ),
+      prefixStyle: AppText.heading.tint(Barako.textSecondary),
       hintText: _mode == AffordMode.installment ? 'Monthly amount' : 'Price',
-      hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
+      hintStyle: AppText.bodyLg.tint(Barako.faint),
       filled: true,
       fillColor: Barako.background,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -227,12 +216,9 @@ class _AffordCardState extends State<AffordCard> {
                   child: Text(
                     word,
                     maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: Barako.displayFont,
-                      color: color,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppText.amount.w7
+                        .tint(color)
+                        .copyWith(fontFeatures: const []),
                   ),
                 ),
               ),
@@ -242,11 +228,10 @@ class _AffordCardState extends State<AffordCard> {
           for (final line in lines) ...[
             Text(
               line.$1,
-              style: TextStyle(
-                color: line.$2 ? color : Barako.text,
+              style: AppText.small.tint(line.$2 ? color : Barako.text).copyWith(
                 fontSize: 13.5,
                 height: 1.45,
-                fontWeight: line.$2 ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: line.$2 ? TypeWeight.bold : TypeWeight.medium,
               ),
             ),
             const SizedBox(height: 6),

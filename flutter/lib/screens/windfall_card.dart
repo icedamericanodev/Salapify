@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../money/windfall.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 class WindfallCard extends StatefulWidget {
@@ -60,11 +61,7 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 6),
             Text(
               'A 13th month, bonus, tax refund, or paluwagan payout? See a sound way to split it before it disappears.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              style: AppText.small.copyWith(height: 1.4),
             ),
             const SizedBox(height: 14),
             _field(_amount, 'How much landed'),
@@ -73,7 +70,7 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 4),
             Text(
               'Money you already need soon: gifts, tuition, premiums, a paluwagan turn, or ongoing installments.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+              style: AppText.caption,
             ),
             const SizedBox(height: 6),
             _field(_setAside, 'Amount to keep aside'),
@@ -81,14 +78,14 @@ class _WindfallCardState extends State<WindfallCard> {
             if (!applicable)
               Text(
                 'Enter what you received to see a plan.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               )
             else
               _plan(r),
             const SizedBox(height: 14),
             Text(
               'A suggested split from your own cushion, debts, and goals. Nothing is moved for you. Ikaw pa rin ang bahala.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),
@@ -100,20 +97,12 @@ class _WindfallCardState extends State<WindfallCard> {
     controller: c,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     onChanged: (_) => setState(() {}),
-    style: TextStyle(
-      color: Barako.text,
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
-    ),
+    style: AppText.heading,
     decoration: InputDecoration(
       prefixText: '$baseCurrencySymbol ',
-      prefixStyle: TextStyle(
-        color: Barako.textSecondary,
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-      ),
+      prefixStyle: AppText.heading.tint(Barako.textSecondary),
       hintText: hint,
-      hintStyle: TextStyle(color: Barako.faint, fontSize: 16),
+      hintStyle: AppText.bodyLg.tint(Barako.faint),
       filled: true,
       fillColor: Barako.background,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -158,7 +147,7 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 2),
             Text(
               s['detail'] as String,
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+              style: AppText.caption.copyWith(height: 1.35),
             ),
             const SizedBox(height: 8),
           ],
@@ -175,22 +164,16 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 10),
             Text(
               'Based on a starter cushion of ₱10,000 for now. Log a few months and this uses your real monthly spending.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
+              style: AppText.caption
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.35),
             ),
           ],
           if (r['rateUnfilled'] == true) ...[
             const SizedBox(height: 10),
             Text(
               'One debt has no monthly interest rate saved, so it could not be ranked. Add its rate in Utang so a real windfall knows to hit it first.',
-              style: TextStyle(
-                color: Barako.warning,
-                fontSize: 12,
-                height: 1.35,
-              ),
+              style: AppText.caption.tint(Barako.warning).copyWith(height: 1.35),
             ),
           ],
         ],
@@ -209,22 +192,13 @@ class _WindfallCardState extends State<WindfallCard> {
       Expanded(
         child: Text(
           label,
-          style: TextStyle(
-            color: bold ? color : Barako.text,
-            fontSize: 14,
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-          ),
+          style: AppText.label
+              .tint(bold ? color : Barako.text)
+              .copyWith(fontWeight: bold ? TypeWeight.heavy : TypeWeight.medium),
         ),
       ),
       const SizedBox(width: 8),
-      Text(
-        _peso(amount),
-        style: TextStyle(
-          color: color,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+      Text(_peso(amount), style: AppText.label.w8.tint(color)),
     ],
   );
 

@@ -11,6 +11,7 @@ import '../data/store.dart';
 import '../money/search.dart' as search;
 import '../money/period.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
@@ -238,13 +239,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ? AppBar(
               backgroundColor: Barako.background,
               foregroundColor: Barako.text,
-              title: Text(
-                'Activity',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              title: Text('Activity', style: AppText.title),
             )
           : null,
       body: _body(items, txs, all),
@@ -279,7 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               controller: _query,
               onChanged: (_) => setState(() {}),
               textInputAction: TextInputAction.search,
-              style: TextStyle(color: Barako.text, fontSize: 16),
+              style: AppText.bodyLg,
               decoration: InputDecoration(
                 hintText: 'Filter entries, like jollibee or 1500',
                 hintStyle: TextStyle(color: Barako.faint),
@@ -447,11 +442,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Barako.text, fontSize: 15)),
+                Text(label, style: AppText.body),
                 if (record)
                   Text(
                     'Record of a money move, read-only here',
-                    style: TextStyle(color: Barako.faint, fontSize: 11),
+                    style: AppText.micro.w4.tint(Barako.faint),
                   )
                 else if (rowContext.isNotEmpty)
                   // The context beats the tap hint when both apply: "GCash ·
@@ -460,17 +455,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   // context to show.
                   Text(
                     rowContext,
-                    style: TextStyle(color: Barako.muted, fontSize: 11),
+                    style: AppText.micro.w4,
                   )
                 else if (showSplitHint)
                   Text(
                     'Tap to edit or split with friends',
-                    style: TextStyle(color: Barako.muted, fontSize: 11),
+                    style: AppText.micro.w4,
                   )
                 else if (editable)
                   Text(
                     'Tap to edit',
-                    style: TextStyle(color: Barako.faint, fontSize: 11),
+                    style: AppText.micro.w4.tint(Barako.faint),
                   ),
               ],
             ),
@@ -487,15 +482,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 : record
                 ? ''
                 : '-'}${formatMoney(amount)}',
-            style: TextStyle(
-              color: isIncome
+            style: AppText.amountRow.w6.tint(
+              isIncome
                   ? Barako.primary
                   : record
                   ? Barako.muted
                   : Barako.textSecondary,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],

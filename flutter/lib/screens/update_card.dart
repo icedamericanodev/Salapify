@@ -14,6 +14,7 @@ import '../data/store.dart';
 import '../main.dart' show updateStamp;
 import '../services/diagnostics.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'app_exit_stub.dart' if (dart.library.io) 'app_exit_io.dart';
 
@@ -168,7 +169,7 @@ class _UpdateCardState extends State<UpdateCard> {
                 Text(
                   'This is everything that gets copied. It has counts and '
                   'error messages only, never your amounts, names, or notes.',
-                  style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+                  style: AppText.small,
                 ),
                 const SizedBox(height: 12),
                 // Deliberately NOT a monospace family. The report is a list
@@ -179,11 +180,7 @@ class _UpdateCardState extends State<UpdateCard> {
                 // the phone became the one screen nobody could read.
                 SelectableText(
                   text,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
+                  style: AppText.caption.tint(Barako.text).copyWith(height: 1.35),
                 ),
               ],
             ),
@@ -232,7 +229,7 @@ class _UpdateCardState extends State<UpdateCard> {
               children: [
                 Text(
                   'Update stamp',
-                  style: TextStyle(color: Barako.text, fontSize: 14),
+                  style: AppText.label.w4,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -249,7 +246,7 @@ class _UpdateCardState extends State<UpdateCard> {
                     textAlign: TextAlign.right,
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Barako.muted, fontSize: 12),
+                    style: AppText.caption,
                   ),
                 ),
               ],
@@ -299,7 +296,7 @@ class _UpdateCardState extends State<UpdateCard> {
               const SizedBox(height: 8),
               Text(
                 status!,
-                style: TextStyle(color: Barako.muted, fontSize: 12),
+                style: AppText.caption,
               ),
             ],
           ],
@@ -323,7 +320,7 @@ class _StorageRow extends StatelessWidget {
     final encrypted = health.encrypted;
     return Row(
       children: [
-        Text('Storage', style: TextStyle(color: Barako.text, fontSize: 14)),
+        Text('Storage', style: AppText.label.w4),
         const SizedBox(width: 16),
         Expanded(
           child: Row(
@@ -345,7 +342,7 @@ class _StorageRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                  style: AppText.caption,
                 ),
               ),
             ],

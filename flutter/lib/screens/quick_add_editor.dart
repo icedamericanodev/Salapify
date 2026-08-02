@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quick_adds.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
 import '../money/currencies.dart' show baseCurrencySymbol;
@@ -153,19 +154,12 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'Quick add buttons',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Text('Quick add buttons', style: AppText.title),
                 const SizedBox(height: 4),
                 Text(
                   'One tap logs the amount. Make them the things you actually '
                   'buy, at the prices you actually pay.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                  style: AppText.small.tint(Barako.muted),
                 ),
                 const SizedBox(height: 16),
                 if (adds.isEmpty)
@@ -174,7 +168,7 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
                     child: Text(
                       'No buttons right now. Add one below, or leave it empty '
                       'and just use Log.',
-                      style: TextStyle(color: Barako.faint, fontSize: 13),
+                      style: AppText.small.tint(Barako.faint),
                     ),
                   )
                 else
@@ -218,7 +212,7 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
                     liveRegion: true,
                     child: Text(
                       _error!,
-                      style: TextStyle(color: Barako.warning, fontSize: 13),
+                      style: AppText.small.tint(Barako.warning),
                     ),
                   ),
                 ],
@@ -287,17 +281,13 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
         Expanded(
           child: Text(
             q.label,
-            style: TextStyle(color: Barako.text, fontSize: 15),
+            style: AppText.body,
             overflow: TextOverflow.ellipsis,
           ),
         ),
         Text(
           formatMoney(q.amount),
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 15,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: AppText.amountRow.w4.tint(Barako.textSecondary),
         ),
         IconButton(
           onPressed: _busy ? null : () => _remove(index),

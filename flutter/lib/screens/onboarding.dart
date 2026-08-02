@@ -28,6 +28,7 @@ import '../data/store.dart';
 import '../money/pan_mood.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pan_mascot.dart';
 
 /// The four quick picks, the RN set; the full list lives in Menu.
@@ -288,18 +289,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       Center(
         child: Text(
           'Salapify',
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-          ),
+          style: AppText.title.copyWith(fontSize: 30),
         ),
       ),
       const SizedBox(height: 4),
       Center(
         child: Text(
           "On your money's side.",
-          style: TextStyle(color: Barako.textSecondary, fontSize: 15),
+          style: AppText.bodyMuted,
         ),
       ),
       const SizedBox(height: Gap.lg),
@@ -320,11 +317,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 child: Text(
                   pill,
-                  style: TextStyle(
-                    color: Barako.primaryText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppText.small.w7.tint(Barako.primaryText),
                 ),
               ),
           ],
@@ -335,11 +328,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'Budget, debts, savings, utang, and bills. Everything stays on '
         'your phone. No account needed, ever.',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Barako.textSecondary,
-          fontSize: 15,
-          height: 1.5,
-        ),
+        style: AppText.bodyMuted.copyWith(height: 1.5),
       ),
       const SizedBox(height: Gap.xl),
       _primary('Get started', () => setState(() => step = _Step.basics)),
@@ -353,11 +342,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       const SizedBox(height: 6),
       Text(
         'The basics',
-        style: TextStyle(
-          color: Barako.text,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-        ),
+        style: AppText.title.copyWith(fontSize: 24),
       ),
       const SizedBox(height: Gap.lg),
       Text('Your currency', style: Barako.cardKickerStyle),
@@ -387,7 +372,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       const SizedBox(height: 4),
       Text(
         'More currencies live in Menu.',
-        style: TextStyle(color: Barako.muted, fontSize: 12),
+        style: AppText.caption,
       ),
       const SizedBox(height: Gap.lg),
       Text('Monthly spending budget', style: Barako.cardKickerStyle),
@@ -399,16 +384,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // an over-max value, or a typo is answered as it happens rather than
         // only after the Next button bounces.
         onChanged: (_) => setState(() {}),
-        style: TextStyle(
-          color: Barako.text,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
+        style: AppText.heading.copyWith(fontSize: 20),
         decoration: InputDecoration(
           hintText: '20000',
           hintStyle: TextStyle(color: Barako.faint),
           prefixText: '$symbol ',
-          prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
+          prefixStyle: AppText.heading.copyWith(fontSize: 20).w4.tint(
+            Barako.muted,
+          ),
           filled: true,
           fillColor: Barako.card,
           border: OutlineInputBorder(
@@ -431,12 +414,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (b.error != null) {
             return Text(
               b.error!,
-              style: TextStyle(color: Barako.warningStrong, fontSize: 12),
+              style: AppText.caption.tint(Barako.warningStrong),
             );
           }
           return Text(
             b.note ?? 'A starting line, not a cage. Change it anytime in Menu.',
-            style: TextStyle(color: Barako.muted, fontSize: 12),
+            style: AppText.caption,
           );
         },
       ),
@@ -465,11 +448,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       const SizedBox(height: 6),
       Text(
         'A 30 second nudge at night?',
-        style: TextStyle(
-          color: Barako.text,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-        ),
+        style: AppText.title.copyWith(fontSize: 24),
       ),
       const SizedBox(height: Gap.md),
       // Says only what will actually happen tonight. It used to promise a
@@ -483,11 +462,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'People who log daily actually change how they spend. One quiet '
         'reminder at 8pm, nothing else. No spam, and you can switch it off '
         'any time in Menu, where the payday and bill reminders live too.',
-        style: TextStyle(
-          color: Barako.textSecondary,
-          fontSize: 15,
-          height: 1.5,
-        ),
+        style: AppText.bodyMuted.copyWith(height: 1.5),
       ),
       const SizedBox(height: Gap.xl),
       _choice('Yes, remind me at night', asking ? null : _askNudge),
@@ -536,11 +511,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 6),
         Text(
           hasAnything ? 'You are all set.' : 'How do you want to start?',
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
+          style: AppText.title.copyWith(fontSize: 24),
         ),
         const SizedBox(height: Gap.md),
         Text(
@@ -551,11 +522,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     'also has a little sample data if you would rather look '
                     'around first; it is clearly marked and removable in '
                     'one tap.',
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 15,
-            height: 1.5,
-          ),
+          style: AppText.bodyMuted.copyWith(height: 1.5),
         ),
         const SizedBox(height: Gap.xl),
         if (hasAnything)
@@ -586,7 +553,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Text(
           'Tip: after this, the Budget tab is where daily life happens. '
           'Log anything today and your chain starts.',
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+          style: AppText.caption.copyWith(height: 1.4),
         ),
       ],
     );

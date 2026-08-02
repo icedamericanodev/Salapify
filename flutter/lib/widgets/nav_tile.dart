@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 import 'pressable_scale.dart';
 import 'salapify_icon.dart';
 
@@ -60,12 +61,7 @@ class NavTile extends StatelessWidget {
                 Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
+                  style: AppText.label.w7.copyWith(height: 1.2),
                 ),
               ],
             ),

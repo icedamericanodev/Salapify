@@ -22,11 +22,10 @@ import '../money/goals_calc.dart' show goalNum, goalPercent;
 import '../money/ledger.dart' show amountOf;
 import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'goal_create.dart' show goalAccentColor;
 import 'milestone_share.dart' show showMilestoneCelebration;
-
-const _tabular = [FontFeature.tabularFigures()];
 
 class GoalDetailScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -116,7 +115,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   child: Text(
                     'This goal is gone from your book. Nothing else changed.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Barako.muted, fontSize: 14),
+                    style: AppText.label.w4.tint(Barako.muted),
                   ),
                 ),
               );
@@ -170,21 +169,15 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 children: [
                   Text(
                     (g['name'] ?? 'Goal').toString(),
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.title.copyWith(fontSize: 20),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     label,
-                    style: TextStyle(
-                      color: label == 'Overdue' || label == 'Needs adjustment'
+                    style: AppText.small.w6.tint(
+                      label == 'Overdue' || label == 'Needs adjustment'
                           ? Barako.warningStrong
                           : Barako.muted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -206,12 +199,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             children: [
               Text(
                 '${formatMoney(saved)} of ${formatMoney(target)}',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: _tabular,
-                ),
+                style: AppText.heading.w8.tabular,
               ),
               const SizedBox(height: 10),
               ClipRRect(
@@ -230,11 +218,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     ? '${formatMoney(remaining)} left'
                           '${targetDate.isNotEmpty ? ' · target ${prettyMonthYear(targetDate)}' : ''}'
                     : 'Fully funded.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 13,
-                  fontFeatures: _tabular,
-                ),
+                style: AppText.small.tint(Barako.muted).tabular,
               ),
               // The quarter milestones, drawn AND said: four dots is a
               // picture; the semantics carry the words.
@@ -269,12 +253,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                             const SizedBox(width: 4),
                             Text(
                               '$q%',
-                              style: TextStyle(
-                                color: quarters.contains(q)
+                              style: AppText.micro.w4.tabular.tint(
+                                quarters.contains(q)
                                     ? Barako.text
                                     : Barako.faint,
-                                fontSize: 11,
-                                fontFeatures: _tabular,
                               ),
                             ),
                           ],
@@ -404,7 +386,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
           const SizedBox(height: 6),
           Text(
             line,
-            style: TextStyle(color: Barako.text, fontSize: 14, height: 1.45),
+            style: AppText.label.w4.copyWith(height: 1.45),
           ),
           if (estimate != null) ...[
             const SizedBox(height: 10),
@@ -420,12 +402,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       child: Text(
                         'Estimated safe amount right now: '
                         '${formatMoneyAbout(estimate['amount'] as double)}',
-                        style: TextStyle(
-                          color: Barako.primaryText,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          fontFeatures: _tabular,
-                        ),
+                        style: AppText.small.w6.tabular.tint(Barako.primaryText),
                       ),
                     ),
                     Icon(
@@ -445,11 +422,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 '${formatMoney(estimate['committed'] as double)} of bills due '
                 'before payday, minus your ${formatMoney(estimate['buffer'] as double)} '
                 'buffer. It never moves money by itself.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12.5,
-                  height: 1.45,
-                ),
+                style: AppText.caption.copyWith(fontSize: 12.5, height: 1.45),
               ),
             ],
           ] else ...[
@@ -457,7 +430,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             Text(
               'Add upcoming bills or income dates to get a safe-amount '
               'estimate.',
-              style: TextStyle(color: Barako.faint, fontSize: 12.5),
+              style: AppText.caption.copyWith(fontSize: 12.5).tint(Barako.faint),
             ),
           ],
         ],
@@ -517,11 +490,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                           color: Barako.onPrimary,
                         )
                       : null,
-                  labelStyle: TextStyle(
-                    color: picked == a ? Barako.onPrimary : Barako.text,
-                    fontSize: 12.5,
-                    fontFeatures: _tabular,
-                  ),
+                  labelStyle: AppText.caption
+                      .copyWith(fontSize: 12.5)
+                      .tabular
+                      .tint(picked == a ? Barako.onPrimary : Barako.text),
                 ),
             ],
           ),
@@ -537,11 +509,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       '${prettyMonthYear(projection['finishDate'] as String)}'
                       '${(g['targetDate'] ?? '').toString().isNotEmpty ? (projection['meetsDeadline'] as bool ? ', inside your target date.' : ', after your target date.') : '.'}'
                       ' Nothing changes unless you adjust the plan yourself.',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.45,
-            ),
+            style: AppText.small.copyWith(height: 1.45),
           ),
         ],
       ),
@@ -570,7 +538,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       'the Utang tab move it forward by themselves; there is '
                       'nothing separate to add here, so the same peso is '
                       'never counted twice.',
-            style: TextStyle(color: Barako.text, fontSize: 14, height: 1.45),
+            style: AppText.label.w4.copyWith(height: 1.45),
           ),
         ],
       ),
@@ -602,7 +570,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             Text(
               'Money you add will be listed here, dated, so the story of '
               'this goal is always visible.',
-              style: TextStyle(color: Barako.muted, fontSize: 13),
+              style: AppText.small.tint(Barako.muted),
             )
           else
             for (final c in rows.take(12))
@@ -629,22 +597,17 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                           final note = (c['note'] ?? '').toString().trim();
                           return note.isEmpty ? 'Added' : note;
                         }(),
-                        style: TextStyle(color: Barako.text, fontSize: 13),
+                        style: AppText.small.tint(Barako.text),
                       ),
                     ),
                     Text(
                       formatMoney(amountOf(c['amount'])),
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: _tabular,
-                      ),
+                      style: AppText.small.w6.tabular.tint(Barako.text),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       prettyDay((c['date'] ?? '').toString()),
-                      style: TextStyle(color: Barako.faint, fontSize: 12),
+                      style: AppText.caption.tint(Barako.faint),
                     ),
                   ],
                 ),
@@ -739,15 +702,13 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      color: warning ? Barako.warningStrong : Barako.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                    style: AppText.label.tint(
+                      warning ? Barako.warningStrong : Barako.text,
                     ),
                   ),
                   Text(
                     sub,
-                    style: TextStyle(color: Barako.faint, fontSize: 12),
+                    style: AppText.caption.tint(Barako.faint),
                   ),
                 ],
               ),
@@ -897,17 +858,13 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 children: [
                   Text(
                     'Move money to another goal',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.subtitle.w8,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Bookkeeping between two of your own goals. Your accounts '
                     'and net worth stay exactly as they are.',
-                    style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                    style: AppText.caption.copyWith(fontSize: 12.5),
                   ),
                   const SizedBox(height: 12),
                   for (final o in others)
@@ -933,10 +890,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                             Expanded(
                               child: Text(
                                 (o['name'] ?? 'Goal').toString(),
-                                style: TextStyle(
-                                  color: Barako.text,
-                                  fontSize: 14,
-                                ),
+                                style: AppText.label.w4,
                               ),
                             ),
                           ],
@@ -1110,7 +1064,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     labelText: 'Saved so far',
                     helperText:
                         'Correct this number any time. It moves no money.',
-                    helperStyle: TextStyle(color: Barako.faint, fontSize: 11),
+                    helperStyle: AppText.micro.w4.tint(Barako.faint),
                     labelStyle: TextStyle(color: Barako.muted),
                   ),
                 ),
@@ -1402,10 +1356,8 @@ class _AmountSheetState extends State<_AmountSheet> {
               const SizedBox(height: 6),
               Text(
                 widget.hint!,
-                style: TextStyle(
-                  color: Barako.primaryText,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
+                style: AppText.caption.w6.copyWith(fontSize: 12.5).tint(
+                  Barako.primaryText,
                 ),
               ),
             ],

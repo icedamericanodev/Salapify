@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../money/loan.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney;
 
 class LoanCalculatorScreen extends StatefulWidget {
@@ -60,10 +61,8 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             onSelected: (_) => setState(() => onChange(o.$1)),
             selectedColor: Barako.primary,
             backgroundColor: Barako.background,
-            labelStyle: TextStyle(
-              color: value == o.$1 ? Barako.onPrimary : Barako.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+            labelStyle: AppText.caption.w6.tint(
+              value == o.$1 ? Barako.onPrimary : Barako.textSecondary,
             ),
           ),
       ],
@@ -72,14 +71,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Text(text, style: AppText.caption.w7),
   );
 
   @override
@@ -139,7 +131,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
           children: [
             Text(
               'See the real monthly payment and the true cost of a loan. If your lender quoted an add-on rate, this shows what it really works out to.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             _label('LOAN AMOUNT'),
             TextField(
@@ -213,14 +205,14 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               addon
                   ? 'Add-on charges interest on the ORIGINAL amount for the whole term, common in in-house and informal financing. It looks cheap and is not.'
                   : 'Diminishing charges interest only on what you still owe, the way banks amortize.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+              style: AppText.caption.copyWith(height: 1.4),
             ),
             if (termClamped)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Term capped at $maxMonths months, no consumer loan runs a century.',
-                  style: TextStyle(color: Barako.warning, fontSize: 12),
+                  style: AppText.caption.tint(Barako.warning),
                 ),
               ),
             if (badInput)
@@ -228,7 +220,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Amounts and rates cannot be negative.',
-                  style: TextStyle(color: Barako.warning, fontSize: 13),
+                  style: AppText.small.tint(Barako.warning),
                 ),
               )
             else if (needTerm)
@@ -236,7 +228,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter the term and the numbers appear.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                  style: AppText.small.tint(Barako.muted),
                 ),
               )
             else if (!ready)
@@ -244,7 +236,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter the loan amount, term, and interest rate and the numbers appear.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                  style: AppText.small.tint(Barako.muted),
                 ),
               ),
             if (r != null) ...[
@@ -267,12 +259,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                       const SizedBox(height: 4),
                       Text(
                         _m(r['payment'] as double),
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 30,
-                          fontFamily: Barako.displayFont,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.amountLg.w7,
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -280,19 +267,12 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Total interest',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small,
                             ),
                           ),
                           Text(
                             _m(r['totalInterest'] as double),
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppText.small.w6.tabular,
                           ),
                         ],
                       ),
@@ -301,19 +281,12 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Total to pay',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small,
                             ),
                           ),
                           Text(
                             _m(r['totalPaid'] as double),
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppText.small.w6.tabular,
                           ),
                         ],
                       ),
@@ -344,18 +317,12 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Quoted rate per year',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small,
                             ),
                           ),
                           Text(
                             _pct(r['nominalAnnualRate'] as double),
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                            ),
+                            style: AppText.small,
                           ),
                         ],
                       ),
@@ -364,19 +331,13 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Effective interest per year',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.smallStrong,
                             ),
                           ),
                           Text(
                             _pct(r['effectiveAnnualRate'] as double),
-                            style: TextStyle(
-                              color: addon ? Barako.warning : Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                            style: AppText.body.w8.tint(
+                              addon ? Barako.warning : Barako.text,
                             ),
                           ),
                         ],
@@ -386,11 +347,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                         addon
                             ? 'Your ${rateBasis == 'annual' ? '${_pct(r['nominalAnnualRate'] as double)} a year' : '${_pct(r['quotedMonthlyRate'] as double)} a month'} add-on really works out to about ${_pct(r['effectiveAnnualRate'] as double)} a year, once you account for paying interest on money you have already returned.'
                             : 'For a diminishing loan the quoted and effective rates differ only because of monthly compounding. At normal bank rates they stay close.',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption.copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -406,11 +363,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Text(
                       'Make your first ${months ~/ 2} payments, then pay the remaining ${_m(payoff['balanceCleared'] as double)} in one go, and you skip about ${_m(payoff['interestSaved'] as double)} of the remaining interest, if there is no pre-termination fee.',
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
+                      style: AppText.small.copyWith(height: 1.4),
                     ),
                   ),
                 ),
@@ -441,31 +394,22 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                                   width: 34,
                                   child: Text(
                                     '${row['period']}',
-                                    style: TextStyle(
-                                      color: Barako.muted,
-                                      fontSize: 12,
-                                    ),
+                                    style: AppText.caption,
                                   ),
                                 ),
                                 Expanded(
                                   child: Text(
                                     '${_m(row['interest'] as double)} interest · ${_m(row['principal'] as double)} principal',
-                                    style: TextStyle(
-                                      color: Barako.textSecondary,
-                                      fontSize: 12,
+                                    style: AppText.caption.tint(
+                                      Barako.textSecondary,
                                     ),
                                   ),
                                 ),
                                 Text(
                                   _m(row['balance'] as double),
-                                  style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
+                                  style: AppText.caption.w6
+                                      .tint(Barako.textSecondary)
+                                      .tabular,
                                 ),
                               ],
                             ),
@@ -477,11 +421,9 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               const SizedBox(height: 12),
               Text(
                 'This is an estimate from the numbers you typed, not a loan offer. Real contracts add fees, insurance, and penalties, and a pre-termination charge can reduce the saving from paying early. Read the disclosure statement before signing. If a lender will not tell you the effective interest rate, that is a warning sign.',
-                style: TextStyle(
-                  color: Barako.faint,
-                  fontSize: 11,
-                  height: 1.4,
-                ),
+                style: AppText.micro.w4
+                    .tint(Barako.faint)
+                    .copyWith(height: 1.4),
               ),
             ],
           ],

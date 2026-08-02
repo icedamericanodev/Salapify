@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quickadd.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney, prettyDay;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
@@ -301,10 +302,7 @@ class _LogSheetState extends State<LogSheet> {
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(
-                error!,
-                style: TextStyle(color: Barako.warning, fontSize: 13),
-              ),
+              Text(error!, style: AppText.small.tint(Barako.warning)),
             ],
             const SizedBox(height: 16),
             SizedBox(

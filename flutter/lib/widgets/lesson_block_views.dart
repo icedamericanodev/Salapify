@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 
 import '../content/lesson_blocks.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 /// Fade and rise, once, on first build. Stagger is capped so a long lesson
@@ -105,11 +106,12 @@ class InsightView extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: AppText.small.copyWith(
                 color: personalized ? Barako.text : Barako.muted,
-                fontSize: 13,
                 height: 1.45,
-                fontWeight: personalized ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: personalized
+                    ? TypeWeight.medium
+                    : TypeWeight.regular,
               ),
             ),
           ),
@@ -136,11 +138,7 @@ class ProseView extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             p,
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 15,
-              height: 1.55,
-            ),
+            style: AppText.bodyMuted.copyWith(height: 1.55),
           ),
         ),
     ],
@@ -170,12 +168,7 @@ class NuggetsView extends StatelessWidget {
               Expanded(
                 child: Text(
                   item,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 14,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppText.label.copyWith(height: 1.4),
                 ),
               ),
             ],
@@ -214,12 +207,7 @@ class _DiscoveryViewState extends State<DiscoveryView> {
           const SizedBox(height: 8),
           Text(
             widget.block.question,
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 16,
-              height: 1.4,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppText.bodyLg.w7,
           ),
           const SizedBox(height: 12),
           AnimatedSize(
@@ -229,11 +217,9 @@ class _DiscoveryViewState extends State<DiscoveryView> {
             child: _open
                 ? Text(
                     widget.block.reveal,
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.55,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.textSecondary)
+                        .copyWith(height: 1.55),
                   )
                 : SizedBox(
                     width: double.infinity,
@@ -273,11 +259,9 @@ class StoryView extends StatelessWidget {
         ],
         Text(
           block.text,
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 14,
-            height: 1.55,
-          ),
+          style: AppText.label.w4
+              .tint(Barako.textSecondary)
+              .copyWith(height: 1.55),
         ),
       ],
     ),
@@ -308,12 +292,8 @@ class DiagramView extends StatelessWidget {
           child: Text(
             block.steps[i],
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: i == block.steps.length - 1
-                  ? Barako.primaryText
-                  : Barako.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            style: AppText.label.tint(
+              i == block.steps.length - 1 ? Barako.primaryText : Barako.text,
             ),
           ),
         ),
@@ -332,7 +312,7 @@ class DiagramView extends StatelessWidget {
         Text(
           block.caption,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+          style: AppText.caption.copyWith(height: 1.4),
         ),
       ],
     ],
@@ -378,7 +358,7 @@ class TrapView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               text,
-              style: TextStyle(color: textColor, fontSize: 14, height: 1.5),
+              style: AppText.label.w4.tint(textColor).copyWith(height: 1.5),
             ),
           ],
         ),
@@ -414,22 +394,13 @@ class ChallengeView extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           block.prompt,
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 15,
-            height: 1.45,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppText.bodyStrong.copyWith(height: 1.45),
         ),
         if (block.compare.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(
             block.compare,
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.45,
-            ),
+            style: AppText.small.copyWith(height: 1.45),
           ),
         ],
       ],
@@ -460,11 +431,9 @@ class RulesView extends StatelessWidget {
           ),
           child: Text(
             p,
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 14,
-              height: 1.55,
-            ),
+            style: AppText.label.w4
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.55),
           ),
         ),
     ],
@@ -486,13 +455,7 @@ class ReflectionView extends StatelessWidget {
     child: Text(
       block.line,
       textAlign: TextAlign.center,
-      style: TextStyle(
-        fontFamily: Barako.displayFont,
-        color: Barako.text,
-        fontSize: 19,
-        height: 1.35,
-        fontWeight: FontWeight.w700,
-      ),
+      style: AppText.heading.copyWith(fontSize: 19, height: 1.35),
     ),
   );
 }

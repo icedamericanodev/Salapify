@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import '../money/account_taxonomy.dart';
 import '../money/institutions.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/section.dart';
 
@@ -125,11 +126,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                   Expanded(
                     child: Text(
                       open?.label ?? 'What are you adding?',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppText.title.copyWith(fontSize: 20),
                     ),
                   ),
                 ],
@@ -202,20 +199,13 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        c.label,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text(c.label, style: AppText.bodyLg.w7),
                       const SizedBox(height: 2),
                       Text(
                         examples,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Barako.muted, fontSize: 13),
+                        style: AppText.small.tint(Barako.muted),
                       ),
                     ],
                   ),
@@ -251,19 +241,9 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        s.label,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text(s.label, style: AppText.bodyLg.w7),
                       const SizedBox(height: 2),
-                      Text(
-                        s.hint,
-                        style: TextStyle(color: Barako.muted, fontSize: 13),
-                      ),
+                      Text(s.hint, style: AppText.small.tint(Barako.muted)),
                     ],
                   ),
                 ),
@@ -338,11 +318,7 @@ class _InstitutionPickerState extends State<_InstitutionPicker> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 'Which bank or wallet?',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.title.copyWith(fontSize: 20),
               ),
             ),
             Padding(

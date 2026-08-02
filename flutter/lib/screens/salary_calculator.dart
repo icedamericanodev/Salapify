@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../money/phtax.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney;
 
 class SalaryCalculatorScreen extends StatefulWidget {
@@ -42,14 +43,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Text(text, style: AppText.caption.w7),
   );
 
   Widget _line(
@@ -65,21 +59,18 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
+              style: AppText.small.copyWith(
                 color: strong ? Barako.text : Barako.textSecondary,
-                fontSize: 13,
-                fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+                fontWeight: strong ? TypeWeight.bold : TypeWeight.regular,
               ),
             ),
           ),
           Text(
             value,
-            style: TextStyle(
-              color:
-                  valueColor ?? (strong ? Barako.text : Barako.textSecondary),
+            style: AppText.amountRow.copyWith(
               fontSize: strong ? 15 : 13,
-              fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
+              fontWeight: strong ? TypeWeight.heavy : TypeWeight.medium,
+              color: valueColor ?? (strong ? Barako.text : Barako.textSecondary),
             ),
           ),
         ],
@@ -210,7 +201,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
             const SizedBox(height: 6),
             Text(
               'Non-taxable covers de minimis benefits and allowances within BIR limits. They are added to your pay but not taxed. Contributions are figured on your basic pay.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+              style: AppText.caption.copyWith(height: 1.4),
             ),
             // The RN screen warns above 12,000, but the realistic monthly
             // total of the common de minimis items is 4,000 to 5,000, so
@@ -220,11 +211,9 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Heads up: each de minimis benefit has its own BIR ceiling. Amounts above those ceilings are not taxed right away, they first join the ₱90,000 a year cap together with your 13th month and other bonuses, and only the part above ₱90,000 gets taxed. A large non-taxable amount here can still overstate your take-home.',
-                  style: TextStyle(
-                    color: Barako.warning,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+                  style: AppText.caption
+                      .tint(Barako.warning)
+                      .copyWith(height: 1.4),
                 ),
               ),
             if (showResults) ...[
@@ -243,12 +232,8 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       onSelected: (_) => setState(() => period = p.$1),
                       selectedColor: Barako.primary,
                       backgroundColor: Barako.background,
-                      labelStyle: TextStyle(
-                        color: period == p.$1
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      labelStyle: AppText.caption.w6.tint(
+                        period == p.$1 ? Barako.onPrimary : Barako.textSecondary,
                       ),
                     ),
                 ],
@@ -291,21 +276,15 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                           Expanded(
                             child: Text(
                               netLabel,
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.label.w7,
                             ),
                           ),
                           Text(
                             ms(r['net'] as double),
-                            style: TextStyle(
-                              color: Barako.primary,
-                              fontSize: 24,
-                              fontFamily: Barako.displayFont,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppText.amount
+                                .copyWith(fontSize: 24)
+                                .w7
+                                .tint(Barako.primary),
                           ),
                         ],
                       ),
@@ -314,11 +293,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                         period == 'cutoff'
                             ? 'An estimate for each of the two cutoffs (15th and end of month), splitting everything in half. Many employers deduct SSS, PhilHealth, and Pag-IBIG on just one cutoff, so one payout can be noticeably bigger and the other smaller. The two cutoffs together still match the monthly figure.'
                             : 'About ${_m((r['net'] as double) * 12)} a year, before any 13th month.',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          height: 1.4,
-                        ),
+                        style: AppText.micro.w4.copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -343,20 +318,16 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'Contributions total ${ms(r['contributions'] as double)} $word. They come out before tax, so your taxable pay is ${ms(r['monthlyTaxable'] as double)}.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Income tax uses the graduated BIR table on your yearly taxable pay, spread across the year.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -381,31 +352,25 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'Your income tax is about $effRateText of your gross pay.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         marginal == 0
                             ? 'Your taxable pay is within the tax-free ₱250,000 a year, so no income tax is due.'
                             : 'You are in the $marginal% tax bracket, so each extra ₱100 of taxable pay is taxed about ₱$marginal. A raise is only taxed at the margin, never your whole pay. Contributions can also rise a bit with a raise until their ceilings.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'If you earn the minimum wage, your basic, overtime, holiday, and night pay are income tax free by law, so your real tax is likely zero.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -416,11 +381,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'That looks too low for a monthly salary. The minimum SSS, PhilHealth, and Pag-IBIG contributions come to about ${_m(r['contributions'] as double)}, so a basic pay under that would leave nothing to take home. Enter your full monthly basic pay.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                 ),
               )
             else
@@ -428,17 +389,13 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter your monthly basic pay to see the breakdown. Allowances add on top of it.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                 ),
               ),
             const SizedBox(height: 12),
             Text(
               'Estimate based on $ratesYear SSS, PhilHealth, Pag-IBIG, and BIR rates. Contributions are figured on your basic pay, non-taxable allowances are not taxed, and low salaries still pay the minimum contributions. It assumes a full month worked with no absences, and no loan payments (SSS or Pag-IBIG salary loans), HMO share, or other company deductions. Your real payslip can differ with de minimis limits and your employer\'s rounding. Not a substitute for your official payslip or a BIR filing.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
             ),
           ],
         ),

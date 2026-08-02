@@ -18,6 +18,7 @@ import '../money/goal_plan.dart';
 import '../money/goals_calc.dart' show goalNum;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 /// The curated icon choices for a new goal, semantic key to the spoken
@@ -291,11 +292,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                     const SizedBox(height: 6),
                     Text(
                       t.why!,
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 13,
-                        height: 1.45,
-                      ),
+                      style: AppText.small.copyWith(height: 1.45),
                     ),
                   ],
                 ),
@@ -308,7 +305,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
               Text(
                 'Not enough data for a suggestion. Enter the amount that '
                 'would cover your month.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               ),
               const SizedBox(height: Gap.md),
             ],
@@ -383,7 +380,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                 Text(
                   'No debts with a balance right now. Track one on the '
                   'Utang tab first.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                  style: AppText.small.tint(Barako.muted),
                 ),
             ] else ...[
               _label('Target amount'),
@@ -545,13 +542,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                                   : null,
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              label,
-                              style: TextStyle(
-                                color: Barako.muted,
-                                fontSize: 11,
-                              ),
-                            ),
+                            Text(label, style: AppText.micro.w4),
                           ],
                         ),
                       ),
@@ -576,11 +567,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                     const SizedBox(height: 6),
                     Text(
                       review,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14,
-                        height: 1.45,
-                      ),
+                      style: AppText.label.w4.copyWith(height: 1.45),
                     ),
                   ],
                 ),
@@ -590,7 +577,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
               const SizedBox(height: Gap.md),
               Text(
                 _error!,
-                style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                style: AppText.small.tint(Barako.warningStrong),
               ),
             ],
             const SizedBox(height: Gap.xl),
@@ -614,7 +601,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
               'Creating a goal never moves money. Your account balances '
               'stay exactly as they are.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Barako.faint, fontSize: 12),
+              style: AppText.caption.tint(Barako.faint),
             ),
           ],
         ),
@@ -624,7 +611,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: Gap.lg, bottom: 6),
-    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(text, style: AppText.caption),
   );
 
   Widget _input(
@@ -643,7 +630,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
       inputFormatters: number
           ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))]
           : null,
-      style: TextStyle(color: Barako.text, fontSize: 15),
+      style: AppText.body,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Barako.faint),

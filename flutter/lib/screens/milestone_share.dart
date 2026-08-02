@@ -19,6 +19,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/milestones.dart';
 import '../money/pan_mood.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/celebration.dart' show showCelebration;
 import '../widgets/pan_mascot.dart' show PanCupPainter, PanPalette;
 
@@ -189,21 +190,17 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
                     'No wins to share yet, and that is okay. Pay a debt down '
                     'to zero, fund a savings goal, or settle an IOU either '
                     'way, and the card builds itself here.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.45,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.textSecondary)
+                        .copyWith(height: 1.45),
                   ),
                 ] else ...[
                   Text(
                     'Turn a real money win into a card you can post or send. '
                     'You choose if peso amounts show.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.45,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.textSecondary)
+                        .copyWith(height: 1.45),
                   ),
                   if (_wins.length > 1) ...[
                     const SizedBox(height: 14),
@@ -215,12 +212,8 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
                           ChoiceChip(
                             label: Text(
                               '${_wins[i].headline} · ${_wins[i].name}',
-                              style: TextStyle(
-                                color: i == _selected
-                                    ? Barako.onPrimary
-                                    : Barako.text,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              style: AppText.caption.w6.tint(
+                                i == _selected ? Barako.onPrimary : Barako.text,
                               ),
                             ),
                             selected: i == _selected,
@@ -320,16 +313,12 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
             children: [
               Text(
                 'Hide peso amounts',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppText.body.w6,
               ),
               const SizedBox(height: 2),
               Text(
                 'Share the win, keep the numbers private.',
-                style: TextStyle(color: Barako.faint, fontSize: 12),
+                style: AppText.caption.tint(Barako.faint),
               ),
             ],
           ),
@@ -416,11 +405,7 @@ class _CelebrationSheetState extends State<_CelebrationSheet> {
             child: Text(
               'You just made it',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.title.copyWith(fontSize: 20),
             ),
           ),
           const SizedBox(height: 4),
@@ -428,11 +413,7 @@ class _CelebrationSheetState extends State<_CelebrationSheet> {
             'Turn this into a card you can post or send. You choose if peso '
             'amounts show.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppText.small.copyWith(height: 1.4),
           ),
           const SizedBox(height: 16),
           // Shown scaled to fit the sheet width; the crisp full-size copy that
@@ -524,16 +505,12 @@ class _HideAmountsToggle extends StatelessWidget {
                   children: [
                     Text(
                       'Hide peso amounts',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppText.body.w6,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Share the win, keep the numbers private.',
-                      style: TextStyle(color: Barako.faint, fontSize: 12),
+                      style: AppText.caption.tint(Barako.faint),
                     ),
                   ],
                 ),

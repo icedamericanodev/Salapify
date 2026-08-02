@@ -26,6 +26,7 @@ import '../data/store.dart';
 import '../money/account_taxonomy.dart';
 import '../money/institutions.dart' show institutionById, institutionLabel;
 import '../theme.dart';
+import '../typography.dart';
 import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
@@ -227,10 +228,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 if (_fxNotice(store, parts) case final notice?)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      notice,
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
-                    ),
+                    child: Text(notice, style: AppText.caption),
                   ),
                 if (_missingRateCodes(parts).isNotEmpty)
                   Padding(
@@ -381,13 +379,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             child: Text(
               formatMoneyText(parts['netWorth'] as double),
               maxLines: 1,
-              style: TextStyle(
-                fontFamily: Barako.displayFont,
-                color: Barako.text,
-                fontSize: 30,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+              style: AppText.amountLg.w7,
             ),
           ),
           const SizedBox(height: 12),
@@ -418,18 +410,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget _miniStat(String label, double value, Color color) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label, style: TextStyle(color: Barako.muted, fontSize: 12)),
+      Text(label, style: AppText.caption),
       const SizedBox(height: 2),
       Text(
         formatMoneyText(value),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: color,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+        style: AppText.amountRow.tint(color).copyWith(fontSize: 16),
       ),
     ],
   );
@@ -487,12 +474,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   formatMoneyText(subtotal),
-                  style: TextStyle(
-                    color: subtotalColor ?? Barako.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: AppText.amountRow
+                      .tint(subtotalColor ?? Barako.textSecondary)
+                      .copyWith(fontSize: 13),
                 ),
               ],
             ),
@@ -508,7 +492,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   Widget _empty(String text) => Padding(
     padding: const EdgeInsets.all(16),
-    child: Text(text, style: TextStyle(color: Barako.faint, fontSize: 13)),
+    child: Text(text, style: AppText.small.tint(Barako.faint)),
   );
 
   /// Which debt category renders the "manage debts elsewhere" note.
@@ -545,10 +529,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         alignment: Alignment.centerLeft,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(color: Barako.faint, fontSize: 12),
-          ),
+          child: Text(label, style: AppText.caption.tint(Barako.faint)),
         ),
       );
     }
@@ -772,11 +753,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppText.body.w6,
                 ),
                 if (sub != null && sub.isNotEmpty) ...[
                   const SizedBox(height: 2),
@@ -784,7 +761,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     sub,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Barako.muted, fontSize: 12),
+                    style: AppText.caption,
                   ),
                 ],
                 if (progress != null) ...[
@@ -811,17 +788,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   foreignCode == null
                       ? formatMoneyText(amount)
                       : formatConverted(amount, foreignCode),
-                  style: TextStyle(
-                    color: amountColor ?? Barako.text,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: AppText.amountRow.tint(amountColor ?? Barako.text),
                 ),
                 if (foreignCode != null)
                   Text(
                     _foreignSubLabel(foreignCode, amount),
-                    style: TextStyle(color: Barako.muted, fontSize: 11),
+                    style: AppText.micro.w4,
                   ),
               ],
             ),
@@ -1076,7 +1048,7 @@ class _AccountFormState extends State<_AccountForm> {
             'Salapify cannot convert $shown to $base yet, so this will NOT be '
             'counted in your net worth or your daily number. It stays on this '
             'screen with its own amount.',
-            style: TextStyle(color: Barako.warningStrong, fontSize: 12),
+            style: AppText.caption.tint(Barako.warningStrong),
           ),
         ],
       ],
@@ -1109,11 +1081,7 @@ class _AccountFormState extends State<_AccountForm> {
             children: [
               Text(
                 'Which currency?',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.title.copyWith(fontSize: 20),
               ),
               const SizedBox(height: 8),
               for (final code in order)
@@ -1126,7 +1094,7 @@ class _AccountFormState extends State<_AccountForm> {
                   subtitle: code == base
                       ? Text(
                           'Your app currency. Counted in every total.',
-                          style: TextStyle(color: Barako.muted, fontSize: 12),
+                          style: AppText.caption,
                         )
                       : null,
                   trailing: current == code
@@ -1430,10 +1398,7 @@ class _AccountFormState extends State<_AccountForm> {
               ),
               if (!_isEdit && widget.seed != null) ...[
                 const SizedBox(height: 4),
-                Text(
-                  widget.seed!.hint,
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
-                ),
+                Text(widget.seed!.hint, style: AppText.small.tint(Barako.muted)),
               ],
               _label('Name'),
               _input(_name, hint: 'e.g. GCash', action: TextInputAction.next),
@@ -1482,7 +1447,7 @@ class _AccountFormState extends State<_AccountForm> {
                 const SizedBox(height: 6),
                 Text(
                   'Set this to the real total in your account. We log the difference so your reports and History stay right.',
-                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                  style: AppText.caption.tint(Barako.faint),
                 ),
               ],
               if (!_isEdit && widget.seed != null) ...[
@@ -1522,10 +1487,7 @@ class _AccountFormState extends State<_AccountForm> {
               ],
               if (_err != null) ...[
                 const SizedBox(height: 10),
-                Text(
-                  _err!,
-                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
-                ),
+                Text(_err!, style: AppText.small.tint(Barako.warningStrong)),
               ],
               const SizedBox(height: 22),
               Row(
@@ -1589,7 +1551,7 @@ class _AccountFormState extends State<_AccountForm> {
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(t, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(t, style: AppText.caption),
   );
 
   Widget _input(
@@ -1607,7 +1569,7 @@ class _AccountFormState extends State<_AccountForm> {
       inputFormatters: number
           ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]
           : null,
-      style: TextStyle(color: Barako.text, fontSize: 15),
+      style: AppText.body,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Barako.faint),
@@ -1781,21 +1743,13 @@ class _TransferSheetState extends State<_TransferSheet> {
                   children: [
                     Text(
                       'Move money',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppText.title.copyWith(fontSize: 20),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'This is not income and not spending, so it never touches '
                       'your budget. It just moves the balances.',
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
+                      style: AppText.small.copyWith(height: 1.4),
                     ),
                     _label('From'),
                     _picker(list, _fromId, (v) => setState(() => _fromId = v)),
@@ -1808,19 +1762,14 @@ class _TransferSheetState extends State<_TransferSheet> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.heading.copyWith(fontSize: 20),
                       decoration: InputDecoration(
                         hintText: '0',
                         hintStyle: TextStyle(color: Barako.faint),
                         prefixText: '$baseCurrencySymbol ',
-                        prefixStyle: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 20,
-                        ),
+                        prefixStyle: AppText.bodyLg
+                            .tint(Barako.muted)
+                            .copyWith(fontSize: 20),
                         filled: true,
                         fillColor: Barako.card,
                         border: OutlineInputBorder(
@@ -1854,7 +1803,7 @@ class _TransferSheetState extends State<_TransferSheet> {
                   // sheet. Four lines is plenty for the refusal sentences.
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                  style: AppText.small.tint(Barako.warningStrong),
                 ),
               ),
             ],
@@ -1900,7 +1849,7 @@ class _TransferSheetState extends State<_TransferSheet> {
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(t, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(t, style: AppText.caption),
   );
 
   /// The account chips, each showing what it holds, because "can I move 5,000
@@ -1994,7 +1943,7 @@ class _ManualRateDialogState extends State<_ManualRateDialog> {
             // down is a total wrong by a factor of thousands and looks
             // perfectly reasonable on the way in.
             'How many ${widget.base} is ONE ${widget.code} worth?',
-            style: TextStyle(color: Barako.muted, fontSize: 13),
+            style: AppText.small.tint(Barako.muted),
           ),
           const SizedBox(height: 10),
           TextField(

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import 'split_expense.dart' show showSplitSheet;
@@ -107,27 +108,18 @@ Future<void> _showRecordSheet(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text(label, style: AppText.heading.w8),
             const SizedBox(height: 4),
             Text(
               '${formatMoney(amount)} on ${prettyDay((t['date'] ?? '').toString())}',
-              style: TextStyle(color: Barako.textSecondary, fontSize: 14),
+              style: AppText.label.w4.tint(Barako.textSecondary),
             ),
             const SizedBox(height: 12),
             Text(
               note,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.45),
             ),
           ],
         ),
@@ -386,10 +378,7 @@ class _EditSheetState extends State<EditSheet> {
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(
-                error!,
-                style: TextStyle(color: Barako.warning, fontSize: 13),
-              ),
+              Text(error!, style: AppText.small.tint(Barako.warning)),
             ],
             const SizedBox(height: 16),
             SizedBox(

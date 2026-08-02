@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.17 \u00b7 Goals rebuilt with plans, templates and a what if, plus one icon system across the whole app.';
+    'f3.18 \u00b7 One typography system across every screen, aligned to the React Native scale.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

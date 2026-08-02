@@ -12,6 +12,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../money/splits.dart' as splits;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -215,23 +216,12 @@ class _SplitSheetState extends State<_SplitSheet> {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                'Split this bill',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              Text('Split this bill', style: AppText.heading.w8),
               const SizedBox(height: 4),
               Text(
                 'You fronted ${formatMoneyText(_total)}. Pick who shared it '
                 'and each person owes you their part.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small.copyWith(height: 1.4),
               ),
               _label('What was this for?'),
               _input(_activity, hint: 'e.g. Baler trip, Grab, dinner'),
@@ -240,7 +230,7 @@ class _SplitSheetState extends State<_SplitSheet> {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   'Leave a box blank to split evenly, or type an exact amount.',
-                  style: TextStyle(color: Barako.faint, fontSize: 11),
+                  style: AppText.micro.w4.tint(Barako.faint),
                 ),
               ),
               for (final p in _people) _personRow(p),
@@ -250,16 +240,13 @@ class _SplitSheetState extends State<_SplitSheet> {
               _summary(yourShare, toCollect, collectFrom, ok),
               if (err != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  err,
-                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
-                ),
+                Text(err, style: AppText.small.tint(Barako.warningStrong)),
               ] else if (collectFrom == 0) ...[
                 const SizedBox(height: 12),
                 Text(
                   'Add the people who shared this bill so each one owes you '
                   'their part.',
-                  style: TextStyle(color: Barako.muted, fontSize: 13),
+                  style: AppText.small.tint(Barako.muted),
                 ),
               ],
               const SizedBox(height: 20),
@@ -336,10 +323,8 @@ class _SplitSheetState extends State<_SplitSheet> {
                             label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: p.included ? Barako.text : Barako.faint,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                            style: AppText.body.w6.tint(
+                              p.included ? Barako.text : Barako.faint,
                             ),
                           ),
                         ),
@@ -512,7 +497,7 @@ class _SplitSheetState extends State<_SplitSheet> {
           const SizedBox(height: 8),
           Text(
             'Your share stays a normal expense. Only the rest becomes money to collect.',
-            style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+            style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
           ),
         ],
       ),
@@ -529,20 +514,18 @@ class _SplitSheetState extends State<_SplitSheet> {
       Expanded(
         child: Text(
           label,
-          style: TextStyle(
-            color: Barako.textSecondary,
+          style: AppText.small.copyWith(
             fontSize: bold ? 14 : 13,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: bold ? TypeWeight.bold : TypeWeight.medium,
           ),
         ),
       ),
       Text(
         formatMoneyText(value),
-        style: TextStyle(
-          color: color,
+        style: AppText.amountRow.copyWith(
           fontSize: bold ? 16 : 14,
-          fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-          fontFeatures: const [FontFeature.tabularFigures()],
+          fontWeight: bold ? TypeWeight.heavy : TypeWeight.medium,
+          color: color,
         ),
       ),
     ],
@@ -550,7 +533,7 @@ class _SplitSheetState extends State<_SplitSheet> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 16, bottom: 8),
-    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(text, style: AppText.caption),
   );
 
   Widget _input(TextEditingController c, {String? hint}) => TextField(

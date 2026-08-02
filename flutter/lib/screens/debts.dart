@@ -16,6 +16,7 @@ import '../money/debtmath.dart'
 import '../money/ledger.dart' show amountOf;
 import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/celebration.dart';
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
@@ -206,23 +207,14 @@ class _DebtsViewState extends State<DebtsView> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'No debts tracked',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text('No debts tracked', style: AppText.bodyLg.w7),
                       const SizedBox(height: 6),
                       Text(
                         'Track a card, a loan, or money you owe a person, and every '
                         'payment splits into interest and principal '
                         'honestly.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 13,
+                        style: AppText.small.tint(Barako.muted).copyWith(
                           height: 1.4,
                         ),
                       ),
@@ -248,15 +240,7 @@ class _DebtsViewState extends State<DebtsView> {
                             child: Text(
                               formatMoney(totalDebt),
                               maxLines: 1,
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 30,
-                                fontFamily: Barako.displayFont,
-                                fontWeight: FontWeight.w700,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
+                              style: AppText.amountLg.w7,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -306,22 +290,14 @@ class _DebtsViewState extends State<DebtsView> {
                             strategy == 'snowball'
                                 ? 'Smallest balance first, for quick wins that keep you going.'
                                 : 'Highest interest first, the cheapest path in pesos.',
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 12,
-                              height: 1.4,
-                            ),
+                            style: AppText.caption.copyWith(height: 1.4),
                           ),
                           if (focus != null &&
                               amountOf(focus['remaining']) > 0) ...[
                             const SizedBox(height: 10),
                             Text(
                               'Focus: ${focus['name']} at ${formatMoney(amountOf(focus['remaining']))}',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.smallStrong,
                             ),
                           ],
                           if (projection != null) ...[
@@ -330,21 +306,17 @@ class _DebtsViewState extends State<DebtsView> {
                               (projection['months'] as int) == 0
                                   ? 'Only centavos left. Log the last payments and you are debt free.'
                                   : 'Debt free around ${_monthYear(projection['date'] as String)} on the minimums, with ${formatMoney(projection['totalInterest'] as double)} interest along the way.',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
+                              style: AppText.caption
+                                  .tint(Barako.textSecondary)
+                                  .copyWith(height: 1.4),
                             ),
                           ] else if (totalDebt > 0) ...[
                             const SizedBox(height: 4),
                             Text(
                               'The minimums never win against the interest here. Any extra amount changes that.',
-                              style: TextStyle(
-                                color: Barako.warning,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
+                              style: AppText.caption
+                                  .tint(Barako.warning)
+                                  .copyWith(height: 1.4),
                             ),
                           ],
                         ],
@@ -373,21 +345,8 @@ class _DebtsViewState extends State<DebtsView> {
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
+        Expanded(child: Text(label, style: AppText.small)),
+        Text(value, style: AppText.small.w6.tabular),
       ],
     ),
   );
@@ -414,29 +373,22 @@ class _DebtsViewState extends State<DebtsView> {
                         (d['name'] ?? 'Debt').toString(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: AppText.body.w6,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         rate > 0
                             ? '${d['type']} · ${_rateText(rate)}% monthly'
                             : '${d['type']}',
-                        style: TextStyle(color: Barako.muted, fontSize: 12),
+                        style: AppText.caption,
                       ),
                     ],
                   ),
                 ),
                 Text(
                   remaining > 0 ? formatMoney(remaining) : 'Paid off',
-                  style: TextStyle(
-                    color: remaining > 0 ? Barako.text : Barako.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                  style: AppText.label.w7.tabular.tint(
+                    remaining > 0 ? Barako.text : Barako.primary,
                   ),
                 ),
               ],
@@ -698,11 +650,7 @@ class _DebtSheetState extends State<DebtSheet> {
                     Expanded(
                       child: Text(
                         (d['name'] ?? 'Debt').toString(),
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppText.heading.w8,
                       ),
                     ),
                     if (widget.store.canWrite) ...[
@@ -729,12 +677,8 @@ class _DebtSheetState extends State<DebtSheet> {
                   remaining > 0
                       ? '${formatMoney(remaining)} left${rate > 0 ? ' · ${_rateText(rate)}% monthly' : ''}'
                       : 'Paid off',
-                  style: TextStyle(
-                    color: remaining > 0
-                        ? Barako.textSecondary
-                        : Barako.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: AppText.label.tint(
+                    remaining > 0 ? Barako.textSecondary : Barako.primary,
                   ),
                 ),
                 if (rate > 0 && remaining > 0)
@@ -742,7 +686,7 @@ class _DebtSheetState extends State<DebtSheet> {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       'About ${formatMoneyAbout(monthlyInterest(d))} interest gets added each month it sits.',
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                      style: AppText.caption,
                     ),
                   ),
                 if (forecast != null) ...[
@@ -771,30 +715,21 @@ class _DebtSheetState extends State<DebtSheet> {
                         if (forecast['statement'] != null)
                           Text(
                             'Statement cuts ${_longDate(forecast['statement'] as String)}',
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 12,
-                            ),
+                            style: AppText.caption.tint(Barako.textSecondary),
                           ),
                         if (forecast['due'] != null)
                           Text(
                             'Due ${_longDate(forecast['due'] as String)}${forecast['dueMoved'] == true ? ' (moved, ${forecast['dueMovedReason']})' : ''}',
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 12,
-                            ),
+                            style: AppText.caption.tint(Barako.textSecondary),
                           ),
                         Text(
                           'Pay at least ${formatMoney(forecast['minDue'] as double)} to avoid late fees',
-                          style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 12,
-                          ),
+                          style: AppText.caption.tint(Barako.textSecondary),
                         ),
                         if ((forecast['pending'] as double) > 0)
                           Text(
                             'Sent but not yet posted: ${formatMoney(forecast['pending'] as double)}',
-                            style: TextStyle(color: Barako.muted, fontSize: 12),
+                            style: AppText.caption,
                           ),
                       ],
                     ),
@@ -891,11 +826,9 @@ class _DebtSheetState extends State<DebtSheet> {
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       msg!,
-                      style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                      style: AppText.caption
+                          .tint(Barako.primaryText)
+                          .copyWith(height: 1.4),
                     ),
                   ),
                 if (error != null)
@@ -903,11 +836,9 @@ class _DebtSheetState extends State<DebtSheet> {
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       error!,
-                      style: TextStyle(
-                        color: Barako.warning,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                      style: AppText.caption
+                          .tint(Barako.warning)
+                          .copyWith(height: 1.4),
                     ),
                   ),
               ],
@@ -1095,11 +1026,7 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
           children: [
             Text(
               widget.debt != null ? 'Edit debt' : 'Add a debt',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.heading.w8,
             ),
             const SizedBox(height: 12),
             _field(name, 'Name, like BPI card or a family loan', number: false),
@@ -1139,11 +1066,9 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   error!,
-                  style: TextStyle(
-                    color: Barako.warning,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+                  style: AppText.caption
+                      .tint(Barako.warning)
+                      .copyWith(height: 1.4),
                 ),
               ),
             SizedBox(

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../money/phtax.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
@@ -60,19 +61,13 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
-          ),
-        ),
+        Expanded(child: Text(label, style: AppText.small)),
         Text(
           value,
-          style: TextStyle(
-            color: subtle ? Barako.muted : Barako.text,
+          style: AppText.amountRow.copyWith(
             fontSize: strong ? 15 : 13,
-            fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+            fontWeight: strong ? TypeWeight.heavy : TypeWeight.medium,
+            color: subtle ? Barako.muted : Barako.text,
           ),
         ),
       ],
@@ -94,10 +89,8 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
             onSelected: (_) => setState(() => onChange(o.$1)),
             selectedColor: Barako.primary,
             backgroundColor: Barako.background,
-            labelStyle: TextStyle(
-              color: value == o.$1 ? Barako.onPrimary : Barako.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+            labelStyle: AppText.caption.w6.tint(
+              value == o.$1 ? Barako.onPrimary : Barako.textSecondary,
             ),
           ),
       ],
@@ -151,7 +144,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
           children: [
             Text(
               'For freelancers, professionals, and small businesses. Enter your yearly income and see whether the flat 8% or the graduated rate costs you less.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             _label('YEARLY GROSS INCOME'),
             TextField(
@@ -172,7 +165,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'About ${_m(grossNum / 12)} a month in sales or fees.',
-                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                  style: AppText.caption,
                 ),
               ),
             const SizedBox(height: 12),
@@ -189,19 +182,11 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                         children: [
                           Text(
                             'I also earn a salary',
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppText.label.w7,
                           ),
                           Text(
                             'Mixed income. The 250,000 tax-free part is used by your salary, so the whole business income is taxed.',
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 12,
-                              height: 1.3,
-                            ),
+                            style: AppText.caption,
                           ),
                         ],
                       ),
@@ -235,11 +220,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'Roughly your yearly basic pay minus SSS, PhilHealth, and Pag-IBIG. The take-home pay tool shows this. Needed to compare the graduated option fairly.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+                  style: AppText.caption,
                 ),
               ),
             ],
@@ -270,11 +251,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'The 40% standard deduction (OSD) needs no receipts. Pick My expenses if your real costs are higher.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+                  style: AppText.caption,
                 ),
               ),
             if (grossNum > 0) ...[
@@ -304,11 +281,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                             : eightWins
                             ? 'Take the flat 8%'
                             : 'Use the graduated rate',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppText.heading.w8,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -319,11 +292,9 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                             : meaningful
                             ? 'Saves you about ${_m(r['savings'] as double)} a year versus the other option.'
                             : 'Both options cost about the same this year, so pick whichever is simpler for you.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -395,11 +366,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     'On your pick, set aside about ${_m(chosenTotal / 12)} a month so the tax is ready when it is due.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
+                    style: AppText.small.copyWith(height: 1.4),
                   ),
                 ),
               ),
@@ -417,20 +384,14 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                       const SizedBox(height: 6),
                       Text(
                         formsText,
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'No more 500 peso annual registration fee since 2024 (Ease of Paying Taxes Act). A quarter with zero income still means you file, just with nothing to pay.',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          height: 1.4,
-                        ),
+                        style: AppText.micro.w4.copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -441,17 +402,13 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter your yearly gross income to compare the two options.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                 ),
               ),
             const SizedBox(height: 12),
             Text(
               'Estimate based on $ratesYear BIR rates: the graduated income tax table, the 8% option, and the 3% percentage tax for non-VAT taxpayers. The 8% must be chosen with the BIR on time (at registration or the first quarter return) and it is locked in for the whole year. The forms and deadlines here are for awareness, not tax advice or a filing service, and a deadline can shift when it lands on a weekend or holiday. Confirm with the BIR or a licensed accountant before you file.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
             ),
           ],
         ),
@@ -486,16 +443,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text(title, style: AppText.bodyStrong)),
                 if (win)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -532,11 +480,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
                   title: Text(
                     'Show the calculation',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppText.small.w6,
                   ),
                   children: rows,
                 ),
@@ -546,32 +490,17 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
             Divider(color: Barako.border, height: 16),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    'Total tax',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text('Total tax', style: AppText.label.w7)),
                 Text(
                   total,
-                  style: TextStyle(
-                    color: Barako.primary,
-                    fontSize: 18,
-                    fontFamily: Barako.displayFont,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppText.amountRow
+                      .copyWith(fontSize: 18)
+                      .tint(Barako.primary),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              note,
-              style: TextStyle(color: Barako.muted, fontSize: 11, height: 1.4),
-            ),
+            Text(note, style: AppText.micro.w4.copyWith(height: 1.4)),
           ],
         ),
       ),

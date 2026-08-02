@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 import 'salapify_icon.dart';
 
 class ScreenHeader extends StatelessWidget {
@@ -50,16 +51,7 @@ class ScreenHeader extends StatelessWidget {
     // It also leaves exactly ONE uppercase treatment in the app, the 12px
     // kicker. Two all-caps sizes competing is solved by deleting one of them,
     // not by tuning both.
-    final titleText = Text(
-      title,
-      style: TextStyle(
-        color: Barako.text,
-        fontSize: 22,
-        fontWeight: FontWeight.w800,
-        height: 1.2,
-        letterSpacing: 0,
-      ),
-    );
+    final titleText = Text(title, style: AppText.title);
     // One Row whenever there is anything beside the title, rather than a
     // trailing-only special case. Menu now sits here on every primary screen,
     // and Utang carries a create button as well, so "title alone" stopped
@@ -94,10 +86,7 @@ class ScreenHeader extends StatelessWidget {
           titleText,
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(
-            subtitle!,
-            style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.3),
-          ),
+          Text(subtitle!, style: AppText.small.tint(Barako.muted)),
         ],
         // Gap.md, not 20: the title shrank from 26 to 22, so it needs less
         // air under it to keep the same optical relationship.

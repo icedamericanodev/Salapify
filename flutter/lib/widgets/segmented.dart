@@ -35,6 +35,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 /// One choice in a [Segmented].
@@ -220,15 +221,19 @@ class Segmented<T> extends StatelessWidget {
                       // Wraps rather than clips. A label that has run out of
                       // room should get taller, not vanish.
                       maxLines: 2,
-                      style: TextStyle(
+                      // Anchored to AppText.label, but size stays pinned to
+                      // _labelSize (the same constant the fit math at build()
+                      // measures with) and weight/height/color are preserved
+                      // exactly, so the segmented layout metric does not move.
+                      style: AppText.label.copyWith(
                         color: selected
                             ? Barako.onPrimary
                             : Barako.textSecondary,
                         fontSize: _labelSize,
                         height: 1.2,
                         fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
+                            ? TypeWeight.bold
+                            : TypeWeight.medium,
                       ),
                     ),
                   ),

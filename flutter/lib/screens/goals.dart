@@ -21,12 +21,11 @@ import '../money/goal_plan.dart';
 import '../money/goals_calc.dart' show goalPercent;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 import 'goal_create.dart';
 import 'goal_detail.dart';
-
-const _tabular = [FontFeature.tabularFigures()];
 
 class GoalsScreen extends StatefulWidget {
   final SalapifyStore store;
@@ -170,22 +169,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   Text(
                     'What are you saving for?',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.title.copyWith(fontSize: 19),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Choose a goal and Salapify will help you build a plan '
                     'you can adjust anytime.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 13,
-                      height: 1.45,
-                    ),
+                    style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
                   ),
                   const SizedBox(height: 14),
                   FilledButton(
@@ -262,26 +253,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     children: [
                       Text(
                         t.name,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.bodyStrong.copyWith(fontSize: 14.5),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         t.blurb,
-                        style: TextStyle(color: Barako.muted, fontSize: 12),
+                        style: AppText.caption,
                       ),
                       if (suggestion != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           suggestion,
-                          style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: _tabular,
+                          style: AppText.caption.w6.tabular.tint(
+                            Barako.primaryText,
                           ),
                         ),
                       ],
@@ -332,11 +316,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             // bank.
             '${formatMoney(totalSaved)} put toward '
             '${active.length == 1 ? 'one active goal' : '${active.length} active goals'}.',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              fontFeatures: _tabular,
-            ),
+            style: AppText.small.tabular,
           ),
           const SizedBox(height: Gap.md),
         ],
@@ -360,18 +340,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   _reordering
                       ? 'top is first'
                       : (focus != null ? 'a suggestion, not an order' : ''),
-                  style: TextStyle(color: Barako.faint, fontSize: 11),
+                  style: AppText.micro.w4.tint(Barako.faint),
                 ),
               ),
               TextButton(
                 onPressed: () => setState(() => _reordering = !_reordering),
                 child: Text(
                   _reordering ? 'Done' : 'Reorder',
-                  style: TextStyle(
-                    color: Barako.primaryText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppText.smallStrong.tint(Barako.primaryText),
                 ),
               ),
             ],
@@ -483,11 +459,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               (g['name'] ?? 'Goal').toString(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.label.w7,
             ),
           ),
           IconButton(
@@ -578,21 +550,15 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             (g['name'] ?? 'Goal').toString(),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Barako.text,
+                            style: AppText.bodyLg.w8.copyWith(
                               fontSize: focus ? 16.5 : 15.5,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             label,
-                            style: TextStyle(
-                              color: warning
-                                  ? Barako.warningStrong
-                                  : Barako.muted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                            style: AppText.caption.w7.tint(
+                              warning ? Barako.warningStrong : Barako.muted,
                             ),
                           ),
                         ],
@@ -605,12 +571,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   f.broken
                       ? 'The linked debt is gone. Open to sort it out.'
                       : '${formatMoney(f.saved)} of ${formatMoney(f.target)}',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: _tabular,
-                  ),
+                  style: AppText.label.w7.tabular,
                 ),
                 if (!f.broken) ...[
                   const SizedBox(height: 8),
@@ -627,21 +588,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     f.done ? 'Fully funded.' : '${formatMoney(remaining)} left',
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12.5,
-                      fontFeatures: _tabular,
-                    ),
+                    style: AppText.caption.copyWith(fontSize: 12.5).tabular,
                   ),
                   if (paceLine != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       paceLine,
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 12.5,
-                        fontFeatures: _tabular,
-                      ),
+                      style: AppText.caption
+                          .copyWith(fontSize: 12.5)
+                          .tabular
+                          .tint(Barako.textSecondary),
                     ),
                   ],
                 ],
@@ -669,11 +625,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           : isDebt
                           ? 'Open the debt goal'
                           : 'Add money',
-                      style: TextStyle(
-                        color: Barako.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.smallStrong.tint(Barako.primaryText),
                     ),
                   ),
                 ),

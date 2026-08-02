@@ -10,6 +10,7 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/search.dart' as search;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'accounts.dart';
 import 'debts.dart';
@@ -163,10 +164,7 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
-        title: Text(
-          'Search',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Search', style: AppText.title),
       ),
       body: SafeArea(
         child: Column(
@@ -178,7 +176,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 autofocus: true,
                 textInputAction: TextInputAction.search,
                 onChanged: (_) => setState(() {}),
-                style: TextStyle(color: Barako.text, fontSize: 16),
+                style: AppText.bodyLg,
                 decoration: InputDecoration(
                   // Shortened so it FITS. The longer version, "Search
                   // anything, like jollibee, Ana, or 1500", was cut off at
@@ -244,17 +242,13 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           Text(
             'Find anything, fast',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppText.heading.w8,
           ),
           const SizedBox(height: 8),
           Text(
             'Search across your entries, IOUs, debts, goals, and notes. Try a name, a place, a category, or an amount.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Barako.muted, fontSize: 14, height: 1.5),
+            style: AppText.label.w4.tint(Barako.muted).copyWith(height: 1.5),
           ),
         ],
       ),
@@ -271,17 +265,13 @@ class _SearchScreenState extends State<SearchScreen> {
           const SizedBox(height: 10),
           Text(
             'No matches',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppText.heading.w8,
           ),
           const SizedBox(height: 4),
           Text(
             'Nothing found for "$q". Try fewer or different words.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Barako.muted, fontSize: 13),
+            style: AppText.small.tint(Barako.muted),
           ),
         ],
       ),
@@ -315,7 +305,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 const SizedBox(width: 8),
                 Text(
                   '${g['count']}',
-                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                  style: AppText.caption.tint(Barako.faint),
                 ),
               ],
             ),
@@ -346,11 +336,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         children: [
                           Text(
                             '$more more in ${g['title']}',
-                            style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppText.small.w6.tint(Barako.primaryText),
                           ),
                           const SizedBox(width: 4),
                           Icon(
@@ -407,11 +393,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     it['title']?.toString() ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppText.body.w6,
                   ),
                   if (sub.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -419,7 +401,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       sub,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                      style: AppText.caption,
                     ),
                   ],
                 ],
@@ -441,12 +423,9 @@ class _SearchScreenState extends State<SearchScreen> {
               ],
               Text(
                 '${sign.isNotEmpty && sign != search.transferSign ? '$sign ' : ''}${formatMoneyText((amount as num).toDouble())}',
-                style: TextStyle(
-                  color: _amountColor(sign),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+                style: AppText.amountRow
+                    .copyWith(fontSize: 14)
+                    .tint(_amountColor(sign)),
               ),
             ],
           ],

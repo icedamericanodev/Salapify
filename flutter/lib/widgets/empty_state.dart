@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 
 import '../money/pan_mood.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'pan_mascot.dart';
 import 'salapify_icon.dart';
 
@@ -88,22 +89,13 @@ class EmptyState extends StatelessWidget {
             else
               SalapifyGlyph(icon, size: 24),
             const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text(title, style: AppText.heading.w8),
             const SizedBox(height: 6),
             Text(
               body,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.45),
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 14),

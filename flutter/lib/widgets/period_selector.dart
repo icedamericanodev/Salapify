@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../money/period.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 class PeriodSelector extends StatelessWidget {
@@ -175,11 +176,7 @@ class PeriodSelector extends StatelessWidget {
                 child: Text(
                   periodLabel(period),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+                  style: AppText.bodyStrong,
                 ),
               ),
               IconButton(

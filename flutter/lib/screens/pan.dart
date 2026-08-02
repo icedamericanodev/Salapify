@@ -19,6 +19,7 @@ import '../money/pan/respond.dart' show planLine;
 import '../money/pan_mood.dart';
 import '../money/plan.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pan_mascot.dart';
 import 'accounts.dart';
 import 'debts.dart';
@@ -326,16 +327,12 @@ class _PanScreenState extends State<PanScreen> {
               const SizedBox(height: 4),
               Text(
                 factsLine,
-                style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                style: AppText.caption.copyWith(fontSize: 12.5),
               ),
               const SizedBox(height: 6),
               Text(
                 planLine(status),
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 14,
-                  height: 1.45,
-                ),
+                style: AppText.label.w4.copyWith(height: 1.45),
               ),
               if (state != 'orphaned' && state != 'done') ...[
                 const SizedBox(height: 10),
@@ -360,22 +357,14 @@ class _PanScreenState extends State<PanScreen> {
                       onPressed: _editPlan,
                       child: Text(
                         'Change',
-                        style: TextStyle(
-                          color: Barako.primaryText,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.small.w7.tint(Barako.primaryText),
                       ),
                     ),
                   TextButton(
                     onPressed: _dropPlan,
                     child: Text(
                       'Drop the plan',
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.small.w7.tint(Barako.muted),
                     ),
                   ),
                 ],
@@ -604,7 +593,7 @@ class _PanScreenState extends State<PanScreen> {
         ),
         child: Text(
           text,
-          style: TextStyle(color: Barako.onPrimary, fontSize: 14),
+          style: AppText.label.w4.tint(Barako.onPrimary),
         ),
       ),
     ),
@@ -631,11 +620,7 @@ class _PanScreenState extends State<PanScreen> {
             children: [
               Text(
                 (reply['text'] ?? '').toString(),
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 14,
-                  height: 1.45,
-                ),
+                style: AppText.label.w4.copyWith(height: 1.45),
               ),
               if (reminder is String && reminder.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -652,9 +637,7 @@ class _PanScreenState extends State<PanScreen> {
                     children: [
                       Text(
                         reminder,
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 13,
+                        style: AppText.small.copyWith(
                           height: 1.4,
                           fontStyle: FontStyle.italic,
                         ),
@@ -694,10 +677,8 @@ class _PanScreenState extends State<PanScreen> {
                           label: Text(c['label']!),
                           onPressed: () => _send(c['example']!),
                           backgroundColor: Barako.background,
-                          labelStyle: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          labelStyle: AppText.caption.w6.tint(
+                            Barako.textSecondary,
                           ),
                         )
                     else if (replySuggestions is List)
@@ -706,10 +687,8 @@ class _PanScreenState extends State<PanScreen> {
                           label: Text(s.toString()),
                           onPressed: () => _send(s.toString()),
                           backgroundColor: Barako.background,
-                          labelStyle: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          labelStyle: AppText.caption.w6.tint(
+                            Barako.textSecondary,
                           ),
                         ),
                   ],
@@ -836,16 +815,12 @@ class _PlanEditSheetState extends State<_PlanEditSheet> {
           children: [
             Text(
               'Change the plan',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.subtitle.w8,
             ),
             const SizedBox(height: 4),
             Text(
               'Same plan, new pace. Pick an amount that fits real life.',
-              style: TextStyle(color: Barako.muted, fontSize: 12.5),
+              style: AppText.caption.copyWith(fontSize: 12.5),
             ),
             const SizedBox(height: 12),
             TextField(
