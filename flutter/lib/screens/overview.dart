@@ -20,6 +20,7 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/treat_card.dart';
 import '../widgets/week_chain.dart';
 import '../widgets/screen_header.dart' show HeaderAction, MenuAction;
@@ -174,11 +175,7 @@ class OverviewScreen extends StatelessWidget {
               children: [
                 Text(
                   '₱',
-                  style: TextStyle(
-                    color: Barako.primary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: AppText.title.copyWith(fontSize: 30).tint(Barako.primary),
                 ),
                 SizedBox(width: 10),
                 // Flexible + scaleDown: on a very narrow phone the wordmark
@@ -190,12 +187,7 @@ class OverviewScreen extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'SALAPIFY',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                      ),
+                      style: AppText.title.copyWith(fontSize: 26, letterSpacing: 3),
                     ),
                   ),
                 ),
@@ -243,11 +235,7 @@ class OverviewScreen extends StatelessWidget {
                   // must never mix two readings of the time, which is the same
                   // reason `now` is captured once at the top of build.
                   greetingFor(now, name: store.displayName),
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 15,
-                    height: 1.3,
-                  ),
+                  style: AppText.bodyMuted.copyWith(height: 1.3),
                 ),
                 const SizedBox(height: 20),
                 if (store.loadError != null)
@@ -412,15 +400,13 @@ class OverviewScreen extends StatelessWidget {
                                     // good month and a bad month look identical until
                                     // you notice the minus.
                                     '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                                    style: TextStyle(
-                                      fontFamily: Barako.displayFont,
-                                      color: net >= 0
-                                          ? Barako.primary
-                                          : Barako.warning,
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.w700,
-                                      fontFeatures: const [],
-                                    ),
+                                    style: AppText.amountLg.w7
+                                        .tint(
+                                          net >= 0
+                                              ? Barako.primary
+                                              : Barako.warning,
+                                        )
+                                        .copyWith(fontFeatures: const []),
                                   );
                                 },
                               ),
@@ -497,10 +483,7 @@ class OverviewScreen extends StatelessWidget {
                                           child: Text(
                                             a['name'] as String? ?? 'Account',
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: Barako.text,
-                                              fontSize: 16,
-                                            ),
+                                            style: AppText.bodyLg,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -512,14 +495,9 @@ class OverviewScreen extends StatelessWidget {
                                             alignment: Alignment.centerRight,
                                             child: Text(
                                               formatMoney(amount(a['balance'])),
-                                              style: TextStyle(
-                                                color: Barako.textSecondary,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                fontFeatures: const [
-                                                  FontFeature.tabularFigures(),
-                                                ],
-                                              ),
+                                              style: AppText.amountRow.w6
+                                                  .tint(Barako.textSecondary)
+                                                  .copyWith(fontSize: 16),
                                             ),
                                           ),
                                         ),
@@ -589,11 +567,9 @@ class OverviewScreen extends StatelessWidget {
           'These accounts, debts, and entries are examples so you can look '
           'around. Your own money is untouched, and none of this feeds your '
           'chain.',
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 14,
-            height: 1.4,
-          ),
+          style: AppText.label.w4
+              .tint(Barako.textSecondary)
+              .copyWith(height: 1.4),
         ),
         const SizedBox(height: Gap.md),
         OutlinedButton(
@@ -787,12 +763,9 @@ class OverviewScreen extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   c['title'] as String,
-                                  style: TextStyle(
-                                    color: titleColor,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.25,
-                                  ),
+                                  style: AppText.bodyStrong
+                                      .tint(titleColor)
+                                      .copyWith(height: 1.25),
                                 ),
                               ),
                               // Always shown now, because the card always has
@@ -808,11 +781,7 @@ class OverviewScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             c['message'] as String,
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
+                            style: AppText.small.copyWith(height: 1.4),
                           ),
                         ],
                       ),
@@ -863,11 +832,7 @@ class OverviewScreen extends StatelessWidget {
               r.salaryLogged
                   ? 'Salary logged. Your cycle is set.'
                   : 'It is payday. Three minutes sets your whole cycle.',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.bodyLg.w7,
             ),
             const SizedBox(height: 4),
             Text(
@@ -884,11 +849,7 @@ class OverviewScreen extends StatelessWidget {
                               'an account with room past the upcoming bills.'
                   : 'Log your salary, move a little to savings first, and '
                         'carry your number until the next payday.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              style: AppText.small.copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             Row(
@@ -1040,13 +1001,13 @@ class OverviewScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         caption,
-                        style: TextStyle(
-                          color: anyNegative
-                              ? Barako.warningStrong
-                              : Barako.textSecondary,
-                          fontSize: 12.5,
-                          height: 1.35,
-                        ),
+                        style: AppText.caption
+                            .tint(
+                              anyNegative
+                                  ? Barako.warningStrong
+                                  : Barako.textSecondary,
+                            )
+                            .copyWith(fontSize: 12.5, height: 1.35),
                       ),
                     ],
                   ),
@@ -1073,18 +1034,13 @@ class OverviewScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '$days ${days == 1 ? 'day' : 'days'}',
-              style: TextStyle(
-                fontFamily: Barako.displayFont,
-                color: Barako.text,
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.amount.w7.copyWith(fontFeatures: const []),
             ),
             if (payday.length >= 10) ...[
               const SizedBox(height: 2),
               Text(
                 'Until ${prettyDay(payday)}.',
-                style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+                style: AppText.small,
               ),
             ],
           ],
@@ -1157,20 +1113,13 @@ class OverviewScreen extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: formatMoney(s.perDay),
-                          style: TextStyle(
-                            fontFamily: Barako.displayFont,
-                            color: Barako.text,
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
+                          style: AppText.amountXl.w7.copyWith(
+                            fontFeatures: const [],
                           ),
                         ),
                         TextSpan(
                           text: '  a day',
-                          style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: AppText.label.tint(Barako.textSecondary),
                         ),
                       ],
                     ),
@@ -1178,11 +1127,7 @@ class OverviewScreen extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     sub,
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
+                    style: AppText.small.copyWith(height: 1.4),
                   ),
                   // What is already spoken for, drawn rather than described.
                   // Both figures come from the SAME safeToSpend call that
@@ -1205,13 +1150,13 @@ class OverviewScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       paceLine,
-                      style: TextStyle(
-                        color: paceFits
-                            ? Barako.primaryText
-                            : Barako.textSecondary,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                      style: AppText.caption
+                          .tint(
+                            paceFits
+                                ? Barako.primaryText
+                                : Barako.textSecondary,
+                          )
+                          .copyWith(height: 1.4),
                     ),
                   ],
                 ],
@@ -1247,25 +1192,20 @@ class OverviewScreen extends StatelessWidget {
               child: Text(
                 formatMoney(nw),
                 maxLines: 1,
-                style: TextStyle(
-                  fontFamily: Barako.displayFont,
-                  // A negative net worth is honest, not an emergency. It
-                  // stays in plain ink, not alarm red, so a user who owes
-                  // more than they hold is not shamed by the biggest number
-                  // on the screen. Red is reserved for urgent, time-bound
-                  // things like an overdue utang.
-                  color: nw < 0 ? Barako.text : Barako.primary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  // No tabularFigures here, deliberately. theme.dart records
-                  // that Fraunces has NO tnum table, which the font file
-                  // confirms (it ships liga and rvrn only), so asking for
-                  // tabular figures on the display family was a silent no op
-                  // pretending to be an alignment guarantee. The StatPair
-                  // below inherits Jakarta, which does have tnum, and that is
-                  // where digit alignment actually matters: a lone hero
-                  // number has no column to line up with.
-                ),
+                style: AppText.amountLg.w7
+                    .tint(nw < 0 ? Barako.text : Barako.primary)
+                    .copyWith(fontFeatures: const []),
+                // Colour: a negative net worth is honest, not an emergency. It
+                // stays in plain ink, not alarm red, so a user who owes more
+                // than they hold is not shamed by the biggest number on the
+                // screen. Red is reserved for urgent, time-bound things like
+                // an overdue utang.
+                //
+                // No tabular figures on this hero, deliberately, preserved from
+                // the original literal with fontFeatures empty: it is a lone
+                // number with no column to line up with. The StatPair below
+                // inherits Jakarta, which does have tnum, and that is where
+                // digit alignment actually matters.
               ),
             ),
             const SizedBox(height: Gap.md),
@@ -1292,11 +1232,7 @@ class OverviewScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small.copyWith(height: 1.4),
               ),
             ],
           ],
@@ -1322,20 +1258,14 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Nothing here yet, and that is okay.',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppText.heading.w8,
           ),
           const SizedBox(height: 6),
           Text(
             'What do you want to start with?',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 14,
-              height: 1.4,
-            ),
+            style: AppText.label.w4
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
           ),
           const SizedBox(height: 14),
           _lane(
@@ -1448,18 +1378,11 @@ class OverviewScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    Text(title, style: AppText.bodyStrong),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                      style: AppText.caption.copyWith(fontSize: 12.5),
                     ),
                   ],
                 ),
@@ -1519,11 +1442,7 @@ class _NameAskState extends State<_NameAsk> {
         children: [
           Text(
             'What should Pan call you?',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppText.bodyStrong,
           ),
           const SizedBox(height: 4),
           Text(
@@ -1531,11 +1450,7 @@ class _NameAskState extends State<_NameAsk> {
             // detail, and "it stays on this phone" is both the honest answer
             // and the reassuring one. Salapify has no server to send it to.
             'Optional, and it never leaves this phone.',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppText.small.copyWith(height: 1.4),
           ),
           const SizedBox(height: Gap.md),
           Row(
@@ -1721,11 +1636,9 @@ class _ExportScreenState extends State<ExportScreen> {
             children: [
               Text(
                 'Everything in this app: $accounts ${accounts == 1 ? 'account' : 'accounts'}, $txns ${txns == 1 ? 'entry' : 'entries'}, IOUs, goals, settings. Save it as a file to your phone, Google Drive, or email, or copy the text. Salapify imports either one unchanged.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
+                style: AppText.label.w4
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -1981,11 +1894,9 @@ class _ImportScreenState extends State<ImportScreen> {
             children: [
               Text(
                 'Choose a backup file (from your phone, Google Drive, or Files), or paste the backup text. Importing replaces everything currently in this app with the backup.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
+                style: AppText.label.w4
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -2007,12 +1918,7 @@ class _ImportScreenState extends State<ImportScreen> {
               const SizedBox(height: 14),
               Text(
                 'Or paste the backup text',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
+                style: AppText.caption.w7.copyWith(letterSpacing: 1),
               ),
               const SizedBox(height: 8),
               Expanded(
@@ -2042,7 +1948,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 const SizedBox(height: 10),
                 Text(
                   error!,
-                  style: TextStyle(color: Barako.warning, fontSize: 13),
+                  style: AppText.small.tint(Barako.warning),
                 ),
               ],
               const SizedBox(height: 12),

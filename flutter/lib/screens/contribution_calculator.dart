@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../money/phtax.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney;
 
 class ContributionCalculatorScreen extends StatefulWidget {
@@ -85,17 +86,10 @@ class _ContributionCalculatorScreenState
           children: [
             Text(
               'See your monthly SSS, PhilHealth, and Pag-IBIG for any salary: what comes out of your pay, what your employer adds, and the total credited to you.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             const SizedBox(height: 14),
-            Text(
-              'MONTHLY SALARY',
-              style: TextStyle(
-                color: Barako.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            Text('MONTHLY SALARY', style: AppText.caption.w7),
             const SizedBox(height: 6),
             TextField(
               controller: salary,
@@ -121,25 +115,14 @@ class _ContributionCalculatorScreenState
                         children: [
                           Expanded(
                             flex: 3,
-                            child: Text(
-                              'Program',
-                              style: TextStyle(
-                                color: Barako.muted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: Text('Program', style: AppText.micro.w7),
                           ),
                           Expanded(
                             flex: 2,
                             child: Text(
                               'You',
                               textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: Barako.muted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.micro.w7,
                             ),
                           ),
                           Expanded(
@@ -147,11 +130,7 @@ class _ContributionCalculatorScreenState
                             child: Text(
                               'Employer',
                               textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: Barako.muted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.micro.w7,
                             ),
                           ),
                         ],
@@ -166,10 +145,7 @@ class _ContributionCalculatorScreenState
                                 flex: 3,
                                 child: Text(
                                   x.$1,
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 13,
-                                  ),
+                                  style: AppText.small.tint(Barako.text),
                                 ),
                               ),
                               Expanded(
@@ -177,14 +153,9 @@ class _ContributionCalculatorScreenState
                                 child: Text(
                                   _m(x.$2),
                                   textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    color: Barako.text,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
+                                  style: AppText.small.w6
+                                      .tint(Barako.text)
+                                      .tabular,
                                 ),
                               ),
                               Expanded(
@@ -192,13 +163,7 @@ class _ContributionCalculatorScreenState
                                 child: Text(
                                   _m(x.$3),
                                   textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 13,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
+                                  style: AppText.small.tabular,
                                 ),
                               ),
                             ],
@@ -209,28 +174,16 @@ class _ContributionCalculatorScreenState
                         children: [
                           Expanded(
                             flex: 3,
-                            child: Text(
-                              'Total',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: Text('Total', style: AppText.smallStrong),
                           ),
                           Expanded(
                             flex: 2,
                             child: Text(
                               _m(eeTotal),
                               textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
+                              style: AppText.small.w8
+                                  .tint(Barako.text)
+                                  .tabular,
                             ),
                           ),
                           Expanded(
@@ -238,14 +191,7 @@ class _ContributionCalculatorScreenState
                             child: Text(
                               _m(erTotal),
                               textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
+                              style: AppText.small.w7.tabular,
                             ),
                           ),
                         ],
@@ -268,21 +214,14 @@ class _ContributionCalculatorScreenState
                           Expanded(
                             child: Text(
                               'Total credited to you',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.label.w7,
                             ),
                           ),
                           Text(
                             _m(grandTotal),
-                            style: TextStyle(
-                              color: Barako.primary,
-                              fontSize: 20,
-                              fontFamily: Barako.displayFont,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppText.amountRow
+                                .copyWith(fontSize: 20)
+                                .tint(Barako.primary),
                           ),
                         ],
                       ),
@@ -309,20 +248,16 @@ class _ContributionCalculatorScreenState
                       const SizedBox(height: 6),
                       Text(
                         'Your SSS is based on a Monthly Salary Credit of ${_m(r['msc'] as double)}, your salary rounded to the nearest 500 and kept between 5,000 and 35,000.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'If you are self-employed or a voluntary member, you pay both shares yourself, so budget for close to the ${_m(grandTotal)} total above, less the small employer-only Employees Compensation part.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -333,17 +268,13 @@ class _ContributionCalculatorScreenState
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter your monthly salary to see your contributions.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                 ),
               ),
             const SizedBox(height: 12),
             Text(
               'Estimate based on $ratesYear SSS, PhilHealth, and Pag-IBIG rates. SSS includes the WISP portion above a 20,000 salary credit and the employer\'s small Employees Compensation share. Your payslip can differ with your employer\'s rounding and cut-off. Not a substitute for your official records.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
             ),
           ],
         ),
@@ -363,20 +294,19 @@ class _ContributionCalculatorScreenState
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
+            style: AppText.small.copyWith(
               color: muted ? Barako.muted : Barako.textSecondary,
-              fontSize: 13,
             ),
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: muted ? Barako.muted : Barako.text,
-            fontSize: 13,
-            fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: AppText.small
+              .copyWith(
+                color: muted ? Barako.muted : Barako.text,
+                fontWeight: strong ? TypeWeight.bold : TypeWeight.medium,
+              )
+              .tabular,
         ),
       ],
     ),

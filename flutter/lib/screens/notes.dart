@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/notecalc.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
 
@@ -66,24 +67,15 @@ class NotesScreen extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'No notes yet',
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          Text('No notes yet', style: AppText.bodyLg.w7),
                           const SizedBox(height: 6),
                           Text(
                             'Jot anything. Lines with amounts add themselves '
                             'up, like a receipt: lunch 120, jeep 24 + 24.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
+                            style: AppText.small
+                                .tint(Barako.muted)
+                                .copyWith(height: 1.4),
                           ),
                         ],
                       ),
@@ -155,11 +147,7 @@ class NotesScreen extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: AppText.body.w6,
                       ),
                       if (preview.isNotEmpty) ...[
                         const SizedBox(height: 2),
@@ -167,7 +155,7 @@ class NotesScreen extends StatelessWidget {
                           preview,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Barako.muted, fontSize: 12),
+                          style: AppText.caption,
                         ),
                       ],
                     ],
@@ -176,12 +164,9 @@ class NotesScreen extends StatelessWidget {
                 if (hasMath)
                   Text(
                     formatMoney(calc['total'] as double),
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    style: AppText.amountRow
+                        .tint(Barako.primaryText)
+                        .copyWith(fontSize: 14),
                   ),
               ],
             ),
@@ -376,11 +361,7 @@ class _NoteEditorState extends State<NoteEditor> {
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
                     keyboardType: TextInputType.multiline,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
+                    style: AppText.bodyLg.copyWith(height: 1.5),
                     decoration: InputDecoration(
                       hintText:
                           'Jot anything. Amounts add themselves up:\nlunch 120\njeep 24 + 24\ngrab 250',
@@ -426,22 +407,16 @@ class _NoteEditorState extends State<NoteEditor> {
                                   row['label'] as String,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Barako.textSecondary,
-                                    fontSize: 12,
+                                  style: AppText.caption.tint(
+                                    Barako.textSecondary,
                                   ),
                                 ),
                               ),
                               Text(
                                 formatMoney(row['value'] as double),
-                                style: TextStyle(
-                                  color: Barako.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                ),
+                                style: AppText.caption.w6
+                                    .tint(Barako.textSecondary)
+                                    .tabular,
                               ),
                             ],
                           ),
@@ -450,25 +425,11 @@ class _NoteEditorState extends State<NoteEditor> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Total',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: Text('Total', style: AppText.smallStrong),
                           ),
                           Text(
                             formatMoney(calc['total'] as double),
-                            style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
+                            style: AppText.amountRow.w8.tint(Barako.primaryText),
                           ),
                         ],
                       ),

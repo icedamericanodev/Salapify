@@ -16,6 +16,7 @@ import '../money/categories.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -64,11 +65,9 @@ class CategoriesScreen extends StatelessWidget {
                   'Categories keep your entries consistent. A monthly cap '
                   'gives one area its own limit, so Food can run out before '
                   'the whole budget does.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
+                  style: AppText.label.w4
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.5),
                 ),
                 const SizedBox(height: Gap.lg),
                 if (store.canWrite)
@@ -93,7 +92,7 @@ class CategoriesScreen extends StatelessWidget {
                 if (rows.isEmpty)
                   Text(
                     'No categories yet.',
-                    style: TextStyle(color: Barako.faint, fontSize: 13),
+                    style: AppText.small.tint(Barako.faint),
                   ),
                 for (final row in rows)
                   _row(context, row, spent['${row.cat['id']}'] ?? 0),
@@ -142,18 +141,13 @@ class CategoriesScreen extends StatelessWidget {
                     children: [
                       Text(
                         name,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: AppText.body.w6,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         _subtitle(spent, cap, over),
-                        style: TextStyle(
-                          color: over ? Barako.warningStrong : Barako.muted,
-                          fontSize: 12,
+                        style: AppText.caption.tint(
+                          over ? Barako.warningStrong : Barako.muted,
                         ),
                       ),
                     ],
@@ -320,11 +314,7 @@ class _CategoryFormState extends State<_CategoryForm> {
             children: [
               Text(
                 _isEdit ? 'Edit category' : 'New category',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.title.copyWith(fontSize: 20),
               ),
               _label('Name'),
               _field(_name, hint: 'Food'),
@@ -381,7 +371,7 @@ class _CategoryFormState extends State<_CategoryForm> {
                   child: Text(
                     'Caps are part of Pro, free during early access. Unlock '
                     'it in Menu and this field starts working.',
-                    style: TextStyle(color: Barako.muted, fontSize: 12),
+                    style: AppText.caption,
                   ),
                 ),
               if (_err != null) ...[
@@ -390,7 +380,7 @@ class _CategoryFormState extends State<_CategoryForm> {
                   liveRegion: true,
                   child: Text(
                     _err!,
-                    style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                    style: AppText.small.tint(Barako.warningStrong),
                   ),
                 ),
               ],
@@ -440,7 +430,7 @@ class _CategoryFormState extends State<_CategoryForm> {
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(t, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(t, style: AppText.caption),
   );
 
   Widget _field(
@@ -452,7 +442,7 @@ class _CategoryFormState extends State<_CategoryForm> {
     keyboardType: number
         ? const TextInputType.numberWithOptions(decimal: true)
         : TextInputType.text,
-    style: TextStyle(color: Barako.text, fontSize: 16),
+    style: AppText.bodyLg,
     decoration: InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Barako.faint),
@@ -545,11 +535,7 @@ class _DeleteCategorySheetState extends State<_DeleteCategorySheet> {
             children: [
               Text(
                 'Delete $name',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.title.copyWith(fontSize: 20),
               ),
               const SizedBox(height: 8),
               Text(
@@ -562,11 +548,9 @@ class _DeleteCategorySheetState extends State<_DeleteCategorySheet> {
                     : '$used entries are tagged with this category. Your '
                           'entries are never deleted; pick where they should '
                           'go.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+                style: AppText.label.w4
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.5),
               ),
               if (used > 0) ...[
                 const SizedBox(height: Gap.md),
@@ -614,7 +598,7 @@ class _DeleteCategorySheetState extends State<_DeleteCategorySheet> {
                             'can tag them again any time.'
                       : 'They keep every peso and every date. Only the '
                             'category label changes.',
-                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                  style: AppText.caption,
                 ),
               ],
               if (_err != null) ...[
@@ -623,7 +607,7 @@ class _DeleteCategorySheetState extends State<_DeleteCategorySheet> {
                   liveRegion: true,
                   child: Text(
                     _err!,
-                    style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                    style: AppText.small.tint(Barako.warningStrong),
                   ),
                 ),
               ],

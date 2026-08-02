@@ -13,6 +13,7 @@ import '../money/currencies.dart' show currencies;
 import '../money/greeting.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/section.dart';
 import '../widgets/pan_mascot.dart';
@@ -393,11 +394,7 @@ class MenuScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Ask Pan',
-                      style: TextStyle(
-                        color: Barako.onPrimary,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppText.subtitle.w8.tint(Barako.onPrimary),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -405,10 +402,8 @@ class MenuScreen extends StatelessWidget {
                       // you ask, so the subtitle only has to carry the thing
                       // the title cannot: that the answers never leave here.
                       'Answered from your own data, right on this phone.',
-                      style: TextStyle(
-                        color: Barako.onPrimary.withValues(alpha: 0.82),
-                        fontSize: 13,
-                        height: 1.3,
+                      style: AppText.small.tint(
+                        Barako.onPrimary.withValues(alpha: 0.82),
                       ),
                     ),
                   ],
@@ -444,18 +439,8 @@ class MenuScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        blurb,
-                        style: TextStyle(color: Barako.muted, fontSize: 12),
-                      ),
+                      Text(title, style: AppText.body.w7),
+                      Text(blurb, style: AppText.caption),
                     ],
                   ),
                 ),
@@ -516,11 +501,7 @@ class MenuScreen extends StatelessWidget {
                   'This only changes the sign in front of amounts. Nothing '
                   'is converted; your numbers stay exactly as you logged '
                   'them.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.copyWith(height: 1.4),
                 ),
                 const SizedBox(height: 10),
                 for (final c in currencies)
@@ -532,8 +513,8 @@ class MenuScreen extends StatelessWidget {
                       style: TextStyle(
                         color: Barako.text,
                         fontWeight: c['code'] == code
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                            ? TypeWeight.bold
+                            : TypeWeight.medium,
                       ),
                     ),
                     trailing: c['code'] == code
@@ -622,23 +603,9 @@ class MenuScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    Text(title, style: AppText.label.w7),
                     const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
-                    ),
+                    Text(subtitle, style: AppText.caption),
                   ],
                 ),
               ),
@@ -663,7 +630,7 @@ class MenuScreen extends StatelessWidget {
           children: [
             Text(
               'Gentle nudges on your phone, nothing sent anywhere. Pick the ones that help.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+              style: AppText.caption,
             ),
             const SizedBox(height: 14),
             row(
@@ -737,11 +704,7 @@ class MenuScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Show names and amounts',
-                          style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppText.label.w7,
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -749,11 +712,7 @@ class MenuScreen extends StatelessWidget {
                           'screen. Turn on to include the name and amount, kept '
                           'off your lock screen and shown in the shade after you '
                           'unlock.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                            height: 1.3,
-                          ),
+                          style: AppText.caption,
                         ),
                       ],
                     ),
@@ -797,16 +756,14 @@ class MenuScreen extends StatelessWidget {
           children: [
             Text(
               current ?? 'Not set',
-              style: TextStyle(
-                color: current == null ? Barako.muted : Barako.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+              style: AppText.body.w7.tint(
+                current == null ? Barako.muted : Barako.text,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               'How Pan greets you on Home. It never leaves this phone.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+              style: AppText.caption,
             ),
             const SizedBox(height: Gap.sm),
             Row(
@@ -922,23 +879,12 @@ class MenuScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'App lock',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    Text('App lock', style: AppText.body.w7),
                     const SizedBox(height: 2),
                     Text(
                       'Ask for your fingerprint or face to open Salapify. Your '
                       'money stays private if someone else picks up your phone.',
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
+                      style: AppText.caption,
                     ),
                   ],
                 ),
@@ -993,11 +939,7 @@ class MenuScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Hide the amount on the home screen',
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.body.w7,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1005,11 +947,7 @@ class MenuScreen extends StatelessWidget {
                       'so nobody reads your money over your shoulder. The Log '
                       'button still works. App lock already does this on its '
                       'own.',
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
+                      style: AppText.caption,
                     ),
                   ],
                 ),
@@ -1044,14 +982,7 @@ class MenuScreen extends StatelessWidget {
         context: context,
         builder: (dialogContext) => SimpleDialog(
           backgroundColor: Barako.background,
-          title: Text(
-            'Export $label',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          title: Text('Export $label', style: AppText.subtitle.w8),
           children: [
             SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop('save'),
@@ -1063,10 +994,7 @@ class MenuScreen extends StatelessWidget {
                     color: Barako.primaryText,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Save to this phone',
-                    style: TextStyle(color: Barako.text, fontSize: 15),
-                  ),
+                  Text('Save to this phone', style: AppText.body),
                 ],
               ),
             ),
@@ -1080,10 +1008,7 @@ class MenuScreen extends StatelessWidget {
                     color: Barako.primaryText,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Share (Drive, email, chat)',
-                    style: TextStyle(color: Barako.text, fontSize: 15),
-                  ),
+                  Text('Share (Drive, email, chat)', style: AppText.body),
                 ],
               ),
             ),
@@ -1124,11 +1049,9 @@ class MenuScreen extends StatelessWidget {
             Text(
               'Save your entries as a spreadsheet, or this month as a PDF report. '
               'Save straight to this phone, or share it to Files, Drive, or email.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: AppText.label.w4.tint(
+                Barako.textSecondary,
+              ).copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -1201,24 +1124,15 @@ class MenuScreen extends StatelessWidget {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: Barako.background,
-          title: Text(
-            'Erase everything?',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          title: Text('Erase everything?', style: AppText.heading.w8),
           content: Text(
             'Start fresh deletes every account, entry, IOU, goal, debt, and '
             'setting Salapify keeps on this phone, including the safety copy '
             'kept from your last import. There is no undo. If you might ever '
             'want this data back, save a backup first.',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 14,
-              height: 1.45,
-            ),
+            style: AppText.label.w4
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.45),
           ),
           actions: [
             TextButton(
@@ -1264,22 +1178,13 @@ class MenuScreen extends StatelessWidget {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: Barako.background,
-          title: Text(
-            'Last check',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          title: Text('Last check', style: AppText.heading.w8),
           content: Text(
             'This permanently erases all Salapify data on this phone and '
             'cancels your reminders. Are you sure?',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 14,
-              height: 1.45,
-            ),
+            style: AppText.label.w4
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.45),
           ),
           actions: [
             TextButton(
@@ -1329,11 +1234,9 @@ class MenuScreen extends StatelessWidget {
               'Erase everything Salapify keeps on this phone and begin again '
               'from zero. This is also the way out if your stored data can no '
               'longer be read.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: AppText.label.w4.tint(
+                Barako.textSecondary,
+              ).copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -1380,11 +1283,9 @@ class MenuScreen extends StatelessWidget {
                     'replaced. You can put it back. What is on the phone now '
                     'becomes the kept copy instead, so you can switch back '
                     'again and nothing is thrown away.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.textSecondary)
+                        .copyWith(height: 1.4),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -1502,11 +1403,9 @@ class MenuScreen extends StatelessWidget {
               loaded
                   ? 'A borrowed set of accounts, entries and a card sits alongside your own. Every screen counts it, which is the point, so take it out when you are done looking.'
                   : 'Fills the app with a pretend month so you can see how every screen reads with money in it. It is added next to your own data, never over it, and one tap takes it all back out.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: AppText.label.w4.tint(
+                Barako.textSecondary,
+              ).copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
@@ -1535,11 +1434,9 @@ class MenuScreen extends StatelessWidget {
               store.hasData
                   ? 'Your data lives only on this phone. Save a backup file to Google Drive or Files, or copy the text, any time. Salapify imports it unchanged, so you always have a way back.'
                   : 'Bring your data over: choose a backup file, or paste the backup text from the current Salapify app. Everything comes over: accounts, entries, IOUs, goals, settings.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: AppText.label.w4.tint(
+                Barako.textSecondary,
+              ).copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             // Wrap, not Row: on a narrow phone or with a large system font, the

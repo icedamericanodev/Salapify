@@ -16,6 +16,7 @@ import '../money/schedule.dart' show daysUntilPayday;
 import '../money/treats.dart' as treats;
 import '../screens/treats.dart' show TreatsScreen;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 class TreatCard extends StatelessWidget {
@@ -65,20 +66,12 @@ class TreatCard extends StatelessWidget {
                       children: [
                         Text(
                           'Earn your treats',
-                          style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppText.bodyStrong,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Pair a small reward with a healthy habit. Guilt free.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                            height: 1.35,
-                          ),
+                          style: AppText.caption.copyWith(height: 1.35),
                         ),
                       ],
                     ),
@@ -196,11 +189,7 @@ class TreatCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     treatName,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppText.bodyStrong,
                   ),
                 ),
               ],
@@ -232,11 +221,10 @@ class TreatCard extends StatelessWidget {
             const SizedBox(height: Gap.sm),
             Text(
               sub,
-              style: TextStyle(
+              style: AppText.small.copyWith(
                 color: earned ? Barako.celebrate : Barako.textSecondary,
-                fontSize: 13,
                 height: 1.4,
-                fontWeight: earned ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: earned ? TypeWeight.medium : TypeWeight.regular,
               ),
             ),
             // The check-in button: for an unearned treat, or to undo today's

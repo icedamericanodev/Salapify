@@ -18,6 +18,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 import 'section.dart';
 
 class BillsBeforePayday extends StatelessWidget {
@@ -106,16 +107,9 @@ class BillsBeforePayday extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                name,
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              Text(name, style: AppText.bodyStrong),
               const SizedBox(height: 2),
-              Text(sub, style: TextStyle(color: Barako.muted, fontSize: 12.5)),
+              Text(sub, style: AppText.caption.copyWith(fontSize: 12.5)),
             ],
           ),
         ),
@@ -124,12 +118,7 @@ class BillsBeforePayday extends StatelessWidget {
           // The minus is explicit. These are all outgoings, and a bare peso
           // figure in a list reads as a balance rather than a deduction.
           '- ${format(amount is num ? amount : 0)}',
-          style: TextStyle(
-            color: Barako.warning,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: AppText.amountRow.w8.tint(Barako.warning),
         ),
       ],
     );

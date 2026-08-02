@@ -14,6 +14,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../money/timeline.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'recurring.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -250,10 +251,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                         children: [
                           Text('PROJECTED BALANCE', style: Barako.kickerStyle),
                           const SizedBox(height: 4),
-                          Text(
-                            _windowSubtitle,
-                            style: TextStyle(color: Barako.muted, fontSize: 12),
-                          ),
+                          Text(_windowSubtitle, style: AppText.caption),
                           const SizedBox(height: 16),
                           _BalanceChart(
                             days: days,
@@ -327,10 +325,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                     Text(label),
                   ],
                 ),
-                labelStyle: TextStyle(
-                  color: _horizon == key ? Barako.onPrimary : Barako.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                labelStyle: AppText.small.w7.tint(
+                  _horizon == key ? Barako.onPrimary : Barako.text,
                 ),
                 selectedColor: Barako.primary,
                 backgroundColor: Barako.card,
@@ -370,7 +366,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               l,
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ),
       ],
@@ -391,7 +387,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             Text(
               'Overlay a plan on the projection. Only the line changes, '
               'never your real money.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+              style: AppText.caption.copyWith(height: 1.35),
             ),
             const SizedBox(height: 6),
             for (var i = 0; i < scenarios.length; i++) ...[
@@ -522,12 +518,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                                     label,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: locked
-                                          ? Barako.muted
-                                          : Barako.text,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
+                                    style: AppText.label.w7.tint(
+                                      locked ? Barako.muted : Barako.text,
                                     ),
                                   ),
                                 ),
@@ -559,9 +551,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                                   : _scenarioSummary(s),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: locked ? Barako.faint : Barako.muted,
-                                fontSize: 12,
+                              style: AppText.caption.tint(
+                                locked ? Barako.faint : Barako.muted,
                               ),
                             ),
                           ],
@@ -695,25 +686,14 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    head,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: Text(head, style: AppText.subtitle.w8),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               body,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13.5,
-                height: 1.45,
-              ),
+              style: AppText.small.copyWith(fontSize: 13.5, height: 1.45),
             ),
             if (!noEvents) ...[
               const SizedBox(height: 14),
@@ -755,12 +735,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             child: Text(
               value,
               maxLines: 1,
-              style: TextStyle(
-                color: color,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+              style: AppText.amountRow.w8.tint(color),
             ),
           ),
         ],
@@ -779,7 +754,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             const SizedBox(height: 4),
             Text(
               'Every salary in, every bill and due out',
-              style: TextStyle(color: Barako.muted, fontSize: 12),
+              style: AppText.caption,
             ),
             const SizedBox(height: 8),
             // A short free window (To payday a few days out) can hold zero
@@ -790,7 +765,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   'Nothing due in this window. A longer view will have more.',
-                  style: TextStyle(color: Barako.muted, fontSize: 12.5),
+                  style: AppText.caption.copyWith(fontSize: 12.5),
                 ),
               ),
             for (var i = 0; i < events.length; i++) ...[
@@ -839,11 +814,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                       isScenario ? '$label (what if)' : label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppText.label.copyWith(fontSize: 14.5),
                     ),
                     const SizedBox(height: 2),
                     Text.rich(
@@ -864,7 +835,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                           ),
                         ],
                       ),
-                      style: const TextStyle(fontSize: 11.5),
+                      style: AppText.micro.w4.copyWith(fontSize: 11.5),
                     ),
                   ],
                 ),
@@ -872,12 +843,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               const SizedBox(width: 8),
               Text(
                 '${isIn ? '+' : '-'}${formatMoneyText(amount)}',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+                style: AppText.amountRow.w8.tint(color).copyWith(fontSize: 14.5),
               ),
             ],
           ),
@@ -1029,11 +995,7 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
             const SizedBox(height: 14),
             Text(
               widget.existing == null ? 'Add a what if' : 'Edit what if',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.subtitle.w8,
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -1045,11 +1007,9 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
                     selected: kind == k,
                     onSelected: (_) => setState(() => kind = k),
                     label: Text(name),
-                    labelStyle: TextStyle(
-                      color: kind == k ? Barako.onPrimary : Barako.text,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    labelStyle: AppText.caption.w7
+                        .tint(kind == k ? Barako.onPrimary : Barako.text)
+                        .copyWith(fontSize: 12.5),
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.card,
                     side: BorderSide(color: Barako.border),
@@ -1222,11 +1182,15 @@ class _BalanceChart extends StatelessWidget {
               children: [
                 Text(
                   _pretty(first),
-                  style: TextStyle(color: Barako.faint, fontSize: 10.5),
+                  style: AppText.micro.w4
+                      .tint(Barako.faint)
+                      .copyWith(fontSize: 10.5),
                 ),
                 Text(
                   _pretty(last),
-                  style: TextStyle(color: Barako.faint, fontSize: 10.5),
+                  style: AppText.micro.w4
+                      .tint(Barako.faint)
+                      .copyWith(fontSize: 10.5),
                 ),
               ],
             ),

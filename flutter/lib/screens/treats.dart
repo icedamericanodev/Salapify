@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import '../data/store.dart';
 import '../money/treats.dart' as treats;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -65,11 +66,9 @@ class TreatsScreen extends StatelessWidget {
                 Text(
                   'Pair a small treat with something healthy. Do the healthy '
                   'thing, tap one check-in, and the treat is yours guilt free.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
+                  style: AppText.label.w4
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.45),
                 ),
                 const SizedBox(height: 18),
                 if (rules.isEmpty)
@@ -83,7 +82,7 @@ class TreatsScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         '3 of 3 treats. Delete one to add another.',
-                        style: TextStyle(color: Barako.faint, fontSize: 12),
+                        style: AppText.caption.tint(Barako.faint),
                       ),
                     ),
                   const SizedBox(height: 20),
@@ -101,7 +100,7 @@ class TreatsScreen extends StatelessWidget {
     'This tracks a habit, not your wallet. It never blocks a purchase and '
     'never counts your pesos.',
     textAlign: TextAlign.center,
-    style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.4),
+    style: AppText.caption.tint(Barako.faint).copyWith(height: 1.4),
   );
 
   Widget _addAnotherButton(BuildContext context) => Padding(
@@ -150,16 +149,12 @@ class TreatsScreen extends StatelessWidget {
                         children: [
                           Text(
                             tpl['treat'] as String,
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppText.bodyStrong,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${tpl['target']} x ${tpl['action']}',
-                            style: TextStyle(color: Barako.muted, fontSize: 12),
+                            style: AppText.caption,
                           ),
                         ],
                       ),
@@ -245,16 +240,12 @@ class TreatsScreen extends StatelessWidget {
                     children: [
                       Text(
                         treatName,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppText.bodyLg.w8,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         action,
-                        style: TextStyle(color: Barako.muted, fontSize: 13),
+                        style: AppText.small.tint(Barako.muted),
                       ),
                     ],
                   ),
@@ -314,11 +305,10 @@ class TreatsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               line,
-              style: TextStyle(
+              style: AppText.small.copyWith(
                 color: earned ? Barako.text : Barako.textSecondary,
-                fontSize: 13,
                 height: 1.4,
-                fontWeight: earned ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: earned ? TypeWeight.medium : TypeWeight.regular,
               ),
             ),
             const SizedBox(height: 14),
@@ -341,7 +331,7 @@ class TreatsScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '$lifetime self care check ins in total',
-                    style: TextStyle(color: Barako.faint, fontSize: 12),
+                    style: AppText.caption.tint(Barako.faint),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -449,10 +439,8 @@ class _CheckInButton extends StatelessWidget {
                         ? 'Done for today, tap to undo'
                         : 'I did it today',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: doneToday ? Barako.onPrimary : Barako.primaryText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                    style: AppText.label.w7.tint(
+                      doneToday ? Barako.onPrimary : Barako.primaryText,
                     ),
                   ),
                 ),
@@ -616,11 +604,7 @@ class _TreatSheetState extends State<_TreatSheet> {
             children: [
               Text(
                 _isEdit ? 'Edit treat' : 'New treat',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.heading.w8,
               ),
               _label('Treat'),
               _input(_treat, hint: 'e.g. milk tea'),
@@ -700,7 +684,7 @@ class _TreatSheetState extends State<_TreatSheet> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(text, style: AppText.caption),
   );
 
   Widget _input(
@@ -726,7 +710,7 @@ class _TreatSheetState extends State<_TreatSheet> {
               }
             }
           : null,
-      style: TextStyle(color: Barako.text, fontSize: 15),
+      style: AppText.body,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Barako.faint),
@@ -767,11 +751,7 @@ class _TreatSheetState extends State<_TreatSheet> {
             child: Text(
               '$_target',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.heading.w8,
             ),
           ),
         ),

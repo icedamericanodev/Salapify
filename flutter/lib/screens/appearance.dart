@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/section.dart';
 import '../widgets/segmented.dart';
@@ -105,11 +106,7 @@ class AppearanceScreen extends StatelessWidget {
                 Text(
                   'System follows your phone, so the app goes dark at night on '
                   'its own.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+                  style: AppText.caption.copyWith(height: 1.3),
                 ),
                 const SizedBox(height: Gap.xl),
                 Kicker('COLOR THEME'),
@@ -117,11 +114,7 @@ class AppearanceScreen extends StatelessWidget {
                 Text(
                   'Barako is the Salapify look. Your money, entries and '
                   'settings never change.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+                  style: AppText.caption.copyWith(height: 1.3),
                 ),
                 const SizedBox(height: Gap.md),
                 _ThemeGrid(
@@ -264,12 +257,7 @@ class ThemeTile extends StatelessWidget {
                       // nothing until it is needed.
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
+                      style: AppText.label.w7.copyWith(height: 1.2),
                     ),
                     const SizedBox(height: Gap.xxs),
                     // No maxLines. RN caps the hint at three lines, which clips
@@ -282,11 +270,7 @@ class ThemeTile extends StatelessWidget {
                     // is text the user is meant to read and compare.
                     Text(
                       theme.hint,
-                      style: TextStyle(
-                        color: Barako.muted,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
+                      style: AppText.caption.copyWith(height: 1.3),
                     ),
                   ],
                 ),

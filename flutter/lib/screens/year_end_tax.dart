@@ -16,6 +16,7 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/phtax.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 
 class YearEndTaxScreen extends StatefulWidget {
@@ -118,11 +119,9 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
               'owed a little back or owe a little more. There is one pay '
               'field here, so if you had a raise, use your average monthly '
               'pay for the year.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.5,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.5),
             ),
             const SizedBox(height: Gap.lg),
             _label('Monthly basic pay'),
@@ -154,18 +153,16 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                         : 'These are not numbers I can read: '
                               '${badFields.join(', ')}. Use digits only, like '
                               '25000.',
-                    style: TextStyle(
-                      color: Barako.warningStrong,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.warningStrong)
+                        .copyWith(height: 1.5),
                   ),
                 ),
               )
             else if (!showResult)
               Text(
                 'Enter your monthly basic pay to see the estimate.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               )
             else ...[
               if (!withheldEntered)
@@ -180,11 +177,9 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                     'Enter the tax withheld from your payslips to see whether '
                     'you are due a refund or still owe. Until then the '
                     'breakdown below shows what the year asks for.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
+                    style: AppText.label.w4
+                        .tint(Barako.textSecondary)
+                        .copyWith(height: 1.5),
                   ),
                 )
               else
@@ -237,11 +232,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                                   'back to you.'
                             : 'The annual computation asks for more than was '
                                   'withheld, so expect this to be deducted.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
+                        style: AppText.small.copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -266,11 +257,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                 'a previous employer that year or benefits treated '
                 'differently. Use it to know roughly what is coming, then '
                 'check the real thing when it arrives.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.5,
-                ),
+                style: AppText.caption.copyWith(height: 1.5),
               ),
             ],
           ],
@@ -286,17 +273,13 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+            style: AppText.small,
           ),
         ),
         const SizedBox(width: 12),
         Text(
           formatMoneyText(value),
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppText.label.w7,
         ),
       ],
     ),
@@ -304,14 +287,14 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(t, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(t, style: AppText.caption),
   );
 
   Widget _field(TextEditingController c, {required String hint}) => TextField(
     controller: c,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     onChanged: (_) => setState(() {}),
-    style: TextStyle(color: Barako.text, fontSize: 16),
+    style: AppText.bodyLg,
     decoration: InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Barako.faint),

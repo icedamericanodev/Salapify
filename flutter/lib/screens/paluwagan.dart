@@ -13,6 +13,7 @@ import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/paluwagan.dart' as eng;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -93,11 +94,9 @@ class PaluwaganScreen extends StatelessWidget {
                 Text(
                   'Interest free and zero sum. The only variable is your turn, '
                   'and Salapify reads it for you below.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
+                  style: AppText.label.w4
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.45),
                 ),
                 const SizedBox(height: 16),
                 if (items.isEmpty)
@@ -124,18 +123,14 @@ class PaluwaganScreen extends StatelessWidget {
         const SizedBox(height: 10),
         Text(
           'No paluwagan yet',
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
+          style: AppText.bodyLg.w8,
         ),
         const SizedBox(height: 4),
         Text(
           'Add your office or friend group paluwagan to see your payout date '
           'and where you stand.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Barako.muted, fontSize: 13),
+          style: AppText.small.tint(Barako.muted),
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
@@ -222,11 +217,7 @@ class _PaluwaganCard extends StatelessWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Barako.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: AppText.bodyLg.w8,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -237,7 +228,7 @@ class _PaluwaganCard extends StatelessWidget {
                     Text(
                       '${formatMoneyText(amount)} ${_cadenceShort(cadence)} · '
                       '$members members · your turn is #$myTurn',
-                      style: TextStyle(color: Barako.muted, fontSize: 12),
+                      style: AppText.caption,
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -315,7 +306,7 @@ class _PaluwaganCard extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
+        style: AppText.micro.w7.tint(fg),
       ),
     );
   }
@@ -334,12 +325,7 @@ class _PaluwaganCard extends StatelessWidget {
             child: Text(
               value,
               maxLines: 1,
-              style: TextStyle(
-                color: color,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+              style: AppText.amountRow.copyWith(fontSize: 16).w8.tint(color),
             ),
           ),
         ],
@@ -369,7 +355,7 @@ class _PaluwaganCard extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             'Cycle $done of $members',
-            style: TextStyle(color: Barako.muted, fontSize: 11),
+            style: AppText.micro.w4,
           ),
         ],
       ),
@@ -424,11 +410,9 @@ class _PaluwaganCard extends StatelessWidget {
       Expanded(
         child: Text(
           text,
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 12.5,
-            height: 1.4,
-          ),
+          style: AppText.caption
+              .tint(Barako.textSecondary)
+              .copyWith(fontSize: 12.5, height: 1.4),
         ),
       ),
     ],
@@ -626,11 +610,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
             children: [
               Text(
                 _isEdit ? 'Edit paluwagan' : 'New paluwagan',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppText.heading.w8,
               ),
               _label('Name'),
               _input(_name, hint: 'e.g. Office paluwagan'),
@@ -683,7 +663,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
               Text(
                 'This is how many contributions you have put in so far. It tells you '
                 'if you are behind.',
-                style: TextStyle(color: Barako.faint, fontSize: 11),
+                style: AppText.micro.w4.tint(Barako.faint),
               ),
               _label('Note (optional)'),
               _input(_note, hint: 'e.g. Draws every 15th'),
@@ -691,7 +671,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                 const SizedBox(height: 12),
                 Text(
                   _err!,
-                  style: TextStyle(color: Barako.warningStrong, fontSize: 13),
+                  style: AppText.small.tint(Barako.warningStrong),
                 ),
               ],
               const SizedBox(height: 22),
@@ -792,10 +772,8 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                 child: Text(
                   shown,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: on ? Barako.onPrimary : Barako.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                  style: AppText.small.w6.tint(
+                    on ? Barako.onPrimary : Barako.textSecondary,
                   ),
                 ),
               ),
@@ -832,7 +810,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                 const SizedBox(width: 10),
                 Text(
                   _prettyDate(_startDate),
-                  style: TextStyle(color: Barako.text, fontSize: 15),
+                  style: AppText.body,
                 ),
               ],
             ),
@@ -844,7 +822,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(text, style: TextStyle(color: Barako.muted, fontSize: 12)),
+    child: Text(text, style: AppText.caption),
   );
 
   Widget _input(
@@ -866,7 +844,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
       inputFormatters: formatters.isEmpty ? null : formatters,
-      style: TextStyle(color: Barako.text, fontSize: 15),
+      style: AppText.body,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Barako.faint),

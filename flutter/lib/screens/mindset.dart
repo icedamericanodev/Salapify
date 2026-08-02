@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
 import 'learn.dart';
@@ -145,21 +146,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
                             const SizedBox(height: 8),
                             Text(
                               '${lesson['emoji']}  ${lesson['title']}',
-                              style: TextStyle(
-                                color: Barako.text,
-                                fontSize: 16,
-                                height: 1.35,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.bodyLg.w7.copyWith(height: 1.35),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               lesson['summary'] as String,
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
+                              style: AppText.small.copyWith(height: 1.4),
                             ),
                             const SizedBox(height: 8),
                             // The go-deeper affordance is a real glyph now,
@@ -170,10 +162,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
                                 Flexible(
                                   child: Text(
                                     'Read this and more in Money courses',
-                                    style: TextStyle(
-                                      color: Barako.primaryText,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                    style: AppText.small.w6.tint(
+                                      Barako.primaryText,
                                     ),
                                   ),
                                 ),
@@ -216,12 +206,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
                               // warning fail AA at 13px on the light card, so
                               // this one buy-or-wait line uses the designated
                               // strong tokens.
-                              style: TextStyle(
-                                color: allYes
-                                    ? Barako.primaryText
-                                    : Barako.warningStrong,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                              style: AppText.small.w6.tint(
+                                allYes ? Barako.primaryText : Barako.warningStrong,
                               ),
                             ),
                           ),
@@ -243,7 +229,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
                         controller: _winText,
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _addWin(),
-                        style: TextStyle(color: Barako.text, fontSize: 15),
+                        style: AppText.body,
                         decoration: InputDecoration(
                           hintText: 'e.g. Packed lunch all week',
                           hintStyle: TextStyle(color: Barako.faint),
@@ -296,10 +282,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Text(
                               'No wins yet. Add a small one above.',
-                              style: TextStyle(
-                                color: Barako.faint,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small.tint(Barako.faint),
                             ),
                           )
                         : Column(
@@ -342,7 +325,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
             Expanded(
               child: Text(
                 _questions[i],
-                style: TextStyle(color: Barako.text, fontSize: 15),
+                style: AppText.body,
               ),
             ),
           ],
@@ -366,7 +349,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
           Expanded(
             child: Text(
               '${w['text'] ?? ''}',
-              style: TextStyle(color: Barako.text, fontSize: 15),
+              style: AppText.body,
             ),
           ),
           const SizedBox(width: 8),

@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 
 /// The section label, inside a card or outside one.
 ///
@@ -74,11 +75,7 @@ class SectionHeader extends StatelessWidget {
         const SizedBox(width: Gap.sm),
         Text(
           trailing!,
-          style: TextStyle(
-            color: trailingColor ?? Barako.primary,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          style: AppText.amountRow.w8.tint(trailingColor ?? Barako.primary),
         ),
       ],
     );

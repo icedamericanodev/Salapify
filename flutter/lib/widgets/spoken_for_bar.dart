@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 
 class SpokenForBar extends StatelessWidget {
   /// Cash already set aside for bills and minimums before the next payday.
@@ -88,20 +89,9 @@ class SpokenForBar extends StatelessWidget {
       // Expanded so a large system font scale grows the label and pushes the
       // amount, rather than overflowing the Row.
       Expanded(
-        child: Text(
-          label,
-          style: TextStyle(color: Barako.textSecondary, fontSize: 13),
-        ),
+        child: Text(label, style: AppText.small),
       ),
-      Text(
-        value,
-        style: TextStyle(
-          color: Barako.text,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
+      Text(value, style: AppText.smallStrong.tabular),
     ],
   );
 }

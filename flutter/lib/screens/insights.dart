@@ -20,6 +20,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
@@ -303,19 +304,12 @@ class InsightsScreen extends StatelessWidget {
                         children: [
                           Text(
                             'You are on track',
-                            style: TextStyle(
-                              color: Barako.primaryText,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppText.bodyLg.w7.tint(Barako.primaryText),
                           ),
                           SizedBox(height: 4),
                           Text(
                             'Nothing needs a money decision right now. Keep logging and enjoy the calm.',
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                            ),
+                            style: AppText.small,
                           ),
                         ],
                       ),
@@ -334,11 +328,7 @@ class InsightsScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           win['text'] as String,
-                          style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: AppText.small.w6.tint(Barako.primaryText),
                         ),
                       ),
                     ],
@@ -477,7 +467,7 @@ class InsightsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            style: const TextStyle(fontSize: 13, height: 1.4),
+            style: AppText.small.copyWith(height: 1.4),
           ),
         ),
       ],
@@ -532,11 +522,7 @@ class InsightsScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       c['title'] as String,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.body.w7.tint(color),
                     ),
                   ),
                   if (utang && onSwitchTab != null)
@@ -546,11 +532,7 @@ class InsightsScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 c['message'] as String,
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small.copyWith(height: 1.4),
               ),
             ],
           ),
@@ -587,11 +569,7 @@ class InsightsScreen extends StatelessWidget {
           backgroundColor: Barako.background,
           title: Text(
             'Your weekly pay',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppText.subtitle.w8,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -602,7 +580,7 @@ class InsightsScreen extends StatelessWidget {
                     ? 'The amount you pay yourself each week, whatever the '
                           'month brings.'
                     : 'Suggested: ${formatMoney(suggestion.weeklyDraw!.roundToDouble())} a week, planned on your lean months.',
-                style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+                style: AppText.small,
               ),
               const SizedBox(height: 10),
               TextField(
@@ -697,11 +675,7 @@ class InsightsScreen extends StatelessWidget {
         'Steady Pay suggests a weekly salary you pay yourself, planned on '
         'your lean months. It needs about three full months of logged '
         'income to be honest: $progress Keep logging and it appears here.',
-        style: TextStyle(
-          color: Barako.textSecondary,
-          fontSize: 13,
-          height: 1.4,
-        ),
+        style: AppText.small.copyWith(height: 1.4),
       );
     } else if (accepted == null) {
       final weekly = suggestion.weeklyDraw!;
@@ -710,11 +684,7 @@ class InsightsScreen extends StatelessWidget {
         children: [
           Text(
             'Pay yourself ${formatMoney(weekly.roundToDouble())} a week',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppText.bodyLg.w7,
           ),
           const SizedBox(height: 4),
           Text(
@@ -722,11 +692,7 @@ class InsightsScreen extends StatelessWidget {
             '(about ${formatMoneyAbout(suggestion.leanBaseline!)} a month), so a good month '
             'becomes runway, not lifestyle.'
             '${runwayLine == null ? '' : ' $runwayLine'}',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppText.small.copyWith(height: 1.4),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
@@ -750,11 +716,7 @@ class InsightsScreen extends StatelessWidget {
         children: [
           Text(
             '${formatMoney(accepted)} a week',
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppText.bodyLg.w7,
           ),
           const SizedBox(height: 4),
           Text(
@@ -766,11 +728,7 @@ class InsightsScreen extends StatelessWidget {
                 : 'Drawn ${formatMoney(week.spent)} of your pay this week, '
                       '${formatMoney(week.remaining)} still yours to spend.'
                       '${runwayLine == null ? '' : ' $runwayLine'}',
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppText.small.copyWith(height: 1.4),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
@@ -824,12 +782,8 @@ class InsightsScreen extends StatelessWidget {
               child: Text(
                 formatMoney(available > 0 ? available : 0),
                 maxLines: 1,
-                style: TextStyle(
-                  fontFamily: Barako.displayFont,
-                  color: tight ? Barako.warning : Barako.primary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                style: AppText.amountLg.w7.tint(
+                  tight ? Barako.warning : Barako.primary,
                 ),
               ),
             ),
@@ -853,11 +807,9 @@ class InsightsScreen extends StatelessWidget {
                         (billCount > 0
                             ? '${formatMoney(committed)} is set aside for $billCount ${billCount == 1 ? 'bill' : 'bills'} landing first.'
                             : 'No bills land before then.'),
-              style: TextStyle(
-                color: tight ? Barako.warning : Barako.muted,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              style: AppText.small
+                  .tint(tight ? Barako.warning : Barako.muted)
+                  .copyWith(height: 1.4),
             ),
           ],
         ),
@@ -895,11 +847,7 @@ class InsightsScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your salary is.',
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.45,
-                ),
+                style: AppText.small.copyWith(height: 1.45),
               ),
             ],
           ),
@@ -966,13 +914,7 @@ class InsightsScreen extends StatelessWidget {
               child: Text(
                 hero,
                 maxLines: 1,
-                style: TextStyle(
-                  fontFamily: Barako.displayFont,
-                  color: heroColor,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+                style: AppText.amountLg.w7.tint(heroColor),
               ),
             ),
             if (showShare) ...[
@@ -996,38 +938,26 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               support,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.45,
-              ),
+              style: AppText.small.copyWith(height: 1.45),
             ),
             if (showShare && incomeMonths < 6) ...[
               const SizedBox(height: 6),
               Text(
                 'This uses your months with income. On a lean or no-income month, a bigger share is spoken for.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
             if (minimumUnfilled) ...[
               const SizedBox(height: 6),
               Text(
                 'A debt has no minimum saved, so this may understate. Add its minimum for a truer picture.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
             Text(
               'From the bills and minimums you have logged. The more you log, the truer this gets.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),
@@ -1137,32 +1067,21 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               title,
-              style: TextStyle(
-                fontFamily: Barako.displayFont,
-                color: heroColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.title.w7.tint(heroColor),
             ),
             const SizedBox(height: 4),
             Text(
               support,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.45,
-              ),
+              style: AppText.small.copyWith(height: 1.45),
             ),
             const SizedBox(height: 14),
             _orderRail(activeIndex),
             const SizedBox(height: 12),
             Text(
               spareLine,
-              style: TextStyle(
-                color: crunch ? Barako.warningStrong : Barako.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              style: AppText.caption
+                  .tint(crunch ? Barako.warningStrong : Barako.muted)
+                  .copyWith(height: 1.4),
             ),
             if (rateUnfilled) ...[
               const SizedBox(height: 6),
@@ -1170,17 +1089,13 @@ class InsightsScreen extends StatelessWidget {
               // muted tone (which also clears AA) instead of a third red line.
               Text(
                 'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
             Text(
               'An order based on the rates and balances you logged, not a promise. Your call always wins.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),
@@ -1221,16 +1136,16 @@ class InsightsScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: AppText.micro.copyWith(
+                      fontSize: 10,
                       color: i == activeIndex
                           ? Barako.text
                           : i < activeIndex
                           ? Barako.muted
                           : Barako.faint,
-                      fontSize: 10,
                       fontWeight: i == activeIndex
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+                          ? TypeWeight.bold
+                          : TypeWeight.medium,
                     ),
                   ),
                 ],
@@ -1268,19 +1183,14 @@ class InsightsScreen extends StatelessWidget {
               children: [
                 Text(
                   '$total',
-                  style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: Barako.primary,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppText.title
+                      .copyWith(fontSize: 34)
+                      .w7
+                      .tint(Barako.primary),
                 ),
                 Padding(
                   padding: EdgeInsets.only(bottom: 6, left: 4),
-                  child: Text(
-                    'of 100',
-                    style: TextStyle(color: Barako.muted, fontSize: 12),
-                  ),
+                  child: Text('of 100', style: AppText.caption),
                 ),
               ],
             ),
@@ -1294,10 +1204,7 @@ class InsightsScreen extends StatelessWidget {
                       width: 110,
                       child: Text(
                         partLabel[key]!,
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                        ),
+                        style: AppText.caption.tint(Barako.textSecondary),
                       ),
                     ),
                     Expanded(
@@ -1317,7 +1224,7 @@ class InsightsScreen extends StatelessWidget {
                       child: Text(
                         '${(parts[key] as double).toInt()}/${partMax[key]}',
                         textAlign: TextAlign.right,
-                        style: TextStyle(color: Barako.muted, fontSize: 11),
+                        style: AppText.micro.w4,
                       ),
                     ),
                   ],
@@ -1353,7 +1260,14 @@ class InsightsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final l in labels)
-                  Text(l, style: TextStyle(color: Barako.faint, fontSize: 10)),
+                  Text(
+                    l,
+                    style: AppText.micro.copyWith(
+                      fontSize: 10,
+                      fontWeight: TypeWeight.regular,
+                      color: Barako.faint,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -1378,7 +1292,7 @@ class InsightsScreen extends StatelessWidget {
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       const SizedBox(width: 6),
-      Text(label, style: TextStyle(color: Barako.textSecondary, fontSize: 12)),
+      Text(label, style: AppText.caption.tint(Barako.textSecondary)),
     ],
   );
 
@@ -1401,7 +1315,7 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
-              style: TextStyle(color: Barako.muted, fontSize: 12),
+              style: AppText.caption,
             ),
             const SizedBox(height: 10),
             for (final c in visible)
@@ -1417,17 +1331,12 @@ class InsightsScreen extends StatelessWidget {
                           child: Text(
                             c['label'] as String,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Barako.text, fontSize: 13),
+                            style: AppText.small.tint(Barako.text),
                           ),
                         ),
                         Text(
                           formatMoney(c['now'] as double),
-                          style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
+                          style: AppText.small.w6.tabular,
                         ),
                       ],
                     ),
@@ -1452,7 +1361,7 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'An orange bar is running past its usual pace for this point in the month.',
-              style: TextStyle(color: Barako.faint, fontSize: 11),
+              style: AppText.micro.w4.tint(Barako.faint),
             ),
           ],
         ),
@@ -1473,18 +1382,14 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               runwayLabel(months, capped),
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppText.title,
             ),
             const SizedBox(height: 4),
             Text(
               months == null
                   ? 'After two full months of logged spending, this shows how long your accessible money would carry you.'
                   : 'Your accessible money (${formatMoney(runway['buffer'] as double)}) covers ${capped ? 'more than a year' : 'about ${runwayLabel(months, false)}'} of your typical ${formatMoney(runway['avgMonthlyExpense'] as double)} monthly spending.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
           ],
         ),
@@ -1540,11 +1445,7 @@ class _CollapsibleToolState extends State<_CollapsibleTool> {
                   Expanded(
                     child: Text(
                       widget.title,
-                      style: TextStyle(
-                        color: Barako.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.label.w7,
                     ),
                   ),
                   ExcludeSemantics(
@@ -1732,58 +1633,37 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
                 child: Text(
                   heroText,
                   maxLines: 1,
-                  style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: Barako.primary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: AppText.amountLg.w7.tint(Barako.primary),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 supportText,
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small.copyWith(height: 1.4),
               ),
             ] else
               Text(
                 supportText,
-                style: TextStyle(
-                  color: supportColor,
-                  fontSize: 14,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppText.label.tint(supportColor).copyWith(height: 1.45),
               ),
             const SizedBox(height: 8),
             Text(
               grounding,
-              style: TextStyle(
-                color: crunch ? Barako.warning : Barako.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              style: AppText.caption
+                  .tint(crunch ? Barako.warning : Barako.muted)
+                  .copyWith(height: 1.4),
             ),
             if (unfilled) ...[
               const SizedBox(height: 6),
               Text(
                 'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
-                style: TextStyle(
-                  color: Barako.warning,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.tint(Barako.warning).copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
             Text(
               'A projection from your logged balances, assuming you keep it up and add no new charges. A guide, not a promise.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),
@@ -1908,67 +1788,52 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
                 child: Text(
                   heroText,
                   maxLines: 1,
-                  style: TextStyle(
-                    fontFamily: Barako.displayFont,
-                    color: Barako.primary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: AppText.amountLg.w7.tint(Barako.primary),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 supportText,
-                style: TextStyle(
-                  color: Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small.copyWith(height: 1.4),
               ),
             ] else
               Text(
                 supportText,
-                style: TextStyle(
-                  color: supportColor,
-                  fontSize: 14,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppText.label.tint(supportColor).copyWith(height: 1.45),
               ),
             if (targetText.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 targetText,
-                style: TextStyle(
-                  color: targetTone == 'behind'
-                      ? Barako.warning
-                      : targetTone == 'ontime'
-                      ? Barako.primary
-                      : Barako.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                  // Only the reward and the warning carry weight; the
-                  // neutral "aim for X a week" reads as part of support.
-                  fontWeight: targetTone == 'plain'
-                      ? FontWeight.w400
-                      : FontWeight.w600,
-                ),
+                style: AppText.small
+                    .copyWith(
+                      height: 1.4,
+                      // Only the reward and the warning carry weight; the
+                      // neutral "aim for X a week" reads as part of support.
+                      fontWeight: targetTone == 'plain'
+                          ? TypeWeight.regular
+                          : TypeWeight.medium,
+                    )
+                    .tint(
+                      targetTone == 'behind'
+                          ? Barako.warning
+                          : targetTone == 'ontime'
+                          ? Barako.primary
+                          : Barako.textSecondary,
+                    ),
               ),
             ],
             const SizedBox(height: 8),
             Text(
               grounding,
-              style: TextStyle(
-                color: crunch ? Barako.warning : Barako.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              style: AppText.caption
+                  .tint(crunch ? Barako.warning : Barako.muted)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 8),
             Text(
               'A projection from your target and what you set aside, assuming you keep it up. A guide, not a promise.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
         ),

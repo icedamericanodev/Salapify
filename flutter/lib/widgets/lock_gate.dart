@@ -13,6 +13,7 @@ import 'package:local_auth/local_auth.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 /// The biometric check, behind an interface so tests can inject a fake instead
@@ -272,18 +273,11 @@ class _LockScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  'Salapify is locked',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Text('Salapify is locked', style: AppText.title),
                 const SizedBox(height: 6),
                 Text(
                   'Private to you on this phone.',
-                  style: TextStyle(color: Barako.muted, fontSize: 15),
+                  style: AppText.body.tint(Barako.muted),
                 ),
                 const SizedBox(height: 28),
                 FilledButton(

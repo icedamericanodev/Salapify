@@ -28,6 +28,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/pan_mood.dart';
 import '../money/recap.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pan_mascot.dart' show PanCupPainter, PanPalette;
 
 // Barako, baked into the shared image on purpose: the card is brand marketing
@@ -177,11 +178,9 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                   'Turn ${_isCycle ? 'this payday cycle' : _recap['label']} '
                   'into a card you can post or send. You choose if peso '
                   'amounts show.',
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
+                  style: AppText.label.w4
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.45),
                 ),
                 const SizedBox(height: 14),
                 // The window toggle: the calendar month, or your own sweldo
@@ -193,10 +192,8 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                     ChoiceChip(
                       label: Text(
                         'This month',
-                        style: TextStyle(
-                          color: _isCycle ? Barako.text : Barako.onPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        style: AppText.caption.w6.tint(
+                          _isCycle ? Barako.text : Barako.onPrimary,
                         ),
                       ),
                       selected: !_isCycle,
@@ -213,10 +210,8 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
                     ChoiceChip(
                       label: Text(
                         'Payday cycle',
-                        style: TextStyle(
-                          color: _isCycle ? Barako.onPrimary : Barako.text,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        style: AppText.caption.w6.tint(
+                          _isCycle ? Barako.onPrimary : Barako.text,
                         ),
                       ),
                       selected: _isCycle,
@@ -305,16 +300,12 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
             children: [
               Text(
                 'Hide peso amounts',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppText.body.w6,
               ),
               const SizedBox(height: 2),
               Text(
                 'Show percentages only, keep numbers private.',
-                style: TextStyle(color: Barako.faint, fontSize: 12),
+                style: AppText.caption.tint(Barako.faint),
               ),
             ],
           ),

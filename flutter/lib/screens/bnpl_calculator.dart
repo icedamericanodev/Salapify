@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../money/bnpl.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney;
 
 class BnplCalculatorScreen extends StatefulWidget {
@@ -61,14 +62,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Text(text, style: AppText.caption.w7),
   );
 
   Widget _field(TextEditingController c, String hint, {bool peso = true}) =>
@@ -158,7 +152,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
           children: [
             Text(
               'Is that "0% interest" really 0%? Enter the plan and see the real cost versus paying cash, and the true rate a monthly quote can hide.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             _label('CASH PRICE (IF YOU PAID IN FULL TODAY)'),
             _field(price, 'e.g. 12,000'),
@@ -213,18 +207,18 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
             const SizedBox(height: 6),
             Text(
               'Some "0%" plans still charge a processing or convenience fee. Put it in the upfront fee box and it shows up in the real cost.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+              style: AppText.caption.copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
             if (badInput)
               Text(
                 'Check your numbers. None of the amounts can be negative.',
-                style: TextStyle(color: Barako.warning, fontSize: 13),
+                style: AppText.small.tint(Barako.warning),
               )
             else if (!ready)
               Text(
                 'Enter the cash price, the months to pay, and the monthly payment to see the real cost.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               )
             else if (underpays)
               Card(
@@ -245,11 +239,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'Your payments come to $paidText, which is less than the $cashText cash price. Double check the monthly amount, the months, and the downpayment. If a trade in, voucher, or discount covers part of the price, add that amount to the downpayment.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
+                        style: AppText.small.copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -261,7 +251,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     'Using 60 months, the longest this tool estimates.',
-                    style: TextStyle(color: Barako.warning, fontSize: 12),
+                    style: AppText.caption.tint(Barako.warning),
                   ),
                 ),
               Card(
@@ -282,12 +272,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       const SizedBox(height: 4),
                       Text(
                         _m(r['totalPaid'] as double),
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 30,
-                          fontFamily: Barako.displayFont,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.amountLg.w7,
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -295,19 +280,12 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Cash price',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small,
                             ),
                           ),
                           Text(
                             _m(r['cash'] as double),
-                            style: TextStyle(
-                              color: Barako.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppText.small.w6.tabular,
                           ),
                         ],
                       ),
@@ -316,21 +294,18 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                           Expanded(
                             child: Text(
                               'Extra over cash',
-                              style: TextStyle(
-                                color: Barako.textSecondary,
-                                fontSize: 13,
-                              ),
+                              style: AppText.small,
                             ),
                           ),
                           Text(
                             _m(r['extraCost'] as double),
-                            style: TextStyle(
-                              color: (r['extraCost'] as double) > 0
-                                  ? Barako.warning
-                                  : Barako.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppText.small.w6
+                                .tint(
+                                  (r['extraCost'] as double) > 0
+                                      ? Barako.warning
+                                      : Barako.textSecondary,
+                                )
+                                .tabular,
                           ),
                         ],
                       ),
@@ -358,12 +333,9 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       if (trulyFree)
                         Text(
                           'Based on your numbers, this costs the same as paying cash today. Just make sure you can keep up with the ${_m(r['monthly'] as double)} a month for ${r['months']} months.',
-                          style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            height: 1.4,
-                          ),
+                          style: AppText.small.w6
+                              .tint(Barako.primaryText)
+                              .copyWith(height: 1.4),
                         )
                       else if (r['rateReliable'] as bool) ...[
                         Row(
@@ -371,31 +343,19 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                             Expanded(
                               child: Text(
                                 'Real interest per year',
-                                style: TextStyle(
-                                  color: Barako.text,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: AppText.smallStrong,
                               ),
                             ),
                             Text(
                               rateDisplay,
-                              style: TextStyle(
-                                color: Barako.warning,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: AppText.body.w8.tint(Barako.warning),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'This plan costs you ${_m(r['extraCost'] as double)} more than paying cash, $rateSentence on the ${_m(r['netCredit'] as double)} of credit you receive. If you can wait, saving up for ${r['months']} months and paying cash costs no interest. The extra ${_m(r['extraCost'] as double)} is the price of getting it today.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
+                          style: AppText.caption.copyWith(height: 1.4),
                         ),
                       ] else if ((r['extraCost'] as double) <= 0.005)
                         // A fee that exactly offsets the installments: the
@@ -404,20 +364,12 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                         // more" (bank officer finding).
                         Text(
                           'Based on your numbers the total matches the cash price, but part of it is a ${_m(r['fee'] as double)} fee paid upfront, so make sure the installments really are that low.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
+                          style: AppText.caption.copyWith(height: 1.4),
                         )
                       else
                         Text(
                           'This plan costs you ${_m(r['extraCost'] as double)} more than paying cash. Paying cash would cost nothing.',
-                          style: TextStyle(
-                            color: Barako.muted,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
+                          style: AppText.caption.copyWith(height: 1.4),
                         ),
                     ],
                   ),
@@ -427,7 +379,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
             const SizedBox(height: 12),
             Text(
               'An estimate from the numbers you enter, not a loan offer. Real plans can add late fees and penalties. If a plan will not show you the total you will pay or a clear rate, that is a warning sign.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
             ),
           ],
         ),

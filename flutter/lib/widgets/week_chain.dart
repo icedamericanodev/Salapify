@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../money/chain.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 class WeekChainCard extends StatelessWidget {
@@ -85,12 +86,11 @@ class WeekChainCard extends StatelessWidget {
                       const SizedBox(height: Gap.xs),
                       Text(
                         d.letter,
-                        style: TextStyle(
+                        style: AppText.micro.copyWith(
                           color: d.isToday ? Barako.primaryText : Barako.muted,
-                          fontSize: 11,
                           fontWeight: d.isToday
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                              ? TypeWeight.bold
+                              : TypeWeight.medium,
                         ),
                       ),
                     ],
@@ -100,11 +100,10 @@ class WeekChainCard extends StatelessWidget {
             const SizedBox(height: Gap.md),
             Text(
               s.message,
-              style: TextStyle(
+              style: AppText.small.copyWith(
                 color: full ? Barako.celebrate : Barako.textSecondary,
-                fontSize: 13,
                 height: 1.4,
-                fontWeight: full ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: full ? TypeWeight.medium : TypeWeight.regular,
               ),
             ),
           ],

@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/schedule.dart' show hasExplicitPaydaySchedule;
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 const List<String> _weekdayNames = [
@@ -151,12 +152,10 @@ class _PaydayScreenState extends State<PaydayScreen> {
           children: [
             Text(
               'When do you get paid?',
-              style: TextStyle(
-                fontFamily: Barako.displayFont,
-                color: Barako.text,
+              style: AppText.title.copyWith(
                 fontSize: 24,
                 height: 1.15,
-                fontWeight: FontWeight.w700,
+                fontWeight: TypeWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
@@ -165,7 +164,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
               'reminder, and the cycle recap. Until you set it, none of those '
               'will claim it is payday, because a guess about your pay day is '
               'not worth much.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.45),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
             ),
             const SizedBox(height: 20),
             _option(
@@ -237,10 +236,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
             ),
             if (_err != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _err!,
-                style: TextStyle(color: Barako.warningStrong, fontSize: 13),
-              ),
+              Text(_err!, style: AppText.small.tint(Barako.warningStrong)),
             ],
             const SizedBox(height: 20),
             FilledButton(
@@ -320,14 +316,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: Text(title, style: AppText.bodyStrong),
                     ),
                   ],
                 ),
@@ -336,11 +325,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
                   padding: const EdgeInsets.only(left: 30),
                   child: Text(
                     blurb,
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
+                    style: AppText.caption.copyWith(height: 1.4),
                   ),
                 ),
                 if (detail != null) ...[

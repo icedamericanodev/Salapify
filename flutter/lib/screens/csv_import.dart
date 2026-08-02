@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/csv_import.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 class CsvImportScreen extends StatefulWidget {
@@ -204,11 +205,9 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               'Bring in entries from a bank, GCash, or spreadsheet CSV. Choose the '
               'file, tell me which column is which, check the preview, then import. '
               'Your existing entries are never touched.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
@@ -226,10 +225,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
             ),
             if (_fileName != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _fileName!,
-                style: TextStyle(color: Barako.muted, fontSize: 12),
-              ),
+              Text(_fileName!, style: AppText.caption),
             ],
             if (_rows != null) ...[
               const SizedBox(height: 20),
@@ -291,12 +287,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
   Widget _switchRow(String label, bool value, ValueChanged<bool> onChanged) =>
       Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(color: Barako.text, fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(label, style: AppText.label.w4)),
           Switch(
             value: value,
             onChanged: onChanged,
@@ -406,10 +397,8 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
                   : 'Will import ${r.imported} '
                         '${r.imported == 1 ? 'entry' : 'entries'}'
                         '${r.skipped > 0 ? ', skip ${r.skipped} the app could not read' : ''}.',
-              style: TextStyle(
-                color: r.imported == 0 ? Barako.warningStrong : Barako.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              style: AppText.label.tint(
+                r.imported == 0 ? Barako.warningStrong : Barako.text,
               ),
             ),
             if (sample.isNotEmpty) ...[
@@ -424,22 +413,17 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
                           '${t['date']}  ${t['label']}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 13,
-                          ),
+                          style: AppText.small,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '${t['type'] == 'expense' ? '-' : '+'}'
                         '${(t['amount'] as num).toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: t['type'] == 'expense'
+                        style: AppText.small.w7.tint(
+                          t['type'] == 'expense'
                               ? Barako.warningStrong
                               : Barako.primary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -450,7 +434,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
             Text(
               'Imported entries are added, not merged. Importing the same file '
               'twice will add it twice.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
             const SizedBox(height: 12),
             SizedBox(

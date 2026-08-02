@@ -15,6 +15,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 /// Fire the celebration over the current screen. Safe to call from any
@@ -200,12 +201,7 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                         widget.message,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                        style: AppText.body.w8.tabular,
                       ),
                     ),
                   ],

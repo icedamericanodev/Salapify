@@ -23,6 +23,7 @@ import '../data/store.dart';
 import '../main.dart' show updateStamp;
 import '../services/diagnostics.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -110,10 +111,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             _actions(),
             if (_status.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text(
-                _status,
-                style: TextStyle(color: Barako.celebrate, fontSize: 13),
-              ),
+              Text(_status, style: AppText.small.tint(Barako.celebrate)),
             ],
           ],
         ),
@@ -135,11 +133,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 Expanded(
                   child: Text(
                     'For testers: what the app knows about itself',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.body.w8,
                   ),
                 ),
               ],
@@ -150,7 +144,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               'own. It leaves only when you tap Copy or Share below, and even '
               'then it carries just these counts and error messages, never your '
               'amounts, account or category names, notes, or anyone\'s name.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.45),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
             ),
           ],
         ),
@@ -170,17 +164,10 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      e.key,
-                      style: TextStyle(color: Barako.text, fontSize: 14),
-                    ),
+                    Text(e.key, style: AppText.label.w4),
                     Text(
                       '${e.value}',
-                      style: TextStyle(
-                        color: Barako.textSecondary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.label.w7.tint(Barako.textSecondary),
                     ),
                   ],
                 ),
@@ -198,7 +185,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         child: errors.isEmpty
             ? Text(
                 'No errors recorded on this phone. This is the good state.',
-                style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+                style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
               )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,11 +193,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   Text(
                     '${errors.length} recorded, newest last. These are error '
                     'messages and code locations only.',
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
+                    style: AppText.caption.copyWith(height: 1.4),
                   ),
                   const SizedBox(height: 10),
                   for (final e in errors)
@@ -218,11 +201,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
                         '[${e.when}] ${e.message}',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 12,
-                          height: 1.35,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.text)
+                            .copyWith(height: 1.35),
                       ),
                     ),
                 ],

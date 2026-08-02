@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../data/backup_file.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import 'overview.dart' show ImportScreen;
 
@@ -79,11 +80,9 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
               'Moving phones takes about two minutes, and your data never '
               'touches a cloud you did not choose. One small file carries '
               'everything: accounts, entries, IOUs, goals, settings.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.45),
             ),
             const SizedBox(height: 20),
             Text('ON THIS PHONE', style: Barako.kickerStyle),
@@ -96,11 +95,7 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
                     'This phone has nothing saved yet, so there is nothing to '
                     'send from here. These two steps are for your OLD phone. '
                     'If this is the new one, skip to step 3.',
-                    style: TextStyle(
-                      color: Barako.textSecondary,
-                      fontSize: 13,
-                      height: 1.45,
-                    ),
+                    style: AppText.small.copyWith(height: 1.45),
                   ),
                 ),
               ),
@@ -171,11 +166,7 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
                         'A monthly backup reminder lives in Menu under '
                         'Reminders, so the file on your drive stays fresh '
                         'and a lost phone is an errand, not a disaster.',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption.copyWith(height: 1.4),
                       ),
                     ),
                   ],
@@ -214,11 +205,7 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
                   ),
                   child: Text(
                     number,
-                    style: TextStyle(
-                      color: Barako.onPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.label.w8.tint(Barako.onPrimary),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -226,23 +213,9 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text(title, style: AppText.bodyStrong),
                       const SizedBox(height: 4),
-                      Text(
-                        body,
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
+                      Text(body, style: AppText.caption.copyWith(height: 1.4)),
                     ],
                   ),
                 ),

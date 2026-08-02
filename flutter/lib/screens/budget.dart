@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/budget.dart' as budget;
 import '../theme.dart';
+import '../typography.dart';
 import 'quick_add_editor.dart';
 import '../money/quick_adds.dart' show QuickAdd;
 import '../widgets/empty_state.dart';
@@ -90,10 +91,8 @@ class BudgetScreen extends StatelessWidget {
                                 ),
                                 child: Text(
                                   'Edit',
-                                  style: TextStyle(
-                                    color: Barako.primaryText,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
+                                  style: AppText.small.w7.tint(
+                                    Barako.primaryText,
                                   ),
                                 ),
                               ),
@@ -176,23 +175,15 @@ class BudgetScreen extends StatelessWidget {
                                                   : 'Expense')
                                             : (t['label']).toString(),
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Barako.text,
-                                          fontSize: 14,
-                                        ),
+                                        style: AppText.label.w4,
                                       ),
                                     ),
                                     Text(
                                       '${t['type'] == 'income' ? '+' : '-'}${formatMoney(t['amount'] is num ? t['amount'] as num : 0)}',
-                                      style: TextStyle(
-                                        color: t['type'] == 'income'
+                                      style: AppText.label.tabular.tint(
+                                        t['type'] == 'income'
                                             ? Barako.primary
                                             : Barako.textSecondary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
                                       ),
                                     ),
                                   ],
@@ -270,11 +261,7 @@ class BudgetScreen extends StatelessWidget {
                       ),
                       child: Text(
                         limit > 0 ? 'Change limit' : 'Set a limit',
-                        style: TextStyle(
-                          color: Barako.primaryText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.caption.w7.tint(Barako.primaryText),
                       ),
                     ),
                   ),
@@ -292,12 +279,8 @@ class BudgetScreen extends StatelessWidget {
                       child: Text(
                         formatMoney(spent),
                         maxLines: 1,
-                        style: TextStyle(
-                          fontFamily: Barako.displayFont,
-                          color: over ? Barako.warning : Barako.text,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                        style: AppText.amount.w7.tint(
+                          over ? Barako.warning : Barako.text,
                         ),
                       ),
                     ),
@@ -306,7 +289,7 @@ class BudgetScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 5, left: 6),
                     child: Text(
                       'of ${formatMoney(limit)}',
-                      style: TextStyle(color: Barako.muted, fontSize: 13),
+                      style: AppText.small.tint(Barako.muted),
                     ),
                   ),
                 ],
@@ -327,11 +310,9 @@ class BudgetScreen extends StatelessWidget {
                     ? 'Over by ${formatMoney(spent - limit)}. No shame, just ease the biggest category below.'
                     : '${formatMoney(remaining)} left this month.'
                           '${carried > 0 ? ' Includes ${formatMoney(carried)} carried over from last month\'s unspent budget.' : ''}',
-                style: TextStyle(
-                  color: over ? Barako.warning : Barako.muted,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: AppText.small
+                    .tint(over ? Barako.warning : Barako.muted)
+                    .copyWith(height: 1.4),
               ),
             ] else ...[
               FittedBox(
@@ -340,19 +321,13 @@ class BudgetScreen extends StatelessWidget {
                 child: Text(
                   formatMoney(spent),
                   maxLines: 1,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontFamily: Barako.displayFont,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: AppText.amount,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Spent so far this month. Set a monthly limit and the bar will keep you honest.',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               ),
             ],
           ],
@@ -380,18 +355,15 @@ class BudgetScreen extends StatelessWidget {
                 child: Text(
                   w['label'] as String,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Barako.text, fontSize: 13),
+                  style: AppText.small.tint(Barako.text),
                 ),
               ),
               Text(
                 cap > 0
                     ? '${formatMoney(amount)} of ${formatMoney(cap)} cap'
                     : formatMoney(amount),
-                style: TextStyle(
-                  color: overCap ? Barako.warning : Barako.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                style: AppText.small.w6.tabular.tint(
+                  overCap ? Barako.warning : Barako.textSecondary,
                 ),
               ),
             ],
@@ -493,10 +465,10 @@ class BudgetScreen extends StatelessWidget {
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(color: Barako.text, fontSize: 20),
+          style: AppText.bodyLg.copyWith(fontSize: 20),
           decoration: InputDecoration(
             prefixText: '$baseCurrencySymbol ',
-            prefixStyle: TextStyle(color: Barako.muted, fontSize: 20),
+            prefixStyle: AppText.bodyLg.copyWith(fontSize: 20).tint(Barako.muted),
             hintText: '15000',
             hintStyle: TextStyle(color: Barako.faint),
           ),

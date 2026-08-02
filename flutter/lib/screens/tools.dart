@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/pressable_scale.dart';
 import 'bnpl_calculator.dart';
 import 'contribution_calculator.dart';
@@ -210,18 +211,8 @@ class ToolsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: Barako.text,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          blurb,
-                          style: TextStyle(color: Barako.muted, fontSize: 12),
-                        ),
+                        Text(title, style: AppText.body.w7),
+                        Text(blurb, style: AppText.caption),
                       ],
                     ),
                   ),

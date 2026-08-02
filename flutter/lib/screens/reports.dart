@@ -18,6 +18,7 @@ import '../money/reports_calc.dart';
 import '../money/statements.dart';
 import '../money/period.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import 'history.dart';
@@ -181,17 +182,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 10),
             Text(
               support,
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             if (receivableHeavy) ...[
               const SizedBox(height: 6),
               Text(
                 'A big part of this is money owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
-                style: TextStyle(
-                  color: Barako.faint,
-                  fontSize: 12,
-                  height: 1.35,
-                ),
+                style: AppText.caption.tint(Barako.faint).copyWith(height: 1.35),
               ),
             ],
           ],
@@ -224,10 +221,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: AppText.small.copyWith(
                     color: on ? Barako.onPrimary : Barako.textSecondary,
-                    fontSize: 13,
-                    fontWeight: on ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: on ? TypeWeight.bold : TypeWeight.medium,
                   ),
                 ),
               ),
@@ -265,11 +261,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         Text(
           label,
-          style: TextStyle(
-            color: Barako.text,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppText.body.w7,
         ),
         IconButton(
           icon: Icon(salapifyIcon('forward')),
@@ -358,7 +350,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               '${formatMoney(interest)} of that was pure interest, money that bought you nothing. That is the number the debt plan below is built to shrink.',
-              style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35),
+              style: AppText.caption.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ),
       ],
@@ -442,7 +434,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 4),
             Text(
               'Last 6 months, spending per month',
-              style: TextStyle(color: Barako.muted, fontSize: 12),
+              style: AppText.caption,
             ),
             const SizedBox(height: 14),
             _TrendBars(
@@ -454,7 +446,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 14),
             Text(
               read,
-              style: TextStyle(color: readColor, fontSize: 13, height: 1.45),
+              style: AppText.small.tint(readColor).copyWith(height: 1.45),
             ),
           ],
         ),
@@ -499,7 +491,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               isCurrent
                   ? 'Your biggest spending so far this month'
                   : 'Your biggest spending this month',
-              style: TextStyle(color: Barako.muted, fontSize: 12),
+              style: AppText.caption,
             ),
             const SizedBox(height: 14),
             for (var i = 0; i < rows.length; i++) ...[
@@ -509,7 +501,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 12),
             Text(
               'Tap a line to see those entries.',
-              style: TextStyle(color: Barako.faint, fontSize: 11),
+              style: AppText.micro.w4.tint(Barako.faint),
             ),
           ],
         ),
@@ -576,10 +568,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight: biggest ? FontWeight.w700 : FontWeight.w600,
+                    style: AppText.label.copyWith(
+                      fontWeight: biggest ? TypeWeight.bold : TypeWeight.medium,
                     ),
                   ),
                 ),
@@ -592,12 +582,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    style: AppText.amountRow.copyWith(fontSize: 14),
                   ),
                 ),
                 const SizedBox(width: 2),
@@ -621,11 +606,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       '${formatMoney(spent - avg)} over your usual',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Barako.warningStrong,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppText.micro.tint(Barako.warningStrong),
                     ),
                   ),
                 ],
@@ -702,7 +683,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Average per weekday, last 8 weeks',
-                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                  style: AppText.caption,
                 ),
                 const SizedBox(height: 14),
                 _WeekdayBars(
@@ -715,11 +696,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 14),
                 Text(
                   read,
-                  style: TextStyle(
-                    color: Barako.textSecondary,
-                    fontSize: 13,
-                    height: 1.45,
-                  ),
+                  style: AppText.small.copyWith(height: 1.45),
                 ),
               ],
             ),
@@ -763,7 +740,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Income minus spending, last 6 months',
-                  style: TextStyle(color: Barako.muted, fontSize: 12),
+                  style: AppText.caption,
                 ),
                 const SizedBox(height: 16),
                 _DivergingBars(
@@ -779,11 +756,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 16),
                 Text(
                   read,
-                  style: TextStyle(
-                    color: readColor,
-                    fontSize: 13,
-                    height: 1.45,
-                  ),
+                  style: AppText.small.tint(readColor).copyWith(height: 1.45),
                 ),
               ],
             ),
@@ -868,11 +841,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'A saved payment did not split cleanly into principal and interest, so a small amount could not be sorted. Your other totals are still correct.',
-              style: TextStyle(
-                color: Barako.warningStrong,
-                fontSize: 12,
-                height: 1.35,
-              ),
+              style: AppText.caption
+                  .tint(Barako.warningStrong)
+                  .copyWith(height: 1.35),
             ),
           ),
       ],
@@ -936,11 +907,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           balances
               ? 'Owns ${formatMoney(totalAssets)} = owes ${formatMoney(totalLiab)} + net worth ${formatMoney(equity)}. Balanced.'
               : 'These do not tie out. Check for an odd entry or a hand-edited balance.',
-          style: TextStyle(
-            color: balances ? Barako.faint : Barako.warningStrong,
-            fontSize: 12,
-            height: 1.35,
-          ),
+          style: AppText.caption
+              .tint(balances ? Barako.faint : Barako.warningStrong)
+              .copyWith(height: 1.35),
         ),
       ],
     );
@@ -963,12 +932,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(width: 8),
             Text(
               'PRO',
-              style: TextStyle(
-                color: Barako.caramel,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-              ),
+              style: AppText.micro.w8
+                  .tint(Barako.caramel)
+                  .copyWith(fontSize: 10, letterSpacing: 1),
             ),
           ],
         ),
@@ -981,11 +947,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 : !hasDebt
                 ? Text(
                     'No debts to project. You are already free.',
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppText.body.w7.tint(Barako.primaryText),
                   )
                 : _debtPlan(debts),
           ),
@@ -999,11 +961,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     children: [
       Text(
         'Unlock Pro to see your debt-free date and how much interest the right strategy saves you.',
-        style: TextStyle(
-          color: Barako.textSecondary,
-          fontSize: 14,
-          height: 1.4,
-        ),
+        style: AppText.label.w4.tint(Barako.textSecondary).copyWith(height: 1.4),
       ),
       const SizedBox(height: 12),
       FilledButton(
@@ -1037,7 +995,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       children: [
         Text(
           'Keep a small cash cushion first, even one payday, so a surprise does not send you borrowing again. Then aim any extra at debt.',
-          style: TextStyle(color: Barako.faint, fontSize: 12, height: 1.35),
+          style: AppText.caption.tint(Barako.faint).copyWith(height: 1.35),
         ),
         const SizedBox(height: 12),
         Text('Extra you can add each month', style: Barako.kickerStyle),
@@ -1049,7 +1007,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
           ],
           onChanged: (_) => setState(() {}),
-          style: TextStyle(color: Barako.text, fontSize: 15),
+          style: AppText.body,
           decoration: InputDecoration(
             hintText: '0',
             hintStyle: TextStyle(color: Barako.faint),
@@ -1083,7 +1041,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 10),
         Text(
           'An estimate from your logged balances and rates. It assumes rates and minimums hold and each finished debt rolls its payment into the next.',
-          style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.35),
+          style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
         ),
       ],
     );
@@ -1093,11 +1051,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (avalanche == null) {
       return Text(
         'At your current payments the interest still grows faster than you pay it down, so there is no freedom date yet. Even a small extra aimed at your highest-rate debt can start to turn this around.',
-        style: TextStyle(
-          color: Barako.warningStrong,
-          fontSize: 13,
-          height: 1.4,
-        ),
+        style: AppText.small.tint(Barako.warningStrong).copyWith(height: 1.4),
       );
     }
     return Column(
@@ -1112,7 +1066,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 4),
         Text(
           'That is the total interest you would pay keeping your payments steady until every debt is gone. Type an extra amount and I will show which strategy saves you more.',
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.35),
+          style: AppText.caption.copyWith(height: 1.35),
         ),
       ],
     );
@@ -1126,11 +1080,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (avalanche == null || snowball == null) {
       return Text(
         'At this amount the interest still outruns the payments, so there is no freedom date yet. A bigger extra, aimed at your highest-rate debt, flips this.',
-        style: TextStyle(
-          color: Barako.warningStrong,
-          fontSize: 13,
-          height: 1.4,
-        ),
+        style: AppText.small.tint(Barako.warningStrong).copyWith(height: 1.4),
       );
     }
     final avaInt = (avalanche['totalInterest'] as num).toDouble();
@@ -1150,7 +1100,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         Text(
           'Pay the highest interest rate first. Costs the least overall.',
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+          style: AppText.caption,
         ),
         const SizedBox(height: 10),
         _line(
@@ -1161,14 +1111,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         Text(
           'Pay the smallest balance first. You clear a whole debt sooner, and that momentum is often what makes people finish.',
-          style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.3),
+          style: AppText.caption,
         ),
         const SizedBox(height: 12),
         Text(
           saved > 0
               ? 'With ${formatMoney(extra)} extra a month, avalanche keeps about ${formatMoneyAbout(saved)} more out of interest. If that gap feels small, take snowball for the quick win.'
               : 'At this amount both strategies cost about the same, so pick snowball for the motivation of an early win.',
-          style: TextStyle(color: Barako.text, fontSize: 13, height: 1.4),
+          style: AppText.small.tint(Barako.text).copyWith(height: 1.4),
         ),
       ],
     );
@@ -1202,11 +1152,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 8),
             Text(
               interp,
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.45,
-              ),
+              style: AppText.small.copyWith(height: 1.45),
             ),
             if (visual != null) ...[const SizedBox(height: 14), visual],
             if (legend != null) ...[
@@ -1236,16 +1182,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Text(
         labelOverride ?? formatMoney(value),
         maxLines: 1,
-        style: TextStyle(
-          fontFamily: Barako.displayFont,
-          color:
+        style: AppText.amount.w7
+            .tint(
               colorOverride ??
-              (value >= 0 ? Barako.primary : Barako.warningStrong),
-          fontSize: size,
-          height: 1.05,
-          fontWeight: FontWeight.w700,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+                  (value >= 0 ? Barako.primary : Barako.warningStrong),
+            )
+            .copyWith(fontSize: size),
       ),
     );
   }
@@ -1267,12 +1209,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               padding: EdgeInsets.only(left: sub ? 16 : 0, right: 12),
               child: Text(
                 label,
-                style: TextStyle(
+                style: AppText.label.copyWith(
                   color: sub
                       ? Barako.muted
                       : (total ? Barako.text : Barako.textSecondary),
                   fontSize: sub ? 12 : 14,
-                  fontWeight: total ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: total ? TypeWeight.bold : TypeWeight.medium,
                   height: 1.3,
                 ),
               ),
@@ -1281,11 +1223,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Text(
             formatMoney(value),
             textAlign: TextAlign.right,
-            style: TextStyle(
+            style: AppText.amountRow.copyWith(
               color: color ?? (sub ? Barako.muted : Barako.text),
               fontSize: sub ? 12 : (total ? 16 : 14),
-              fontWeight: total ? FontWeight.w700 : FontWeight.w500,
-              fontFeatures: const [FontFeature.tabularFigures()],
+              fontWeight: total ? TypeWeight.bold : TypeWeight.medium,
             ),
           ),
         ],
@@ -1310,11 +1251,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(
-            color: Barako.muted,
-            fontSize: 12,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: AppText.caption.tabular,
         ),
       ],
     );
@@ -1331,21 +1268,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 8),
             Text(
               'Your reports build themselves',
-              style: TextStyle(
-                fontFamily: Barako.displayFont,
-                color: Barako.text,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.heading.copyWith(fontSize: 20),
             ),
             const SizedBox(height: 6),
             Text(
               'Add an account and log a few entries, and three statements appear here. Position shows what you own and owe. Income shows what you earned and spent this month. Cash flow shows where the pesos actually moved. Nothing to set up, just log.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-              ),
+              style: AppText.label.w4.tint(Barako.textSecondary).copyWith(height: 1.45),
             ),
             const SizedBox(height: 14),
             FilledButton(
@@ -1463,14 +1391,14 @@ class _TrendBars extends StatelessWidget {
                     Text(
                       m['label'] as String,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: AppText.micro.copyWith(
                         color: m['key'] == focusKey
                             ? Barako.text
                             : Barako.faint,
                         fontSize: 10,
                         fontWeight: m['key'] == focusKey
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                            ? TypeWeight.bold
+                            : TypeWeight.medium,
                       ),
                     ),
                     // The current month's bar is only spending so far, not a
@@ -1480,7 +1408,9 @@ class _TrendBars extends StatelessWidget {
                       Text(
                         'so far',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Barako.faint, fontSize: 8.5),
+                        style: AppText.micro.w4
+                            .copyWith(fontSize: 8.5)
+                            .tint(Barako.faint),
                       ),
                   ],
                 ),
@@ -1502,7 +1432,7 @@ class _TrendBars extends StatelessWidget {
               Flexible(
                 child: Text(
                   'Your usual ${formatMoney(usual)} a month',
-                  style: TextStyle(color: Barako.muted, fontSize: 11),
+                  style: AppText.micro.w4,
                 ),
               ),
             ],
@@ -1589,12 +1519,12 @@ class _WeekdayBars extends StatelessWidget {
                         child: Text(
                           day >= 0 && day < 7 ? _short[day] : '',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: AppText.micro.copyWith(
                             color: isPeak ? Barako.text : Barako.faint,
                             fontSize: 10,
                             fontWeight: isPeak
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                                ? TypeWeight.bold
+                                : TypeWeight.medium,
                           ),
                         ),
                       );
@@ -1672,14 +1602,14 @@ class _DivergingBars extends StatelessWidget {
                         Text(
                           m['label'] as String,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: AppText.micro.copyWith(
                             color: m['key'] == focusKey
                                 ? Barako.text
                                 : Barako.faint,
                             fontSize: 10,
                             fontWeight: m['key'] == focusKey
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                                ? TypeWeight.bold
+                                : TypeWeight.medium,
                           ),
                         ),
                         // The current month is still filling in, so it is
@@ -1688,10 +1618,9 @@ class _DivergingBars extends StatelessWidget {
                           Text(
                             'so far',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Barako.faint,
-                              fontSize: 8.5,
-                            ),
+                            style: AppText.micro.w4
+                                .copyWith(fontSize: 8.5)
+                                .tint(Barako.faint),
                           ),
                       ],
                     ),

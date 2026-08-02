@@ -15,6 +15,7 @@ import '../money/course_plan.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/lesson_block_views.dart';
 import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
@@ -244,13 +245,7 @@ class _LearnScreenState extends State<LearnScreen> {
       children: [
         Text(
           'Learn one money skill, then use it in Salapify.',
-          style: TextStyle(
-            fontFamily: Barako.displayFont,
-            color: Barako.text,
-            fontSize: 22,
-            height: 1.2,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppText.title.w7,
         ),
         const SizedBox(height: 14),
         ClipRRect(
@@ -270,20 +265,16 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             Text(
               '$doneCount of $total lessons',
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppText.smallStrong,
             ),
             Text(
               '$tracksDone of ${courseTracks.length} courses',
-              style: TextStyle(color: Barako.muted, fontSize: 13),
+              style: AppText.small.tint(Barako.muted),
             ),
             if (minutesLeft > 0)
               Text(
                 'about $minutesLeft min left',
-                style: TextStyle(color: Barako.muted, fontSize: 13),
+                style: AppText.small.tint(Barako.muted),
               ),
           ],
         ),
@@ -339,20 +330,12 @@ class _LearnScreenState extends State<LearnScreen> {
                     children: [
                       Text(
                         track['title'] as String,
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.subtitle,
                       ),
                       const SizedBox(height: 3),
                       Text(
                         track['outcome'] as String,
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
+                        style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -365,11 +348,9 @@ class _LearnScreenState extends State<LearnScreen> {
               // cannot see the basis for is just the app being bossy.
               Text(
                 reason,
-                style: TextStyle(
-                  color: Barako.primaryText,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption
+                    .tint(Barako.primaryText)
+                    .copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 12),
@@ -389,20 +370,18 @@ class _LearnScreenState extends State<LearnScreen> {
               children: [
                 Text(
                   '${stat.done} of ${stat.total} done',
-                  style: TextStyle(
-                    color: stat.isComplete ? Barako.primaryText : Barako.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  style: AppText.caption.w7.tint(
+                    stat.isComplete ? Barako.primaryText : Barako.muted,
                   ),
                 ),
                 Text(
                   stat.status,
-                  style: TextStyle(color: Barako.faint, fontSize: 12),
+                  style: AppText.caption.tint(Barako.faint),
                 ),
                 if (stat.minutesLeft > 0)
                   Text(
                     '${stat.minutesLeft} min left',
-                    style: TextStyle(color: Barako.faint, fontSize: 12),
+                    style: AppText.caption.tint(Barako.faint),
                   ),
               ],
             ),
@@ -514,20 +493,12 @@ class _LearnScreenState extends State<LearnScreen> {
                 children: [
                   Text(
                     l['title'] as String,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppText.label,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     l['summary'] as String,
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12,
-                      height: 1.35,
-                    ),
+                    style: AppText.caption.copyWith(height: 1.35),
                   ),
                   const SizedBox(height: 3),
                   Wrap(
@@ -537,20 +508,16 @@ class _LearnScreenState extends State<LearnScreen> {
                     children: [
                       Text(
                         '$position of $outOf',
-                        style: TextStyle(color: Barako.faint, fontSize: 11),
+                        style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       Text(
                         '${l['minutes']} min',
-                        style: TextStyle(color: Barako.faint, fontSize: 11),
+                        style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       if (started)
                         Text(
                           'Continue',
-                          style: TextStyle(
-                            color: Barako.primaryText,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppText.micro.w7.tint(Barako.primaryText),
                         ),
                       if (isPH)
                         Container(
@@ -564,10 +531,8 @@ class _LearnScreenState extends State<LearnScreen> {
                           ),
                           child: Text(
                             'PHILIPPINES',
-                            style: TextStyle(
-                              color: Barako.muted,
+                            style: AppText.micro.w7.copyWith(
                               fontSize: 9,
-                              fontWeight: FontWeight.w700,
                               letterSpacing: 1,
                             ),
                           ),
@@ -732,19 +697,13 @@ class _LessonReaderState extends State<_LessonReader> {
       const SizedBox(height: 6),
       Text(
         l.title,
-        style: TextStyle(
-          fontFamily: Barako.displayFont,
-          color: Barako.text,
-          fontSize: 27,
-          height: 1.1,
-          fontWeight: FontWeight.w700,
-        ),
+        style: AppText.title.w7.copyWith(fontSize: 27, height: 1.1),
       ),
       if (l.objective.isNotEmpty || l.summary.isNotEmpty) ...[
         const SizedBox(height: 8),
         Text(
           l.objective.isNotEmpty ? l.objective : l.summary,
-          style: TextStyle(color: Barako.muted, fontSize: 15, height: 1.45),
+          style: AppText.body.tint(Barako.muted).copyWith(height: 1.45),
         ),
       ],
     ],
@@ -758,12 +717,7 @@ class _LessonReaderState extends State<_LessonReader> {
     ),
     child: Text(
       'PHILIPPINES',
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 9,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1,
-      ),
+      style: AppText.micro.w7.copyWith(fontSize: 9, letterSpacing: 1),
     ),
   );
 
@@ -780,7 +734,7 @@ class _LessonReaderState extends State<_LessonReader> {
       'and deadlines do not. Confirm with the agency or a licensed '
       'professional before you act.'
       '${l.factCheckedOn != null ? ' Facts last checked ${l.factCheckedOn}.' : ''}',
-      style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+      style: AppText.caption.copyWith(height: 1.4),
     ),
   );
 
@@ -801,12 +755,7 @@ class _LessonReaderState extends State<_LessonReader> {
           const SizedBox(height: 8),
           Text(
             c.question,
-            style: TextStyle(
-              color: Barako.text,
-              fontSize: 15,
-              height: 1.45,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppText.bodyStrong.copyWith(height: 1.45),
           ),
           const SizedBox(height: 12),
           for (var i = 0; i < c.choices.length; i++)
@@ -843,11 +792,9 @@ class _LessonReaderState extends State<_LessonReader> {
                       Expanded(
                         child: Text(
                           c.choices[i],
-                          style: TextStyle(
-                            color: Barako.textSecondary,
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
+                          style: AppText.label.w4
+                              .tint(Barako.textSecondary)
+                              .copyWith(height: 1.4),
                         ),
                       ),
                     ],
@@ -867,22 +814,16 @@ class _LessonReaderState extends State<_LessonReader> {
                         correct
                             ? 'That is it.'
                             : 'Close. Here is the thinking.',
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.label.w7,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         !correct && c.whyWrong != null
                             ? '${c.whyWrong} ${c.explanation}'
                             : c.explanation,
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
+                        style: AppText.label.w4
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.5),
                       ),
                     ],
                   )
@@ -902,11 +843,7 @@ class _LessonReaderState extends State<_LessonReader> {
             Flexible(
               child: Text(
                 'Done. One useful thing.',
-                style: TextStyle(
-                  color: Barako.primary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppText.label.w7.tint(Barako.primary),
               ),
             ),
           ],

@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/taxdeadlines.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 
 const _months = [
@@ -119,11 +120,9 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               'to, counted from today. Salapify does not file anything for '
               'you and never sees your BIR account; this is here so a '
               'deadline never arrives as a surprise.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 14,
-                height: 1.5,
-              ),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.5),
             ),
             const SizedBox(height: Gap.lg),
             Text(
@@ -138,11 +137,9 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
                   'You told us how you file in a previous year. That choice '
                   'covers one year at a time, so please set it again for '
                   '${widget.clock().year}.',
-                  style: TextStyle(
-                    color: Barako.primaryText,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+                  style: AppText.caption
+                      .tint(Barako.primaryText)
+                      .copyWith(height: 1.4),
                 ),
               ),
             Wrap(
@@ -165,11 +162,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               liveRegion: true,
               child: Text(
                 _basisNote(),
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ),
             const SizedBox(height: Gap.xl),
@@ -180,11 +173,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
             Text(
               'File even if you earned nothing that quarter. A missed return '
               'is penalised on its own, separately from any tax due.',
-              style: TextStyle(
-                color: Barako.textSecondary,
-                fontSize: 13,
-                height: 1.5,
-              ),
+              style: AppText.small.copyWith(height: 1.5),
             ),
             const SizedBox(height: Gap.md),
             Text(
@@ -192,7 +181,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               'pay it in two parts, the second part is due 15 October. That '
               'is a choice you make at filing time, so it is not in the list '
               'above.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.5),
+              style: AppText.caption.copyWith(height: 1.5),
             ),
             const SizedBox(height: Gap.md),
             Text(
@@ -200,7 +189,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               'to the next working day. Salapify shows the statutory date, so '
               'treat it as the earliest it could be due and check the BIR '
               'advisory for that filing.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.5),
+              style: AppText.caption.copyWith(height: 1.5),
             ),
             const SizedBox(height: Gap.md),
             Text(
@@ -208,7 +197,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               'and it does not cover returns for staff you employ, taxes you '
               'withhold on rent or contractors, or VAT amounts. Confirm with '
               'the BIR or a licensed accountant before you file.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.5),
+              style: AppText.caption.copyWith(height: 1.5),
             ),
           ],
         ),
@@ -285,20 +274,14 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
               Expanded(
                 child: Text(
                   d.title,
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppText.bodyLg.w7,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 deadlineDaysLabel(d.daysLeft),
-                style: TextStyle(
-                  color: soon ? Barako.primaryText : Barako.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                style: AppText.small.w7.tint(
+                  soon ? Barako.primaryText : Barako.textSecondary,
                 ),
               ),
             ],
@@ -306,22 +289,20 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
           const SizedBox(height: 4),
           Text(
             '${d.form}  ${_fmtDate(d.date)}',
-            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+            style: AppText.small,
           ),
           const SizedBox(height: 6),
           Text(
             d.what,
-            style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+            style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
           ),
           if (d.note != null) ...[
             const SizedBox(height: 6),
             Text(
               d.note!,
-              style: TextStyle(
-                color: Barako.primaryText,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              style: AppText.caption
+                  .tint(Barako.primaryText)
+                  .copyWith(height: 1.4),
             ),
           ],
         ],

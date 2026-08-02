@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../money/phtax.dart' show ratesYear;
 import '../money/thirteenth.dart';
 import '../theme.dart';
+import '../typography.dart';
 import 'overview.dart' show formatMoney;
 
 class ThirteenthCalculatorScreen extends StatefulWidget {
@@ -44,35 +45,15 @@ class _ThirteenthCalculatorScreenState
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Barako.muted,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Text(text, style: AppText.caption.w7),
   );
 
   Widget _row(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(color: Barako.textSecondary, fontSize: 13),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: Barako.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
+        Expanded(child: Text(label, style: AppText.small)),
+        Text(value, style: AppText.small.w6.tabular),
       ],
     ),
   );
@@ -108,7 +89,7 @@ class _ThirteenthCalculatorScreenState
           children: [
             Text(
               'Every rank-and-file employee who worked at least a month this year should receive 13th month pay, on or before 24 December. It is your basic salary for the year divided by 12.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.4),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
             ),
             _label('MONTHLY BASIC PAY'),
             TextField(
@@ -168,7 +149,7 @@ class _ThirteenthCalculatorScreenState
             const SizedBox(height: 6),
             Text(
               'Only basic pay counts, not overtime, allowances, or holiday pay. Sales commissions that form part of your basic wage do count, so include them in the basic pay above. Other bonuses matter only for the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling.',
-              style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+              style: AppText.caption.copyWith(height: 1.4),
             ),
             if (ready) ...[
               const SizedBox(height: 12),
@@ -216,17 +197,12 @@ class _ThirteenthCalculatorScreenState
                       const SizedBox(height: 4),
                       Text(
                         _m(r['amount'] as double),
-                        style: TextStyle(
-                          color: Barako.text,
-                          fontSize: 30,
-                          fontFamily: Barako.displayFont,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppText.amountLg.w7,
                       ),
                       if ((r['monthsWorked'] as int) < 12)
                         Text(
                           'Prorated for ${r['monthsWorked']} ${r['monthsWorked'] == 1 ? 'month' : 'months'} worked this year.',
-                          style: TextStyle(color: Barako.muted, fontSize: 12),
+                          style: AppText.caption,
                         ),
                       if (taxed) ...[
                         Divider(color: Barako.border, height: 16),
@@ -245,21 +221,14 @@ class _ThirteenthCalculatorScreenState
                             Expanded(
                               child: Text(
                                 'You take home about',
-                                style: TextStyle(
-                                  color: Barako.text,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: AppText.label.w7,
                               ),
                             ),
                             Text(
                               _m(r['net'] as double),
-                              style: TextStyle(
-                                color: Barako.primary,
-                                fontSize: 20,
-                                fontFamily: Barako.displayFont,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: AppText.amountRow
+                                  .copyWith(fontSize: 20)
+                                  .tint(Barako.primary),
                             ),
                           ],
                         ),
@@ -289,20 +258,16 @@ class _ThirteenthCalculatorScreenState
                         taxed
                             ? 'The first ${_m(thirteenthTaxFreeCeiling)} of your 13th month pay and other bonuses combined is tax free. Only the amount above that is taxed, at your income tax rate, which is why the tax here is an estimate.'
                             : 'Your 13th month pay is within the ${_m(thirteenthTaxFreeCeiling)} tax-free ceiling for 13th month pay and other bonuses combined, so no tax is taken.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'It must be paid on or before 24 December. It is separate from any 14th month or performance bonus your employer chooses to give.',
-                        style: TextStyle(
-                          color: Barako.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                        style: AppText.caption
+                            .tint(Barako.textSecondary)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -313,17 +278,13 @@ class _ThirteenthCalculatorScreenState
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Enter your monthly basic pay to see your 13th month pay.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                  style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
                 ),
               ),
             const SizedBox(height: 12),
             Text(
               'Estimate based on $ratesYear rules (PD 851 and the ${_m(thirteenthTaxFreeCeiling)} TRAIN tax-free ceiling). It assumes a steady basic salary and counts basic pay only. Months on unpaid leave or SSS maternity benefit count less, because the law divides the basic pay you actually earned by 12. Managerial employees are not covered by PD 851, though many companies pay anyway. If you leave mid-year, you still get the prorated amount with your final pay. Your actual 13th month can differ if your pay changed during the year or your company integrates other pay. Not a substitute for your payslip.',
-              style: TextStyle(color: Barako.faint, fontSize: 11, height: 1.4),
+              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.4),
             ),
           ],
         ),

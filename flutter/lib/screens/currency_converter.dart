@@ -12,6 +12,7 @@ import '../data/store.dart';
 import '../money/currencies.dart';
 import '../money/fxrates.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 
 const List<String> _mos = [
@@ -122,7 +123,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
           children: [
             Text(
               'See what your money is worth in another currency. Rates come from the internet when you are online and are saved for offline use. This shows values only, it does not exchange or move money.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.5),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.5),
             ),
             const SizedBox(height: 18),
             Text('AMOUNT IN $_from', style: Barako.kickerStyle),
@@ -131,7 +132,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
               children: [
                 Text(
                   currencySymbol(_from),
-                  style: TextStyle(color: Barako.textSecondary, fontSize: 18),
+                  style: AppText.heading.w4.tint(Barako.textSecondary),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -144,11 +145,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
                     ],
                     autofocus: true,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppText.title.w7,
                     decoration: InputDecoration(
                       hintText: '0',
                       hintStyle: TextStyle(color: Barako.faint),
@@ -179,7 +176,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
             Center(
               child: Text(
                 'Rates by Exchange Rate API',
-                style: TextStyle(color: Barako.faint, fontSize: 11),
+                style: AppText.micro.w4.tint(Barako.faint),
               ),
             ),
           ],
@@ -244,7 +241,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
           Text(
             'Same currency, nothing to convert.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Barako.muted, fontSize: 12),
+            style: AppText.caption,
           ),
         ],
       );
@@ -256,14 +253,14 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
           Text(
             '1 $_from = ${roundRate(rate)} $_to${asOf.isNotEmpty ? ' · rates as of $asOf' : ''}',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Barako.muted, fontSize: 12),
+            style: AppText.caption,
           ),
         ],
       );
     } else if (_loading) {
       body = Text(
         "Getting today's rates...",
-        style: TextStyle(color: Barako.textSecondary, fontSize: 13),
+        style: AppText.small,
       );
     } else if (_fx != null) {
       // Rates are loaded, this pair just is not covered by the table. Do not
@@ -271,11 +268,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
       body = Text(
         'No rate for $_from to $_to right now. Try another currency.',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Barako.textSecondary,
-          fontSize: 13,
-          height: 1.4,
-        ),
+        style: AppText.small.copyWith(height: 1.4),
       );
     } else {
       body = Column(
@@ -283,11 +276,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
           Text(
             "No rates yet. Connect to the internet once to download today's rates, then it works offline too.",
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Barako.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppText.small.copyWith(height: 1.4),
           ),
           const SizedBox(height: 8),
           TextButton(
@@ -316,13 +305,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     child: Text(
       text,
       maxLines: 1,
-      style: TextStyle(
-        fontFamily: Barako.displayFont,
-        color: Barako.primary,
-        fontSize: 34,
-        fontWeight: FontWeight.w800,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
+      style: AppText.amountXl.tint(Barako.primary),
     ),
   );
 }

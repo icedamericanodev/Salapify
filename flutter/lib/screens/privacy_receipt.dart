@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../data/fx_service.dart';
 import '../theme.dart';
+import '../typography.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -139,11 +140,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                 Expanded(
                   child: Text(
                     'Your money data lives on this phone',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.bodyLg.w8,
                   ),
                 ),
               ],
@@ -156,7 +153,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               'yourself. Most apps ask you to trust their privacy policy. '
               'This page is different: it is the complete list of what this '
               'app can do on the internet, and you can check it.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.45),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
             ),
           ],
         ),
@@ -179,20 +176,12 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppText.bodyStrong,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     body,
-                    style: TextStyle(
-                      color: Barako.muted,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
+                    style: AppText.caption.copyWith(height: 1.4),
                   ),
                 ],
               ),
@@ -215,12 +204,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               child: Text(
                 'That is the whole list. Two connections, neither carrying '
                 'your money data. There is no third.',
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.4,
-                ),
+                style: AppText.small.w6.tint(Barako.text).copyWith(height: 1.4),
               ),
             ),
           ],
@@ -241,20 +225,12 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppText.label.w7,
               ),
               const SizedBox(height: 2),
               Text(
                 body,
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
           ),
@@ -355,16 +331,12 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  color: Barako.text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppText.label.w7,
               ),
               const SizedBox(height: 2),
               Text(
                 body,
-                style: TextStyle(color: Barako.muted, fontSize: 12, height: 1.4),
+                style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
           ),
@@ -425,11 +397,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                 'No rate fetches yet. The app has not reached out for rates '
                 'on this phone; the log will fill in only when you use the '
                 'currency converter with live rates.',
-                style: TextStyle(
-                  color: Barako.muted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: AppText.caption.copyWith(height: 1.4),
               );
             }
             return Column(
@@ -439,11 +407,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                   'The most recent times this app asked for exchange rates, '
                   'newest first. Each request carried only the currency code '
                   'shown.',
-                  style: TextStyle(
-                    color: Barako.muted,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+                  style: AppText.caption.copyWith(height: 1.4),
                 ),
                 const SizedBox(height: 10),
                 for (final e in entries) ...[
@@ -469,7 +433,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                             '${fxLogWhen(e['at'] as int)} '
                             '${(e['base'] as String).isEmpty ? '' : 'rates for ${e['base']}'}'
                             '${e['ok'] == true ? '' : ', no connection'}',
-                            style: TextStyle(color: Barako.text, fontSize: 12),
+                            style: AppText.caption.tint(Barako.text),
                           ),
                         ),
                       ],
@@ -502,11 +466,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
                 Expanded(
                   child: Text(
                     'Do not take our word for it',
-                    style: TextStyle(
-                      color: Barako.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppText.body.w8,
                   ),
                 ),
               ],
@@ -517,7 +477,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               'split a bill, check your reports, ask Pan. Everything works, '
               'because everything is already on your phone. An app that '
               'needs the cloud cannot pass that test.',
-              style: TextStyle(color: Barako.muted, fontSize: 13, height: 1.45),
+              style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
             ),
           ],
         ),
