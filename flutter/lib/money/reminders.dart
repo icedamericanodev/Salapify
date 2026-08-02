@@ -357,6 +357,51 @@ List<PlannedReminder> plannedReminders(
     }
   }
 
+  if (on['waiting'] == true) {
+    // Money Mindset Phase 3's "Pause for 24 hours" queue: one ping per item
+    // still waiting, right at its own revisit time. add() drops anything
+    // already in the past, so an item that came due while the app was closed
+    // schedules nothing here; the Waiting section itself asks "Do you still
+    // want this?" the next time the app opens, the same "reschedule on every
+    // open" contract every other kind in this file already runs on.
+    final waitingRaw = settings is Map ? settings['mindsetWaiting'] : null;
+    final dueSoonest = <(DateTime, Map)>[];
+    for (final raw in _list(waitingRaw)) {
+      if (raw['status'] != 'waiting') continue;
+      final at = raw['revisitAt'];
+      final when = at is String ? DateTime.tryParse(at) : null;
+      if (when == null) continue;
+      dueSoonest.add((when, raw));
+    }
+    dueSoonest.sort((a, b) => a.$1.compareTo(b.$1));
+    // A sane cap, the same reasoning goals' activeDated.take(2) above uses:
+    // nobody should be able to crowd out every other reminder kind sharing
+    // the plugin's own 60-notification ceiling by pausing dozens of
+    // purchases in one sitting. Ten is generous for the ordinary case (a
+    // handful of paused items at a time) while staying bounded; the soonest
+    // ones win, since those are also the soonest to matter.
+    for (final (dueAt, raw) in dueSoonest.take(10)) {
+      final itemName =
+          (raw['itemName'] is String &&
+              (raw['itemName'] as String).trim().isNotEmpty)
+          ? raw['itemName'] as String
+          : 'something you were considering';
+      final amount = amountOf(raw['amount']);
+      // Generic title; the item name and amount go in the body and only
+      // when detailed is on, the same lock-screen rule every other kind here
+      // follows.
+      add(
+        'Still thinking it over?',
+        detailed
+            ? (amount > 0
+                  ? 'The 24 hours are up on $itemName (${_peso(amount)}). Open Salapify to decide.'
+                  : 'The 24 hours are up on $itemName. Open Salapify to decide.')
+            : 'The 24 hours are up on something you paused. Open Salapify to decide if it still fits.',
+        dueAt,
+      );
+    }
+  }
+
   if (on['comeback'] == true) {
     // The re-engagement ladder for a user who stops opening the app. Every
     // other reminder is armed relative to the LAST time the app was opened,

@@ -623,10 +623,136 @@ void main() {
     });
   });
 
+  group('waiting list check-in (Money Mindset Phase 3)', () {
+    // settings.mindsetWaiting, not a top-level key (see data/store.dart), so
+    // this group builds its own data rather than withNotifs: that helper's
+    // extra spreads at the TOP level and would clobber the whole settings
+    // map, notifications included, if extra carried one too.
+    Map<String, dynamic> waitingData({
+      bool on = true,
+      List<Map<String, dynamic>> items = const [],
+    }) => {
+      'settings': {
+        'notifications': {'waiting': on},
+        'mindsetWaiting': items,
+      },
+    };
+
+    final oneWaiting = [
+      {
+        'id': 'w1',
+        'itemName': 'New shoes',
+        'amount': 1500,
+        'status': 'waiting',
+        'revisitAt': DateTime(2026, 7, 16, 9).toIso8601String(),
+      },
+    ];
+
+    test('FIRES right at the item\'s own revisit time, generic title', () {
+      final rs = plannedReminders(
+        waitingData(items: oneWaiting),
+        now,
+      ).where((r) => r.title == 'Still thinking it over?').toList();
+      expect(rs, hasLength(1));
+      expect(rs.single.when, DateTime(2026, 7, 16, 9));
+      expect(rs.single.body.contains('New shoes'), isFalse);
+      expect(rs.single.body.contains('1,500'), isFalse);
+    });
+
+    test('the detailed body may name the item and amount', () {
+      final rs = plannedReminders(
+        waitingData(items: oneWaiting),
+        now,
+        detailed: true,
+      ).where((r) => r.title == 'Still thinking it over?').toList();
+      expect(rs.single.body.contains('New shoes'), isTrue);
+      expect(rs.single.body.contains('₱1,500'), isTrue);
+      // The title still never does, on either setting.
+      expect(rs.single.title.contains('shoes'), isFalse);
+    });
+
+    test('SILENT with the toggle off', () {
+      expect(
+        plannedReminders(
+          waitingData(on: false, items: oneWaiting),
+          now,
+        ).where((r) => r.title == 'Still thinking it over?'),
+        isEmpty,
+      );
+    });
+
+    test(
+      'SILENT for anything not still waiting (reviewed, dismissed, skipped)',
+      () {
+        for (final status in ['reviewed', 'dismissed', 'skipped']) {
+          final rs = plannedReminders(
+            waitingData(
+              items: [
+                {...oneWaiting.single, 'status': status},
+              ],
+            ),
+            now,
+          ).where((r) => r.title == 'Still thinking it over?');
+          expect(rs, isEmpty, reason: 'status was $status');
+        }
+      },
+    );
+
+    test('SILENT once the revisit time is already in the past', () {
+      expect(
+        plannedReminders(
+          waitingData(
+            items: [
+              {
+                ...oneWaiting.single,
+                'revisitAt': DateTime(2026, 7, 14, 9).toIso8601String(),
+              },
+            ],
+          ),
+          now,
+        ).where((r) => r.title == 'Still thinking it over?'),
+        isEmpty,
+        reason:
+            'add() drops anything not after now; the Waiting section in the '
+            'app is what asks once it is open again, not a late push',
+      );
+    });
+
+    test('an untitled item still gets a reminder, generically worded', () {
+      final rs = plannedReminders(
+        waitingData(
+          items: [
+            {
+              'id': 'w2',
+              'status': 'waiting',
+              'revisitAt': DateTime(2026, 7, 16, 9).toIso8601String(),
+            },
+          ],
+        ),
+        now,
+        detailed: true,
+      ).where((r) => r.title == 'Still thinking it over?').toList();
+      expect(rs, hasLength(1));
+    });
+  });
+
   test('junk data never throws', () {
     final data = {
       'settings': {
-        'notifications': {'daily': true, 'bills': true, 'collect': true},
+        'notifications': {
+          'daily': true,
+          'bills': true,
+          'collect': true,
+          'waiting': true,
+        },
+        'mindsetWaiting': [
+          null,
+          42,
+          'x',
+          {'status': 'waiting'},
+          {'status': 'waiting', 'revisitAt': 'not-a-date'},
+          {'status': 'waiting', 'revisitAt': '2026-02-31T09:00:00'},
+        ],
       },
       'transactions': [null, 42, 'x'],
       'debts': [
