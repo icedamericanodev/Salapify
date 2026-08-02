@@ -198,10 +198,14 @@ same PR and the entry stayed.
    (flutter/test/qa_record_test.dart). Strength: strong, in place.
 
 **Open lessons carried forward.**
-- NEW: founder phone confirmation of f3.17 patch 12 is owed. It supersedes
-  the f3.16 confirmation carried from session 29, because a phone showing
-  f3.17 patch 12 confirms the chain through patch 11. If the phone shows
-  anything else, that finding outranks this entire entry.
+- SETTLED 2026-08-02: the founder confirmed patch 12 on the phone
+  ("patch 12 already"), which closes the owed check below and confirms the
+  chain through patch 11. The delivery row and the phone agree; a clean
+  delivery, now with the only proof that counts.
+- Superseded by the settle above, kept for the record: founder phone
+  confirmation of f3.17 patch 12 was owed. It superseded the f3.16
+  confirmation carried from session 29, because a phone showing f3.17
+  patch 12 confirms the chain through patch 11.
 - NEW: the stale goals.dart allowlist entry in icon_system_test.dart, and
   the self-checking allowlist that would retire the whole class (lesson 3).
 - NEW: the 320dp question (lesson 4), open until weighed.
