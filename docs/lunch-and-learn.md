@@ -10,6 +10,216 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-02, session 31: a clean typography patch, a QA review cut short, and a WIP label stranded in main
+
+**What we believed / What was true.** We believed f3.18 shipped the typography
+centralization as a Shorebird patch over the air, and for the first time in
+three sessions the ground truth is the PHONE, not just the delivery row: the
+founder confirmed the Update stamp reads "f3.18 patch 13". The delivery row
+agrees:
+`| 2026-08-02 05:22 UTC | f3.18 | 13 | patch | 0.9.0+15 | d471b448 |`
+(docs/delivery-log.md, last row, publisher run 30733553981). Mode is `patch`,
+base APK still 0.9.0+15, so no manual install was needed and none was claimed.
+Patch numbers ran 12 then 13 with nothing between, so no unrecorded patch
+slipped through. The stamp on origin/main (flutter/lib/main.dart line 33) is
+f3.18, matching the row and the phone. This is the good case, and it is worth
+saying plainly: the automated harness, the delivery log, and the phone all
+told the same story, and no defect was reported. A clean patch is a real
+outcome, not a failure to find problems.
+
+For plain terms used below: a "Shorebird patch" is a Dart-only update the
+installed app pulls over the air on reopen, no app-store install. A "semantic
+type role" means naming text by its JOB (title, body, caption, a money amount)
+in one file, so the whole app's type is changed from one place instead of at
+739 scattered sites. "Prove-fail" is the standing rule that a new test must be
+shown to go red against deliberately broken code before it is trusted.
+
+**Timeline (with evidence).**
+- The change. f3.18 centralized the Flutter app's typography into
+  flutter/lib/typography.dart (263 new lines), mirroring the React Native
+  scale in mobile/theme.js (caption 12, small 13, body 15, subtitle 17,
+  title 22, big 28, huge 34, display 42, verified this session against
+  mobile/theme.js lines 438 to 445) onto the shipped Plus Jakarta Sans face.
+  About 739 hardcoded TextStyle sites across 63 files were migrated to
+  semantic roles by nine parallel agents; the ten synthetic FontWeight.w500
+  uses were fixed to real medium (w600), the weight Jakarta actually ships.
+  The merge diff is 67 files, +1596 and -2986 (git show d471b448 --stat).
+- The new guard, proven fail-first. flutter/test/typography_test.dart (171
+  lines) pins the eight RN sizes, verifies every weight maps to a real Jakarta
+  font file, and scans all of lib for synthetic weights. The qa-log records it
+  "listed all ten w500 sites before the migration removed them", which is the
+  fail-first proof done the right way: the test was watched going red against
+  the real defect before it was trusted.
+- The QA row, honest about a truncated review (docs/qa-log.md line 77, f3.18).
+  Verdict Pass, 0 must-fix. The row states plainly that "a diff-level review
+  of the migrated call sites was partially run (session limit)": a
+  qa/diff-review agent launched to read the 739 migrated sites terminated on
+  "You've hit your session limit", after capturing one partial finding (the
+  Text.rich base-color cases are non-issues because child spans set their own
+  color). The machine half of QA ran in full: flutter analyze clean, the full
+  suite (reported 1526 green), the screen_readability sweep at 1.0x and 1.5x,
+  and the render harness. Dark-first screenshots of Home, Insights, Utang, and
+  Accounts were reviewed.
+- A WIP checkpoint became permanent. Commit c9ee0d1 "WIP: centralize
+  typography (migration in progress)" was pushed to the branch early for
+  durability. At finalize time an amend plus force-with-lease was BLOCKED by
+  the Claude Code auto-mode classifier, so the finish landed as a
+  fast-forward commit on top (5b970ff, the QA row) instead of rewriting the
+  WIP. Result, verified this session: `git merge-base --is-ancestor c9ee0d1
+  origin/main` returns true. Main history now permanently carries a commit
+  that says "migration in progress" for work that is complete and shipped.
+- The task collided with a documented decision, and the collision was raised,
+  not guessed. The brief said "match RN typography, use RN as source of truth,
+  do not assume the font" while Flutter deliberately ships Jakarta and RN uses
+  the system font (a founder decision recorded in CLAUDE.md). This was resolved
+  by asking the founder up front (keep Jakarta, mirror RN's size and weight
+  SCALE), not by silently picking one reading. That is the behaviour the rules
+  ask for, and it is recorded here as a thing done right.
+- Delivery clean. Merge d471b448 (PR #295, 13:07 +0800), publisher wrote the
+  row itself, patch 13, and the founder then confirmed it on the phone.
+
+**Root cause.** There is no delivery gap to root-cause; the patch behaved. Two
+process items are worth the "why".
+
+For the truncated QA review: the safety of a 739-site mechanical refactor was
+argued as "renders preserved 1:1 by construction", and the check meant to
+VERIFY that claim site by site was the human diff review, which an agent
+session limit cut short.
+
+This session's first draft of that finding was itself wrong, and worth
+recording precisely because it repeats the failure mode named in
+screen_readability_test.dart's own history (CLAUDE.md once said "every
+screen" while the swept set held ten of fifty). The draft said the sweep
+"imports 27 of 54 lib/screens files, so half the app has no automated
+overflow net", framed as a silent, undiscovered gap. It is neither silent nor
+undiscovered: screen_readability_test.dart already carries the
+assert-you-saw-them-all guard the draft called "not yet built" (its own test,
+"every screen file is either swept or exempted for a stated reason", iterates
+lib/screens on disk and fails if any file is neither swept nor named in the
+exempt map with a reason). Every one of the 27 non-swept files IS named there,
+with a written, arguable reason (modal sheet opened mid-flow, input-driven
+form that only shows something on a cold pump once typed into, first-run
+screen needing an empty store, and so on), and the test was re-run this
+session and passed clean: nothing in lib/screens is unaccounted for. The real,
+narrower fact is that of those 27 reasoned exemptions, 7 are the calculators
+this session's migration touched, and the file's own comment already names
+driving them with typed input as "the next thing this file should grow". For
+those 7 files specifically, the human diff review was this session's only
+net, and it died. It did not bite, confirmed by the phone, but the exposure on
+those 7 was real. Overstating that to "half the app, silently" would have
+planted a false claim in this very file about the thing this file exists to
+prevent.
+
+For the stranded WIP label: in this environment force-push is blocked by the
+auto-mode classifier, so a commit, once pushed, is effectively permanent. A
+placeholder message written on the assumption it would be amended away never
+got its amend, and there is no path to fix it now without rewriting shared
+history.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. When a large mechanical refactor's whole safety case is "renders unchanged",
+   the check that proves it must not be the one that can run out of session.
+   The honest disclosure in the qa-log row is the RIGHT behaviour and strictly
+   better than a false "fully reviewed", but disclosure is a NOTE, not a guard:
+   it records that a check did not finish, it does not make the check finish.
+   The assert-you-saw-them-all accounting in screen_readability_test.dart
+   ALREADY EXISTS and already runs on every push (confirmed green this session
+   after the migration), so the gap is not "which screens are unaccounted for"
+   (none are); it is narrower: which reasoned exemptions this session's own
+   changes touched. Ranking the real guards:
+   - Concrete and NOT yet done: drive the 7 calculator screens (all touched by
+     this session's typography migration) through the sweep with typed input,
+     moving them from the exempt map to the swept set, exactly as
+     screen_readability_test.dart's own comment already names as its next
+     growth step. Bounded, and closes the one net this session's changes
+     actually lacked.
+   - Also available and NOT built: for a presentation-only refactor, a
+     SAME-ENVIRONMENT before/after render diff of every touched screen. Run in
+     one sandbox on one commit pair, it is deterministic, so it does NOT fall
+     foul of the founder's standing ban on blocking CROSS-environment pixel
+     checks (that ban was about flake between machines, which this does not
+     have). It is the only thing that catches a subtle wrong-role mapping that
+     still fits. Medium to strong. Named, not built.
+   - Weakest, and what actually held this time on the 7 calculators: the eye
+     plus a diff review. It worked here only because the phone came back
+     clean, and it is exactly the layer that ran out of session. Do not rely
+     on it as the primary net for a refactor this wide.
+   Carried OPEN, narrowed to the calculators, with driving them through the
+   sweep as the recommended first step.
+
+2. In this environment every pushed commit is permanent, so write the message
+   you would be content to see in main forever, on the FIRST push. Force-push
+   is blocked by the auto-mode classifier, which is not a bug to route around
+   but the standing reality; c9ee0d1 proves a "WIP: migration in progress"
+   label now lives in main under shipped work. Guard: a rule, never push a
+   checkpoint with a throwaway message (WIP, in progress, fixup, tmp) to a
+   branch that reaches main; if you push for durability, push with the real
+   message. Strength: weak to medium, a rule, because the harm is a misleading
+   history line with no delivery impact, and no machine reads intent. A machine
+   version is possible if it recurs (a pre-merge check that reddens when any
+   commit in the merged range carries a WIP-shaped message, the same
+   shape-matching the destructive-edits hook already does), named here but
+   judged not yet worth the weight for a cosmetic cost.
+
+3. When the literal task contradicts a documented decision, ask, do not pick.
+   The typography brief said "use RN as source of truth, do not assume the
+   font" while CLAUDE.md records Flutter ships Jakarta on purpose; asking the
+   founder up front turned a contradiction into a clear instruction (mirror the
+   scale, keep the font). Guard: this is already the ethos of the brainstorming
+   skill and the "ask before guessing" rules, so no NEW guard is minted; it is
+   recorded as a positive so the pattern stays visible. Strength: existing, a
+   habit reinforced by example, honestly weak but correctly applied.
+
+4. Positive result, recorded as one. The typography guard was proven fail-first
+   before it was trusted, the machine harness (analyze, the full suite, the
+   readability sweep at two font scales) agreed with the phone, and the ONE
+   intentional visual change (synthetic w500 to real w600) is exactly what the
+   qa-log documents. Guard: the standing gates, already enforced by the
+   qa-log-row requirement (flutter/test/qa_record_test.dart) and the branch
+   check on a real runner. Strength: strong, in place.
+
+**Open lessons carried forward.**
+- SETTLED: the f3.17 patch 12 phone confirmation owed from session 30 is now
+  closed. The founder confirmed f3.18 patch 13, and because patches ran 12 then
+  13 with no gap, a phone showing patch 13 confirms the chain through patch 12.
+  Ground truth caught up to the delivery log.
+- OPEN, NARROWED: the readability sweep's assert-you-saw-them-all accounting
+  already exists and is enforced (confirmed green this session); the 27
+  non-swept lib/screens files are each named with a reasoned exemption, not
+  silently missing. The real open item is the 7 calculator screens this
+  session's migration touched, still exempted as "input-driven; cold pump
+  shows an empty form" per the test's own next-growth note (lesson 1).
+  Recommended guard is driving those 7 through the sweep with typed input; not
+  built.
+- NEW and OPEN: the same-environment before/after render diff for presentation
+  refactors (lesson 1), named, not built.
+- NEW: the WIP-label-is-permanent rule (lesson 2), a rule not a machine.
+- STILL OPEN from session 30: the 320dp readability question (nothing automated
+  looks at 320dp today), and it now compounds with the coverage gap above,
+  since half the screens are not swept at ANY width. The goals.dart allowlist
+  entry in icon_system_test.dart is still stale (this session did not touch it;
+  typography adds no emoji). The prove-fail marker-file sharpening is still
+  named, not built.
+- STILL OPEN from session 29: the fixture-through-the-writer shape test is not
+  built, the five Pan-plan follow-ups have no backlog home, and the 60-day
+  cashflow shot still captures without asserting its view.
+- CLAUDE.md factual claims exercised this session all matched. Verified by
+  reading the repo, not the rule: flutter-check.yml triggers on `claude/**`
+  push and pull_request to main (analyze and test only), flutter-preview.yml
+  triggers on push to main with paths `flutter/**` plus its own file (the
+  publisher), exactly as rule 1 describes. The eight RN sizes the type work
+  leans on match mobile/theme.js to the point. Every path checked exists:
+  check-stamp-unique.sh, flutter/shorebird.yaml, update_stamp_test.dart,
+  salapify_icon.dart, the destructive-edits hook, screens_shot.dart,
+  journeys_test.dart, the journey-tester agent, palette_contrast_test.dart,
+  screen_readability_test.dart, test/golden/ui_golden.dart, reports.dart and
+  debts.dart, eas-update.yml, and mobile/app/(tabs)/more.js. The delivery
+  three-command read produced the real f3.18 row. Not every claim was
+  re-audited; the ones this batch exercised held.
+
+---
+
 ## 2026-08-02, session 30: a committed break caught twice, and the second clause session 29's rule was missing
 
 **What we believed / What was true.** We believed the Goals redesign plus the
