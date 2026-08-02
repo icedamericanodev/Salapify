@@ -78,6 +78,18 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+// scrollUntilVisible only ever drags one direction (down, revealing later
+// content), so once it has overshot a target that sits ABOVE the current
+// scroll position, it can never find it again by continuing to scroll the
+// same way. A prior _scrollTo/_tap in the same test can leave the list
+// scrolled well past a section that later needs finding again (WAITING,
+// once Undo brings it back); dragging all the way back to the top first
+// guarantees the next _scrollTo always has somewhere forward to go.
+Future<void> _scrollToTop(WidgetTester tester) async {
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _answer(WidgetTester tester, int i, bool yes) =>
     _tap(tester, find.text(yes ? 'Yes' : 'No').at(i));
 
@@ -336,6 +348,7 @@ void main() {
 
       await _tap(tester, find.text('Undo'));
 
+      await _scrollToTop(tester);
       await _scrollTo(tester, find.text('WAITING'));
       expect(find.text('WAITING'), findsOneWidget);
       expect(store.mindsetWaiting.single['id'], id);
@@ -427,6 +440,18 @@ void main() {
             .controller!
             .text,
         contains('New shoes'),
+      );
+      // The waiting item's own estimated amount (1500, _waitingItem's
+      // default) prefills the optional "Spending avoided" field too, and
+      // that field's own panel opens automatically to show it, rather than
+      // leaving the amount collapsed and invisible.
+      await _scrollTo(tester, find.byKey(const Key('mindsetWinAmount')));
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('mindsetWinAmount')))
+            .controller!
+            .text,
+        '1500',
       );
       expect(
         (store.data['wins'] as List? ?? const []),
@@ -528,6 +553,50 @@ void main() {
         );
       },
     );
+
+    testWidgets('Yes, review again clears the decision-check log guard too, so '
+        're-answering the three questions logs a fresh completed check', (
+      tester,
+    ) async {
+      // Money Mindset Phase 4's decision-check log guards against logging
+      // the same completed check twice while an answer is flipped back
+      // and forth, but "Yes, review again" blanks the three answers the
+      // same way Clear check does, and has to reset that same guard, or
+      // the SECOND check completed in one screen visit is silently never
+      // logged.
+      final store = await _openDirect(
+        tester,
+        _blob(
+          waiting: [
+            _waitingItem(
+              itemName: 'Old shoes',
+              revisitAt: DateTime.now().subtract(const Duration(hours: 1)),
+            ),
+          ],
+        ),
+      );
+
+      await _answer(tester, 0, true);
+      await _answer(tester, 1, true);
+      await _answer(tester, 2, true);
+      expect(store.mindsetChecks, hasLength(1));
+
+      await _scrollTo(tester, find.text('Ready to revisit'));
+      await _tap(tester, find.text('Ready to revisit'));
+      await _tap(tester, find.text('Yes, review again'));
+      await _tap(tester, find.text('Replace'));
+
+      await _answer(tester, 0, false);
+      await _answer(tester, 1, true);
+      await _answer(tester, 2, false);
+      expect(
+        store.mindsetChecks,
+        hasLength(2),
+        reason:
+            're-answering after review again is a second, separate '
+            'completed check',
+      );
+    });
   });
 
   group('persistence survives a restart', () {

@@ -1402,6 +1402,95 @@ void main() {
     },
   );
 
+  testWidgets('Small Wins and the 30-day snapshot on Money mindset, dark', (
+    tester,
+  ) async {
+    // Money Mindset Phase 4: a small win with an amount and a reflection,
+    // a plain manual-entry win, and three skipped waiting items, layered
+    // onto the lived-in fixture so the snapshot's four counts, the
+    // spending-avoided total, and the rule-based insight all render
+    // together against real history rather than an empty store.
+    await loadRealFonts(tester);
+    final now = DateTime.now();
+    final today = now.toIso8601String().substring(0, 10);
+    Map<String, dynamic> skipped(String id) => {
+      'id': id,
+      'itemName': 'Item $id',
+      'essential': false,
+      'affordableWithoutReserved': true,
+      'waited24h': false,
+      'result': 'pause24h',
+      'createdAt': now.subtract(const Duration(days: 1)).toIso8601String(),
+      'revisitAt': now.subtract(const Duration(hours: 1)).toIso8601String(),
+      'status': 'skipped',
+    };
+    final blob = {
+      ...livedInBlob,
+      'wins': [
+        {
+          'id': 'win1',
+          'text': 'New running shoes',
+          'amount': 3499.0,
+          'note': 'Already have three pairs',
+          'date': today,
+        },
+        {'id': 'win2', 'text': 'Packed lunch all week', 'date': today},
+      ],
+      'settings': {
+        ...(livedInBlob['settings'] as Map).cast<String, dynamic>(),
+        'mindsetChecks': [
+          {'id': 'c1', 'verdict': 'pause24h', 'date': today},
+        ],
+        'mindsetWaiting': [skipped('s1'), skipped('s2'), skipped('s3')],
+      },
+    };
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('30-DAY SNAPSHOT'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('30-DAY SNAPSHOT'), findsOneWidget);
+    expect(
+      find.text('Waiting 24 hours helped you skip 3 purchases this month.'),
+      findsOneWidget,
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-snapshot-dark.png'),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('New running shoes'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Spending avoided: ₱3,499'), findsOneWidget);
+    expect(find.text('Already have three pairs'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-small-wins-dark.png'),
+    );
+  });
+
   testWidgets('the sample data card in Menu, both states, dark', (
     tester,
   ) async {
