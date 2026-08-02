@@ -84,15 +84,31 @@ process items are worth the "why".
 For the truncated QA review: the safety of a 739-site mechanical refactor was
 argued as "renders preserved 1:1 by construction", and the check meant to
 VERIFY that claim site by site was the human diff review, which an agent
-session limit cut short. The machine backstop for "did any migrated screen
-change size or overflow" is screen_readability_test.dart, but that sweep
-imports 27 of the 54 files in lib/screens (counted this session). Roughly half
-the migrated screens, including every calculator, the share cards, onboarding,
-and the sheets, have NO automated readability net, so on those screens the only
-thing standing between a wrong-role mapping and the phone was the eye and the
-diff review, and the diff review died. It did not bite this time, confirmed by
-the phone, but the exposure was real: a green suite covered the
-machine-checkable half while the human half was disclosed as incomplete.
+session limit cut short.
+
+This session's first draft of that finding was itself wrong, and worth
+recording precisely because it repeats the failure mode named in
+screen_readability_test.dart's own history (CLAUDE.md once said "every
+screen" while the swept set held ten of fifty). The draft said the sweep
+"imports 27 of 54 lib/screens files, so half the app has no automated
+overflow net", framed as a silent, undiscovered gap. It is neither silent nor
+undiscovered: screen_readability_test.dart already carries the
+assert-you-saw-them-all guard the draft called "not yet built" (its own test,
+"every screen file is either swept or exempted for a stated reason", iterates
+lib/screens on disk and fails if any file is neither swept nor named in the
+exempt map with a reason). Every one of the 27 non-swept files IS named there,
+with a written, arguable reason (modal sheet opened mid-flow, input-driven
+form that only shows something on a cold pump once typed into, first-run
+screen needing an empty store, and so on), and the test was re-run this
+session and passed clean: nothing in lib/screens is unaccounted for. The real,
+narrower fact is that of those 27 reasoned exemptions, 7 are the calculators
+this session's migration touched, and the file's own comment already names
+driving them with typed input as "the next thing this file should grow". For
+those 7 files specifically, the human diff review was this session's only
+net, and it died. It did not bite, confirmed by the phone, but the exposure on
+those 7 was real. Overstating that to "half the app, silently" would have
+planted a false claim in this very file about the thing this file exists to
+prevent.
 
 For the stranded WIP label: in this environment force-push is blocked by the
 auto-mode classifier, so a commit, once pushed, is effectively permanent. A
@@ -107,16 +123,17 @@ history.
    The honest disclosure in the qa-log row is the RIGHT behaviour and strictly
    better than a false "fully reviewed", but disclosure is a NOTE, not a guard:
    it records that a check did not finish, it does not make the check finish.
-   Ranking the real guards:
-   - Strongest available and NOT yet built: extend
-     screen_readability_test.dart to every file in lib/screens using the
-     assert-you-saw-them-all pattern that palette_contrast_test.dart already
-     uses (iterate the set, then assert it was complete, so a new screen
-     reddens the build). This closes the "27 of 54" coverage gap and removes
-     the human diff review as the sole net for overflow-class regressions on
-     the unswept half. Strong, because it runs on every push and needs no
-     agent to survive. Cost is suite runtime, the same trade the 320dp
-     question weighs.
+   The assert-you-saw-them-all accounting in screen_readability_test.dart
+   ALREADY EXISTS and already runs on every push (confirmed green this session
+   after the migration), so the gap is not "which screens are unaccounted for"
+   (none are); it is narrower: which reasoned exemptions this session's own
+   changes touched. Ranking the real guards:
+   - Concrete and NOT yet done: drive the 7 calculator screens (all touched by
+     this session's typography migration) through the sweep with typed input,
+     moving them from the exempt map to the swept set, exactly as
+     screen_readability_test.dart's own comment already names as its next
+     growth step. Bounded, and closes the one net this session's changes
+     actually lacked.
    - Also available and NOT built: for a presentation-only refactor, a
      SAME-ENVIRONMENT before/after render diff of every touched screen. Run in
      one sandbox on one commit pair, it is deterministic, so it does NOT fall
@@ -124,12 +141,12 @@ history.
      checks (that ban was about flake between machines, which this does not
      have). It is the only thing that catches a subtle wrong-role mapping that
      still fits. Medium to strong. Named, not built.
-   - Weakest, and what actually held this time: the eye plus a diff review. It
-     worked here only because the phone came back clean, and it is exactly the
-     layer that ran out of session. Do not rely on it as the primary net for a
-     refactor this wide.
-   Because neither machine guard is built, this lesson is carried OPEN, with
-   the sweep-coverage extension as the recommended first step.
+   - Weakest, and what actually held this time on the 7 calculators: the eye
+     plus a diff review. It worked here only because the phone came back
+     clean, and it is exactly the layer that ran out of session. Do not rely
+     on it as the primary net for a refactor this wide.
+   Carried OPEN, narrowed to the calculators, with driving them through the
+   sweep as the recommended first step.
 
 2. In this environment every pushed commit is permanent, so write the message
    you would be content to see in main forever, on the FIRST push. Force-push
@@ -167,9 +184,14 @@ history.
   closed. The founder confirmed f3.18 patch 13, and because patches ran 12 then
   13 with no gap, a phone showing patch 13 confirms the chain through patch 12.
   Ground truth caught up to the delivery log.
-- NEW and OPEN: the readability sweep covers 27 of 54 lib/screens files, so
-  half the app has no automated overflow net (lesson 1). Recommended guard is
-  the assert-you-saw-them-all extension; not built.
+- OPEN, NARROWED: the readability sweep's assert-you-saw-them-all accounting
+  already exists and is enforced (confirmed green this session); the 27
+  non-swept lib/screens files are each named with a reasoned exemption, not
+  silently missing. The real open item is the 7 calculator screens this
+  session's migration touched, still exempted as "input-driven; cold pump
+  shows an empty form" per the test's own next-growth note (lesson 1).
+  Recommended guard is driving those 7 through the sweep with typed input; not
+  built.
 - NEW and OPEN: the same-environment before/after render diff for presentation
   refactors (lesson 1), named, not built.
 - NEW: the WIP-label-is-permanent rule (lesson 2), a rule not a machine.
