@@ -10,6 +10,227 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-02, session 30: a committed break caught twice, and the second clause session 29's rule was missing
+
+**What we believed / What was true.** We believed the Goals redesign plus the
+app-wide icon system would ship as f3.17 in one merge, and the delivery log
+says it did:
+`| 2026-08-01 23:59 UTC | f3.17 | 12 | patch | 0.9.0+15 | e04759b9 |`,
+patch 12, a Shorebird patch over the air on the 0.9.0+15 base APK, no manual
+install. Honest caveat first, same as session 29's: the founder said
+"proceed" right after the delivery report and has NOT confirmed the f3.17
+stamp on the phone. Ground truth for this session is therefore the delivery
+row, which only the publisher writes and only after shipping, the best
+evidence short of the phone itself. The phone check is still owed and sits in
+the open lessons. Patch numbers ran 11 then 12 with nothing between, so no
+unrecorded patch slipped through. The stamp on origin/main
+(flutter/lib/main.dart line 34) is f3.17, matching the row. Every delivery
+guard held: unique stamp, qa-log row f3.17 present before the merge
+(docs/qa-log.md line 76), merge commit e04759b (PR #292), Flutter check green
+on a real runner, publisher wrote the row itself (run 30723951295).
+
+There is no delivery gap. The session's material is pre-merge, and one item
+is a genuine incident, not merely a catch: for twenty-nine minutes the BRANCH
+carried a committed transfer that destroyed ten percent of every peso moved,
+because a milestone commit was made while another actor's deliberate
+prove-fail break was live in the shared working tree. It never reached main,
+it was found twice independently, and it is exactly the near-miss session 29
+wrote a rule about, one clause short.
+
+Plain terms used below. "Prove-fail" is the standing rule that a new test
+must be shown to go red against deliberately broken code before it is
+trusted; while the red run is pending, the deliberate break sits live in the
+working tree. A "milestone commit" is the main session banking a finished
+slice of work into the branch. An "allowlist" is a short list of files a
+scanning test deliberately skips, each with a written reason.
+
+**Timeline (with evidence).**
+- Phase 0, reading before writing. The founder's full spec (redesign Goals,
+  establish one icon system) was inspected by three parallel read-only agents
+  (goals feature map, app-wide icon audit, design tokens and harness map)
+  before any code moved. No lesson, just the record that the work landed on
+  what exists, per the enhance-never-regress direction.
+- The icon migration, commit cdfc210 (16:29 UTC). 206 raw Icons.* constants
+  across 51 files collapsed into the meaning map in
+  lib/widgets/salapify_icon.dart via a scripted rewrite plus analyzer
+  iterations; test/icon_system_test.dart now holds the perimeter with two
+  derived scans, proven fail-first with a planted probe file that both scans
+  reported line-exactly (quoted in the commit message). Two meaning
+  collisions were surfaced by EXISTING tests, the appearance screen's
+  exactly-one-badge test and the period stepper visual, and fixed by giving
+  distinct meanings distinct names ('chosen', salapify_icon.dart line 111;
+  'previous', line 99). Old guards catching a brand-new change set is those
+  guards working.
+- The engine and store first, ae026a9 (16:36) and 5d26662 (17:03):
+  money/goal_plan.dart with edge-first vectors, prove-fail done on the
+  quarter-milestone guard, then the screens.
+- THE INCIDENT, 17:09. While the journey-tester agent was mid prove-fail,
+  its deliberate 0.9 multiplier planted on transferGoalFunds' credit leg and
+  its red run still pending, the main session committed milestone 6347a67.
+  The commit captured the live break: git show 6347a67 shows
+  flutter/lib/data/store.dart line 965 reading
+  `'saved': base + moved * 0.9,`. The committed suite stayed GREEN, because
+  the journey that catches the break existed only uncommitted in the working
+  tree.
+- Found twice, independently, between 17:09 and 17:38. The journey-tester's
+  own report named the break and its restore, and the qa-tester, reading
+  git show HEAD as part of its pass, found the committed tree destroying
+  money with no knowledge of the agent's work. Two lenses converging on one
+  defect from different directions is the reason there are two lenses.
+- Fixed together, c59cd68 (17:38). The agent's exact restore, already
+  sitting in the working tree, and the regression journey landed in one
+  commit: store.dart back to the full-amount credit, plus 291 lines in
+  journeys_test.dart including the goal-transfer journey with directional
+  companions ("the source goal did not fall by exactly what was moved",
+  journeys_test.dart near line 1413). The same commit fixed the no-op
+  transfer leaving a zero history row; its own diff comment reads "A no-op
+  transfer must leave no fingerprints."
+- Why it could not have reached the phone even if nobody had noticed: the
+  break and its catching journey travel in the same change set, so the NEXT
+  push would have carried both and the branch check on a real runner would
+  have gone red. The committed-and-uncaught window is exactly the gap
+  between milestone commit and next push, and nothing publishes in that
+  window.
+- The three QA gates found disjoint real problems again (docs/qa-log.md,
+  f3.17 row). qa-tester: the committed break, two junk-backup crash classes
+  proven by probe, an empty-chip crash, the goals id-integrity gap, the
+  no-op zero row, search rendering debt goals as 0 of 0.
+  flutter-ux-craftsman: a year-less projection date breaking the trust rule,
+  a receipt that could claim unmoved money, a controller wiped by
+  StatefulBuilder rebuilds, a 320dp Row overflow, and one genuine
+  enhance-never-regress violation, the redesign had quietly lost the old
+  screen's downward saved correction, restored via the Adjust sheet.
+  journey-tester: two cross-screen journeys, both proven fail-first, plus
+  independently spotting the controller-wipe defect.
+- A blanket `dart format lib test` reformatted about 122 untouched test
+  files and surfaced one latent lint; the churn was reverse-patched out
+  before review. Evidence it stayed out: the merged PR diff
+  (7d146ef..e04759b) is 65 files, only 13 of them under flutter/test/.
+- The sweep's blind spot. screen_readability_test.dart pumps at a fixed
+  390dp, so the quarter row's overflow at 320dp was invisible to it; the
+  reviewer caught it by arithmetic, not render, and the fix was a Wrap.
+  Whether the sweep gains a 320dp pass is weighed below, not decided here.
+- Delivery clean: one merge (23:45 UTC), one row (23:59 UTC), patch 12.
+
+**Root cause.** For the incident: a shared working tree has exactly one
+state, and a milestone commit snapshots ALL of it, indiscriminately,
+including another actor's proof in flight. Nothing in the tree records that
+an edit is a deliberate break awaiting its red run, so the commit had no way
+to know it was capturing one, and the committed suite was green precisely
+because the one test that knew better was not committed. Session 29's clause
+("a break you did not make is not yours to fix") addressed the second actor
+FIXING; this is the same root wearing the other costume, the second actor
+COMMITTING. Rules written one stumble at a time are always one clause short;
+the durable statement is about the tree, not the verb: while a prove-fail
+break is live, the tree is not in a bankable state for anyone.
+
+For the format churn: a command whose scope was the world, run for a change
+whose scope was a feature. For the stale allowlist: an entry whose reason was
+temporal ("pending redesign in this same change set") with nothing that
+re-checks the reason once the condition resolves; the redesign landed in the
+same PR and the entry stayed.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. Do not commit while any actor's prove-fail break is live in the tree.
+   Weighing the three candidate guards honestly:
+   - The rule: a milestone commit waits until no agent with lib-write access
+     is mid prove-fail. This is now the second clause of session 29's lesson
+     4, and it is a rule, weak to medium, for the same stated reason as the
+     first clause: nothing in the repository can observe whose uncommitted
+     edit a break is, or that a background run is pending.
+   - The proposed machine, "before any commit run the full suite and refuse
+     on red", is NOT real protection, and saying so matters more than having
+     a machine to point at. Run against the committed tree it stays green,
+     exactly as it did here, because the catching test is uncommitted by
+     construction. Run against the working tree it goes red during every
+     legitimate prove-fail window, which is most of them, so it blocks
+     correct commits routinely and gets overridden, and an overridden gate
+     is worse than no gate. Either variant is theater.
+   - The defense that actually worked, and is the real protection:
+     prove-fail breaks land TOGETHER with the test that reddens on them
+     (c59cd68 carries the restore and the journey in one commit), so a
+     captured break cannot travel one push without its own alarm riding
+     along, and the branch check on a real runner goes red. Strength: the
+     branch-check half is strong, a machine that runs on every push; the
+     pairing half is the journey-tester's discipline, a rule, so the
+     compound is medium-strong. The qa-tester's git show HEAD read is the
+     independent second layer, and it is part of the standing gate.
+   A possible strengthening is named but NOT built: an agent mid prove-fail
+   could drop a marker file that the commit path checks. That converts the
+   rule into something observable, but it depends on the marker being
+   written, which is itself a rule. Recorded as an open sharpening, not
+   claimed as protection.
+
+2. Format the files you changed, not the world. A blanket
+   `dart format lib test` cost a reverse-patch and would have buried a
+   65-file review under 122 files of noise. Guard: a rule, stated here, weak
+   to medium, and honestly hard to machine, because no checker can know
+   which files a change INTENDED to touch. The containment that exists is
+   review of the PR diff, which is what caught it.
+
+3. An allowlist entry with a temporal reason needs a machine that notices
+   when the reason expires. test/icon_system_test.dart lines 68 to 69 still
+   allowlist lib/screens/goals.dart as "pending redesign in this same change
+   set" while goals.dart contains zero emoji (verified by scan this
+   session), so a future emoji added to goals.dart would pass the perimeter
+   silently. Guard, named and buildable but NOT built: make the scan assert
+   that every allowlisted file still CONTAINS at least one match, failing
+   with "allowlist entry no longer needed, remove it", the same
+   assert-you-saw-it-all pattern palette_contrast_test.dart uses. Until
+   built: remove the stale goals.dart entry, and this stays an open item.
+
+4. The readability sweep measures at one width, and this batch's one visible
+   layout bug lived at another. 390dp is the fixture's width; the quarter
+   row overflowed at 320dp and only arithmetic caught it. Open question,
+   deliberately not decided in a retro: add a 320dp pass to
+   screen_readability_test.dart, at the cost of roughly doubling that
+   suite's runtime, or accept that 320dp remains an eye-and-arithmetic
+   check. What is recorded is the honest current state: nothing automated
+   looks at 320dp today, and one real overflow lived there.
+
+5. Positive result, recorded as one: the three-lens gate found disjoint real
+   defects for the third consecutive batch, the icon perimeter, the transfer
+   guard, and the quarter-milestone guard were each proven fail-first, and
+   two OLD tests (exactly-one-badge, the period stepper visual) caught
+   meaning collisions inside a brand-new icon system. Guard: the standing
+   gates themselves, already enforced by the qa-log row requirement
+   (flutter/test/qa_record_test.dart). Strength: strong, in place.
+
+**Open lessons carried forward.**
+- NEW: founder phone confirmation of f3.17 patch 12 is owed. It supersedes
+  the f3.16 confirmation carried from session 29, because a phone showing
+  f3.17 patch 12 confirms the chain through patch 11. If the phone shows
+  anything else, that finding outranks this entire entry.
+- NEW: the stale goals.dart allowlist entry in icon_system_test.dart, and
+  the self-checking allowlist that would retire the whole class (lesson 3).
+- NEW: the 320dp question (lesson 4), open until weighed.
+- NEW: the prove-fail marker-file sharpening (lesson 1), named, not built,
+  not claimed as protection.
+- From session 29, still open: the fixture-through-the-writer machine for
+  goals and other user-data shapes is NOT built (no shape test exists;
+  goal_store_test.dart builds through store.addGoal in places and hand maps
+  elsewhere). The five unrecorded Pan-plan follow-ups did not move into the
+  backlog or a test this batch; session 29's entry remains their only
+  record. The 60-day cashflow shot still captures without asserting its
+  view (screens_shot.dart lines 2168 to 2181: ensureVisible and tap, a
+  comment naming the risk, no assertion); the pan-plan half stays done.
+- Guards re-checked and standing: check-stamp-unique.sh and both Flutter
+  workflows exist with the triggers CLAUDE.md claims, the destructive-edits
+  hook is present, and qa_record_test.dart, palette_contrast_test.dart,
+  screen_readability_test.dart, and test/golden/ui_golden.dart are all in
+  place.
+- CLAUDE.md factual claims exercised this batch all matched: every path
+  checked exists (salapify_icon.dart, flutter/shorebird.yaml, the workflows
+  and scripts, the agent files, docs/Product_Vision_Spec.md), the delivery
+  three-command read produced the real f3.17 row, and the stamp in
+  flutter/lib/main.dart line 34 is f3.17, matching it. The icons section's
+  claim that a new icon needs a name in the map or the resolve test fails
+  still matches the tool. Not every claim was re-audited; the exercised
+  ones held.
+
+---
+
 ## 2026-08-01, session 29: one clean delivery, three gates with disjoint catches, and a test that knew more than its own comment
 
 **What we believed / What was true.** We believed Pan With a Plan would ship
