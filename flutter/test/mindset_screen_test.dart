@@ -49,14 +49,6 @@ Future<SalapifyStore> _openDirect(
   return store;
 }
 
-/// Leaves the amount field the way a person actually would, so its error
-/// caption (only evaluated while the field is NOT focused, see
-/// _amountFocus in mindset.dart) has a chance to appear.
-Future<void> _blurAmountField(WidgetTester tester) async {
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-}
-
 Future<void> _openMindset(WidgetTester tester) async {
   await openFromMenu(tester, 'Tools');
   await tester.scrollUntilVisible(
@@ -334,27 +326,35 @@ void main() {
       expect(find.text('That amount is too large to check.'), findsNothing);
     });
 
+    testWidgets('a bare trailing decimal point is not treated as an error', (
+      tester,
+    ) async {
+      // "150." is on the way to "150.50", not yet invalid. A first version
+      // of the validation flagged it the instant the "." was typed.
+      await _openDirect(tester, _blob());
+
+      await tester.enterText(find.byKey(const Key('mindsetAmount')), '150.');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter a valid amount.'), findsNothing);
+    });
+
     testWidgets('non-numeric and negative amounts show a validation message', (
       tester,
     ) async {
-      // The error caption only shows once the field is no longer focused (a
-      // deliberate change from flutter-ux-craftsman's review: validating on
-      // every keystroke flashed the error at the "." in "150." and cleared
-      // it the moment the next digit landed), so each entry blurs before the
-      // assertion, the way a person actually leaves the field.
       await _openDirect(tester, _blob());
       final amountField = find.byKey(const Key('mindsetAmount'));
 
       await tester.enterText(amountField, 'abc');
-      await _blurAmountField(tester);
+      await tester.pumpAndSettle();
       expect(find.text('Enter a valid amount.'), findsOneWidget);
 
       await tester.enterText(amountField, '-100');
-      await _blurAmountField(tester);
+      await tester.pumpAndSettle();
       expect(find.text('Enter a valid amount.'), findsOneWidget);
 
       await tester.enterText(amountField, '0');
-      await _blurAmountField(tester);
+      await tester.pumpAndSettle();
       expect(find.text('Enter a valid amount.'), findsOneWidget);
     });
 
@@ -367,7 +367,7 @@ void main() {
         find.byKey(const Key('mindsetAmount')),
         '9999999999999',
       );
-      await _blurAmountField(tester);
+      await tester.pumpAndSettle();
 
       expect(find.text('That amount is too large to check.'), findsOneWidget);
     });
@@ -563,6 +563,36 @@ void main() {
     );
 
     testWidgets(
+      'combines both reasons in Why this result when the reserved-money '
+      'answer AND the budget cap both say no',
+      (tester) async {
+        await _openDirect(
+          tester,
+          _blob(
+            pro: true,
+            categories: foodCategory(1000),
+            transactions: spentThisMonth(900), // ₱100 left before purchase
+          ),
+        );
+
+        await fillConsider(tester, amount: '500'); // exceeds by ₱400
+
+        await _answer(tester, 0, true); // essential
+        await _answer(tester, 1, false); // would touch reserved money
+        await _answer(tester, 2, true); // waited 24h
+
+        expect(find.text('Not in the plan right now'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'It would use money already reserved for bills, debt, or '
+            'goals, and it would take the Food budget',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
       'preserves the phase 1 result when the purchase stays within budget',
       (tester) async {
         await _openDirect(
@@ -582,6 +612,54 @@ void main() {
 
         expect(find.text('Fits your plan'), findsOneWidget);
         expect(find.text('Not in the plan right now'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'a store write from OUTSIDE this screen still updates the budget '
+      'impact and verdict, not just Small Wins',
+      (tester) async {
+        // categories, impact and verdict used to be computed in build(),
+        // outside the ListenableBuilder that wraps the actual widget tree.
+        // ListenableBuilder only re-runs its own builder callback on
+        // notifyListeners, never the outer build(), so a write nobody made
+        // through this screen's own setState (main.dart posts due recurring
+        // transactions on every app-foreground resume, for one real example)
+        // rebuilt the Wins list but left the budget card and verdict on
+        // stale numbers. This proves the fix by writing directly through
+        // the store, with no tap or setState on this screen at all.
+        final store = await _openDirect(
+          tester,
+          _blob(
+            pro: true,
+            categories: foodCategory(1000),
+            transactions: spentThisMonth(200), // ₱800 left
+          ),
+        );
+
+        await fillConsider(tester, amount: '300'); // leaves ₱500, no warning
+        await _answer(tester, 0, true);
+        await _answer(tester, 1, true);
+        await _answer(tester, 2, true);
+        expect(find.text('Fits your plan'), findsOneWidget);
+
+        // An external write, through the real store, tagging the same
+        // category: 600 more spent this month pushes it from 200 to 800,
+        // leaving only 200 of the 1,000 cap before the 300 purchase, which
+        // now exceeds it by 100. No tap, no setState on this screen.
+        await store.addEntry({
+          'id': 'ext1',
+          'type': 'expense',
+          'label': 'Groceries',
+          'amount': 600,
+          'date': _todayIso(),
+          'categoryId': 'food',
+        });
+        await tester.pump();
+
+        expect(find.text('Not in the plan right now'), findsOneWidget);
+        expect(find.text('Fits your plan'), findsNothing);
+        expect(find.text('₱200'), findsOneWidget); // new remaining before
       },
     );
   });

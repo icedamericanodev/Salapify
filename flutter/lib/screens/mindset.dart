@@ -18,7 +18,8 @@ import 'package:flutter/material.dart';
 import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
-import '../money/categories.dart' show categoryTree, spentByCategory;
+import '../money/categories.dart'
+    show CategoryRow, categoryTree, spentByCategory;
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
@@ -100,9 +101,13 @@ String _whyText(_Verdict v, List<bool?> answers, Map<String, dynamic>? impact) {
             : 'It would use money already reserved for bills, debt, or goals.';
       }
       // _computeVerdict only reaches notInPlan with affordableWithoutReserved
-      // true when the budget check is what pushed it there.
-      assert(overBudget);
-      return 'The other answers fit your plan, but ${_budgetClause(impact!)}';
+      // true when the budget check is what pushed it there, so impact is
+      // never null here in practice. assert() is stripped in release builds
+      // though, so this stays a null check with a safe fallback sentence
+      // rather than an operator that would crash in production if that
+      // invariant were ever broken by a future edit to _computeVerdict.
+      if (impact == null) return 'This does not fit your plan right now.';
+      return 'The other answers fit your plan, but ${_budgetClause(impact)}';
     case _Verdict.pause24h:
       return "It is not essential right now, and you have not wanted it for "
           "a full 24 hours yet.";
@@ -180,7 +185,6 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // check is tapped.
   final _itemName = TextEditingController();
   final _amountText = TextEditingController();
-  final _amountFocus = FocusNode();
   String? _categoryId;
 
   // A ceiling past which a typed amount stops meaning anything for a
@@ -188,19 +192,6 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // display math, so a pasted absurd number reads as an error instead of
   // silently producing a nonsense budget comparison.
   static const double _amountCeiling = 1e12;
-
-  @override
-  void initState() {
-    super.initState();
-    // The error caption only shows once the field is no longer focused.
-    // parseAmount rejects a bare trailing decimal point, so validating on
-    // every keystroke flashed "Enter a valid amount." the instant someone
-    // typed the "." in "150." and cleared it the moment the next digit
-    // landed: a flicker on completely ordinary decimal entry. Rebuilding on
-    // focus change (not on every character) is what makes the error appear
-    // only once the person has actually moved on.
-    _amountFocus.addListener(() => setState(() {}));
-  }
 
   void _clearCheck() {
     setState(() {
@@ -218,7 +209,6 @@ class _MindsetScreenState extends State<MindsetScreen> {
     _winText.dispose();
     _itemName.dispose();
     _amountText.dispose();
-    _amountFocus.dispose();
     super.dispose();
   }
 
@@ -232,14 +222,26 @@ class _MindsetScreenState extends State<MindsetScreen> {
     return v;
   }
 
-  /// A validation message for the amount field, or null when it is empty
-  /// (a legitimate "not answering this" state, not an error), holds a usable
-  /// number, or the field is still focused (mid-type: see _amountFocus above,
-  /// this is deliberately not evaluated while the person is still typing).
+  // A bare trailing decimal point ("150.") is still on the way to a valid
+  // number, not yet invalid. A first version of this getter flagged it the
+  // instant "." was typed and cleared the instant the next digit landed, a
+  // flicker on completely ordinary decimal entry. A second version tried to
+  // fix that by gating the whole getter on the field's FocusNode instead,
+  // which broke worse: nothing on this screen ever explicitly unfocuses the
+  // amount field when a category chip or a Yes/No answer is tapped, so the
+  // error could stay invisible forever even on a genuinely invalid amount,
+  // and the flutter_test focus-settling timing around that made the whole
+  // suite flaky (green or red on the identical commit). This version fixes
+  // only the actual complaint, the trailing-dot case, and stays a pure
+  // function of the typed text: no focus, no timing, nothing to flake.
+  static final _midDecimalEntry = RegExp(r'^\d+\.$');
+
+  /// A validation message for the amount field, or null when it is empty (a
+  /// legitimate "not answering this" state, not an error), still mid-way
+  /// through typing a decimal, or holds a usable number.
   String? get _amountError {
-    if (_amountFocus.hasFocus) return null;
     final text = _amountText.text.trim();
-    if (text.isEmpty) return null;
+    if (text.isEmpty || _midDecimalEntry.hasMatch(text)) return null;
     final v = parseAmount(text);
     if (v == null) return 'Enter a valid amount.';
     if (v > _amountCeiling) return 'That amount is too large to check.';
@@ -349,19 +351,6 @@ class _MindsetScreenState extends State<MindsetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lesson = lessonFromMap(lessonOfTheDay(DateTime.now()));
-    final lessonTitle = _lessonTitleOf(lesson);
-    final lessonSummary = _lessonSummaryOf(lesson);
-    final categories = _categories();
-    final impact = _budgetImpact(categories);
-    final verdict = _computeVerdict(_answers, impact);
-    final answered = _answers.any((a) => a != null);
-    final hasConsiderInput =
-        _itemName.text.trim().isNotEmpty ||
-        _amountText.text.trim().isNotEmpty ||
-        _categoryId != null;
-    final showClear = answered || hasConsiderInput;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
@@ -375,6 +364,28 @@ class _MindsetScreenState extends State<MindsetScreen> {
         child: ListenableBuilder(
           listenable: widget.store,
           builder: (context, _) {
+            // Every read of store.data lives INSIDE this builder, not in the
+            // outer build() above: something outside this screen's own
+            // setState calls (main.dart posts due recurring transactions on
+            // every app-foreground resume, for one) can call
+            // store.notifyListeners() at any time, and only this inner
+            // builder re-runs when that happens. Computing categories,
+            // impact, or verdict up in build() would close over a stale
+            // snapshot that this ListenableBuilder can never refresh, the
+            // same trap categories.dart's own comment already warns about
+            // for spentByCategory.
+            final lesson = lessonFromMap(lessonOfTheDay(DateTime.now()));
+            final lessonTitle = _lessonTitleOf(lesson);
+            final lessonSummary = _lessonSummaryOf(lesson);
+            final categories = _categories();
+            final impact = _budgetImpact(categories);
+            final verdict = _computeVerdict(_answers, impact);
+            final answered = _answers.any((a) => a != null);
+            final hasConsiderInput =
+                _itemName.text.trim().isNotEmpty ||
+                _amountText.text.trim().isNotEmpty ||
+                _categoryId != null;
+            final showClear = answered || hasConsiderInput;
             final wins = _wins().reversed.toList();
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -756,7 +767,6 @@ class _MindsetScreenState extends State<MindsetScreen> {
   Widget _amountField() => TextField(
     key: const Key('mindsetAmount'),
     controller: _amountText,
-    focusNode: _amountFocus,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     onChanged: (_) => setState(() {}),
     style: AppText.body,
@@ -785,16 +795,21 @@ class _MindsetScreenState extends State<MindsetScreen> {
 
   // The same categoryTree-plus-ChoiceChip pattern categories.dart and its own
   // delete sheet already use to list categories, reused here rather than
-  // invented fresh: one selection, tap again to clear it.
+  // invented fresh: one selection, tap again to clear it. categories.dart's
+  // own list conveys parent/child by indenting a vertical column, which does
+  // not translate to a Wrap: a child chip can land on a different row than
+  // its parent, so a left-padded chip here would just look misaligned rather
+  // than nested. The parent's name goes into the child's own label instead.
   Widget _categoryChips(List<Map<String, dynamic>> categories) {
     final rows = categoryTree(categories);
+    final byId = {for (final c in categories) '${c['id']}': c};
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         for (final row in rows)
           ChoiceChip(
-            label: Text(_categoryLabel(row.cat)),
+            label: Text(_categoryChipLabel(row, byId)),
             selected: _categoryId == '${row.cat['id']}',
             onSelected: (_) => setState(() {
               final id = '${row.cat['id']}';
@@ -812,6 +827,19 @@ class _MindsetScreenState extends State<MindsetScreen> {
           ),
       ],
     );
+  }
+
+  String _categoryChipLabel(
+    CategoryRow row,
+    Map<String, Map<String, dynamic>> byId,
+  ) {
+    final label = _categoryLabel(row.cat);
+    if (row.depth != 1) return label;
+    final parent = byId['${row.cat['parentId'] ?? ''}'];
+    final parentName = parent == null ? null : '${parent['name'] ?? ''}';
+    return (parentName == null || parentName.isEmpty)
+        ? label
+        : '$parentName · $label';
   }
 
   String _categoryLabel(Map<String, dynamic> cat) {
