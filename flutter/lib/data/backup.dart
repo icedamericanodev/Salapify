@@ -15,6 +15,7 @@ import 'dart:convert' show JsonEncoder;
 
 import '../money/account_taxonomy.dart' show AccountStore, taxonomyKeys;
 import '../money/base_currency_scope.dart' show manualRatesOf;
+import '../money/expansion_progress.dart' show parseExpansionProgress;
 import '../money/greeting.dart' show normalizeDisplayName;
 
 const int schemaVersion = 12;
@@ -288,10 +289,12 @@ Map<String, dynamic> sanitizeData(
       });
     }).toList(),
     'assets': _cleanList(src['assets'])
-        .map((a) => _withTaxonomy(a, AccountStore.assets, {
-              ...a,
-              'value': _num(a['value']),
-            }))
+        .map(
+          (a) => _withTaxonomy(a, AccountStore.assets, {
+            ...a,
+            'value': _num(a['value']),
+          }),
+        )
         .toList(),
     'debts': _cleanList(src['debts']).map((d) {
       final out = {
@@ -585,6 +588,27 @@ Map<String, dynamic> sanitizeData(
         };
       } else {
         s.remove('steadyPay');
+      }
+      // Expansion learning-path progress (settings.expansionProgress) is
+      // Flutter-era and unpublished-content-only so far, and the same
+      // CONDITIONAL-key rule applies: present only when at least one path
+      // has real progress recorded, absent otherwise, so RN-generated
+      // fixtures never gain the key and the golden key-set contract holds.
+      // Re-parsed through parseExpansionProgress rather than passed through,
+      // the same "trust but validate shape" treatment steadyPay's amount
+      // gets above: a hand-edited backup with a junk path id, lesson id, or
+      // state name has that entry dropped rather than restored verbatim.
+      final expansion = parseExpansionProgress(settings['expansionProgress']);
+      if (expansion.isEmpty) {
+        s.remove('expansionProgress');
+      } else {
+        s['expansionProgress'] = {
+          for (final pathEntry in expansion.entries)
+            pathEntry.key: {
+              for (final lessonEntry in pathEntry.value.entries)
+                lessonEntry.key: {'state': lessonEntry.value.name},
+            },
+        };
       }
       // The greeting name, Flutter-era and CONDITIONAL for the same reason as
       // the two above: RN-generated golden fixtures never carry it and must
