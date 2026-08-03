@@ -587,7 +587,7 @@ Widget viewForBlock(LessonBlock block, {VoidCallback? onRevealed}) =>
       EducationalBoundaryBlock() => EducationalBoundaryView(block),
     };
 
-/// The educational boundary Phase 4 regulated lessons carry: four fixed
+/// The educational boundary Phase 4 regulated lessons carry: a fixed set of
 /// sentences, never retyped per lesson, styled like [RiskWarningView] at its
 /// calmer `notice` weight since this is a scope statement, not a caution.
 class EducationalBoundaryView extends StatelessWidget {
@@ -626,7 +626,10 @@ class EducationalBoundaryView extends StatelessWidget {
                 Text(
                   'This lesson is educational, not personalized financial, '
                   'investment, tax, legal, or insurance advice. Rules and '
-                  'product terms may change. $verifyLine',
+                  'product terms may change. $verifyLine'
+                  '${block.examplesAreFictional ? ' Every company, person, '
+                            'and figure used as an example is invented for '
+                            'teaching, never a real one.' : ''}',
                   style: AppText.small.copyWith(height: 1.45),
                 ),
               ],

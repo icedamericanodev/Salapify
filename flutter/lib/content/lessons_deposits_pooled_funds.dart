@@ -178,6 +178,7 @@ const _boundary = EducationalBoundaryBlock(
   sourceLabel:
       'PDIC, the Bangko Sentral ng Pilipinas, and the Securities and '
       'Exchange Commission',
+  examplesAreFictional: true,
 );
 
 /// Lesson ids, stable and free-form, same convention as
@@ -300,56 +301,56 @@ const _depositOrInvestment = MoneyLesson(
       items: [
         CategorizeItemDef(
           id: 'savings-account',
-          label: 'A fictional ordinary savings account',
+          label: 'An ordinary savings account',
           explanation:
               'A savings account is a deposit: a debt the bank owes you, '
               'covered by deposit insurance up to its current limit.',
         ),
         CategorizeItemDef(
           id: 'time-deposit',
-          label: 'A fictional time deposit',
+          label: 'A time deposit',
           explanation:
               'A time deposit is still a deposit, just locked in for a '
               'term. It is covered the same way an ordinary deposit is.',
         ),
         CategorizeItemDef(
           id: 'gov-bond',
-          label: 'A fictional government bond',
+          label: 'A government bond',
           explanation:
               'A government bond is a loan to the government, an '
               'investment product, not a deposit.',
         ),
         CategorizeItemDef(
           id: 'corp-bond',
-          label: 'A fictional corporate bond',
+          label: 'A corporate bond',
           explanation:
               'A corporate bond is a loan to that company, an investment '
               'product, not a deposit.',
         ),
         CategorizeItemDef(
           id: 'uitf',
-          label: 'A fictional UITF offered by a bank\'s trust department',
+          label: 'A UITF offered by a bank\'s trust department',
           explanation:
               'A UITF is a pooled investment vehicle. Being offered by a '
               'bank does not make it a deposit.',
         ),
         CategorizeItemDef(
           id: 'mutual-fund',
-          label: 'A fictional mutual fund',
+          label: 'A mutual fund',
           explanation:
               'A mutual fund is an investment company you buy shares in, '
               'an investment product, not a deposit.',
         ),
         CategorizeItemDef(
           id: 'etf',
-          label: 'A fictional ETF traded on the stock exchange',
+          label: 'An ETF traded on the stock exchange',
           explanation:
               'An ETF trades like a stock and its value moves with what '
               'it holds, an investment product, not a deposit.',
         ),
         CategorizeItemDef(
           id: 'direct-stock',
-          label: 'Direct ownership of a fictional company\'s shares',
+          label: 'Direct ownership of a company\'s shares',
           explanation:
               'Owning shares directly makes you a part owner of a '
               'company, an investment product, not a deposit.',
@@ -544,8 +545,8 @@ const _timeDepositsAndPdic = MoneyLesson(
       blockId: 'account-classification-scenario',
       scenarioTitle: 'A fictional depositor\'s account',
       situation:
-          'A fictional depositor holds a time deposit at one fictional '
-          'bank, in their own name only, with a balance above PDIC\'s '
+          'A depositor holds a time deposit at one bank, in their own '
+          'name only, with a balance above PDIC\'s '
           'current maximum deposit insurance coverage. What is the most '
           'accurate way to describe their situation, based on this '
           'lesson?',
@@ -581,7 +582,7 @@ const _timeDepositsAndPdic = MoneyLesson(
       blockId: 'basic-coverage-illustration',
       title: 'A basic coverage illustration (fictional, simplified)',
       criteria: [
-        ComparisonCriterion(id: 'balance', label: 'Fictional balance'),
+        ComparisonCriterion(id: 'balance', label: 'Balance'),
         ComparisonCriterion(
           id: 'likely-treatment',
           label: 'Likely treatment (simplified)',
@@ -590,7 +591,7 @@ const _timeDepositsAndPdic = MoneyLesson(
       items: [
         ComparisonItem(
           id: 'below-limit',
-          name: 'Fictional depositor A, sole account',
+          name: 'Depositor A, sole account',
           valuesByCriterionId: {
             'balance': '600,000 pesos',
             'likely-treatment':
@@ -600,7 +601,7 @@ const _timeDepositsAndPdic = MoneyLesson(
         ),
         ComparisonItem(
           id: 'above-limit',
-          name: 'Fictional depositor B, sole account',
+          name: 'Depositor B, sole account',
           valuesByCriterionId: {
             'balance': '1,500,000 pesos',
             'likely-treatment':
@@ -846,10 +847,10 @@ const _howPooledFundsWork = MoneyLesson(
       blockId: 'professional-management-scenario',
       scenarioTitle: 'A professionally managed fictional fund loses value',
       situation:
-          'A fictional pooled fund, actively managed by a professional '
-          'fund manager, loses value over a fictional year. A fictional '
-          'investor says "that should not happen, it is professionally '
-          'managed." What does this lesson say about that?',
+          'A pooled fund, actively managed by a professional fund '
+          'manager, loses value over a year. An investor says "that '
+          'should not happen, it is professionally managed." What does '
+          'this lesson say about that?',
       options: [
         ScenarioChoiceOption(
           id: 'management-does-not-remove-risk',
@@ -1107,9 +1108,9 @@ const _uitfMutualFundEtf = MoneyLesson(
       blockId: 'etf-trades-like-stock-scenario',
       scenarioTitle: 'An ETF\'s price during the trading day',
       situation:
-          'A fictional investor is surprised that a fictional ETF\'s price '
-          'moved several times over one trading day. What does this lesson '
-          'say about that?',
+          'A fictional investor is surprised that an ETF\'s price moved '
+          'several times over one trading day. What does this lesson say '
+          'about that?',
       options: [
         ScenarioChoiceOption(
           id: 'trades-like-a-stock',
@@ -1201,31 +1202,28 @@ const _readAFactSheet = MoneyLesson(
       ],
     ),
     NuggetsBlock([
-      'Fund name (fictional): Example Balanced Growth Fund (fictional), '
-          'invented for this lesson only.',
-      'Investment objective (fictional): to grow capital over the medium '
-          'term by holding a mix of fictional equities and fixed income.',
-      'Asset allocation (fictional): about 60 percent fictional equities, '
-          '40 percent fictional fixed income, rebalanced periodically.',
-      'Benchmark (fictional): a fictional blended index, used only for '
-          'comparison, never a promise of matching it.',
-      'Risk classification (fictional): labeled aggressive, this '
-          'fictional fund\'s own highest risk band.',
-      'Historical performance (fictional, clearly historical): this '
-          'fictional fund\'s stated NAVPU rose in some past years and fell '
-          'in others; past performance does not guarantee future results, '
-          'and a fund\'s value can go down as well as up.',
-      'Management and trust fee (fictional): a fictional 1.5 percent per '
-          'year, built into NAVPU.',
-      'Other charges (fictional): a fictional early-redemption charge if '
-          'units are sold within 30 days of purchase.',
-      'Minimum holding and redemption (fictional): a fictional 30-day '
-          'minimum holding period.',
-      'Settlement timing (fictional): a fictional 3 business days between '
-          'a redemption request and payout.',
-      'Important warnings (fictional): this fictional fund is not a '
-          'deposit, is not insured by PDIC, and its value can fall below '
-          'what was invested.',
+      'Fund name: Example Balanced Growth Fund (fictional), invented for '
+          'this lesson only.',
+      'Investment objective: to grow capital over the medium term by '
+          'holding a mix of equities and fixed income.',
+      'Asset allocation: about 60 percent equities, 40 percent fixed '
+          'income, rebalanced periodically.',
+      'Benchmark: a blended index, used only for comparison, never a '
+          'promise of matching it.',
+      'Risk classification: labeled aggressive, this fund\'s own highest '
+          'risk band.',
+      'Historical performance (clearly historical): this fund\'s stated '
+          'NAVPU rose in some past years and fell in others; past '
+          'performance does not guarantee future results, and a fund\'s '
+          'value can go down as well as up.',
+      'Management and trust fee: 1.5 percent per year, built into NAVPU.',
+      'Other charges: an early-redemption charge if units are sold within '
+          '30 days of purchase.',
+      'Minimum holding and redemption: a 30-day minimum holding period.',
+      'Settlement timing: 3 business days between a redemption request '
+          'and payout.',
+      'Important warnings: this fund is not a deposit, is not insured by '
+          'PDIC, and its value can fall below what was invested.',
     ]),
     RiskWarningBlock(
       title: 'Fees quietly reduce what you keep',
@@ -1265,14 +1263,12 @@ const _readAFactSheet = MoneyLesson(
         // test/lessons_deposits_pooled_funds_content_test.dart proves this
         // paragraph still states them, so the two can never quietly drift
         // apart without a test failing.
-        'Take a fictional starting amount of 100,000 pesos, a fictional '
-            'annual fee of 1.5 percent charged only against that original '
-            'starting amount every year, for a fictional 5 years. No '
-            'growth or return is assumed at all; this only shows what the '
-            'fee alone takes.',
-        'Fee per fictional year: 1,500 pesos. Total fictional fees over 5 '
-            'years: 7,500 pesos. Fictional amount retained after fees '
-            'alone: 92,500 pesos.',
+        'Take a fictional starting amount of 100,000 pesos, an annual fee '
+            'of 1.5 percent charged only against that original starting '
+            'amount every year, for 5 years. No growth or return is '
+            'assumed at all; this only shows what the fee alone takes.',
+        'Fee per year: 1,500 pesos. Total fees over 5 years: 7,500 pesos. '
+            'Amount retained after fees alone: 92,500 pesos.',
         'This is not a forecast of what any fund would actually return. '
             'It only shows, with basic transparent arithmetic and every '
             'assumption disclosed above, that a fee reduces what remains, '
@@ -1296,8 +1292,8 @@ const _readAFactSheet = MoneyLesson(
           id: 'what-it-invests-in',
           label: 'What the fund invests in',
           explanation:
-              'Answered: the asset allocation states a fictional mix of '
-              'equities and fixed income.',
+              'Answered: the asset allocation states a mix of equities '
+              'and fixed income.',
         ),
         CategorizeItemDef(
           id: 'main-risks',
@@ -1323,9 +1319,7 @@ const _readAFactSheet = MoneyLesson(
         CategorizeItemDef(
           id: 'benchmark',
           label: 'The benchmark used for comparison',
-          explanation:
-              'Answered: a fictional blended index is named as the '
-              'benchmark.',
+          explanation: 'Answered: a blended index is named as the benchmark.',
         ),
         CategorizeItemDef(
           id: 'manager-track-record',
@@ -1333,9 +1327,9 @@ const _readAFactSheet = MoneyLesson(
               'Who manages the fund day to day, and their track record on '
               'other funds',
           explanation:
-              'Missing: this fictional fact sheet says nothing about the '
-              'manager\'s identity or their record elsewhere, worth asking '
-              'about before deciding.',
+              'Missing: this fact sheet says nothing about the manager\'s '
+              'identity or their record elsewhere, worth asking about '
+              'before deciding.',
         ),
         CategorizeItemDef(
           id: 'volatile-market-handling',
@@ -1362,8 +1356,8 @@ const _readAFactSheet = MoneyLesson(
     ReflectionPromptBlock(
       blockId: 'fact-sheet-reflect',
       question:
-          'Looking at this fictional fact sheet, what would you still want '
-          'to ask before deciding anything, beyond what is written on it?',
+          'Looking at this fact sheet, what would you still want to ask '
+          'before deciding anything, beyond what is written on it?',
       allowFreeText: true,
     ),
   ],
@@ -1483,30 +1477,30 @@ const _matchProductToGoal = MoneyLesson(
       items: [
         ComparisonItem(
           id: 'user-a',
-          name: 'Fictional user A',
+          name: 'User A',
           valuesByCriterionId: {
             'goal': 'Top up an emergency fund',
-            'horizon': 'About 3 fictional months',
+            'horizon': 'About 3 months',
             'liquidity': 'High, the money may be needed at any time',
             'loss-capacity': 'None, this money cannot be allowed to shrink',
           },
         ),
         ComparisonItem(
           id: 'user-b',
-          name: 'Fictional user B',
+          name: 'User B',
           valuesByCriterionId: {
             'goal': 'A home down payment',
-            'horizon': 'About 5 fictional years',
+            'horizon': 'About 5 years',
             'liquidity': 'Low for now, but no emergency fund exists yet',
             'loss-capacity': 'Unclear until the foundation is reviewed',
           },
         ),
         ComparisonItem(
           id: 'user-c',
-          name: 'Fictional user C',
+          name: 'User C',
           valuesByCriterionId: {
             'goal': 'A long-term retirement supplement',
-            'horizon': 'About 15 fictional years',
+            'horizon': 'About 15 years',
             'liquidity': 'Low, this money is not needed soon',
             'loss-capacity':
                 'Some temporary drop could be absorbed without changing '
@@ -1515,7 +1509,7 @@ const _matchProductToGoal = MoneyLesson(
         ),
         ComparisonItem(
           id: 'user-d',
-          name: 'Fictional user D',
+          name: 'User D',
           valuesByCriterionId: {
             'goal': 'Undecided, feeling pressured by a friend\'s tip',
             'horizon': 'Unclear',
@@ -1557,7 +1551,7 @@ const _matchProductToGoal = MoneyLesson(
       items: [
         CategorizeItemDef(
           id: 'user-a-situation',
-          label: 'Fictional user A: emergency-fund top-up, 3-month horizon',
+          label: 'User A: emergency-fund top-up, 3-month horizon',
           explanation:
               'A short horizon and high liquidity need point toward '
               'keeping this money accessible, not toward any investment '
@@ -1565,7 +1559,7 @@ const _matchProductToGoal = MoneyLesson(
         ),
         CategorizeItemDef(
           id: 'user-b-situation',
-          label: 'Fictional user B: a 5-year goal, but no emergency fund yet',
+          label: 'User B: a 5-year goal, but no emergency fund yet',
           explanation:
               'Reviewing the financial foundation, an emergency fund '
               'first, makes more sense than moving toward an investment '
@@ -1573,9 +1567,7 @@ const _matchProductToGoal = MoneyLesson(
         ),
         CategorizeItemDef(
           id: 'user-c-situation',
-          label:
-              'Fictional user C: a 15-year goal, foundation already in '
-              'place',
+          label: 'User C: a 15-year goal, foundation already in place',
           explanation:
               'A long horizon and a real ability to absorb a temporary '
               'drop are what make investigating a pooled fund category '
@@ -1583,9 +1575,7 @@ const _matchProductToGoal = MoneyLesson(
         ),
         CategorizeItemDef(
           id: 'user-d-situation',
-          label:
-              'Fictional user D: undecided, feeling pressured by a '
-              'friend\'s tip',
+          label: 'User D: undecided, feeling pressured by a friend\'s tip',
           explanation:
               'An unclear goal under pressure is a reason to pause, not '
               'act. Not investing this money yet is the sensible step.',
@@ -1768,9 +1758,9 @@ const _matchProductToGoal = MoneyLesson(
   ],
   check: KnowledgeCheck(
     question:
-        'Fictional user A needs money accessible for an emergency within a '
-        'few months. What does this lesson say is the sensible next step '
-        'for that money?',
+        'User A needs money accessible for an emergency within a few '
+        'months. What does this lesson say is the sensible next step for '
+        'that money?',
     choices: [
       'Move it into a pooled fund for a better return',
       'Keep it accessible, since the short horizon and high liquidity '

@@ -39,6 +39,7 @@ import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
+import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -593,6 +594,21 @@ void main() {
       pathId: 'grow_your_money',
       lesson: stocksAndBondsLessons.firstWhere(
         (l) => l.id == sbVerifyBeforeYouInvest,
+      ),
+      store: s,
+    ),
+    // Founder feedback (f3.36 era): "fictional" was repeated on nearly
+    // every sentence across the Grow Your Money courses; this lesson's
+    // fund fact sheet was the worst of it, saying it on almost every line.
+    // Trimmed to one clear disclaimer (the educational-boundary card at
+    // the bottom now carries a fixed extra sentence) plus the single
+    // instance next to the one named example a compliance test checks for.
+    // This is the lesson to look at to confirm the trim actually reads
+    // better, not just measures shorter.
+    'deposits-read-a-fact-sheet': (s) => ExpansionLessonReader(
+      pathId: 'grow_your_money',
+      lesson: depositsAndPooledFundsLessons.firstWhere(
+        (l) => l.id == dpReadAFactSheet,
       ),
       store: s,
     ),

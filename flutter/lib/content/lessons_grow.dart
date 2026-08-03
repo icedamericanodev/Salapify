@@ -87,6 +87,7 @@ const _governance = LessonGovernance(
 
 const _boundary = EducationalBoundaryBlock(
   sourceLabel: 'PSE Academy and the Securities and Exchange Commission',
+  examplesAreFictional: true,
 );
 
 /// Lesson ids, stable and free-form by the same convention lessons.dart's
