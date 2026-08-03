@@ -70,10 +70,18 @@ const _pdicCalculator = LessonSourceInfo(
   lastVerifiedDate: _pdicCalculatorVerified,
 );
 
+// The investment-literacy-reviewer agent flagged the task's own suggested
+// URL (bsp.gov.ph/Pages/Regulations/Regulations.aspx) as unindexed and
+// unconfirmable (bsp.gov.ph 403s on automated fetch, same as every other
+// regulator cited in this course), and a WebSearch specifically for BSP's
+// own regulations index turned up this URL instead, matching real,
+// currently indexed BSP content (a searchable repository of circulars,
+// circular letters, and memoranda). Used here instead of the task's
+// suggested path for that reason.
 const _bspRegulationsAgency = 'Bangko Sentral ng Pilipinas (BSP)';
-const _bspRegulationsTitle = 'Regulations';
+const _bspRegulationsTitle = 'Regulations List';
 const _bspRegulationsUrl =
-    'https://www.bsp.gov.ph/Pages/Regulations/Regulations.aspx';
+    'https://www.bsp.gov.ph/SitePages/Regulations/RegulationsList.aspx';
 const _bspRegulationsVerified = '2026-08';
 
 const _bspRegulations = LessonSourceInfo(
