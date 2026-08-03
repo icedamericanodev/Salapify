@@ -1222,35 +1222,50 @@ Widget viewForInteractionBlock(
   InteractionBlock block, {
   required void Function(String blockId) onComplete,
   void Function(String blockId)? onReset,
-}) => switch (block) {
-  ScenarioChoiceBlock() => ScenarioChoiceView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-  MythOrFactBlock() => MythOrFactView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-  ComparisonBlock() => ComparisonView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-  ChecklistBlock() => ChecklistView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-  SortingBlock() => SortingView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-  ReflectionPromptBlock() => ReflectionPromptView(
-    block,
-    onComplete: onComplete,
-    onReset: onReset,
-  ),
-};
+}) {
+  // Keyed by blockId so a caller rebuilding the same tree position with a
+  // DIFFERENT block (reordering, filtering, swapping) always gets a fresh
+  // State instead of Flutter reusing the old one. Without this, a stale
+  // _pickedId/_order referencing an id from the previous block throws
+  // Bad state: No element the moment it is read (see ScenarioChoiceView's
+  // and SortingView's firstWhere lookups).
+  final key = ValueKey(block.blockId);
+  return switch (block) {
+    ScenarioChoiceBlock() => ScenarioChoiceView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    MythOrFactBlock() => MythOrFactView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    ComparisonBlock() => ComparisonView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    ChecklistBlock() => ChecklistView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    SortingBlock() => SortingView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    ReflectionPromptBlock() => ReflectionPromptView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+  };
+}

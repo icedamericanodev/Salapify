@@ -408,6 +408,128 @@ void main() {
     });
   });
 
+  group(
+    'unsafe-language patterns never flag the safe, negated phrasing they '
+    'exist to protect (a qa-tester pass found five real false positives)',
+    () {
+      ValidationResult validateNugget(String text) => _validate(
+        _validLessonMap(
+          blocks: [
+            {
+              'kind': 'nuggets',
+              'items': [text],
+            },
+            {
+              'kind': 'riskWarning',
+              'title': 'Value can go down',
+              'text':
+                  'A UITF unit price moves with the market and can lose value.',
+            },
+            {'kind': 'educationalBoundary'},
+          ],
+        ),
+      );
+
+      test('a myth-busting denial of a guaranteed return is not flagged', () {
+        final r = validateNugget(
+          'No provider can guarantee a return, no matter what they say.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.guaranteedOutcomeLanguage),
+          isFalse,
+        );
+        expect(isPublishable(r), isTrue);
+      });
+
+      test('an explicit risk disclosure ("not risk-free") is not flagged', () {
+        final r = validateNugget('This account is not risk-free.');
+        expect(
+          _hasCode(r, ValidationIssueCode.guaranteedOutcomeLanguage),
+          isFalse,
+        );
+      });
+
+      test('a negated eligibility statement is not flagged', () {
+        final r = validateNugget(
+          'You are not eligible for the maximum pension unless you meet the '
+          'contribution requirement.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.unsupportedEligibilityClaim),
+          isFalse,
+        );
+      });
+
+      test('"not covered ... until" is not flagged as a coverage claim', () {
+        final r = validateNugget(
+          "You're not covered by this plan until the waiting period ends.",
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.unsupportedEligibilityClaim),
+          isFalse,
+        );
+      });
+
+      test('anti-scam advice never to share an OTP is not flagged', () {
+        final r = validateNugget(
+          'A legitimate bank will never ask you to share your OTP with '
+          'anyone.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.unsafeCredentialRequest),
+          isFalse,
+        );
+        expect(isPublishable(r), isTrue);
+      });
+
+      test('anti-scam advice never to enter a password is not flagged', () {
+        final r = validateNugget(
+          'Never enter your password on a site you do not trust.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.unsafeCredentialRequest),
+          isFalse,
+        );
+      });
+
+      test(
+        '"Buy Now, Pay Later" (a topic name, not a stock tip) is not flagged',
+        () {
+          final r = validateNugget(
+            'Buy Now, Pay Later lets you split a purchase into installments.',
+          );
+          expect(
+            _hasCode(r, ValidationIssueCode.personalRecommendationLanguage),
+            isFalse,
+          );
+        },
+      );
+
+      test('"A Buy Now Pay Later loan" is not flagged', () {
+        final r = validateNugget(
+          'A Buy Now Pay Later loan still charges you if you miss a '
+          'payment.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.personalRecommendationLanguage),
+          isFalse,
+        );
+      });
+
+      test('the negation fix never suppresses a real violation earlier in the '
+          'same lesson block', () {
+        final r = validateNugget(
+          'This fund has no annual fee, and guarantees a profit every '
+          'month.',
+        );
+        expect(
+          _hasCode(r, ValidationIssueCode.guaranteedOutcomeLanguage),
+          isTrue,
+        );
+      });
+    },
+  );
+
   group('the reviewed myth example exemption', () {
     const mythText =
         'Some people believe this investment guarantees a profit every month.';

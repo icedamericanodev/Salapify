@@ -647,6 +647,93 @@ void main() {
     });
   });
 
+  group('viewForInteractionBlock dispatcher', () {
+    const scenarioA = ScenarioChoiceBlock(
+      blockId: 'scn-a',
+      scenarioTitle: 'Scenario A',
+      situation: 'Situation A.',
+      options: [
+        ScenarioChoiceOption(
+          id: 'a1',
+          label: 'Option A1',
+          explanation: 'A1 works.',
+        ),
+        ScenarioChoiceOption(
+          id: 'a2',
+          label: 'Option A2',
+          explanation: 'A2 works.',
+        ),
+      ],
+    );
+    const scenarioB = ScenarioChoiceBlock(
+      blockId: 'scn-b',
+      scenarioTitle: 'Scenario B',
+      situation: 'Situation B.',
+      options: [
+        ScenarioChoiceOption(
+          id: 'b1',
+          label: 'Option B1',
+          explanation: 'B1 works.',
+        ),
+        ScenarioChoiceOption(
+          id: 'b2',
+          label: 'Option B2',
+          explanation: 'B2 works.',
+        ),
+      ],
+    );
+
+    testWidgets(
+      'swapping to a different scenario at the same tree position never '
+      'reuses a stale selection (would otherwise throw Bad state: No element)',
+      (tester) async {
+        await _pump(
+          tester,
+          viewForInteractionBlock(scenarioA, onComplete: (_) {}),
+        );
+        await tester.tap(find.text('Option A1'));
+        await tester.pumpAndSettle();
+
+        await _pump(
+          tester,
+          viewForInteractionBlock(scenarioB, onComplete: (_) {}),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Option B1'), findsOneWidget);
+        expect(find.text('Option A1'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'the same swap on a sorting block never reuses a stale item lookup',
+      (tester) async {
+        const sortA = SortingBlock(
+          blockId: 'sort-a',
+          sortingPrompt: 'Order A',
+          items: [
+            SortingItemDef(id: 'a1', label: 'Step A1'),
+            SortingItemDef(id: 'a2', label: 'Step A2'),
+          ],
+        );
+        const sortB = SortingBlock(
+          blockId: 'sort-b',
+          sortingPrompt: 'Order B',
+          items: [
+            SortingItemDef(id: 'b1', label: 'Step B1'),
+            SortingItemDef(id: 'b2', label: 'Step B2'),
+          ],
+        );
+
+        await _pump(tester, viewForInteractionBlock(sortA, onComplete: (_) {}));
+        await _pump(tester, viewForInteractionBlock(sortB, onComplete: (_) {}));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Step B1'), findsOneWidget);
+      },
+    );
+  });
+
   group('accessibility semantics across blocks', () {
     testWidgets('checklist rows announce their checked state', (tester) async {
       final handle = tester.ensureSemantics();

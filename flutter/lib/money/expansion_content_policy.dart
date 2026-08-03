@@ -166,7 +166,11 @@ const _placeholderHosts = {
 bool _isPlaceholderHost(String host) {
   final h = host.toLowerCase();
   if (_placeholderHosts.contains(h)) return true;
-  return h.startsWith('example.') || h.contains('.example.');
+  // Label-exact, not a substring: catches "example.gov.ph" and
+  // "www.example.com" the same way the old startsWith/contains pair did,
+  // without also matching a real host that merely contains "example" as
+  // part of a longer, unrelated label.
+  return h.split('.').contains('example');
 }
 
 ValidationIssue? _sourceUrlIssue(String lessonId, LessonSourceInfo source) {
@@ -241,7 +245,11 @@ final List<_LanguagePattern> _hardErrorPatterns = [
   ),
   _LanguagePattern(
     ValidationIssueCode.personalRecommendationLanguage,
-    RegExp(r'\b([Bb]uy|[Ss]ell)\s+([A-Z][\w&.\-]*(?:\s+[A-Z][\w&.\-]*){0,3})'),
+    // (?!Now\b) exempts "Buy Now, Pay Later" and "Buy Now Pay Later loan",
+    // an existing loansOrCredit topic name, not a named product to buy.
+    RegExp(
+      r'\b([Bb]uy|[Ss]ell)\s+(?!Now\b)([A-Z][\w&.\-]*(?:\s+[A-Z][\w&.\-]*){0,3})',
+    ),
     'Reads as an instruction to buy or sell a specific stock, coin, fund, or policy.',
   ),
   _LanguagePattern(
@@ -272,6 +280,28 @@ final List<_LanguagePattern> _hardErrorPatterns = [
 
 bool _hasAny(String haystack, List<String> needles) =>
     needles.any(haystack.contains);
+
+final RegExp _negationWord = RegExp(
+  r"\b(not|never|no|cannot|can't|without)\b",
+  caseSensitive: false,
+);
+
+/// True when a negation word sits in the same clause as [match], either just
+/// before it ("No provider can guarantee a return", "will never ask you to
+/// share") or inside it (the eligibility pattern's [^.]{0,20} wildcard can
+/// capture a "not" between "you are" and "eligible"). Scoped to the current
+/// clause only: text is cut at the nearest comma, semicolon, colon, or
+/// period before the match, so an unrelated earlier clause's own "no" or
+/// "not" (e.g. "This fund has no fees, and guarantees a return") never
+/// suppresses a real violation later in the same sentence.
+bool _isNegatedNearby(String text, RegExpMatch match) {
+  final windowStart = (match.start - 45).clamp(0, text.length);
+  var before = text.substring(windowStart, match.start);
+  final boundaries = RegExp(r'[.,;:]').allMatches(before);
+  if (boundaries.isNotEmpty) before = before.substring(boundaries.last.end);
+  return _negationWord.hasMatch(before) ||
+      _negationWord.hasMatch(match.group(0)!);
+}
 
 void _checkFigureContext(
   String text,
@@ -579,7 +609,10 @@ ValidationResult validateExpansionLesson(
     for (final text in _scannableTexts(block)) {
       if (reviewedTexts.contains(text.trim())) continue;
       for (final pattern in _hardErrorPatterns) {
-        if (pattern.pattern.hasMatch(text)) {
+        final hasRealMatch = pattern.pattern
+            .allMatches(text)
+            .any((m) => !_isNegatedNearby(text, m));
+        if (hasRealMatch) {
           err(pattern.code, pattern.message, field: field);
         }
       }

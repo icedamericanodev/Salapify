@@ -25,6 +25,16 @@ List<InteractionBlock> requiredInteractionBlocks(
   List<InteractionBlock> blocks,
 ) => blocks.where((b) => b.requiredForCompletion).toList();
 
+/// True when every block in [blocks] has a blockId not shared by any other
+/// block in the same list. [allRequiredInteractionsComplete] keys its
+/// completed set by blockId (see InteractionBlock.blockId's own "unique by
+/// convention" contract), so two different required blocks accidentally
+/// authored with the same id would let completing one silently satisfy both.
+/// A future reader assembling blocks for a lesson should check this once,
+/// the same way SortingBlock.isValid checks its own items for duplicate ids.
+bool hasUniqueBlockIds(List<InteractionBlock> blocks) =>
+    blocks.map((b) => b.blockId).toSet().length == blocks.length;
+
 /// True once every block in [blocks] that requires completion has its id in
 /// [completedBlockIds]. A block that is present but not required is ignored.
 ///
@@ -32,6 +42,10 @@ List<InteractionBlock> requiredInteractionBlocks(
 /// block's own view calling its onComplete callback does (see
 /// widgets/interaction_block_views.dart), so this can never read as complete
 /// purely because the lesson was opened or scrolled through.
+///
+/// Assumes [hasUniqueBlockIds] holds for [blocks]; a duplicate id makes the
+/// underlying [completedBlockIds] set unable to tell the two blocks apart,
+/// so a caller should validate uniqueness once before relying on this.
 bool allRequiredInteractionsComplete(
   List<InteractionBlock> blocks,
   Set<String> completedBlockIds,
