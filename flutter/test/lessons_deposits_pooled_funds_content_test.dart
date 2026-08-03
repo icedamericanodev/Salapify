@@ -1,13 +1,14 @@
-// Money Courses Phase 7A content contract: the "Grow Your Money" learning
-// path's second course, "Stocks and Bonds Without the Hype"
-// (lib/content/lessons_stocks_bonds.dart, lib/content/learning_paths.dart).
+// Money Courses Phase 7B content contract: the "Grow Your Money" learning
+// path's third course, "Deposits and Pooled Funds"
+// (lib/content/lessons_deposits_pooled_funds.dart, lib/content/learning_paths.dart).
 // Proves this course is registered correctly, stays fully isolated from the
-// core 22 lessons AND from the Investing Readiness pilot's 5 lessons, and
-// passes the house rules (no em/en dash, no product names, no
-// guaranteed-outcome language) plus the Phase 4 content policy validator.
+// core 22 lessons AND from the Investing Readiness pilot AND from Phase 7A's
+// "Stocks and Bonds Without the Hype", and passes the house rules (no
+// em/en dash, no product names, no guaranteed-outcome language) plus the
+// Phase 4 content policy validator.
 //
-// Mirrors test/lessons_grow_content_test.dart's own structure on purpose,
-// the established shape for a Money Courses content contract test.
+// Mirrors test/lessons_stocks_bonds_content_test.dart's own structure on
+// purpose, the established shape for a Money Courses content contract test.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/interaction_blocks.dart';
@@ -16,6 +17,7 @@ import 'package:salapify/content/learning_paths.dart';
 import 'package:salapify/content/lesson_blocks.dart';
 import 'package:salapify/content/lesson_model.dart';
 import 'package:salapify/content/lessons.dart' as core;
+import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/money/expansion_content_policy.dart';
@@ -23,12 +25,12 @@ import 'package:salapify/money/expansion_content_policy.dart';
 final _ref = DateTime.utc(2026, 8, 3);
 
 const _stableLessonIds = [
-  sbOwnerOrLender,
-  sbStockReturnsAndLosses,
-  sbPriceIsNotValue,
-  sbDiversificationAndConcentration,
-  sbHowBondsWork,
-  sbVerifyBeforeYouInvest,
+  dpDepositOrInvestment,
+  dpTimeDepositsAndPdic,
+  dpHowPooledFundsWork,
+  dpUitfMutualFundEtf,
+  dpReadAFactSheet,
+  dpMatchProductToGoal,
 ];
 
 const _pilotLessonIds = [
@@ -39,44 +41,53 @@ const _pilotLessonIds = [
   investRefCard,
 ];
 
+const _stocksBondsLessonIds = [
+  sbOwnerOrLender,
+  sbStockReturnsAndLosses,
+  sbPriceIsNotValue,
+  sbDiversificationAndConcentration,
+  sbHowBondsWork,
+  sbVerifyBeforeYouInvest,
+];
+
 void main() {
   group('registration', () {
-    test(
-      'grow_your_money carries both investing_readiness and stocks_and_bonds',
-      () {
-        final path = learningPaths.firstWhere((p) => p.id == 'grow_your_money');
-        expect(path.status, LearningPathStatus.published);
-        expect(path.isAvailable, isTrue);
-        expect(
-          path.groups.map((g) => g.id),
-          containsAll(['investing_readiness', 'stocks_and_bonds']),
-        );
-        final group = path.groups.firstWhere((g) => g.id == 'stocks_and_bonds');
-        expect(group.title, 'Stocks and Bonds Without the Hype');
-        expect(group.lessonIds, _stableLessonIds);
-        // The path's flat id list is investing_readiness's five lessons
-        // FIRST, then this course's six, since groups render in the order
-        // they were authored and the pilot group is listed first. Phase 7B
-        // added a third group ("Deposits and Pooled Funds") after this one,
-        // so the flat list no longer ends here; this test only asserts that
-        // this course's own six still appear as a contiguous run right
-        // after the pilot's five, not that they are the whole list. See
-        // test/lessons_deposits_pooled_funds_content_test.dart for the full,
-        // three-course assertion.
-        expect(
-          path.lessonIds.sublist(
-            0,
-            _pilotLessonIds.length + _stableLessonIds.length,
-          ),
-          [..._pilotLessonIds, ..._stableLessonIds],
-        );
-      },
-    );
-
-    test('the prerequisite is recommended, never a lock', () {
+    test('grow_your_money carries all three courses', () {
       final path = learningPaths.firstWhere((p) => p.id == 'grow_your_money');
-      final group = path.groups.firstWhere((g) => g.id == 'stocks_and_bonds');
-      expect(group.recommendedPriorGroupIds, ['investing_readiness']);
+      expect(path.status, LearningPathStatus.published);
+      expect(path.isAvailable, isTrue);
+      expect(
+        path.groups.map((g) => g.id),
+        containsAll([
+          'investing_readiness',
+          'stocks_and_bonds',
+          'deposits_and_pooled_funds',
+        ]),
+      );
+      final group = path.groups.firstWhere(
+        (g) => g.id == 'deposits_and_pooled_funds',
+      );
+      expect(group.title, 'Deposits and Pooled Funds');
+      expect(group.lessonIds, _stableLessonIds);
+      // The path's flat id list is investing_readiness's five lessons,
+      // then stocks_and_bonds's six, then this course's six, since groups
+      // render in the order they were authored.
+      expect(path.lessonIds, [
+        ..._pilotLessonIds,
+        ..._stocksBondsLessonIds,
+        ..._stableLessonIds,
+      ]);
+    });
+
+    test('both prerequisites are recommended, never a lock', () {
+      final path = learningPaths.firstWhere((p) => p.id == 'grow_your_money');
+      final group = path.groups.firstWhere(
+        (g) => g.id == 'deposits_and_pooled_funds',
+      );
+      expect(group.recommendedPriorGroupIds, [
+        'investing_readiness',
+        'stocks_and_bonds',
+      ]);
       // Nothing in LearningPath/LearningPathGroup carries a lock, gate, or
       // required-completion field for a group's own lessons: lessonsForPath
       // returns every lesson regardless of any other group's progress, which
@@ -92,21 +103,32 @@ void main() {
     });
 
     test('six stable lesson ids, in reading order', () {
-      expect(stocksAndBondsLessons.map((l) => l.id).toList(), _stableLessonIds);
+      expect(
+        depositsAndPooledFundsLessons.map((l) => l.id).toList(),
+        _stableLessonIds,
+      );
     });
 
     test('lesson ids are unique', () {
       expect(_stableLessonIds.toSet().length, 6);
     });
 
-    test('every lesson is registered under the stocks_and_bonds trackId', () {
-      for (final l in stocksAndBondsLessons) {
-        expect(l.trackId, 'stocks_and_bonds');
+    test('every lesson is registered under the deposits_and_pooled_funds '
+        'trackId', () {
+      for (final l in depositsAndPooledFundsLessons) {
+        expect(l.trackId, 'deposits_and_pooled_funds');
       }
+    });
+
+    test('expansionLessonById resolves a lesson from this course', () {
+      final found = expansionLessonById(dpDepositOrInvestment);
+      expect(found, isNotNull);
+      expect(found!.pathId, 'grow_your_money');
+      expect(found.lesson.id, dpDepositOrInvestment);
     });
   });
 
-  group('isolation from the core 22 and from the pilot', () {
+  group('isolation from the core 22, the pilot, and Stocks and Bonds', () {
     test('core lesson list is untouched: still 22 lessons, four courses', () {
       expect(core.lessons.length, 22);
       expect(core.courseTracks.length, 4);
@@ -116,6 +138,16 @@ void main() {
       expect(growYourMoneyLessons.map((l) => l.id).toList(), _pilotLessonIds);
     });
 
+    test(
+      'Stocks and Bonds is untouched: still 6 lessons, in the same order',
+      () {
+        expect(
+          stocksAndBondsLessons.map((l) => l.id).toList(),
+          _stocksBondsLessonIds,
+        );
+      },
+    );
+
     test('none of the new ids appear in the core flat lesson list', () {
       final coreIds = core.lessons.map((l) => l['id']).toSet();
       for (final id in _stableLessonIds) {
@@ -123,26 +155,32 @@ void main() {
       }
     });
 
-    test('none of the new ids collide with a core id or a pilot id', () {
+    test('none of the new ids collide with a core id, a pilot id, or a Stocks '
+        'and Bonds id', () {
       final coreIds = core.lessons.map((l) => l['id']).toSet();
       final pilotIds = _pilotLessonIds.toSet();
+      final sbIds = _stocksBondsLessonIds.toSet();
       for (final id in _stableLessonIds) {
         expect(coreIds.contains(id), isFalse);
         expect(pilotIds.contains(id), isFalse);
+        expect(sbIds.contains(id), isFalse);
       }
     });
 
-    test('none of the new ids appear in growYourMoneyLessons itself', () {
+    test('none of the new ids appear in growYourMoneyLessons or '
+        'stocksAndBondsLessons themselves', () {
       final pilotIds = growYourMoneyLessons.map((l) => l.id).toSet();
+      final sbIds = stocksAndBondsLessons.map((l) => l.id).toSet();
       for (final id in _stableLessonIds) {
         expect(pilotIds.contains(id), isFalse);
+        expect(sbIds.contains(id), isFalse);
       }
     });
   });
 
   group('content policy validator (Phase 4)', () {
     test('every lesson has zero validation errors', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         final result = validateExpansionLesson(lesson, referenceDate: _ref);
         expect(
           isPublishable(result),
@@ -152,9 +190,9 @@ void main() {
       }
     });
 
-    test('every lesson carries a stocks or bonds content topic, making it '
+    test('every lesson carries at least one ContentTopic, making it '
         'regulated content under the validator\'s own definition', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         expect(
           lesson.topics,
           isNotEmpty,
@@ -162,13 +200,31 @@ void main() {
         );
       }
     });
+
+    test('the deposit lessons carry ContentTopic.bankDeposits and the fund '
+        'lessons carry ContentTopic.fundsAndEtfs', () {
+      MoneyLesson byId(String id) =>
+          depositsAndPooledFundsLessons.firstWhere((l) => l.id == id);
+      expect(
+        byId(dpTimeDepositsAndPdic).topics,
+        contains(ContentTopic.bankDeposits),
+      );
+      expect(
+        byId(dpHowPooledFundsWork).topics,
+        contains(ContentTopic.fundsAndEtfs),
+      );
+      expect(
+        byId(dpUitfMutualFundEtf).topics,
+        contains(ContentTopic.fundsAndEtfs),
+      );
+    });
   });
 
   group('official-source metadata', () {
     test(
       'every lesson cites at least one structured, HTTPS official source',
       () {
-        for (final lesson in stocksAndBondsLessons) {
+        for (final lesson in depositsAndPooledFundsLessons) {
           expect(
             lesson.sources,
             isNotEmpty,
@@ -185,7 +241,7 @@ void main() {
     );
 
     test('every lesson renders an OfficialSourceBlock', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         expect(
           lesson.blocks.whereType<OfficialSourceBlock>(),
           isNotEmpty,
@@ -195,7 +251,7 @@ void main() {
     });
 
     test('verified and review-due dates are present and sane', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         final g = lesson.governance;
         expect(g.lastVerifiedDate, isNotNull);
         expect(g.reviewDueDate, isNotNull);
@@ -207,30 +263,22 @@ void main() {
       }
     });
 
-    test('no lesson embeds a stale broker list or an active government-bond '
-        'offering: lesson 6 only links to the current official directory', () {
-      final verify = stocksAndBondsLessons.firstWhere(
-        (l) => l.id == sbVerifyBeforeYouInvest,
+    test('Lesson 2 cites PDIC\'s own page and its calculator', () {
+      final l = depositsAndPooledFundsLessons.firstWhere(
+        (l) => l.id == dpTimeDepositsAndPdic,
       );
-      final sourceTitles = verify.blocks
+      final sourceTitles = l.blocks
           .whereType<OfficialSourceBlock>()
           .map((b) => b.sourceTitle)
           .toList();
-      expect(sourceTitles, contains('Trading Participant Directory'));
-      // A directory or a general education page, never a specific offering
-      // (a bond series, an interest rate, a subscription window).
-      for (final title in sourceTitles) {
-        expect(
-          RegExp(r'\bseries\b', caseSensitive: false).hasMatch(title),
-          isFalse,
-        );
-      }
+      expect(sourceTitles, contains('Maximum Deposit Insurance Coverage'));
+      expect(sourceTitles, contains('Deposit Insurance Calculator'));
     });
   });
 
   group('risk warnings and educational boundary', () {
     test('every lesson carries a risk-warning block', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         expect(
           lesson.blocks.whereType<RiskWarningBlock>(),
           isNotEmpty,
@@ -240,7 +288,7 @@ void main() {
     });
 
     test('every lesson carries the educational-boundary block', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         expect(
           lesson.blocks.whereType<EducationalBoundaryBlock>(),
           isNotEmpty,
@@ -252,7 +300,7 @@ void main() {
 
   group('required interactions', () {
     test('every lesson has at least one required interaction block', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         expect(
           lesson.interactionBlocks.where((b) => b.requiredForCompletion),
           isNotEmpty,
@@ -262,7 +310,7 @@ void main() {
     });
 
     test('every lesson has unique interaction block ids', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         final ids = lesson.interactionBlocks.map((b) => b.blockId).toList();
         expect(
           ids.toSet().length,
@@ -274,7 +322,7 @@ void main() {
 
     test('every lesson has a scenario-based knowledge check with an '
         'explanation', () {
-      for (final lesson in stocksAndBondsLessons) {
+      for (final lesson in depositsAndPooledFundsLessons) {
         final check = lesson.check;
         expect(check, isNotNull, reason: '${lesson.id} has no mastery check');
         expect(check!.isValid, isTrue);
@@ -285,128 +333,157 @@ void main() {
 
   group('course-specific interaction coverage (the task\'s own list)', () {
     MoneyLesson byId(String id) =>
-        stocksAndBondsLessons.firstWhere((l) => l.id == id);
+        depositsAndPooledFundsLessons.firstWhere((l) => l.id == id);
 
-    test('lesson 1 sorts fictional examples into Owner, Lender, Depositor', () {
-      final l = byId(sbOwnerOrLender);
+    test('lesson 1 sorts fictional products into deposit or investment, '
+        'includes the required myth, and a scenario', () {
+      final l = byId(dpDepositOrInvestment);
       final sort = l.interactionBlocks.whereType<CategorizeBlock>().first;
       expect(
         sort.buckets.map((b) => b.label),
-        containsAll(['Owner', 'Lender', 'Depositor']),
+        containsAll(['Bank deposit', 'Investment product']),
       );
+      expect(sort.items.length, greaterThanOrEqualTo(7));
+      final myth = l.interactionBlocks.whereType<MythOrFactBlock>().firstWhere(
+        (m) => m.blockId == 'bank-offers-it-myth',
+      );
+      expect(
+        myth.statement,
+        'If a bank offers it, PDIC automatically covers it.',
+      );
+      expect(myth.correctAnswer, MythOrFactAnswer.myth);
+      expect(l.interactionBlocks.whereType<ScenarioChoiceBlock>(), isNotEmpty);
+    });
+
+    test('lesson 2 has a fictional account-classification scenario, a '
+        'basic coverage illustration, and a maturity checklist', () {
+      final l = byId(dpTimeDepositsAndPdic);
+      expect(l.interactionBlocks.whereType<ScenarioChoiceBlock>(), isNotEmpty);
+      final illustration = l.interactionBlocks
+          .whereType<ComparisonBlock>()
+          .firstWhere((c) => c.blockId == 'basic-coverage-illustration');
+      expect(illustration.items.length, 2);
+      final checklist = l.interactionBlocks.whereType<ChecklistBlock>().first;
+      expect(checklist.items.length, greaterThanOrEqualTo(4));
+      // Never gates completion: no in-app route can resolve a real PDIC
+      // coverage determination, so the checklist stays optional.
+      expect(checklist.requiredForCompletion, isFalse);
+      // Never a complete legal-entitlement calculator: the illustration
+      // stays to exactly two simplified, labeled scenarios.
+      for (final item in illustration.items) {
+        expect(item.name.toLowerCase().contains('you'), isFalse);
+      }
+    });
+
+    test('lesson 3 has a pooled-fund diagram and a labeling interaction', () {
+      final l = byId(dpHowPooledFundsWork);
+      expect(l.blocks.whereType<DiagramBlock>(), isNotEmpty);
+      final labels = l.interactionBlocks
+          .whereType<CategorizeBlock>()
+          .firstWhere((c) => c.blockId == 'pooled-fund-diagram-labels');
+      expect(labels.buckets.length, 5);
       expect(l.interactionBlocks.whereType<MythOrFactBlock>(), isNotEmpty);
       expect(l.interactionBlocks.whereType<ScenarioChoiceBlock>(), isNotEmpty);
     });
 
-    test('lesson 2 has a myth-or-fact and a fictional price/dividend '
-        'scenario', () {
-      final l = byId(sbStockReturnsAndLosses);
-      expect(l.interactionBlocks.whereType<MythOrFactBlock>(), isNotEmpty);
-      expect(l.interactionBlocks.whereType<ScenarioChoiceBlock>(), isNotEmpty);
-    });
-
-    test('lesson 3 compares two fictional companies with no correct stock '
-        'to buy', () {
-      final l = byId(sbPriceIsNotValue);
-      final comparison = l.interactionBlocks.whereType<ComparisonBlock>().first;
-      expect(comparison.items.length, 2);
+    test('lesson 4 compares UITF, mutual fund, and ETF with no product '
+        'labeled best or ranked', () {
+      final l = byId(dpUitfMutualFundEtf);
+      final comparison = l.interactionBlocks
+          .whereType<ComparisonBlock>()
+          .firstWhere((c) => c.blockId == 'uitf-mutual-fund-etf-comparison');
+      expect(comparison.items.length, 3);
       expect(
         comparison.criteria.map((c) => c.label),
         containsAll([
-          'Revenue',
-          'Profit',
-          'Cash flow',
-          'Debt',
-          'Shares outstanding',
+          'General structure',
+          'How you participate',
+          'Pricing or valuation',
+          'Where it is traded',
+          'Liquidity and redemption',
+          'Fees and expenses',
+          'Supervising authority',
+          'Main risks',
         ]),
       );
-      // Something is deliberately missing, standing in for "what information
-      // remains missing" the task asks the learner to identify.
-      final hasBlankValue = comparison.items.any(
-        (i) => i.valuesByCriterionId.values.any((v) => v.trim().isEmpty),
-      );
-      expect(hasBlankValue, isTrue);
-      // No item name reads as a recommendation ("the correct stock to buy").
       for (final item in comparison.items) {
         expect(item.name.toLowerCase().contains('best'), isFalse);
-        expect(item.name.toLowerCase().contains('buy'), isFalse);
+        for (final v in item.valuesByCriterionId.values) {
+          expect(v.toLowerCase().contains('best'), isFalse);
+        }
       }
     });
 
-    test('lesson 4 compares fictional portfolios and includes a scenario '
-        'and a reflection on possible loss', () {
-      final l = byId(sbDiversificationAndConcentration);
-      expect(l.interactionBlocks.whereType<ComparisonBlock>(), isNotEmpty);
-      expect(l.interactionBlocks.whereType<ScenarioChoiceBlock>(), isNotEmpty);
-      final reflections = l.interactionBlocks
-          .whereType<ReflectionPromptBlock>();
-      expect(reflections, isNotEmpty);
-      // Never persisted anywhere: the reflection stays free text in widget
-      // state only, the same non-storage contract every ReflectionPromptBlock
-      // already carries (see interaction_blocks.dart's own privacyNote).
-      for (final r in reflections) {
-        expect(
-          r.privacyNote.contains('never saved'),
-          isTrue,
-          reason: 'a reflection must not read as a stored risk profile',
-        );
-      }
-      // No specific allocation or percentage recommendation anywhere in this
-      // lesson's authored or interaction text.
-      expect(RegExp(r'\d+\s?%').hasMatch(_allText(l)), isFalse);
-    });
-
-    test('lesson 5 has a bond timeline, an owner/lender check, a directional '
-        'rate scenario, and risk matching', () {
-      final l = byId(sbHowBondsWork);
-      final sorting = l.interactionBlocks.whereType<SortingBlock>().first;
-      expect(sorting.items.length, greaterThanOrEqualTo(3));
-      expect(l.interactionBlocks.whereType<CategorizeBlock>().length, 2);
-      final rateScenario = l.interactionBlocks
-          .whereType<ScenarioChoiceBlock>()
-          .firstWhere((s) => s.blockId == 'bond-rate-direction');
-      expect(rateScenario.preferredOptionId, 'price-falls');
-      final riskMatch = l.interactionBlocks
+    test('lesson 5 has a fictional fact-sheet activity identifying what is '
+        'answered and what is missing, plus the fee-impact illustration', () {
+      final l = byId(dpReadAFactSheet);
+      final scavenger = l.interactionBlocks
           .whereType<CategorizeBlock>()
-          .firstWhere((c) => c.blockId == 'bond-risk-match');
+          .firstWhere((c) => c.blockId == 'fact-sheet-scavenger');
       expect(
-        riskMatch.buckets.map((b) => b.label),
+        scavenger.buckets.map((b) => b.label),
+        containsAll(['Answered in the fact sheet', 'Missing, investigate']),
+      );
+      expect(
+        scavenger.correctBucketByItemId.values.contains('investigate'),
+        isTrue,
+        reason: 'at least one item must be missing information',
+      );
+      final allText = _allText(l);
+      expect(allText.contains('1,500 pesos'), isTrue);
+      expect(allText.contains('7,500 pesos'), isTrue);
+      expect(allText.contains('92,500 pesos'), isTrue);
+      // Never a forecast of what the fund would return: no percentage
+      // return figure appears anywhere in this lesson's text.
+      expect(RegExp(r'\d+\s?%').hasMatch(allText), isFalse);
+    });
+
+    test('lesson 6 matches fictional situations to product-appropriate next '
+        'steps without forcing every scenario toward investing', () {
+      final l = byId(dpMatchProductToGoal);
+      final match = l.interactionBlocks.whereType<CategorizeBlock>().firstWhere(
+        (c) => c.blockId == 'product-to-goal-match',
+      );
+      expect(
+        match.buckets.map((b) => b.label),
         containsAll([
-          'Interest rate risk',
-          'Credit risk',
-          'Inflation risk',
-          'Liquidity risk',
-          'Reinvestment risk',
+          'Keep the money accessible',
+          'Review the financial foundation first',
+          'Investigate an appropriate product category',
+          'Do not invest this money yet',
         ]),
       );
-    });
-
-    test('lesson 6 has a scam red-flag challenge, a fake-broker scenario, a '
-        'hot-tip scenario, and a personal checklist', () {
-      final l = byId(sbVerifyBeforeYouInvest);
+      // Not every situation resolves to "invest": at least one item maps to
+      // each of the two non-investment buckets.
+      final buckets = match.correctBucketByItemId.values.toSet();
+      expect(buckets.contains('keep-accessible'), isTrue);
+      expect(buckets.contains('do-not-invest-yet'), isTrue);
+      expect(l.interactionBlocks.whereType<ComparisonBlock>(), isNotEmpty);
+      expect(
+        l.interactionBlocks.whereType<ChecklistBlock>().where(
+          (c) => c.blockId == 'readiness-checklist',
+        ),
+        isNotEmpty,
+      );
+      expect(
+        l.interactionBlocks.whereType<ScenarioChoiceBlock>().where(
+          (s) => s.blockId == 'mastery-scenario',
+        ),
+        isNotEmpty,
+      );
       final redFlags = l.interactionBlocks
           .whereType<CategorizeBlock>()
-          .firstWhere((c) => c.blockId == 'scam-red-flags');
+          .firstWhere((c) => c.blockId == 'scam-pressure-signs');
       expect(
         redFlags.buckets.map((b) => b.label),
         containsAll(['Red flag', 'Reasonable sign']),
       );
-      expect(
-        l.interactionBlocks.whereType<ScenarioChoiceBlock>().length,
-        greaterThanOrEqualTo(2),
-      );
-      final checklist = l.interactionBlocks.whereType<ChecklistBlock>().first;
-      expect(checklist.items.length, greaterThanOrEqualTo(5));
-      // An offline checklist, never gating completion: no in-app route can
-      // verify a broker in real time, so this is the safe fallback the task
-      // asks for.
-      expect(checklist.requiredForCompletion, isFalse);
     });
   });
 
   group('house rules: plain text content', () {
     test('no em or en dashes anywhere, content blocks or interactions', () {
-      for (final l in stocksAndBondsLessons) {
+      for (final l in depositsAndPooledFundsLessons) {
         final all = _allText(l);
         expect(all.contains('—'), isFalse, reason: '${l.id} em dash');
         expect(all.contains('–'), isFalse, reason: '${l.id} en dash');
@@ -419,7 +496,7 @@ void main() {
         r'\brisk[\s-]?free\b',
         caseSensitive: false,
       );
-      for (final l in stocksAndBondsLessons) {
+      for (final l in depositsAndPooledFundsLessons) {
         expect(
           banned.hasMatch(_allText(l)),
           isFalse,
@@ -428,11 +505,8 @@ void main() {
       }
     });
 
-    test('no named real stock, bond, fund, or broker: only fictional or '
+    test('no named real bank, UITF, mutual fund, or ETF: only fictional or '
         'generic references', () {
-      // A narrow denylist of real Philippine market names that must never
-      // appear, matching the task's own "no named securities" rule. This is
-      // deliberately small and specific, not a broad blacklist.
       const bannedNames = [
         'Jollibee',
         'SM Investments',
@@ -444,8 +518,11 @@ void main() {
         'San Miguel',
         'GCash',
         'Maya',
+        'Metrobank',
+        'Landbank',
+        'UnionBank',
       ];
-      for (final l in stocksAndBondsLessons) {
+      for (final l in depositsAndPooledFundsLessons) {
         final all = _allText(l);
         for (final name in bannedNames) {
           expect(
@@ -457,26 +534,41 @@ void main() {
       }
     });
 
-    test('every fictional company is labeled fictional', () {
-      // Every company-like proper noun this course invents carries the word
-      // "fictional" somewhere in the same sentence, so a reader never
-      // mistakes it for a real one. A generous window either side (not a
-      // tight character count) is what makes this robust to how the
-      // sentence around each mention happens to be phrased.
-      for (final l in stocksAndBondsLessons) {
-        final all = _allText(l);
-        for (final match in RegExp(r'Example \w+ Co\.').allMatches(all)) {
-          final windowStart = (match.start - 80).clamp(0, all.length);
-          final windowEnd = (match.end + 200).clamp(0, all.length);
-          final window = all.substring(windowStart, windowEnd);
-          expect(
-            window.toLowerCase().contains('fictional'),
-            isTrue,
-            reason:
-                '${l.id}: "${match.group(0)}" is not marked fictional '
-                'nearby: "$window"',
-          );
-        }
+    test('the fictional fund is labeled fictional', () {
+      final l = depositsAndPooledFundsLessons.firstWhere(
+        (l) => l.id == dpReadAFactSheet,
+      );
+      final all = _allText(l);
+      for (final match in RegExp(
+        r'Example [\w ]*?(Fund|Growth)',
+      ).allMatches(all)) {
+        final windowStart = (match.start - 20).clamp(0, all.length);
+        final windowEnd = (match.end + 60).clamp(0, all.length);
+        final window = all.substring(windowStart, windowEnd);
+        expect(
+          window.toLowerCase().contains('fictional'),
+          isTrue,
+          reason:
+              '"${match.group(0)}" is not marked fictional nearby: '
+              '"$window"',
+        );
+      }
+    });
+
+    test('never declares a depositor\'s coverage officially settled', () {
+      final banned = RegExp(
+        r"\byou(?:'re| are)\b[^.]{0,20}\b(officially\s+)?(approved|covered|"
+        r'eligible|qualified)\b',
+        caseSensitive: false,
+      );
+      for (final l in depositsAndPooledFundsLessons) {
+        expect(
+          banned.hasMatch(_allText(l)),
+          isFalse,
+          reason:
+              '${l.id} declares the reader officially covered or '
+              'eligible',
+        );
       }
     });
   });
@@ -506,13 +598,9 @@ void main() {
       });
     });
 
-    test('never records a market gain as a contribution, never buys or '
-        'recommends a security: the action model has no field that could '
-        'hold either', () {
-      // SalapifyActionDef carries only id, label, description, and route,
-      // the same closed shape lessons_grow.dart's pilot already relies on
-      // for "structurally incapable of an automatic write". Nothing here
-      // adds a field, so the guarantee holds for this course too.
+    test('never labels an investment as a bank deposit, never records a '
+        'market gain as a contribution: the action model has no field that '
+        'could hold either', () {
       final block = _salapifyActionsBlock();
       for (final action in block.actions) {
         expect(action.route, isNotEmpty);
@@ -583,6 +671,7 @@ String _allText(MoneyLesson l) {
           for (final v in i.valuesByCriterionId.values) {
             buf.write(' $v');
           }
+          if (i.caution != null) buf.write(' ${i.caution}');
         }
       case ChecklistBlock(:final items):
         for (final i in items) {
@@ -620,8 +709,8 @@ String _allText(MoneyLesson l) {
 }
 
 SalapifyActionsBlock _salapifyActionsBlock() {
-  final lesson = stocksAndBondsLessons.firstWhere(
-    (l) => l.id == sbVerifyBeforeYouInvest,
+  final lesson = depositsAndPooledFundsLessons.firstWhere(
+    (l) => l.id == dpMatchProductToGoal,
   );
   return lesson.interactionBlocks.whereType<SalapifyActionsBlock>().first;
 }

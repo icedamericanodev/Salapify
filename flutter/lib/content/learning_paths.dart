@@ -2,10 +2,11 @@
 // (content/learning_path.dart's types), as distinct from that file's own
 // type definitions. Money Courses Phase 6 was the first path to carry real
 // content, "Grow Your Money" with its pilot course "Are You Ready to
-// Invest?" (lib/content/lessons_grow.dart). Phase 7A adds this same path's
+// Invest?" (lib/content/lessons_grow.dart). Phase 7A added this same path's
 // second course, "Stocks and Bonds Without the Hype"
-// (lib/content/lessons_stocks_bonds.dart), never modifying the pilot or its
-// five lesson ids.
+// (lib/content/lessons_stocks_bonds.dart). Phase 7B adds a third course,
+// "Deposits and Pooled Funds" (lib/content/lessons_deposits_pooled_funds.dart),
+// never modifying the pilot, Phase 7A's course, or either one's lesson ids.
 //
 // "Protect Your Future" and "Build Your Business" are deliberately ABSENT
 // here, not present as comingSoon stubs. This phase's own catalog rule is
@@ -16,6 +17,7 @@
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
+import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
 import 'lessons_stocks_bonds.dart';
 
@@ -58,6 +60,27 @@ const List<LearningPath> learningPaths = [
         // without repeating.
         recommendedPriorGroupIds: ['investing_readiness'],
       ),
+      LearningPathGroup(
+        id: 'deposits_and_pooled_funds',
+        title: 'Deposits and Pooled Funds',
+        lessonIds: [
+          dpDepositOrInvestment,
+          dpTimeDepositsAndPdic,
+          dpHowPooledFundsWork,
+          dpUitfMutualFundEtf,
+          dpReadAFactSheet,
+          dpMatchProductToGoal,
+        ],
+        // Same advisory-only contract as stocks_and_bonds's own
+        // recommendedPriorGroupIds above: investing_readiness is this
+        // course's recommended prerequisite (the readiness questions this
+        // course assumes), and stocks_and_bonds is optional recommended
+        // preparation (this course stands on its own without it, but the
+        // two courses share the ownership/lending-versus-depositing
+        // distinction). Neither is a lock; lessonsForPath returns every
+        // lesson regardless of any other group's progress.
+        recommendedPriorGroupIds: ['investing_readiness', 'stocks_and_bonds'],
+      ),
     ],
     // Advisory only, per LearningPath.prerequisiteLessonIds's own contract:
     // nothing here blocks the path, a catalog screen just shows these as
@@ -92,7 +115,11 @@ class MoneyLessonWithPath {
 /// widgets/expansion_lesson_reader.dart's `_resolveGrowAction` already use
 /// for "a small, explicit, growable set of known cases".
 List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
-  'grow_your_money' => [...growYourMoneyLessons, ...stocksAndBondsLessons],
+  'grow_your_money' => [
+    ...growYourMoneyLessons,
+    ...stocksAndBondsLessons,
+    ...depositsAndPooledFundsLessons,
+  ],
   _ => const [],
 };
 
@@ -103,7 +130,11 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
 /// content today; a second path's content file gets a matching branch here
 /// when it ships.
 MoneyLessonWithPath? expansionLessonById(String id) {
-  for (final lesson in [...growYourMoneyLessons, ...stocksAndBondsLessons]) {
+  for (final lesson in [
+    ...growYourMoneyLessons,
+    ...stocksAndBondsLessons,
+    ...depositsAndPooledFundsLessons,
+  ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'grow_your_money', lesson: lesson);
     }
