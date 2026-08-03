@@ -584,4 +584,56 @@ Widget viewForBlock(LessonBlock block, {VoidCallback? onRevealed}) =>
       ReflectionBlock() => ReflectionView(block),
       OfficialSourceBlock() => OfficialSourceView(block),
       RiskWarningBlock() => RiskWarningView(block),
+      EducationalBoundaryBlock() => EducationalBoundaryView(block),
     };
+
+/// The educational boundary Phase 4 regulated lessons carry: four fixed
+/// sentences, never retyped per lesson, styled like [RiskWarningView] at its
+/// calmer `notice` weight since this is a scope statement, not a caution.
+class EducationalBoundaryView extends StatelessWidget {
+  final EducationalBoundaryBlock block;
+  const EducationalBoundaryView(this.block, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final source = block.sourceLabel;
+    final verifyLine = source == null || source.isEmpty
+        ? 'Verify current information through the cited official source.'
+        : 'Verify current information through $source.';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: Barako.border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('protected'), size: 18, color: Barako.muted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'EDUCATIONAL, NOT ADVICE',
+                    style: Barako.kickerStyle,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'This lesson is educational, not personalized financial, '
+                  'investment, tax, legal, or insurance advice. Rules and '
+                  'product terms may change. $verifyLine',
+                  style: AppText.small.copyWith(height: 1.45),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

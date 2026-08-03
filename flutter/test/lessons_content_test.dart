@@ -243,6 +243,8 @@ void main() {
             ], ' ');
           case RiskWarningBlock(:final title, :final text):
             buf.writeAll([title, text], ' ');
+          case EducationalBoundaryBlock(:final sourceLabel):
+            if (sourceLabel != null) buf.write(sourceLabel);
         }
       }
       final all = buf.toString();
@@ -345,6 +347,8 @@ Iterable<String> _allSentences(MoneyLesson l) {
         ], ' ');
       case RiskWarningBlock(:final title, :final text):
         buf.writeAll([title, text], ' ');
+      case EducationalBoundaryBlock(:final sourceLabel):
+        if (sourceLabel != null) buf.write(sourceLabel);
     }
     buf.write(' ');
   }
