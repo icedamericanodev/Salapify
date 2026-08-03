@@ -53,6 +53,13 @@ enum ContentTopic {
   /// UITFs, mutual funds, and ETFs: pooled investment vehicles that share the
   /// same suitability and risk-disclosure concerns.
   fundsAndEtfs,
+
+  /// Bank deposit products (savings, checking, time deposit) and the deposit
+  /// insurance boundary around them. Added for Money Courses Phase 7B
+  /// ("Deposits and Pooled Funds"): distinct from [fundsAndEtfs] because a
+  /// deposit's protection (PDIC insurance) and an investment's risk (it can
+  /// lose value) are the exact two things that course teaches apart.
+  bankDeposits,
   cryptocurrency,
 
   /// Insurance and variable-unit-linked (VUL) products.
@@ -477,6 +484,7 @@ ContentTopic? _topicFrom(String name) => switch (name) {
   'stocks' => ContentTopic.stocks,
   'bonds' => ContentTopic.bonds,
   'fundsAndEtfs' => ContentTopic.fundsAndEtfs,
+  'bankDeposits' => ContentTopic.bankDeposits,
   'cryptocurrency' => ContentTopic.cryptocurrency,
   'insuranceOrVul' => ContentTopic.insuranceOrVul,
   'loansOrCredit' => ContentTopic.loansOrCredit,
