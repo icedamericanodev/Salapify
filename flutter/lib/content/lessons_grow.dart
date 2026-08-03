@@ -451,7 +451,14 @@ const _goalTimeAndAccess = MoneyLesson(
   objective: 'Match how much uncertainty fits a goal to its time horizon.',
   sections: [],
   governance: _governance,
-  sources: [_pseAcademy],
+  // Both sources, not just PSE Academy: the investment-literacy-reviewer
+  // agent's pass on this lesson could confirm the general time-horizon and
+  // liquidity concepts against PSE Academy's own material, but not the
+  // specific short/medium/long-term year cutoffs as PSE-specific language.
+  // Citing both general investor-education sources here is more honest
+  // than pinning illustrative buckets to one source that does not
+  // specifically publish them.
+  sources: [_pseAcademy, _secInvestment101],
   authoredBlocks: [
     ProseBlock(
       heading: 'Why it matters',
@@ -486,6 +493,12 @@ const _goalTimeAndAccess = MoneyLesson(
       sourceTitle: _pseAcademyTitle,
       canonicalUrl: _pseAcademyUrl,
       lastVerifiedDate: _pseAcademyVerified,
+    ),
+    OfficialSourceBlock(
+      agency: _secAgency,
+      sourceTitle: _secTitle,
+      canonicalUrl: _secUrl,
+      lastVerifiedDate: _secVerified,
     ),
     _boundary,
   ],
@@ -630,7 +643,13 @@ const _riskComfortVsCapacity = MoneyLesson(
       'actually afford to lose.',
   sections: [],
   governance: _governance,
-  sources: [_secInvestment101],
+  // Both sources: the investment-literacy-reviewer agent's pass could not
+  // confirm the exact "risk tolerance vs risk capacity" terminology as
+  // SEC-PH-specific language, only as standard investor-education content
+  // broadly consistent with both sources' general risk framing. Citing
+  // both, rather than pinning the split to SEC Investment 101 alone, is
+  // the more honest attribution.
+  sources: [_secInvestment101, _pseAcademy],
   authoredBlocks: [
     ProseBlock(
       heading: 'Why it matters',
@@ -665,6 +684,12 @@ const _riskComfortVsCapacity = MoneyLesson(
       sourceTitle: _secTitle,
       canonicalUrl: _secUrl,
       lastVerifiedDate: _secVerified,
+    ),
+    OfficialSourceBlock(
+      agency: _pseAcademyAgency,
+      sourceTitle: _pseAcademyTitle,
+      canonicalUrl: _pseAcademyUrl,
+      lastVerifiedDate: _pseAcademyVerified,
     ),
     _boundary,
   ],

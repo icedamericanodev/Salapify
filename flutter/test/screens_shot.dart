@@ -37,8 +37,10 @@ import 'package:salapify/money/pan_mood.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
+import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
+import 'package:salapify/widgets/expansion_lesson_reader.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/utang.dart';
 import 'package:salapify/screens/quick_add_editor.dart';
@@ -566,6 +568,14 @@ void main() {
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
     'appearance': (s) => AppearanceScreen(store: s),
+    // Money Courses Phase 6 pilot: the readiness card, the most novel new
+    // widget this course adds (content/interaction_blocks.dart's
+    // ReadinessCardBlock plus the Salapify actions menu underneath it).
+    'grow-readiness-card': (s) => ExpansionLessonReader(
+      pathId: 'grow_your_money',
+      lesson: growYourMoneyLessons.firstWhere((l) => l.id == investRefCard),
+      store: s,
+    ),
   };
 
   for (final entry in screens.entries) {
@@ -1524,10 +1534,7 @@ void main() {
       // Subscription.
       await tester.tap(find.text('Subscription'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('mindsetSubAmount')),
-        '149',
-      );
+      await tester.enterText(find.byKey(const Key('mindsetSubAmount')), '149');
       await tester.pumpAndSettle();
       expect(find.text('Monthly equivalent'), findsOneWidget);
       await expectLater(
