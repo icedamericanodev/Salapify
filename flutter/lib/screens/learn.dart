@@ -8,6 +8,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../content/learning_path.dart';
+import '../content/learning_paths.dart';
 import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
@@ -16,6 +18,7 @@ import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/expansion_lesson_reader.dart';
 import '../widgets/lesson_block_views.dart';
 import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
@@ -70,12 +73,39 @@ class _LearnScreenState extends State<LearnScreen> {
   void initState() {
     super.initState();
     final id = widget.focusId;
-    if (id != null) {
-      final l = lessonById(id);
-      if (l != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _open2(context, l));
-      }
+    if (id == null) return;
+    final l = lessonById(id);
+    if (l != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _open2(context, l));
+      return;
     }
+    // Not one of the core 22: try the expansion paths (Grow Your Money and
+    // whatever comes after) before giving up. An id that matches neither is
+    // a safe no-op, the same fails-safe convention lessonById itself
+    // already follows, never a crash.
+    final expansion = expansionLessonById(id);
+    if (expansion != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) =>
+            _openExpansionLesson(context, expansion.pathId, expansion.lesson),
+      );
+    }
+  }
+
+  void _openExpansionLesson(
+    BuildContext context,
+    String pathId,
+    MoneyLesson lesson,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExpansionLessonReader(
+          pathId: pathId,
+          lesson: lesson,
+          store: widget.store,
+        ),
+      ),
+    );
   }
 
   /// Resolve a lesson action to a real navigation. Returns null when the
@@ -215,11 +245,14 @@ class _LearnScreenState extends State<LearnScreen> {
               (a, t) => a + t.minutesLeft,
             );
 
+            final paths = publishedLearningPaths;
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 _header(doneCount, tracksDone, minutesLeft),
                 const SizedBox(height: 18),
+                Text('CORE MONEY SKILLS', style: Barako.kickerStyle),
+                const SizedBox(height: 10),
                 for (final track in courseTracks) ...[
                   _trackCard(
                     track,
@@ -229,6 +262,15 @@ class _LearnScreenState extends State<LearnScreen> {
                     reason: rec.reason,
                   ),
                   const SizedBox(height: 10),
+                ],
+                if (paths.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('CHOOSE YOUR NEXT PATH', style: Barako.kickerStyle),
+                  const SizedBox(height: 10),
+                  for (final path in paths) ...[
+                    _pathCard(path),
+                    const SizedBox(height: 10),
+                  ],
                 ],
               ],
             );
@@ -263,10 +305,7 @@ class _LearnScreenState extends State<LearnScreen> {
           spacing: 14,
           runSpacing: 4,
           children: [
-            Text(
-              '$doneCount of $total lessons',
-              style: AppText.smallStrong,
-            ),
+            Text('$doneCount of $total lessons', style: AppText.smallStrong),
             Text(
               '$tracksDone of ${courseTracks.length} courses',
               style: AppText.small.tint(Barako.muted),
@@ -328,14 +367,13 @@ class _LearnScreenState extends State<LearnScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        track['title'] as String,
-                        style: AppText.subtitle,
-                      ),
+                      Text(track['title'] as String, style: AppText.subtitle),
                       const SizedBox(height: 3),
                       Text(
                         track['outcome'] as String,
-                        style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
+                        style: AppText.small
+                            .tint(Barako.muted)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -374,10 +412,7 @@ class _LearnScreenState extends State<LearnScreen> {
                     stat.isComplete ? Barako.primaryText : Barako.muted,
                   ),
                 ),
-                Text(
-                  stat.status,
-                  style: AppText.caption.tint(Barako.faint),
-                ),
+                Text(stat.status, style: AppText.caption.tint(Barako.faint)),
                 if (stat.minutesLeft > 0)
                   Text(
                     '${stat.minutesLeft} min left',
@@ -491,10 +526,7 @@ class _LearnScreenState extends State<LearnScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    l['title'] as String,
-                    style: AppText.label,
-                  ),
+                  Text(l['title'] as String, style: AppText.label),
                   const SizedBox(height: 2),
                   Text(
                     l['summary'] as String,
@@ -536,6 +568,245 @@ class _LearnScreenState extends State<LearnScreen> {
                               letterSpacing: 1,
                             ),
                           ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // An expansion learning path (Money Courses Phase 6: Grow Your Money),
+  // shown below the four core tracks. Structurally close to _trackCard, but
+  // simpler: no core "recommended" star (that engine is core-specific by
+  // design, see money/course_plan.dart), a PathProgress instead of a
+  // TrackProgress, and prerequisites shown as advisory "Recommended first"
+  // text rather than anything that blocks opening a lesson.
+  Widget _pathCard(LearningPath path) {
+    final key = path.id;
+    final isOpen = _open.contains(key);
+    final pathLessons = lessonsForPath(path.id);
+    final progress = widget.store.expansionProgressFor(path.id);
+    final stat = widget.store.expansionPathProgress(
+      pathId: path.id,
+      lessonIds: path.lessonIds,
+    );
+    final prereqTitles = [
+      for (final id in path.prerequisiteLessonIds)
+        lessonById(id)?['title'] as String?,
+    ].whereType<String>().toList();
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Barako.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SalapifyGlyph(path.icon, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(path.title, style: AppText.subtitle),
+                      const SizedBox(height: 3),
+                      Text(
+                        path.shortDescription,
+                        style: AppText.small
+                            .tint(Barako.muted)
+                            .copyWith(height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (prereqTitles.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Barako.border),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(salapifyIcon('help'), size: 14, color: Barako.faint),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Recommended first: ${prereqTitles.join(", ")}',
+                        style: AppText.caption.tint(Barako.muted),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: stat.fraction,
+                minHeight: 5,
+                backgroundColor: Barako.border,
+                color: stat.isComplete ? Barako.celebrate : Barako.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${stat.done} of ${stat.total} lessons in this path',
+              style: AppText.caption.w7.tint(
+                stat.isComplete ? Barako.primaryText : Barako.muted,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: pathLessons.isEmpty
+                        ? null
+                        : () {
+                            final next = pathLessons.firstWhere(
+                              (l) => !isDone(
+                                progress[l.id] ?? LessonState.notStarted,
+                              ),
+                              orElse: () => pathLessons.first,
+                            );
+                            _openExpansionLesson(context, path.id, next);
+                          },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      stat.isStarted ? 'Continue' : 'Start',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => setState(() {
+                    if (isOpen) {
+                      _open.remove(key);
+                    } else {
+                      _open.add(key);
+                    }
+                  }),
+                  child: Text(isOpen ? 'Hide lessons' : 'All lessons'),
+                ),
+              ],
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: isOpen
+                  ? Column(
+                      children: [
+                        const SizedBox(height: 6),
+                        for (var i = 0; i < pathLessons.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: _pathLessonRow(
+                              path.id,
+                              pathLessons[i],
+                              i + 1,
+                              pathLessons.length,
+                              progress[pathLessons[i].id] ??
+                                  LessonState.notStarted,
+                            ),
+                          ),
+                      ],
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pathLessonRow(
+    String pathId,
+    MoneyLesson l,
+    int position,
+    int outOf,
+    LessonState state,
+  ) {
+    final done = isDone(state);
+    final started = state != LessonState.notStarted && !done;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _openExpansionLesson(context, pathId, l),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              done
+                  ? salapifyIcon('selected')
+                  : started
+                  ? salapifyIcon('paused')
+                  : salapifyIcon('unselected'),
+              size: 18,
+              color: done
+                  ? Barako.primary
+                  : started
+                  ? Barako.primaryText
+                  : Barako.faint,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.title, style: AppText.label),
+                  const SizedBox(height: 2),
+                  Text(
+                    l.summary,
+                    style: AppText.caption.copyWith(height: 1.35),
+                  ),
+                  const SizedBox(height: 3),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '$position of $outOf',
+                        style: AppText.micro.w4.tint(Barako.faint),
+                      ),
+                      Text(
+                        '${l.minutes} min',
+                        style: AppText.micro.w4.tint(Barako.faint),
+                      ),
+                      if (started)
+                        Text(
+                          'Continue',
+                          style: AppText.micro.w7.tint(Barako.primaryText),
                         ),
                     ],
                   ),
@@ -753,10 +1024,7 @@ class _LessonReaderState extends State<_LessonReader> {
         children: [
           Text('QUICK CHECK', style: Barako.kickerStyle),
           const SizedBox(height: 8),
-          Text(
-            c.question,
-            style: AppText.bodyStrong.copyWith(height: 1.45),
-          ),
+          Text(c.question, style: AppText.bodyStrong.copyWith(height: 1.45)),
           const SizedBox(height: 12),
           for (var i = 0; i < c.choices.length; i++)
             Padding(
