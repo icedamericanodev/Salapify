@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.36 \u00b7 Philippine policy reviewer clears Deposits and Pooled Funds.';
+    'f3.37 \u00b7 Grow Your Money: one clear disclaimer, not fictional everywhere.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

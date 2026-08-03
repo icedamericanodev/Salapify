@@ -145,6 +145,7 @@ const _boundary = EducationalBoundaryBlock(
   sourceLabel:
       'PSE, the Securities and Exchange Commission, and the Bureau of the '
       'Treasury',
+  examplesAreFictional: true,
 );
 
 /// Lesson ids, stable and free-form, same convention as lessons_grow.dart's
@@ -264,33 +265,29 @@ const _ownerOrLender = MoneyLesson(
         CategorizeItemDef(
           id: 'shares',
           label:
-              'Buying shares in a fictional company, we will call it '
-              'Example Snack Co.',
+              'Buying shares in a fictional company we will call Example '
+              'Snack Co.',
           explanation:
               'Buying shares generally makes you a part owner of the '
               'company, sharing in its ups and downs.',
         ),
         CategorizeItemDef(
           id: 'gov-bond',
-          label: 'Buying a fictional 5-year government bond',
+          label: 'Buying a 5-year government bond',
           explanation:
               'A government bond is generally a loan to the government, '
               'repaid with interest over time.',
         ),
         CategorizeItemDef(
           id: 'savings-account',
-          label:
-              'Putting money into a fictional bank\'s regular savings '
-              'account',
+          label: 'Putting money into a bank\'s regular savings account',
           explanation:
               'A savings account is a deposit relationship with the bank, '
               'with its own separate protections.',
         ),
         CategorizeItemDef(
           id: 'corp-bond',
-          label:
-              'Buying a fictional corporate bond issued by a fictional '
-              'delivery company',
+          label: 'Buying a corporate bond issued by a delivery company',
           explanation:
               'A corporate bond is generally a loan to that company, not a '
               'share of its ownership.',
@@ -467,10 +464,9 @@ const _stockReturnsAndLosses = MoneyLesson(
       blockId: 'earlier-period-example',
       scenarioTitle: 'A fictional example from an earlier period',
       situation:
-          'In an earlier period, a fictional snack company\'s revenue grew '
-          'for two years in a row. Over that same stretch, its share '
-          'price fell. What is the most likely explanation, based on this '
-          'lesson?',
+          'In an earlier period, a snack company\'s revenue grew for two '
+          'years in a row. Over that same stretch, its share price fell. '
+          'What is the most likely explanation, based on this lesson?',
       options: [
         ScenarioChoiceOption(
           id: 'expectations-shifted',
@@ -793,7 +789,7 @@ const _diversificationAndConcentration = MoneyLesson(
           name: 'Portfolio A (fictional)',
           valuesByCriterionId: {
             'holdings': '1 company',
-            'in-common': 'A single fictional company',
+            'in-common': 'A single company',
             'concentration': 'Everything depends on that one company.',
           },
         ),
@@ -803,8 +799,7 @@ const _diversificationAndConcentration = MoneyLesson(
           valuesByCriterionId: {
             'holdings': '12 companies',
             'in-common':
-                'All twelve are fictional companies in the same shipping '
-                'and logistics industry',
+                'All twelve in the same shipping and logistics industry',
             'concentration':
                 'More names, but still exposed to the same industry '
                 'conditions all at once.',
@@ -815,7 +810,7 @@ const _diversificationAndConcentration = MoneyLesson(
           name: 'Portfolio C (fictional)',
           valuesByCriterionId: {
             'holdings': '10 companies',
-            'in-common': 'Ten fictional companies across different industries',
+            'in-common': 'Ten companies across different industries',
             'concentration':
                 'Spread across different industries, so a problem in any '
                 'one is less likely to affect all ten at once.',
@@ -827,8 +822,8 @@ const _diversificationAndConcentration = MoneyLesson(
     MythOrFactBlock(
       blockId: 'twelve-holdings-myth',
       statement:
-          'Owning twelve different fictional companies always means a '
-          'portfolio is well diversified.',
+          'Owning twelve different companies always means a portfolio is '
+          'well diversified.',
       correctAnswer: MythOrFactAnswer.myth,
       explanation:
           'The number of holdings is not the same as how spread out the '
@@ -883,8 +878,8 @@ const _diversificationAndConcentration = MoneyLesson(
   ],
   check: KnowledgeCheck(
     question:
-        'Portfolio B owns twelve fictional companies, all in the same '
-        'industry. What does this lesson say about that?',
+        'Portfolio B owns twelve companies, all in the same industry. '
+        'What does this lesson say about that?',
     choices: [
       'It is automatically well diversified because of the number of '
           'holdings',
@@ -1036,23 +1031,21 @@ const _howBondsWork = MoneyLesson(
       items: [
         CategorizeItemDef(
           id: 'gov-bond-10y',
-          label: 'A fictional 10-year government bond',
+          label: 'A 10-year government bond',
           explanation:
               'A government bond is generally a loan to the government, '
               'making the buyer a lender, not an owner.',
         ),
         CategorizeItemDef(
           id: 'telecom-bond',
-          label:
-              'A fictional corporate bond from a fictional telecom '
-              'company',
+          label: 'A corporate bond from a telecom company',
           explanation:
               'A corporate bond is generally a loan to that company, '
               'making the buyer a lender, not an owner.',
         ),
         CategorizeItemDef(
           id: 'common-shares',
-          label: 'A fictional company\'s common shares',
+          label: 'A company\'s common shares',
           explanation:
               'Common shares generally make the buyer a part owner of '
               'the company, not a lender.',

@@ -146,15 +146,30 @@ class RiskWarningBlock extends LessonBlock {
 /// this is education, not personalized advice, and product terms and rules
 /// can change since the lesson was written.
 ///
-/// A marker, not a paragraph field, on purpose: the four sentences are always
-/// the same (see EducationalBoundaryView), so authoring this block is a
-/// single opt-in rather than four sentences retyped, and slightly wrong, in
-/// every regulated lesson. `sourceLabel` lets the last sentence point at a
-/// specific regulator ("verify current information through BSP") instead of
-/// the generic "the cited official source" when one is known.
+/// A marker, not a paragraph field, on purpose: the fixed sentences are
+/// always the same (see EducationalBoundaryView), so authoring this block is
+/// a single opt-in rather than several sentences retyped, and slightly
+/// wrong, in every regulated lesson. `sourceLabel` lets the verify sentence
+/// point at a specific regulator ("verify current information through BSP")
+/// instead of the generic "the cited official source" when one is known.
+///
+/// `examplesAreFictional`, when true, adds ONE more fixed sentence stating
+/// every company, person, and figure used as an example in the lesson is
+/// invented for teaching. This is the single disclaimer a lesson needs for
+/// that: it replaces retyping "fictional" on every individual example
+/// throughout the lesson body, which reads as noise at that density. A
+/// lesson still names "fictional" once, close to any specific invented name
+/// a reader could otherwise search for (see lessons_stocks_bonds_content_test
+/// .dart's and lessons_deposits_pooled_funds_content_test.dart's own nearby-
+/// window checks), but the blanket disclaimer here is what covers everything
+/// else.
 class EducationalBoundaryBlock extends LessonBlock {
   final String? sourceLabel;
-  const EducationalBoundaryBlock({this.sourceLabel});
+  final bool examplesAreFictional;
+  const EducationalBoundaryBlock({
+    this.sourceLabel,
+    this.examplesAreFictional = false,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +257,7 @@ LessonBlock? blockFromMap(dynamic raw) {
       final label = _str(raw['sourceLabel']);
       return EducationalBoundaryBlock(
         sourceLabel: label.isEmpty ? null : label,
+        examplesAreFictional: raw['examplesAreFictional'] == true,
       );
     default:
       final paras = _strings(raw['body']);
