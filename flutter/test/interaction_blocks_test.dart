@@ -297,4 +297,68 @@ void main() {
       );
     });
   });
+
+  group(
+    'isValid guards malformed content (const constructors cannot assert)',
+    () {
+      test('ScenarioChoiceBlock needs two to four options', () {
+        const tooFew = ScenarioChoiceBlock(
+          blockId: 'scn-invalid',
+          scenarioTitle: 'x',
+          situation: 'x',
+          options: [
+            ScenarioChoiceOption(id: 'a', label: 'A', explanation: 'x'),
+          ],
+        );
+        const justRight = ScenarioChoiceBlock(
+          blockId: 'scn-valid',
+          scenarioTitle: 'x',
+          situation: 'x',
+          options: [
+            ScenarioChoiceOption(id: 'a', label: 'A', explanation: 'x'),
+            ScenarioChoiceOption(id: 'b', label: 'B', explanation: 'y'),
+          ],
+        );
+        expect(tooFew.isValid, isFalse);
+        expect(justRight.isValid, isTrue);
+      });
+
+      test('ComparisonBlock needs at least two items', () {
+        const tooFew = ComparisonBlock(
+          blockId: 'cmp-invalid',
+          title: 'x',
+          criteria: [ComparisonCriterion(id: 'a', label: 'A')],
+          items: [ComparisonItem(id: 'a', name: 'Only one')],
+        );
+        expect(tooFew.isValid, isFalse);
+      });
+
+      test('ChecklistBlock needs at least one item', () {
+        const empty = ChecklistBlock(
+          blockId: 'chk-invalid',
+          checklistPrompt: 'x',
+          items: [],
+        );
+        expect(empty.isValid, isFalse);
+      });
+
+      test('SortingBlock needs at least two items with unique ids', () {
+        const tooFew = SortingBlock(
+          blockId: 'srt-invalid-count',
+          sortingPrompt: 'x',
+          items: [SortingItemDef(id: 'a', label: 'Only step')],
+        );
+        const duplicateIds = SortingBlock(
+          blockId: 'srt-invalid-dupe',
+          sortingPrompt: 'x',
+          items: [
+            SortingItemDef(id: 'a', label: 'Step one'),
+            SortingItemDef(id: 'a', label: 'Step two (same id)'),
+          ],
+        );
+        expect(tooFew.isValid, isFalse);
+        expect(duplicateIds.isValid, isFalse);
+      });
+    },
+  );
 }

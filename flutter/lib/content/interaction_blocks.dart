@@ -101,10 +101,6 @@ class ScenarioChoiceBlock extends InteractionBlock {
   @override
   final bool requiredForCompletion;
 
-  // Two to four choices is a content-authoring rule (see [options] above),
-  // not an assert here: Dart cannot const-evaluate a List.length check in a
-  // const constructor, and every fixture in this codebase constructs these
-  // as const.
   const ScenarioChoiceBlock({
     required this.blockId,
     required this.scenarioTitle,
@@ -121,6 +117,14 @@ class ScenarioChoiceBlock extends InteractionBlock {
   @override
   String get instructions =>
       'Read the situation, then choose the option you would take.';
+
+  /// Two to four choices (see [options] above). Checked here rather than
+  /// with an assert in the constructor: Dart cannot const-evaluate a
+  /// List.length check inside a const constructor, and every fixture in
+  /// this codebase constructs these as const. A future authoring or test
+  /// pipeline can check this the same way lesson_model.dart's
+  /// KnowledgeCheck.isValid is already checked before a block is trusted.
+  bool get isValid => options.length >= 2 && options.length <= 4;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,9 +213,6 @@ class ComparisonBlock extends InteractionBlock {
   @override
   final bool requiredForCompletion;
 
-  // At least two items is a content-authoring rule (see [items] above), not
-  // an assert: Dart cannot const-evaluate a List.length check here, and
-  // every fixture in this codebase constructs these as const.
   const ComparisonBlock({
     required this.blockId,
     required this.title,
@@ -225,6 +226,10 @@ class ComparisonBlock extends InteractionBlock {
 
   @override
   String get instructions => 'Compare each option across the criteria below.';
+
+  /// At least two items (see [items] above). See [ScenarioChoiceBlock.isValid]
+  /// for why this is a getter rather than a constructor assert.
+  bool get isValid => items.length >= 2;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,9 +268,6 @@ class ChecklistBlock extends InteractionBlock {
   @override
   final bool requiredForCompletion;
 
-  // At least one item is a content-authoring rule (see [items] above), not
-  // an assert: Dart cannot const-evaluate a List.length check here, and
-  // every fixture in this codebase constructs these as const.
   const ChecklistBlock({
     required this.blockId,
     required this.checklistPrompt,
@@ -279,6 +281,11 @@ class ChecklistBlock extends InteractionBlock {
 
   @override
   String get instructions => 'Check off each item as you complete it.';
+
+  /// At least one item (see [items] above). See
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter rather than a
+  /// constructor assert.
+  bool get isValid => items.isNotEmpty;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,9 +317,6 @@ class SortingBlock extends InteractionBlock {
   @override
   final bool requiredForCompletion;
 
-  // At least two items is a content-authoring rule (see [items] above), not
-  // an assert: Dart cannot const-evaluate a List.length check here, and
-  // every fixture in this codebase constructs these as const.
   const SortingBlock({
     required this.blockId,
     required this.sortingPrompt,
@@ -333,6 +337,16 @@ class SortingBlock extends InteractionBlock {
   /// every test, and (for two or more items) is never already correct.
   List<String> get initialOrderIds =>
       items.map((i) => i.id).toList().reversed.toList();
+
+  /// At least two items with unique ids (see [items] above): fewer than two
+  /// makes [initialOrderIds]' "never already correct" guarantee meaningless,
+  /// and a duplicate id would make one item indistinguishable from another
+  /// when a move announces "moved to position N". See
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter rather than a
+  /// constructor assert.
+  bool get isValid =>
+      items.length >= 2 &&
+      items.map((i) => i.id).toSet().length == items.length;
 }
 
 // ---------------------------------------------------------------------------

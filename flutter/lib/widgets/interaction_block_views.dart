@@ -114,7 +114,17 @@ class InteractionFeedbackCard extends StatelessWidget {
               children: [
                 Icon(_icon, size: 16, color: accent),
                 const SizedBox(width: 8),
-                Flexible(child: Text(_kicker, style: Barako.kickerStyle)),
+                Flexible(
+                  child: Text(
+                    _kicker,
+                    // Barako.kickerStyle alone hardcodes the neutral muted
+                    // ink; without the accent override here the kicker
+                    // stays grey while the icon and border it sits next to
+                    // go caramel, reading as a missed style rather than
+                    // intent.
+                    style: Barako.kickerStyle.copyWith(color: accent),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -196,11 +206,23 @@ class _SelectableRow extends StatelessWidget {
   final bool disabled;
   final VoidCallback onTap;
 
+  /// Icon pair drawn for the selected/unselected state. Defaults to the
+  /// choose-one radio glyphs (used by scenario, myth/fact, and reflection
+  /// choices); the comparison block's single "mark as reviewed" toggle
+  /// passes the checked/unchecked pair instead, since that row is an
+  /// acknowledgment, not one option among alternatives, and the two
+  /// meanings should never share a glyph (see salapify_icon.dart's own
+  /// "selected vs checked" convention).
+  final String selectedIconName;
+  final String unselectedIconName;
+
   const _SelectableRow({
     required this.label,
     required this.selected,
     required this.disabled,
     required this.onTap,
+    this.selectedIconName = 'selected',
+    this.unselectedIconName = 'unselected',
   });
 
   @override
@@ -209,47 +231,59 @@ class _SelectableRow extends StatelessWidget {
     selected: selected,
     enabled: !disabled,
     label: label,
-    child: PressableScale(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: disabled ? null : onTap,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: selected ? Barako.primary : Barako.border,
-                  width: selected ? 1.4 : 1,
+    // The label above already carries this row's full meaning to a screen
+    // reader; without this, the descendant Text below repeats the same
+    // string as a second, unrelated announcement right after it.
+    child: ExcludeSemantics(
+      child: PressableScale(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: disabled ? null : onTap,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
-                borderRadius: BorderRadius.circular(14),
-                color: selected ? Barako.primary.withValues(alpha: 0.08) : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    selected
-                        ? salapifyIcon('selected')
-                        : salapifyIcon('unselected'),
-                    size: 18,
-                    color: selected ? Barako.primary : Barako.faint,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: selected ? Barako.primary : Barako.border,
+                    width: selected ? 1.4 : 1,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: AppText.label.copyWith(
-                        height: 1.4,
-                        color: disabled && !selected
-                            ? Barako.faint
-                            : Barako.text,
+                  borderRadius: BorderRadius.circular(14),
+                  color: selected
+                      ? Barako.primary.withValues(alpha: 0.08)
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      selected
+                          ? salapifyIcon(selectedIconName)
+                          : salapifyIcon(unselectedIconName),
+                      size: 18,
+                      color: selected ? Barako.primary : Barako.faint,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: AppText.label.copyWith(
+                          height: 1.4,
+                          color: disabled && !selected
+                              ? Barako.faint
+                              : Barako.text,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -533,6 +567,11 @@ class _ComparisonViewState extends State<ComparisonView> {
             selected: _reviewed,
             disabled: false,
             onTap: _toggleReviewed,
+            // A single acknowledgment, not one option among alternatives:
+            // the checked/unchecked glyph pair reads as "tick this off",
+            // never as "pick me instead of the row below".
+            selectedIconName: 'checked',
+            unselectedIconName: 'unchecked',
           ),
         ],
       ),
@@ -693,70 +732,84 @@ class _ChecklistViewState extends State<ChecklistView> {
 
   Widget _checklistRow(ChecklistItemDef item) {
     final checked = _checked.contains(item.id);
+    final explanation = (item.explanation ?? '').trim();
+    // Everything the row's descendant Text widgets say, merged into one
+    // label: without this, ExcludeSemantics below would silence the
+    // explanation entirely rather than just de-duplicating it.
+    final semanticLabel = [
+      item.label,
+      if (item.required) 'required',
+      if (explanation.isNotEmpty) explanation,
+    ].join(', ');
     return Semantics(
       checked: checked,
-      label: item.required ? '${item.label}, required' : item.label,
-      child: PressableScale(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: kMinInteractiveDimension,
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => _toggle(item.id),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 10,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      checked
-                          ? salapifyIcon('checked')
-                          : salapifyIcon('unchecked'),
-                      size: 20,
-                      color: checked ? Barako.primary : Barako.faint,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              Text(
-                                item.label,
-                                style: AppText.label.copyWith(height: 1.4),
-                              ),
-                              if (item.required)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Barako.border),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text('REQUIRED', style: AppText.micro),
-                                ),
-                            ],
-                          ),
-                          if ((item.explanation ?? '').trim().isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(item.explanation!, style: AppText.small),
-                          ],
-                        ],
+      label: semanticLabel,
+      child: ExcludeSemantics(
+        child: PressableScale(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _toggle(item.id),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        checked
+                            ? salapifyIcon('checked')
+                            : salapifyIcon('unchecked'),
+                        size: 20,
+                        color: checked ? Barako.primary : Barako.faint,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                Text(
+                                  item.label,
+                                  style: AppText.label.copyWith(height: 1.4),
+                                ),
+                                if (item.required)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Barako.border),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      'REQUIRED',
+                                      style: AppText.micro,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (explanation.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(explanation, style: AppText.small),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -801,6 +854,14 @@ class _SortingViewState extends State<SortingView> {
     setState(() {
       final moved = _order.removeAt(index);
       _order.insert(newIndex, moved);
+      // A wrong submission left the move controls visible on purpose (see
+      // _sortRow) so one bad swap can be nudged and rechecked without
+      // discarding an otherwise-correct attempt back to the scrambled
+      // start; moving again means the previous feedback no longer matches
+      // the order on screen, so it clears until Submit is pressed again.
+      if (_submitted && !_correct) {
+        _submitted = false;
+      }
     });
     // Reordering a list has no natural "focus followed the item" semantics,
     // so the new position is announced explicitly instead.
@@ -934,7 +995,11 @@ class _SortingViewState extends State<SortingView> {
               ],
             ),
           ),
-          if (!_submitted) ...[
+          // Hidden only once the order is fully correct: there is nothing
+          // left to fix. A wrong submission keeps these live so one bad
+          // swap can be nudged and rechecked instead of forcing a full
+          // restart back to the scrambled order (see _move and _retry).
+          if (!(_submitted && _correct)) ...[
             _moveButton(
               icon: 'moveUp',
               enabled: index > 0,
@@ -1107,10 +1172,25 @@ class _ReflectionPromptViewState extends State<ReflectionPromptView> {
               ),
             ),
           if (_engaged) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(onPressed: _reset, child: const Text('Reset')),
+            const SizedBox(height: 10),
+            // Every other block shows a result the moment it registers;
+            // without this, picking a choice or submitting free text here
+            // left no visible sign anything had happened at all.
+            Semantics(
+              liveRegion: true,
+              child: Row(
+                children: [
+                  Icon(salapifyIcon('check'), size: 16, color: Barako.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Thanks, noted.',
+                      style: AppText.small.copyWith(color: Barako.text),
+                    ),
+                  ),
+                  TextButton(onPressed: _reset, child: const Text('Reset')),
+                ],
+              ),
             ),
           ] else if (block.isSkippable) ...[
             const SizedBox(height: 8),
