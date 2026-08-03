@@ -33,6 +33,58 @@ enum ContentVolatility { evergreen, annual, high }
 /// whether the lesson's prose is finished.
 enum ReviewStatus { verified, reviewDue, withdrawn }
 
+/// A subject that makes a lesson regulated, financial-product, or
+/// eligibility content: the exact set the Phase 4 content policy validator
+/// (money/expansion_content_policy.dart) requires an official source and a
+/// risk-warning block for. One enum serves both requirements on purpose,
+/// because every topic here is both regulated (needs a citation) and
+/// consumer-risk bearing (needs a warning); there is no topic that needs one
+/// but not the other.
+///
+/// The smallest additive classification the Phase 4 task allows: no existing
+/// lesson sets this (defaults to empty), and it exists only so expansion
+/// content can declare what it is about without a name list of specific
+/// products, funds, or coins, which the same task explicitly forbids.
+enum ContentTopic {
+  stocks,
+  bonds,
+
+  /// UITFs, mutual funds, and ETFs: pooled investment vehicles that share the
+  /// same suitability and risk-disclosure concerns.
+  fundsAndEtfs,
+  cryptocurrency,
+
+  /// Insurance and variable-unit-linked (VUL) products.
+  insuranceOrVul,
+  loansOrCredit,
+
+  /// Claims about what a purchased product returns or pays out.
+  productReturns,
+  governmentBenefitEligibility,
+
+  /// Business registration, tax, or permit compliance (DTI/SEC/BIR/LGU).
+  businessTaxOrPermitCompliance,
+}
+
+/// One excerpt of a misleading claim, quoted or paraphrased on purpose to
+/// explain or debunk it, e.g. inside a [TrapBlock]'s `mostPeople` half.
+///
+/// This is the narrow, explicit exemption the Phase 4 policy validator
+/// requires: unsafe-language scanning skips a block whose full text matches
+/// [text] exactly, and nothing else. It never suppresses validation for the
+/// rest of the lesson, and [reviewedBy] is required so an exemption always
+/// names who reviewed it rather than being self-granted by the same edit
+/// that added the risky wording.
+class ReviewedMythExample {
+  final String text;
+
+  /// Who reviewed this excerpt as safe myth-busting. An initial or a role,
+  /// never a full name, same convention as [LessonGovernance.reviewerId].
+  final String reviewedBy;
+
+  const ReviewedMythExample({required this.text, required this.reviewedBy});
+}
+
 /// One place a lesson's facts came from. A lesson can cite more than one
 /// source (a law and the circular that implements it, for example), so this
 /// is a list on [MoneyLesson] rather than a single field.
@@ -223,6 +275,15 @@ class MoneyLesson {
   /// opt in.
   final LessonGovernance governance;
 
+  /// What this lesson is about, for the Phase 4 content policy validator.
+  /// Empty for every existing lesson; a non-empty set is what makes a lesson
+  /// "regulated" for source and risk-warning requirements.
+  final List<ContentTopic> topics;
+
+  /// Excerpts reviewed and exempted from unsafe-language scanning, see
+  /// [ReviewedMythExample]. Empty for every existing lesson.
+  final List<ReviewedMythExample> reviewedMythExamples;
+
   const MoneyLesson({
     required this.id,
     required this.trackId,
@@ -243,6 +304,8 @@ class MoneyLesson {
     this.sourceNotes = const [],
     this.sources = const [],
     this.governance = const LessonGovernance(),
+    this.topics = const [],
+    this.reviewedMythExamples = const [],
   });
 
   /// What the reader actually renders.
@@ -399,6 +462,44 @@ LessonGovernance _governanceFrom(dynamic raw) {
   );
 }
 
+ContentTopic? _topicFrom(String name) => switch (name) {
+  'stocks' => ContentTopic.stocks,
+  'bonds' => ContentTopic.bonds,
+  'fundsAndEtfs' => ContentTopic.fundsAndEtfs,
+  'cryptocurrency' => ContentTopic.cryptocurrency,
+  'insuranceOrVul' => ContentTopic.insuranceOrVul,
+  'loansOrCredit' => ContentTopic.loansOrCredit,
+  'productReturns' => ContentTopic.productReturns,
+  'governmentBenefitEligibility' => ContentTopic.governmentBenefitEligibility,
+  'businessTaxOrPermitCompliance' => ContentTopic.businessTaxOrPermitCompliance,
+  _ => null,
+};
+
+List<ContentTopic> _topicsFrom(dynamic raw) {
+  if (raw is! List) return const [];
+  final out = <ContentTopic>[];
+  for (final x in raw) {
+    if (x is! String) continue;
+    final t = _topicFrom(x);
+    if (t != null) out.add(t);
+  }
+  return out;
+}
+
+List<ReviewedMythExample> _reviewedMythExamplesFrom(dynamic raw) {
+  if (raw is! List) return const [];
+  final out = <ReviewedMythExample>[];
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    final text = (entry['text'] ?? '').toString();
+    final reviewedBy = (entry['reviewedBy'] ?? '').toString();
+    // An exemption without a reviewer name is not a reviewed exemption.
+    if (text.trim().isEmpty || reviewedBy.trim().isEmpty) continue;
+    out.add(ReviewedMythExample(text: text, reviewedBy: reviewedBy));
+  }
+  return out;
+}
+
 KnowledgeCheck? _checkFrom(dynamic raw) {
   if (raw is! Map) return null;
   final choices = _strings(raw['choices']);
@@ -505,6 +606,8 @@ MoneyLesson lessonFromMap(Map<String, dynamic> m) {
     sourceNotes: _strings(m['sourceNotes']),
     sources: _sourcesFrom(m['sources']),
     governance: _governanceFrom(m['governance']),
+    topics: _topicsFrom(m['topics']),
+    reviewedMythExamples: _reviewedMythExamplesFrom(m['reviewedMythExamples']),
   );
 }
 

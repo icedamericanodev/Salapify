@@ -142,6 +142,21 @@ class RiskWarningBlock extends LessonBlock {
   });
 }
 
+/// The educational-boundary statement Phase 4 regulated lessons must carry:
+/// this is education, not personalized advice, and product terms and rules
+/// can change since the lesson was written.
+///
+/// A marker, not a paragraph field, on purpose: the four sentences are always
+/// the same (see EducationalBoundaryView), so authoring this block is a
+/// single opt-in rather than four sentences retyped, and slightly wrong, in
+/// every regulated lesson. `sourceLabel` lets the last sentence point at a
+/// specific regulator ("verify current information through BSP") instead of
+/// the generic "the cited official source" when one is known.
+class EducationalBoundaryBlock extends LessonBlock {
+  final String? sourceLabel;
+  const EducationalBoundaryBlock({this.sourceLabel});
+}
+
 // ---------------------------------------------------------------------------
 // Authoring conversion. Blocks are authored as maps in lessons.dart, because
 // content reads better as data than as constructors.
@@ -223,6 +238,11 @@ LessonBlock? blockFromMap(dynamic raw) {
                   ? RiskSeverity.caution
                   : RiskSeverity.notice,
             );
+    case 'educationalBoundary':
+      final label = _str(raw['sourceLabel']);
+      return EducationalBoundaryBlock(
+        sourceLabel: label.isEmpty ? null : label,
+      );
     default:
       final paras = _strings(raw['body']);
       return paras.isEmpty
