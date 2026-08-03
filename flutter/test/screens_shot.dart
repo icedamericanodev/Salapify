@@ -38,6 +38,7 @@ import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/content/lessons_grow.dart';
+import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -574,6 +575,25 @@ void main() {
     'grow-readiness-card': (s) => ExpansionLessonReader(
       pathId: 'grow_your_money',
       lesson: growYourMoneyLessons.firstWhere((l) => l.id == investRefCard),
+      store: s,
+    ),
+    // Money Courses Phase 7A: "How Bonds Work", the first production lesson
+    // to render SortingBlock (the bond timeline) and a five-bucket
+    // CategorizeBlock (risk matching) together.
+    'stocks-bonds-how-bonds-work': (s) => ExpansionLessonReader(
+      pathId: 'grow_your_money',
+      lesson: stocksAndBondsLessons.firstWhere((l) => l.id == sbHowBondsWork),
+      store: s,
+    ),
+    // Money Courses Phase 7A: "Verify Before You Invest", closing the
+    // course with a scam red-flag CategorizeBlock, two ScenarioChoiceBlocks,
+    // an offline ChecklistBlock, and the Salapify actions menu carrying the
+    // two new routes this phase added (mindset, accounts).
+    'stocks-bonds-verify-before-you-invest': (s) => ExpansionLessonReader(
+      pathId: 'grow_your_money',
+      lesson: stocksAndBondsLessons.firstWhere(
+        (l) => l.id == sbVerifyBeforeYouInvest,
+      ),
       store: s,
     ),
   };

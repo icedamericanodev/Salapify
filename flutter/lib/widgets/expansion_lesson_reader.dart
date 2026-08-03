@@ -25,9 +25,11 @@ import '../content/interaction_blocks.dart';
 import '../content/lesson_model.dart';
 import '../data/store.dart';
 import '../money/interaction_completion.dart';
+import '../screens/accounts.dart';
 import '../screens/budget.dart';
 import '../screens/debts.dart';
 import '../screens/goals.dart';
+import '../screens/mindset.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'interaction_block_views.dart';
@@ -38,7 +40,10 @@ import 'salapify_icon.dart';
 /// The one closed switch, matching the discipline screens/learn.dart's own
 /// _resolveAction already follows for the core [LessonAction]: a route not
 /// listed here resolves to null, and SalapifyActionsView renders that
-/// action as plain text rather than a dead button.
+/// action as plain text rather than a dead button. 'mindset' and 'accounts'
+/// were added for Money Courses Phase 7A ("Stocks and Bonds Without the
+/// Hype"); every prior route (goals, debts, budget) still resolves exactly
+/// as before, so this changes nothing for the Investing Readiness pilot.
 VoidCallback? _resolveGrowAction(
   BuildContext context,
   SalapifyStore store,
@@ -48,6 +53,8 @@ VoidCallback? _resolveGrowAction(
     'goals' => GoalsScreen(store: store),
     'debts' => DebtsScreen(store: store),
     'budget' => BudgetScreen(store: store),
+    'mindset' => MindsetScreen(store: store),
+    'accounts' => AccountsScreen(store: store),
     _ => null,
   };
   if (screen == null) return null;

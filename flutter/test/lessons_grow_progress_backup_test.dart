@@ -1,21 +1,29 @@
 // Store-level vectors for the real "Are You Ready to Invest?" pilot content
 // (lib/content/lessons_grow.dart), as distinct from
 // test/expansion_progress_store_test.dart's generic fixture ids: this file
-// proves the ACTUAL registered path and lessons persist across a simulated
+// proves the ACTUAL registered pilot lessons persist across a simulated
 // restart, round-trip through backup export and import, and never touch
 // the core 22 lessons' progress, using the real ids a change to
-// lessons_grow.dart or learning_paths.dart could actually break.
+// lessons_grow.dart could actually break.
+//
+// Progress is computed against the pilot's OWN five ids
+// (growYourMoneyLessons), not against learningPaths.first.lessonIds: Phase
+// 7A registered a second course, "Stocks and Bonds Without the Hype", in
+// the SAME path, so the path's flattened id list now has 11 entries. This
+// file is about the pilot specifically, so it scopes to the pilot's own
+// list rather than the whole path's, keeping every assertion below exactly
+// what it always was.
 
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/content/learning_paths.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/lesson_progress.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _pathId = 'grow_your_money';
+final _pilotLessonIds = growYourMoneyLessons.map((l) => l.id).toList();
 
 Future<SalapifyStore> _freshStore() async {
   SharedPreferences.setMockInitialValues({});
@@ -33,7 +41,7 @@ void main() {
         await store.markExpansionLessonStarted(_pathId, investRefMoneyJob);
         var progress = store.expansionPathProgress(
           pathId: _pathId,
-          lessonIds: learningPaths.first.lessonIds,
+          lessonIds: _pilotLessonIds,
         );
         expect(progress.total, 5);
         expect(progress.done, 0, reason: 'viewed alone does not count as done');
@@ -41,7 +49,7 @@ void main() {
         await store.markExpansionLessonCompleted(_pathId, investRefMoneyJob);
         progress = store.expansionPathProgress(
           pathId: _pathId,
-          lessonIds: learningPaths.first.lessonIds,
+          lessonIds: _pilotLessonIds,
         );
         expect(progress.done, 1);
         expect(progress.fraction, closeTo(1 / 5, 1e-9));
@@ -51,12 +59,12 @@ void main() {
 
     test('completing all five real lessons completes the path', () async {
       final store = await _freshStore();
-      for (final id in learningPaths.first.lessonIds) {
+      for (final id in _pilotLessonIds) {
         await store.markExpansionLessonCompleted(_pathId, id);
       }
       final progress = store.expansionPathProgress(
         pathId: _pathId,
-        lessonIds: learningPaths.first.lessonIds,
+        lessonIds: _pilotLessonIds,
       );
       expect(progress.total, 5);
       expect(progress.done, 5);
@@ -89,7 +97,7 @@ void main() {
       'progressing every pilot lesson leaves core lessonProgress empty',
       () async {
         final store = await _freshStore();
-        for (final id in learningPaths.first.lessonIds) {
+        for (final id in _pilotLessonIds) {
           await store.markExpansionLessonCompleted(_pathId, id);
         }
         expect(store.lessonProgress, isEmpty);

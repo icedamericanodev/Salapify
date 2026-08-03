@@ -38,7 +38,16 @@ void main() {
         expect(path.status, LearningPathStatus.published);
         expect(path.isAvailable, isTrue);
         expect(path.groups.map((g) => g.id), contains('investing_readiness'));
-        expect(path.lessonIds, _stableLessonIds);
+        // Checked against the investing_readiness GROUP's own lessonIds,
+        // not the whole path's flattened list: Phase 7A registered a
+        // second course, "Stocks and Bonds Without the Hype", in the same
+        // path, so path.lessonIds now has 11 entries. This scopes the
+        // check to exactly what this test is named for, the pilot's own
+        // five lesson ids, unaffected by any sibling course.
+        final investingGroup = path.groups.firstWhere(
+          (g) => g.id == 'investing_readiness',
+        );
+        expect(investingGroup.lessonIds, _stableLessonIds);
       },
     );
 

@@ -26,10 +26,20 @@ class LearningPathGroup {
   /// This group's lessons, in reading order.
   final List<String> lessonIds;
 
+  /// Other group ids in the SAME path recommended before this one, e.g. a
+  /// second course that builds on a first. Advisory only, the same contract
+  /// [LearningPath.prerequisiteLessonIds] already carries: nothing here
+  /// blocks opening a lesson in this group, a catalog screen decides what to
+  /// do with it. Empty for every group that has no such recommendation,
+  /// which is every group before this field existed, so adding it changes no
+  /// existing group's behavior.
+  final List<String> recommendedPriorGroupIds;
+
   const LearningPathGroup({
     required this.id,
     required this.title,
     this.lessonIds = const [],
+    this.recommendedPriorGroupIds = const [],
   });
 }
 
