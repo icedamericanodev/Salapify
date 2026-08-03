@@ -350,7 +350,217 @@ class SortingBlock extends InteractionBlock {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Reflection
+// 6. Categorize (bucket sort)
+// ---------------------------------------------------------------------------
+
+class CategorizeBucket {
+  final String id;
+  final String label;
+  const CategorizeBucket({required this.id, required this.label});
+}
+
+class CategorizeItemDef {
+  final String id;
+  final String label;
+
+  /// Shown once this item has been assigned a bucket, whichever bucket was
+  /// picked: the point is teaching why, not scoring a right answer.
+  final String explanation;
+
+  const CategorizeItemDef({
+    required this.id,
+    required this.label,
+    required this.explanation,
+  });
+}
+
+/// Assign each item to exactly one of a small set of buckets, by tapping a
+/// bucket chip per item (never drag-only, so the block stays keyboard and
+/// screen-reader operable). Distinct from [SortingBlock], which orders items
+/// along a single line: this groups items into named categories, e.g.
+/// sorting fictional goals into "Keep accessible", "Prepare first", and
+/// "Consider for long-term investing".
+class CategorizeBlock extends InteractionBlock {
+  @override
+  final String blockId;
+  final String categorizePrompt;
+  final List<CategorizeBucket> buckets;
+  final List<CategorizeItemDef> items;
+
+  /// The bucket id each item belongs in, keyed by [CategorizeItemDef.id].
+  final Map<String, String> correctBucketByItemId;
+
+  @override
+  final bool requiredForCompletion;
+
+  const CategorizeBlock({
+    required this.blockId,
+    required this.categorizePrompt,
+    required this.buckets,
+    required this.items,
+    required this.correctBucketByItemId,
+    this.requiredForCompletion = false,
+  });
+
+  @override
+  String get prompt => categorizePrompt;
+
+  @override
+  String get instructions => 'For each item, choose the group it belongs in.';
+
+  /// Two or more buckets, two or more items, and every item has a bucket
+  /// named in [correctBucketByItemId] that actually exists in [buckets]. See
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter rather than a
+  /// constructor assert.
+  bool get isValid {
+    if (buckets.length < 2 || items.length < 2) return false;
+    final bucketIds = buckets.map((b) => b.id).toSet();
+    return items.every((i) => bucketIds.contains(correctBucketByItemId[i.id]));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Readiness card (a composite summary built from several small answers)
+// ---------------------------------------------------------------------------
+
+class ReadinessCardOption {
+  final String id;
+  final String label;
+
+  /// True when picking this option should count as an area worth reviewing
+  /// (an unfunded buffer, unreviewed expensive debt, an unclear answer)
+  /// rather than a settled one, for [ReadinessCardBlock]'s own result-style
+  /// rule. Never shown to the learner; used only to compute the summary.
+  final bool needsReview;
+
+  const ReadinessCardOption({
+    required this.id,
+    required this.label,
+    this.needsReview = false,
+  });
+}
+
+/// One question on the card, answered by picking exactly one option.
+class ReadinessCardField {
+  final String id;
+  final String label;
+  final List<ReadinessCardOption> options;
+
+  const ReadinessCardField({
+    required this.id,
+    required this.label,
+    required this.options,
+  });
+}
+
+/// The Lesson 5 "Investment Readiness Card": a small set of single-choice
+/// questions answered in the lesson session, folded into a reflection
+/// summary with one of three result styles. Every answer stays local to this
+/// widget's state and is never written to settings or a backup: this is an
+/// educational reflection, not a stored profile (see the money-courses
+/// expansion pilot's own privacy rule against storing a financial-risk
+/// profile). [resultStyleFor] is the one place the three result strings are
+/// decided, so the view and a test asserting the banned labels never appear
+/// share one definition.
+class ReadinessCardBlock extends InteractionBlock {
+  @override
+  final String blockId;
+  final String cardTitle;
+  final List<ReadinessCardField> fields;
+  @override
+  final bool requiredForCompletion;
+
+  const ReadinessCardBlock({
+    required this.blockId,
+    required this.cardTitle,
+    required this.fields,
+    this.requiredForCompletion = true,
+  });
+
+  @override
+  String get prompt => cardTitle;
+
+  @override
+  String get instructions =>
+      'Answer each question. This builds a private summary on this screen '
+      'only.';
+
+  /// The result style for a completed set of answers, keyed by field id to
+  /// the chosen option id. Never "Ready", "Approved", "Qualified", or
+  /// "Suitable": this is a reflection summary, not an eligibility result or
+  /// financial advice.
+  static String resultStyleFor(Map<String, ReadinessCardOption> answers) {
+    final reviewCount = answers.values.where((o) => o.needsReview).length;
+    if (reviewCount >= 2) return 'Foundation needs attention';
+    if (reviewCount == 1) return 'Review these areas first';
+    return 'You have defined a starting plan';
+  }
+
+  /// At least one field, and every field has at least two options (see
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter).
+  bool get isValid =>
+      fields.isNotEmpty && fields.every((f) => f.options.length >= 2);
+}
+
+// ---------------------------------------------------------------------------
+// 8. Salapify actions (verified in-app destinations, never an automatic
+// write)
+// ---------------------------------------------------------------------------
+
+/// One offered in-app destination. [route] is resolved by the SAME kind of
+/// closed switch content/lesson_model.dart's LessonAction already uses
+/// (see widgets/expansion_lesson_reader.dart): an unresolvable route is
+/// never shown as a button, so this can never be a dead tap.
+class SalapifyActionDef {
+  final String id;
+  final String label;
+
+  /// Shown before the tap, not only after: "explain what the action will
+  /// do" per this phase's own rule. Always says the action only opens a
+  /// screen and changes nothing by itself.
+  final String description;
+  final String route;
+
+  const SalapifyActionDef({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.route,
+  });
+}
+
+/// A short menu of verified Salapify destinations offered at the end of a
+/// lesson, distinct from the single [LessonAction] the core 22 lessons use:
+/// this phase's own task needs up to four offers in one lesson, not one.
+/// Never required to finish a lesson, the same rule LessonAction already
+/// follows: requiring it would push someone to open a screen they do not
+/// need just to complete a lesson.
+class SalapifyActionsBlock extends InteractionBlock {
+  @override
+  final String blockId;
+  final String menuPrompt;
+  final List<SalapifyActionDef> actions;
+  @override
+  final bool requiredForCompletion;
+
+  const SalapifyActionsBlock({
+    required this.blockId,
+    required this.menuPrompt,
+    required this.actions,
+    this.requiredForCompletion = false,
+  });
+
+  @override
+  String get prompt => menuPrompt;
+
+  @override
+  String get instructions =>
+      'Each one opens a real Salapify screen. Nothing is created or changed '
+      'until you act there yourself.';
+}
+
+// ---------------------------------------------------------------------------
+// 9. Reflection
 // ---------------------------------------------------------------------------
 
 class ReflectionChoice {

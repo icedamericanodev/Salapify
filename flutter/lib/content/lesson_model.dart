@@ -12,6 +12,7 @@
 // they read well as content, and lessonFromMap does the one conversion with
 // every fallback in one place.
 
+import 'interaction_blocks.dart' show InteractionBlock;
 import 'lesson_blocks.dart';
 
 /// Where a lesson's facts apply. Tax rules, contribution rates, and filing
@@ -284,6 +285,15 @@ class MoneyLesson {
   /// [ReviewedMythExample]. Empty for every existing lesson.
   final List<ReviewedMythExample> reviewedMythExamples;
 
+  /// Phase 5 interaction blocks (content/interaction_blocks.dart), rendered
+  /// after [blocks] and before [check]. A SEPARATE list from [authoredBlocks]
+  /// on purpose, per interaction_blocks.dart's own header comment: an
+  /// InteractionBlock carries a stable blockId and its own completion event,
+  /// which LessonBlock does not. Empty for every one of the core 22 lessons;
+  /// this is what an expansion-path lesson (Money Courses Phase 6 pilot,
+  /// "Are You Ready to Invest?") uses to compose real interactivity.
+  final List<InteractionBlock> interactionBlocks;
+
   const MoneyLesson({
     required this.id,
     required this.trackId,
@@ -306,6 +316,7 @@ class MoneyLesson {
     this.governance = const LessonGovernance(),
     this.topics = const [],
     this.reviewedMythExamples = const [],
+    this.interactionBlocks = const [],
   });
 
   /// What the reader actually renders.

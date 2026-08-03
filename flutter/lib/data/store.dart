@@ -1765,6 +1765,14 @@ class SalapifyStore extends ChangeNotifier {
   Future<void> markExpansionLessonCompleted(String pathId, String lessonId) =>
       _setExpansionLessonState(pathId, lessonId, LessonState.completed);
 
+  /// Record that a learner acted on a lesson's real Salapify action(s), the
+  /// expansion-path equivalent of the core model's applied rung. Fired only
+  /// after the learner confirms a specific action (see
+  /// widgets/interaction_block_views.dart's SalapifyActionsView), never on
+  /// open and never automatically.
+  Future<void> markExpansionLessonApplied(String pathId, String lessonId) =>
+      _setExpansionLessonState(pathId, lessonId, LessonState.applied);
+
   /// Clear progress for exactly one expansion path. Every other path, and
   /// the core 22 lessons' progress, are untouched. Not a global reset.
   Future<void> resetExpansionPath(String pathId) => _mutate((d) {

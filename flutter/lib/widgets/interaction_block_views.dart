@@ -1040,7 +1040,463 @@ class _SortingViewState extends State<SortingView> {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Reflection
+// 6. Categorize (bucket sort)
+// ---------------------------------------------------------------------------
+
+class CategorizeView extends StatefulWidget {
+  final CategorizeBlock block;
+  final void Function(String blockId) onComplete;
+  final void Function(String blockId)? onReset;
+
+  const CategorizeView(
+    this.block, {
+    super.key,
+    required this.onComplete,
+    this.onReset,
+  });
+
+  @override
+  State<CategorizeView> createState() => _CategorizeViewState();
+}
+
+class _CategorizeViewState extends State<CategorizeView> {
+  final Map<String, String> _assigned = {};
+  bool _fired = false;
+
+  void _assign(String itemId, String bucketId) {
+    setState(() => _assigned[itemId] = bucketId);
+    if (_assigned.length == widget.block.items.length && !_fired) {
+      _fired = true;
+      widget.onComplete(widget.block.blockId);
+    }
+  }
+
+  void _reset() {
+    setState(() => _assigned.clear());
+    if (_fired) {
+      _fired = false;
+      widget.onReset?.call(widget.block.blockId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    return _InteractionCard(
+      kicker: 'SORT INTO GROUPS',
+      prompt: block.categorizePrompt,
+      instructions: block.instructions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in block.items) ...[
+            _categorizeRow(item),
+            const SizedBox(height: 12),
+          ],
+          if (_assigned.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _reset,
+                icon: Icon(salapifyIcon('startOver'), size: 16),
+                label: const Text('Start over'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _categorizeRow(CategorizeItemDef item) {
+    final block = widget.block;
+    final pickedBucketId = _assigned[item.id];
+    final correctBucketId = block.correctBucketByItemId[item.id];
+    final answered = pickedBucketId != null;
+    final correct = answered && pickedBucketId == correctBucketId;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Barako.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(item.label, style: AppText.label.w7.copyWith(height: 1.4)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final bucket in block.buckets)
+                _bucketChip(
+                  bucket: bucket,
+                  selected: pickedBucketId == bucket.id,
+                  onTap: () => _assign(item.id, bucket.id),
+                ),
+            ],
+          ),
+          if (answered) ...[
+            const SizedBox(height: 8),
+            RiseIn(
+              child: InteractionFeedbackCard(
+                kind: correct
+                    ? InteractionFeedbackKind.wellSupported
+                    : InteractionFeedbackKind.needsAnotherLook,
+                explanation: item.explanation,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bucketChip({
+    required CategorizeBucket bucket,
+    required bool selected,
+    required VoidCallback onTap,
+  }) => Semantics(
+    button: true,
+    selected: selected,
+    label: bucket.label,
+    child: ExcludeSemantics(
+      child: PressableScale(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: selected ? Barako.primary : Barako.border,
+                    width: selected ? 1.4 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  color: selected
+                      ? Barako.primary.withValues(alpha: 0.08)
+                      : null,
+                ),
+                child: Text(
+                  bucket.label,
+                  style: AppText.small.w7.tint(
+                    selected ? Barako.primaryText : Barako.text,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 7. Readiness card
+// ---------------------------------------------------------------------------
+
+class ReadinessCardView extends StatefulWidget {
+  final ReadinessCardBlock block;
+  final void Function(String blockId) onComplete;
+  final void Function(String blockId)? onReset;
+
+  const ReadinessCardView(
+    this.block, {
+    super.key,
+    required this.onComplete,
+    this.onReset,
+  });
+
+  @override
+  State<ReadinessCardView> createState() => _ReadinessCardViewState();
+}
+
+class _ReadinessCardViewState extends State<ReadinessCardView> {
+  final Map<String, ReadinessCardOption> _answers = {};
+  bool _fired = false;
+
+  void _pick(ReadinessCardField field, ReadinessCardOption option) {
+    setState(() => _answers[field.id] = option);
+    if (_answers.length == widget.block.fields.length && !_fired) {
+      _fired = true;
+      widget.onComplete(widget.block.blockId);
+    }
+  }
+
+  void _startOver() {
+    setState(() => _answers.clear());
+    if (_fired) {
+      _fired = false;
+      widget.onReset?.call(widget.block.blockId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    final done = _answers.length == block.fields.length;
+    return _InteractionCard(
+      kicker: 'YOUR READINESS CARD',
+      prompt: block.cardTitle,
+      instructions: block.instructions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final field in block.fields) ...[
+            _fieldRow(field),
+            const SizedBox(height: 12),
+          ],
+          if (done) ...[
+            RiseIn(child: _summary(block)),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _startOver,
+                icon: Icon(salapifyIcon('startOver'), size: 16),
+                label: const Text('Start over'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldRow(ReadinessCardField field) {
+    final picked = _answers[field.id];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(field.label, style: AppText.label.w7.copyWith(height: 1.4)),
+        const SizedBox(height: 8),
+        for (final option in field.options) ...[
+          _SelectableRow(
+            label: option.label,
+            selected: picked?.id == option.id,
+            disabled: false,
+            onTap: () => _pick(field, option),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ],
+    );
+  }
+
+  Widget _summary(ReadinessCardBlock block) {
+    final style = ReadinessCardBlock.resultStyleFor(_answers);
+    final icon = switch (style) {
+      'You have defined a starting plan' => salapifyIcon('check'),
+      'Review these areas first' => salapifyIcon('help'),
+      _ => salapifyIcon('warning'),
+    };
+    final accent = switch (style) {
+      'You have defined a starting plan' => Barako.primary,
+      'Review these areas first' => Barako.caramel,
+      _ => Barako.caramel,
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Barako.surfaceRaised,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 18, color: accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      style,
+                      style: AppText.bodyStrong.copyWith(color: accent),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            for (final field in block.fields)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '${field.label}: ${_answers[field.id]?.label ?? ''}',
+                  style: AppText.small.copyWith(height: 1.4),
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'This is a reflection summary for your own use, not financial '
+              'advice or an eligibility result. It stays on this screen only '
+              'and is never saved, backed up, or sent anywhere.',
+              style: AppText.caption.copyWith(height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Salapify actions
+// ---------------------------------------------------------------------------
+
+class SalapifyActionsView extends StatefulWidget {
+  final SalapifyActionsBlock block;
+  final void Function(String blockId) onComplete;
+
+  /// Resolves an action's route to something that can actually happen, or
+  /// null when it cannot (an unknown route, or a screen this context cannot
+  /// reach). Null means "never show a dead button": that action renders as
+  /// plain text instead of a tap target, the same fails-safe convention
+  /// _resolveAction in screens/learn.dart already uses for [LessonAction].
+  final VoidCallback? Function(String route) resolveRoute;
+
+  /// Called once, the moment ANY action is confirmed (after the user taps
+  /// Continue on the confirmation dialog), before [resolveRoute]'s callback
+  /// navigates. This is the only place LessonState.applied is ever earned
+  /// for this block: never on open, never on a bare tap, only on confirm.
+  final VoidCallback onAnyActionConfirmed;
+
+  const SalapifyActionsView(
+    this.block, {
+    super.key,
+    required this.onComplete,
+    required this.resolveRoute,
+    required this.onAnyActionConfirmed,
+  });
+
+  @override
+  State<SalapifyActionsView> createState() => _SalapifyActionsViewState();
+}
+
+class _SalapifyActionsViewState extends State<SalapifyActionsView> {
+  final Set<String> _confirmed = {};
+
+  Future<void> _confirmAndOpen(
+    SalapifyActionDef action,
+    VoidCallback open,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(action.label),
+        content: Text(action.description),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _confirmed.add(action.id));
+    widget.onComplete(widget.block.blockId);
+    widget.onAnyActionConfirmed();
+    open();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    return _InteractionCard(
+      kicker: 'DO SOMETHING ABOUT IT',
+      prompt: block.menuPrompt,
+      instructions: block.instructions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final action in block.actions) ...[
+            _actionRow(action),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _actionRow(SalapifyActionDef action) {
+    final open = widget.resolveRoute(action.route);
+    final done = _confirmed.contains(action.id);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: Barako.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(action.label, style: AppText.label.w7.copyWith(height: 1.4)),
+          const SizedBox(height: 4),
+          Text(action.description, style: AppText.small.copyWith(height: 1.4)),
+          const SizedBox(height: 10),
+          if (open == null)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(salapifyIcon('help'), size: 14, color: Barako.faint),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Not available right now. Keep this in mind and check it '
+                    'yourself: ${action.label.toLowerCase()}.',
+                    style: AppText.caption,
+                  ),
+                ),
+              ],
+            )
+          else if (done)
+            Row(
+              children: [
+                Icon(salapifyIcon('done'), size: 16, color: Barako.primary),
+                const SizedBox(width: 6),
+                Expanded(child: Text('Opened', style: AppText.small.w7)),
+                TextButton(
+                  onPressed: () => _confirmAndOpen(action, open),
+                  child: const Text('Open again'),
+                ),
+              ],
+            )
+          else
+            OutlinedButton(
+              onPressed: () => _confirmAndOpen(action, open),
+              child: const Text('Open'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Reflection
 // ---------------------------------------------------------------------------
 
 class ReflectionPromptView extends StatefulWidget {
@@ -1222,6 +1678,13 @@ Widget viewForInteractionBlock(
   InteractionBlock block, {
   required void Function(String blockId) onComplete,
   void Function(String blockId)? onReset,
+
+  /// Required only when [block] is a [SalapifyActionsBlock]; see
+  /// [SalapifyActionsView.resolveRoute] and
+  /// [SalapifyActionsView.onAnyActionConfirmed]. Ignored by every other
+  /// block kind, so ordinary lesson content never needs to pass these.
+  VoidCallback? Function(String route)? resolveSalapifyRoute,
+  VoidCallback? onAnySalapifyActionConfirmed,
 }) {
   // Keyed by blockId so a caller rebuilding the same tree position with a
   // DIFFERENT block (reordering, filtering, swapping) always gets a fresh
@@ -1266,6 +1729,25 @@ Widget viewForInteractionBlock(
       key: key,
       onComplete: onComplete,
       onReset: onReset,
+    ),
+    CategorizeBlock() => CategorizeView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    ReadinessCardBlock() => ReadinessCardView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
+    ),
+    SalapifyActionsBlock() => SalapifyActionsView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      resolveRoute: resolveSalapifyRoute ?? (_) => null,
+      onAnyActionConfirmed: onAnySalapifyActionConfirmed ?? () {},
     ),
   };
 }
