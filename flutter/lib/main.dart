@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.43 \u00b7 Insights: the Bigger Picture cards stay open now.';
+    'f3.44 \u00b7 New course: Insurance Decoded, under Protect Your Future.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
