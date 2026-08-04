@@ -79,17 +79,22 @@ const _cryptoLessonIds = [
 
 void main() {
   group('registration', () {
-    test('protect_your_future is published with exactly one course', () {
+    test('protect_your_future is published, with Insurance Decoded as its '
+        'first course', () {
       final path = learningPaths.firstWhere(
         (p) => p.id == 'protect_your_future',
       );
       expect(path.status, LearningPathStatus.published);
       expect(path.isAvailable, isTrue);
-      expect(path.groups.map((g) => g.id), ['insurance_decoded']);
+      // Phase 10 added a second course, "SSS & PhilHealth Essentials"
+      // (see test/lessons_sss_philhealth_content_test.dart for its own
+      // registration contract); Insurance Decoded stays this path's first
+      // group, unmoved and unmodified.
+      expect(path.groups.first.id, 'insurance_decoded');
       final group = path.groups.first;
       expect(group.title, 'Insurance Decoded');
       expect(group.lessonIds, _stableLessonIds);
-      expect(path.lessonIds, _stableLessonIds);
+      expect(path.lessonIds, containsAllInOrder(_stableLessonIds));
     });
 
     test('publishedLearningPaths now shows both real paths', () {
@@ -124,9 +129,13 @@ void main() {
       expect(found.lesson.id, insuranceRefWhatItsFor);
     });
 
-    test('lessonsForPath returns every lesson for protect_your_future', () {
+    test('lessonsForPath includes every Insurance Decoded lesson, in order, '
+        'for protect_your_future', () {
       final lessons = lessonsForPath('protect_your_future');
-      expect(lessons.map((l) => l.id).toList(), _stableLessonIds);
+      expect(
+        lessons.map((l) => l.id).toList(),
+        containsAllInOrder(_stableLessonIds),
+      );
     });
   });
 

@@ -42,6 +42,7 @@ import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/content/lessons_insurance.dart';
+import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -648,6 +649,28 @@ void main() {
       pathId: 'protect_your_future',
       lesson: insuranceDecodedLessons.firstWhere(
         (l) => l.id == insuranceRefVerifyCompareDecide,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 10: "SSS & PhilHealth Essentials", this path's
+    // second course. "Check Before You Count on It" carries the
+    // RiskReviewChecklistBlock readiness checklist with the task's own
+    // three result strings, the lesson most likely to read as an
+    // eligibility verdict if the tone slipped anywhere.
+    'sss-philhealth-check-before-you-count': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: sssPhilhealthBenefitsLessons.firstWhere(
+        (l) => l.id == sspRefCheckBeforeYouCount,
+      ),
+      store: s,
+    ),
+    // The course's closing lesson: the checklist action plan and the
+    // Salapify actions menu, the lesson most likely to read as a promise
+    // or an automatic write if the tone or the action descriptions slipped.
+    'sss-philhealth-safety-net-plan': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: sssPhilhealthBenefitsLessons.firstWhere(
+        (l) => l.id == sspRefSafetyNetPlan,
       ),
       store: s,
     ),
