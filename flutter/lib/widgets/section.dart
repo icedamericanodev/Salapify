@@ -213,12 +213,33 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
     children: [
       InkWell(
         onTap: () => setState(() => _open = !_open),
-        child: ConstrainedBox(
+        borderRadius: BorderRadius.circular(Radii.sm),
+        // A tinted, bordered chip rather than bare text on the page
+        // background: founder feedback, 2026-08-04, that a plain Kicker
+        // plus a small muted chevron reads identically to a non-tappable
+        // label like PRIVACY or YOUR DATA, so nothing here signals "more
+        // content, tap to reveal it". surfaceRaised at Radii.sm stays
+        // visually lighter than CollapsibleCard's full Card chrome
+        // (deliberately: that widget boxes a PEER among several, this one
+        // is still a page-level heading, just a tappable one), while the
+        // fill, border, and an accent-colored chevron are what make the
+        // interactive language read at a glance: a tinted pill means tap
+        // me, a bare label means it is just a heading.
+        child: Container(
           // 48, not 44: the Android tap target guideline's real minimum,
           // caught by test/a11y_test.dart's own sweep the first time this
           // widget shipped, which is exactly what that sweep exists to
           // catch before it reaches a phone.
           constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.md,
+            vertical: Gap.xs,
+          ),
+          decoration: BoxDecoration(
+            color: Barako.surfaceRaised,
+            borderRadius: BorderRadius.circular(Radii.sm),
+            border: Border.all(color: Barako.border),
+          ),
           child: Row(
             children: [
               Expanded(child: Kicker(widget.title)),
@@ -226,7 +247,7 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
                 child: Icon(
                   _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
                   size: 18,
-                  color: Barako.muted,
+                  color: Barako.primary,
                 ),
               ),
             ],
