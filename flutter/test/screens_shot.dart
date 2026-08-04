@@ -1262,12 +1262,13 @@ void main() {
     );
   });
 
-  testWidgets('the name row in Menu, with a name set', (tester) async {
-    // The Menu shot above only reaches the top of a long list, so this row
-    // would otherwise ship having never been looked at. It is rendered with a
-    // name SET because that is the state carrying the most to get wrong: two
-    // text buttons competing for room beside a value, on a row that also has
-    // to explain itself.
+  testWidgets('the your name edit dialog, with a name set', (tester) async {
+    // "Your name" is a single row in Menu's SETTINGS card now, the same
+    // shape as Appearance and Currency; the state carrying the most to get
+    // wrong moved into the dialog it opens, which now carries THREE actions
+    // (Remove, Cancel, Save) instead of the row's old two, since Remove
+    // moved off the row and into here. Rendered with a name SET, since that
+    // is the state where Remove exists at all.
     await loadRealFonts(tester);
     await loadPanFaces(tester);
     SharedPreferences.setMockInitialValues({});
@@ -1291,13 +1292,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // YOUR NAME starts collapsed (CollapsibleSection, initiallyExpanded:
-    // false): expand it, or this shot would capture only the collapsed
-    // header and miss the whole point of the comment above, showing the
-    // name-set card's two competing text buttons.
-    await tester.scrollUntilVisible(find.text('YOUR NAME'), 300);
+    await tester.scrollUntilVisible(find.text('Your name'), 300);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('YOUR NAME'));
+    await tester.tap(find.text('Your name'));
     await tester.pumpAndSettle();
 
     await expectLater(
@@ -1337,11 +1334,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // REMINDERS starts collapsed (CollapsibleSection, initiallyExpanded:
-    // false): expand it before Come back, inside, is reachable at all.
-    await tester.scrollUntilVisible(find.text('REMINDERS'), 300);
+    // Reminders live on their own screen now
+    // (notifications_security.dart), reached from Menu's "Notifications
+    // and security" row.
+    await tester.scrollUntilVisible(
+      find.text('Notifications and security'),
+      300,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('REMINDERS'));
+    await tester.tap(find.text('Notifications and security'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Come back'), 300);
     await tester.pumpAndSettle();

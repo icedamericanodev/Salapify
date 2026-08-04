@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.41 \u00b7 Collapsed Menu sections now look tappable, not flat.';
+    'f3.42 \u00b7 Settings rebuilt as real screens, RN style.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -64,12 +64,13 @@ void main() {
     await tester.pumpAndSettle();
     await openMenu(tester);
 
-    // SECURITY starts collapsed (CollapsibleSection, initiallyExpanded:
-    // false): expand it before the widget privacy card inside is reachable.
-    final security = find.text('SECURITY');
-    await tester.scrollUntilVisible(security, 300);
+    // Notifications and security is its own screen now
+    // (notifications_security.dart): open it from the SETTINGS row before
+    // the widget privacy card inside is reachable.
+    final notifSecurity = find.text('Notifications and security');
+    await tester.scrollUntilVisible(notifSecurity, 300);
     await tester.pumpAndSettle();
-    await tester.tap(security);
+    await tester.tap(notifSecurity);
     await tester.pumpAndSettle();
 
     final row = find.text('Hide the amount on the home screen');

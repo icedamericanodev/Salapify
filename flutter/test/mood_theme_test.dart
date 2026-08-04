@@ -106,16 +106,8 @@ void main() {
     // reason the row carries state instead of a description. Assert the blurb
     // before opening, because it is only visible from Menu.
     await openMenu(tester);
-    // PERSONALIZE starts collapsed (CollapsibleSection, initiallyExpanded:
-    // false): expand it before the Appearance row inside is reachable.
-    await scrollTo(
-      tester,
-      find.text('PERSONALIZE'),
-      scope: find.byType(MenuScreen),
-      delta: 100,
-    );
-    await tester.tap(find.text('PERSONALIZE'));
-    await tester.pumpAndSettle();
+    // Appearance lives directly in the SETTINGS card now (menu.dart),
+    // reached by a single _navRow, no section to expand first.
     await scrollTo(
       tester,
       find.text('Appearance'),

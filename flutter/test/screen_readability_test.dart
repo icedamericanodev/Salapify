@@ -65,6 +65,7 @@ import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/payday.dart';
 import 'package:salapify/screens/notes.dart';
 import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/screens/notifications_security.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
@@ -420,6 +421,7 @@ void main() {
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
     'Diagnostics': (s) => DiagnosticsScreen(store: s),
+    'Notifications and security': (s) => NotificationsSecurityScreen(store: s),
     // The calculators. Each was exempted as "input-driven; cold pump shows an
     // empty form", which was a reason to drive them, not to skip them (this
     // file's own long-standing note). Typed with typedInput below, the same
@@ -586,6 +588,7 @@ void main() {
       'mindset.dart',
       'privacy_receipt.dart',
       'diagnostics_screen.dart',
+      'notifications_security.dart',
       'loan_calculator.dart',
       'tax_calculator.dart',
       'bnpl_calculator.dart',

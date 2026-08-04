@@ -167,98 +167,6 @@ class StatPair extends StatelessWidget {
   }
 }
 
-/// A whole page SECTION, header plus everything under it, that collapses
-/// together. For a single peer item inside a band of several (one card
-/// among many, like Insights' Tools or Bigger Picture cards), use
-/// [CollapsibleCard] instead: that wraps one boxed card at a time, this
-/// wraps a bare [Kicker] and an arbitrary [child] beneath it, matching how
-/// menu.dart already lays out most of its own sections (a Kicker, a gap,
-/// then a NavTileGrid or a Card or several).
-///
-/// Founder request, 2026-08-04: Menu's sections were all always expanded,
-/// which the founder found overwhelming stacked on one scroll. [child]
-/// unmounts entirely when collapsed (not merely hidden), the same
-/// `if (open) child` contract [CollapsibleCard] already used for Insights'
-/// Tools band: each section here holds its own, independently labeled
-/// controls, not one shared switch a screen reader needs merged into a
-/// single announcement the way menu.dart's own `_ReminderRow` does, so
-/// there is no MergeSemantics reason to keep it mounted while hidden.
-class CollapsibleSection extends StatefulWidget {
-  final String title;
-  final Widget child;
-
-  /// Whether this section starts open. Money-moving or heavily used
-  /// sections (a nav grid a first-time visitor needs to find) should default
-  /// true; set-once settings should default false, since collapsed-by-default
-  /// is where the actual space saving comes from.
-  final bool initiallyExpanded;
-
-  const CollapsibleSection({
-    super.key,
-    required this.title,
-    required this.child,
-    this.initiallyExpanded = true,
-  });
-
-  @override
-  State<CollapsibleSection> createState() => _CollapsibleSectionState();
-}
-
-class _CollapsibleSectionState extends State<CollapsibleSection> {
-  late bool _open = widget.initiallyExpanded;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      InkWell(
-        onTap: () => setState(() => _open = !_open),
-        borderRadius: BorderRadius.circular(Radii.sm),
-        // A tinted, bordered chip rather than bare text on the page
-        // background: founder feedback, 2026-08-04, that a plain Kicker
-        // plus a small muted chevron reads identically to a non-tappable
-        // label like PRIVACY or YOUR DATA, so nothing here signals "more
-        // content, tap to reveal it". surfaceRaised at Radii.sm stays
-        // visually lighter than CollapsibleCard's full Card chrome
-        // (deliberately: that widget boxes a PEER among several, this one
-        // is still a page-level heading, just a tappable one), while the
-        // fill, border, and an accent-colored chevron are what make the
-        // interactive language read at a glance: a tinted pill means tap
-        // me, a bare label means it is just a heading.
-        child: Container(
-          // 48, not 44: the Android tap target guideline's real minimum,
-          // caught by test/a11y_test.dart's own sweep the first time this
-          // widget shipped, which is exactly what that sweep exists to
-          // catch before it reaches a phone.
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Gap.md,
-            vertical: Gap.xs,
-          ),
-          decoration: BoxDecoration(
-            color: Barako.surfaceRaised,
-            borderRadius: BorderRadius.circular(Radii.sm),
-            border: Border.all(color: Barako.border),
-          ),
-          child: Row(
-            children: [
-              Expanded(child: Kicker(widget.title)),
-              ExcludeSemantics(
-                child: Icon(
-                  _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
-                  size: 18,
-                  color: Barako.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      if (_open) ...[const SizedBox(height: Gap.md), widget.child],
-    ],
-  );
-}
-
 /// One collapsible peer inside a band of several boxed cards, a title row
 /// that reveals or hides [child] beneath it. Promoted out of insights.dart's
 /// Tools band (previously a private `_CollapsibleTool`) so a second band, or
@@ -267,8 +175,14 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
 /// already-bordered `Card`, without its own leading title: the title lives
 /// here, once, in the always-visible header row above it.
 ///
-/// For a whole page section (a bare [Kicker] plus arbitrary content, not one
-/// boxed card among peers), use [CollapsibleSection] instead.
+/// For a whole page SECTION (a bare [Kicker] plus everything under it), do
+/// not reach for a collapsible variant of this widget: a `CollapsibleSection`
+/// existed here briefly and was removed. Founder feedback, twice, was that
+/// an in-place accordion for a page-level heading reads as clutter rather
+/// than an affordance, however it is styled; the real fix for a section
+/// that has grown too long is to give it its own destination screen and
+/// leave one short `_navRow`-style row behind, the pattern menu.dart's own
+/// SETTINGS card follows (see notifications_security.dart).
 class CollapsibleCard extends StatefulWidget {
   final String title;
   final Widget child;
