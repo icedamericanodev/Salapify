@@ -376,18 +376,18 @@ class InsightsScreen extends StatelessWidget {
                 // "Kaya mo ba ito?" always shows: a tool anyone can reach
                 // for before a purchase, so it does not gate on having debt
                 // or a goal.
-                _CollapsibleTool(
+                CollapsibleCard(
                   title: 'Can you afford it?',
                   child: AffordCard(data: data, ref: ref),
                 ),
                 const SizedBox(height: 8),
-                _CollapsibleTool(
+                CollapsibleCard(
                   title: 'A lump sum is landing?',
                   child: WindfallCard(data: data, ref: ref),
                 ),
                 if (_hasActiveDebt(data['debts'])) ...[
                   const SizedBox(height: 8),
-                  _CollapsibleTool(
+                  CollapsibleCard(
                     title: 'What if you paid a little extra',
                     child: _DebtWhatIfCard(
                       debts: data['debts'],
@@ -398,7 +398,7 @@ class InsightsScreen extends StatelessWidget {
                 ],
                 if (focusGoal != null) ...[
                   const SizedBox(height: 8),
-                  _CollapsibleTool(
+                  CollapsibleCard(
                     title: 'What if you saved each week',
                     child: _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
                   ),
@@ -410,17 +410,32 @@ class InsightsScreen extends StatelessWidget {
                 // "understand your situation" band, not the do-next cards up top. It
                 // leads the band because commitment load feeds the debt-load health.
                 if (load['applicable'] == true) ...[
-                  _spokenForCard(load),
+                  CollapsibleCard(
+                    title: 'How much of your salary is spoken for',
+                    child: _spokenForCard(load),
+                  ),
                   const SizedBox(height: 12),
                 ],
-                _healthCard(health),
+                CollapsibleCard(
+                  title: 'Your money health score',
+                  child: _healthCard(health),
+                ),
                 const SizedBox(height: 12),
-                _trendCard(series),
+                CollapsibleCard(
+                  title: 'Income and expenses, last 6 months',
+                  child: _trendCard(series),
+                ),
                 const SizedBox(height: 12),
                 if (cats.any((c) => (c['now'] as double) > 0))
-                  _categoriesCard(cats, forecast),
+                  CollapsibleCard(
+                    title: 'Where your money went this month',
+                    child: _categoriesCard(cats, forecast),
+                  ),
                 const SizedBox(height: 12),
-                _runwayCard(runway),
+                CollapsibleCard(
+                  title: 'Emergency runway',
+                  child: _runwayCard(runway),
+                ),
                 const SizedBox(height: 24),
               ],
             ),
@@ -526,7 +541,11 @@ class InsightsScreen extends StatelessWidget {
                     ),
                   ),
                   if (utang && onSwitchTab != null)
-                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
+                    Icon(
+                      salapifyIcon('forward'),
+                      color: Barako.faint,
+                      size: 18,
+                    ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -567,10 +586,7 @@ class InsightsScreen extends StatelessWidget {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: Barako.background,
-          title: Text(
-            'Your weekly pay',
-            style: AppText.subtitle.w8,
-          ),
+          title: Text('Your weekly pay', style: AppText.subtitle.w8),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,10 +730,7 @@ class InsightsScreen extends StatelessWidget {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${formatMoney(accepted)} a week',
-            style: AppText.bodyLg.w7,
-          ),
+          Text('${formatMoney(accepted)} a week', style: AppText.bodyLg.w7),
           const SizedBox(height: 4),
           Text(
             over
@@ -843,8 +856,6 @@ class InsightsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Kicker('SPOKEN FOR EACH MONTH'),
-              const SizedBox(height: 8),
               Text(
                 'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your salary is.',
                 style: AppText.small.copyWith(height: 1.45),
@@ -906,8 +917,6 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('SPOKEN FOR EACH MONTH'),
-            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -936,10 +945,7 @@ class InsightsScreen extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            Text(
-              support,
-              style: AppText.small.copyWith(height: 1.45),
-            ),
+            Text(support, style: AppText.small.copyWith(height: 1.45)),
             if (showShare && incomeMonths < 6) ...[
               const SizedBox(height: 6),
               Text(
@@ -1065,15 +1071,9 @@ class InsightsScreen extends StatelessWidget {
           children: [
             Kicker('WHERE YOUR NEXT PESO SHOULD GO'),
             const SizedBox(height: 6),
-            Text(
-              title,
-              style: AppText.title.w7.tint(heroColor),
-            ),
+            Text(title, style: AppText.title.w7.tint(heroColor)),
             const SizedBox(height: 4),
-            Text(
-              support,
-              style: AppText.small.copyWith(height: 1.45),
-            ),
+            Text(support, style: AppText.small.copyWith(height: 1.45)),
             const SizedBox(height: 14),
             _orderRail(activeIndex),
             const SizedBox(height: 12),
@@ -1176,8 +1176,6 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('MONEY HEALTH'),
-            const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -1246,8 +1244,6 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('LAST 6 MONTHS'),
-            const SizedBox(height: 10),
             SizedBox(
               height: 120,
               width: double.infinity,
@@ -1311,8 +1307,6 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('WHERE YOUR MONEY WENT THIS MONTH'),
-            const SizedBox(height: 4),
             Text(
               '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
               style: AppText.caption,
@@ -1378,12 +1372,7 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('EMERGENCY RUNWAY'),
-            const SizedBox(height: 6),
-            Text(
-              runwayLabel(months, capped),
-              style: AppText.title,
-            ),
+            Text(runwayLabel(months, capped), style: AppText.title),
             const SizedBox(height: 4),
             Text(
               months == null
@@ -1396,73 +1385,6 @@ class InsightsScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The forward-looking decision card: drag the extra payment up and watch
-/// the debt free date jump closer and the interest drop. Every number comes
-/// from debtmath.whatIfLadder, which composes the golden locked
-/// debtFreeProjection, so nothing here is invented and it matches the live
-/// app to the peso. Only renders when there is real debt to project.
-/// A tool folded to one tappable line until asked for.
-///
-/// Plain setState and no animation, so reduce motion needs nothing. The
-/// open state lives in this widget's State, which survives tab flips the
-/// same way the strategy switch does: the whole subtree stays mounted in
-/// the shell's IndexedStack.
-///
-/// The launcher is an InkWell whose only content is the visible title, so
-/// its semantics node carries the title as its label and a real tap action;
-/// no hand-rolled Semantics wrapper, which is exactly how the segmented
-/// control once stripped its own tap action.
-class _CollapsibleTool extends StatefulWidget {
-  final String title;
-  final Widget child;
-
-  // ignore: prefer_const_constructors_in_immutables
-  _CollapsibleTool({required this.title, required this.child});
-
-  @override
-  State<_CollapsibleTool> createState() => _CollapsibleToolState();
-}
-
-class _CollapsibleToolState extends State<_CollapsibleTool> {
-  bool open = false;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => open = !open),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: AppText.label.w7,
-                    ),
-                  ),
-                  ExcludeSemantics(
-                    child: Icon(
-                      open ? salapifyIcon('collapse') : salapifyIcon('expand'),
-                      color: Barako.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      if (open) ...[const SizedBox(height: 8), widget.child],
-    ],
-  );
 }
 
 class _DebtWhatIfCard extends StatefulWidget {
@@ -1637,10 +1559,7 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                supportText,
-                style: AppText.small.copyWith(height: 1.4),
-              ),
+              Text(supportText, style: AppText.small.copyWith(height: 1.4)),
             ] else
               Text(
                 supportText,
@@ -1657,7 +1576,9 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
               const SizedBox(height: 6),
               Text(
                 'One or more debts have no interest rate saved, so this may understate the real cost. Add the rate for a truer picture.',
-                style: AppText.caption.tint(Barako.warning).copyWith(height: 1.4),
+                style: AppText.caption
+                    .tint(Barako.warning)
+                    .copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
@@ -1792,10 +1713,7 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                supportText,
-                style: AppText.small.copyWith(height: 1.4),
-              ),
+              Text(supportText, style: AppText.small.copyWith(height: 1.4)),
             ] else
               Text(
                 supportText,

@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../typography.dart';
+import 'salapify_icon.dart';
 
 /// The section label, inside a card or outside one.
 ///
@@ -164,4 +165,140 @@ class StatPair extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A whole page SECTION, header plus everything under it, that collapses
+/// together. For a single peer item inside a band of several (one card
+/// among many, like Insights' Tools or Bigger Picture cards), use
+/// [CollapsibleCard] instead: that wraps one boxed card at a time, this
+/// wraps a bare [Kicker] and an arbitrary [child] beneath it, matching how
+/// menu.dart already lays out most of its own sections (a Kicker, a gap,
+/// then a NavTileGrid or a Card or several).
+///
+/// Founder request, 2026-08-04: Menu's sections were all always expanded,
+/// which the founder found overwhelming stacked on one scroll. [child]
+/// unmounts entirely when collapsed (not merely hidden), the same
+/// `if (open) child` contract [CollapsibleCard] already used for Insights'
+/// Tools band: each section here holds its own, independently labeled
+/// controls, not one shared switch a screen reader needs merged into a
+/// single announcement the way menu.dart's own `_ReminderRow` does, so
+/// there is no MergeSemantics reason to keep it mounted while hidden.
+class CollapsibleSection extends StatefulWidget {
+  final String title;
+  final Widget child;
+
+  /// Whether this section starts open. Money-moving or heavily used
+  /// sections (a nav grid a first-time visitor needs to find) should default
+  /// true; set-once settings should default false, since collapsed-by-default
+  /// is where the actual space saving comes from.
+  final bool initiallyExpanded;
+
+  const CollapsibleSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.initiallyExpanded = true,
+  });
+
+  @override
+  State<CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<CollapsibleSection> {
+  late bool _open = widget.initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      InkWell(
+        onTap: () => setState(() => _open = !_open),
+        child: ConstrainedBox(
+          // 48, not 44: the Android tap target guideline's real minimum,
+          // caught by test/a11y_test.dart's own sweep the first time this
+          // widget shipped, which is exactly what that sweep exists to
+          // catch before it reaches a phone.
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Row(
+            children: [
+              Expanded(child: Kicker(widget.title)),
+              ExcludeSemantics(
+                child: Icon(
+                  _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
+                  size: 18,
+                  color: Barako.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (_open) ...[const SizedBox(height: Gap.md), widget.child],
+    ],
+  );
+}
+
+/// One collapsible peer inside a band of several boxed cards, a title row
+/// that reveals or hides [child] beneath it. Promoted out of insights.dart's
+/// Tools band (previously a private `_CollapsibleTool`) so a second band, or
+/// a second screen, gets the exact same interaction rather than a slightly
+/// different hand-rolled copy. [child] is expected to be its own complete,
+/// already-bordered `Card`, without its own leading title: the title lives
+/// here, once, in the always-visible header row above it.
+///
+/// For a whole page section (a bare [Kicker] plus arbitrary content, not one
+/// boxed card among peers), use [CollapsibleSection] instead.
+class CollapsibleCard extends StatefulWidget {
+  final String title;
+  final Widget child;
+
+  /// Whether this card starts open. Defaults false: these are typically the
+  /// nth of several peers, and the space saving is in not showing all of
+  /// them at once.
+  final bool initiallyExpanded;
+
+  const CollapsibleCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.initiallyExpanded = false,
+  });
+
+  @override
+  State<CollapsibleCard> createState() => _CollapsibleCardState();
+}
+
+class _CollapsibleCardState extends State<CollapsibleCard> {
+  late bool _open = widget.initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _open = !_open),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(child: Text(widget.title, style: AppText.label.w7)),
+                  ExcludeSemantics(
+                    child: Icon(
+                      _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
+                      color: Barako.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (_open) ...[const SizedBox(height: 8), widget.child],
+    ],
+  );
 }

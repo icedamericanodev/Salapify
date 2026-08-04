@@ -1291,7 +1291,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // YOUR NAME starts collapsed (CollapsibleSection, initiallyExpanded:
+    // false): expand it, or this shot would capture only the collapsed
+    // header and miss the whole point of the comment above, showing the
+    // name-set card's two competing text buttons.
     await tester.scrollUntilVisible(find.text('YOUR NAME'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('YOUR NAME'));
     await tester.pumpAndSettle();
 
     await expectLater(
@@ -1330,6 +1336,12 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    // REMINDERS starts collapsed (CollapsibleSection, initiallyExpanded:
+    // false): expand it before Come back, inside, is reachable at all.
+    await tester.scrollUntilVisible(find.text('REMINDERS'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('REMINDERS'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Come back'), 300);
     await tester.pumpAndSettle();

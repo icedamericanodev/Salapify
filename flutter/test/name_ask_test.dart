@@ -155,6 +155,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // YOUR NAME starts collapsed (CollapsibleSection, initiallyExpanded:
+      // false): tap the section header to reveal the card before looking
+      // for its button.
+      final header = find.text('YOUR NAME');
+      await tester.scrollUntilVisible(header, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(header);
+      await tester.pumpAndSettle();
+
       // Scroll to the BUTTON, not to the label above it. The name card puts
       // its actions on a line BELOW the text, so scrolling the label into view
       // says nothing about whether the button came with it, and a taller
@@ -185,6 +194,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final header = find.text('YOUR NAME');
+      await tester.scrollUntilVisible(header, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(header);
+      await tester.pumpAndSettle();
+
       final remove = find.widgetWithText(TextButton, 'Remove');
       await tester.scrollUntilVisible(remove, 300);
       await tester.pumpAndSettle();
@@ -210,6 +225,12 @@ void main() {
           home: tabHost(MenuScreen(store: store, onSwitchTab: (_) {})),
         ),
       );
+      await tester.pumpAndSettle();
+
+      final header = find.text('YOUR NAME');
+      await tester.scrollUntilVisible(header, 300);
+      await tester.pumpAndSettle();
+      await tester.tap(header);
       await tester.pumpAndSettle();
 
       final change = find.widgetWithText(TextButton, 'Change');

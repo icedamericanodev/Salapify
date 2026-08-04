@@ -30,14 +30,30 @@ void main() {
 
   test('resolveThemeChoice honors new keys and maps the legacy mood', () {
     expect(resolveThemeChoice(const {}), ('barako', 'system'));
-    expect(resolveThemeChoice(const {'themeMood': 'latte'}), ('barako', 'light'));
-    expect(resolveThemeChoice(const {'themeMood': 'barako'}), ('barako', 'dark'));
+    expect(resolveThemeChoice(const {'themeMood': 'latte'}), (
+      'barako',
+      'light',
+    ));
+    expect(resolveThemeChoice(const {'themeMood': 'barako'}), (
+      'barako',
+      'dark',
+    ));
+    expect(resolveThemeChoice(const {'themeMood': 'milktea'}), (
+      'barako',
+      'dark',
+    ));
     expect(
-        resolveThemeChoice(const {'themeMood': 'milktea'}), ('barako', 'dark'));
-    expect(resolveThemeChoice(const {'themeKey': 'tidal', 'themeMode': 'dark'}),
-        ('tidal', 'dark'));
-    expect(resolveThemeChoice(const {'themeKey': 'tidal'}), ('tidal', 'system'));
-    expect(resolveThemeChoice(const {'themeMode': 'light'}), ('barako', 'light'));
+      resolveThemeChoice(const {'themeKey': 'tidal', 'themeMode': 'dark'}),
+      ('tidal', 'dark'),
+    );
+    expect(resolveThemeChoice(const {'themeKey': 'tidal'}), (
+      'tidal',
+      'system',
+    ));
+    expect(resolveThemeChoice(const {'themeMode': 'light'}), (
+      'barako',
+      'light',
+    ));
   });
 
   test('effectiveBrightness resolves the mode against the OS', () {
@@ -47,26 +63,30 @@ void main() {
     expect(effectiveBrightness('system', Brightness.light), Brightness.light);
   });
 
-  test('setThemeMode/Key survive junk (non-String) stored theme values', () async {
-    // A hand-edited or future backup could carry numeric theme values. The
-    // writers must not throw a cast, and must leave other settings intact.
-    SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode({
-        'settings': {'themeKey': 42, 'themeMode': true, 'monthlyLimit': 5000},
-      }),
-    });
-    final store = SalapifyStore();
-    await store.load();
-    await store.setThemeMode('dark');
-    await store.setThemeKey('mint');
-    final s = store.data['settings'] as Map;
-    expect(s['themeMode'], 'dark');
-    expect(s['themeKey'], 'mint');
-    expect(s['monthlyLimit'], 5000); // untouched
-  });
+  test(
+    'setThemeMode/Key survive junk (non-String) stored theme values',
+    () async {
+      // A hand-edited or future backup could carry numeric theme values. The
+      // writers must not throw a cast, and must leave other settings intact.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'settings': {'themeKey': 42, 'themeMode': true, 'monthlyLimit': 5000},
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await store.setThemeMode('dark');
+      await store.setThemeKey('mint');
+      final s = store.data['settings'] as Map;
+      expect(s['themeMode'], 'dark');
+      expect(s['themeKey'], 'mint');
+      expect(s['monthlyLimit'], 5000); // untouched
+    },
+  );
 
-  testWidgets('picking a theme and a mode repaints the app and persists',
-      (tester) async {
+  testWidgets('picking a theme and a mode repaints the app and persists', (
+    tester,
+  ) async {
     // Fresh store: system mode, and the test platform is light, so the app
     // opens on Barako light.
     final store = SalapifyStore();
@@ -76,24 +96,43 @@ void main() {
     expect(Barako.currentTheme.key, 'barako');
     expect(Barako.current.brightness, Brightness.light);
     final beforeApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(beforeApp.theme!.scaffoldBackgroundColor,
-        themeForKey('barako').light.background);
+    expect(
+      beforeApp.theme!.scaffoldBackgroundColor,
+      themeForKey('barako').light.background,
+    );
 
     // The picker moved off Menu and onto its own screen, so the row is the way
     // in now. Its blurb doubles as the current choice, which is the whole
     // reason the row carries state instead of a description. Assert the blurb
     // before opening, because it is only visible from Menu.
     await openMenu(tester);
-    await scrollTo(tester, find.text('Appearance'),
-        scope: find.byType(MenuScreen), delta: 100);
+    // PERSONALIZE starts collapsed (CollapsibleSection, initiallyExpanded:
+    // false): expand it before the Appearance row inside is reachable.
+    await scrollTo(
+      tester,
+      find.text('PERSONALIZE'),
+      scope: find.byType(MenuScreen),
+      delta: 100,
+    );
+    await tester.tap(find.text('PERSONALIZE'));
+    await tester.pumpAndSettle();
+    await scrollTo(
+      tester,
+      find.text('Appearance'),
+      scope: find.byType(MenuScreen),
+      delta: 100,
+    );
     expect(find.text('Barako, System'), findsOneWidget);
     await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
 
     // Pick the Tidal theme. scrollUntilVisible can land a tile flush against a
     // fold, so lift it into view before tapping to keep its center tappable.
-    await tester.scrollUntilVisible(find.text('Tidal'), 100,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Tidal'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
@@ -103,15 +142,20 @@ void main() {
     expect(Barako.current.brightness, Brightness.light);
 
     // Switch appearance to Dark.
-    await tester.scrollUntilVisible(find.text('Dark'), -100,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Dark'),
+      -100,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
     expect(Barako.current.brightness, Brightness.dark);
     final afterApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(afterApp.theme!.scaffoldBackgroundColor,
-        themeForKey('tidal').dark.background);
+    expect(
+      afterApp.theme!.scaffoldBackgroundColor,
+      themeForKey('tidal').dark.background,
+    );
 
     // Both choices survive a restart through settings.
     final fresh = SalapifyStore();
