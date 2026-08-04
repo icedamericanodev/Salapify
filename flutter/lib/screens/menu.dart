@@ -589,37 +589,15 @@ class MenuScreen extends StatelessWidget {
       }
     }
 
-    // MergeSemantics, so the switch and its words are ONE thing to a screen
-    // reader. A bare Switch announces "switch, on" with no hint of WHICH
-    // reminder it controls; merged, it reads the title and subtitle too. The
-    // a11y sweep caught this as an unlabeled tappable in Menu's middle band.
+    // Collapsible per _ReminderRow below; the MergeSemantics/screen-reader
+    // contract described there is unchanged.
     Widget row(String key, IconData icon, String title, String subtitle) =>
-        MergeSemantics(
-          child: Row(
-            children: [
-              Icon(icon, color: Barako.primary, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: AppText.label.w7),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: AppText.caption),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: store.notifOn(key),
-                onChanged: (v) => toggle(key, v),
-                activeThumbColor: Barako.onPrimary,
-                activeTrackColor: Barako.primary,
-                inactiveThumbColor: Barako.faint,
-                inactiveTrackColor: Barako.border,
-              ),
-            ],
-          ),
+        _ReminderRow(
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          value: store.notifOn(key),
+          onChanged: (v) => toggle(key, v),
         );
 
     return Card(
@@ -701,38 +679,16 @@ class MenuScreen extends StatelessWidget {
                   'fires while you are still opening the app.',
             ),
             const Divider(height: 24),
-            MergeSemantics(
-              child: Row(
-                children: [
-                  Icon(salapifyIcon('locked'), color: Barako.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Show names and amounts', style: AppText.label.w7),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Off by default. Reminders stay generic on your lock '
-                          'screen. Turn on to include the name and amount, kept '
-                          'off your lock screen and shown in the shade after you '
-                          'unlock.',
-                          style: AppText.caption,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Switch(
-                    value: store.notifDetailed,
-                    onChanged: toggleDetail,
-                    activeThumbColor: Barako.onPrimary,
-                    activeTrackColor: Barako.primary,
-                    inactiveThumbColor: Barako.faint,
-                    inactiveTrackColor: Barako.border,
-                  ),
-                ],
-              ),
+            _ReminderRow(
+              icon: salapifyIcon('locked'),
+              title: 'Show names and amounts',
+              subtitle:
+                  'Off by default. Reminders stay generic on your lock '
+                  'screen. Turn on to include the name and amount, kept '
+                  'off your lock screen and shown in the shade after you '
+                  'unlock.',
+              value: store.notifDetailed,
+              onChanged: toggleDetail,
             ),
           ],
         ),
@@ -1506,6 +1462,136 @@ class MenuScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One reminder toggle: icon, title, switch, and an explanation that starts
+/// collapsed unless the reminder is already on. Tapping the title area, not
+/// the switch, expands or collapses the explanation; the switch is a
+/// separate hit target outside that tap area, so turning a reminder on or
+/// off never needs an extra tap first. Founder request, 2026-08-04: nine
+/// reminders each carrying a two-to-three line explanation made Reminders
+/// the longest scroll on the Menu screen.
+///
+/// `_expanded` seeds from the CURRENT switch value, not always false: a
+/// reminder someone already turned on is one they read and cared about
+/// once, and collapsing it by default on the exact screen where they would
+/// come back to reconsider it would be a small trust regression, even
+/// though the switch itself never moves out of reach either way.
+///
+/// Unlike `_CollapsibleTool` in insights.dart, the subtitle here is never
+/// conditionally built or removed with `if (_expanded)`. It stays mounted
+/// at all times and only animates to zero height (AnimatedSize around an
+/// Align with heightFactor). Building it conditionally would drop it from
+/// the widget tree, and the MergeSemantics below merges only what is
+/// currently in the tree into one announcement (title, subtitle, and
+/// switch state together): a screen-reader user would then hear the
+/// subtitle only while it happened to be visually expanded, silently
+/// reopening the exact unlabeled-switch gap the a11y sweep already fixed
+/// once for this row.
+class _ReminderRow extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ReminderRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ReminderRow> createState() => _ReminderRowState();
+}
+
+class _ReminderRowState extends State<_ReminderRow> {
+  late bool _expanded = widget.value;
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Row(
+                children: [
+                  Icon(widget.icon, color: Barako.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.title,
+                                style: AppText.label.w7,
+                              ),
+                            ),
+                            ExcludeSemantics(
+                              child: Icon(
+                                _expanded
+                                    ? salapifyIcon('collapse')
+                                    : salapifyIcon('expand'),
+                                size: 18,
+                                color: Barako.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 160),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topLeft,
+                          // ClipRect is load-bearing, not decoration: Align
+                          // shrinks its own layout box to heightFactor 0
+                          // but never clips its child, so without this the
+                          // subtitle keeps PAINTING at full size while
+                          // laying out as if it took no space, overlapping
+                          // the divider and the next row underneath it.
+                          // Caught by actually rendering a collapsed row,
+                          // not by reading the code.
+                          child: ClipRect(
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              heightFactor: _expanded ? 1 : 0,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  widget.subtitle,
+                                  style: AppText.caption,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: widget.value,
+            onChanged: widget.onChanged,
+            activeThumbColor: Barako.onPrimary,
+            activeTrackColor: Barako.primary,
+            inactiveThumbColor: Barako.faint,
+            inactiveTrackColor: Barako.border,
+          ),
+        ],
       ),
     );
   }
