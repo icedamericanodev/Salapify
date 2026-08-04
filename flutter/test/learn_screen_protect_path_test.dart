@@ -1,11 +1,15 @@
 // The "Choose Your Next Path" section on the Learn screen, Protect Your
-// Future's own coverage (Money Courses Phase 9): shows Protect Your Future
-// below Grow Your Money, showing only its one available course (Insurance
-// Decoded), with its own independent progress, and never a hard lock. The
-// core "X of 22" figure and Grow Your Money's own path progress must never
-// move because of it. Mirrors test/learn_screen_grow_path_test.dart's own
-// structure on purpose, the established shape for a Money Courses catalog
-// test.
+// Future's own coverage (Money Courses Phase 9, extended by Phase 10): shows
+// Protect Your Future below Grow Your Money, with its own independent
+// progress, and never a hard lock. Phase 9 shipped this path's first course
+// (Insurance Decoded); Phase 10 adds its second (SSS & PhilHealth
+// Essentials), so the path card now lists both courses' lessons flattened
+// together, per screens/learn.dart's own one-card-per-path design (it has no
+// per-course sub-card, only a flat "All lessons" list across every group).
+// The core "X of 22" figure and Grow Your Money's own path progress must
+// never move because of it. Mirrors test/learn_screen_grow_path_test.dart's
+// own structure on purpose, the established shape for a Money Courses
+// catalog test.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +17,7 @@ import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
 import 'package:salapify/content/lessons.dart' as core;
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_insurance.dart';
+import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -41,8 +46,8 @@ Future<void> _pumpTall(WidgetTester tester, SalapifyStore store) async {
 
 void main() {
   testWidgets(
-    'Protect Your Future appears below Grow Your Money, showing only its '
-    'one available course',
+    'Protect Your Future appears below Grow Your Money, listing both of '
+    'its courses\' lessons in one flat path total',
     (tester) async {
       final store = await _freshStore();
       await _pumpTall(tester, store);
@@ -54,14 +59,16 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(_protectPathTotal, 6);
+      // Six from Insurance Decoded (Phase 9) plus six from SSS & PhilHealth
+      // Essentials (Phase 10), flattened into one path total per
+      // screens/learn.dart's own one-card-per-path design.
+      expect(_protectPathTotal, 12);
       expect(
         find.text('0 of $_protectPathTotal lessons in this path'),
         findsOneWidget,
       );
-      // No stub or empty government-benefit course card renders alongside
-      // it: exactly six lessons, one course, per the task's own catalog
-      // rule.
+      // Still no stub or empty government-benefit course card: every group
+      // under this path carries real, published lessons.
       expect(find.textContaining('Government'), findsNothing);
     },
   );
@@ -73,13 +80,14 @@ void main() {
     await _pumpTall(tester, store);
 
     // "All lessons" for Protect Your Future's own card expands its list,
-    // proving the six real lessons are reachable and every Start/Continue
-    // row opens a real reader, never a dead tap.
+    // proving the twelve real lessons across both courses are reachable and
+    // every Start/Continue row opens a real reader, never a dead tap.
     final allLessonsButtons = find.widgetWithText(TextButton, 'All lessons');
     expect(allLessonsButtons, findsWidgets);
     await tester.tap(allLessonsButtons.last);
     await tester.pumpAndSettle();
     expect(find.text('What Insurance Is For'), findsOneWidget);
+    expect(find.text('Meet Your Two Safety Nets'), findsOneWidget);
 
     await tester.tap(find.text('What Insurance Is For'));
     await tester.pumpAndSettle();
@@ -87,11 +95,15 @@ void main() {
   });
 
   testWidgets(
-    'finishing every Insurance Decoded lesson never changes the core "X of '
-    '22" figure or Grow Your Money\'s own path progress',
+    'finishing every lesson in both Protect Your Future courses never '
+    'changes the core "X of 22" figure or Grow Your Money\'s own path '
+    'progress',
     (tester) async {
       final store = await _freshStore();
-      for (final lesson in insuranceDecodedLessons) {
+      for (final lesson in [
+        ...insuranceDecodedLessons,
+        ...sssPhilhealthBenefitsLessons,
+      ]) {
         await store.markExpansionLessonCompleted(
           'protect_your_future',
           lesson.id,

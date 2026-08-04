@@ -10,16 +10,16 @@
 // (lib/content/lessons_crypto.dart), never modifying the pilot or any
 // earlier course's own lesson ids.
 //
-// Phase 9 adds a second path, "Protect Your Future", carrying its first
+// Phase 9 added a second path, "Protect Your Future", carrying its first
 // real course, "Insurance Decoded" (lib/content/lessons_insurance.dart).
-// "Build Your Business" and any future government-benefit course under
-// Protect Your Future are still deliberately ABSENT here, not present as
-// comingSoon stubs or empty groups. This phase's own catalog rule is "do
-// not display empty government-benefit courses", and the smallest way to
-// guarantee that, for this path and any future one, is to never construct
-// an empty group at all: publishedLearningPaths below only has to filter on
-// status, and Protect Your Future carries exactly one group because exactly
-// one course has real content today.
+// Phase 10 adds this path's second course, "SSS & PhilHealth Essentials"
+// (lib/content/lessons_sss_philhealth.dart), never modifying Insurance
+// Decoded's own lesson ids. "Build Your Business" is still deliberately
+// ABSENT here, not present as a comingSoon stub or an empty group. This
+// phase's own catalog rule is "do not display empty government-benefit
+// courses", and the smallest way to guarantee that, for this path and any
+// future one, is to never construct an empty group at all:
+// publishedLearningPaths below only has to filter on status.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
@@ -27,6 +27,7 @@ import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
 import 'lessons_insurance.dart';
+import 'lessons_sss_philhealth.dart';
 import 'lessons_stocks_bonds.dart';
 
 const List<LearningPath> learningPaths = [
@@ -142,6 +143,25 @@ const List<LearningPath> learningPaths = [
           insuranceRefVerifyCompareDecide,
         ],
       ),
+      LearningPathGroup(
+        id: 'sss_philhealth_benefits',
+        title: 'SSS & PhilHealth Essentials',
+        lessonIds: [
+          sspRefTwoSafetyNets,
+          sspRefSssMayHelp,
+          sspRefCheckBeforeYouCount,
+          sspRefHowCoverageWorks,
+          sspRefPrimaryCareEarlier,
+          sspRefSafetyNetPlan,
+        ],
+        // Advisory only, same contract as stocks_and_bonds's own
+        // recommendedPriorGroupIds in grow_your_money above: insurance_decoded
+        // is not a prerequisite this course depends on, but it is the same
+        // path's first course, so a reader who has not seen it yet is
+        // pointed there first. Nothing here blocks opening this course
+        // directly.
+        recommendedPriorGroupIds: ['insurance_decoded'],
+      ),
     ],
     // Advisory only, same contract as grow_your_money's own
     // prerequisiteLessonIds above: nothing here blocks the path, a catalog
@@ -183,7 +203,10 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...depositsAndPooledFundsLessons,
     ...cryptoWithoutHypeLessons,
   ],
-  'protect_your_future' => [...insuranceDecodedLessons],
+  'protect_your_future' => [
+    ...insuranceDecodedLessons,
+    ...sssPhilhealthBenefitsLessons,
+  ],
   _ => const [],
 };
 
@@ -204,7 +227,10 @@ MoneyLessonWithPath? expansionLessonById(String id) {
       return MoneyLessonWithPath(pathId: 'grow_your_money', lesson: lesson);
     }
   }
-  for (final lesson in insuranceDecodedLessons) {
+  for (final lesson in [
+    ...insuranceDecodedLessons,
+    ...sssPhilhealthBenefitsLessons,
+  ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'protect_your_future', lesson: lesson);
     }
