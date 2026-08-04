@@ -51,12 +51,19 @@ void main() {
       },
     );
 
-    test('publishedLearningPaths shows only Grow Your Money', () {
-      expect(publishedLearningPaths.map((p) => p.id), ['grow_your_money']);
+    test('publishedLearningPaths shows Grow Your Money (Phase 9 adds a '
+        'second published path, Protect Your Future, alongside it)', () {
+      expect(
+        publishedLearningPaths.map((p) => p.id),
+        contains('grow_your_money'),
+      );
     });
 
-    test('no Protect or Business path exists to accidentally render', () {
-      expect(learningPaths.any((p) => p.id.contains('protect')), isFalse);
+    test('no Business path exists to accidentally render; Protect Your '
+        'Future is real as of Phase 9', () {
+      // Protect Your Future became a real, published path in Phase 9 (see
+      // test/lessons_insurance_content_test.dart for its own coverage).
+      // Build Your Business still has no content and must stay absent.
       expect(learningPaths.any((p) => p.id.contains('business')), isFalse);
     });
 

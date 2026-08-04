@@ -87,8 +87,12 @@ void main() {
       }
     });
 
-    test('publishedLearningPaths still shows only Grow Your Money', () {
-      expect(publishedLearningPaths.map((p) => p.id), ['grow_your_money']);
+    test('publishedLearningPaths still shows Grow Your Money (Phase 9 adds '
+        'a second published path, Protect Your Future, alongside it)', () {
+      expect(
+        publishedLearningPaths.map((p) => p.id),
+        contains('grow_your_money'),
+      );
     });
 
     test('six stable lesson ids, in reading order', () {

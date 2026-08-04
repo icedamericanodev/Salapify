@@ -10,18 +10,23 @@
 // (lib/content/lessons_crypto.dart), never modifying the pilot or any
 // earlier course's own lesson ids.
 //
-// "Protect Your Future" and "Build Your Business" are deliberately ABSENT
-// here, not present as comingSoon stubs. This phase's own catalog rule is
-// "do not display empty Protect or Business paths", and the smallest way to
-// guarantee that is to never construct them at all: publishedLearningPaths
-// below only has to filter on status, but there is nothing here for a
-// future bug to accidentally un-filter.
+// Phase 9 adds a second path, "Protect Your Future", carrying its first
+// real course, "Insurance Decoded" (lib/content/lessons_insurance.dart).
+// "Build Your Business" and any future government-benefit course under
+// Protect Your Future are still deliberately ABSENT here, not present as
+// comingSoon stubs or empty groups. This phase's own catalog rule is "do
+// not display empty government-benefit courses", and the smallest way to
+// guarantee that, for this path and any future one, is to never construct
+// an empty group at all: publishedLearningPaths below only has to filter on
+// status, and Protect Your Future carries exactly one group because exactly
+// one course has real content today.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
 import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
+import 'lessons_insurance.dart';
 import 'lessons_stocks_bonds.dart';
 
 const List<LearningPath> learningPaths = [
@@ -117,6 +122,35 @@ const List<LearningPath> learningPaths = [
     prerequisiteLessonIds: ['emergency-fund', 'card-interest'],
     status: LearningPathStatus.published,
   ),
+  LearningPath(
+    id: 'protect_your_future',
+    title: 'Protect Your Future',
+    shortDescription:
+        'Understand your protection needs and compare policy types before '
+        'you talk to an insurer or agent.',
+    icon: 'protected',
+    groups: [
+      LearningPathGroup(
+        id: 'insurance_decoded',
+        title: 'Insurance Decoded',
+        lessonIds: [
+          insuranceRefWhatItsFor,
+          insuranceRefProtectionNeed,
+          insuranceRefTermAndWholeLife,
+          insuranceRefVulNoSalesPitch,
+          insuranceRefReadThePolicy,
+          insuranceRefVerifyCompareDecide,
+        ],
+      ),
+    ],
+    // Advisory only, same contract as grow_your_money's own
+    // prerequisiteLessonIds above: nothing here blocks the path, a catalog
+    // screen just shows this as "Recommended first". Lesson 1 of this
+    // course directly contrasts insurance against an emergency fund, so
+    // the core emergency-fund lesson is the one natural prerequisite.
+    prerequisiteLessonIds: ['emergency-fund'],
+    status: LearningPathStatus.published,
+  ),
 ];
 
 /// Paths safe to list in a catalog: published only. A comingSoon or
@@ -149,15 +183,16 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...depositsAndPooledFundsLessons,
     ...cryptoWithoutHypeLessons,
   ],
+  'protect_your_future' => [...insuranceDecodedLessons],
   _ => const [],
 };
 
 /// Finds an expansion lesson (and its owning path id) by lesson id, across
 /// every published path's own content. Null when not found, the same
 /// fails-safe convention lessons.dart's own `lessonById` follows: an
-/// unknown id is a safe no-op, never a crash. Only 'grow_your_money' has
-/// content today; a second path's content file gets a matching branch here
-/// when it ships.
+/// unknown id is a safe no-op, never a crash. 'grow_your_money' and
+/// 'protect_your_future' have content today; a third path's content file
+/// gets a matching branch here when it ships.
 MoneyLessonWithPath? expansionLessonById(String id) {
   for (final lesson in [
     ...growYourMoneyLessons,
@@ -167,6 +202,11 @@ MoneyLessonWithPath? expansionLessonById(String id) {
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'grow_your_money', lesson: lesson);
+    }
+  }
+  for (final lesson in insuranceDecodedLessons) {
+    if (lesson.id == id) {
+      return MoneyLessonWithPath(pathId: 'protect_your_future', lesson: lesson);
     }
   }
   return null;

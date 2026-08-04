@@ -30,6 +30,8 @@ import '../screens/budget.dart';
 import '../screens/debts.dart';
 import '../screens/goals.dart';
 import '../screens/mindset.dart';
+import '../screens/notifications_security.dart';
+import '../screens/recurring.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'interaction_block_views.dart';
@@ -42,8 +44,11 @@ import 'salapify_icon.dart';
 /// listed here resolves to null, and SalapifyActionsView renders that
 /// action as plain text rather than a dead button. 'mindset' and 'accounts'
 /// were added for Money Courses Phase 7A ("Stocks and Bonds Without the
-/// Hype"); every prior route (goals, debts, budget) still resolves exactly
-/// as before, so this changes nothing for the Investing Readiness pilot.
+/// Hype"); 'recurring' and 'notifications' were added for Money Courses
+/// Phase 9 ("Insurance Decoded", the first course in the Protect Your
+/// Future path), for its recurring-premium and reminders actions. Every
+/// prior route still resolves exactly as before, so this changes nothing
+/// for any earlier course.
 VoidCallback? _resolveGrowAction(
   BuildContext context,
   SalapifyStore store,
@@ -55,6 +60,8 @@ VoidCallback? _resolveGrowAction(
     'budget' => BudgetScreen(store: store),
     'mindset' => MindsetScreen(store: store),
     'accounts' => AccountsScreen(store: store),
+    'recurring' => RecurringScreen(store: store),
+    'notifications' => NotificationsSecurityScreen(store: store),
     _ => null,
   };
   if (screen == null) return null;

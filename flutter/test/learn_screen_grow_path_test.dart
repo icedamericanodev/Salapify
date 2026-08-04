@@ -12,6 +12,12 @@
 // file look like it was asserting something about the pilot when it was
 // really asserting a stale total; reading the real total keeps this test
 // honest the next time a third course joins the same path.
+//
+// Phase 9 published a second real path, Protect Your Future, so this file
+// no longer asserts that path is absent (see
+// test/learn_screen_protect_path_test.dart for its own catalog coverage).
+// Build Your Business has no content yet and still must never render, even
+// as an empty stub.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,10 +59,16 @@ void main() {
       expect(find.text('CORE MONEY SKILLS'), findsOneWidget);
       expect(find.text('CHOOSE YOUR NEXT PATH'), findsOneWidget);
       expect(find.text('Grow Your Money'), findsOneWidget);
-      // Neither absent path ever renders, even as an empty stub.
-      expect(find.textContaining('Protect Your Future'), findsNothing);
+      // Protect Your Future is a second real, published path as of Phase 9
+      // and now renders alongside Grow Your Money. Build Your Business has
+      // no content yet and must never render, even as an empty stub.
+      expect(find.text('Protect Your Future'), findsOneWidget);
       expect(find.textContaining('Build Your Business'), findsNothing);
-      expect(find.textContaining('Recommended first:'), findsOneWidget);
+      // Both real paths carry a "Recommended first" prerequisite note now
+      // (Grow Your Money's own two-lesson note, and Protect Your Future's
+      // own one-lesson note); see learn_screen_protect_path_test.dart for
+      // the second path's own card content.
+      expect(find.textContaining('Recommended first:'), findsNWidgets(2));
       expect(
         find.text('0 of $_pathLessonTotal lessons in this path'),
         findsOneWidget,

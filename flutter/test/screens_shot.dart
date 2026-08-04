@@ -41,6 +41,7 @@ import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/content/lessons_crypto.dart';
+import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -622,6 +623,31 @@ void main() {
       pathId: 'grow_your_money',
       lesson: cryptoWithoutHypeLessons.firstWhere(
         (l) => l.id == cryptoRefVolatilityTotalLoss,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 9: "Protect Your Future", the first new learning
+    // path since Grow Your Money, and its first course, "Insurance
+    // Decoded". "VUL Without the Sales Pitch" carries this course's most
+    // novel content: the simplified premium-allocation diagram, the
+    // guaranteed-versus-illustrated sorting activity, and the fictional
+    // VUL policy summary checklist, the lesson most likely to read as a
+    // sales pitch if the tone slipped anywhere.
+    'insurance-vul-no-sales-pitch': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: insuranceDecodedLessons.firstWhere(
+        (l) => l.id == insuranceRefVulNoSalesPitch,
+      ),
+      store: s,
+    ),
+    // "Verify, Compare and Decide", the course's closing lesson: the
+    // agent-verification checklist, the pressure-selling red-flag
+    // challenge, three "what would you ask next" scenarios, and the final
+    // protection review with its three result strings, never an approval.
+    'insurance-verify-compare-decide': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: insuranceDecodedLessons.firstWhere(
+        (l) => l.id == insuranceRefVerifyCompareDecide,
       ),
       store: s,
     ),
