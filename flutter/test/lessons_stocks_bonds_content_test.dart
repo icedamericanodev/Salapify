@@ -614,6 +614,12 @@ String _allText(MoneyLesson l) {
         for (final a in actions) {
           buf.write(' ${a.label} ${a.description}');
         }
+      // Added for Money Courses Phase 8 ("Crypto Without the Hype"); this
+      // course never registers either kind, so there is nothing extra to
+      // capture beyond the prompt/instructions already written above.
+      case LossImpactSimulatorBlock():
+      case RiskReviewChecklistBlock():
+        break;
     }
   }
   return buf.toString();

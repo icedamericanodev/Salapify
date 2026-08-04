@@ -71,12 +71,22 @@ void main() {
       expect(group.lessonIds, _stableLessonIds);
       // The path's flat id list is investing_readiness's five lessons,
       // then stocks_and_bonds's six, then this course's six, since groups
-      // render in the order they were authored.
-      expect(path.lessonIds, [
-        ..._pilotLessonIds,
-        ..._stocksBondsLessonIds,
-        ..._stableLessonIds,
-      ]);
+      // render in the order they were authored. Phase 8 added a fourth
+      // group ("Crypto Without the Hype") after this one, so the flat list
+      // no longer ends here; this test only asserts that this course's own
+      // six still appear as a contiguous run right after stocks_and_bonds's,
+      // not that they are the whole list. See
+      // test/lessons_crypto_content_test.dart for the full, four-course
+      // assertion.
+      expect(
+        path.lessonIds.sublist(
+          0,
+          _pilotLessonIds.length +
+              _stocksBondsLessonIds.length +
+              _stableLessonIds.length,
+        ),
+        [..._pilotLessonIds, ..._stocksBondsLessonIds, ..._stableLessonIds],
+      );
     });
 
     test('both prerequisites are recommended, never a lock', () {
@@ -703,6 +713,12 @@ String _allText(MoneyLesson l) {
         for (final a in actions) {
           buf.write(' ${a.label} ${a.description}');
         }
+      // Added for Money Courses Phase 8 ("Crypto Without the Hype"); this
+      // course never registers either kind, so there is nothing extra to
+      // capture beyond the prompt/instructions already written above.
+      case LossImpactSimulatorBlock():
+      case RiskReviewChecklistBlock():
+        break;
     }
   }
   return buf.toString();

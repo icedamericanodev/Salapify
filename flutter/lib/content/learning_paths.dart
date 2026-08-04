@@ -4,9 +4,11 @@
 // content, "Grow Your Money" with its pilot course "Are You Ready to
 // Invest?" (lib/content/lessons_grow.dart). Phase 7A added this same path's
 // second course, "Stocks and Bonds Without the Hype"
-// (lib/content/lessons_stocks_bonds.dart). Phase 7B adds a third course,
-// "Deposits and Pooled Funds" (lib/content/lessons_deposits_pooled_funds.dart),
-// never modifying the pilot, Phase 7A's course, or either one's lesson ids.
+// (lib/content/lessons_stocks_bonds.dart). Phase 7B added a third course,
+// "Deposits and Pooled Funds" (lib/content/lessons_deposits_pooled_funds.dart).
+// Phase 8 adds a fourth course, "Crypto Without the Hype"
+// (lib/content/lessons_crypto.dart), never modifying the pilot or any
+// earlier course's own lesson ids.
 //
 // "Protect Your Future" and "Build Your Business" are deliberately ABSENT
 // here, not present as comingSoon stubs. This phase's own catalog rule is
@@ -17,6 +19,7 @@
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
+import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
 import 'lessons_stocks_bonds.dart';
@@ -81,6 +84,31 @@ const List<LearningPath> learningPaths = [
         // lesson regardless of any other group's progress.
         recommendedPriorGroupIds: ['investing_readiness', 'stocks_and_bonds'],
       ),
+      LearningPathGroup(
+        id: 'crypto_without_hype',
+        title: 'Crypto Without the Hype',
+        lessonIds: [
+          cryptoRefWhatCryptoIs,
+          cryptoRefVolatilityTotalLoss,
+          cryptoRefCustodyIrreversibleMistakes,
+          cryptoRefStablecoinsYieldLeverage,
+          cryptoRefScamsProviderVerification,
+          cryptoRefDecisionLab,
+        ],
+        // Same advisory-only contract as stocks_and_bonds's and
+        // deposits_and_pooled_funds's own recommendedPriorGroupIds above:
+        // investing_readiness is this course's recommended prerequisite
+        // (the readiness questions this course assumes), and
+        // stocks_and_bonds is optional recommended preparation (the
+        // ownership/lending distinction this course builds on when
+        // contrasting a crypto asset against a share). Neither is a lock;
+        // lessonsForPath returns every lesson regardless of any other
+        // group's progress. This course never promotes crypto ownership,
+        // so it deliberately never recommends deposits_and_pooled_funds:
+        // that course is about choosing a product, this one is about
+        // recognizing risk, and the two are not a natural sequence.
+        recommendedPriorGroupIds: ['investing_readiness', 'stocks_and_bonds'],
+      ),
     ],
     // Advisory only, per LearningPath.prerequisiteLessonIds's own contract:
     // nothing here blocks the path, a catalog screen just shows these as
@@ -119,6 +147,7 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...growYourMoneyLessons,
     ...stocksAndBondsLessons,
     ...depositsAndPooledFundsLessons,
+    ...cryptoWithoutHypeLessons,
   ],
   _ => const [],
 };
@@ -134,6 +163,7 @@ MoneyLessonWithPath? expansionLessonById(String id) {
     ...growYourMoneyLessons,
     ...stocksAndBondsLessons,
     ...depositsAndPooledFundsLessons,
+    ...cryptoWithoutHypeLessons,
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'grow_your_money', lesson: lesson);
