@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.42 \u00b7 Settings rebuilt as real screens, RN style.';
+    'f3.43 \u00b7 Insights: the Bigger Picture cards stay open now.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
