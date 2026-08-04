@@ -64,6 +64,14 @@ void main() {
     await tester.pumpAndSettle();
     await openMenu(tester);
 
+    // SECURITY starts collapsed (CollapsibleSection, initiallyExpanded:
+    // false): expand it before the widget privacy card inside is reachable.
+    final security = find.text('SECURITY');
+    await tester.scrollUntilVisible(security, 300);
+    await tester.pumpAndSettle();
+    await tester.tap(security);
+    await tester.pumpAndSettle();
+
     final row = find.text('Hide the amount on the home screen');
     await tester.scrollUntilVisible(row, 300);
     await tester.pumpAndSettle();

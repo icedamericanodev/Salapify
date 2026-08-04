@@ -181,15 +181,7 @@ void main() {
     // The lower cards live below the test viewport fold: scroll to each. Safe
     // to spend joined them once the WHAT MATTERS NOW summary was added above
     // DO NEXT; it still renders, just a scroll down now.
-    for (final label in [
-      'SAFE TO SPEND UNTIL PAYDAY',
-      'MONEY HEALTH',
-      'LAST 6 MONTHS',
-      'Income',
-      'Spending',
-      // Only the current month has spending: runway has no honest number.
-      'Not enough history yet',
-    ]) {
+    Future<void> scrollTo(String label) async {
       await tester.scrollUntilVisible(
         find.text(label),
         200,
@@ -197,6 +189,27 @@ void main() {
       );
       expect(find.text(label), findsOneWidget, reason: label);
     }
+
+    await scrollTo('SAFE TO SPEND UNTIL PAYDAY');
+
+    // MONEY HEALTH, LAST 6 MONTHS, and EMERGENCY RUNWAY moved into
+    // CollapsibleCard headers ("Your money health score", "Income and
+    // expenses, last 6 months", "Emergency runway") and start collapsed;
+    // the chart labels and runway text checked below live inside, so each
+    // gets tapped open before its own inner content is checked.
+    await scrollTo('Your money health score');
+
+    await scrollTo('Income and expenses, last 6 months');
+    await tester.tap(find.text('Income and expenses, last 6 months'));
+    await tester.pumpAndSettle();
+    await scrollTo('Income');
+    await scrollTo('Spending');
+
+    await scrollTo('Emergency runway');
+    await tester.tap(find.text('Emergency runway'));
+    await tester.pumpAndSettle();
+    // Only the current month has spending: runway has no honest number.
+    await scrollTo('Not enough history yet');
 
     // Tapping the utang decision jumps to the Utang tab.
     await tester.scrollUntilVisible(
@@ -466,11 +479,16 @@ void main() {
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
+    // Moved into a CollapsibleCard header ("How much of your salary is
+    // spoken for") and starts collapsed; tap it open before checking the
+    // percent and support text inside.
     await tester.scrollUntilVisible(
-      find.text('SPOKEN FOR EACH MONTH'),
+      find.text('How much of your salary is spoken for'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.text('How much of your salary is spoken for'));
+    await tester.pumpAndSettle();
     expect(find.text('25%'), findsOneWidget);
     expect(find.textContaining('everything else'), findsOneWidget);
   });
@@ -526,10 +544,12 @@ void main() {
     // total rather than a garbage percent.
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(
-      find.text('SPOKEN FOR EACH MONTH'),
+      find.text('How much of your salary is spoken for'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.text('How much of your salary is spoken for'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
   });
 

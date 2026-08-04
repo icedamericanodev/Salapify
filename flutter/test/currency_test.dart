@@ -23,12 +23,14 @@ void main() {
   tearDown(() => resolveBaseCurrency(null));
 
   group('resolveBaseCurrency', () {
-    test('defaults to the peso, bit-identical to before the setting existed',
-        () {
-      resolveBaseCurrency(null);
-      expect(formatMoney(1234.5), '₱1,234.50');
-      expect(formatMoneyText(-1234), '-₱1,234');
-    });
+    test(
+      'defaults to the peso, bit-identical to before the setting existed',
+      () {
+        resolveBaseCurrency(null);
+        expect(formatMoney(1234.5), '₱1,234.50');
+        expect(formatMoneyText(-1234), '-₱1,234');
+      },
+    );
 
     test('the symbol key wins, the RN precedence', () {
       resolveBaseCurrency({'currency': r'$', 'currencyCode': 'USD'});
@@ -75,6 +77,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await openMenu(tester);
+    // PERSONALIZE starts collapsed (CollapsibleSection, initiallyExpanded:
+    // false): expand it before the Currency row inside is reachable.
+    final personalize = find.text('PERSONALIZE');
+    await scrollTo(tester, personalize, scope: find.byType(MenuScreen));
+    await tester.tap(personalize);
+    await tester.pumpAndSettle();
     final row = find.text('Currency');
     await scrollTo(tester, row, scope: find.byType(MenuScreen));
     await tester.tap(row);
@@ -118,7 +126,8 @@ void main() {
     expect(
       formatMoney(5000),
       r'S$5,000',
-      reason: 'The sanitizer must carry the RN currency keys through a '
+      reason:
+          'The sanitizer must carry the RN currency keys through a '
           'reload; losing them silently reverts a chosen sign.',
     );
   });

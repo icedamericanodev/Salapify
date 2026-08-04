@@ -200,70 +200,95 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Kicker('HELPERS'),
-              const SizedBox(height: Gap.md),
-              NavTileGrid(
-                tiles: [
-                  NavTile(
-                    icon: 'tools',
-                    label: 'Tools',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ToolsScreen(store: store, onSwitchTab: onSwitchTab),
+              // Still primary navigation (Tools, Treats, the two share
+              // screens), so it defaults OPEN: a first-time visitor should
+              // never open Menu and find a destination hidden. Only
+              // REMINDERS, SECURITY, PERSONALIZE, and YOUR NAME below
+              // default closed, since those are set-once settings rather
+              // than places someone navigates through daily.
+              CollapsibleSection(
+                title: 'HELPERS',
+                child: NavTileGrid(
+                  tiles: [
+                    NavTile(
+                      icon: 'tools',
+                      label: 'Tools',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ToolsScreen(
+                            store: store,
+                            onSwitchTab: onSwitchTab,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  NavTile(
-                    icon: 'gift',
-                    label: 'Earn your treats',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TreatsScreen(store: store),
+                    NavTile(
+                      icon: 'gift',
+                      label: 'Earn your treats',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => TreatsScreen(store: store),
+                        ),
                       ),
                     ),
-                  ),
-                  NavTile(
-                    icon: 'share',
-                    label: 'Share your month',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RecapShareScreen(store: store),
+                    NavTile(
+                      icon: 'share',
+                      label: 'Share your month',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RecapShareScreen(store: store),
+                        ),
                       ),
                     ),
-                  ),
-                  NavTile(
-                    icon: 'celebrate',
-                    label: 'Share a win',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => MilestoneShareScreen(store: store),
+                    NavTile(
+                      icon: 'celebrate',
+                      label: 'Share a win',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => MilestoneShareScreen(store: store),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
-                Kicker('PERSONALIZE'),
-                const SizedBox(height: 8),
-                _appearanceRow(context),
-                const SizedBox(height: 8),
-                _currencyRow(context),
+                CollapsibleSection(
+                  title: 'PERSONALIZE',
+                  initiallyExpanded: false,
+                  child: Column(
+                    children: [
+                      _appearanceRow(context),
+                      const SizedBox(height: 8),
+                      _currencyRow(context),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 20),
-                Kicker('YOUR NAME'),
-                const SizedBox(height: 8),
-                _nameCard(context),
+                CollapsibleSection(
+                  title: 'YOUR NAME',
+                  initiallyExpanded: false,
+                  child: _nameCard(context),
+                ),
                 const SizedBox(height: 20),
-                Kicker('REMINDERS'),
-                const SizedBox(height: 8),
-                _remindersCard(context),
+                CollapsibleSection(
+                  title: 'REMINDERS',
+                  initiallyExpanded: false,
+                  child: _remindersCard(context),
+                ),
                 const SizedBox(height: 20),
-                Kicker('SECURITY'),
-                const SizedBox(height: 8),
-                _appLockCard(context),
-                const SizedBox(height: 12),
-                _widgetPrivacyCard(context),
+                CollapsibleSection(
+                  title: 'SECURITY',
+                  initiallyExpanded: false,
+                  child: Column(
+                    children: [
+                      _appLockCard(context),
+                      const SizedBox(height: 12),
+                      _widgetPrivacyCard(context),
+                    ],
+                  ),
+                ),
               ],
               // Deliberately OUTSIDE the canWrite block. This screen is read
               // only and touches no user data, and a user whose stored data
