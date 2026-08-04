@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.37 \u00b7 Grow Your Money: one clear disclaimer, not fictional everywhere.';
+    'f3.38 \u00b7 Grow Your Money adds Crypto Without the Hype.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

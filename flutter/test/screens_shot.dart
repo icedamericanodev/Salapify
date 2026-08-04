@@ -40,6 +40,7 @@ import 'package:salapify/screens/insights.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
+import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -609,6 +610,18 @@ void main() {
       pathId: 'grow_your_money',
       lesson: depositsAndPooledFundsLessons.firstWhere(
         (l) => l.id == dpReadAFactSheet,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 8: "Volatility and Possible Total Loss", the
+    // lesson carrying the loss-impact simulator (LossImpactSimulatorBlock),
+    // the most novel new widget this course adds: a user-chosen fictional
+    // amount, a 30/60/100 percent loss scenario, transparent arithmetic,
+    // never a forecast.
+    'crypto-volatility-total-loss': (s) => ExpansionLessonReader(
+      pathId: 'grow_your_money',
+      lesson: cryptoWithoutHypeLessons.firstWhere(
+        (l) => l.id == cryptoRefVolatilityTotalLoss,
       ),
       store: s,
     ),

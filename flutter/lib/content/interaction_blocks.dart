@@ -610,3 +610,163 @@ class ReflectionPromptBlock extends InteractionBlock {
   /// A skip control is offered exactly when the reflection is not required.
   bool get isSkippable => !requiredForCompletion;
 }
+
+// ---------------------------------------------------------------------------
+// 10. Loss-impact simulator
+// ---------------------------------------------------------------------------
+
+/// One fictional starting amount a learner can pick inside a
+/// [LossImpactSimulatorBlock], in whole pesos.
+class LossImpactAmountOption {
+  final String id;
+  final int amountPhp;
+  final String label;
+
+  const LossImpactAmountOption({
+    required this.id,
+    required this.amountPhp,
+    required this.label,
+  });
+}
+
+/// A deterministic, transparent-arithmetic portfolio-shock illustration:
+/// choose a fictional starting amount, choose a loss scenario, see the
+/// amount lost and the amount remaining. Added for Money Courses Phase 8
+/// ("Crypto Without the Hype"), Lesson 2 ("Volatility and Possible Total
+/// Loss"), and generic enough to reuse anywhere a course needs the same
+/// shape of illustration.
+///
+/// Every number shown is computed live by
+/// money/portfolio_shock_illustration.dart's portfolioShockImpact, basic
+/// arithmetic only, never a forecast: this block carries no return
+/// assumption, no compounding, and no claim that any one loss percentage is
+/// likely. Selections are local widget state only, the same "never a stored
+/// financial-risk profile" rule [ReadinessCardBlock] follows; nothing here
+/// is persisted or backed up.
+class LossImpactSimulatorBlock extends InteractionBlock {
+  @override
+  final String blockId;
+  final String simulatorTitle;
+
+  /// Shown above the two choice rows, framing what this illustrates and
+  /// what it does not.
+  final String introduction;
+
+  /// Two or more fictional amounts to choose from.
+  final List<LossImpactAmountOption> amountOptions;
+
+  /// Loss scenarios offered, as whole-number percentages. This course always
+  /// passes [30, 60, 100]; kept as a field, not hardcoded, so the block
+  /// stays reusable for a different set of scenarios elsewhere.
+  final List<int> lossPercentOptions;
+
+  @override
+  final bool requiredForCompletion;
+
+  const LossImpactSimulatorBlock({
+    required this.blockId,
+    required this.simulatorTitle,
+    required this.introduction,
+    required this.amountOptions,
+    this.lossPercentOptions = const [30, 60, 100],
+    this.requiredForCompletion = false,
+  });
+
+  @override
+  String get prompt => simulatorTitle;
+
+  @override
+  String get instructions =>
+      'Choose a fictional amount and a loss scenario to see the arithmetic.';
+
+  /// At least two amount options and at least one loss scenario. See
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter rather than a
+  /// constructor assert.
+  bool get isValid =>
+      amountOptions.length >= 2 && lossPercentOptions.isNotEmpty;
+}
+
+// ---------------------------------------------------------------------------
+// 11. Risk-review checklist (a checklist whose live progress folds into a
+// three-tier summary, never an eligibility label)
+// ---------------------------------------------------------------------------
+
+/// A checklist (reusing [ChecklistItemDef], the same items [ChecklistBlock]
+/// authors) whose live checked count folds into one of three configurable
+/// summary strings, ordered from earliest to most complete. Added for Money
+/// Courses Phase 8 ("Crypto Without the Hype"), Lesson 6 ("The Crypto
+/// Decision Lab"): a plain progress description, deliberately never one of
+/// the banned eligibility words (ready, suitable, approved, qualified, safe
+/// to invest), and never a recommendation to buy anything.
+///
+/// [items] is read as two ordered groups: the first [foundationCount] items
+/// are the foundational checks (money already handled, before crypto enters
+/// the picture at all); the rest are this course's own risk-understanding
+/// checks. [summaryFor] never averages the two groups into one count: it
+/// asks foundation first, exactly like [LessonSourceInfo]-style prerequisite
+/// framing elsewhere in this course, so a learner who has not covered the
+/// foundation sees that named specifically rather than a vague "some things
+/// left".
+class RiskReviewChecklistBlock extends InteractionBlock {
+  @override
+  final String blockId;
+  final String checklistPrompt;
+  final List<ChecklistItemDef> items;
+
+  /// How many leading [items] belong to the foundational group. Must be
+  /// strictly between 0 and [items.length] for [isValid] to hold, so both
+  /// groups are non-empty.
+  final int foundationCount;
+
+  /// Shown while at least one foundational item is still unchecked.
+  final String foundationSummary;
+
+  /// Shown once every foundational item is checked but at least one
+  /// remaining item is not.
+  final String partialSummary;
+
+  /// Shown once every item is checked.
+  final String completeSummary;
+
+  @override
+  final bool requiredForCompletion;
+
+  const RiskReviewChecklistBlock({
+    required this.blockId,
+    required this.checklistPrompt,
+    required this.items,
+    required this.foundationCount,
+    required this.foundationSummary,
+    required this.partialSummary,
+    required this.completeSummary,
+    this.requiredForCompletion = false,
+  });
+
+  @override
+  String get prompt => checklistPrompt;
+
+  @override
+  String get instructions =>
+      'Check off each item, honestly, as it applies right now.';
+
+  /// The ids of the foundational group, in order.
+  List<String> get foundationItemIds =>
+      items.take(foundationCount).map((i) => i.id).toList();
+
+  /// The summary for a given set of checked item ids. Pure and stateless, so
+  /// a test can call this directly without building the widget.
+  String summaryFor(Set<String> checkedIds) {
+    final allIds = items.map((i) => i.id).toSet();
+    if (!foundationItemIds.every(checkedIds.contains)) {
+      return foundationSummary;
+    }
+    if (!allIds.every(checkedIds.contains)) return partialSummary;
+    return completeSummary;
+  }
+
+  /// At least one item in each group (see [foundationCount] above). See
+  /// [ScenarioChoiceBlock.isValid] for why this is a getter rather than a
+  /// constructor assert.
+  bool get isValid =>
+      items.isNotEmpty && foundationCount > 0 && foundationCount < items.length;
+}

@@ -25,6 +25,8 @@ import '../content/interaction_blocks.dart';
 import '../content/lesson_blocks.dart'
     show OfficialSourceBlock, RiskWarningBlock;
 import '../content/lesson_model.dart' show LessonSourceInfo;
+import '../money/format.dart' show formatMoney;
+import '../money/portfolio_shock_illustration.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'lesson_block_views.dart'
@@ -1662,6 +1664,420 @@ class _ReflectionPromptViewState extends State<ReflectionPromptView> {
 }
 
 // ---------------------------------------------------------------------------
+// 10. Loss-impact simulator
+// ---------------------------------------------------------------------------
+
+/// A tappable pill, shared by the amount and loss-scenario rows below.
+/// Deliberately a plain toggle (not a radio pair, not a checkbox): each row
+/// is its own independent choose-one group, and the pill shape reads as "pick
+/// one of these" the same way [_bucketChip] in the categorize block already
+/// does, without borrowing that block's own private widget.
+class _SimulatorChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SimulatorChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    label: label,
+    child: ExcludeSemantics(
+      child: PressableScale(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: selected ? Barako.primary : Barako.border,
+                    width: selected ? 1.4 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  color: selected
+                      ? Barako.primary.withValues(alpha: 0.08)
+                      : null,
+                ),
+                child: Text(
+                  label,
+                  style: AppText.small.w7.tint(
+                    selected ? Barako.primaryText : Barako.text,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class LossImpactSimulatorView extends StatefulWidget {
+  final LossImpactSimulatorBlock block;
+  final void Function(String blockId) onComplete;
+
+  const LossImpactSimulatorView(
+    this.block, {
+    super.key,
+    required this.onComplete,
+  });
+
+  @override
+  State<LossImpactSimulatorView> createState() =>
+      _LossImpactSimulatorViewState();
+}
+
+class _LossImpactSimulatorViewState extends State<LossImpactSimulatorView> {
+  String? _amountId;
+  int? _lossPercent;
+  bool _fired = false;
+
+  void _pickAmount(String id) {
+    setState(() => _amountId = id);
+    _maybeComplete();
+  }
+
+  void _pickLoss(int percent) {
+    setState(() => _lossPercent = percent);
+    _maybeComplete();
+  }
+
+  // Completion is choosing one of each, not getting anything "right": there
+  // is no correct scenario here, only arithmetic. Once fired, changing a
+  // selection just recomputes the illustration in place; it never un-fires,
+  // the same one-way completion ScenarioChoiceView and MythOrFactView use
+  // once a first answer locks in.
+  void _maybeComplete() {
+    if (_amountId != null && _lossPercent != null && !_fired) {
+      _fired = true;
+      widget.onComplete(widget.block.blockId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    final selectedAmount = _amountId == null
+        ? null
+        : block.amountOptions.firstWhere((a) => a.id == _amountId);
+    final lossPercent = _lossPercent;
+    final result = (selectedAmount != null && lossPercent != null)
+        ? portfolioShockImpact(
+            PortfolioShockAssumptions(
+              startingAmountPhp: selectedAmount.amountPhp,
+              lossPercent: lossPercent,
+            ),
+          )
+        : null;
+    return _InteractionCard(
+      kicker: 'ILLUSTRATION',
+      prompt: block.simulatorTitle,
+      instructions: block.instructions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(block.introduction, style: AppText.body.copyWith(height: 1.5)),
+          const SizedBox(height: 14),
+          Text('FICTIONAL STARTING AMOUNT', style: Barako.kickerStyle),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final a in block.amountOptions)
+                _SimulatorChip(
+                  label: a.label,
+                  selected: _amountId == a.id,
+                  onTap: () => _pickAmount(a.id),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'LOSS SCENARIO, AN ILLUSTRATION ONLY',
+            style: Barako.kickerStyle,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final p in block.lossPercentOptions)
+                _SimulatorChip(
+                  label: '$p percent',
+                  selected: _lossPercent == p,
+                  onTap: () => _pickLoss(p),
+                ),
+            ],
+          ),
+          if (selectedAmount != null &&
+              lossPercent != null &&
+              result != null) ...[
+            const SizedBox(height: 14),
+            RiseIn(
+              child: _simulatorResult(selectedAmount, lossPercent, result),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _simulatorResult(
+    LossImpactAmountOption amount,
+    int lossPercent,
+    PortfolioShockResult result,
+  ) => Semantics(
+    liveRegion: true,
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Barako.surfaceRaised,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'If ${amount.label} fell by $lossPercent percent, an illustration only',
+            style: AppText.bodyStrong.copyWith(height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Amount lost: ${formatMoney(result.amountLostPhp)}',
+            style: AppText.label.w7,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Amount remaining: ${formatMoney(result.amountRemainingPhp)}',
+            style: AppText.label.w7,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This is basic arithmetic on a fictional amount, not a forecast '
+            'and not a claim that this loss is likely. It stays on this '
+            'screen only and is never saved, backed up, or sent anywhere.',
+            style: AppText.caption.copyWith(height: 1.4),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 11. Risk-review checklist
+// ---------------------------------------------------------------------------
+
+class RiskReviewChecklistView extends StatefulWidget {
+  final RiskReviewChecklistBlock block;
+  final void Function(String blockId) onComplete;
+  final void Function(String blockId)? onReset;
+
+  const RiskReviewChecklistView(
+    this.block, {
+    super.key,
+    required this.onComplete,
+    this.onReset,
+  });
+
+  @override
+  State<RiskReviewChecklistView> createState() =>
+      _RiskReviewChecklistViewState();
+}
+
+class _RiskReviewChecklistViewState extends State<RiskReviewChecklistView> {
+  final Set<String> _checked = {};
+  bool _fired = false;
+
+  void _evaluate() {
+    final done = _checked.length == widget.block.items.length;
+    if (done && !_fired) {
+      _fired = true;
+      widget.onComplete(widget.block.blockId);
+    } else if (!done && _fired) {
+      _fired = false;
+      widget.onReset?.call(widget.block.blockId);
+    }
+  }
+
+  void _toggle(String id) {
+    setState(() {
+      if (!_checked.remove(id)) _checked.add(id);
+    });
+    _evaluate();
+  }
+
+  void _reset() {
+    setState(() => _checked.clear());
+    if (_fired) {
+      _fired = false;
+      widget.onReset?.call(widget.block.blockId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final block = widget.block;
+    final summary = block.summaryFor(_checked);
+    return _InteractionCard(
+      kicker: 'RISK REVIEW',
+      prompt: block.checklistPrompt,
+      instructions: block.instructions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in block.items) ...[
+            _row(item),
+            const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 6),
+          RiseIn(child: _summaryCard(summary)),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _reset,
+            icon: Icon(salapifyIcon('startOver'), size: 16),
+            label: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(ChecklistItemDef item) {
+    final checked = _checked.contains(item.id);
+    final explanation = (item.explanation ?? '').trim();
+    final semanticLabel = [
+      item.label,
+      if (explanation.isNotEmpty) explanation,
+    ].join(', ');
+    return Semantics(
+      checked: checked,
+      label: semanticLabel,
+      child: ExcludeSemantics(
+        child: PressableScale(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _toggle(item.id),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        checked
+                            ? salapifyIcon('checked')
+                            : salapifyIcon('unchecked'),
+                        size: 20,
+                        color: checked ? Barako.primary : Barako.faint,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.label,
+                              style: AppText.label.copyWith(height: 1.4),
+                            ),
+                            if (explanation.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(explanation, style: AppText.small),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryCard(String summary) {
+    final complete = summary == widget.block.completeSummary;
+    final foundation = summary == widget.block.foundationSummary;
+    final accent = complete
+        ? Barako.primary
+        : (foundation ? Barako.caramel : Barako.muted);
+    final icon = complete
+        ? salapifyIcon('check')
+        : (foundation ? salapifyIcon('warning') : salapifyIcon('help'));
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Barako.surfaceRaised,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 18, color: accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      summary,
+                      style: AppText.bodyStrong.copyWith(color: accent),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'This checklist is your own private review, not a result, '
+              'label, or approval. It never recommends buying anything, it '
+              'stays on this screen only, and it is never saved, backed up, '
+              'or sent anywhere.',
+              style: AppText.caption.copyWith(height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher.
 // ---------------------------------------------------------------------------
 
@@ -1748,6 +2164,17 @@ Widget viewForInteractionBlock(
       onComplete: onComplete,
       resolveRoute: resolveSalapifyRoute ?? (_) => null,
       onAnyActionConfirmed: onAnySalapifyActionConfirmed ?? () {},
+    ),
+    LossImpactSimulatorBlock() => LossImpactSimulatorView(
+      block,
+      key: key,
+      onComplete: onComplete,
+    ),
+    RiskReviewChecklistBlock() => RiskReviewChecklistView(
+      block,
+      key: key,
+      onComplete: onComplete,
+      onReset: onReset,
     ),
   };
 }
