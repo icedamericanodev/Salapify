@@ -14,7 +14,6 @@ import '../money/greeting.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
 import '../typography.dart';
-import '../widgets/lock_gate.dart' show BiometricAuthenticator;
 import '../widgets/section.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/pan_mood.dart';
@@ -30,6 +29,7 @@ import 'csv_import.dart';
 import 'goals.dart';
 import 'milestone_share.dart';
 import 'new_phone_day.dart';
+import 'notifications_security.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
 import 'paluwagan.dart';
 import 'pan.dart';
@@ -200,95 +200,75 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              // Still primary navigation (Tools, Treats, the two share
-              // screens), so it defaults OPEN: a first-time visitor should
-              // never open Menu and find a destination hidden. Only
-              // REMINDERS, SECURITY, PERSONALIZE, and YOUR NAME below
-              // default closed, since those are set-once settings rather
-              // than places someone navigates through daily.
-              CollapsibleSection(
-                title: 'HELPERS',
-                child: NavTileGrid(
-                  tiles: [
-                    NavTile(
-                      icon: 'tools',
-                      label: 'Tools',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ToolsScreen(
-                            store: store,
-                            onSwitchTab: onSwitchTab,
-                          ),
-                        ),
+              Kicker('HELPERS'),
+              const SizedBox(height: Gap.md),
+              NavTileGrid(
+                tiles: [
+                  NavTile(
+                    icon: 'tools',
+                    label: 'Tools',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ToolsScreen(store: store, onSwitchTab: onSwitchTab),
                       ),
                     ),
-                    NavTile(
-                      icon: 'gift',
-                      label: 'Earn your treats',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => TreatsScreen(store: store),
-                        ),
+                  ),
+                  NavTile(
+                    icon: 'gift',
+                    label: 'Earn your treats',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TreatsScreen(store: store),
                       ),
                     ),
-                    NavTile(
-                      icon: 'share',
-                      label: 'Share your month',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => RecapShareScreen(store: store),
-                        ),
+                  ),
+                  NavTile(
+                    icon: 'share',
+                    label: 'Share your month',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecapShareScreen(store: store),
                       ),
                     ),
-                    NavTile(
-                      icon: 'celebrate',
-                      label: 'Share a win',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => MilestoneShareScreen(store: store),
-                        ),
+                  ),
+                  NavTile(
+                    icon: 'celebrate',
+                    label: 'Share a win',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MilestoneShareScreen(store: store),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              // SETTINGS: adapted from the RN app's own More tab (app/(tabs)/
+              // more.js), which already solved this exact problem once. Each
+              // row is short, single purpose, and pushes its own destination
+              // rather than expanding in place, reusing _navRow, the same
+              // "boxed row plus a chevron" language every other Menu
+              // destination already uses (Privacy receipt, Diagnostics, New
+              // phone day). A prior CollapsibleSection-based attempt at
+              // this (in-place accordion sections for Personalize, Your
+              // name, Reminders, Security) read as flat, non-tappable
+              // labels no matter how it was styled, because the founder's
+              // real complaint was never about visual affordance, it was
+              // that this content was hiding inline at all. Splitting
+              // Notifications and security into its own screen also let
+              // that whole card move out of this file into
+              // notifications_security.dart.
               if (store.canWrite) ...[
                 const SizedBox(height: 20),
-                CollapsibleSection(
-                  title: 'PERSONALIZE',
-                  initiallyExpanded: false,
-                  child: Column(
-                    children: [
-                      _appearanceRow(context),
-                      const SizedBox(height: 8),
-                      _currencyRow(context),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                CollapsibleSection(
-                  title: 'YOUR NAME',
-                  initiallyExpanded: false,
-                  child: _nameCard(context),
-                ),
-                const SizedBox(height: 20),
-                CollapsibleSection(
-                  title: 'REMINDERS',
-                  initiallyExpanded: false,
-                  child: _remindersCard(context),
-                ),
-                const SizedBox(height: 20),
-                CollapsibleSection(
-                  title: 'SECURITY',
-                  initiallyExpanded: false,
-                  child: Column(
-                    children: [
-                      _appLockCard(context),
-                      const SizedBox(height: 12),
-                      _widgetPrivacyCard(context),
-                    ],
-                  ),
-                ),
+                Kicker('SETTINGS'),
+                const SizedBox(height: 8),
+                _appearanceRow(context),
+                const SizedBox(height: 12),
+                _currencyRow(context),
+                const SizedBox(height: 12),
+                _nameRow(context),
+                const SizedBox(height: 12),
+                _notificationsSecurityRow(context),
               ],
               // Deliberately OUTSIDE the canWrite block. This screen is read
               // only and touches no user data, and a user whose stored data
@@ -573,203 +553,19 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _remindersCard(BuildContext context) {
-    Future<void> toggle(String key, bool value) async {
-      final messenger = ScaffoldMessenger.of(context);
-      // Turning a reminder on needs the phone's notification permission. If it
-      // is refused, leave the switch off and point at settings.
-      if (value && !await Reminders.requestPermission()) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Allow notifications for Salapify in your phone settings, then try again.',
-            ),
-          ),
-        );
-        return;
-      }
-      try {
-        await store.setNotifPref(key, value);
-        await Reminders.reschedule(store.data, DateTime.now());
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Could not save that, nothing changed. $e')),
-        );
-      }
-    }
-
-    // Detailed reminders are a separate, opt-in choice: whether a reminder may
-    // name the debt or person and the amount. Off by default. On reveals detail
-    // only in the unlocked shade, never on the lock screen. Reschedule after so
-    // already-queued reminders are rebuilt at the new detail level.
-    Future<void> toggleDetail(bool value) async {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        await store.setNotifDetailed(value);
-        await Reminders.reschedule(store.data, DateTime.now());
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Could not save that, nothing changed. $e')),
-        );
-      }
-    }
-
-    // Collapsible per _ReminderRow below; the MergeSemantics/screen-reader
-    // contract described there is unchanged.
-    Widget row(String key, IconData icon, String title, String subtitle) =>
-        _ReminderRow(
-          icon: icon,
-          title: title,
-          subtitle: subtitle,
-          value: store.notifOn(key),
-          onChanged: (v) => toggle(key, v),
-        );
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Gentle nudges on your phone, nothing sent anywhere. Pick the ones that help.',
-              style: AppText.caption,
-            ),
-            const SizedBox(height: 14),
-            row(
-              'daily',
-              salapifyIcon('editDate'),
-              'Log reminder',
-              'An evening nudge to log, skipped once you already did.',
-            ),
-            const Divider(height: 24),
-            row(
-              'payday',
-              salapifyIcon('cash'),
-              'Payday',
-              'A morning ping on payday to plan the money before it goes.',
-            ),
-            const Divider(height: 24),
-            row(
-              'bills',
-              salapifyIcon('card'),
-              'Bills due',
-              'A heads up before a card or loan is due, so no late fees.',
-            ),
-            const Divider(height: 24),
-            row(
-              'lookahead',
-              salapifyIcon('stats'),
-              'Cash flow heads up',
-              'One evening warning when the plan ahead looks tight, so a '
-                  'squeeze is never a surprise.',
-            ),
-            const Divider(height: 24),
-            row(
-              'collect',
-              salapifyIcon('handshake'),
-              'Money to collect',
-              'A reminder when someone owes you and it is due.',
-            ),
-            const Divider(height: 24),
-            row(
-              'backup',
-              salapifyIcon('save'),
-              'Monthly backup',
-              'A nudge on the 1st to save a fresh backup file, so a lost '
-                  'phone is an errand, not a disaster.',
-            ),
-            const Divider(height: 24),
-            row(
-              'goals',
-              salapifyIcon('goal'),
-              'Goal check-in',
-              'A gentle monthly nudge for the goals you are saving toward. '
-                  'Whatever fits is enough.',
-            ),
-            const Divider(height: 24),
-            row(
-              'waiting',
-              salapifyIcon('waiting'),
-              'Paused purchase check-ins',
-              'A ping when the 24 hours are up on something you paused in '
-                  'Money mindset, so a paused decision is never forgotten.',
-            ),
-            const Divider(height: 24),
-            row(
-              'comeback',
-              salapifyIcon('greeting'),
-              'Come back',
-              'A gentle nudge to return if you have been away a while. Never '
-                  'fires while you are still opening the app.',
-            ),
-            const Divider(height: 24),
-            _ReminderRow(
-              icon: salapifyIcon('locked'),
-              title: 'Show names and amounts',
-              subtitle:
-                  'Off by default. Reminders stay generic on your lock '
-                  'screen. Turn on to include the name and amount, kept '
-                  'off your lock screen and shown in the shade after you '
-                  'unlock.',
-              value: store.notifDetailed,
-              onChanged: toggleDetail,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Set, change, or remove the greeting name.
-  ///
-  /// This row is what makes the Home ask genuinely skippable. Without it the
-  /// only chance to give a name would be the welcome card, which disappears
-  /// the moment there is any data, so skipping once would mean never being
-  /// able to change your mind. Removing has to be as easy as setting: it is
-  /// the one field here that is purely about how the app addresses a person.
-  Widget _nameCard(BuildContext context) {
+  /// One row, matching the RN app's own Settings screen shape: a title, the
+  /// current name (or "Not set") as the blurb, tap opens the same edit
+  /// dialog. Removing used to be a separate always-visible button next to
+  /// Set/Change; it is now inside that dialog (see _editName), reachable
+  /// only once a name exists to remove, so this one row can carry set,
+  /// change, AND remove without three competing controls stacked inline.
+  Widget _nameRow(BuildContext context) {
     final current = store.displayName;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        // The text gets the full width and the actions sit beneath it. Side by
-        // side, two buttons squeezed the blurb into a narrow column that wrapped
-        // across three ragged lines, which was obvious the moment it was
-        // rendered and invisible in the code.
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              current ?? 'Not set',
-              style: AppText.body.w7.tint(
-                current == null ? Barako.muted : Barako.text,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'How Pan greets you on Home. It never leaves this phone.',
-              style: AppText.caption,
-            ),
-            const SizedBox(height: Gap.sm),
-            Row(
-              children: [
-                if (current != null) ...[
-                  TextButton(
-                    onPressed: () => store.setDisplayName(null),
-                    child: const Text('Remove'),
-                  ),
-                  const SizedBox(width: Gap.sm),
-                ],
-                TextButton(
-                  onPressed: () => _editName(context, current),
-                  child: Text(current == null ? 'Set' : 'Change'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return _navRow(
+      icon: salapifyIcon('greeting'),
+      title: 'Your name',
+      blurb: current ?? 'Not set. How Pan greets you on Home.',
+      onTap: () => _editName(context, current),
     );
   }
 
@@ -800,6 +596,16 @@ class MenuScreen extends StatelessWidget {
           onFieldSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
+          // Only offered once a name exists to remove: an always-visible
+          // Remove button on an empty name would just be a second Cancel.
+          if (current != null)
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                store.setDisplayName(null);
+              },
+              child: const Text('Remove'),
+            ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
@@ -811,148 +617,27 @@ class MenuScreen extends StatelessWidget {
         ],
       ),
     );
-    // A cancel returns null and must change nothing. Clearing is done with
-    // Remove, deliberately, so an accidental Save on an emptied field cannot
-    // silently wipe a name the user meant to keep.
+    // A cancel (or a Remove, which pops with no result) returns null and
+    // must change nothing further here; Remove already applied itself
+    // directly above, before the dialog closed.
     if (result == null) return;
     if (normalizeDisplayName(result) == null) return;
     await store.setDisplayName(result);
   }
 
-  Widget _appLockCard(BuildContext context) {
-    final on = (store.data['settings'] as Map?)?['appLock'] == true;
-    Future<void> toggle(bool value) async {
-      final messenger = ScaffoldMessenger.of(context);
-      if (value) {
-        final auth = BiometricAuthenticator();
-        // Only turn it on when the phone can actually unlock it, so App lock
-        // never strands the owner behind a lock they cannot pass.
-        if (!await auth.canLock()) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Set up a fingerprint or face unlock on your phone first, then turn this on.',
-              ),
-            ),
-          );
-          return;
-        }
-        // Confirm the unlock works right now, so nobody enables a lock they
-        // cannot pass. A cancel leaves it off.
-        if (!await auth.authenticate()) return;
-      }
-      try {
-        await store.setAppLock(value);
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Could not save that, nothing changed. $e')),
-        );
-      }
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        // Same MergeSemantics rule as the reminder rows: the switch and its
-        // explanation are one control to a screen reader, not a mystery
-        // toggle next to some text.
-        child: MergeSemantics(
-          child: Row(
-            children: [
-              Icon(salapifyIcon('biometric'), color: Barako.primary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('App lock', style: AppText.body.w7),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Ask for your fingerprint or face to open Salapify. Your '
-                      'money stays private if someone else picks up your phone.',
-                      style: AppText.caption,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: on,
-                onChanged: toggle,
-                activeThumbColor: Barako.onPrimary,
-                activeTrackColor: Barako.primary,
-                inactiveThumbColor: Barako.faint,
-                inactiveTrackColor: Barako.border,
-              ),
-            ],
-          ),
-        ),
+  /// Reminders and the two lock/privacy switches moved to their own screen
+  /// (notifications_security.dart), adapted from the RN app's own
+  /// app/notifications.js: this row is all that is left here.
+  Widget _notificationsSecurityRow(BuildContext context) => _navRow(
+    icon: salapifyIcon('notifications'),
+    title: 'Notifications and security',
+    blurb: 'Reminders, app lock, and what shows on your lock screen.',
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationsSecurityScreen(store: store),
       ),
-    );
-  }
-
-  /// The home screen tile's own privacy switch.
-  ///
-  /// It ships in the SAME release as the tile, never later, and that is a
-  /// deliberate ordering rather than a nicety. The founder installs the APK,
-  /// drags the tile onto the home screen, and their daily number is sitting
-  /// there in public BEFORE any follow up patch could offer an off switch.
-  /// That is not recoverable by shipping quickly afterwards.
-  Widget _widgetPrivacyCard(BuildContext context) {
-    final on = (store.data['settings'] as Map?)?['widgetHideAmount'] == true;
-    Future<void> toggle(bool value) async {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        await store.setWidgetHideAmount(value);
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Could not save that, nothing changed. $e')),
-        );
-      }
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: MergeSemantics(
-          child: Row(
-            children: [
-              Icon(salapifyIcon('hidden'), color: Barako.primary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hide the amount on the home screen',
-                      style: AppText.body.w7,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'The Salapify tile shows days to payday instead of pesos, '
-                      'so nobody reads your money over your shoulder. The Log '
-                      'button still works. App lock already does this on its '
-                      'own.',
-                      style: AppText.caption,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: on,
-                onChanged: toggle,
-                activeThumbColor: Barako.onPrimary,
-                activeTrackColor: Barako.primary,
-                inactiveThumbColor: Barako.faint,
-                inactiveTrackColor: Barako.border,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    ),
+  );
 
   Widget _exportCard(BuildContext context) {
     // Each export offers the two honest destinations: straight to the phone
@@ -1487,136 +1172,6 @@ class MenuScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// One reminder toggle: icon, title, switch, and an explanation that starts
-/// collapsed unless the reminder is already on. Tapping the title area, not
-/// the switch, expands or collapses the explanation; the switch is a
-/// separate hit target outside that tap area, so turning a reminder on or
-/// off never needs an extra tap first. Founder request, 2026-08-04: nine
-/// reminders each carrying a two-to-three line explanation made Reminders
-/// the longest scroll on the Menu screen.
-///
-/// `_expanded` seeds from the CURRENT switch value, not always false: a
-/// reminder someone already turned on is one they read and cared about
-/// once, and collapsing it by default on the exact screen where they would
-/// come back to reconsider it would be a small trust regression, even
-/// though the switch itself never moves out of reach either way.
-///
-/// Unlike `_CollapsibleTool` in insights.dart, the subtitle here is never
-/// conditionally built or removed with `if (_expanded)`. It stays mounted
-/// at all times and only animates to zero height (AnimatedSize around an
-/// Align with heightFactor). Building it conditionally would drop it from
-/// the widget tree, and the MergeSemantics below merges only what is
-/// currently in the tree into one announcement (title, subtitle, and
-/// switch state together): a screen-reader user would then hear the
-/// subtitle only while it happened to be visually expanded, silently
-/// reopening the exact unlabeled-switch gap the a11y sweep already fixed
-/// once for this row.
-class _ReminderRow extends StatefulWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _ReminderRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  State<_ReminderRow> createState() => _ReminderRowState();
-}
-
-class _ReminderRowState extends State<_ReminderRow> {
-  late bool _expanded = widget.value;
-
-  @override
-  Widget build(BuildContext context) {
-    return MergeSemantics(
-      child: Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => setState(() => _expanded = !_expanded),
-              child: Row(
-                children: [
-                  Icon(widget.icon, color: Barako.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                widget.title,
-                                style: AppText.label.w7,
-                              ),
-                            ),
-                            ExcludeSemantics(
-                              child: Icon(
-                                _expanded
-                                    ? salapifyIcon('collapse')
-                                    : salapifyIcon('expand'),
-                                size: 18,
-                                color: Barako.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 160),
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.topLeft,
-                          // ClipRect is load-bearing, not decoration: Align
-                          // shrinks its own layout box to heightFactor 0
-                          // but never clips its child, so without this the
-                          // subtitle keeps PAINTING at full size while
-                          // laying out as if it took no space, overlapping
-                          // the divider and the next row underneath it.
-                          // Caught by actually rendering a collapsed row,
-                          // not by reading the code.
-                          child: ClipRect(
-                            child: Align(
-                              alignment: Alignment.topLeft,
-                              heightFactor: _expanded ? 1 : 0,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  widget.subtitle,
-                                  style: AppText.caption,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Switch(
-            value: widget.value,
-            onChanged: widget.onChanged,
-            activeThumbColor: Barako.onPrimary,
-            activeTrackColor: Barako.primary,
-            inactiveThumbColor: Barako.faint,
-            inactiveTrackColor: Barako.border,
-          ),
-        ],
       ),
     );
   }

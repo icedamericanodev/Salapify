@@ -155,23 +155,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // YOUR NAME starts collapsed (CollapsibleSection, initiallyExpanded:
-      // false): tap the section header to reveal the card before looking
-      // for its button.
-      final header = find.text('YOUR NAME');
-      await tester.scrollUntilVisible(header, 300);
+      // "Your name" is a single row in the SETTINGS card now (menu.dart's
+      // _nameRow); tapping it opens the edit dialog directly, no separate
+      // Set/Change button and no section to expand first.
+      final row = find.text('Your name');
+      await tester.scrollUntilVisible(row, 300);
       await tester.pumpAndSettle();
-      await tester.tap(header);
-      await tester.pumpAndSettle();
-
-      // Scroll to the BUTTON, not to the label above it. The name card puts
-      // its actions on a line BELOW the text, so scrolling the label into view
-      // says nothing about whether the button came with it, and a taller
-      // section kicker was enough to leave it just off-screen.
-      final set = find.widgetWithText(TextButton, 'Set');
-      await tester.scrollUntilVisible(set, 300);
-      await tester.pumpAndSettle();
-      await tester.tap(set);
+      await tester.tap(row);
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).first, 'Ana');
@@ -194,15 +184,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final header = find.text('YOUR NAME');
-      await tester.scrollUntilVisible(header, 300);
+      // Tap the "Your name" row to open the edit dialog; Remove is one of
+      // its actions now (only offered once a name exists), not a separate
+      // always-visible button on the row itself.
+      final row = find.text('Your name');
+      await tester.scrollUntilVisible(row, 300);
       await tester.pumpAndSettle();
-      await tester.tap(header);
+      await tester.tap(row);
       await tester.pumpAndSettle();
 
       final remove = find.widgetWithText(TextButton, 'Remove');
-      await tester.scrollUntilVisible(remove, 300);
-      await tester.pumpAndSettle();
+      expect(remove, findsOneWidget);
       await tester.tap(remove);
       await tester.pumpAndSettle();
 
@@ -227,16 +219,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final header = find.text('YOUR NAME');
-      await tester.scrollUntilVisible(header, 300);
+      // Tapping the "Your name" row opens the edit dialog directly, name
+      // already filled in, no separate Change button.
+      final row = find.text('Your name');
+      await tester.scrollUntilVisible(row, 300);
       await tester.pumpAndSettle();
-      await tester.tap(header);
-      await tester.pumpAndSettle();
-
-      final change = find.widgetWithText(TextButton, 'Change');
-      await tester.scrollUntilVisible(change, 300);
-      await tester.pumpAndSettle();
-      await tester.tap(change);
+      await tester.tap(row);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'Bea');
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));

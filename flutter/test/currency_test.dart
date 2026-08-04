@@ -77,12 +77,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await openMenu(tester);
-    // PERSONALIZE starts collapsed (CollapsibleSection, initiallyExpanded:
-    // false): expand it before the Currency row inside is reachable.
-    final personalize = find.text('PERSONALIZE');
-    await scrollTo(tester, personalize, scope: find.byType(MenuScreen));
-    await tester.tap(personalize);
-    await tester.pumpAndSettle();
+    // Currency lives directly in the SETTINGS card now (menu.dart), reached
+    // by a single _navRow, no section to expand first.
     final row = find.text('Currency');
     await scrollTo(tester, row, scope: find.byType(MenuScreen));
     await tester.tap(row);
