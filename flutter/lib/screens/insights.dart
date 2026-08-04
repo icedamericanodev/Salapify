@@ -406,36 +406,31 @@ class InsightsScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 Kicker('THE BIGGER PICTURE'),
                 const SizedBox(height: 8),
-                // Spoken-For is a structural, reflective gauge, so it sits with the
-                // "understand your situation" band, not the do-next cards up top. It
-                // leads the band because commitment load feeds the debt-load health.
+                // Always open, deliberately, unlike TOOLS above: these five
+                // cards ARE the reason someone opens this tab, not a preview
+                // of a destination. Founder feedback, 2026-08-04, after
+                // seeing them all collapsed to identical chevron rows with
+                // zero glanceable content: "I think it should be expanded...
+                // I will not make the user overwhelmed." Each card already
+                // carries its own real number, percent, score, chart, or
+                // sentence; collapsing it behind a tap hid the entire point.
+                //
+                // Spoken-For is a structural, reflective gauge, so it sits
+                // with the "understand your situation" band, not the
+                // do-next cards up top. It leads the band because
+                // commitment load feeds the debt-load health.
                 if (load['applicable'] == true) ...[
-                  CollapsibleCard(
-                    title: 'How much of your salary is spoken for',
-                    child: _spokenForCard(load),
-                  ),
+                  _spokenForCard(load),
                   const SizedBox(height: 12),
                 ],
-                CollapsibleCard(
-                  title: 'Your money health score',
-                  child: _healthCard(health),
-                ),
+                _healthCard(health),
                 const SizedBox(height: 12),
-                CollapsibleCard(
-                  title: 'Income and expenses, last 6 months',
-                  child: _trendCard(series),
-                ),
+                _trendCard(series),
                 const SizedBox(height: 12),
                 if (cats.any((c) => (c['now'] as double) > 0))
-                  CollapsibleCard(
-                    title: 'Where your money went this month',
-                    child: _categoriesCard(cats, forecast),
-                  ),
+                  _categoriesCard(cats, forecast),
                 const SizedBox(height: 12),
-                CollapsibleCard(
-                  title: 'Emergency runway',
-                  child: _runwayCard(runway),
-                ),
+                _runwayCard(runway),
                 const SizedBox(height: 24),
               ],
             ),
@@ -856,6 +851,8 @@ class InsightsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Kicker('SPOKEN FOR EACH MONTH'),
+              const SizedBox(height: 8),
               Text(
                 'A debt has no minimum saved, so I can not size your monthly commitments yet. Add its minimum and this shows how spoken-for your salary is.',
                 style: AppText.small.copyWith(height: 1.45),
@@ -917,6 +914,8 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Kicker('SPOKEN FOR EACH MONTH'),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -1176,6 +1175,8 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Kicker('MONEY HEALTH'),
+            const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -1244,6 +1245,8 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Kicker('LAST 6 MONTHS'),
+            const SizedBox(height: 10),
             SizedBox(
               height: 120,
               width: double.infinity,
@@ -1307,6 +1310,8 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Kicker('WHERE YOUR MONEY WENT THIS MONTH'),
+            const SizedBox(height: 4),
             Text(
               '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
               style: AppText.caption,
@@ -1372,6 +1377,8 @@ class InsightsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Kicker('EMERGENCY RUNWAY'),
+            const SizedBox(height: 6),
             Text(runwayLabel(months, capped), style: AppText.title),
             const SizedBox(height: 4),
             Text(

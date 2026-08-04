@@ -192,22 +192,17 @@ void main() {
 
     await scrollTo('SAFE TO SPEND UNTIL PAYDAY');
 
-    // MONEY HEALTH, LAST 6 MONTHS, and EMERGENCY RUNWAY moved into
-    // CollapsibleCard headers ("Your money health score", "Income and
-    // expenses, last 6 months", "Emergency runway") and start collapsed;
-    // the chart labels and runway text checked below live inside, so each
-    // gets tapped open before its own inner content is checked.
-    await scrollTo('Your money health score');
+    // THE BIGGER PICTURE band renders open always now, no CollapsibleCard
+    // and nothing to tap: founder feedback that collapsing the one band
+    // that IS the reason someone opens this tab (real numbers, a chart, a
+    // score) behind a chevron hid the entire point.
+    await scrollTo('MONEY HEALTH');
 
-    await scrollTo('Income and expenses, last 6 months');
-    await tester.tap(find.text('Income and expenses, last 6 months'));
-    await tester.pumpAndSettle();
+    await scrollTo('LAST 6 MONTHS');
     await scrollTo('Income');
     await scrollTo('Spending');
 
-    await scrollTo('Emergency runway');
-    await tester.tap(find.text('Emergency runway'));
-    await tester.pumpAndSettle();
+    await scrollTo('EMERGENCY RUNWAY');
     // Only the current month has spending: runway has no honest number.
     await scrollTo('Not enough history yet');
 
@@ -479,16 +474,13 @@ void main() {
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
 
-    // Moved into a CollapsibleCard header ("How much of your salary is
-    // spoken for") and starts collapsed; tap it open before checking the
-    // percent and support text inside.
+    // THE BIGGER PICTURE renders open always, no CollapsibleCard: nothing
+    // to tap before the percent and support text are reachable.
     await tester.scrollUntilVisible(
-      find.text('How much of your salary is spoken for'),
+      find.text('SPOKEN FOR EACH MONTH'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('How much of your salary is spoken for'));
-    await tester.pumpAndSettle();
     expect(find.text('25%'), findsOneWidget);
     expect(find.textContaining('everything else'), findsOneWidget);
   });
@@ -544,12 +536,10 @@ void main() {
     // total rather than a garbage percent.
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(
-      find.text('How much of your salary is spoken for'),
+      find.text('SPOKEN FOR EACH MONTH'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('How much of your salary is spoken for'));
-    await tester.pumpAndSettle();
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
   });
 
