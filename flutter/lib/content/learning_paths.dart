@@ -35,9 +35,21 @@
 // "Protect Your Future" started with in Phase 9, never an empty group or a
 // comingSoon stub, and never touching grow_your_money or protect_your_future
 // or any of their own lesson ids.
+//
+// Phase 14 adds this path's second course, "BIR Registration and Local
+// Permits" (lib/content/lessons_bir_local_permits.dart), never modifying
+// Start Your Business Legally's own lesson ids. Unlike every earlier
+// expansion course, this one states some real current figures (the BIR
+// Annual Registration Fee's abolition, a documentary stamp tax, invoice
+// thresholds) rather than only pointing at the source; see that file's own
+// header comment for why, and for the one place (local permit fees) it
+// still deliberately never states a number, since those are not merely
+// time-volatile but structurally set independently by each city and
+// municipality.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
+import 'lessons_bir_local_permits.dart';
 import 'lessons_business_registration.dart';
 import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
@@ -256,6 +268,19 @@ const List<LearningPath> learningPaths = [
           brBuildRegistrationRoadmap,
         ],
       ),
+      LearningPathGroup(
+        id: 'bir_registration_and_local_permits',
+        title: 'BIR Registration and Local Permits',
+        lessonIds: [
+          birlOrderThatMatters,
+          birlGetYourTin,
+          birlBooksAndInvoices,
+          birlBarangayAndMayor,
+          birlTaxpayerSize,
+          birlComplianceCalendar,
+        ],
+        recommendedPriorGroupIds: ['start_a_business_legally'],
+      ),
     ],
     status: LearningPathStatus.published,
   ),
@@ -297,7 +322,10 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...sssPhilhealthBenefitsLessons,
     ...pagibigSavingsMp2HousingLessons,
   ],
-  'build_your_business' => [...startABusinessLegallyLessons],
+  'build_your_business' => [
+    ...startABusinessLegallyLessons,
+    ...birRegistrationAndLocalPermitsLessons,
+  ],
   _ => const [],
 };
 
@@ -328,7 +356,10 @@ MoneyLessonWithPath? expansionLessonById(String id) {
       return MoneyLessonWithPath(pathId: 'protect_your_future', lesson: lesson);
     }
   }
-  for (final lesson in startABusinessLegallyLessons) {
+  for (final lesson in [
+    ...startABusinessLegallyLessons,
+    ...birRegistrationAndLocalPermitsLessons,
+  ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'build_your_business', lesson: lesson);
     }

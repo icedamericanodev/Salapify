@@ -53,18 +53,26 @@ const _stableLessonIds = [
 void main() {
   group('registration', () {
     test('build_your_business is published, with Start Your Business '
-        'Legally as its first and only course', () {
+        'Legally as its first course', () {
       final path = learningPaths.firstWhere(
         (p) => p.id == 'build_your_business',
       );
       expect(path.status, LearningPathStatus.published);
       expect(path.isAvailable, isTrue);
-      expect(path.groups.length, 1);
+      // Not asserted as the ONLY group: Phase 14 added a second course
+      // ("BIR Registration and Local Permits") to this same path. See
+      // test/lessons_bir_local_permits_content_test.dart for that course's
+      // own full registration coverage.
       final group = path.groups.first;
       expect(group.id, 'start_a_business_legally');
       expect(group.title, 'Start Your Business Legally');
       expect(group.lessonIds, _stableLessonIds);
-      expect(path.lessonIds, _stableLessonIds);
+      // Narrowed from an exact-list assertion to a prefix check, the same
+      // pattern used every time a path legitimately grows a second course
+      // (see grow_your_money and protect_your_future's own earlier fixes):
+      // this course's own lessons still lead the path, in order, but the
+      // path's own full lessonIds list is no longer just this course's.
+      expect(path.lessonIds.sublist(0, 6), _stableLessonIds);
     });
 
     test('the course is not registered under grow_your_money, '

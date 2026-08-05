@@ -44,6 +44,7 @@ import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
+import 'package:salapify/content/lessons_bir_local_permits.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
@@ -715,6 +716,28 @@ void main() {
       pathId: 'build_your_business',
       lesson: startABusinessLegallyLessons.firstWhere(
         (l) => l.id == brBuildRegistrationRoadmap,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 14: "BIR Registration and Local Permits", this
+    // path's second course. "Get Your TIN and Certificate of Registration"
+    // states real current national figures (the abolished annual fee), the
+    // lesson most likely to read as stale or wrong if a figure slipped.
+    'bir-local-get-your-tin': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlGetYourTin,
+      ),
+      store: s,
+    ),
+    // The most safety-critical lesson in this course: the one place it
+    // deliberately never states a peso figure, since local permit fees
+    // vary by city and municipality. Most likely to read as evasive or
+    // incomplete if the tone slipped, rather than deliberately careful.
+    'bir-local-barangay-and-mayor': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlBarangayAndMayor,
       ),
       store: s,
     ),
