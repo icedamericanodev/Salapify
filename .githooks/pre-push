@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Local, earlier copy of the same check .github/scripts/check-stamp-unique.sh
+# runs in CI: refuse a push that would ship a Shorebird patch under a stamp
+# already recorded in docs/delivery-log.md.
+#
+# CI already catches this every time (session 32 and 33's own
+# docs/lunch-and-learn.md entries, three confirmed collisions, zero reaching
+# main). This hook does not replace that: it is one honest step earlier, so
+# the round trip (push, wait for CI, fix, push again) does not have to
+# happen at all when the mistake is caught locally instead. It is NOT a
+# server-side check. GitHub does not run pre-receive hooks on a standard
+# repository, and this file being present in the repo does nothing on its
+# own: a checkout only runs it after that checkout's own
+#   git config core.hooksPath .githooks
+# has been set, once, in that clone. A commit pushed from any checkout that
+# never ran that command skips this entirely and still relies on CI as the
+# real backstop, exactly as before. See CLAUDE.md's Flutter rebuild section
+# and docs/lunch-and-learn.md session 33 for the incident this responds to.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Only meaningful when flutter/lib/main.dart exists on this branch at all.
+if [ ! -f flutter/lib/main.dart ]; then
+  exit 0
+fi
+
+BRANCH=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'" || true)
+
+# Best effort: uses whatever origin/main this clone already has, without
+# fetching (a pre-push hook should not add network latency to every push).
+# A stale local origin/main can only make this hook MISS a real collision,
+# never invent a false one, since it would just compare against an older
+# delivered stamp; CI always re-checks against the true origin/main anyway.
+DELIVERED=$(git show origin/main:docs/delivery-log.md 2>/dev/null \
+  | grep -oE '\| f[0-9]+\.[0-9]+ \|' | tail -1 | tr -d '| ' || true)
+
+BASE=$(git merge-base origin/main HEAD 2>/dev/null || echo "")
+if [ -z "$BASE" ]; then
+  TOUCHES=yes
+elif git diff --name-only "$BASE"...HEAD | grep -qE '^flutter/'; then
+  TOUCHES=yes
+else
+  TOUCHES=no
+fi
+
+bash .github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED" "$TOUCHES"

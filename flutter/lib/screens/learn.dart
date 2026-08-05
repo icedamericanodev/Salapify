@@ -14,6 +14,7 @@ import '../content/lesson_model.dart';
 import '../content/lessons.dart';
 import '../data/store.dart';
 import '../money/course_plan.dart';
+import '../money/expansion_recommendation.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
@@ -246,6 +247,14 @@ class _LearnScreenState extends State<LearnScreen> {
             );
 
             final paths = publishedLearningPaths;
+            // One primary recommendation across every path, or null for the
+            // neutral discovery state (no reliable signal yet, or every
+            // started path is already finished). See
+            // money/expansion_recommendation.dart for the deterministic rule.
+            final pathRec = recommendedExpansionCourse(paths, {
+              for (final p in paths)
+                p.id: widget.store.expansionProgressFor(p.id),
+            });
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
@@ -268,7 +277,12 @@ class _LearnScreenState extends State<LearnScreen> {
                   Text('CHOOSE YOUR NEXT PATH', style: Barako.kickerStyle),
                   const SizedBox(height: 10),
                   for (final path in paths) ...[
-                    _pathCard(path),
+                    _pathCard(
+                      path,
+                      recommendedReason: pathRec?.pathId == path.id
+                          ? pathRec?.reason
+                          : null,
+                    ),
                     const SizedBox(height: 10),
                   ],
                 ],
@@ -586,7 +600,7 @@ class _LearnScreenState extends State<LearnScreen> {
   // design, see money/course_plan.dart), a PathProgress instead of a
   // TrackProgress, and prerequisites shown as advisory "Recommended first"
   // text rather than anything that blocks opening a lesson.
-  Widget _pathCard(LearningPath path) {
+  Widget _pathCard(LearningPath path, {String? recommendedReason}) {
     final key = path.id;
     final isOpen = _open.contains(key);
     final pathLessons = lessonsForPath(path.id);
@@ -599,17 +613,41 @@ class _LearnScreenState extends State<LearnScreen> {
       for (final id in path.prerequisiteLessonIds)
         lessonById(id)?['title'] as String?,
     ].whereType<String>().toList();
+    final recommended = recommendedReason != null;
 
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Barako.border),
+        side: BorderSide(color: recommended ? Barako.primary : Barako.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (recommended) ...[
+              Row(
+                children: [
+                  Icon(salapifyIcon('star'), size: 15, color: Barako.primary),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      // Distinct wording from the core tracks' own
+                      // "RECOMMENDED" badge above (a separate, always-on
+                      // engine): a user who has touched both a core lesson
+                      // and a path lesson would otherwise see two
+                      // identically-labelled badges on screen with no way to
+                      // tell them apart, per the Phase 16 specialist review.
+                      'CONTINUE THIS PATH',
+                      style: Barako.kickerStyle.copyWith(
+                        color: Barako.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -632,6 +670,18 @@ class _LearnScreenState extends State<LearnScreen> {
                 ),
               ],
             ),
+            if (recommended) ...[
+              const SizedBox(height: 8),
+              // The reason is always visible, same rule the core track
+              // recommendation follows: a suggestion nobody can see the
+              // basis for is just the app being bossy.
+              Text(
+                recommendedReason,
+                style: AppText.caption
+                    .tint(Barako.primaryText)
+                    .copyWith(height: 1.4),
+              ),
+            ],
             if (prereqTitles.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
@@ -726,18 +776,7 @@ class _LearnScreenState extends State<LearnScreen> {
                   ? Column(
                       children: [
                         const SizedBox(height: 6),
-                        for (var i = 0; i < pathLessons.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: _pathLessonRow(
-                              path.id,
-                              pathLessons[i],
-                              i + 1,
-                              pathLessons.length,
-                              progress[pathLessons[i].id] ??
-                                  LessonState.notStarted,
-                            ),
-                          ),
+                        ..._pathLessonRows(path, pathLessons, progress),
                       ],
                     )
                   : const SizedBox(width: double.infinity),
@@ -746,6 +785,52 @@ class _LearnScreenState extends State<LearnScreen> {
         ),
       ),
     );
+  }
+
+  // Grouped by course (LearningPathGroup), not a flat list, per the Phase 16
+  // specialist review: a recommendation reason names a specific course
+  // ("Finish Investment Readiness before..."), but the expanded "All
+  // lessons" list never showed where one course ends and the next begins, so
+  // a reader had no way to see what that course actually contained. Numbers
+  // still count against the WHOLE path (pathLessons.length), matching what
+  // the header above and stat.total already show; only a heading is new.
+  List<Widget> _pathLessonRows(
+    LearningPath path,
+    List<MoneyLesson> pathLessons,
+    Map<String, LessonState> progress,
+  ) {
+    final indexById = {
+      for (var i = 0; i < pathLessons.length; i++) pathLessons[i].id: i,
+    };
+    final rows = <Widget>[];
+    for (final group in path.groups) {
+      final groupLessons = [
+        for (final id in group.lessonIds)
+          if (indexById[id] case final i?) pathLessons[i],
+      ];
+      if (groupLessons.isEmpty) continue;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
+          child: Text(group.title, style: Barako.kickerStyle),
+        ),
+      );
+      for (final l in groupLessons) {
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _pathLessonRow(
+              path.id,
+              l,
+              indexById[l.id]! + 1,
+              pathLessons.length,
+              progress[l.id] ?? LessonState.notStarted,
+            ),
+          ),
+        );
+      }
+    }
+    return rows;
   }
 
   Widget _pathLessonRow(
