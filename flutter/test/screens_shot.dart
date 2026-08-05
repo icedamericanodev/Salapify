@@ -44,6 +44,7 @@ import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
+import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -693,6 +694,27 @@ void main() {
       pathId: 'protect_your_future',
       lesson: pagibigSavingsMp2HousingLessons.firstWhere(
         (l) => l.id == pagibigRefMakeYourPlan,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 13: "Start Your Business Legally", the new "Build
+    // Your Business" path's first course. "Compare Business Structures"
+    // carries the ComparisonBlock across five structures, the lesson most
+    // likely to read as ranking one as best if the tone slipped anywhere.
+    'business-compare-structures': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: startABusinessLegallyLessons.firstWhere(
+        (l) => l.id == brCompareBusinessStructures,
+      ),
+      store: s,
+    ),
+    // The course's closing lesson: the roadmap checklist and the Salapify
+    // actions menu, the lesson most likely to read as a promise or an
+    // automatic write if the tone or the action descriptions slipped.
+    'business-registration-roadmap': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: startABusinessLegallyLessons.firstWhere(
+        (l) => l.id == brBuildRegistrationRoadmap,
       ),
       store: s,
     ),
