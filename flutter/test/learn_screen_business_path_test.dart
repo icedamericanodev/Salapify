@@ -1,16 +1,20 @@
 // The "Choose Your Next Path" section on the Learn screen, Build Your
-// Business's own coverage (Money Courses Phase 13): shows Build Your
-// Business below Grow Your Money and Protect Your Future, with its own
-// independent progress, and never a hard lock. Phase 13 shipped this path's
-// first course (Start Your Business Legally). The core "X of 22" figure and
-// the other two paths' own progress must never move because of it. Mirrors
-// test/learn_screen_protect_path_test.dart's own structure on purpose, the
-// established shape for a Money Courses catalog test.
+// Business's own coverage (Money Courses Phase 13, extended by Phase 14):
+// shows Build Your Business below Grow Your Money and Protect Your Future,
+// with its own independent progress, and never a hard lock. Phase 13
+// shipped this path's first course (Start Your Business Legally); Phase 14
+// added its second (BIR Registration and Local Permits), so the path card
+// now lists both courses' lessons flattened together, per
+// screens/learn.dart's own one-card-per-path design. The core "X of 22"
+// figure and the other two paths' own progress must never move because of
+// it. Mirrors test/learn_screen_protect_path_test.dart's own structure on
+// purpose, the established shape for a Money Courses catalog test.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
 import 'package:salapify/content/lessons.dart' as core;
+import 'package:salapify/content/lessons_bir_local_permits.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/data/store.dart';
@@ -56,9 +60,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Six lessons from Start Your Business Legally (Phase 13), this
-      // path's only course so far.
-      expect(_businessPathTotal, 6);
+      // Six from Start Your Business Legally (Phase 13), six from BIR
+      // Registration and Local Permits (Phase 14), flattened into one path
+      // total per screens/learn.dart's own one-card-per-path design.
+      expect(_businessPathTotal, 12);
       expect(
         find.text('0 of $_businessPathTotal lessons in this path'),
         findsOneWidget,
@@ -109,11 +114,15 @@ void main() {
   });
 
   testWidgets(
-    'finishing every lesson in Start Your Business Legally never changes '
-    'the core "X of 22" figure or the other two paths\' own progress',
+    'finishing every lesson in both Build Your Business courses never '
+    'changes the core "X of 22" figure or the other two paths\' own '
+    'progress',
     (tester) async {
       final store = await _freshStore();
-      for (final lesson in startABusinessLegallyLessons) {
+      for (final lesson in [
+        ...startABusinessLegallyLessons,
+        ...birRegistrationAndLocalPermitsLessons,
+      ]) {
         await store.markExpansionLessonCompleted(
           'build_your_business',
           lesson.id,
