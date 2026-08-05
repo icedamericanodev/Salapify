@@ -10,6 +10,315 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-05, session 33: f3.51 shipped clean, a third pre-authored stamp collision this same day, and a review that caught three real bugs but missed a fourth of its own kind
+
+**What we believed / What was true.** The founder confirmed the Update stamp
+on the phone reads "f3.51 patch 43". The delivery log's last row agrees:
+`| 2026-08-05 09:27 UTC | f3.51 | 43 | patch | 0.9.0+15 | [d592eaf2](.../30992325465) |`
+(docs/delivery-log.md, last row, PR #328). Mode is `patch`, base APK still
+0.9.0+15, no manual install needed. Patch numbers ran 39 through 43 across
+this batch (Phase 12 government securities, Phase 13 "Start Your Business
+Legally", Phase 14 "BIR Registration and Local Permits", "BIR Setup for New
+Businesses", Phase 15 "Permits, People, and Compliance") with nothing
+missing between them, so no unrecorded patch slipped through. That is the
+good case at the top level, worth saying plainly: the phone, the delivery
+log, and origin/main all agree, and Phase 15 shipped correctly. As with
+session 32, that clean top line sits over two incidents that were both
+caught and fixed before the phone ever saw them, which is exactly what these
+sessions exist to check for, not to invent.
+
+**Timeline (with evidence).**
+
+- Phase 15's content, "Permits, People, and Compliance" (course id
+  `business_permits_and_compliance`, six lessons, PR #328), was committed as
+  `30fe8a7` at 08:15:48 UTC, already carrying a real
+  legal-compliance-counsel review. That commit's own message names three
+  confirmed blockers the review found and fixed before the commit landed: a
+  Lesson 2 sequencing error (BIR registration was drafted before barangay
+  clearance and the Business Permit; corrected to match how BIR commonly
+  asks for the Permit as a supporting document) and two dropped source URLs
+  a DILG "barangay clearance integration" circular and a Pag-IBIG employer
+  checklist PDF, neither confirmable as real, live pages at those exact
+  paths. `git show 30fe8a7 --stat` touches no file matching `main.dart`: the
+  stamp was left at `f3.50`, the value Phase "BIR Setup for New Businesses"
+  (`0e7549a`) had already delivered as patch 42. `check-stamp-unique.sh`
+  correctly reddened the branch check for exactly the reason it exists.
+
+- The fix landed as `f8b7799`, "fix(money-courses): bump stamp and
+  re-verify Phase 15 sources", 48 minutes later. Its own message states the
+  pattern by name: "the same recurring bug as Phase 11 and Phase 13." Bumped
+  the stamp to `f3.51`, then, per this repository's own rule (CLAUDE.md,
+  added session 32, "Money Courses official-source URLs need a real search,
+  not just a cite"), independently re-searched all eight of the sources the
+  original review had KEPT, not only the two it had already dropped. Seven
+  confirmed exact-match by WebSearch (Philippine Business Hub, DTI BNRS FAQ,
+  SSS employer guidance, PhilHealth employer registration, FDA, PCAB, DOT).
+  The eighth, a DILG-hosted eBOSS circular PDF
+  (`dilg.gov.ph/PDF_File/issuances/joint_circulars/dilg-joincircular-2021728_41c62cd45a.pdf`),
+  could not be confirmed as a real, indexed page across four separate
+  targeted searches, even though the underlying regulation it names (the
+  ARTA-DTI-DILG-DICT Joint Memorandum Circular No. 01, Series of 2021,
+  mandating an eBOSS in every city and municipality) is real and well
+  documented elsewhere. Found and substituted a directly-confirmed
+  alternative, the Anti-Red Tape Authority's own hosted copy of the matching
+  Memorandum Circular No. 2021-02 at an indexed `arta.gov.ph` path,
+  relabeling the agency from DILG to ARTA; the general, unremarkable fact
+  that DILG is a party to the eBOSS mandate stays in the lessons' own prose,
+  unchanged. Both rounds of this finding are written into the content
+  file's own header comment
+  (`flutter/lib/content/lessons_business_permits_compliance.dart`, the block
+  beginning "Sources:"), so the record travels with the file, not only in
+  this row. `docs/qa-log.md` line 110 (the f3.51 row) names exactly what was
+  searched and what was found, in the shape this repository's own rule
+  requires. Full suite (2503 tests) green, `flutter analyze` 0 issues,
+  screenshot harness clean.
+
+- The claim handed to this session was that this is the fourth occurrence of
+  the same bug (Phase 11, Phase 13, a related Phase 14 occurrence, and this
+  one). Checked against git history rather than repeated on trust, the same
+  discipline session 32 applied to a similar handed-down claim about f3.44.
+  `git show <commit> --stat | grep main.dart` on each course-authoring
+  commit in this batch shows a real, sharper pattern: `ea653a3` (Phase 14,
+  "BIR Registration and Local Permits") and `0e7549a` ("BIR Setup for New
+  Businesses") each touch `flutter/lib/main.dart` in the SAME commit as
+  their content and shipped clean, patches 41 and 42, no follow-up fix
+  needed. `536ddd5` (Phase 13, "Start Your Business Legally") and `30fe8a7`
+  (Phase 15) touch no file matching `main.dart` at all in their original
+  commit, and both needed a same-session follow-up fix commit
+  (`b715d3f`, then `f8b7799`) to bump the stamp before they could merge.
+  Phase 11's `a2357b7` (session 32) shows the identical shape. So "four
+  occurrences" overstates it as a blanket count across every course this
+  batch shipped; the confirmed pattern is narrower and more useful than
+  that: every commit this session's own turns wrote and pushed directly
+  bumped the stamp correctly, every time, and every commit whose own message
+  calls itself "pre-authored" (Phase 13's, per `b715d3f`'s own words: "The
+  pre-authored Phase 13 content... shipped with the stamp still at f3.47")
+  did not, three times now (Phase 11, Phase 13, Phase 15) across two
+  calendar-day sessions. Recorded here precisely rather than passed along,
+  because an unverified handed-down count is exactly the kind of claim this
+  project has already been burned by repeating.
+
+- Every one of those three confirmed instances was caught by
+  `check-stamp-unique.sh` before merge and never reached the phone. Zero of
+  three shipped a colliding stamp. The cost each time was identical and
+  entirely a waste, not a risk: a review and a full test run computed
+  against a tree that could never ship as pushed, then a same-session
+  follow-up commit to re-earn the same claim against the tree that actually
+  would ship.
+
+**Root cause.**
+
+For the stamp: CLAUDE.md's Flutter rebuild rule 2 already says, since
+session 32, "Bump it FIRST, before writing the feature, not last after
+testing is done." That instruction is written for a live turn to read and
+follow WHILE authoring a commit. A commit that arrives already finished,
+called "pre-authored" in its own later fix commit's message, was never
+authored inside a turn that instruction could reach; there was no "first
+step" for the rule to be the first step OF, because by the time this
+session's turns saw the content it was already a complete, pushed commit.
+This is not the rule failing to hold, it is the rule's honest ceiling
+(named as such in session 32: "medium... because it depends on someone
+reading it at the right moment") meeting a case where nobody was there to
+read it at any moment before the push happened. What produces a
+"pre-authored" commit is not documented anywhere in this repository, and
+this session's tools cannot observe it directly, only its effect in git
+history; that is stated plainly rather than guessed at.
+
+What is NOT a gap: safety. `check-stamp-unique.sh` is a pure, three-input
+function of the branch's stamp, the last delivered stamp, and whether the
+branch touches `flutter/`, and it has now caught this exact shape of
+mistake in one hundred percent of its three confirmed occurrences, with
+zero of them reaching a merge, let alone the phone. The problem this session
+adds evidence for is pure waste, a repeated round trip, not risk.
+
+For the URL: the legal-compliance-counsel review here was not a rubber
+stamp. It is a real, better case than Phase 11's, where the review's own
+claimed "zero blockers found" was flatly false. Here the review found and
+fixed three genuine problems, including two source URLs it correctly
+identified as unconfirmable and dropped, in the same pass, using
+apparently the same method (a real search per URL) that later caught the
+DILG PDF. And it still let the DILG PDF through as one of the eight it
+kept. CLAUDE.md's own rule text already says "independently WebSearch EACH
+URL," which literally covers a kept source as much as a newly introduced
+one, and it was still not applied with equal rigor to every one of the ten
+original citations on the first pass. Nothing in `flutter test` can tell a
+correctly-searched URL from an insufficiently-searched one; the only
+signal this session has is that a second, independent pass over the SAME
+eight sources found a different answer for one of them. That is a judgment
+and completeness gap, not a missing rule: the rule already existed, in
+writing, and covered this exact case in its own wording, and a real review
+still did not apply it exhaustively to every kept source on the first
+pass. No machine in this repository can observe whether a search was
+actually run, how many queries it used, or whether its result was read
+correctly; that has to be said plainly rather than answered with an
+invented check.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A commit that arrives "pre-authored," already finished and pushed
+   before any of this session's own turns reach it, is structurally
+   outside the reach of a CLAUDE.md rule written to be read and followed
+   DURING authoring (rule 2's "bump it first"). That rule holds every time
+   authoring happens inside a turn (`ea653a3`, `0e7549a`, both clean) and
+   has now not held three times when it does not (`a2357b7`, `536ddd5`,
+   `30fe8a7`). GUARD, already at its ceiling as a CLAUDE.md rule and
+   correctly ranked medium in session 32; no stronger version of that same
+   kind of guard exists, because the failure mode is specifically the
+   absence of a moment for anyone to read it. The genuinely stronger,
+   still-untried option: a repository-tracked git pre-push hook
+   (`core.hooksPath` pointed at a committed `.githooks/` directory) running
+   the same three-input comparison `check-stamp-unique.sh` already runs in
+   CI, so a push touching `flutter/` with a colliding stamp is refused
+   locally, before it ever reaches GitHub, regardless of how the commit was
+   authored or by what process. This is offered as a real, buildable
+   STRONG guard (it observes the same three inputs CI already does, just
+   earlier), with one honest limit stated up front: git hooks are local to
+   a checkout, GitHub does not run server-side pre-receive hooks on a
+   standard repository, so this only fires if whatever process pushes these
+   commits is using a checkout with the hook enabled, which this session
+   cannot verify or control. It would reduce the round trip, not replace
+   CI, which stays the unconditional backstop either way. Not built this
+   session; named as a concrete, scoped recommendation.
+
+2. `check-stamp-unique.sh` itself needs no new guard. It is not the gap.
+   Three for three, it caught this exact mistake before merge, every time,
+   with zero phone impact. Naming that plainly, the same way session 32
+   named it sufficient for the safety half of this same lesson, so a future
+   session does not spend effort strengthening the one piece of this that
+   is already working.
+
+3. A review that correctly finds and fixes several real problems in one
+   pass can still leave one instance of the exact same problem class
+   unfound in that same pass, even when the rule already in force ("each
+   URL") literally covers it. This is a completeness gap in how a review
+   pass decides it is done, not a missing instruction; CLAUDE.md's Money
+   Courses URL rule already said "each URL" before this incident and that
+   wording did not by itself make the first pass exhaustive. GUARD, stated
+   honestly as a judgment gap first: no machine in this repository can
+   observe whether a search was actually run for a given URL, or how
+   carefully its result was read, so the strongest available guard here is
+   NOT "add a check," it is the practice this session's own fix already
+   performed and that CLAUDE.md should now name directly, a MEDIUM
+   documentation guard: add one sentence to the existing Money Courses URL
+   rule in CLAUDE.md, making explicit that when a course's source list is
+   touched again for any reason (a fix, a follow-up, a later phase reusing
+   a citation), the re-search covers every currently-kept source in that
+   course, not only the one being changed, the same way f3.51's own fix
+   re-searched all eight rather than only the two already known to have
+   been dropped once before. A narrower, real machine idea was considered
+   and is offered, not built, because it is a genuine (if partial) checkable
+   fact: require the qa-log row for any stamp touching a Money Courses
+   content file to state a coverage count in the "N of M sources" shape
+   this session's own f3.51 row already used voluntarily, and have a test
+   (extending `flutter/test/qa_record_test.dart`, or a sibling file) count
+   the actual `canonicalUrl:` declarations in the touched content file and
+   fail if the qa-log row's stated M does not match. This cannot verify a
+   search was any good, only that a review's own account of its scope was
+   not silently smaller than the source list it was reviewing; offered as a
+   real but narrow guard, not a substitute for lesson 3's judgment gap.
+
+**What went well, credited honestly.** The URL catch is a second real win
+for the rule session 32 wrote down, not a new problem to be alarmed about:
+a source that survived a genuine, largely-correct legal review still got
+caught before it reached the phone, because this repository's own rule
+required an independent second look and that second look was actually run.
+And the stamp collision, again, cost nothing beyond a wasted cycle; the
+safety guard that exists did its one job a third confirmed time.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).**
+`flutter/lib/main.dart` line 33 still holds the `updateStamp` constant, as
+CLAUDE.md rule 2 says. `.github/workflows/flutter-check.yml` line 167 still
+invokes `.github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED"
+"$TOUCHES"`, and the script's own logic (read this session) still matches
+CLAUDE.md's description exactly: it exits 1 only when a branch touches
+`flutter/` and its stamp equals the last delivered row. The Money Courses
+URL rule ("independently WebSearch each URL... before governance.reviewStatus
+is set to verified") still names a real field:
+`flutter/lib/content/lesson_model.dart` line 139 declares `reviewStatus` on
+every lesson. No stale path or false claim found in either section this
+session touched.
+
+**Open lessons carried forward.**
+- From session 32: the deleted-branch recovery step is now written into
+  CLAUDE.md's Development workflow rule 1 (confirmed present in the copy
+  read this session), so that lesson is closed, not open. The "bump first"
+  sentence in rule 2 is also present, confirmed this session, and lesson 1
+  above is the finding that its ceiling is real, not a claim that it is
+  missing.
+- From session 31 and earlier (typography render diffs, the WIP-label
+  habit, the 7 exempted calculator screens, the 320dp readability question,
+  the stale `goals.dart` allowlist entry, the prove-fail marker-file
+  sharpening, the fixture-through-the-writer shape test, the five Pan-plan
+  follow-ups, the 60-day cashflow shot): untouched by this session's work,
+  which was Money Courses content and the stamp guard, not typography,
+  icons, or Pan. Carried forward without new evidence either way.
+- New, narrow and explicit: whether a repository-tracked pre-push hook
+  (lesson 1's stronger option) would actually be honored by whatever
+  process produces a "pre-authored" course commit is unverifiable from
+  this session's tools. A future session with visibility into that process
+  could settle it; until then it is offered as a recommendation, not a
+  built or proven guard.
+
+**For the founder, over lunch.** f3.51, patch 43, is live on your phone,
+and it is correct: "Permits, People, and Compliance," the fourth course
+under Build Your Business. Two things happened underneath that clean
+result, and neither one reached you wrong.
+
+First, the same small bug happened a third time this same day: a course's
+content arrived already fully written, but the little build number on your
+phone (like f3.50) was not updated to a new one before it got pushed. Think
+of that number as a receipt number again, two different receipts must never
+share one. Our safety check, the same one from two sessions ago, caught it
+before anything merged, every single time it has happened, three times now
+with zero exceptions. Nothing wrong ever reached your phone from this. The
+real cost is wasted effort: a whole review and test run has to happen twice
+because the first one was against content that could never ship as pushed.
+I looked closely at exactly which commits had this problem and found the
+pattern is narrower than I was first told, it only happens to content that
+arrives already finished rather than written turn by turn, which is a more
+useful and more honest fact than a vague repeat count.
+
+Second, and the better story: our legal review of this course found and
+fixed three real problems on its own, including two wrong website links, a
+genuinely good pass. And it still missed an eighth link, a government PDF
+that could not actually be found anywhere when searched for real, even
+though the law it describes is completely real. Our separate rule, the one
+that requires an independent search of every source before we trust it,
+caught that eighth one and I replaced it with a link that is directly
+confirmed to exist. That rule has now caught a real problem twice in a row.
+
+What makes each of these hard to repeat the same way. The build-number
+problem has a strong, working machine behind it that catches it every
+time before your phone ever sees it; if that check were ever removed, a
+duplicate number could ship for real, which is the actual danger it
+prevents, not the annoyance of catching it late. The missing-link problem
+has no full machine behind it, because nothing in our sandbox can browse
+the real internet to check a government link on its own; the defense is a
+person, or an assistant acting like one, actually running the search
+instead of trusting a citation, which is weaker and depends on someone
+choosing to do it every time. I am recommending, not building today, one
+new idea that could make the build-number problem catch itself even
+earlier, before a push ever leaves the machine that made it, rather than
+after; that is a suggestion for the next round of work, named clearly so
+it does not get lost.
+
+**Addendum, same day.** Both recommendations above were built the same
+session this entry was written, right after it, not deferred: the one
+CLAUDE.md sentence for lesson 3 (Money Courses URL rule now says explicitly
+that "each URL" means every currently-kept source on any re-touch, not only
+the one being changed) and lesson 1's pre-push hook
+(`.githooks/pre-push`, enabled per checkout via
+`git config core.hooksPath .githooks`). The hook was proven both ways before
+being trusted, per this repository's own "prove a new test can fail" rule:
+run directly against a deliberate, throwaway flutter/ change left at the
+already-delivered stamp, it exited 1 and named the exact collision; bumped
+to a new stamp, the same throwaway change made it exit 0. The honest limit
+from lesson 1 stands unchanged: this only protects a checkout that has
+opted in, and CI remains the real backstop for every other one, including
+whatever process produces a "pre-authored" commit.
+
+---
+
 ## 2026-08-05, session 32: f3.46 shipped clean, a stamp collision caught pre-merge exactly as designed, and a fabricated government URL caught by a review that was actually run
 
 **What we believed / What was true.** The founder confirmed the Update stamp

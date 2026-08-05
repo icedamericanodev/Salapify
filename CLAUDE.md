@@ -67,6 +67,20 @@ Flutter track:
 5. The local Flutter SDK in a session lives at /opt/flutter (add
    /opt/flutter/bin to PATH); install 3.44.6 stable from
    storage.googleapis.com if missing.
+6. A pre-authored course commit, one that arrives already fully written and
+   pushed rather than authored inside a live turn, has repeatedly reached CI
+   with the stamp left at the already-delivered value: rule 2's "bump it
+   first" cannot reach a commit nobody in a live turn was there to read it
+   during (Phase 11, Phase 13, and Phase 15 all did this, three confirmed
+   times, session 33, docs/lunch-and-learn.md). check-stamp-unique.sh has
+   caught every one before merge with zero phone impact, so this is wasted
+   effort, not risk, but it is real waste every time. `.githooks/pre-push`
+   runs the identical check locally, one push earlier, before the round
+   trip to CI and back; run `git config core.hooksPath .githooks` once in a
+   checkout to enable it there. It is NOT a server-side check, GitHub does
+   not run one on a standard repository, so it only protects a checkout that
+   has actually enabled it, and CI stays the real, unconditional backstop
+   either way.
 
 ## Look at the screen before shipping a screen
 
@@ -307,6 +321,22 @@ once already: Phase 11's first draft cited a Virtual Pag-IBIG portal URL that
 never appeared in any independent search result, a fabricated subdomain a
 "zero blockers found" review had waved through, corrected only when the
 search was actually run (session 32, docs/lunch-and-learn.md).
+
+"Each URL" means every URL a lesson currently cites, not only the one being
+introduced or changed. When a course's source list is touched again for any
+reason, a fix, a follow-up, a later phase reusing an existing citation, the
+re-search covers every source the course currently keeps, not just the one
+prompting the touch. A review can find and fix several real problems in one
+pass and still leave one instance of the exact same problem class unfound in
+that same pass, because "each URL" was read as the URL under discussion
+rather than the full kept list. Phase 15's own review is the proof: it
+correctly found and dropped two unconfirmable URLs, and a DILG eBOSS circular
+PDF still survived that same pass among the eight it kept, only caught when
+a later, unrelated fix independently re-searched all eight rather than
+trusting the ones the prior pass had already cleared (session 33,
+docs/lunch-and-learn.md). Nothing in flutter test can tell a correctly
+re-searched URL from one a reviewer assumed was already covered; the only
+defense is actually re-running the search on every kept source, every time.
 
 ## Icons: ours are orange, the user's are emoji
 
