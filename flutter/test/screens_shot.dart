@@ -43,6 +43,7 @@ import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
+import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
@@ -671,6 +672,27 @@ void main() {
       pathId: 'protect_your_future',
       lesson: sssPhilhealthBenefitsLessons.firstWhere(
         (l) => l.id == sspRefSafetyNetPlan,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 11: "Pag-IBIG Savings & Housing", this path's
+    // third course. "MP2 Without the Hype" carries the myth-or-fact block
+    // and the dividend-rate framing, the lesson most likely to read as a
+    // guaranteed-return promise if the tone slipped anywhere.
+    'pagibig-mp2-without-hype': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: pagibigSavingsMp2HousingLessons.firstWhere(
+        (l) => l.id == pagibigRefMp2WithoutHype,
+      ),
+      store: s,
+    ),
+    // The course's closing lesson: the action-plan checklist and the
+    // Salapify actions menu, the lesson most likely to read as a promise
+    // or an automatic write if the tone or the action descriptions slipped.
+    'pagibig-make-your-plan': (s) => ExpansionLessonReader(
+      pathId: 'protect_your_future',
+      lesson: pagibigSavingsMp2HousingLessons.firstWhere(
+        (l) => l.id == pagibigRefMakeYourPlan,
       ),
       store: s,
     ),

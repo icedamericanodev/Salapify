@@ -1,9 +1,10 @@
 // The "Choose Your Next Path" section on the Learn screen, Protect Your
-// Future's own coverage (Money Courses Phase 9, extended by Phase 10): shows
-// Protect Your Future below Grow Your Money, with its own independent
-// progress, and never a hard lock. Phase 9 shipped this path's first course
-// (Insurance Decoded); Phase 10 adds its second (SSS & PhilHealth
-// Essentials), so the path card now lists both courses' lessons flattened
+// Future's own coverage (Money Courses Phase 9, extended by Phase 10 and
+// Phase 11): shows Protect Your Future below Grow Your Money, with its own
+// independent progress, and never a hard lock. Phase 9 shipped this path's
+// first course (Insurance Decoded); Phase 10 added its second (SSS &
+// PhilHealth Essentials); Phase 11 adds its third (Pag-IBIG Savings &
+// Housing), so the path card now lists all three courses' lessons flattened
 // together, per screens/learn.dart's own one-card-per-path design (it has no
 // per-course sub-card, only a flat "All lessons" list across every group).
 // The core "X of 22" figure and Grow Your Money's own path progress must
@@ -17,6 +18,7 @@ import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
 import 'package:salapify/content/lessons.dart' as core;
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_insurance.dart';
+import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
@@ -59,10 +61,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Six from Insurance Decoded (Phase 9) plus six from SSS & PhilHealth
-      // Essentials (Phase 10), flattened into one path total per
-      // screens/learn.dart's own one-card-per-path design.
-      expect(_protectPathTotal, 12);
+      // Six from Insurance Decoded (Phase 9), six from SSS & PhilHealth
+      // Essentials (Phase 10), and six from Pag-IBIG Savings & Housing
+      // (Phase 11), flattened into one path total per screens/learn.dart's
+      // own one-card-per-path design.
+      expect(_protectPathTotal, 18);
       expect(
         find.text('0 of $_protectPathTotal lessons in this path'),
         findsOneWidget,
@@ -95,7 +98,7 @@ void main() {
   });
 
   testWidgets(
-    'finishing every lesson in both Protect Your Future courses never '
+    'finishing every lesson in all three Protect Your Future courses never '
     'changes the core "X of 22" figure or Grow Your Money\'s own path '
     'progress',
     (tester) async {
@@ -103,6 +106,7 @@ void main() {
       for (final lesson in [
         ...insuranceDecodedLessons,
         ...sssPhilhealthBenefitsLessons,
+        ...pagibigSavingsMp2HousingLessons,
       ]) {
         await store.markExpansionLessonCompleted(
           'protect_your_future',
