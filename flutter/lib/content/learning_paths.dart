@@ -53,11 +53,19 @@
 // NO current rate, threshold, deadline, penalty, or form list anywhere,
 // back to the standard "point at the source" discipline; see that file's
 // own header comment.
+//
+// Phase 15 adds this path's FOURTH course, "Permits, People, and
+// Compliance" (lib/content/lessons_business_permits_compliance.dart), never
+// modifying any of its three sibling courses' own lesson ids. Like "BIR
+// Setup for New Businesses", it states no rate, fee, threshold, deadline,
+// penalty, or form list anywhere; see that file's own header comment for
+// why.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
 import 'lessons_bir_local_permits.dart';
 import 'lessons_bir_tax_setup.dart';
+import 'lessons_business_permits_compliance.dart';
 import 'lessons_business_registration.dart';
 import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
@@ -305,6 +313,23 @@ const List<LearningPath> learningPaths = [
           'bir_registration_and_local_permits',
         ],
       ),
+      LearningPathGroup(
+        id: 'business_permits_and_compliance',
+        title: 'Permits, People, and Compliance',
+        lessonIds: [
+          bpccLocationChangesTheChecklist,
+          bpccMapTheLocalPermitFlow,
+          bpccRenewalsAndLocalCompliance,
+          bpccWhenYouHirePeople,
+          bpccIndustrySpecificRegulators,
+          bpccBuildYourComplianceMap,
+        ],
+        recommendedPriorGroupIds: [
+          'start_a_business_legally',
+          'bir_registration_and_local_permits',
+          'bir_registration_tax_setup',
+        ],
+      ),
     ],
     status: LearningPathStatus.published,
   ),
@@ -350,6 +375,7 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...startABusinessLegallyLessons,
     ...birRegistrationAndLocalPermitsLessons,
     ...birRegistrationTaxSetupLessons,
+    ...businessPermitsAndComplianceLessons,
   ],
   _ => const [],
 };
@@ -385,6 +411,7 @@ MoneyLessonWithPath? expansionLessonById(String id) {
     ...startABusinessLegallyLessons,
     ...birRegistrationAndLocalPermitsLessons,
     ...birRegistrationTaxSetupLessons,
+    ...businessPermitsAndComplianceLessons,
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'build_your_business', lesson: lesson);

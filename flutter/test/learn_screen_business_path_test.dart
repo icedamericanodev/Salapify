@@ -1,15 +1,16 @@
 // The "Choose Your Next Path" section on the Learn screen, Build Your
-// Business's own coverage (Money Courses Phase 13, extended by two later
+// Business's own coverage (Money Courses Phase 13, extended by three later
 // courses): shows Build Your Business below Grow Your Money and Protect
 // Your Future, with its own independent progress, and never a hard lock.
 // Phase 13 shipped this path's first course (Start Your Business Legally);
-// a later phase added its second (BIR Registration and Local Permits), and
-// a third course (BIR Setup for New Businesses) followed, so the path card
-// now lists all three courses' lessons flattened together, per
-// screens/learn.dart's own one-card-per-path design. The core "X of 22"
-// figure and the other two paths' own progress must never move because of
-// it. Mirrors test/learn_screen_protect_path_test.dart's own structure on
-// purpose, the established shape for a Money Courses catalog test.
+// later phases added its second (BIR Registration and Local Permits) and
+// third (BIR Setup for New Businesses) courses, and Phase 15 added a fourth
+// (Permits, People, and Compliance), so the path card now lists all four
+// courses' lessons flattened together, per screens/learn.dart's own
+// one-card-per-path design. The core "X of 22" figure and the other two
+// paths' own progress must never move because of it. Mirrors
+// test/learn_screen_protect_path_test.dart's own structure on purpose, the
+// established shape for a Money Courses catalog test.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,7 @@ import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
 import 'package:salapify/content/lessons.dart' as core;
 import 'package:salapify/content/lessons_bir_local_permits.dart';
 import 'package:salapify/content/lessons_bir_tax_setup.dart';
+import 'package:salapify/content/lessons_business_permits_compliance.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/data/store.dart';
@@ -63,14 +65,13 @@ void main() {
         findsOneWidget,
       );
       // Six from Start Your Business Legally, six from BIR Registration
-      // and Local Permits, six from BIR Setup for New Businesses,
-      // flattened into one path total per screens/learn.dart's own
-      // one-card-per-path design.
-      expect(_businessPathTotal, 18);
+      // and Local Permits, six from BIR Setup for New Businesses, six from
+      // Permits, People, and Compliance, flattened into one path total per
+      // screens/learn.dart's own one-card-per-path design.
+      expect(_businessPathTotal, 24);
       // Scoped to Build Your Business's own Card, not a bare find.text():
-      // Protect Your Future also totals 18 lessons (6+6+6), a coincidental
-      // match that makes "0 of 18 lessons in this path" appear on BOTH
-      // cards on a fresh store, so an unscoped finder would find two.
+      // a scoped finder stays correct even if some other path's own total
+      // ever happens to match this one.
       final businessCard = find.ancestor(
         of: find.text('Build Your Business'),
         matching: find.byType(Card),
@@ -126,7 +127,7 @@ void main() {
     expect(find.byType(ExpansionLessonReader), findsOneWidget);
   });
 
-  testWidgets('finishing every lesson in all three Build Your Business courses '
+  testWidgets('finishing every lesson in all four Build Your Business courses '
       'never changes the core "X of 22" figure or the other two paths\' own '
       'progress', (tester) async {
     final store = await _freshStore();
@@ -134,6 +135,7 @@ void main() {
       ...startABusinessLegallyLessons,
       ...birRegistrationAndLocalPermitsLessons,
       ...birRegistrationTaxSetupLessons,
+      ...businessPermitsAndComplianceLessons,
     ]) {
       await store.markExpansionLessonCompleted(
         'build_your_business',
