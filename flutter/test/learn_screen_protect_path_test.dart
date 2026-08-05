@@ -66,8 +66,23 @@ void main() {
       // (Phase 11), flattened into one path total per screens/learn.dart's
       // own one-card-per-path design.
       expect(_protectPathTotal, 18);
+      // Scoped to Protect Your Future's own Card, not a bare find.text():
+      // Build Your Business grew to 18 lessons too (a later, unrelated
+      // course addition), a coincidental match that makes "0 of 18
+      // lessons in this path" appear on BOTH cards on a fresh store, so
+      // an unscoped finder would find two.
+      final protectCard = find.ancestor(
+        of: find.text('Protect Your Future'),
+        matching: find.byType(Card),
+      );
       expect(
-        find.text('0 of $_protectPathTotal lessons in this path'),
+        find.descendant(
+          of: protectCard,
+          matching: find.text(
+            '0 of $_protectPathTotal lessons in this '
+            'path',
+          ),
+        ),
         findsOneWidget,
       );
       // Still no stub or empty government-benefit course card: every group
@@ -156,8 +171,21 @@ void main() {
       }
       await _pumpTall(tester, store);
 
+      // Scoped to Protect Your Future's own Card: Build Your Business also
+      // totals 18 lessons and stays fresh here too, so an unscoped finder
+      // would find two "0 of 18" matches.
+      final protectCard = find.ancestor(
+        of: find.text('Protect Your Future'),
+        matching: find.byType(Card),
+      );
       expect(
-        find.text('0 of $_protectPathTotal lessons in this path'),
+        find.descendant(
+          of: protectCard,
+          matching: find.text(
+            '0 of $_protectPathTotal lessons in this '
+            'path',
+          ),
+        ),
         findsOneWidget,
       );
     },

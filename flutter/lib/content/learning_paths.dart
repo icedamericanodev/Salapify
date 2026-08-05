@@ -46,10 +46,18 @@
 // still deliberately never states a number, since those are not merely
 // time-volatile but structurally set independently by each city and
 // municipality.
+//
+// This same path's THIRD course, "BIR Setup for New Businesses"
+// (lib/content/lessons_bir_tax_setup.dart), never modifies either sibling
+// course's own lesson ids. Unlike its immediate sibling, this course states
+// NO current rate, threshold, deadline, penalty, or form list anywhere,
+// back to the standard "point at the source" discipline; see that file's
+// own header comment.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
 import 'lessons_bir_local_permits.dart';
+import 'lessons_bir_tax_setup.dart';
 import 'lessons_business_registration.dart';
 import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
@@ -281,6 +289,22 @@ const List<LearningPath> learningPaths = [
         ],
         recommendedPriorGroupIds: ['start_a_business_legally'],
       ),
+      LearningPathGroup(
+        id: 'bir_registration_tax_setup',
+        title: 'BIR Setup for New Businesses',
+        lessonIds: [
+          btaxStartWithProfile,
+          btaxPrimarySecondary,
+          btaxKnowWhatYouRegisteredFor,
+          btaxInvoicesBooksProof,
+          btaxFilingRoutine,
+          btaxMoneySystem,
+        ],
+        recommendedPriorGroupIds: [
+          'start_a_business_legally',
+          'bir_registration_and_local_permits',
+        ],
+      ),
     ],
     status: LearningPathStatus.published,
   ),
@@ -325,6 +349,7 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
   'build_your_business' => [
     ...startABusinessLegallyLessons,
     ...birRegistrationAndLocalPermitsLessons,
+    ...birRegistrationTaxSetupLessons,
   ],
   _ => const [],
 };
@@ -359,6 +384,7 @@ MoneyLessonWithPath? expansionLessonById(String id) {
   for (final lesson in [
     ...startABusinessLegallyLessons,
     ...birRegistrationAndLocalPermitsLessons,
+    ...birRegistrationTaxSetupLessons,
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'build_your_business', lesson: lesson);

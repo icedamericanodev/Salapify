@@ -57,7 +57,7 @@ const _stableLessonIds = [
 void main() {
   group('registration', () {
     test(
-      'build_your_business now carries Start Your Business Legally as its '
+      'build_your_business carries Start Your Business Legally as its '
       'first course and BIR Registration and Local Permits as its second',
       () {
         final path = learningPaths.firstWhere(
@@ -65,16 +65,19 @@ void main() {
         );
         expect(path.status, LearningPathStatus.published);
         expect(path.isAvailable, isTrue);
-        expect(path.groups.length, 2);
+        // Not asserted as the ONLY two groups: a third course ("BIR Setup
+        // for New Businesses") was added to this same path after this
+        // course shipped. See that course's own test file for its full
+        // registration coverage.
         expect(path.groups.first.id, 'start_a_business_legally');
         final group = path.groups[1];
         expect(group.id, 'bir_registration_and_local_permits');
         expect(group.title, 'BIR Registration and Local Permits');
         expect(group.lessonIds, _stableLessonIds);
         expect(group.recommendedPriorGroupIds, ['start_a_business_legally']);
-        // 6 from Start Your Business Legally, 6 from this course.
-        expect(path.lessonIds.length, 12);
-        expect(path.lessonIds.sublist(6), _stableLessonIds);
+        // 6 from Start Your Business Legally, 6 from this course, leading
+        // the path's own full lessonIds list, whatever else follows.
+        expect(path.lessonIds.sublist(6, 12), _stableLessonIds);
       },
     );
 

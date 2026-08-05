@@ -45,6 +45,7 @@ import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_bir_local_permits.dart';
+import 'package:salapify/content/lessons_bir_tax_setup.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
@@ -738,6 +739,27 @@ void main() {
       pathId: 'build_your_business',
       lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
         (l) => l.id == birlBarangayAndMayor,
+      ),
+      store: s,
+    ),
+    // "BIR Setup for New Businesses", the same path's third course.
+    // "Know What You Registered For" carries the tax-type awareness
+    // checklist, the lesson most likely to read as determining a real
+    // reader's own obligations if the tone slipped anywhere.
+    'bir-tax-know-what-you-registered-for': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: birRegistrationTaxSetupLessons.firstWhere(
+        (l) => l.id == btaxKnowWhatYouRegisteredFor,
+      ),
+      store: s,
+    ),
+    // The course's closing lesson: the tax-money-system checklist and the
+    // Salapify actions menu, the lesson most likely to read as a promise
+    // or an automatic write if the tone or the action descriptions slipped.
+    'bir-tax-create-your-tax-money-system': (s) => ExpansionLessonReader(
+      pathId: 'build_your_business',
+      lesson: birRegistrationTaxSetupLessons.firstWhere(
+        (l) => l.id == btaxMoneySystem,
       ),
       store: s,
     ),
