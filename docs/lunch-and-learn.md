@@ -10,6 +10,361 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-05, session 32: f3.46 shipped clean, a stamp collision caught pre-merge exactly as designed, and a fabricated government URL caught by a review that was actually run
+
+**What we believed / What was true.** The founder confirmed the Update stamp
+on the phone reads "f3.46 patch 38". The delivery log's last row agrees:
+`| 2026-08-05 01:36 UTC | f3.46 | 38 | patch | 0.9.0+15 | [32ccb5ca] |`
+(docs/delivery-log.md, last row, PR #322, publisher run 30966134435). Mode is
+`patch`, base APK still 0.9.0+15, no manual install needed or claimed. The
+row before it, f3.45 patch 37, matches too
+(`0dc8de7a`, PR #321). Patch numbers ran 36, 37, 38 with nothing between, so
+no unrecorded patch slipped through this batch. This is the good case at the
+top level: the phone, the delivery log, and origin/main all agree, and the
+batch (two full Money Courses phases, Phase 10 "SSS & PhilHealth Essentials"
+and Phase 11 "Pag-IBIG Savings & Housing") shipped correctly. That is worth
+saying plainly before anything else, because a clean patch is a real outcome,
+not a failure to find problems.
+
+Underneath that clean top line sit two real incidents, both already resolved
+before merge, and both worth examining precisely because neither reached the
+phone wrong. Ground truth for each is git history on this repo (verified this
+session with `git log`, `git show`, and direct file reads), not a chat
+recollection.
+
+**Timeline (with evidence).**
+
+- Phase 9 "Insurance Decoded" shipped clean as f3.44 patch 36, PR #320,
+  merge commit `0d208c3`. Its content commit `cb3941d` bumped the stamp
+  (`f3.43` to `f3.44`) in the SAME commit as the content, with no follow-up
+  fix commit anywhere in the merged history (`git log --oneline
+  cb3941d~1..0d208c3` shows exactly one commit). This matters for the record:
+  the task brief that opened this session characterized "the f3.44 Insurance
+  Decoded stamp collision" as an earlier, already-caught instance of the same
+  gap this session hit again on f3.46. This session checked that claim
+  against `git show cb3941d -- flutter/lib/main.dart` and found no collision
+  there: the stamp bump landed correctly on the first commit, same as Phase
+  10 (`bc8547d`, `f3.44` to `f3.45`, also a single clean commit, PR #321,
+  merge `0dc8de7`). No GitHub Actions run log was reachable this session (no
+  network to the GitHub API in this sandbox: `curl` to
+  `api.github.com/repos/.../pulls/320/commits` returned "GitHub access is not
+  enabled for this session"), so a CI-only near-miss on f3.44 that never left
+  a commit-history trace cannot be ruled out from here. What the evidence DOES
+  support: f3.46 (below) is the one clearly documented stamp collision in this
+  batch, and stating it as "the second time" overstated a claim this session
+  could not verify. Recorded here rather than silently repeated, per the
+  standing rule that an unverified claim is worse than an open question, and
+  because that rule applies to a claim handed to this session exactly as much
+  as to any other.
+
+- Between Phase 9 finishing and Phase 10's shipping flow starting, this
+  session's assigned branch, `claude/salapify-model-routing-es6yb4`, had
+  already been merged to main via PR #320, and GitHub's post-merge branch
+  cleanup had deleted the remote ref. `git fetch origin
+  claude/salapify-model-routing-es6yb4` failed with "couldn't find remote
+  ref". The recovery, `git checkout -B claude/salapify-model-routing-es6yb4
+  origin/main`, preserved Phase 10's uncommitted working-tree changes
+  cleanly, since origin/main was only the one delivery-log commit
+  (`4e657e8`, "Delivery: f3.44, patch 36") ahead of the branch's last known
+  commit. Confirmed this session: the branch is currently at `8094e36`, up to
+  date with origin, working tree clean, and its history
+  (`bc8547d` sitting directly on `4e657e8` sitting directly on `0d208c3`)
+  matches exactly what that recovery would produce. No data was lost and
+  nothing shipped twice. The cost was a diagnostic detour: several tool calls
+  spent establishing the stale-ref state before the fix, which is itself
+  already the documented fix, was applied.
+
+- Phase 11 "Pag-IBIG Savings & Housing" content, file
+  `flutter/lib/content/lessons_pagibig.dart` plus its test file and the
+  `learning_paths.dart` registration, was committed as `a2357b7` at
+  00:27:40 UTC on Aug 5, already pushed to the branch with PR #322 already
+  open, before this session's active turn reached it. `git show a2357b7 --
+  flutter/lib/main.dart` returns nothing: that commit touched no file under
+  `flutter/lib/main.dart`'s stamp constant at all, and the stamp still read
+  `f3.45`, the stamp f3.45 patch 37 had already delivered. The branch's own
+  "Flutter check" CI run failed on `.github/scripts/check-stamp-unique.sh`,
+  which compares the branch's own stamp against the last row in
+  `docs/delivery-log.md` on origin/main and exits 1 on an exact match when
+  the branch touches `flutter/`. This is the guard built after session 25
+  (`docs/lunch-and-learn.md` session 25; the script's own header and its
+  failure message both cite it by name) doing exactly the job it was built
+  for: catching the collision on the PR, before merge, before the phone ever
+  saw it.
+
+- The fix landed as `8094e36`, "Phase 11 follow-up: fix two wrong Pag-IBIG
+  source URLs, bump stamp to f3.46", 44 minutes after `a2357b7`. Its own
+  commit message states plainly: "Bumped updateStamp to f3.46 (the branch
+  previously shipped as-is would have collided with the already-delivered
+  f3.45 stamp, caught by the stamp-uniqueness CI guard)." That fix commit
+  also carried the two legal-compliance-counsel corrections (next item), and
+  it required a genuinely fresh `flutter test` run, because the working-tree
+  state that `a2357b7`'s own commit message implicitly stood behind
+  (registration, isolation, and content tests, all green) was no longer the
+  state being shipped once the stamp and the two URLs changed. The qa-log row
+  for f3.46 (`docs/qa-log.md` line 105) records this directly: "the sole
+  failure on first run was this exact QA row not existing yet, the guard
+  working as designed; green after this row was added." Nothing shipped on
+  an unverified claim; a second, real run backed the second, real commit.
+
+- The review that caught the URLs. `a2357b7`'s own commit message says
+  "Reviewed by the legal-compliance-counsel agent
+  (investment-suitability-reviewer does not exist in this repo); zero
+  blockers found". The qa-log row for the SAME content, written after the
+  review that actually ran in this session, records "1 MUST FIX (a wrong
+  official source URL) and 1 SHOULD FIX (an unconfirmed calculator URL)".
+  Those two statements describe the same six lessons and cannot both be
+  complete: the first draft's own claimed review missed a fabricated URL that
+  a second, real pass caught. The MUST FIX: the Virtual Pag-IBIG source URL
+  the first draft cited, `https://yourvirtualpagibig.pagibigfund.gov.ph/`
+  (`lessons_pagibig.dart` line 96 in `a2357b7`), never appeared in any
+  independent WebSearch result across six targeted searches, a strong signal
+  it was fabricated or wrong rather than merely unindexed. The real portal,
+  confirmed independently across a Philippine Information Agency feature, the
+  Virtual Pag-IBIG Google Play and App Store listings, and several how-to
+  guides, is `https://www.pagibigfundservices.com/virtualpagibig/`, an
+  entirely different host. The SHOULD FIX, same pattern at smaller scale: the
+  amortization calculator URL was corrected from
+  `pagibigfund.gov.ph/amort/` to the confirmed
+  `pagibigfund.gov.ph/AA/calc.aspx`, the same host, a different path. Both
+  fixes and the reasoning behind them are written into the lesson file's own
+  header comment (`lessons_pagibig.dart` lines 66-77 in `8094e36`), so the
+  record of the correction travels with the content, not only in this row.
+
+**Root cause.**
+
+For the stale branch: structural, not a missed signal. GitHub deletes a
+branch on merge by repository policy, and nothing in this session's tools
+watches for that between turns; the first observable symptom of a branch
+having been merged out from under a session is the next `git fetch` against
+it failing. The recovery procedure that resolved it is real and correct (it
+is effectively what this project's own onboarding for a per-session working
+branch already implies: restart from origin/main, which is always at least as
+new), but it lives in this session's own operating instructions, not in this
+repository. `grep`ing CLAUDE.md for "already been merged", "restart your
+designated branch", or "couldn't find remote ref" in
+`/home/user/Salapify/CLAUDE.md` found nothing: CLAUDE.md's "Development
+workflow" section (rule 1, line 335) says each session gets its own branch,
+but nowhere names what to do when that branch is discovered already merged.
+That is a silence, not a false claim, the same category session 25 found once
+before.
+
+For the stamp collision: the same structural fact CLAUDE.md rule 1 already
+names in the Flutter rebuild section, "there is no path that merges flutter/
+to main without shipping ... every merge to main that touches flutter/
+therefore needs a unique updateStamp, with no exception." The rule is
+correctly written. What went missing was not the rule but its ORDERING inside
+the work: the stamp bump is written as the LAST step of a shipping flow (bump
+stamp, then commit, then push), so a commit authored and pushed before that
+last step is finished is a commit with an already-stale stamp by
+construction, and a whole verification pass (format, analyze, the full suite)
+attaches to a tree that is not the one that will actually ship. The guard
+that exists (`check-stamp-unique.sh`) catches this at the border, pre-merge,
+every time; it did here. What has no guard is the wasted cycle: a full
+`flutter test` run whose result becomes stale the moment the stamp changes
+underneath it, forcing a second full run to re-earn the claim the first one
+already made once.
+
+For the URL: the commit's own claimed review ("zero blockers found") was
+either not run against these six lessons for real, or was run without
+independent search verification of the cited URLs, since a subdomain that
+"does not appear anywhere in independent search results" (the fixed file's
+own header comment) is not something a real WebSearch-backed pass would wave
+through silently. Structurally, this class of defect, a syntactically
+well-formed but factually wrong government URL, cannot be caught by anything
+in `flutter test`: `lessons_pagibig_content_test.dart` (lines 220-238)
+asserts every source is a well-formed HTTPS URI with a non-empty agency and
+title, `expect(uri != null && uri.scheme == 'https', isTrue)`, and its
+later domain assertions (lines 276-281, 479) assert the URL equals whatever
+the lesson file itself declares, which is tautological against a fabricated
+value the file declares with full confidence. The only channel that can
+verify a URL is REAL is a live network check, and this environment's own
+`WebFetch` returns a uniform 403 on `pagibigfund.gov.ph` (confirmed in both
+this row and the earlier f3.44 and f3.45 rows), so `WebSearch` cross-
+verification is the only channel that currently exists at all, and it
+depends entirely on a human or a reviewing agent choosing to run it for real.
+
+**What went well, credited honestly.** The legal-compliance-counsel review of
+the Pag-IBIG content is a genuine win and belongs named as one, not folded
+into the incident list above. Content that had already passed its own
+self-described verification, a claimed prior legal-compliance-counsel pass
+with "zero blockers found", still carried a fabricated government URL that
+only surfaced when the review was run for real in this session: six targeted
+WebSearch queries, a clear absence-of-evidence conclusion, and independent
+confirmation of the real address from four separate kinds of sources before
+the fix was trusted. This is exactly the "prove before trusting" discipline
+CLAUDE.md asks for elsewhere applied to a review finding rather than a test.
+And the pre-merge stamp guard is a second genuine win: `check-stamp-unique.sh`
+did not just exist, it fired on a real collision this session produced, gave
+a clear message pointing straight at the fix ("Bump updateStamp in
+flutter/lib/main.dart... See docs/lunch-and-learn.md session 25"), and the
+collision never reached a merge, let alone the phone. Session 25 offered this
+exact check as an "optional strengthening, not built" three weeks ago; it got
+built, and it just did its one job under real conditions for the first time
+this session can confirm with direct evidence.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A session's assigned branch can be merged and deleted mid-session by a
+   mechanism nothing in this repository watches, and the fix, restart from
+   origin/main, exists but is not written down anywhere in this repository.
+   GUARD, MEDIUM strength, not yet built: add one short paragraph to
+   CLAUDE.md's "Development workflow" rule 1, right after "each session gets
+   its own branch now": "If `git fetch origin <your branch>` ever fails with
+   'couldn't find remote ref', that branch was already merged and GitHub
+   deleted it on merge. Do not treat this as an error to work around: restart
+   it with `git checkout -B <your branch> origin/main`, which is always safe
+   because origin/main is never older than the branch's last delivered
+   commit, and any uncommitted working-tree changes apply cleanly on top."
+   This is medium, a documented procedure, not an automated check, because
+   nothing in the repository can observe a branch's remote-deletion event
+   between turns; naming it in writing turns a diagnostic detour into a
+   known, one-line playbook the next time it happens, which is the honest
+   ceiling available.
+
+2. The stamp bump is written as the last step of a shipping flow, so a
+   commit finished and pushed before that last step is a commit whose own
+   verification claims are stale by construction, and the existing pre-merge
+   guard (`check-stamp-unique.sh`) catches the SAFETY half of this (a
+   collision never merges) but not the WASTE half (a full test run has to be
+   repeated to re-earn a claim the first run already made once, against a
+   tree that never shipped). GUARD, MEDIUM strength, not yet built: add one
+   sentence to CLAUDE.md's Flutter rebuild rule 2, next to the existing "bump
+   the updateStamp constant... on every push" instruction: "Bump it FIRST,
+   before writing the feature, not last after testing is done; write the
+   one-line stamp text as the opening move of any commit that touches
+   flutter/, the same way the qa-log row is written as the closing move." A
+   full automatic bump was considered and rejected as the strongest option:
+   the stamp is a founder-facing sentence, not a version counter (CLAUDE.md
+   rule 2 is explicit that the words matter and belong in the commit, not a
+   generated string), so a machine cannot author it, only remind that it is
+   due. The strong half of this lesson is not new: `check-stamp-unique.sh` is
+   already the correct backstop and needs no further mechanism; it is named
+   here only to say plainly that it is sufficient for safety and that no new
+   guard is warranted on that half.
+
+3. A syntactically well-formed government URL a lesson cites can still be
+   fabricated, and nothing in `flutter test` can tell the difference, because
+   every test that touches a source URL asserts against the lesson file's own
+   declared constant (`lessons_pagibig_content_test.dart` lines 220-238,
+   276-281, 479), never against the live internet, and the only channel that
+   CAN check a URL is real, WebSearch, is blocked from being a `flutter test`
+   assertion by the same sandboxed-network reality that blocks `WebFetch` to
+   `pagibigfund.gov.ph` outright. GUARD, MEDIUM strength (a documented
+   procedure, the honest ceiling given the network constraint): add to
+   CLAUDE.md, near the legal-compliance-counsel guidance, that any Money
+   Courses lesson introducing or changing an official-source `canonicalUrl`
+   on a government domain requires the reviewing agent to independently
+   WebSearch each URL, not merely cite or WebFetch it, and that the qa-log row
+   must name what was searched and what confirmed or contradicted it, the way
+   f3.46's row already does. This does not invent new process, it writes down
+   what f3.46 already did well so the next content phase does it as a
+   requirement rather than a good habit that happened to be followed. A
+   narrower, partial automated idea was considered and is offered, not built:
+   a test asserting every `canonicalUrl`'s host belongs to a small,
+   previously-confirmed allowlist would have caught the Virtual Pag-IBIG fix
+   (a genuine cross-host change, `pagibigfund.gov.ph` subdomain to
+   `pagibigfundservices.com`) but would NOT have caught the amortization
+   calculator fix (same host, different path), and it could only ever flag a
+   REGRESSION to a previously-known-wrong host, not the first-time
+   fabrication this session actually caught, since nobody would know to
+   pre-populate `pagibigfundservices.com` into an allowlist before the first
+   correct citation existed. Named honestly as weaker than it sounds, not
+   built.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** Checked this
+session: `.github/scripts/check-stamp-unique.sh` exists exactly where
+CLAUDE.md's Flutter rebuild rule 1 says it does, and its logic matches the
+description (fails only when a branch touches `flutter/` and its stamp equals
+the last delivered row); `flutter-preview.yml`'s "Record what actually
+shipped" step (line 201, the "fails AFTER the publish on purpose" comment at
+line 221, the exact collision message at line 227) still matches the
+backstop CLAUDE.md and session 25 describe. `flutter/lib/main.dart` line 33
+still holds the `updateStamp` constant. `docs/delivery-log.md` still opens
+"What actually reached the phone, written by the publisher", no notes column,
+matching CLAUDE.md's description exactly. The one gap found, not a false
+claim but a silence exactly like the one session 25 found: CLAUDE.md's
+"Development workflow" rule 1 says each session gets its own branch but names
+no recovery step for a branch discovered already merged mid-session; lesson 1
+above is that gap's guard.
+
+**Open lessons carried forward.**
+- From session 31: the same-environment before/after render diff for
+  presentation refactors is still named, not built; the WIP-label-is-
+  permanent rule is a standing habit, not a machine; the 7 calculator screens
+  the typography migration touched are still exempted from the readability
+  sweep rather than driven through it.
+- From session 30 and earlier: the 320dp readability question, the stale
+  goals.dart allowlist entry in icon_system_test.dart, and the prove-fail
+  marker-file sharpening are all still open, untouched by this session's
+  work (this batch was Money Courses content, not typography or icons).
+- From session 29: the fixture-through-the-writer shape test is not built,
+  the five Pan-plan follow-ups have no backlog home, and the 60-day cashflow
+  shot still captures without asserting its view.
+- New this session, narrow and explicit: whether a CI-only stamp near-miss
+  ever happened on f3.44 (Phase 9, Insurance Decoded) cannot be settled from
+  this session's tools, since no GitHub Actions log was reachable (no GitHub
+  API access in this sandbox). If a future session gets that access, checking
+  PR #320's check runs would close this rather than leave it as an
+  uncorroborated claim either way.
+
+**For the founder, over lunch.** Two new lessons shipped and you saw them:
+f3.46, patch 38, Pag-IBIG Savings and Housing, following f3.45 for SSS and
+PhilHealth. Both are live. Underneath that clean result, two things happened
+that are worth knowing about because they show two of our safety checks doing
+real work, not just sitting there.
+
+First: partway through, my working branch, the copy of the code I was
+actively editing, had already been merged into the main line by an earlier
+piece of work and GitHub had cleaned up and deleted it, the way it always
+does after a merge. My next command to fetch that branch failed. This is not
+dangerous, it happens by design, and the fix is simple: start a fresh copy
+from the main line, which is always caught up. That is exactly what I did,
+and nothing was lost. The only cost was a few extra minutes figuring out what
+had happened before applying a fix that was already known. I am writing that
+fix down in our rules now so the next time this happens it takes no
+figuring out at all.
+
+Second, and more important: content for the Pag-IBIG lesson got written and
+pushed with a "build name" (the short number like f3.46) that was already
+used by the PREVIOUS lesson. Think of the build name like a receipt number,
+two different receipts must never share one number, or you cannot tell them
+apart later. Our safety check caught that duplicate number before anything
+merged, the same kind of check that caught a similar problem once before,
+back in July. It failed loudly, pointed at exactly what to fix, and nothing
+reached your phone with the wrong number on it. I fixed it, gave the new
+content its own correct number, f3.46, and re-ran every test before shipping
+it for real.
+
+Third, the best part: our legal review step read through the new Pag-IBIG
+lesson and found that one of the website links it pointed to, the address for
+the Virtual Pag-IBIG member portal, was wrong. Not a small typo, a completely
+different web address than the real one. That link would have sent you, or
+anyone reading the lesson, to a page that does not really belong to Pag-IBIG.
+I ran a real search to confirm the correct address from four separate,
+trustworthy places, fixed the link, and fixed a second, smaller wrong link
+the same way, before any of it shipped. This is the review step working
+exactly the way it is supposed to: catching a wrong fact before it reaches
+you, not after.
+
+What makes each of these hard to repeat differently. The branch problem now
+has a written instruction, which is a reminder, not a machine, so it is only
+as strong as someone reading it at the right moment; if it is ever deleted
+from our rules, we go back to losing a few minutes rediscovering the same fix
+each time it happens, which is a small, recoverable cost. The build-name
+duplicate has a real machine behind it, the pre-merge check, which is strong
+because it works whether or not anyone is watching; if that check were ever
+removed, a duplicate build name could merge, and the guarantee that one
+number always means one specific build would be gone, the exact danger a
+safety check like this exists to prevent. The wrong web link has no machine
+behind it at all, because nothing in this sandbox can reach the real
+government website to check a link is genuine on its own; the only real
+defense is a person, or an assistant acting like one, choosing to search and
+verify before shipping, every time content cites an outside source. That is
+the weakest kind of guard we have, a habit rather than a rule or a machine,
+and I am saying so plainly rather than pretending it is stronger than it is.
+
+---
+
 ## 2026-08-02, session 31: a clean typography patch, a QA review cut short, and a WIP label stranded in main
 
 **What we believed / What was true.** We believed f3.18 shipped the typography

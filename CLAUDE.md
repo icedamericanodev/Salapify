@@ -40,8 +40,17 @@ Flutter track:
    the app id lives in flutter/shorebird.yaml (public, not a secret).
 2. Bump the updateStamp constant in flutter/lib/main.dart on every push
    (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
-   KEEP IT SHORT, one high level line, 120 characters, enforced by
-   test/update_stamp_test.dart. It became a forty line wall of text on the
+   Bump it FIRST, before writing the feature, not last after testing is
+   done: a commit finished and pushed before the stamp is bumped ships with
+   an already-stale stamp by construction, and the whole verification pass
+   behind it (format, analyze, the full suite) then attaches to a tree that
+   is not the one that actually ships, forcing a second full run to re-earn
+   a claim the first one already made once. check-stamp-unique.sh already
+   catches the collision itself at the PR border every time (see below); this
+   is only about not wasting a test run on a tree that was never going to
+   ship (session 32, docs/lunch-and-learn.md). KEEP IT SHORT, one high level
+   line, 120 characters, enforced by test/update_stamp_test.dart. It became a
+   forty line wall of text on the
    founder's phone because each build appended the previous build's notes
    instead of replacing them. The detail belongs in the PULL REQUEST. Not in
    docs/delivery-log.md, which has no notes column and is not meant to gain
@@ -279,6 +288,26 @@ notification, read the failure line, then restore. Nothing in the repo can
 observe the ordering of a background job against a manual edit, so this one is a
 rule and cannot be a machine; that is stated here rather than pretended away.
 
+## Money Courses official-source URLs need a real search, not just a cite
+
+A syntactically well-formed government URL a lesson cites can still be
+fabricated, and nothing in flutter test can tell the difference: every content
+test that touches a source URL asserts against the lesson file's own declared
+constant, never against the live internet, which is tautological against a
+wrong value the file declares with full confidence. WebFetch to gov.ph domains
+returns a uniform 403 in this environment, so WebSearch cross-verification is
+the only channel that can check a URL is real at all.
+
+Any Money Courses lesson introducing or changing an official-source
+canonicalUrl on a government domain requires the reviewing agent to
+independently WebSearch each URL, not merely cite or WebFetch it, before
+governance.reviewStatus is set to verified. The qa-log row must name what was
+searched and what confirmed or contradicted it. This caught a real defect
+once already: Phase 11's first draft cited a Virtual Pag-IBIG portal URL that
+never appeared in any independent search result, a fabricated subdomain a
+"zero blockers found" review had waved through, corrected only when the
+search was actually run (session 32, docs/lunch-and-learn.md).
+
 ## Icons: ours are orange, the user's are emoji
 
 Salapify's own icons are Material glyphs in the theme accent, resolved through
@@ -334,7 +363,15 @@ first so the enhancement lands on what exists instead of beside it.
 
 1. Develop on the session's assigned claude/** working branch and open PRs
    to main. (The old fixed branch claude/salapify-v2 is retired; each session
-   gets its own branch now, and the Flutter check runs on all of them.)
+   gets its own branch now, and the Flutter check runs on all of them.) If
+   git fetch origin <your branch> ever fails with "couldn't find remote
+   ref", that branch was already merged (by an earlier PR from this same
+   session, or a parallel one) and GitHub deleted it on merge, per its own
+   post-merge cleanup. Do not treat this as an error to work around: restart
+   it with git checkout -B <your branch> origin/main, which is always safe
+   because origin/main is never older than the branch's last delivered
+   commit, and any uncommitted working-tree changes apply cleanly on top
+   (session 32, docs/lunch-and-learn.md).
 2. Compile check every changed file with the Expo Babel preset before
    committing (run node with babel.transformFileSync from mobile/).
 3. Commit per milestone with a clear message explaining the why. Push in
