@@ -275,9 +275,9 @@ void main() {
       const expectedUrls = {
         'https://www.pagibigfund.gov.ph/',
         'https://open.gov.ph/pagibig',
-        'https://yourvirtualpagibig.pagibigfund.gov.ph/',
+        'https://www.pagibigfundservices.com/virtualpagibig/',
         'https://pagibigfund.gov.ph/AffordableHousingLoan.html',
-        'https://pagibigfund.gov.ph/amort/',
+        'https://www.pagibigfund.gov.ph/AA/calc.aspx',
         'https://pagibigfund.gov.ph/forms_housing.html',
       };
       final citedUrls = {
@@ -476,7 +476,7 @@ void main() {
       expect(review.isValid, isTrue);
       expect(review.requiredForCompletion, isTrue);
       final sources = l.sources.map((s) => s.canonicalUrl);
-      expect(sources, contains('https://pagibigfund.gov.ph/amort/'));
+      expect(sources, contains('https://www.pagibigfund.gov.ph/AA/calc.aspx'));
       final lower = _allText(l).toLowerCase();
       for (final banned in [
         'you are approved',
