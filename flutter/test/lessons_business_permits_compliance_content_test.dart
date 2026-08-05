@@ -334,12 +334,16 @@ void main() {
   // currently-live pages at those exact paths (a DILG "barangay clearance
   // integration" circular and a Pag-IBIG Fund employer-registration
   // checklist PDF), so both were dropped from this course's sources rather
-  // than shipped unverified. See the content file's own header comment.
+  // than shipped unverified. A later independent re-search then found that
+  // the eBOSS circular URL that review DID keep, a DILG-hosted PDF, could
+  // not itself be confirmed either, and replaced it with the Anti-Red Tape
+  // Authority's own hosted copy of the same circular, confirmed directly.
+  // See the content file's own header comment.
   group('official-source metadata', () {
     const allowedUrls = {
       'https://business.gov.ph/business-application-process',
       'https://bnrs.dti.gov.ph/faq',
-      'https://www.dilg.gov.ph/PDF_File/issuances/joint_circulars/dilg-joincircular-2021728_41c62cd45a.pdf',
+      'https://arta.gov.ph/wp-content/uploads/2021/08/Memorandum-Circular-No.-2021-02-Automation-of-their-Buisness-Permitting-and-Licensing-Systems-or-eBOSS.pdf',
       'https://www.sss.gov.ph/employer-er/',
       'https://www.philhealth.gov.ph/partners/employers/registration.php',
       'https://www.fda.gov.ph/',
@@ -404,8 +408,7 @@ void main() {
       const expectedAgencyByHost = {
         'business.gov.ph': 'Philippine Business Hub',
         'bnrs.dti.gov.ph': 'Department of Trade and Industry (DTI)',
-        'www.dilg.gov.ph':
-            'Department of the Interior and Local Government (DILG)',
+        'arta.gov.ph': 'Anti-Red Tape Authority (ARTA)',
         'www.sss.gov.ph': 'Social Security System (SSS)',
         'www.philhealth.gov.ph':
             'Philippine Health Insurance Corporation (PhilHealth)',

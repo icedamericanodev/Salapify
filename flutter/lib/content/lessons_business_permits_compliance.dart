@@ -45,31 +45,43 @@
 // Sources: the Philippine Business Hub's own business-application-process
 // page (already cited by "Start Your Business Legally" and "BIR
 // Registration and Local Permits", reused here for the LGU-routing
-// lessons), DTI's own Business Name Registration System FAQ, the DILG's own
-// electronic Business One-Stop Shop guidelines, SSS's and PhilHealth's own
-// employer-registration pages, and the FDA's, PCAB's, and DOT's own
-// official sites for the three industry regulators this course names by
-// verified example. A direct WebFetch to every one of these pages returns a
-// uniform 403 in this environment, the same gov.ph fetch limitation every
-// earlier expansion course's own header notes; per this repository's rule
-// that a Money Courses official-source URL needs a real search, not just a
-// cite, legal-compliance-counsel independently WebSearched each candidate
-// URL as part of its Phase 15 review. Two of the ten URLs this course
-// originally cited, a DILG "barangay clearance integration" circular and a
-// Pag-IBIG Fund employer-registration checklist PDF, could not be
-// independently confirmed as real, currently-live pages at those exact
-// paths (the DILG one appears to be a different, misdated circular; the
-// Pag-IBIG one only turned up on a third-party mirror), so both were
-// dropped from this file's sources rather than shipped unverified; the
-// general, well-known facts that DILG runs eBOSS and that Pag-IBIG has its
-// own employer-registration process stay in the lessons' prose, but no
-// citation card links to either unconfirmed document. The same review also
-// caught a real ordering error in Lesson 2's original draft (BIR
-// registration was sequenced before barangay clearance and the Business
-// Permit; independently confirmed sources put it after, since BIR commonly
-// asks for the Business Permit as a supporting document), corrected before
-// this file shipped. No blog, accounting-firm summary, or unofficial
-// calculator was used as a source for any claim in this file.
+// lessons), DTI's own Business Name Registration System FAQ, the
+// Anti-Red Tape Authority's own eBOSS automation circular, SSS's and
+// PhilHealth's own employer-registration pages, and the FDA's, PCAB's, and
+// DOT's own official sites for the three industry regulators this course
+// names by verified example. A direct WebFetch to every one of these pages
+// returns a uniform 403 in this environment, the same gov.ph fetch
+// limitation every earlier expansion course's own header notes; per this
+// repository's rule that a Money Courses official-source URL needs a real
+// search, not just a cite, legal-compliance-counsel independently
+// WebSearched each candidate URL as part of its Phase 15 review, and this
+// stamp's own fix independently re-searched every one of the eight URLs
+// that review left in place. Two of the ten URLs this course originally
+// cited, a DILG "barangay clearance integration" circular and a Pag-IBIG
+// Fund employer-registration checklist PDF, could not be independently
+// confirmed as real, currently-live pages at those exact paths (the DILG
+// one appears to be a different, misdated circular; the Pag-IBIG one only
+// turned up on a third-party mirror), so both were dropped before this
+// file first shipped. This stamp's own re-search then found that the DILG
+// eBOSS circular URL the earlier review DID keep,
+// dilg.gov.ph/PDF_File/issuances/joint_circulars/dilg-joincircular-2021728_41c62cd45a.pdf,
+// could not itself be independently confirmed across four separate
+// searches, even though the underlying circular (ARTA-DTI-DILG-DICT Joint
+// Memorandum Circular No. 01, Series of 2021, mandating an eBOSS in every
+// city and municipality by June 17, 2021) is real and well documented. The
+// same search surfaced the Anti-Red Tape Authority's own hosted copy of the
+// matching Memorandum Circular No. 2021-02 at a directly indexed
+// arta.gov.ph path, confirmed independently, so this stamp replaces the
+// unconfirmable DILG citation with that ARTA one rather than shipping it
+// unverified; the general, well-known fact that DILG (alongside ARTA, DTI,
+// and DICT) is a party to the eBOSS mandate stays in the lessons' prose,
+// unchanged. The same original review also caught a real ordering error in
+// Lesson 2's original draft (BIR registration was sequenced before
+// barangay clearance and the Business Permit; independently confirmed
+// sources put it after, since BIR commonly asks for the Business Permit as
+// a supporting document), corrected before this file first shipped. No
+// blog, accounting-firm summary, or unofficial calculator was used as a
+// source for any claim in this file.
 
 import 'interaction_blocks.dart';
 import 'lesson_blocks.dart';
@@ -77,7 +89,7 @@ import 'lesson_model.dart';
 
 const _pbhAgency = 'Philippine Business Hub';
 const _dtiAgency = 'Department of Trade and Industry (DTI)';
-const _dilgAgency = 'Department of the Interior and Local Government (DILG)';
+const _artaAgency = 'Anti-Red Tape Authority (ARTA)';
 const _sssAgency = 'Social Security System (SSS)';
 const _philhealthAgency =
     'Philippine Health Insurance Corporation (PhilHealth)';
@@ -105,15 +117,17 @@ const _dtiBnrs = LessonSourceInfo(
   lastVerifiedDate: _dtiBnrsVerified,
 );
 
-const _dilgEbossTitle = 'Electronic Business One-Stop Shop Guidelines';
-const _dilgEbossUrl =
-    'https://www.dilg.gov.ph/PDF_File/issuances/joint_circulars/dilg-joincircular-2021728_41c62cd45a.pdf';
-const _dilgEbossVerified = '2026-08';
-const _dilgEboss = LessonSourceInfo(
-  agency: _dilgAgency,
-  title: _dilgEbossTitle,
-  canonicalUrl: _dilgEbossUrl,
-  lastVerifiedDate: _dilgEbossVerified,
+const _artaEbossTitle =
+    'Memorandum Circular No. 2021-02: Automation of Business Permitting '
+    'and Licensing Systems (eBOSS)';
+const _artaEbossUrl =
+    'https://arta.gov.ph/wp-content/uploads/2021/08/Memorandum-Circular-No.-2021-02-Automation-of-their-Buisness-Permitting-and-Licensing-Systems-or-eBOSS.pdf';
+const _artaEbossVerified = '2026-08';
+const _artaEboss = LessonSourceInfo(
+  agency: _artaAgency,
+  title: _artaEbossTitle,
+  canonicalUrl: _artaEbossUrl,
+  lastVerifiedDate: _artaEbossVerified,
 );
 
 const _sssTitle = 'Employer Guidance';
@@ -243,7 +257,7 @@ const _locationChangesTheChecklist = MoneyLesson(
       'stating a specific requirement for any real address.',
   sections: [],
   governance: _governance,
-  sources: [_pbh, _dilgEboss],
+  sources: [_pbh, _artaEboss],
   topics: [ContentTopic.businessTaxOrPermitCompliance],
   authoredBlocks: [
     ProseBlock(
@@ -298,10 +312,10 @@ const _locationChangesTheChecklist = MoneyLesson(
       lastVerifiedDate: _pbhVerified,
     ),
     OfficialSourceBlock(
-      agency: _dilgAgency,
-      sourceTitle: _dilgEbossTitle,
-      canonicalUrl: _dilgEbossUrl,
-      lastVerifiedDate: _dilgEbossVerified,
+      agency: _artaAgency,
+      sourceTitle: _artaEbossTitle,
+      canonicalUrl: _artaEbossUrl,
+      lastVerifiedDate: _artaEbossVerified,
     ),
     _boundaryLocal,
   ],
@@ -592,7 +606,7 @@ const _renewalsAndLocalCompliance = MoneyLesson(
       'labels rather than a specific date for any real permit.',
   sections: [],
   governance: _governance,
-  sources: [_pbh, _dilgEboss],
+  sources: [_pbh, _artaEboss],
   topics: [ContentTopic.businessTaxOrPermitCompliance],
   authoredBlocks: [
     ProseBlock(
@@ -638,10 +652,10 @@ const _renewalsAndLocalCompliance = MoneyLesson(
       lastVerifiedDate: _pbhVerified,
     ),
     OfficialSourceBlock(
-      agency: _dilgAgency,
-      sourceTitle: _dilgEbossTitle,
-      canonicalUrl: _dilgEbossUrl,
-      lastVerifiedDate: _dilgEbossVerified,
+      agency: _artaAgency,
+      sourceTitle: _artaEbossTitle,
+      canonicalUrl: _artaEbossUrl,
+      lastVerifiedDate: _artaEbossVerified,
     ),
     _boundaryLocal,
   ],
