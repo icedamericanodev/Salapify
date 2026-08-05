@@ -22,6 +22,7 @@ import 'package:salapify/content/lessons_crypto.dart';
 import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_insurance.dart';
+import 'package:salapify/content/lessons_ph_government_securities.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/money/expansion_content_policy.dart';
 import 'package:salapify/money/interaction_completion.dart';
@@ -75,6 +76,18 @@ const _cryptoLessonIds = [
   cryptoRefStablecoinsYieldLeverage,
   cryptoRefScamsProviderVerification,
   cryptoRefDecisionLab,
+];
+
+// Phase 12 added a fifth grow_your_money course, "Philippine Government
+// Securities" (see test/lessons_ph_government_securities_content_test.dart
+// for its own registration contract).
+const _govSecuritiesLessonIds = [
+  gsLendingToGovernment,
+  gsTypesOfSecurities,
+  gsCouponYieldPriceMaturity,
+  gsHowSecuritiesReachInvestors,
+  gsRisksAndScamChecks,
+  gsDecisionPlan,
 ];
 
 void main() {
@@ -145,11 +158,13 @@ void main() {
       expect(core.courseTracks.length, 4);
     });
 
-    test('grow_your_money is untouched: still all four of its own courses', () {
+    test('grow_your_money is untouched: still all five of its own courses '
+        '(Phase 12 added Philippine Government Securities as a fifth, none '
+        'of these earlier four moved or changed)', () {
       final growPath = learningPaths.firstWhere(
         (p) => p.id == 'grow_your_money',
       );
-      expect(growPath.groups.length, 4);
+      expect(growPath.groups.length, 5);
       expect(growYourMoneyLessons.map((l) => l.id).toList(), _pilotLessonIds);
       expect(
         stocksAndBondsLessons.map((l) => l.id).toList(),
@@ -162,6 +177,10 @@ void main() {
       expect(
         cryptoWithoutHypeLessons.map((l) => l.id).toList(),
         _cryptoLessonIds,
+      );
+      expect(
+        phGovernmentSecuritiesLessons.map((l) => l.id).toList(),
+        _govSecuritiesLessonIds,
       );
     });
 
@@ -179,6 +198,7 @@ void main() {
         ..._stocksBondsLessonIds,
         ..._depositsLessonIds,
         ..._cryptoLessonIds,
+        ..._govSecuritiesLessonIds,
       };
       for (final id in _stableLessonIds) {
         expect(growIds.contains(id), isFalse);
@@ -192,7 +212,8 @@ void main() {
         _pilotLessonIds.length +
             _stocksBondsLessonIds.length +
             _depositsLessonIds.length +
-            _cryptoLessonIds.length,
+            _cryptoLessonIds.length +
+            _govSecuritiesLessonIds.length,
       );
       for (final id in _stableLessonIds) {
         expect(lessons.map((l) => l.id), isNot(contains(id)));

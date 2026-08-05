@@ -64,7 +64,7 @@ const _depositsLessonIds = [
 
 void main() {
   group('registration', () {
-    test('grow_your_money carries all four courses', () {
+    test('grow_your_money carries this course among its courses', () {
       final path = learningPaths.firstWhere((p) => p.id == 'grow_your_money');
       expect(path.status, LearningPathStatus.published);
       expect(path.isAvailable, isTrue);
@@ -83,14 +83,27 @@ void main() {
       expect(group.title, 'Crypto Without the Hype');
       expect(group.lessonIds, _stableLessonIds);
       // The path's flat id list is every earlier course's lessons, then
-      // this course's six, since groups render in the order they were
-      // authored.
-      expect(path.lessonIds, [
-        ..._pilotLessonIds,
-        ..._stocksBondsLessonIds,
-        ..._depositsLessonIds,
-        ..._stableLessonIds,
-      ]);
+      // this course's six, in the order groups were authored. Phase 12
+      // later appended a fifth course ("Philippine Government Securities")
+      // after this one, so this only asserts these four courses' worth
+      // appear first, contiguously, not that they are the whole list. See
+      // test/lessons_ph_government_securities_content_test.dart for that
+      // fifth course's own registration contract.
+      expect(
+        path.lessonIds.sublist(
+          0,
+          _pilotLessonIds.length +
+              _stocksBondsLessonIds.length +
+              _depositsLessonIds.length +
+              _stableLessonIds.length,
+        ),
+        [
+          ..._pilotLessonIds,
+          ..._stocksBondsLessonIds,
+          ..._depositsLessonIds,
+          ..._stableLessonIds,
+        ],
+      );
     });
 
     test('recommended prerequisites are recommended, never a lock', () {

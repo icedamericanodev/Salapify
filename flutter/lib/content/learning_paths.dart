@@ -22,6 +22,10 @@
 // smallest way to guarantee that, for this path and any future one, is to
 // never construct an empty group at all: publishedLearningPaths below only
 // has to filter on status.
+//
+// Phase 12 adds "Grow Your Money"'s fifth course, "Philippine Government
+// Securities" (lib/content/lessons_ph_government_securities.dart), never
+// modifying any earlier course in this path's own lesson ids.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
@@ -30,6 +34,7 @@ import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
 import 'lessons_insurance.dart';
 import 'lessons_pagibig.dart';
+import 'lessons_ph_government_securities.dart';
 import 'lessons_sss_philhealth.dart';
 import 'lessons_stocks_bonds.dart';
 
@@ -117,6 +122,31 @@ const List<LearningPath> learningPaths = [
         // that course is about choosing a product, this one is about
         // recognizing risk, and the two are not a natural sequence.
         recommendedPriorGroupIds: ['investing_readiness', 'stocks_and_bonds'],
+      ),
+      LearningPathGroup(
+        id: 'ph_government_securities',
+        title: 'Philippine Government Securities',
+        lessonIds: [
+          gsLendingToGovernment,
+          gsTypesOfSecurities,
+          gsCouponYieldPriceMaturity,
+          gsHowSecuritiesReachInvestors,
+          gsRisksAndScamChecks,
+          gsDecisionPlan,
+        ],
+        // Same advisory-only contract as every other group's own
+        // recommendedPriorGroupIds above: investing_readiness covers the
+        // readiness questions this course assumes, stocks_and_bonds covers
+        // the owner-versus-lender distinction lesson 1 here builds on
+        // without repeating, and deposits_and_pooled_funds covers the same
+        // deposit-insurance boundary lesson 1 here also draws. Neither is a
+        // lock; lessonsForPath returns every lesson regardless of any other
+        // group's progress.
+        recommendedPriorGroupIds: [
+          'investing_readiness',
+          'stocks_and_bonds',
+          'deposits_and_pooled_funds',
+        ],
       ),
     ],
     // Advisory only, per LearningPath.prerequisiteLessonIds's own contract:
@@ -227,6 +257,7 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...stocksAndBondsLessons,
     ...depositsAndPooledFundsLessons,
     ...cryptoWithoutHypeLessons,
+    ...phGovernmentSecuritiesLessons,
   ],
   'protect_your_future' => [
     ...insuranceDecodedLessons,
@@ -248,6 +279,7 @@ MoneyLessonWithPath? expansionLessonById(String id) {
     ...stocksAndBondsLessons,
     ...depositsAndPooledFundsLessons,
     ...cryptoWithoutHypeLessons,
+    ...phGovernmentSecuritiesLessons,
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'grow_your_money', lesson: lesson);
