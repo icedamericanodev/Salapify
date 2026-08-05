@@ -82,12 +82,23 @@ void main() {
     final store = await _freshStore();
     await _pumpTall(tester, store);
 
-    // "All lessons" for Protect Your Future's own card expands its list,
-    // proving the twelve real lessons across both courses are reachable and
-    // every Start/Continue row opens a real reader, never a dead tap.
-    final allLessonsButtons = find.widgetWithText(TextButton, 'All lessons');
-    expect(allLessonsButtons, findsWidgets);
-    await tester.tap(allLessonsButtons.last);
+    // Scoped to Protect Your Future's own Card, not '.last': Phase 13 added
+    // a third path card (Build Your Business) below this one, so '.last'
+    // would now tap the wrong path's "All lessons" button and this test
+    // would silently start asserting something about a different course.
+    // Each path renders as one Card (screens/learn.dart's _pathCard), so
+    // finding the Card that contains this path's own title text scopes
+    // every descendant search to it, however many paths render after it.
+    final protectCard = find.ancestor(
+      of: find.text('Protect Your Future'),
+      matching: find.byType(Card),
+    );
+    final allLessonsButton = find.descendant(
+      of: protectCard,
+      matching: find.widgetWithText(TextButton, 'All lessons'),
+    );
+    expect(allLessonsButton, findsOneWidget);
+    await tester.tap(allLessonsButton);
     await tester.pumpAndSettle();
     expect(find.text('What Insurance Is For'), findsOneWidget);
     expect(find.text('Meet Your Two Safety Nets'), findsOneWidget);

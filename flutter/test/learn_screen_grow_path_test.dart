@@ -16,8 +16,9 @@
 // Phase 9 published a second real path, Protect Your Future, so this file
 // no longer asserts that path is absent (see
 // test/learn_screen_protect_path_test.dart for its own catalog coverage).
-// Build Your Business has no content yet and still must never render, even
-// as an empty stub.
+// Phase 13 published a third real path, Build Your Business, so this file
+// no longer asserts that one is absent either (see
+// test/learn_screen_business_path_test.dart for its own catalog coverage).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,15 +60,17 @@ void main() {
       expect(find.text('CORE MONEY SKILLS'), findsOneWidget);
       expect(find.text('CHOOSE YOUR NEXT PATH'), findsOneWidget);
       expect(find.text('Grow Your Money'), findsOneWidget);
-      // Protect Your Future is a second real, published path as of Phase 9
-      // and now renders alongside Grow Your Money. Build Your Business has
-      // no content yet and must never render, even as an empty stub.
+      // Protect Your Future is a second real, published path as of Phase 9,
+      // and Build Your Business is a third as of Phase 13; both now render
+      // alongside Grow Your Money.
       expect(find.text('Protect Your Future'), findsOneWidget);
-      expect(find.textContaining('Build Your Business'), findsNothing);
-      // Both real paths carry a "Recommended first" prerequisite note now
-      // (Grow Your Money's own two-lesson note, and Protect Your Future's
-      // own one-lesson note); see learn_screen_protect_path_test.dart for
-      // the second path's own card content.
+      expect(find.text('Build Your Business'), findsOneWidget);
+      // Only Grow Your Money and Protect Your Future carry a "Recommended
+      // first" prerequisite note; Build Your Business has no
+      // prerequisiteLessonIds (see learning_paths.dart), so the count stays
+      // 2, not 3. See learn_screen_protect_path_test.dart and
+      // learn_screen_business_path_test.dart for each path's own card
+      // content.
       expect(find.textContaining('Recommended first:'), findsNWidgets(2));
       expect(
         find.text('0 of $_pathLessonTotal lessons in this path'),
@@ -82,11 +85,24 @@ void main() {
     final store = await _freshStore();
     await _pumpTall(tester, store);
 
-    final startFinder = find.widgetWithText(FilledButton, 'Start');
-    final button = tester.widget<FilledButton>(startFinder.last);
+    // Scoped to Grow Your Money's own Card, not '.last': Phase 9 and Phase
+    // 13 each added a path card below this one (Protect Your Future, then
+    // Build Your Business), so '.last' would now tap a different path's
+    // Start button and this test would silently stop testing Grow Your
+    // Money, the one thing its own name claims to cover.
+    final growCard = find.ancestor(
+      of: find.text('Grow Your Money'),
+      matching: find.byType(Card),
+    );
+    final startFinder = find.descendant(
+      of: growCard,
+      matching: find.widgetWithText(FilledButton, 'Start'),
+    );
+    expect(startFinder, findsOneWidget);
+    final button = tester.widget<FilledButton>(startFinder);
     expect(button.onPressed, isNotNull);
 
-    await tester.tap(startFinder.last);
+    await tester.tap(startFinder);
     await tester.pumpAndSettle();
     expect(find.byType(ExpansionLessonReader), findsOneWidget);
   });

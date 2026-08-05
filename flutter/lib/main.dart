@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.47 \u00b7 New course: Philippine Government Securities.';
+    'f3.48 \u00b7 New course: Start Your Business Legally.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
