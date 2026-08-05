@@ -130,4 +130,44 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'All lessons groups the flat list under each course\'s own title, not '
+    'one continuous list',
+    (tester) async {
+      // Phase 16 specialist review: a recommendation reason names a specific
+      // course ("Finish Investment Readiness before..."), but the expanded
+      // list used to be one flat, ungrouped run of lessons with no way to
+      // see what that course actually contains. Grow Your Money has five
+      // real courses, so this is a real, reachable case, not a fixture.
+      final store = await _freshStore();
+      await _pumpTall(tester, store);
+
+      final growCard = find.ancestor(
+        of: find.text('Grow Your Money'),
+        matching: find.byType(Card),
+      );
+      await tester.tap(
+        find.descendant(
+          of: growCard,
+          matching: find.widgetWithText(TextButton, 'All lessons'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final title in const [
+        'Are You Ready to Invest?',
+        'Stocks and Bonds Without the Hype',
+        'Deposits and Pooled Funds',
+        'Crypto Without the Hype',
+        'Philippine Government Securities',
+      ]) {
+        expect(
+          find.descendant(of: growCard, matching: find.text(title)),
+          findsOneWidget,
+          reason: 'course heading "$title" should appear once',
+        );
+      }
+    },
+  );
 }

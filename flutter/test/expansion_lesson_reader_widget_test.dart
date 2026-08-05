@@ -269,6 +269,47 @@ void main() {
         LessonState.applied,
       );
     });
+
+    testWidgets(
+      'back navigation returns to the same lesson with progress kept',
+      (tester) async {
+        // Required test 12 (Phase 16): back navigation must return to the
+        // same lesson and preserve progress. GoalsScreen is a normal
+        // Navigator.push on top of the reader, so the reader's own State is
+        // never disposed while it is open; popping back must land on the
+        // exact same reader instance, still showing this action as opened.
+        final store = await _freshStore();
+        await _pumpReader(tester, store, 'grow_your_money', cardLesson);
+        final readerState = tester.state(find.byType(ExpansionLessonReader));
+
+        final label = find.text('Review or create an Emergency Fund goal');
+        await _scrollTo(tester, label);
+        final openButtons = find.widgetWithText(OutlinedButton, 'Open');
+        await tester.tap(openButtons.at(0));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.byType(GoalsScreen), findsOneWidget);
+
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(GoalsScreen), findsNothing);
+        expect(find.byType(ExpansionLessonReader), findsOneWidget);
+        // Same State object: Flutter never rebuilt the reader from scratch,
+        // so its local progress (the confirmed action) survived the trip.
+        expect(
+          tester.state(find.byType(ExpansionLessonReader)),
+          same(readerState),
+        );
+        await _scrollTo(tester, find.text('Opened'));
+        expect(find.text('Opened'), findsOneWidget);
+        expect(
+          store.expansionProgressFor('grow_your_money')[cardLesson.id],
+          LessonState.applied,
+        );
+      },
+    );
   });
 
   group('accessibility and layout', () {
