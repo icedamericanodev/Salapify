@@ -26,9 +26,19 @@
 // Phase 12 adds "Grow Your Money"'s fifth course, "Philippine Government
 // Securities" (lib/content/lessons_ph_government_securities.dart), never
 // modifying any earlier course in this path's own lesson ids.
+//
+// Phase 13 adds a THIRD path, "Build Your Business", carrying its first
+// real course, "Start Your Business Legally"
+// (lib/content/lessons_business_registration.dart). This path was
+// deliberately absent from this file until now (see the Phase 11 comment
+// this replaces): it starts with exactly one group, the same shape
+// "Protect Your Future" started with in Phase 9, never an empty group or a
+// comingSoon stub, and never touching grow_your_money or protect_your_future
+// or any of their own lesson ids.
 
 import 'learning_path.dart';
 import 'lesson_model.dart' show MoneyLesson;
+import 'lessons_business_registration.dart';
 import 'lessons_crypto.dart';
 import 'lessons_deposits_pooled_funds.dart';
 import 'lessons_grow.dart';
@@ -226,6 +236,29 @@ const List<LearningPath> learningPaths = [
     prerequisiteLessonIds: ['emergency-fund'],
     status: LearningPathStatus.published,
   ),
+  LearningPath(
+    id: 'build_your_business',
+    title: 'Build Your Business',
+    shortDescription:
+        'Choose a structure, find the right agency, and map what comes '
+        'next.',
+    icon: 'mountain',
+    groups: [
+      LearningPathGroup(
+        id: 'start_a_business_legally',
+        title: 'Start Your Business Legally',
+        lessonIds: [
+          brBeforeYouRegister,
+          brCompareBusinessStructures,
+          brMatchStructureToAgency,
+          brBusinessNameAndBrand,
+          brRegistrationIsNotPermission,
+          brBuildRegistrationRoadmap,
+        ],
+      ),
+    ],
+    status: LearningPathStatus.published,
+  ),
 ];
 
 /// Paths safe to list in a catalog: published only. A comingSoon or
@@ -264,6 +297,7 @@ List<MoneyLesson> lessonsForPath(String pathId) => switch (pathId) {
     ...sssPhilhealthBenefitsLessons,
     ...pagibigSavingsMp2HousingLessons,
   ],
+  'build_your_business' => [...startABusinessLegallyLessons],
   _ => const [],
 };
 
@@ -292,6 +326,11 @@ MoneyLessonWithPath? expansionLessonById(String id) {
   ]) {
     if (lesson.id == id) {
       return MoneyLessonWithPath(pathId: 'protect_your_future', lesson: lesson);
+    }
+  }
+  for (final lesson in startABusinessLegallyLessons) {
+    if (lesson.id == id) {
+      return MoneyLessonWithPath(pathId: 'build_your_business', lesson: lesson);
     }
   }
   return null;

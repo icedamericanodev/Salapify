@@ -59,12 +59,18 @@ void main() {
       );
     });
 
-    test('no Business path exists to accidentally render; Protect Your '
-        'Future is real as of Phase 9', () {
+    test('Build Your Business is real as of Phase 13, alongside Protect '
+        'Your Future from Phase 9', () {
       // Protect Your Future became a real, published path in Phase 9 (see
-      // test/lessons_insurance_content_test.dart for its own coverage).
-      // Build Your Business still has no content and must stay absent.
-      expect(learningPaths.any((p) => p.id.contains('business')), isFalse);
+      // test/lessons_insurance_content_test.dart), and Build Your Business
+      // in Phase 13 (see
+      // test/lessons_business_registration_content_test.dart for its own
+      // coverage). Neither one is an empty group or a comingSoon stub.
+      final business = learningPaths.firstWhere(
+        (p) => p.id == 'build_your_business',
+      );
+      expect(business.isAvailable, isTrue);
+      expect(business.groups, isNotEmpty);
     });
 
     test('five stable pilot lesson ids, in reading order', () {

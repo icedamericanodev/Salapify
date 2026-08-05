@@ -84,11 +84,12 @@ void main() {
       expect(group.lessonIds, _stableLessonIds);
     });
 
-    test('publishedLearningPaths is still exactly the two real paths', () {
-      expect(publishedLearningPaths.map((p) => p.id), [
-        'grow_your_money',
-        'protect_your_future',
-      ]);
+    test('publishedLearningPaths still carries protect_your_future (Phase '
+        '13 later adds a third path, build_your_business, alongside it)', () {
+      expect(
+        publishedLearningPaths.map((p) => p.id),
+        contains('protect_your_future'),
+      );
     });
 
     test('exactly six stable lesson ids, in reading order', () {
