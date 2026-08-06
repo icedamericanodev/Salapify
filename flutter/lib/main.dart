@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.60 \u00b7 Accounts shows your banks as real looking cards you can swipe through.';
+    'f3.61 \u00b7 Lesson screenshots and tests now point at the reader you actually open.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
