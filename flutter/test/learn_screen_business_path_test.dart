@@ -22,7 +22,7 @@ import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
-import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final int _businessPathTotal = lessonsForPath('build_your_business').length;
@@ -123,7 +123,7 @@ void main() {
 
     await tester.tap(find.text('Before You Register'));
     await tester.pumpAndSettle();
-    expect(find.byType(ExpansionLessonReader), findsOneWidget);
+    expect(find.byType(PagedLessonReader), findsOneWidget);
   });
 
   testWidgets('finishing every lesson in all four Build Your Business courses '

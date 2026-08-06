@@ -10,6 +10,423 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-06, session 35: f3.56 shipped clean, a measuring instrument wrong for the second time in three batches, and a "no fact was deleted" claim whose stated evidence was nearly vacuous while the claim itself held
+
+**What we believed / What was true.** The founder confirmed the patch on the
+phone. The delivery log's last row agrees:
+`| 2026-08-06 08:30 UTC | f3.56 | 48 | patch | 0.9.0+15 | [ce95c8e5](.../31084213368) |`
+(docs/delivery-log.md, last row on origin/main; content commit `10ca9e6`, merge
+commit `ce95c8e` from PR #336, delivery commit `50dd738`).
+`flutter/lib/main.dart` line 33 on origin/main carries `'f3.56 · Grow Your Money
+lessons now open with your situation, not a definition.'`, which is the row the
+founder read. Mode is `patch` and the base APK is still `0.9.0+15`, so no manual
+install was needed and none was claimed. Patch numbers ran 46, 47, 48 across
+f3.54, f3.55 and f3.56 with nothing between. Parsing the whole log's patch
+column (108 rows, f2.30 patch 25 through f3.56 patch 48) shows six
+discontinuities, five of which are pubspec version transitions where the patch
+counter legitimately restarts, and the sixth is the f3.10 patch 5 hole already
+recorded in session 25. No new gap, and no row in the entire file has mode
+`release`, so nothing has ever silently stranded the installed base APK. Phone,
+delivery log, origin/main and the stamp constant all agree.
+
+Say the top line plainly: this was a clean delivery, the third in a row from the
+Money Courses experience audit, and nothing in the evidence contradicts that.
+Nothing below was manufactured to justify the session.
+
+What makes this session worth the time is that four specific claims were handed
+over to be checked rather than accepted. Three survived checking, one turned out
+to be stronger than the person making it believed, and one is overstated in a way
+worth correcting carefully. All four were re-derived from the repository this
+session, twice by reconstructing the pre-f3.56 tree and running code against it.
+
+**Timeline (with evidence).**
+
+- The batch is one commit, `10ca9e6` at 08:07 on
+  `claude/salapify-money-courses-audit-i3rrxi`, merged as PR #336 at `ce95c8e`
+  and published as patch 48 at 08:30. Eight files: the five Grow Your Money
+  content files, `flutter/lib/main.dart` (the stamp), `docs/qa-log.md` (one row),
+  and one new file, `flutter/test/lesson_openings_test.dart` (155 lines, 6
+  tests). 374 insertions, 190 deletions.
+
+- `git diff --diff-filter=D` across the batch returns nothing, and no existing
+  test file was modified. That matters for the standing trap this repository
+  checks by name: no test had to CHANGE for this work to pass, so nothing here
+  has the shape of a suite that was defending a defect.
+
+- The content change: all 29 lessons in the Grow Your Money path opened with a
+  block headed `'Why it matters'` whose first sentence was a definition. The
+  audit's simulated user panel had two of three testers stopping at the first
+  sentence of the crypto lesson. Every one of the 29 now opens on a recognisable
+  moment in second person, with the definition landing immediately after, and
+  the 29 identical headings became 29 distinct ones.
+
+- THREAD 1, THE DEFECT IN THE GUARD'S OWN MEASUREMENT, verified by
+  reconstruction rather than from the commit message. The fix is present:
+  `flutter/test/lesson_openings_test.dart` lines 44 to 55 define `_sentences`
+  splitting on `RegExp(r'(?<=[.?!])\s+')`, with the comment above it that names
+  the failure ("Splitting on '. ' alone silently glued a question to whatever
+  followed it, which made three openings measure as one 35 to 73 word sentence
+  that nobody had written"). To check the claim rather than read it, both
+  splitters were run over the shipped openings in a worktree at `ce95c8e5`. The
+  buggy `split('. ')` reports exactly three offenders over 30 words,
+  `invest-ready-goal-time-access: 35`, `sb-verify-before-you-invest: 39`,
+  `gs-decision-plan: 73`. The fixed splitter reports ZERO. The three figures in
+  the commit message are exactly right, and all three are artefacts. The shipped
+  openings contain six sentences ending in a question mark, which is the whole
+  mechanism.
+
+- THREAD 2, THE PROOF METHOD, re-run rather than assessed on paper. The test file
+  and the content changed in the same commit, so the commit message is the only
+  contemporaneous evidence. It is not the only POSSIBLE evidence: the pre-f3.56
+  content is still in git. A worktree at `10ca9e6^` with the shipped
+  `lesson_openings_test.dart` copied onto it runs red, `00:00 +2 -4`, failing
+  exactly `the first sentence speaks to them`, `no opening sentence is a wall`,
+  `no lesson still uses the generic heading` and `the headings are distinct from
+  each other`, and passing the scope self-check and the em dash check. That is 4
+  of the 5 substantive assertions, precisely what the commit claims once the
+  scope self-check is excluded from the denominator, which is the fair reading.
+  The claim is accurate and, more importantly, it is REPRODUCIBLE by anyone,
+  today or in a year.
+
+- THREAD 3, "NO FACT WAS DELETED", checked structurally instead of by trusting
+  the tests cited. Both trees were reconstructed and every block of all 29
+  lessons was dumped EXCEPT the opening heading and first paragraph. The two
+  dumps are byte-identical, 201 lines each, `diff` exit 0. So "every other block,
+  every interaction, every source and every id is byte-identical" is proven, not
+  asserted. Separately, `git show 10ca9e6 -- flutter/lib/content/` greps to 0
+  changed lines for `canonicalUrl`, and equally 0 for `LessonSource`,
+  `reviewStatus` and `verifiedOn`, so the official-source re-search rule genuinely
+  was not triggered by this batch. On the openings themselves: every
+  digit-bearing figure and every multiword proper noun present in an old opening
+  still appears somewhere in the corresponding new lesson, across all 29, zero
+  vanished. A looser content-word sweep finds 54 words dropped across 17 lessons;
+  the two largest clusters were read in full. `sb-how-bonds-work` keeps
+  principal, coupon, maturity, issuer and yield, with "payment" becoming
+  "interest" and "bought" becoming "paid". `gs-coupon-yield-price-maturity` keeps
+  face value, coupon, purchase price, yield and maturity, with the standalone
+  maturity sentence compressed into a gloss ("scheduled to be paid back at
+  maturity, its own end date"). One honest nuance the commit's phrasing does not
+  quite carry: `crypto-scams-provider-verification`'s eleven scam patterns are
+  now nine in the enumerated list plus two folded into the narrative hook
+  ("Someone in your group chat posts profit screenshots and offers to pay you for
+  every friend you bring in" carries recruitment-for-payment and
+  screenshots-as-proof). No fact was deleted, and a reader skimming for a list
+  now counts nine.
+
+- THREAD 4, THE APPLIER. The script survives in the session scratchpad as
+  `apply_openings.py`, 29 entries in an `EDITS` table. The refusal path is real
+  and correctly shaped: every edit accumulates into an in-memory `changed` dict,
+  any missing or ambiguous anchor appends to `problems` and continues, and after
+  the loop `if problems:` prints `REFUSING TO WRITE, anchors failed:` and calls
+  `sys.exit(1)` BEFORE the write loop runs. All or nothing by construction. It is
+  the exact inverse of the failure shape CLAUDE.md's hook rule 1 bans, where an
+  assert throws after some writes have already landed.
+
+**Root cause.** For the one thing that actually went wrong, the splitter, the
+answer is structural and not attention.
+
+Measurement code that lives inside a test file is the only measurement code in
+this repository with no tests of its own, and it has none purely because of
+where it sits. In the batch immediately before this one, f3.55 added a
+reading-time model and gave it `test/reading_time_test.dart` with 12 cases,
+because it ships in `lib/`. `_sentences` is a hand-written parser with a
+lookbehind assertion, no simpler than the reading-time model, and it got zero,
+because it sits in `test/` and tests are not a thing this repository writes tests
+for.
+
+The repository's flagship rule does not reach this. "Prove a new test can fail
+before trusting it" was FOLLOWED here, and it passed while the instrument was
+broken: running the shipped test against the pre-f3.56 tree with the BUGGY
+splitter yields 13 wall offenders, and with the FIXED splitter 12, so the wall
+check reddens on the old content either way. The ritual watches the red or green
+bit. A wrong number behind a correct colour is invisible to it.
+
+That is why this is a pattern rather than two unrelated incidents. Across three
+batches the instrument, not the code, was the thing that was wrong four times:
+f3.54's fallback-guard test that passed with the guard deleted, f3.55's
+reading-time model blind to exercise text, f3.55's drift guard asserting an
+assumption rather than a requirement, and f3.56's splitter. All four were caught,
+and in the two most recent cases the thing that caught them was the same
+technique, which is not the pass or fail bit at all: make the instrument verbose
+and READ its output. f3.56's splitter was pinned by dropping the threshold to 12
+words and reading 115 quoted sentences. f3.55's reading-time model was pinned by
+reading the estimate for the one lesson the fix existed for. The common cause is
+that this repository has moved from measuring crisp properties, where the money
+adds up or it does not, to measuring fuzzy ones: readability, prose shape,
+minutes, engagement. A fuzzy measurement can be wrong and still return a
+plausible number, and a plausible number survives every pass or fail check ever
+written for it.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A measuring helper inside a test file is untested by construction, and the
+   break-then-prove rule provably cannot catch it.
+   GUARD, and the only new machine this session recommends: give `_sentences` its
+   own test cases in `flutter/test/lesson_openings_test.dart`, with a fixture
+   containing a sentence ending in a question mark, one ending in an exclamation
+   mark, and one abbreviation. The first two pin the bug that actually happened.
+   The third pins a limitation that is real but currently harmless: the shipped
+   openings contain no `e.g.`, no `i.e.`, no decimal figure and no
+   terminator-then-quote, checked this session, so the fixed splitter is correct
+   for today's content and would mis-split the day someone writes "e.g. a UITF".
+   STRENGTH: strongest tier. It is an automated check that fails loudly, it is an
+   ordinary `*_test.dart` file, so it runs on the Flutter check with everything
+   else and works while nobody is watching.
+   COST: about ten lines and no measurable runtime. The honest limit on its
+   value is that it guards THIS splitter, not the class. The class-level version
+   is a sentence in CLAUDE.md ("a helper in a test file that parses, counts or
+   measures gets its own case, because prove-fail cannot see a wrong number
+   behind a correct colour"), and that is medium strength, because it depends on
+   someone reading it at the right moment.
+   COST IF REMOVED, stated plainly rather than inflated: this defect class wastes
+   work, it does not reach the phone. A broken measurement either flags prose
+   that is fine, which is what happened and was caught, or fails to flag prose
+   that is not, which is silent. Neither ships a defect to the founder. The
+   expensive version of this class is the one where the instrument is a SHIPPED
+   feature, which is exactly f3.55's reading-time model, and that one does reach
+   the phone.
+
+2. "Written first, watched red, then made green" is STRONGER than
+   break-then-restore here, not weaker, and the reason is that it is re-runnable.
+   The worry worth testing was that nothing re-proves it after the fact. That
+   worry is false, and this session settled it by doing the re-run rather than
+   reasoning about it: the old content is permanently in git at `10ca9e6^`, so
+   copying the shipped test onto that tree reproduces the original red exactly, 4
+   failures out of 5 substantive assertions, named above. Compare
+   break-then-restore, where the deliberate break is by definition never
+   committed and so can never be re-run by anyone later; its evidence is a quoted
+   failure line in a commit message and nothing more. Written-first leaves the red
+   state in the repository's history forever.
+   The real weakness is a different one and should be named instead:
+   written-first proves the guard detects the defect that EXISTED,
+   break-then-restore proves it detects a defect someone INVENTS, and neither
+   proves it detects a future regression of a shape nobody has thought of.
+   Written-first also proved nothing at all about the splitter, since the wall
+   check reddens on the old tree with the bug in place.
+   GUARD: none new, deliberately. Nothing is broken. What is recorded instead is
+   the recipe, so the next session does not have to rediscover it: to re-prove a
+   written-first guard, `git worktree add --detach <dir> <commit>^`, copy the
+   test file in, run it. STRENGTH: this is documentation, which is weak, and it
+   is the right level, because the underlying method is sound and needs no
+   enforcement.
+
+3. The evidence CITED for "no fact was deleted" is close to vacuous, while the
+   claim itself is true on evidence nobody had gathered until this session.
+   The commit message and the f3.56 qa-log row both say the five per-course
+   content tests and `lib/money/expansion_content_policy.dart` passing untouched
+   is "the evidence that no fact or safety statement was lost". It is not, for
+   three reasons visible in the test files. Those tests concatenate through a
+   helper `_allText(l)` that walks EVERY block, so a fact deleted from the
+   opening but present anywhere later still passes, and since every later block
+   is byte-identical they could not have reddened for anything the opening lost.
+   The overwhelming majority of their assertions are NEGATIVE, banned phrase,
+   banned provider name, no percentage figure, no em dash, and deleting text can
+   never fail a banned-phrase check, so the polarity is backwards for detecting
+   deletion. The positive assertions that do exist target specific figures such
+   as `'1,500 pesos'`, `'7,500 pesos'` and `'92,500 pesos'` in
+   `lessons_deposits_pooled_funds_content_test.dart` lines 447 to 449, which live
+   in later, unchanged blocks. Those suites passing untouched was very nearly
+   guaranteed by construction.
+   This matters because the sentence reads as proof and would be believed. The
+   claim survives, on the structural diff and the token survival check described
+   in the timeline, both run this session for the first time.
+   GUARD: none new, and a machine is genuinely not warranted. A test cannot
+   express "everything outside the opening is unchanged", because that is a
+   statement about two versions of the repository, not about one. The durable
+   change is free and is about what gets WRITTEN: when a content batch claims
+   nothing was lost, cite the diff that proves it ("everything outside the
+   opening heading and first paragraph is byte-identical across all 29 lessons")
+   rather than a green suite whose assertions cannot fail on deletion.
+   STRENGTH: weak, a wording habit, and said out loud as weak.
+
+4. The applier refused correctly and never checked its own output, and the check
+   that mattered was run for the first time this session, after delivery.
+   `apply_openings.py` writes and prints `rewrote 29 openings across 5 files`. It
+   never re-reads the files and never compares what Dart would parse against the
+   drafted string. That comparison was run this session: all 29 drafted headings
+   and all 29 drafted paragraphs appear byte-identical in the shipped,
+   Dart-parsed content. The outcome was correct, and it was design rather than
+   luck. `dart_literal` wraps at 62 characters into adjacent single-quoted Dart
+   literals and places the trailing space on every non-final line
+   (`trail = " " if i < len(lines) - 1 else ""`), which is the precise detail
+   that would otherwise silently glue two words together across a line break,
+   and Dart would compile it happily. Residual honesty: the script is not in the
+   repository, only in the session scratchpad, so the mechanism that made 29
+   founder-visible edits is not reviewable by anyone later.
+   GUARD: none, and building one would be machinery for a thing that does not
+   exist. A repo-level check for a throwaway script that will never run again is
+   worse than nothing, because it adds a file someone has to maintain. The
+   generalizable habit costs five lines AT THE TIME and is worthless afterwards:
+   when a script applies N drafted edits, have it re-read and assert the applied
+   text equals the drafted text before it exits. Noted, not built.
+   STRENGTH: an intention, the weakest tier, accepted here only because the
+   subject is ephemeral by nature.
+
+**What went well, credited honestly.** The batch's own self-catch is the good
+part and it should not be lost inside the correction above. The splitter defect
+was found by the person who wrote it, before merge, by refusing to believe three
+implausible numbers and going to look. Had it been trusted, three perfectly good
+paragraphs would have been rewritten to satisfy a bug, and the repository would
+now contain worse prose plus a guard quietly enforcing the wrong shape forever.
+The scope self-check in the same file is the second good part: `_coveredPathIds`
+is a named list asserted to contain exactly `grow_your_money`, with
+`expect(_covered.length, 29)` beside it, so Protect Your Future and Build Your
+Business opening the old way is a stated gap rather than an implied claim of
+coverage. That is the `palette_contrast_test.dart` iterate-then-assert shape,
+applied to scope rather than to a registry.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** All 28 paths
+CLAUDE.md names were checked for existence this session and every one exists
+where it says, including both workflow files,
+`.github/scripts/check-stamp-unique.sh`, `.githooks/pre-push`,
+`.claude/hooks/guard-destructive-edits.sh`, `.claude/settings.json`,
+`flutter/shorebird.yaml`, `test/screens_shot.dart`,
+`test/palette_contrast_test.dart`, `test/screen_readability_test.dart`,
+`test/golden/ui_golden.dart`, `test/golden/baseline/`, `test/segmented_test.dart`,
+`test/journeys_test.dart`, `test/qa_record_test.dart`,
+`test/update_stamp_test.dart`, `lib/widgets/salapify_icon.dart`,
+`lib/money/expansion_content_policy.dart`, `.claude/agents/journey-tester.md`,
+`mobile/app/(tabs)/more.js`, and `docs/Product_Vision_Spec.md`. Triggers were
+read, not assumed: `.github/workflows/flutter-check.yml` still triggers on `push`
+to `claude/**`, and `.github/workflows/flutter-preview.yml` still triggers on
+`push` to `main` filtered on `flutter/**`, exactly as Flutter rule 1 describes.
+`updateStamp` is still at `flutter/lib/main.dart` line 33. Two claims were
+checked that earlier sessions had not: the render paragraph says
+`test/palette_contrast_test.dart` measures "all sixteen palettes", and
+`lib/theme.dart` line 479's `barakoThemes` holds 8 themes resolved at 2
+brightnesses, so sixteen palettes is exactly right and the test asserts
+`expect(seen, barakoThemes.length * 2)` to keep it that way. Commands were
+checked as written: `.githooks/pre-push` does run the identical
+`check-stamp-unique.sh` that CI runs at `flutter-check.yml` line 167, and
+`git config core.hooksPath` in this checkout returns `.githooks`, so the hook is
+actually live here and not merely present. CI does run the render harness with
+`--update-goldens` (`flutter-check.yml` line 192) and does compare
+`test/golden/ui_golden.dart` with `continue-on-error: true` (lines 209 to 210),
+both exactly as described.
+ONE MILD DRIFT, reported because the value of this check dies if it is only
+reported when it fails: the sweep paragraph says the screen list covered "ten of
+the fifty files in lib/screens", and `lib/screens` now holds 55 `.dart` files.
+The sentence is past tense and describes a past state, so it is not a false
+claim, and it is not being edited on that basis. It is worth naming that a number
+in prose has rotted by five while sitting two paragraphs from the rule that says
+numbers in prose rot. Nothing else was found stale, and no false factual claim
+was found in CLAUDE.md this session.
+
+**Open lessons carried forward.**
+- From session 34, STILL OPEN and not built: the qa-log staleness check.
+  `flutter/test/qa_record_test.dart` still contains exactly one test, `'the
+  shipping stamp has a QA row in docs/qa-log.md'`, with no timestamp or
+  freshness assertion. It remains specified precisely enough to build in one
+  sitting. This batch gave it no new evidence either way, since f3.56's qa-log
+  row was written once and the code did not move under it.
+- From session 34, NOW CLOSED and closed the right way: audit finding H2, the
+  Learn header counting only the core 22. The founder decided it, and f3.55
+  shipped the headline counting the whole catalog. The four tests that blocked
+  it in Batch 1 were REWRITTEN rather than deleted, verified this session rather
+  than taken from the qa-log: `learn_screen_grow_path_test.dart`,
+  `learn_screen_protect_path_test.dart` and `learn_screen_business_path_test.dart`
+  now assert against `store.lessonProgress` directly instead of against a number
+  on screen, and `git diff --diff-filter=D` across the f3.55 and f3.56 range
+  shows no test file deleted. A screen can render the right number for the wrong
+  reason; the store cannot.
+- The `screens_shot` list gap: this batch does NOT add evidence for it, and the
+  expectation going in was that it would. Six of the 29 rewritten openings are
+  rendered at the top of a reader by `test/screens_shot.dart`
+  (`grow-readiness-card`, `paged-lesson-first-screen`,
+  `stocks-bonds-how-bonds-work`, `stocks-bonds-verify-before-you-invest`,
+  `deposits-read-a-fact-sheet`, `crypto-volatility-total-loss`), so roughly a
+  fifth of the changed surface was genuinely lookable, on a change that was
+  uniform in shape. The gap is real and carried forward unchanged, but it did not
+  bite here and saying it did would have been a manufactured finding.
+- From session 33: `.githooks/pre-push` present and, this session, confirmed
+  ENABLED in this checkout rather than merely present. The "each URL" re-search
+  rule was not exercised, verified by grep rather than assumed: zero
+  `canonicalUrl`, `LessonSource`, `reviewStatus` and `verifiedOn` lines were
+  added or removed in `10ca9e6`.
+- From session 31: the prove-fail marker-file sharpening, the stale `goals.dart`
+  allowlist entry, the 320dp readability question and the
+  fixture-through-the-writer shape test are all untouched by this batch and
+  carried forward unchanged. Lesson 1 above is a cheaper and different sharpening
+  of the same prove-fail rule, aimed at the case where the ritual passes while
+  the instrument is wrong.
+
+**For the founder, over lunch.** f3.56, patch 48, is on your phone and it is
+correct. All 29 lessons in Grow Your Money used to start with a dictionary
+definition under the same heading, "Why it matters", twenty nine times. When we
+put the courses in front of a simulated panel of readers, two out of three quit
+at the very first sentence of the crypto lesson and never got to the exercises
+underneath, which are the good part. Every one of those 29 now starts with a
+moment you would recognise, a teller sliding a brochure across the counter, a
+cousin sending screenshots of daily payouts, an officemate calling bonds the
+boring sensible option, and the definition arrives one sentence later, once you
+already care. Nothing was thrown away: I reconstructed the old version of the app
+this morning and compared it against the new one, and everything apart from that
+opening paragraph is identical character for character, with every figure and
+every named agency still present.
+
+Two things worth two minutes each.
+
+First, the thing that went wrong was my ruler, not the wall. I wrote a small
+safety test that measures whether an opening sentence is too long. It counted
+sentences by looking for a full stop, which means a sentence ending in a QUESTION
+MARK got stuck onto the next one. It then told me three of my openings were
+single sentences of 35, 39 and 73 words, which nobody had written. If I had
+believed it, I would have rewritten three perfectly good paragraphs to please a
+bug, and the app would now be slightly worse with a test permanently enforcing
+the mistake. I did not believe it, because 73 words is not a thing a person
+writes by accident, so I went and looked.
+
+That is the second time in three updates that the measuring device was the broken
+thing rather than the code, and the first time it happened the device was one you
+can see: the "3 min" estimate on a lesson could not see the exercises, so it
+under-counted. So this is a pattern and not bad luck. The reason is worth
+knowing. This project has a strong house rule that a new safety test must be
+watched actually failing before it is trusted, and that rule works extremely
+well. It could not catch this one. The test DID fail on cue, exactly as the rule
+demands. It just failed while reporting wrong numbers, and the rule only ever
+looks at whether the light went red, never at what the number said.
+
+So I am recommending one small automatic check, and only one: the little piece of
+code that chops text into sentences should get a couple of tests of its own,
+including one sentence that ends in a question mark. Ten lines, no noticeable
+time, and it runs automatically on every change from then on. The reason it does
+not already exist is a blind spot with a shape: this project writes tests for
+everything in the app, and never writes tests for the small helpers that live
+inside tests, purely because of which folder they sit in. If that check is ever
+removed, the cost is wasted work rather than a broken app, and I want to be
+straight about that rather than make it sound scarier than it is. A broken ruler
+in a test either raises a false alarm, which is what happened and which was
+caught, or stays quiet when it should not, which nobody notices. Neither one
+sends a bug to your phone. The version that DOES reach your phone is when the
+broken measurement is a number the app shows you, like that lesson time, and that
+is exactly why the pattern is worth stopping now while it is still cheap.
+
+Second, something that came out better than expected. I usually prove a safety
+test works by deliberately breaking the app, watching the test go red, then
+putting it back. This time I did it the other way round: I wrote the test first
+and ran it against the OLD lessons, where it went red on four of its five checks,
+and only then rewrote the content until it went green. The worry with doing it
+that way is that once everything is green there is nothing left to re-check, so
+you are just taking my word for it. That turns out to be wrong, and I checked
+instead of assuming: the old lessons are still in the project's history, so I
+rebuilt them this morning and ran the test against them again, and it went red on
+exactly the four checks I said it did. That evidence stays there permanently.
+When I break something on purpose and put it back, the break is gone forever and
+you genuinely do have to take my word for it. So the unusual method was the
+better one, and I have written down how to repeat it.
+
+One correction to something I told you in the update notes, because it was
+overstated. I said that five existing content tests passing unchanged was the
+proof that no fact had been deleted. It was not proof. Those tests read the whole
+lesson at once, and almost all of them check that bad things are ABSENT, banned
+phrases, invented percentages, real company names. A test like that can never
+fail because something was removed, only because something was added. They were
+always going to pass. The claim is still true, but what makes it true is the line
+by line comparison I described above, not those tests, and you should know which
+of the two is actually holding it up.
+
+---
+
 ## 2026-08-06, session 34: f3.54 shipped clean, a new test that passed with its own guard deleted and caught itself, and a suite that refused a change the audit had asked for
 
 **What we believed / What was true.** The founder confirmed the Update stamp on

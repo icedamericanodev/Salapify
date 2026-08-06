@@ -21,6 +21,7 @@ import 'package:salapify/money/lesson_progress.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadRealFonts;
@@ -161,7 +162,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(ExpansionLessonReader), findsOneWidget);
+        // A deep link goes through LearnScreen, which since Phase 3 opens the
+        // PAGED reader. The scrolling ExpansionLessonReader is still what the
+        // rest of this file pumps directly, and still fully tested there.
+        expect(find.byType(PagedLessonReader), findsOneWidget);
         expect(find.text('Deposit or Investment?'), findsOneWidget);
       },
     );
