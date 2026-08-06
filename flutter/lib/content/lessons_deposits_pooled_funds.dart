@@ -233,15 +233,15 @@ const _depositOrInvestment = MoneyLesson(
   ],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Same counter, different thing',
       paragraphs: [
-        'A regular savings account or a time deposit is a bank deposit: '
-            'money held by the bank as a straightforward debt to you, '
-            'protected up to a set limit by deposit insurance. A '
-            'government or corporate bond, a UITF, a mutual fund, an ETF, '
-            'or a share of stock is an investment product: its value can '
-            'rise or fall, and deposit insurance does not automatically '
-            'reach it.',
+        'A teller slides a brochure across the counter while you are '
+            'only there to open a savings account. A savings account or a '
+            'time deposit is a bank deposit, money the bank owes you, '
+            'protected up to a set limit by deposit insurance. A government '
+            'or corporate bond, a UITF, a mutual fund, an ETF, or a share '
+            'of stock is an investment product. Its value can rise or fall, '
+            'and deposit insurance does not automatically reach it.',
         'The confusing part is where these are sold. Many Philippine banks '
             'sell both kinds of product at the very same counter, '
             'sometimes through the very same staff member. That does not '
@@ -466,14 +466,16 @@ const _timeDepositsAndPdic = MoneyLesson(
   topics: [ContentTopic.bankDeposits],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Locked in, and why',
       paragraphs: [
-        'A time deposit is a bank deposit locked in for a set term, or '
-            'maturity, in exchange for a fixed interest rate that is '
-            'usually higher than an ordinary savings account\'s. Taking '
-            'the money out before the term ends generally comes with an '
-            'early-withdrawal consequence, often a reduced interest rate '
-            'or a fee, set by the bank\'s own terms.',
+        'You have money you will not touch for a year, and it is '
+            'sitting in a savings account doing nothing. A time deposit is '
+            'a bank deposit locked in for a set term, or maturity, in '
+            'exchange for a fixed interest rate. That rate is usually '
+            'higher than an ordinary savings account\'s. Taking the money '
+            'out before the term ends generally means an early-withdrawal '
+            'consequence, a reduced rate or a fee set by the bank\'s own '
+            'terms.',
         'A depositor is whoever the account legally belongs to, and how an '
             'account is owned, solely, jointly, or in trust for someone '
             'else, can affect how deposit insurance applies to it. This '
@@ -706,14 +708,16 @@ const _howPooledFundsWork = MoneyLesson(
   topics: [ContentTopic.fundsAndEtfs],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Your slice, not your account',
       paragraphs: [
-        'A pooled fund gathers money from many investors into one shared '
-            'portfolio, then invests that pooled money in a mix of '
-            'underlying assets, which might include stocks, bonds, or '
-            'short-term instruments, depending on the fund. Each investor '
-            'holds units or shares representing their own slice of that '
-            'shared portfolio, not a separate account of their own.',
+        'You have heard the word fund thrown around and pictured '
+            'someone smart in an office handling your money. A pooled fund '
+            'gathers money from many investors into one shared portfolio. '
+            'That pooled money goes into a mix of underlying assets, which '
+            'might include stocks, bonds, or short-term instruments, '
+            'depending on the fund. You hold units or shares representing '
+            'your slice of that shared portfolio, not a separate account of '
+            'your own.',
         'A fund\'s value changes as the value of what it holds changes. '
             'Professional management, a fund manager actively choosing '
             'what to hold, can inform those choices, but it never removes '
@@ -922,12 +926,14 @@ const _uitfMutualFundEtf = MoneyLesson(
   topics: [ContentTopic.fundsAndEtfs],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Three names, three structures',
       paragraphs: [
-        'A UITF, a mutual fund, and an ETF are all pooled funds, but they '
-            'are built differently, supervised by different regulators, '
-            'and bought and sold in different ways. None of them is a '
-            'deposit merely because a bank or trust entity distributes it.',
+        'Three names get thrown at you, and they all sound like the '
+            'same product with different letters. A UITF, a mutual fund, '
+            'and an ETF are all pooled funds. They are built differently, '
+            'supervised by different regulators, and bought and sold in '
+            'different ways. None of them is a deposit merely because a '
+            'bank or trust entity distributes it.',
         'A UITF is generally offered through a bank\'s trust department or '
             'a trust corporation and is supervised by the Bangko Sentral '
             'ng Pilipinas. A mutual fund is an investment company, '
@@ -1188,13 +1194,15 @@ const _readAFactSheet = MoneyLesson(
   topics: [ContentTopic.fundsAndEtfs],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'What the name hides',
       paragraphs: [
-        'A fund fact sheet is the single clearest place to check what a '
-            'pooled fund actually does, rather than relying on its name or '
-            'how it was described in a conversation. The fictional fact '
-            'sheet below invents every figure for this lesson only; it is '
-            'not modeled on any real fund.',
+        'A fund\'s name told you it was balanced, and the person '
+            'selling it told you the rest. A fund fact sheet is the '
+            'clearest place to check what a pooled fund actually does. It '
+            'beats relying on the name, or on how someone described it in a '
+            'conversation. The fictional fact sheet below invents every '
+            'figure for this lesson only, and is not modeled on any real '
+            'fund.',
         'Reading a fact sheet is a skill: knowing where to look for the '
             'objective, the holdings, the risk classification, and the '
             'fees, and noticing what a fact sheet does not actually '
@@ -1411,12 +1419,14 @@ const _matchProductToGoal = MoneyLesson(
   topics: [ContentTopic.fundsAndEtfs, ContentTopic.bankDeposits],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Same amount, different answer',
       paragraphs: [
-        'The same peso amount can call for very different next steps '
-            'depending on the goal behind it: how soon the money is '
-            'needed, how much flexibility it must keep, and how much of a '
-            'drop, if any, could actually be handled without real harm.',
+        'Your officemate and you have the same amount saved, and the '
+            'same answer will not fit both of you. The same peso amount can '
+            'call for very different next steps, depending on the goal '
+            'behind it. It comes down to how soon the money is needed and '
+            'how much flexibility it must keep. Then how much of a drop, if '
+            'any, could actually be handled without real harm.',
         'A pooled fund or any other investment product is never '
             'automatically the right next step. Sometimes the more useful '
             'answer is to keep the money accessible in a deposit, to '
