@@ -10,6 +10,431 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-06, session 36: f3.57 shipped clean, the previous session's guard was built in the same commit that recommended it, and the reader the founder now actually opens can silently lose two buttons with all 2,623 tests green
+
+**What we believed / What was true.** They match. The founder confirmed patch 49
+on the phone, and the delivery log's row for it says exactly that:
+`| 2026-08-06 10:15 UTC | f3.57 | 49 | patch | 0.9.0+15 | [e8edff53](.../31091520991) |`
+(docs/delivery-log.md on origin/main; content commit `67f7f60`, merge commit
+`e8edff5` from PR #337, delivery commit `8e7eeef`). The stamp constant at that
+merge, `flutter/lib/main.dart` line 33, reads `'f3.57 · Long lessons are now one
+idea per screen, tap through instead of scrolling.'`, which is the row the
+founder read. Mode is `patch`, base APK still `0.9.0+15`, so no manual install
+was needed and none was claimed. Patch numbers ran 47, 48, 49 across f3.55,
+f3.56 and f3.57 with nothing missing between them, and no row anywhere in the
+file has mode `release`. Phone, delivery log, origin/main and the stamp constant
+all agree.
+
+Say the top line plainly: this was a clean delivery, the fourth consecutive one
+from the Money Courses experience audit. Nothing below was manufactured to
+justify the session, and the one substantial finding was produced by running an
+experiment that could have come out the other way.
+
+One piece of live state, recorded because it is true at the time of writing and
+not acted on: `origin/main` has since moved to `30089f0` (PR #338, Phase 4,
+stamp f3.58) and docs/delivery-log.md has NO row for f3.58 yet. Per the rule
+written after session 25, the only safe statement about the phone until that row
+exists is the plan, never the outcome. This session touched nothing in that work.
+
+Four things were handed over to be checked rather than accepted. Three came back
+confirmed. The fourth turned into the finding.
+
+**Timeline (with evidence).**
+
+- The batch is one commit, `67f7f60` at 09:51 on
+  `claude/salapify-money-courses-audit-i3rrxi`, merged as PR #337 at `e8edff5`
+  and published as patch 49 at 10:15. Eighteen files, 1,568 insertions, 16
+  deletions. Three new production files (`flutter/lib/money/lesson_steps.dart`
+  129 lines, `flutter/lib/widgets/paged_lesson_reader.dart` 443 lines,
+  `flutter/lib/widgets/lesson_finish_card.dart` 140 lines), three new test files
+  (`lesson_steps_test.dart` 13 tests, `paged_lesson_reader_test.dart` 5 tests,
+  plus 42 lines added to `lesson_openings_test.dart`), one shot added to
+  `test/screens_shot.dart`, one qa-log row, and the stamp.
+
+- `git diff --diff-filter=D` across the batch returns nothing. Six existing test
+  files were MODIFIED, which is the shape this repository checks by name, so
+  every one was read. All six changes are the same edit: `expect(find.byType(
+  ExpansionLessonReader), ...)` became `expect(find.byType(PagedLessonReader),
+  ...)`, in tests that reach the reader THROUGH `LearnScreen`. No assertion was
+  inverted, weakened or deleted, and the two `findsNothing` cases in
+  `learn_screen_expansion_deeplink_test.dart` lines 50 and 65 stayed
+  `findsNothing`. That is a widget type rename following a real behaviour
+  change, not a suite being edited to accept a defect. The f3.57 qa-log row
+  names these two deep-link failures as caught by the full suite before merge,
+  and describes them correctly as "the tests noticing a genuine behaviour
+  change".
+
+- CHECK 1, THE f3.56 RETROSPECTIVE'S GUARD. Built, not deferred, and built in
+  the SAME commit that carried the retrospective recommending it.
+  `flutter/test/lesson_openings_test.dart` now opens with a group `'the sentence
+  splitter itself'` holding five cases: a question mark, an exclamation mark, a
+  full stop, a single sentence left whole, and an abbreviation. The first two
+  pin the exact defect session 35 dissected. It is an ordinary `*_test.dart`
+  file, so it runs on the Flutter check with everything else. Session 35 asked
+  for "about ten lines"; 42 arrived, including the comment explaining why.
+  Recommendation to shipped guard in one commit is the fastest this file has
+  ever recorded, and it is worth saying so.
+  ONE HONEST WRINKLE, small and deliberate. The fifth case is
+  `expect(_sentences('Bring cash, e.g. coins.').length, 2)`, which asserts the
+  WRONG behaviour on purpose, pinning a known limitation. The comment above it
+  says so in full. That is the acceptable form of a shape this repository
+  otherwise treats as an alarm: a test asserting a defect. It is acceptable here
+  only because the reason is written beside it and the assertion is on length
+  rather than on content. The cost to know about: the day someone fixes the
+  splitter to handle `e.g.`, this test goes red and will read like a regression
+  to whoever is holding the pager. That is the intended behaviour and it is
+  cheap, but it should be recognised on sight rather than rediscovered.
+
+- CHECK 2, WAS BREAK-THEN-PROVE ACTUALLY FOLLOWED, or claimed. Verified by
+  reproduction rather than by reading the commit message. A detached worktree at
+  `67f7f60` was created in the session scratchpad (the session 35 recipe:
+  `git worktree add --detach <dir> <commit>`), the repository's own working tree
+  never touched. Break 1 was reapplied by hand:
+  `flutter/lib/money/lesson_steps.dart` line 77, `b.paragraphs.sublist(i, end)`
+  changed to `b.paragraphs.sublist(i, i + 1)`. The run:
+
+      00:00 +3 -1: prose splitting every paragraph survives the split, in order [E]
+        Expected: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6']
+          Actual: ['p0', 'p2', 'p4', 'p6']
+         Which: at location [1] is 'p2' instead of 'p1'
+        pagination must not lose a paragraph
+
+  That is the commit message's quoted line, character for character in its
+  abbreviated form, reproduced by someone who was not there. The discipline was
+  followed, not claimed.
+  A SECOND, UNASKED-FOR NUMBER FROM THE SAME RUN, worth recording. With half of
+  every lesson's prose being silently dropped, 12 of the 13 tests in
+  `lesson_steps_test.dart` still PASSED, including `'no prose step carries more
+  than the cap'`, `'the longest crypto lesson becomes many screens, not one'`
+  and `'every Grow lesson paginates and ends correctly'`. The last of those is
+  the only test in the file that runs against real shipped content, and it
+  asserts `steps.length > 1` and `steps.last is FinishStep` and nothing else, so
+  losing half of all 29 lessons satisfies it comfortably. The guard held, on the
+  strength of one synthetic seven paragraph fixture. That is a real guard doing
+  real work and it is not being criticised; it is being measured, because the
+  margin turned out to be one test wide.
+
+- CHECK 3, THE DELIVERY LOG AND PATCH NUMBER. Match, quoted above. Nothing to add.
+
+- CHECK 4, THE READABILITY SWEEP'S TYPED LIST. The answer is more specific than
+  wider or narrower, and it is the thread that led to the finding.
+  `flutter/test/screen_readability_test.dart` was NOT touched by this batch, so
+  the list itself did not move. It could not have: the map at line 384 is keyed
+  by SCREEN, its members are all classes from `lib/screens`, and its coverage
+  self-check counts `lib/screens` (56 `.dart` files today). Both readers live in
+  `lib/widgets`, so neither the old nor the new one has ever been inside that
+  promise, before or after Phase 3. Nothing regressed there.
+  What DID move is the effective coverage of the surface the founder actually
+  reads. `expansion_lesson_reader_widget_test.dart` carries its own layout and
+  accessibility pair, `'narrow phone, 1.5x system font: nothing runs off the
+  side'` (line 316) and `'every interaction control exposes a semantic label'`
+  (line 332). `paged_lesson_reader_test.dart` has neither, and no equivalent
+  exists anywhere. So on the day the founder's reader changed, the measured
+  overflow and semantics coverage of what they read went to zero, while every
+  list, map and count in the repository stayed exactly as it was.
+  There is a structural reason this will not fix itself, and it is new
+  information rather than a restatement. The old reader is a scroll: every block
+  of the lesson is in the widget tree after one pump, which is precisely why a
+  single `_runsOffTheSide` sweep could measure a whole lesson. The new reader is
+  a `PageView`: one page is built at a time. Any tree-walking check now sees one
+  screen out of nine and reports clean. A future overflow test for the paged
+  reader must TAP CONTINUE THROUGH EVERY STEP, and a copy of the old test's
+  shape would pass while measuring almost nothing.
+
+- CHECK 5, THE FINDING, and the only part of this session that was not on the
+  handed-over list. It began as a question about `LessonFinishCard` and ended as
+  two experiments.
+  The two readers resolve a lesson's action button differently, and the
+  difference is invisible in a diff. `ExpansionLessonReader` calls
+  `resolveExpansionActionRoute(context, widget.store, route)` INSIDE itself
+  (`lib/widgets/expansion_lesson_reader.dart` line 262), so every widget test
+  that pumps it gets the real resolver for free.  `PagedLessonReader` takes it
+  as an OPTIONAL constructor parameter instead (`lib/widgets/paged_lesson_reader
+  .dart` lines 46 and 54), supplied by exactly one caller, `lib/screens/learn
+  .dart` lines 120 and 121. `onOpenLesson`, which draws the "Next lesson" button
+  on the finish card, is the same shape: optional, and supplied by the same
+  single caller at lines 122 to 132.
+  Absence of either is SILENT, not loud. `lib/widgets/interaction_block_views
+  .dart` line 2165 reads `resolveRoute: resolveSalapifyRoute ?? (_) => null`,
+  and the design intent (stated in `learn.dart`'s own comment) is that a null
+  route means "hide the button rather than show a dead one". `lib/widgets/
+  lesson_finish_card.dart` line 89 reads `if (next != null && onOpenLesson !=
+  null)`. So a missing wiring does not crash, does not warn, and does not
+  render. It just quietly removes a button.
+  No test supplies either one. `paged_lesson_reader_test.dart`'s `_pump` helper
+  (line 43) constructs `PagedLessonReader(pathId: _pathId, lesson: lesson,
+  store: store)` and stops there. `git grep resolveSalapifyRoute origin/main --
+  flutter/test` returns NOTHING, in the whole test tree, today.
+  EXPERIMENT 1, in the scratchpad worktree at `67f7f60`: delete `learn.dart`
+  lines 120 and 121, the route wiring, and run the entire suite.
+
+      04:32 +2623: All tests passed!
+
+  EXPERIMENT 2, same worktree, wiring restored, then delete the `onOpenLesson`
+  block at lines 122 to 132 instead, and run all nine reader and Learn screen
+  test files:
+
+      00:15 +48: All tests passed!
+
+  Both deletions are silent regressions on the phone. The first removes the call
+  to action from every expansion lesson, which is the button that also marks the
+  lesson applied. The second dead-ends the finish card, which is exactly the
+  "Done. One useful thing." dead end that f3.54 shipped a whole finish card to
+  fix. Both were re-checked against current `origin/main` (which already
+  includes f3.58): still optional, still supplied only by `learn.dart`, still
+  named by zero test files.
+
+**Root cause.** Structural, and specifically not attention, because the author
+was demonstrably paying attention to this exact risk. The commit message says,
+in its own words, "the action-route resolver is promoted so both readers resolve
+the identical closed set. Two readers with two route tables is how one of them
+quietly grows a dead button." That reasoning is correct and the sharing was done
+correctly. The refactor solved the DUPLICATION problem and created a WIRING
+problem in the same motion, and the second one is invisible from inside the first.
+
+The mechanism, stated so it can be recognised again: a dependency moved from
+INSIDE a widget, where it is default-on and every widget test exercises it for
+free, to the CALL SITE, where it is default-off and no widget test can see it.
+Adding that seam is usually good design, and here it exists for a real reason,
+to keep `lib/widgets` from importing `lib/screens`. The cost nobody priced is
+that the seam's default value is a working, silent, degraded app. A parameter
+whose absence produces a crash is self-guarding. A parameter whose absence
+produces a slightly emptier screen is guarded by nothing, and a suite of 2,623
+tests will tell you it is fine.
+
+This is the same family as the last three sessions and it is worth naming as
+such, because the family now has four members: f3.54's fallback guard that
+passed with its guard deleted, f3.55's reading-time model that could not see
+exercise text, f3.56's sentence splitter, and now f3.57's untested wiring. In
+every case the CODE was fine and the thing that could not see the defect was the
+apparatus around it. The difference this time is direction. The first three were
+instruments reporting wrong numbers, which wastes work. This one is an
+instrument pointed at the wrong object, at the old reader instead of the new
+one, which reaches the phone.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. When a widget takes a behaviour as an optional constructor parameter and the
+   absent value is a silent hide, the call site is unguarded by construction.
+   GUARD, strongest available and it removes the class rather than the instance:
+   give `PagedLessonReader` the same internal default `ExpansionLessonReader`
+   already has, resolving `resolveExpansionActionRoute` itself when no override
+   is supplied. The function is already public and already imported by
+   `learn.dart`, so this is a small edit, and after it a deleted call-site
+   wiring cannot change behaviour at all, because there is nothing left to
+   delete. The same shape suits `onOpenLesson` less well, since only the screen
+   knows how to push the next lesson, so for that one the guard is the second
+   one below.
+   STRENGTH: strongest tier, and stronger than a test, because it makes the
+   defect unrepresentable rather than detectable.
+   COST IF REMOVED: the exact two silent button losses proven above, invisible
+   to the whole suite.
+
+2. The founder's real path through the new reader is tested by nothing end to
+   end.
+   GUARD: two widget tests in `paged_lesson_reader_test.dart` that pump
+   `LearnScreen` rather than the reader alone, open a lesson carrying a
+   `SalapifyActionsBlock`, tap Continue through to it, assert the action button
+   is present and that pressing it navigates; and a second that reaches the
+   finish step and asserts the "Next" button by name. These are the paged
+   equivalents of `expansion_lesson_reader_widget_test.dart`'s `'Continue opens
+   the real screen and marks the lesson applied'` (line 252) and
+   `lesson_finish_flow_test.dart`'s `'the next button actually moves to the next
+   lesson'` (line 62), both of which exist only for the reader the founder no
+   longer sees.
+   Prove them by re-running the two experiments recorded above; both are exact,
+   both are two-line deletions, and both currently produce green.
+   STRENGTH: strongest tier, an automated check that fails loudly.
+   COST: perhaps forty lines and a few seconds of runtime.
+
+3. The paged reader has no overflow or semantics measurement at all, and copying
+   the old one's shape would produce a test that passes while measuring one
+   screen out of nine.
+   GUARD: an overflow and semantics test for the paged reader that WALKS the
+   steps, tapping Continue and running `_runsOffTheSide` and the semantics
+   assertions on each page, at 1.5x system font on a narrow phone, matching
+   `expansion_lesson_reader_widget_test.dart` lines 316 to 341. The step count
+   is available from `stepsForLesson`, so the loop bound is derived rather than
+   typed, which is the `palette_contrast_test.dart` shape.
+   STRENGTH: strongest tier.
+   COST IF REMOVED: a clipped sentence or an unlabeled control on the screen the
+   founder now spends the most time on, with nothing to catch it. Note this is
+   the ONE place where "look at the screen" also cannot help much: the render
+   harness's new `paged-lesson-first-screen` shot renders page one, and pages
+   two through nine are not merely unshot, they are not built.
+
+4. `lesson_steps_test.dart` proves paragraph survival on a synthetic fixture and
+   proves nothing about content survival on the 29 real lessons.
+   GUARD: extend `'every Grow lesson paginates and ends correctly'` to assert
+   that the concatenation of all paginated prose equals the concatenation of the
+   lesson's own prose, for every real lesson. Pure, deterministic, no widget, and
+   it turns the one-test margin measured above into two independent ones.
+   STRENGTH: strongest tier, and genuinely cheap, roughly five lines inside a
+   loop that already exists.
+   HONEST LIMIT: this is a nice-to-have, not a hole. The existing guard caught
+   the real break on the first try. This is about the margin, not the outcome.
+
+5. A retrospective that states a fact about a DELIVERED tree must read that tree
+   by ref, not read the working tree it happens to be sitting in.
+   Session 35 listed `paged-lesson-first-screen` among six `screens_shot.dart`
+   keys that rendered an f3.56 opening. That key did not exist at f3.56:
+   `git show ce95c8e:flutter/test/screens_shot.dart | grep -c
+   paged-lesson-first-screen` returns 0, and the key was ADDED by `67f7f60`, the
+   f3.57 commit that the session 35 entry was itself written inside (that commit
+   carries `docs/lunch-and-learn.md +417`). The correct figure is five, not six.
+   The conclusion it supported is unchanged, "roughly a fifth", and the gap was
+   correctly carried forward either way, so nothing downstream is wrong. The
+   CAUSE is what matters and it will recur: a retrospective written inside a
+   live working tree describes the tree it can see, not the tree that shipped.
+   GUARD: a wording and method rule for this file, applied throughout this
+   session. Every factual claim about a delivered batch is read with
+   `git show <ref>:<path>` or from a detached worktree at that ref, never from
+   the working tree, which in this repository routinely contains the NEXT
+   batch's work. Today's session is the proof of the risk: the working tree at
+   `HEAD` was already three commits and one stamp past f3.57.
+   STRENGTH: medium. It is a rule, and it depends on being read at the right
+   moment. It is not a machine, and it cannot be, because nothing in the
+   repository can tell which tree a sentence in a document was derived from.
+   Recorded as weak on purpose.
+
+**What went well, credited honestly.** The `LessonFinishCard` extraction is
+better than the commit message sells it. Because the finish moment now exists
+once, the 21 tests still pointed at the old reader
+(`expansion_lesson_reader_widget_test.dart` 9, `lesson_reference_footer_test
+.dart` 7, `lesson_finish_flow_test.dart` 5) genuinely do guard shared code the
+new reader runs. Only the WIRING escaped, not the card. Had the finish card been
+copied instead of extracted, this session would be reporting a much larger hole.
+The pure module split is the other good part: 13 of the 23 new tests are pure
+Dart with no widget pumping, which is why break-then-prove could be reproduced
+today in 13 seconds by a stranger.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** Every path
+CLAUDE.md names was checked for existence: both workflow files,
+`.github/scripts/check-stamp-unique.sh`, `.githooks/pre-push`,
+`.claude/hooks/guard-destructive-edits.sh`, `.claude/settings.json`,
+`flutter/shorebird.yaml`, `flutter/test/screens_shot.dart`,
+`palette_contrast_test.dart`, `screen_readability_test.dart`,
+`golden/ui_golden.dart`, `golden/baseline/`, `segmented_test.dart`,
+`journeys_test.dart`, `qa_record_test.dart`, `update_stamp_test.dart`,
+`lib/widgets/salapify_icon.dart`, `lib/money/expansion_content_policy.dart`,
+`.claude/agents/journey-tester.md`, `.claude/agents/lunch-and-learn.md`,
+`mobile/app/(tabs)/more.js` and `docs/Product_Vision_Spec.md`. All present, none
+moved. Triggers were READ, not assumed: `flutter-check.yml` line 17 onward still
+triggers on `push` to `claude/**` plus every pull request to main, and
+`flutter-preview.yml` still triggers on `push` to `main` filtered on `flutter/**`
+(plus its own definition, deliberately), exactly as Flutter rule 1 describes.
+`updateStamp` is still at `flutter/lib/main.dart` line 33.
+`git config core.hooksPath` returns `.githooks`, so the pre-push hook is live in
+this checkout and not merely present. No false factual claim was found in
+CLAUDE.md this session.
+ONE DRIFT, reported because this check is worthless if only failures are
+reported: the sweep paragraph still says the screen list covered "ten of the
+fifty files in lib/screens", and `lib/screens` now holds 56. Session 35 reported
+55. The sentence is past tense and describes a past state, so it is not false and
+is not being edited on that basis, but the number has now rotted by six and has
+been reported twice. If a third session reports it, the sentence should simply
+lose its figure, which is what the paragraph two down already advises.
+
+**Open lessons carried forward.**
+- From session 34, STILL OPEN and still not built: the qa-log staleness check.
+  `flutter/test/qa_record_test.dart` contains exactly one test (counted this
+  session, not assumed), `'the shipping stamp has a QA row in docs/qa-log.md'`,
+  with no timestamp or freshness assertion. This batch gave it no new evidence:
+  f3.57's row exists, is complete, and was written once. Third session carrying
+  it unchanged.
+- NEW and open until built: lessons 1, 2 and 3 above, the paged reader's wiring
+  default, its end-to-end tests, and its overflow and semantics sweep. All three
+  are specified precisely enough to build in one sitting, and lesson 2 comes with
+  two reproducible experiments that currently produce green and must produce red.
+- The `screens_shot` list gap, now with a wrinkle. The list WIDENED by one this
+  batch, `paged-lesson-first-screen`, deliberately placed beside the scrolling
+  shot so the two shapes can be compared. But a paged reader is not one picture,
+  it is nine, and the harness renders the first. The gap is no longer only "the
+  list is typed rather than derived"; it is now also "a shot of a paged surface
+  covers one page of N". Carried forward with that addition.
+- From session 33: the official-source re-search rule was NOT triggered by this
+  batch, verified by grep rather than assumed: zero `canonicalUrl`,
+  `LessonSource`, `reviewStatus` and `verifiedOn` lines were added or removed in
+  `67f7f60` under `flutter/lib/content/`. `.githooks/pre-push` confirmed enabled.
+- From session 31: the prove-fail marker-file sharpening, the stale `goals.dart`
+  allowlist entry, the 320dp readability question and the
+  fixture-through-the-writer shape test are untouched by this batch and carried
+  forward unchanged.
+- From session 35: the written-first re-proof recipe was USED this session, on a
+  break-then-restore guard rather than a written-first one, and it worked
+  identically. Worth recording, since it means the recipe is more general than
+  the lesson that produced it: any deliberate break can be reproduced later by
+  anyone, in a detached worktree, as long as the break is described precisely
+  enough in the commit message. f3.57's message was.
+
+**For the founder, over lunch.** f3.57, patch 49, is on your phone and it is
+correct. Long lessons used to be one endless scroll; each one is now a short
+run of screens with a Continue button, and the exercise you were meant to do can
+no longer be scrolled past because it now sits alone on its own screen. Nothing
+in the lessons was rewritten for this. It is the same words, cut into pages.
+
+Two things I checked rather than assumed, and one thing I found.
+
+The first check is about the last lunch and learn. Last time I recommended one
+small automatic test, for the little piece of code that chops text into
+sentences. It was not put on a list for later. It was built into this very same
+update, five test cases, and it is running now. I mention it because a lesson
+without a guard is just a regret, and this one turned into a guard within hours.
+
+The second check is about honesty in the update notes. The notes claimed I had
+deliberately broken the code three times to prove the new safety tests actually
+work. I did not take my own word for that. I made a private copy of the app
+exactly as it shipped, put one of those breaks back in by hand, and ran the
+tests. The failure came out word for word as claimed. So that discipline was
+really followed, and you can verify things like this without asking me, because
+the evidence is permanent.
+
+Now the thing I found, and I want to be straight that it is real but that
+nothing is broken on your phone right now.
+
+Lessons have two buttons that matter: a "do this now" button that jumps you into
+the actual Salapify screen the lesson is teaching, and a "Next lesson" button on
+the finish screen. In the old reader, those buttons were wired up inside the
+reader itself, so every test of the reader tested them automatically. In the new
+reader I moved that wiring outside, to the screen that opens it. That is normal
+and often good practice. The problem is what happens if that wiring is ever
+dropped: the buttons do not break, do not error, and do not turn red. They just
+stop appearing. Silently.
+
+So I ran the experiment. I deleted the wiring in a private copy and ran all 2,623
+tests. Every single one passed. Then I deleted the other one and ran the reader
+tests. All 48 passed. That means if a future change removes those two lines, your
+lessons quietly lose their action button and their Next button, and every check
+this project has will say everything is fine.
+
+The fix I am recommending is not another test. It is to make the mistake
+impossible: let the new reader wire itself up by default, the way the old one
+does, so there is nothing left to delete. Then two tests on top, walking through
+a lesson the way you would, tapping through to the buttons and checking they work
+and that they go where they say. If those are ever removed, the cost is exactly
+what I demonstrated: two buttons can vanish from your lessons and nothing will
+tell either of us.
+
+There is a smaller relative of this worth one sentence. There was a test checking
+that nothing runs off the side of the screen at large text sizes in the old
+reader. There is no such test for the new one, and the usual trick of copying it
+across will not work, because a scroll has the whole lesson loaded at once while
+a paged reader only has the page you are on. Any check has to tap through the
+pages. Same for screenshots: the picture I rendered of the new reader shows page
+one of nine. I would rather tell you that than let a screenshot imply I looked at
+the whole thing.
+
+One correction to the last lunch and learn, since it is my own record. I wrote
+that six lesson screenshots showed the rewritten openings. It was five. The sixth
+did not exist yet on the day I was describing; I was looking at my own
+half-finished work while writing about what had already shipped. It changes
+nothing about the conclusion, but it is exactly the kind of small drift that
+makes a document harder to trust later, so it is corrected here and I have
+written down the method that prevents it: when writing about what shipped, read
+what shipped, not what is on my desk.
+
+---
+
 ## 2026-08-06, session 35: f3.56 shipped clean, a measuring instrument wrong for the second time in three batches, and a "no fact was deleted" claim whose stated evidence was nearly vacuous while the claim itself held
 
 **What we believed / What was true.** The founder confirmed the patch on the
