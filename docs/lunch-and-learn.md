@@ -10,6 +10,390 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-06, session 37: f3.58 and f3.59 both shipped clean, two real defects found by two mechanisms that are not the test suite, and 17 of the render harness's lesson pictures point at a reader the app can no longer open
+
+**What we believed / What was true.**
+
+On delivery, belief and reality match, and this is a clean pair. Two stamps
+shipped today and both have a publisher-written row:
+
+    | 2026-08-06 12:10 UTC | f3.58 | 50 | patch | 0.9.0+15 | 30089f02 |
+    | 2026-08-06 13:10 UTC | f3.59 | 51 | patch | 0.9.0+15 | 18c72dc9 |
+
+Patches 49, 50 and 51 are consecutive with no gap, all mode `patch` on the
+same base APK `0.9.0+15`, so no manual install was needed and none was
+claimed. `flutter/lib/main.dart` line 34 on `origin/main` reads
+`f3.59 · Buttons inside a lesson are wired for good now, and tested end to
+end.`, which is the row the founder reads on the phone, and the founder
+confirmed it. The delivery half of this session is over in one paragraph,
+which is the correct outcome and not a failure to find problems.
+
+The belief worth auditing is a different one, and nobody wrote it down
+because nobody knew they held it: that the lesson surface is COVERED. It is
+the belief behind two of this project's strongest habits, the render harness
+and the reader test files. It is now partly false, and the evidence is not
+subtle:
+
+- `flutter/lib/screens/learn.dart` line 116 constructs `PagedLessonReader`.
+  It is the only lesson reader any screen in `lib` constructs. `grep -rn
+  "ExpansionLessonReader" lib` returns five hits and every one of them is
+  inside `lib/widgets/expansion_lesson_reader.dart` itself, plus one comment
+  in `learn.dart`. Nothing opens the scrolling reader.
+- `flutter/test/screens_shot.dart` builds `ExpansionLessonReader` in 17 named
+  shots (`stocks-bonds-verify-before-you-invest`, `crypto-volatility-total-
+  loss`, `bir-tax-create-your-tax-money-system`, and 14 more) and
+  `PagedLessonReader` in exactly one, `paged-lesson-first-screen`, at line
+  593.
+- Five test files construct the scrolling reader through their pump helpers
+  (`expansion_lesson_reader_widget_test.dart`,
+  `lesson_reference_footer_test.dart`, `lesson_finish_flow_test.dart` twice,
+  `lessons_stocks_bonds_reader_widget_test.dart`,
+  `lessons_deposits_pooled_funds_reader_widget_test.dart`), 35 `testWidgets`
+  between those files.
+- The only 1.5x overflow test and the only semantics-label test in the whole
+  lesson surface live in `expansion_lesson_reader_widget_test.dart` lines 316
+  to 342, in a group named `accessibility and layout`, and both pump the
+  scrolling reader. `screen_readability_test.dart` sweeps at 1.0x and 1.5x
+  but sweeps `lib/screens`, and a reader is a widget, so it never pumps
+  either reader.
+
+So the pictures that get looked at, and the accessibility checks that exist,
+are aimed at a widget the founder cannot reach.
+
+**Timeline, with evidence.**
+
+- `67f7f60`, f3.57, patch 49, delivered 10:15 UTC. `git log -S
+  "PagedLessonReader(" -- flutter/lib/screens/learn.dart` returns this commit
+  and only this commit: it is the moment `learn.dart` flipped readers. The
+  scrolling reader was kept on purpose, and the comment at `learn.dart` lines
+  112 to 115 says why: "it stays until this has been confirmed on a real
+  phone, so there is always a working reader to fall back to."
+- `4eca67d`, f3.58, patch 50, delivered 12:10 UTC. 12 files, +894 and -165.
+  New `flutter/lib/screens/path_screen.dart` (389 lines) holding `PathScreen`
+  and `CourseScreen`; `learn.dart` loses 159 lines of inline accordion; new
+  pure `courseProgress()` and `focusCourseId()` in
+  `flutter/lib/money/lesson_flow.dart`; 11 new module tests (6 for
+  `courseProgress`, 5 for `focusCourseId`, counted from the diff, matching
+  the QA row exactly); `path_screen_test.dart` with 7 widget tests.
+- Between those two, the render caught two defects the module tests could
+  not, and this is the load-bearing fact of the whole session. Every course
+  card carried a filled accent button, five identical orange slabs down one
+  page. `CourseScreen` had no progress line at all, so walking one level in
+  lost the figure. Neither is a wrong number. `focusCourseId` can be
+  perfectly correct while the screen ignores it, which is what
+  `path_screen_test.dart` says in its own header at lines 8 to 11.
+- `ffc0846`, f3.59, patch 51, delivered 13:10 UTC. 4 files, +260 and -4. The
+  fix for the defect session 36 found by DELETING wiring on shipped code and
+  watching 2,623 tests stay green.
+- Verified this session, not assumed: `git diff 4eca67d ffc0846 --
+  flutter/lib/screens/learn.dart` returns EMPTY. The deliberate break used to
+  prove the second guard was restored byte-identically to what f3.58 shipped.
+- Verified this session: `flutter test` on current `origin/main` in this
+  sandbox reports `04:22 +2647: All tests passed!`. The commit message's
+  "full suite green at 2,647" is exact, not rounded.
+
+**Root cause, and it is two layers deep.**
+
+The shallow answer is that three real defects in two batches were found by a
+rendered PNG and by a retrospective, and none by 2,647 tests. That is true
+and it is not yet a cause.
+
+The structural cause is that this suite is, almost entirely, a set of
+POSITIVE assertions over a hand-typed list of named parts. It is extremely
+good at "this named thing exists and holds this value". It is blind to three
+shapes, and all three shipped this week:
+
+1. A missing element nobody named. No test can fail for a progress line that
+   was never written and never specified. `CourseScreen` without its figure
+   is a perfectly consistent screen.
+2. A property of the WHOLE rather than of a part. Five filled buttons are
+   five individually valid buttons. The defect exists only in the
+   relationship between them, and nothing in the suite held a sentence about
+   the relationship.
+3. An absent dependency whose absence DEGRADES rather than errors, which is
+   f3.59's defect: `resolveSalapifyRoute ?? (_) => null` and `if (next !=
+   null && onOpenLesson != null)`.
+
+Shapes 1 and 3 are both ABSENCE. A suite of presence assertions cannot see
+absence, by construction, and no amount of adding presence assertions fixes
+it. That is why both mechanisms that DID find these look at the whole
+artifact instead of a named part: a picture shows everything on the screen
+including what is not there, and a deliberate deletion asks the suite to
+prove it would have noticed.
+
+The second layer, and the finding this session actually contributes: the two
+mechanisms that can see absence are themselves ANCHORED BY HAND. The render
+harness names a widget class in a literal map. The reader test files name a
+widget class in a pump helper. Nothing anywhere checks that the class the
+tests build is the class the app builds. So when `learn.dart` flipped readers
+in `67f7f60`, 17 pictures and 35 widget tests silently changed meaning from
+"this is what the founder sees" to "this is what the founder used to see",
+and the count of green tests did not move by one. That is the same failure
+shape CLAUDE.md already records about the empty-store fixture: the rule "look
+at the screen" was followed faithfully against a fixture that could not show
+the defect. It has now happened twice, with a different fixture, in the same
+file.
+
+The divergence point is `67f7f60`, not either of today's merges. Today's
+batches are where it became visible.
+
+**Lessons, each with its guard and the guard's strength.**
+
+LESSON 1. Coverage anchored to a widget class by hand goes stale the moment a
+screen switches implementations, and stays green while it does.
+GUARD, not yet built, strongest tier when it exists: a test that reads
+`test/screens_shot.dart`, extracts every widget class the shot map
+constructs, and asserts each one is also constructed somewhere in `lib`
+outside its own definition file, with a typed exemption map carrying a stated
+reason per entry. The technique is already proven in this repository:
+`screen_readability_test.dart` reads the `lib/screens` directory listing at
+lines 655 to 680 and compares it against a typed list, with `extraFaces`
+declaring the exceptions by name. This is that pattern pointed at the shot
+map. It is deterministic, needs no network, cannot flake, and it would have
+reddened `67f7f60` the moment the app stopped opening the scrolling reader.
+Until it is built this lesson is OPEN.
+
+LESSON 2. Emphasis is a whole-screen property and the suite only checks
+parts.
+GUARD, partly built, strongest tier for the one screen it covers:
+`path_screen_test.dart` line 81, `exactly one course carries the filled
+button`, proven to fail with `Found 5 widgets with type "FilledButton" /
+Which: is too many`. That is exactly the right shape, a count over the whole
+screen rather than an assertion about one widget. The gap is that it guards
+one screen. The generalisation is to assert an emphasis budget inside the
+existing `screen_readability_test.dart` sweep, which already pumps every
+screen in `lib/screens` at two font scales, with a typed exemption map for
+the screens that legitimately carry more than one primary action. OPEN as a
+generalisation, CLOSED for `PathScreen`.
+
+LESSON 3. A dependency that moves from default-on to default-off, whose
+absent value is a degraded app rather than an error, is invisible by
+construction.
+GUARD, BUILT and verified this session, strongest tier: `PagedLessonReader`
+now resolves routes itself (`paged_lesson_reader.dart` lines 245 to 250,
+`widget.resolveSalapifyRoute ?? (route) => resolveExpansionActionRoute(...)`),
+so the absent case is unrepresentable rather than merely tested, and passing
+a resolver still overrides. The half that cannot be defaulted internally,
+`onOpenLesson`, is guarded by `test/lesson_reader_wiring_test.dart`, both
+tests proven to fail first. This is the strongest possible answer to session
+36's lesson 1 and it landed one batch later.
+
+LESSON 4. The one line the founder actually reads claims more than the tests
+do, while every long document beside it is honest.
+The stamp says "tested end to end". The commit message, the QA row and the
+test file's own header all say plainly that the second test is a WIRING
+check, not a click-through: it asserts `reader.onOpenLesson` is not null
+after opening a lesson through the real hub, and it cannot tell you the Next
+button looks right. That honesty is exemplary and it is in three places, none
+of which is the phone.
+GUARD: a rule, and weak, said out loud as weak. `update_stamp_test.dart`
+enforces the 120 character cap and can never judge accuracy. The rule is that
+the stamp describes what the founder can SEE, never the state of the test
+suite, because "tested end to end" is a claim about us and "the buttons
+inside a lesson work" is a claim about the phone.
+
+LESSON 5. A test name can promise a tap the body never makes.
+`path_screen_test.dart` line 193, `opening a lesson from a course card never
+touches core progress`, never opens anything: `_pumpPath` supplies
+`onOpenLesson: (_, _, _) {}`, the body marks an expansion lesson complete,
+pumps, and asserts `store.lessonProgress` is empty. The ASSERTION is real and
+load-bearing (a screen build that wrote into the core 22's store would be
+caught). Only the name overreaches, and the QA row's own wording, "a path
+screen never writes into the core 22's progress store", is more accurate than
+the test's title.
+GUARD: a rule, weak. Name a test after the assertion it makes, not the story
+it belongs to. No machine can read intent out of a test name.
+
+LESSON 6. A justification sentence can carry an unchecked "every".
+`lesson_reader_wiring_test.dart` justifies its synthetic fixture with "every
+real expansion lesson gates its actions step behind a required exercise".
+Checked this session rather than accepted: a read-only scan of every
+`lib/content/lessons_*.dart` containing a `SalapifyActionsBlock` found a
+`requiredForCompletion: true` block earlier in the same `MoneyLesson` literal
+in EVERY case, zero exceptions. The claim is true today. Nothing enforces it
+tomorrow, and `expansion_content_policy.dart` has no rule about it.
+GUARD: none, and deliberately none. A content test could assert it, but it
+would guard a sentence in a test header rather than anything the founder
+sees, and the fixture is defensible whether or not the sentence stays true.
+Recorded as an accepted, stated limit.
+
+**QA row audit, since I was asked to check rows I wrote myself.**
+
+Both rows exist in `docs/qa-log.md`, lines 117 and 118, so
+`qa_record_test.dart` had a row to find for each shipping stamp. Every
+checkable claim in them was checked:
+- "7 widget tests" in `path_screen_test.dart`: 7 `testWidgets`, exact.
+- "5 new module tests for `focusCourseId`, 6 for `courseProgress`": 11 added
+  in the diff, split 6 then 5 by group, exact.
+- "the harness gained a second shot so BOTH new screens are looked at": true,
+  `shots/learn-path-courses-dark.png` and `shots/learn-course-lessons-dark
+  .png`, and the old `learn-recommendation-grouped-list-dark.png` assertion
+  was replaced rather than duplicated.
+- "37 pumped vs 36 claimed": matches the repaired code, which declares the
+  extra face in `extraFaces` with a reason instead of loosening the
+  comparison.
+- "`ExpansionLessonReader` resolves routes inline at line 262": correct, the
+  `resolveExpansionActionRoute` call is on line 262.
+- "restored only after the run reported and `git diff` confirmed `learn.dart`
+  came back byte-identical": independently confirmed here, the diff is empty.
+- The one row claim that reads stronger than its own test is "the
+  load-bearing check that a path screen never writes into the core 22's
+  progress store", which is accurate for the body. It is the TEST NAME that
+  overstates, not the row. See lesson 5.
+No overstatement found in either row beyond that. Both rows describe what
+actually shipped.
+
+**CLAUDE.md factual re-check, done as a step.**
+
+Every path CLAUDE.md names was tested for existence, not assumed: both
+Flutter workflows, `eas-update.yml`, `.github/scripts/check-stamp-unique.sh`,
+`.githooks/pre-push`, `.claude/hooks/guard-destructive-edits.sh`,
+`.claude/settings.json`, `flutter/shorebird.yaml`, `screens_shot.dart`,
+`palette_contrast_test.dart`, `screen_readability_test.dart`,
+`golden/ui_golden.dart`, `golden/baseline/`, `segmented_test.dart`,
+`journeys_test.dart`, `qa_record_test.dart`, `update_stamp_test.dart`,
+`lib/widgets/salapify_icon.dart`, `lib/money/expansion_content_policy.dart`,
+both agent files, `mobile/app/(tabs)/more.js`, `docs/Product_Vision_Spec.md`,
+and `/opt/flutter/bin/flutter`. All present, none moved. Triggers were READ:
+`flutter-check.yml` still fires on push to `claude/**` plus every pull request
+to main, `flutter-preview.yml` still fires on push to `main` filtered on
+`flutter/**` plus its own definition. `git config core.hooksPath` returns
+`.githooks`, so the pre-push hook is live in this checkout. The "sixteen
+palettes" figure was checked rather than trusted: `barakoThemes` in
+`lib/theme.dart` line 479 holds 8 themes, each with a light and a dark
+palette, so sixteen is right. `updateStamp` is at `main.dart` line 33.
+No false factual claim found in CLAUDE.md this session.
+THE SAME DRIFT, third session running: the sweep paragraph still says "ten of
+the fifty files in lib/screens", and `lib/screens` now holds 56. Session 35
+reported 55, session 36 reported 56. Session 36 said that if a third session
+reported it the sentence should simply lose its figure. This is that third
+session. This session's write scope was `docs/lunch-and-learn.md` only, so the
+edit was not made here; it is now a standing recommendation and not a
+discovery.
+ONE STALE SOURCE COMMENT, outside CLAUDE.md but the same failure shape:
+`learn.dart` lines 112 to 115 say the scrolling reader "stays until this has
+been confirmed on a real phone, so there is always a working reader to fall
+back to". It has now been confirmed on a real phone three times, f3.57, f3.58
+and f3.59. The stated condition for removing the fallback is MET, and the
+fallback is currently carrying 17 render shots and 5 test files with it,
+including the lesson surface's only accessibility tests. The comment is not
+false about the past; it is a decision whose trigger fired and that nobody
+went back to.
+
+**Open lessons carried forward.**
+
+- From session 34, STILL OPEN, FOURTH session unchanged: the qa-log staleness
+  check. Counted again this session rather than assumed:
+  `flutter/test/qa_record_test.dart` contains exactly one test, `'the
+  shipping stamp has a QA row in docs/qa-log.md'`, with no freshness or
+  timestamp assertion. Both rows this batch are complete and were written at
+  the time, so the batch again gave it no new evidence. Saying it plainly:
+  four sessions of carrying an unbuilt guard is the point at which the
+  honest options are to build it or to write down that we have decided not
+  to.
+- From session 36, lesson 1, CLOSED: the paged reader's wiring default was
+  built in f3.59, structurally for routes and by test for `onOpenLesson`,
+  both proven to fail first, `learn.dart` restored byte-identical.
+- From session 36, lesson 2, PARTLY CLOSED: end-to-end tests exist now, but
+  only one of the two is a real walk. Test 1 drives a synthetic lesson to the
+  actions step and taps through to `GoalsScreen`. Test 2 stops at a non-null
+  assertion. The file says so itself; recorded here so the partial is not
+  read as complete.
+- From session 36, lesson 3, STILL OPEN and now sharper: the paged reader has
+  no 1.5x overflow test and no semantics test, and this session confirmed
+  there is nowhere else they could be hiding. `screen_readability_test.dart`
+  sweeps `lib/screens` at 1.0x and 1.5x and never pumps a reader; the only
+  reader-level accessibility group in the repository is in
+  `expansion_lesson_reader_widget_test.dart` and pumps the reader nobody can
+  open. A paged version must tap through EVERY step, since
+  `paged_lesson_reader.dart` line 207 uses `PageView.builder` with
+  `NeverScrollableScrollPhysics`, so one page exists at a time and a copied
+  test would measure one screen of nine and pass.
+- The `screens_shot` list gap, carried forward with this session's addition:
+  it is not only that the list is typed rather than derived, and not only
+  that a paged shot covers one page of N. It is now also that 17 of its
+  entries photograph a widget the app cannot open. See lesson 1.
+- From session 33: the official-source re-search rule was NOT triggered by
+  this pair, verified by grep and not assumed. `git show 4eca67d ffc0846`
+  contains zero added or removed lines matching `canonicalUrl`,
+  `LessonSource`, `reviewStatus` or `verifiedOn`. No lesson content file was
+  touched by either commit.
+- From session 31: the prove-fail marker-file sharpening, the stale
+  `goals.dart` allowlist entry, the 320dp readability question and the
+  fixture-through-the-writer shape test are untouched by this batch and
+  carried forward unchanged.
+- Note on evidence available this session: the GitHub API was not reachable
+  from this sandbox, so the two workflow run ids in the delivery rows could
+  not be opened. That is not a gap in the ground truth. The rows are written
+  BY the run that shipped, which is why the three-command delivery check in
+  CLAUDE.md deliberately needs no API.
+
+**For the founder, over lunch.**
+
+Two updates reached your phone today, f3.58 and f3.59, patches 50 and 51.
+Both are really there, one after the other with nothing missing in between,
+and both were small over the air updates, so you did not have to install
+anything by hand. That part went exactly as it should, and there is nothing
+to fix about it.
+
+f3.58 gave the lessons a proper home. Before it, tapping "All lessons" on a
+big track dumped about thirty rows into the middle of the page you were
+already on, and there was no way to open a single course like "Crypto Without
+the Hype" on its own. Now a track opens its own screen with its courses as
+cards, and a course opens its own screen with its lessons. f3.59 fixed
+something the last lunch and learn found: two buttons inside a lesson had
+their wiring moved outside the lesson, where it could be deleted by accident
+without anything going red. That wiring now lives back inside, where it
+cannot be dropped.
+
+Here is the part worth your attention, and it is about how we FIND problems
+rather than about anything broken on your phone right now.
+
+Three real problems came up across these two updates. Not one of them was
+found by the 2,647 automatic tests. One was found by me looking at a picture
+of the screen. One was found by the lunch and learn itself. The third was
+found by deliberately breaking the code to see if anything complained.
+
+That is not bad luck. Automatic tests are very good at "this number should be
+1,250 pesos" and very bad at three specific things: something that is MISSING
+that nobody thought to ask for (a course screen with no progress line),
+something that is wrong only when you look at the whole screen at once (five
+identical orange buttons, each perfectly fine on its own), and a wire that
+has been unplugged in a way that makes a button quietly disappear instead of
+making an error. Two of those three are about ABSENCE, and a test that checks
+things are present cannot see absence. Adding more tests of the same kind
+does not help.
+
+So the pictures matter more than they look like they do. Which brings me to
+what I found today, and I want to be straight that it is not currently
+hurting you.
+
+A few updates ago I switched the lessons over to the new page-by-page reader.
+I kept the old scrolling one around as a safety net, which was sensible. What
+I did not notice is that 17 of the screenshots I render before shipping, and
+five of the test files about lessons, are all still pointed at the OLD
+reader, the one you can no longer open. Including the only two checks in the
+whole project that ask whether a lesson still fits on screen when someone
+turns their phone text size up. So for the last three updates, when I said "I
+looked at the lesson screens", I was looking at a photograph of a room nobody
+lives in any more.
+
+Nothing is broken because of it. The new reader was tested in other ways. But
+the safety net has now done its job three phone confirmations over, and the
+honest move is either to delete it or to point the pictures at the reader you
+actually use.
+
+The guard I want to build next is small and it prevents this exact class of
+mistake forever: a check that compares the list of screens I photograph
+against the list of screens the app can actually open, and turns the build
+red when they disagree. Roughly forty lines, no new tools, and the pattern
+already exists in this project for a different list. If it is ever deleted,
+the cost is precisely what happened here: I keep taking careful pictures, I
+keep showing them to you, and neither of us notices they stopped being
+pictures of your app.
+
+---
+
 ## 2026-08-06, session 36: f3.57 shipped clean, the previous session's guard was built in the same commit that recommended it, and the reader the founder now actually opens can silently lose two buttons with all 2,623 tests green
 
 **What we believed / What was true.** They match. The founder confirmed patch 49
