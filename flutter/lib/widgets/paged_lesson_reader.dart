@@ -70,7 +70,27 @@ class PagedLessonReader extends StatefulWidget {
     required this.store,
     this.onOpenLesson,
     this.resolveSalapifyRoute,
+    this.initialStep = 0,
   });
+
+  /// Which step to open on. Zero for a real learner, always.
+  ///
+  /// This exists for the render harness and for tests that need to look at a
+  /// block sitting five steps in. Before it, migrating the lesson shots off
+  /// the scrolling reader would have produced seventeen pictures of first
+  /// steps: every shot in that set exists to review ONE novel widget (a bond
+  /// timeline, a readiness card, a fact sheet), and in a paged reader that
+  /// widget is never on the screen the reader opens on. A tidy picture of the
+  /// wrong screen is exactly what the render rule warns about.
+  ///
+  /// Advancing by tapping Continue is not a substitute: a required exercise
+  /// gates its own step, so a shot of any block sitting after one would have
+  /// to satisfy whatever exercise that lesson happens to author, and would
+  /// break whenever an author edited it.
+  ///
+  /// Out of range values are clamped rather than thrown, so a lesson losing a
+  /// step can never take a screen down.
+  final int initialStep;
 
   @override
   State<PagedLessonReader> createState() => _PagedLessonReaderState();
@@ -78,9 +98,12 @@ class PagedLessonReader extends StatefulWidget {
 
 class _PagedLessonReaderState extends State<PagedLessonReader> {
   late final List<LessonStep> _steps = stepsForLesson(widget.lesson);
-  late final PageController _pages = PageController();
+  late final PageController _pages = PageController(initialPage: _startIndex);
   final Set<String> _completedBlockIds = {};
-  int _index = 0;
+  late int _index = _startIndex;
+
+  int get _startIndex =>
+      widget.initialStep.clamp(0, _steps.isEmpty ? 0 : _steps.length - 1);
   int? _picked;
   bool _finished = false;
   FinishOutcome? _outcome;
