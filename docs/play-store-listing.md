@@ -30,9 +30,9 @@ Salapify Utang & Budget App     (26)
 ## Short description (80 max)
 
 ```
-Track gastos, utang, at ipon offline. No account, no ads. It stays on your phone.
+Track gastos, utang, at ipon offline. No account, no ads. Stays on your phone.
 ```
-(80 characters. "gastos", "utang", "ipon" are search terms; the offline and no-account
+(78 characters. "gastos", "utang", "ipon" are search terms; the offline and no-account
 lines are the trust hook that differentiates from cloud apps.)
 
 ---
@@ -40,9 +40,9 @@ lines are the trust hook that differentiates from cloud apps.)
 ## Full description (4000 max)
 
 ```
-Salapify is the money app built for how Filipinos actually earn, spend, and lend. Budget around your sweldo, track every utang, plan your debts, and see where your gastos really go. All offline, all on your phone, no account and no ads.
+Salapify is the money app built for how Filipinos actually earn, spend, and owe. Budget around your sweldo, track every utang, plan your debts, and see where your gastos really go. All offline, all on your phone, no account and no ads.
 
-Your money life is private. Salapify has no sign up, no cloud, and no trackers. Nothing you enter ever leaves your phone unless you make a backup yourself. Walang lider ng data.
+Your money life is private. Salapify has no sign up, no cloud, and no trackers. Nothing you enter ever leaves your phone unless you make a backup yourself (the only exception is your chosen currency code, sent to a public exchange rate service, never anything you logged).
 
 WHAT YOU CAN DO
 
@@ -50,7 +50,7 @@ Track utang, both ways
 Log who owes you and who you owe, per person, with due dates. See your total inutang sa akin in one number, know who to follow up first, oldest first, and get a ready reminder you can copy and send, so it never gets awkward.
 
 Split a bill (Hatian)
-Someone fronted the group dinner or the Grab? Split it in seconds and each person's share becomes utang you can actually collect. Your own share stays your expense, so only your real cost hits your money.
+Someone fronted the group dinner or the Grab? Split it in seconds and each person's share becomes utang you can track and follow up on. Your own share stays your expense, so only your real cost hits your money.
 
 Budget around your sweldo
 Plan by your real 15th and end of month cutoffs, not a foreign calendar month. See what is safe to spend until your next sweldo, with card and bill due dates already adjusted for weekends and Philippine holidays.
@@ -118,6 +118,23 @@ Faster logging: tap a recent name instead of typing, and your last used account 
 
 ## Financial features declaration
 
+Play Console's real form lists roughly twenty categories (payday loans, line of credit,
+microfinance banking, payments and transfers, buy now pay later, trading and funds,
+crowdfunding and chit funds, credit monitoring and reporting, financial advice, insurance,
+and more), not just loans and investments. The correct master answer for Salapify is the
+specific option **"My app doesn't provide any financial features."** Select that, not a
+walk through of the list.
+
+Two shipped features map onto category names on that list closely enough to be worth a
+defensive note if a reviewer asks, even though neither is actually a declarable feature:
+
+- **Paluwagan tracker** is close to Play's own "crowdfunding and chit funds" category name.
+  Salapify does not hold, move, or collect any paluwagan funds itself; a paluwagan entry is a
+  personal log of a group the user already belongs to, tracked the same way an utang entry is.
+- **BNPL** is an exact match for Play's "buy now pay later" category name. Salapify only tracks
+  a user's existing BNPL balance and its interest, the same as any other debt; it never offers,
+  originates, or services BNPL credit.
+
 - Does the app provide loans, or facilitate personal loans? **No.**
 - Investments, or manage investments? **No.**
 - The app is a personal finance manager only. Declare accordingly. (This declaration is
@@ -139,7 +156,12 @@ Faster logging: tap a recent name instead of typing, and your last used account 
 - App category: **Finance.**
 - Tags: budget, expense tracker, debt tracker, money manager. (Play picks from a fixed list;
   choose the closest.)
-- Contact email: a real, monitored address (required; also referenced by privacy.html).
+- Contact email: **TODO, still a placeholder.** privacy.html itself promises users they can
+  "reach the developer by email at the address shown on the app's Google Play listing"
+  (privacy.html line 62), so submitting with no real address here would make that promise
+  false the moment someone tries it, and the Data Privacy Act needs a genuine working contact
+  channel regardless. This has to be a real inbox the founder actually checks before
+  submission; Claude cannot supply one.
 - Privacy policy URL: https://icedamericanodev.github.io/Salapify/privacy.html
   (verify it loads and matches the app before submitting).
 - Contains ads: **No.**
@@ -152,7 +174,7 @@ Sell the wedge first, then the differentiators. Short captions, English with the
 identity word as flavor.
 
 1. Utang list. "Know exactly who owes you, and follow up without the awkward."
-2. Bill split (Hatian). "Split the bill. Each share becomes utang you can collect."
+2. Bill split (Hatian). "Split the bill. Each share becomes utang you can track."
 3. Safe to spend. "See what is safe to spend until your next sweldo."
 4. Debt plan. "Track cards, BNPL, and other debts with honest interest."
 5. Reports graphs. "See if you saved or spent, month by month."
@@ -176,4 +198,9 @@ These block submission and are not copy:
    literally true. Native change, base rebuild, not over the air.
 4. Staged rollout for production (start around 10 percent).
 5. Financial features declaration, Data safety form, and IARC rating completed as above.
-6. A final legal-compliance-counsel pass on this listing copy before it goes live.
+6. A final legal-compliance-counsel pass on this listing copy before it goes live. Done
+   2026-08-06: 3 blockers found and fixed (lending-adjacent wording in the opening line,
+   an incomplete Financial features declaration missing the master "no financial features"
+   answer and a defensive note for Paluwagan/BNPL, and this gate itself, item 7).
+7. A real, monitored contact email in place of the Store settings placeholder above. Founder
+   only; Claude has no address to put there.
