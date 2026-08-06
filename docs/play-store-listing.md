@@ -56,7 +56,7 @@ Budget around your sweldo
 Plan by your real 15th and end of month cutoffs, not a foreign calendar month. See what is safe to spend until your next sweldo, with card and bill due dates already adjusted for weekends and Philippine holidays.
 
 Get out of debt
-Track credit cards, BNPL, and loans with honest interest and amortization. See what each payment really costs in interest and principal, and where to attack first.
+Track credit cards, BNPL, and other debts with honest interest and amortization. See what each payment really costs in interest and principal, and where to attack first.
 
 Save with a goal (Ipon)
 Set an ipon goal, watch the progress, and get an honest monthly pace so you know if you are on track.
@@ -68,7 +68,7 @@ See where it went
 Clear reports: net worth, cash flow, and your spending trend, with graphs that answer real questions, like which weekday you overspend and whether you saved or spent this month.
 
 Handy calculators
-Loan, tax, and take home pay calculators, plus a currency converter with 20 currencies, all in one place.
+Amortization, tax, and take home pay calculators, plus a currency converter with 20 currencies, all in one place.
 
 Ask Pan
 Ask your money questions in plain words and get answers from your own data. Walang halong AI sa cloud.
@@ -88,8 +88,8 @@ Salapify is a personal finance manager. It does not lend money, offer credit, or
 ```
 
 (Under 4000. Keyword coverage: budget, utang, gastos, ipon, sweldo, paluwagan, hatian, debt,
-loan, tax, take home, currency converter. The closing sentence states plainly that the app is
-not a lender, which reinforces the Play finance classification.)
+amortization, tax, take home, currency converter. The closing sentence states plainly that the
+app is not a lender, which reinforces the Play finance classification.)
 
 ---
 
@@ -154,7 +154,7 @@ identity word as flavor.
 1. Utang list. "Know exactly who owes you, and follow up without the awkward."
 2. Bill split (Hatian). "Split the bill. Each share becomes utang you can collect."
 3. Safe to spend. "See what is safe to spend until your next sweldo."
-4. Debt plan. "Track cards, BNPL, and loans with honest interest."
+4. Debt plan. "Track cards, BNPL, and other debts with honest interest."
 5. Reports graphs. "See if you saved or spent, month by month."
 6. Paluwagan. "Track your paluwagan: whose turn, your payout, your standing."
 7. Ipon goal. "Set an ipon goal and keep an honest monthly pace."
