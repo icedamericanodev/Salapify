@@ -300,40 +300,10 @@ class _LearnScreenState extends State<LearnScreen> {
               for (final p in paths)
                 p.id: widget.store.expansionProgressFor(p.id),
             });
-            // Progress across the WHOLE catalog, not just the core 22. Every
-            // published path's own lessons and courses count too, so the
-            // headline figure can no longer ignore three quarters of what
-            // the screen is offering.
-            var allDone = doneCount;
-            var allTotal = lessons.length;
-            var coursesDone = tracksDone;
-            var coursesTotal = courseTracks.length;
-            for (final p in paths) {
-              final pathProgress = widget.store.expansionProgressFor(p.id);
-              allTotal += p.lessonIds.length;
-              coursesTotal += p.groups.length;
-              for (final g in p.groups) {
-                final ids = g.lessonIds;
-                final gDone = ids
-                    .where(
-                      (id) =>
-                          isDone(pathProgress[id] ?? LessonState.notStarted),
-                    )
-                    .length;
-                allDone += gDone;
-                if (ids.isNotEmpty && gDone >= ids.length) coursesDone++;
-              }
-            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                _header(
-                  allDone,
-                  allTotal,
-                  coursesDone,
-                  coursesTotal,
-                  minutesLeft,
-                ),
+                _header(doneCount, tracksDone, minutesLeft),
                 const SizedBox(height: 18),
                 Semantics(
                   header: true,
@@ -397,43 +367,30 @@ class _LearnScreenState extends State<LearnScreen> {
 
   /// The header.
   ///
-  /// Two states, because they answer different questions. Once a learner has
-  /// finished anything, the honest progress figures are the point. Before
-  /// that, three zeros and a running total of minutes left is an invoice:
-  /// the experience audit's small-area finding is that early progress
-  /// measured against a big denominator suppresses starting, and a first
-  /// visit that opened with "0 of 22 lessons, 0 of 4 courses, about 43 min
-  /// left" was answering "how much work is left" when the only useful
-  /// question is "what do I do next".
+  /// The lesson and course figures deliberately count the CORE 22 ONLY, and
+  /// that is not an oversight. content/learning_path.dart's own header calls
+  /// the core four tracks "load-bearing for the 'X of 22 lessons' figure on
+  /// the Learn screen", and three separate tests
+  /// (learn_screen_grow_path_test.dart and its two siblings) assert that
+  /// finishing an entire expansion path never moves it, which is how the two
+  /// progress stores are proven to stay isolated.
   ///
-  /// [doneCount] and [total] span the WHOLE catalog, core tracks and
-  /// published paths together. They used to count only the core 22, so a
-  /// learner who finished all 18 lessons of Protect Your Future still read
-  /// "0 of 22 lessons" at the top of the screen.
-  Widget _header(
-    int doneCount,
-    int total,
-    int coursesDone,
-    int coursesTotal,
-    int minutesLeft,
-  ) {
-    if (doneCount == 0) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Learn one money skill, then use it in Salapify.',
-            style: AppText.title.w7,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Short lessons, and every one ends with something you can '
-            'actually do here.',
-            style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
-          ),
-        ],
-      );
-    }
+  /// The experience audit filed the opposite as finding H2: a learner who
+  /// finishes all 18 Protect Your Future lessons still reads "0 of 22
+  /// lessons" here, which is a fair complaint. Changing what the headline
+  /// number MEANS is a product decision with a documented architectural
+  /// rationale on the other side, so it is not being made inside a
+  /// quick-wins batch. It needs the founder, and it is written down in the
+  /// audit rather than quietly reversed here.
+  ///
+  /// What this DOES change is the first impression, which conflicts with
+  /// nothing: a warm line about what the lessons are, and no running total
+  /// of minutes left until the learner has actually started something. A
+  /// first visit that opens with a bill for 43 minutes is answering "how
+  /// much work is left" when the only useful question is "what do I do
+  /// next".
+  Widget _header(int doneCount, int tracksDone, int minutesLeft) {
+    final total = lessons.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -441,6 +398,14 @@ class _LearnScreenState extends State<LearnScreen> {
           'Learn one money skill, then use it in Salapify.',
           style: AppText.title.w7,
         ),
+        if (doneCount == 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Short lessons, and every one ends with something you can '
+            'actually do here.',
+            style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
+          ),
+        ],
         const SizedBox(height: 14),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
@@ -460,10 +425,13 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             Text('$doneCount of $total lessons', style: AppText.smallStrong),
             Text(
-              '$coursesDone of $coursesTotal courses',
+              '$tracksDone of ${courseTracks.length} courses',
               style: AppText.small.tint(Barako.muted),
             ),
-            if (minutesLeft > 0)
+            // Suppressed until something is started: see this method's own
+            // doc comment. Nothing asserts this figure, so unlike the two
+            // counts above it is free to go.
+            if (minutesLeft > 0 && doneCount > 0)
               Text(
                 'about $minutesLeft min left',
                 style: AppText.small.tint(Barako.muted),
