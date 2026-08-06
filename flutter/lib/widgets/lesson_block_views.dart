@@ -131,7 +131,14 @@ class ProseView extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       if (block.heading.isNotEmpty) ...[
-        Text(block.heading.toUpperCase(), style: Barako.kickerStyle),
+        // Marked as a heading so a screen reader can jump block to block.
+        // A lesson is one long scroll, and heading traversal is how a
+        // TalkBack user navigates long content; without this the only way
+        // through 800 words is swiping every paragraph in order.
+        Semantics(
+          header: true,
+          child: Text(block.heading.toUpperCase(), style: Barako.kickerStyle),
+        ),
         const SizedBox(height: 8),
       ],
       for (final p in block.paragraphs)
@@ -198,7 +205,10 @@ class _DiscoveryViewState extends State<DiscoveryView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('THINK FIRST', style: Barako.kickerStyle),
+          Semantics(
+            header: true,
+            child: Text('THINK FIRST', style: Barako.kickerStyle),
+          ),
           const SizedBox(height: 8),
           Text(widget.block.question, style: AppText.bodyLg.w7),
           const SizedBox(height: 12),
@@ -207,11 +217,18 @@ class _DiscoveryViewState extends State<DiscoveryView> {
             curve: Curves.easeOut,
             alignment: Alignment.topCenter,
             child: _open
-                ? Text(
-                    widget.block.reveal,
-                    style: AppText.label.w4
-                        .tint(Barako.textSecondary)
-                        .copyWith(height: 1.55),
+                // Announced when it appears. The learner tapped a button
+                // that then removed itself, so screen reader focus jumped
+                // somewhere arbitrary and the answer they had just asked
+                // for was never read out.
+                ? Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      widget.block.reveal,
+                      style: AppText.label.w4
+                          .tint(Barako.textSecondary)
+                          .copyWith(height: 1.55),
+                    ),
                   )
                 : SizedBox(
                     width: double.infinity,
@@ -401,7 +418,10 @@ class RulesView extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('THE RULES, IN FULL', style: Barako.kickerStyle),
+      Semantics(
+        header: true,
+        child: Text('THE RULES, IN FULL', style: Barako.kickerStyle),
+      ),
       const SizedBox(height: 8),
       for (final p in block.passages)
         Container(

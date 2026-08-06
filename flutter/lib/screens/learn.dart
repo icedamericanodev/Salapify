@@ -7,7 +7,9 @@
 // always. PH-scoped tax lessons wear a visible PHILIPPINES tag.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../content/course_sequences.dart';
 import '../content/learning_path.dart';
 import '../content/learning_paths.dart';
 import '../content/lesson_model.dart';
@@ -15,10 +17,12 @@ import '../content/lessons.dart';
 import '../data/store.dart';
 import '../money/course_plan.dart';
 import '../money/expansion_recommendation.dart';
+import '../money/lesson_flow.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/celebration.dart';
 import '../widgets/expansion_lesson_reader.dart';
 import '../widgets/lesson_block_views.dart';
 import '../widgets/salapify_icon.dart';
@@ -96,17 +100,35 @@ class _LearnScreenState extends State<LearnScreen> {
   void _openExpansionLesson(
     BuildContext context,
     String pathId,
-    MoneyLesson lesson,
-  ) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ExpansionLessonReader(
-          pathId: pathId,
-          lesson: lesson,
-          store: widget.store,
-        ),
+    MoneyLesson lesson, {
+    // Same contract as _open2's own flag: a lesson reached from the previous
+    // lesson's Next button replaces it, so a long path does not build a back
+    // stack the depth of the course.
+    bool replace = false,
+  }) {
+    final route = MaterialPageRoute<void>(
+      builder: (_) => ExpansionLessonReader(
+        pathId: pathId,
+        lesson: lesson,
+        store: widget.store,
+        onOpenLesson: (id) {
+          final next = expansionLessonById(id);
+          if (next != null) {
+            _openExpansionLesson(
+              context,
+              next.pathId,
+              next.lesson,
+              replace: true,
+            );
+          }
+        },
       ),
     );
+    if (replace) {
+      Navigator.of(context).pushReplacement(route);
+    } else {
+      Navigator.of(context).push(route);
+    }
   }
 
   /// Resolve a lesson action to a real navigation. Returns null when the
@@ -163,8 +185,22 @@ class _LearnScreenState extends State<LearnScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => target));
   }
 
-  void _open2(BuildContext context, Map<String, dynamic> lesson) {
+  void _open2(
+    BuildContext context,
+    Map<String, dynamic> lesson, {
+    // True when this lesson was reached from the previous lesson's own
+    // "Next" button. It REPLACES that route rather than stacking on it, so
+    // reading ten lessons in a row leaves one back step to the hub instead
+    // of ten, and the back button keeps meaning "leave the lesson".
+    bool replace = false,
+  }) {
     final typed = lessonFromMap(lesson);
+    // What the store already knows, read BEFORE the viewed write below, so a
+    // lesson finished on an earlier visit opens in its finished state
+    // instead of presenting as unread (the reader's own _finished flag used
+    // to start false for everyone).
+    final existing =
+        widget.store.lessonProgress[typed.id] ?? LessonState.notStarted;
     // Opening is NOT finishing. This used to mark the lesson read here, so
     // tapping a card and backing straight out counted as learned forever and
     // the progress figure measured taps. Opening now records inProgress; only
@@ -175,21 +211,30 @@ class _LearnScreenState extends State<LearnScreen> {
     if (widget.store.canWrite) {
       widget.store.setLessonState(typed.id, LessonState.viewed);
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => _LessonReader(
-          lesson: typed,
-          onAction: _resolveAction(
-            context,
-            (lesson['action'] as Map?)?.cast<String, dynamic>(),
-          ),
-          store: widget.store,
-          onState: widget.store.canWrite
-              ? (s) => widget.store.setLessonState(typed.id, s)
-              : null,
+    final route = MaterialPageRoute<void>(
+      builder: (_) => _LessonReader(
+        lesson: typed,
+        onAction: _resolveAction(
+          context,
+          (lesson['action'] as Map?)?.cast<String, dynamic>(),
         ),
+        store: widget.store,
+        initialState: existing,
+        sequence: coreFlowSequence(),
+        onOpenLesson: (id) {
+          final next = lessonById(id);
+          if (next != null) _open2(context, next, replace: true);
+        },
+        onState: widget.store.canWrite
+            ? (s) => widget.store.setLessonState(typed.id, s)
+            : null,
       ),
     );
+    if (replace) {
+      Navigator.of(context).pushReplacement(route);
+    } else {
+      Navigator.of(context).push(route);
+    }
   }
 
   /// Which track sections are open. Tracks start collapsed so the catalog is
@@ -255,12 +300,45 @@ class _LearnScreenState extends State<LearnScreen> {
               for (final p in paths)
                 p.id: widget.store.expansionProgressFor(p.id),
             });
+            // Progress across the WHOLE catalog, not just the core 22. Every
+            // published path's own lessons and courses count too, so the
+            // headline figure can no longer ignore three quarters of what
+            // the screen is offering.
+            var allDone = doneCount;
+            var allTotal = lessons.length;
+            var coursesDone = tracksDone;
+            var coursesTotal = courseTracks.length;
+            for (final p in paths) {
+              final pathProgress = widget.store.expansionProgressFor(p.id);
+              allTotal += p.lessonIds.length;
+              coursesTotal += p.groups.length;
+              for (final g in p.groups) {
+                final ids = g.lessonIds;
+                final gDone = ids
+                    .where(
+                      (id) =>
+                          isDone(pathProgress[id] ?? LessonState.notStarted),
+                    )
+                    .length;
+                allDone += gDone;
+                if (ids.isNotEmpty && gDone >= ids.length) coursesDone++;
+              }
+            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                _header(doneCount, tracksDone, minutesLeft),
+                _header(
+                  allDone,
+                  allTotal,
+                  coursesDone,
+                  coursesTotal,
+                  minutesLeft,
+                ),
                 const SizedBox(height: 18),
-                Text('CORE MONEY SKILLS', style: Barako.kickerStyle),
+                Semantics(
+                  header: true,
+                  child: Text('CORE MONEY SKILLS', style: Barako.kickerStyle),
+                ),
                 const SizedBox(height: 10),
                 for (final track in courseTracks) ...[
                   _trackCard(
@@ -274,8 +352,31 @@ class _LearnScreenState extends State<LearnScreen> {
                 ],
                 if (paths.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('CHOOSE YOUR NEXT PATH', style: Barako.kickerStyle),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      'CHOOSE YOUR NEXT PATH',
+                      style: Barako.kickerStyle,
+                    ),
+                  ),
                   const SizedBox(height: 10),
+                  // The expansion recommender is deliberately mute until a
+                  // path has real progress (money/expansion_recommendation
+                  // .dart's own rule 1), which is correct but left this
+                  // whole section with no way in for a brand new learner.
+                  // One neutral line, shown only while nothing here is
+                  // started, and it names a real starting point rather than
+                  // pretending to know anything about the reader.
+                  if (pathRec == null) ...[
+                    Text(
+                      'New here? Most people start with Are You Ready to '
+                      'Invest, in Grow Your Money.',
+                      style: AppText.caption
+                          .tint(Barako.muted)
+                          .copyWith(height: 1.45),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   for (final path in paths) ...[
                     _pathCard(
                       path,
@@ -294,8 +395,45 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
-  Widget _header(int doneCount, int tracksDone, int minutesLeft) {
-    final total = lessons.length;
+  /// The header.
+  ///
+  /// Two states, because they answer different questions. Once a learner has
+  /// finished anything, the honest progress figures are the point. Before
+  /// that, three zeros and a running total of minutes left is an invoice:
+  /// the experience audit's small-area finding is that early progress
+  /// measured against a big denominator suppresses starting, and a first
+  /// visit that opened with "0 of 22 lessons, 0 of 4 courses, about 43 min
+  /// left" was answering "how much work is left" when the only useful
+  /// question is "what do I do next".
+  ///
+  /// [doneCount] and [total] span the WHOLE catalog, core tracks and
+  /// published paths together. They used to count only the core 22, so a
+  /// learner who finished all 18 lessons of Protect Your Future still read
+  /// "0 of 22 lessons" at the top of the screen.
+  Widget _header(
+    int doneCount,
+    int total,
+    int coursesDone,
+    int coursesTotal,
+    int minutesLeft,
+  ) {
+    if (doneCount == 0) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Learn one money skill, then use it in Salapify.',
+            style: AppText.title.w7,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Short lessons, and every one ends with something you can '
+            'actually do here.',
+            style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -311,6 +449,7 @@ class _LearnScreenState extends State<LearnScreen> {
             minHeight: 8,
             backgroundColor: Barako.border,
             color: Barako.primary,
+            semanticsLabel: 'Overall course progress',
           ),
         ),
         const SizedBox(height: 8),
@@ -321,7 +460,7 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             Text('$doneCount of $total lessons', style: AppText.smallStrong),
             Text(
-              '$tracksDone of ${courseTracks.length} courses',
+              '$coursesDone of $coursesTotal courses',
               style: AppText.small.tint(Barako.muted),
             ),
             if (minutesLeft > 0)
@@ -514,6 +653,39 @@ class _LearnScreenState extends State<LearnScreen> {
     final done = isDone(state);
     final started = state != LessonState.notStarted && !done;
     final isPH = l['region'] == 'PH';
+    // One announcement per row, with the state as a WORD. The tick, the
+    // pause glyph, and the empty circle carried the whole meaning, so every
+    // lesson sounded identical to a screen reader whether it was finished or
+    // untouched. MergeSemantics also stops the row reading out as four
+    // separate swipe stops.
+    return Semantics(
+      button: true,
+      label: [
+        l['title'] as String,
+        done
+            ? 'Completed'
+            : started
+            ? 'In progress'
+            : 'Not started',
+        l['summary'] as String,
+        '$position of $outOf',
+        '${l['minutes']} min',
+        if (isPH) 'Philippine rules',
+      ].join(', '),
+      child: ExcludeSemantics(
+        child: _lessonRowBody(l, position, outOf, done, started, isPH),
+      ),
+    );
+  }
+
+  Widget _lessonRowBody(
+    Map<String, dynamic> l,
+    int position,
+    int outOf,
+    bool done,
+    bool started,
+    bool isPH,
+  ) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: () => _open2(context, l),
@@ -577,10 +749,11 @@ class _LearnScreenState extends State<LearnScreen> {
                           ),
                           child: Text(
                             'PHILIPPINES',
-                            style: AppText.micro.w7.copyWith(
-                              fontSize: 9,
-                              letterSpacing: 1,
-                            ),
+                            // Was fontSize 9, below the type ladder's own
+                            // floor of 10. This tag is not decoration, it
+                            // tells a reader whether the tax rules in the
+                            // lesson apply to them at all.
+                            style: AppText.micro.w7.copyWith(letterSpacing: 1),
                           ),
                         ),
                     ],
@@ -917,9 +1090,24 @@ class _LessonReader extends StatefulWidget {
   final SalapifyStore store;
   final VoidCallback? onAction;
   final void Function(LessonState)? onState;
+
+  /// What the store already knew about this lesson when it was opened, so a
+  /// lesson finished on a previous visit opens finished.
+  final LessonState initialState;
+
+  /// The whole core reading order, for deciding what finishing this lesson
+  /// completed and which lesson to offer next (money/lesson_flow.dart).
+  final List<FlowLesson> sequence;
+
+  /// Opens another lesson in place of this one.
+  final void Function(String lessonId) onOpenLesson;
+
   const _LessonReader({
     required this.lesson,
     required this.store,
+    required this.sequence,
+    required this.onOpenLesson,
+    this.initialState = LessonState.notStarted,
     this.onAction,
     this.onState,
   });
@@ -931,7 +1119,19 @@ class _LessonReader extends StatefulWidget {
 class _LessonReaderState extends State<_LessonReader> {
   int? _picked;
   bool _understood = false;
-  bool _finished = false;
+  late bool _finished = isDone(widget.initialState);
+  FinishOutcome? _outcome;
+
+  @override
+  void initState() {
+    super.initState();
+    // A lesson reopened after it was already finished shows its finish card
+    // immediately, complete with the next-lesson button, rather than asking
+    // the learner to finish something they finished last week. Computed
+    // without celebrating: the celebration belongs to the moment it was
+    // earned, not to every later reread.
+    if (_finished) _outcome = _computeOutcome();
+  }
 
   // Understanding is earned by engaging with the thinking: revealing a
   // discovery answer or answering the check. Not by scrolling.
@@ -942,14 +1142,50 @@ class _LessonReaderState extends State<_LessonReader> {
   }
 
   void _answer(int i) {
+    // A confirmation the hands can feel, the same selectionClick the rest of
+    // the app already uses for a pick.
+    HapticFeedback.selectionClick();
     setState(() => _picked = i);
     _markUnderstood();
   }
 
+  /// The outcome of finishing this lesson, computed against the store's
+  /// progress with THIS lesson forced to completed.
+  ///
+  /// Overlaid rather than re-read after the write, for two reasons: the
+  /// store write is a Future that may not have landed yet, and on a
+  /// read-only store it never lands at all. Either way the learner has
+  /// finished the lesson on screen and the finish card must agree with what
+  /// they just did.
+  FinishOutcome _computeOutcome() => finishOutcome(
+    finishedId: widget.lesson.id,
+    sequence: widget.sequence,
+    progress: {
+      ...widget.store.lessonProgress,
+      widget.lesson.id: LessonState.completed,
+    },
+  );
+
   void _finish() {
     if (_finished) return;
-    setState(() => _finished = true);
+    final outcome = _computeOutcome();
+    setState(() {
+      _finished = true;
+      _outcome = outcome;
+    });
     widget.onState?.call(LessonState.completed);
+    // Confetti is reserved for finishing a whole course or the whole set.
+    // Firing it on each of 93 lessons would spend the app's happiest
+    // animation on its most ordinary event, and one panelist called a party
+    // for reading 200 words condescending. A finished lesson still gets a
+    // real card, just not fireworks.
+    final message = switch (outcome.scope) {
+      FinishScope.path => 'Every core lesson done. All 22.',
+      FinishScope.course =>
+        'Course finished: ${outcome.completedCourseTitle ?? ''}'.trim(),
+      FinishScope.lesson => null,
+    };
+    if (message != null) showCelebration(context, message);
   }
 
   @override
@@ -1011,12 +1247,19 @@ class _LessonReaderState extends State<_LessonReader> {
       children.add(const SizedBox(height: 16));
     }
 
-    children.add(RiseIn(index: step, child: _finishRow()));
+    children.add(RiseIn(index: step, child: _finishCard()));
 
+    final position = _positionLabel();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
+        // Where am I, and in what. An empty bar left a reader who had
+        // scrolled past the hero with no idea which lesson or course they
+        // were inside.
+        title: position == null
+            ? null
+            : Text(position, style: AppText.caption.tint(Barako.muted)),
       ),
       body: SafeArea(
         child: Center(
@@ -1073,7 +1316,7 @@ class _LessonReaderState extends State<_LessonReader> {
     ),
     child: Text(
       'PHILIPPINES',
-      style: AppText.micro.w7.copyWith(fontSize: 9, letterSpacing: 1),
+      style: AppText.micro.w7.copyWith(letterSpacing: 1),
     ),
   );
 
@@ -1107,50 +1350,71 @@ class _LessonReaderState extends State<_LessonReader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('QUICK CHECK', style: Barako.kickerStyle),
+          Semantics(
+            header: true,
+            child: Text('QUICK CHECK', style: Barako.kickerStyle),
+          ),
           const SizedBox(height: 8),
           Text(c.question, style: AppText.bodyStrong.copyWith(height: 1.45)),
           const SizedBox(height: 12),
           for (var i = 0; i < c.choices.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: answered ? null : () => _answer(i),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    // Only the correct answer is ever highlighted. A wrong
-                    // pick is not stained red: being wrong is how this works.
-                    border: Border.all(
-                      color: answered && i == c.correctIndex
-                          ? Barako.primary
-                          : Barako.border,
+              child: Semantics(
+                button: true,
+                // The answer key existed only for people who could see the
+                // border colour. Now it is spoken.
+                selected: answered && i == _picked,
+                enabled: !answered,
+                label: answered && i == c.correctIndex
+                    ? '${c.choices[i]}, correct answer'
+                    : c.choices[i],
+                child: ExcludeSemantics(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: kMinInteractiveDimension,
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        answered && i == c.correctIndex
-                            ? salapifyIcon('selected')
-                            : salapifyIcon('unselected'),
-                        size: 18,
-                        color: answered && i == c.correctIndex
-                            ? Barako.primary
-                            : Barako.faint,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          c.choices[i],
-                          style: AppText.label.w4
-                              .tint(Barako.textSecondary)
-                              .copyWith(height: 1.4),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: answered ? null : () => _answer(i),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          // Only the correct answer is ever highlighted. A
+                          // wrong pick is not stained red: being wrong is how
+                          // this works.
+                          border: Border.all(
+                            color: answered && i == c.correctIndex
+                                ? Barako.primary
+                                : Barako.border,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              answered && i == c.correctIndex
+                                  ? salapifyIcon('selected')
+                                  : salapifyIcon('unselected'),
+                              size: 18,
+                              color: answered && i == c.correctIndex
+                                  ? Barako.primary
+                                  : Barako.faint,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                c.choices[i],
+                                style: AppText.label.w4
+                                    .tint(Barako.textSecondary)
+                                    .copyWith(height: 1.4),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1163,11 +1427,17 @@ class _LessonReaderState extends State<_LessonReader> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text(
-                        correct
-                            ? 'That is it.'
-                            : 'Close. Here is the thinking.',
-                        style: AppText.label.w7,
+                      // Spoken the moment it appears. This was silent, so a
+                      // blind learner tapped an answer and heard nothing at
+                      // all.
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          correct
+                              ? 'That is it.'
+                              : 'Close. Here is the thinking.',
+                          style: AppText.label.w7,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -1178,6 +1448,19 @@ class _LessonReaderState extends State<_LessonReader> {
                             .tint(Barako.textSecondary)
                             .copyWith(height: 1.5),
                       ),
+                      // The expansion reader has always offered this. Two
+                      // readers with the same-looking card and different
+                      // rules is the drift this batch exists to stop: a
+                      // mis-tap used to lock the wrong answer on screen for
+                      // the rest of the visit.
+                      if (!correct) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => setState(() => _picked = null),
+                          icon: Icon(salapifyIcon('startOver'), size: 16),
+                          label: const Text('Try again'),
+                        ),
+                      ],
                     ],
                   )
                 : const SizedBox(width: double.infinity),
@@ -1187,22 +1470,120 @@ class _LessonReaderState extends State<_LessonReader> {
     );
   }
 
-  Widget _finishRow() => _finished
-      ? Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(salapifyIcon('selected'), size: 18, color: Barako.primary),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'Done. One useful thing.',
-                style: AppText.label.w7.tint(Barako.primary),
+  /// "3 of 6 in Your first cushion", or null for a lesson that is somehow
+  /// not in the sequence (never in practice, but a missing id must not
+  /// crash a reader).
+  String? _positionLabel() {
+    final i = widget.sequence.indexWhere((l) => l.id == widget.lesson.id);
+    if (i < 0) return null;
+    final me = widget.sequence[i];
+    final inCourse = widget.sequence
+        .where((l) => l.groupId == me.groupId)
+        .toList();
+    final pos = inCourse.indexWhere((l) => l.id == me.id) + 1;
+    return '$pos of ${inCourse.length} · ${me.groupTitle}';
+  }
+
+  /// The moment a lesson ends.
+  ///
+  /// This used to be one quiet row and a back button, which made every
+  /// lesson boundary an exit. It now closes the loop it opened: what you
+  /// finished, the sentence worth keeping, where you are in the course, and
+  /// the next lesson as a single tap.
+  Widget _finishCard() {
+    if (!_finished) {
+      return OutlinedButton(
+        onPressed: _finish,
+        child: const Text('Finish this lesson'),
+      );
+    }
+    final outcome = _outcome;
+    final headline = switch (outcome?.scope) {
+      FinishScope.path => 'Every core lesson done.',
+      FinishScope.course =>
+        'Course finished: ${outcome?.completedCourseTitle ?? ''}'.trim(),
+      _ => 'Done. One useful thing.',
+    };
+    final next = outcome?.next;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Barako.surfaceRaised,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Announced, because the payoff moment was silent to a screen
+          // reader and the button that was focused disappeared on tap.
+          Semantics(
+            liveRegion: true,
+            header: true,
+            child: Row(
+              children: [
+                Icon(salapifyIcon('selected'), size: 18, color: Barako.primary),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    headline,
+                    style: AppText.label.w7.tint(Barako.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (widget.lesson.keyTakeaway.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              widget.lesson.keyTakeaway,
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.5),
+            ),
+          ],
+          if (outcome != null && outcome.totalInCourse > 0) ...[
+            const SizedBox(height: 10),
+            Text(
+              '${outcome.doneInCourse} of ${outcome.totalInCourse} done in '
+              'this course',
+              style: AppText.caption.tint(Barako.muted),
+            ),
+          ],
+          if (next != null) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => widget.onOpenLesson(next.id),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Barako.primary,
+                  foregroundColor: Barako.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(
+                  '${outcome?.nextStartsNewCourse == true ? 'Next course' : 'Next'}: '
+                  '${next.title} · ${next.minutes} min',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Always as reachable as the next lesson. Momentum is an offer,
+            // never a corridor.
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: const Text('Back to courses'),
               ),
             ),
           ],
-        )
-      : OutlinedButton(
-          onPressed: _finish,
-          child: const Text('Finish this lesson'),
-        );
+        ],
+      ),
+    );
+  }
 }
