@@ -33,7 +33,9 @@ import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
 import 'package:salapify/screens/year_end_tax.dart';
+import 'package:salapify/money/institutions.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/bank_card.dart';
 import 'package:salapify/widgets/empty_state.dart';
 import 'package:salapify/widgets/error_state.dart';
 import 'package:salapify/widgets/segmented.dart';
@@ -178,7 +180,21 @@ void main() {
         home: AccountsScreen(store: store),
         size: const Size(360, 600),
         textScale: 1.5,
-        interact: (t) => t.tap(find.text('Move money between accounts')),
+        // The card carousel now sits above these buttons, so on a short screen
+        // at large text the button starts below the fold: scroll it in before
+        // tapping. The captured golden is the transfer SHEET, unaffected by how
+        // far the list behind it scrolled.
+        interact: (t) async {
+          final finder = find.text('Move money between accounts');
+          // The outer account list, not the carousel's PageView, which is also
+          // a Scrollable.
+          await t.scrollUntilVisible(
+            finder,
+            150,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await t.tap(finder);
+        },
       );
     });
   });
@@ -263,6 +279,54 @@ void main() {
           await t.enterText(find.byType(TextField).at(3), '25000');
           await t.enterText(find.byType(TextField).at(4), '30000');
         },
+      );
+    });
+  });
+
+  group('the bank card', () {
+    Widget wrapCard(Widget card) => Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(width: 340, child: card),
+        ),
+      ),
+    );
+
+    testWidgets('savings card', (tester) async {
+      await _golden(
+        tester,
+        name: 'bank-card-savings',
+        home: wrapCard(
+          BankCard(
+            bankName: 'BPI Savings',
+            accountType: 'Savings',
+            brandColor: institutionBrandColor('bpi'),
+            last4: '1234',
+            balance: 48500.55,
+          ),
+        ),
+        size: const Size(390, 320),
+      );
+    });
+
+    testWidgets('credit card', (tester) async {
+      await _golden(
+        tester,
+        name: 'bank-card-credit',
+        home: wrapCard(
+          BankCard(
+            bankName: 'BPI Credit',
+            accountType: 'Credit',
+            brandColor: institutionBrandColor('bpi'),
+            last4: '9012',
+            balance: 42000,
+            creditLimit: 50000,
+            variant: BankCardVariant.credit,
+          ),
+        ),
+        size: const Size(390, 320),
       );
     });
   });
