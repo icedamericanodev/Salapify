@@ -43,7 +43,18 @@ Future<SalapifyStore> _open(
 }
 
 Future<void> _openSheet(WidgetTester tester) async {
-  await tester.tap(find.text('Move money between accounts'));
+  // The card carousel (shown with two or more accounts) can push this button
+  // past the lazy list's built region on a short surface, so it is not merely
+  // off screen, it is unbuilt: scroll the list until it exists and is visible,
+  // then tap. The outer list, not the carousel's PageView, is the scrollable.
+  final button = find.text('Move money between accounts');
+  await tester.scrollUntilVisible(
+    button,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(button);
   await tester.pumpAndSettle();
 }
 

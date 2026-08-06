@@ -17,6 +17,16 @@
 // USD IS NOT AN INSTITUTION. Currency is chosen after the institution and
 // lives in its own field. Worth saying out loud because the screen this
 // replaces groups by institution, which makes it an easy mistake.
+//
+// BRAND COLORS live here too, on the catalog, as the ONE source of truth for
+// anything that paints a bank (the avatar tint, the BankCard gradient). They
+// are ported from mobile/lib/banks.js so the Flutter and React Native apps
+// wear the same colors; Dart cannot import the JS list, so the values are
+// copied here by id and this catalog, not a second list, is what every Flutter
+// screen reads. A brand color is only the FILL. It is never a logo: text and
+// color only, which is a trademark boundary this project keeps on purpose.
+
+import 'dart:ui' show Color;
 
 enum InstitutionType { bank, digitalBank, eWallet, lender, broker, other }
 
@@ -34,12 +44,19 @@ class FinancialInstitution {
   /// Null until a logo file is cleared for use. Nothing reads it yet.
   final String? localAssetPath;
 
+  /// The brand FILL color, ported from mobile/lib/banks.js by id. Null for the
+  /// escape hatches (something else, no institution) and anything without a
+  /// known brand color; callers fall back to a neutral tint. Never a logo, just
+  /// the color, which is the trademark line this project holds.
+  final Color? brandColor;
+
   const FinancialInstitution({
     required this.id,
     required this.displayName,
     required this.type,
     this.aliases = const [],
     this.localAssetPath,
+    this.brandColor,
   });
 
   /// One or two letters for the avatar. Built from the DISPLAY NAME, so a
@@ -76,84 +93,99 @@ String initialsFor(String name) {
 }
 
 const List<FinancialInstitution> institutions = [
-  // Universal and commercial banks.
+  // Universal and commercial banks. Brand colors ported from banks.js by id.
   FinancialInstitution(
     id: 'bdo',
     displayName: 'BDO',
     type: InstitutionType.bank,
     aliases: ['Banco de Oro', 'BDO Unibank'],
+    brandColor: Color(0xFF00308F),
   ),
   FinancialInstitution(
     id: 'bpi',
     displayName: 'BPI',
     type: InstitutionType.bank,
     aliases: ['Bank of the Philippine Islands', 'BPI Family'],
+    brandColor: Color(0xFFB11116),
   ),
   FinancialInstitution(
     id: 'metrobank',
     displayName: 'Metrobank',
     type: InstitutionType.bank,
     aliases: ['Metropolitan Bank and Trust Company', 'MBTC'],
+    brandColor: Color(0xFF00529C),
   ),
   FinancialInstitution(
     id: 'unionbank',
     displayName: 'UnionBank',
     type: InstitutionType.bank,
     aliases: ['Union Bank of the Philippines', 'UBP'],
+    brandColor: Color(0xFFFF7A00),
   ),
   FinancialInstitution(
     id: 'securitybank',
     displayName: 'Security Bank',
     type: InstitutionType.bank,
     aliases: ['SBC'],
+    brandColor: Color(0xFF00703C),
   ),
   FinancialInstitution(
     id: 'rcbc',
     displayName: 'RCBC',
     type: InstitutionType.bank,
     aliases: ['Rizal Commercial Banking Corporation'],
+    brandColor: Color(0xFF003DA5),
   ),
   FinancialInstitution(
     id: 'pnb',
     displayName: 'PNB',
     type: InstitutionType.bank,
     aliases: ['Philippine National Bank'],
+    brandColor: Color(0xFF005BAA),
   ),
   FinancialInstitution(
     id: 'landbank',
     displayName: 'LandBank',
     type: InstitutionType.bank,
     aliases: ['Land Bank of the Philippines', 'LBP'],
+    brandColor: Color(0xFF00A651),
   ),
   FinancialInstitution(
     id: 'chinabank',
     displayName: 'China Bank',
     type: InstitutionType.bank,
     aliases: ['China Banking Corporation', 'Chinabank Savings'],
+    brandColor: Color(0xFFC8102E),
   ),
   FinancialInstitution(
     id: 'eastwest',
     displayName: 'EastWest',
     type: InstitutionType.bank,
     aliases: ['EastWest Bank', 'EW'],
+    brandColor: Color(0xFF5C2D91),
   ),
+  // Not in banks.js. Colors added here for the fuller PH bank list; still text
+  // and color only, never a logo.
   FinancialInstitution(
     id: 'psbank',
     displayName: 'PSBank',
     type: InstitutionType.bank,
     aliases: ['Philippine Savings Bank'],
+    brandColor: Color(0xFF009639),
   ),
   FinancialInstitution(
     id: 'aub',
     displayName: 'AUB',
     type: InstitutionType.bank,
     aliases: ['Asia United Bank'],
+    brandColor: Color(0xFF0060A9),
   ),
   FinancialInstitution(
     id: 'bankofcommerce',
     displayName: 'Bank of Commerce',
     type: InstitutionType.bank,
     aliases: ['BankCom'],
+    brandColor: Color(0xFF0067B1),
   ),
 
   // Digital banks.
@@ -162,40 +194,47 @@ const List<FinancialInstitution> institutions = [
     displayName: 'Maya Bank',
     type: InstitutionType.digitalBank,
     aliases: ['Maya Savings'],
+    brandColor: Color(0xFF0C0C0C),
   ),
   FinancialInstitution(
     id: 'gotyme',
     displayName: 'GoTyme',
     type: InstitutionType.digitalBank,
     aliases: ['GoTyme Bank'],
+    brandColor: Color(0xFF001E28),
   ),
   FinancialInstitution(
     id: 'cimb',
     displayName: 'CIMB',
     type: InstitutionType.digitalBank,
     aliases: ['CIMB Bank Philippines', 'GSave'],
+    brandColor: Color(0xFFED1C24),
   ),
   FinancialInstitution(
     id: 'seabank',
     displayName: 'SeaBank',
     type: InstitutionType.digitalBank,
+    brandColor: Color(0xFFEE4D2D),
   ),
   FinancialInstitution(
     id: 'tonik',
     displayName: 'Tonik',
     type: InstitutionType.digitalBank,
     aliases: ['Tonik Bank'],
+    brandColor: Color(0xFF3D2B96),
   ),
   FinancialInstitution(
     id: 'uno',
     displayName: 'UNO Digital Bank',
     type: InstitutionType.digitalBank,
     aliases: ['UNOBank'],
+    brandColor: Color(0xFF15173A),
   ),
   FinancialInstitution(
     id: 'ownbank',
     displayName: 'OwnBank',
     type: InstitutionType.digitalBank,
+    brandColor: Color(0xFF0A8F5B),
   ),
 
   // E-wallets.
@@ -204,24 +243,28 @@ const List<FinancialInstitution> institutions = [
     displayName: 'GCash',
     type: InstitutionType.eWallet,
     aliases: ['G-Cash', 'Globe GCash'],
+    brandColor: Color(0xFF007DFE),
   ),
   FinancialInstitution(
     id: 'maya',
     displayName: 'Maya',
     type: InstitutionType.eWallet,
     aliases: ['PayMaya', 'Maya Wallet'],
+    brandColor: Color(0xFF0C0C0C),
   ),
   FinancialInstitution(
     id: 'grabpay',
     displayName: 'GrabPay',
     type: InstitutionType.eWallet,
     aliases: ['Grab Pay', 'Grab'],
+    brandColor: Color(0xFF00B14F),
   ),
   FinancialInstitution(
     id: 'shopeepay',
     displayName: 'ShopeePay',
     type: InstitutionType.eWallet,
     aliases: ['Shopee Pay', 'SPay'],
+    brandColor: Color(0xFFEE4D2D),
   ),
 
   // Lenders that are not banks. Salapify never offers or brokers a loan; these
@@ -231,29 +274,34 @@ const List<FinancialInstitution> institutions = [
     id: 'homecredit',
     displayName: 'Home Credit',
     type: InstitutionType.lender,
+    brandColor: Color(0xFFE1272E),
   ),
   FinancialInstitution(
     id: 'billease',
     displayName: 'BillEase',
     type: InstitutionType.lender,
+    brandColor: Color(0xFF2D5BE3),
   ),
   FinancialInstitution(
     id: 'sss',
     displayName: 'SSS',
     type: InstitutionType.lender,
     aliases: ['Social Security System'],
+    brandColor: Color(0xFF0057A8),
   ),
   FinancialInstitution(
     id: 'gsis',
     displayName: 'GSIS',
     type: InstitutionType.lender,
     aliases: ['Government Service Insurance System'],
+    brandColor: Color(0xFF11508C),
   ),
   FinancialInstitution(
     id: 'pagibig',
     displayName: 'Pag-IBIG',
     type: InstitutionType.lender,
     aliases: ['HDMF', 'Pag IBIG', 'Pagibig', 'MP2'],
+    brandColor: Color(0xFF1B4F9C),
   ),
 
   // Brokers and funds.
@@ -262,12 +310,14 @@ const List<FinancialInstitution> institutions = [
     displayName: 'COL Financial',
     type: InstitutionType.broker,
     aliases: ['COL', 'Citiseconline'],
+    brandColor: Color(0xFF00337F),
   ),
   FinancialInstitution(
     id: 'firstmetrosec',
     displayName: 'First Metro Sec',
     type: InstitutionType.broker,
     aliases: ['FirstMetroSec', 'FMSBC'],
+    brandColor: Color(0xFF003087),
   ),
 
   // The two escape hatches. 'other' is for an institution not listed, paired
@@ -293,6 +343,13 @@ FinancialInstitution? institutionById(String? id) {
   }
   return null;
 }
+
+/// The brand fill color for an institution id, or null when there is no known
+/// color (an unlisted institution, the escape hatches, or a row with no
+/// institution at all). Callers fall back to a neutral tint, so a missing color
+/// is never a broken screen. This is the ONE lookup anything painting a bank
+/// should use, so a color only ever lives in the catalog above.
+Color? institutionBrandColor(String? id) => institutionById(id)?.brandColor;
 
 /// What to show for a row: the catalog entry's name, the typed custom name, or
 /// nothing.
@@ -346,10 +403,9 @@ List<FinancialInstitution> searchInstitutions(
     // A hyphen or space typed differently should not lose the match:
     // "pagibig" must find "Pag-IBIG".
     if (best == -1) {
-      final flat = [
-        inst.displayName,
-        ...inst.aliases,
-      ].map((n) => n.toLowerCase().replaceAll(RegExp(r'[\s\-_.]'), '')).toList();
+      final flat = [inst.displayName, ...inst.aliases]
+          .map((n) => n.toLowerCase().replaceAll(RegExp(r'[\s\-_.]'), ''))
+          .toList();
       final fq = q.replaceAll(RegExp(r'[\s\-_.]'), '');
       if (fq.isNotEmpty && flat.any((n) => n.contains(fq))) best = 2;
     }

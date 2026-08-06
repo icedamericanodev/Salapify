@@ -271,9 +271,7 @@ void main() {
       reason: 'Back left the subtype list showing',
     );
 
-    Navigator.of(
-      tester.element(find.text('What are you adding?')),
-    ).pop();
+    Navigator.of(tester.element(find.text('What are you adding?'))).pop();
     await tester.pumpAndSettle();
     expect(_rows(store, 'accounts'), isEmpty);
     expect(_rows(store, 'assets'), isEmpty);
@@ -501,6 +499,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.data['settings']['manualRates'], {'USD': 50.0});
+    // Two accounts here draw the card carousel, which makes the list taller;
+    // tapping "Set a USD rate" scrolled the summary off the top. The converted
+    // total lives up there, so bring it back into view before reading it. This
+    // is a scroll, not a behavior change: net worth is 10,000 either way.
+    await tester.scrollUntilVisible(
+      find.text('NET WORTH'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     // 5000 + 100 * 50 = 10,000, and the sentence names where that came from.
     expect(find.text('₱10,000'), findsWidgets);
     expect(
