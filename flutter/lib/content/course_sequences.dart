@@ -18,6 +18,7 @@
 // lessons.
 
 import '../money/lesson_flow.dart';
+import '../money/reading_time.dart';
 import 'learning_path.dart';
 import 'learning_paths.dart';
 import 'lessons.dart';
@@ -57,7 +58,9 @@ List<FlowLesson> expansionFlowSequence(LearningPath path) {
           FlowLesson(
             id: lesson.id,
             title: lesson.title,
-            minutes: lesson.minutes,
+            // The honest figure, so a "Next: ... 5 min" button cannot
+            // promise less time than the lesson behind it needs.
+            minutes: displayMinutes(lesson),
             groupId: group.id,
             groupTitle: group.title,
           ),

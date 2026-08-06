@@ -29,6 +29,7 @@ import '../data/store.dart';
 import '../money/interaction_completion.dart';
 import '../money/lesson_flow.dart';
 import '../money/lesson_progress.dart';
+import '../money/reading_time.dart';
 import 'celebration.dart';
 import '../screens/accounts.dart';
 import '../screens/budget.dart';
@@ -217,7 +218,22 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
 
     final children = <Widget>[_hero(l), const SizedBox(height: 20)];
 
-    for (final b in blocks) {
+    // Citations and the boundary statement leave the teaching flow and
+    // gather into one line at the end (see LessonReferenceFooter). They used
+    // to interrupt the reading three to five times per lesson, landing
+    // exactly where a reader decides whether to keep going. Nothing is
+    // removed: the footer names every agency and carries the boundary
+    // sentence while collapsed, and opens to the same cards as before.
+    final teaching = [
+      for (final b in blocks)
+        if (!isReferenceBlock(b)) b,
+    ];
+    final reference = [
+      for (final b in blocks)
+        if (isReferenceBlock(b)) b,
+    ];
+
+    for (final b in teaching) {
       children.add(
         RiseIn(
           index: step++,
@@ -253,6 +269,15 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
       children.add(const SizedBox(height: 16));
     }
 
+    if (reference.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: LessonReferenceFooter(reference),
+        ),
+      );
+    }
+
     children.add(RiseIn(index: step, child: _finishRow(outstanding)));
 
     final position = _positionLabel();
@@ -285,7 +310,7 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
     children: [
       SalapifyGlyph(l.icon, size: 28),
       const SizedBox(height: 10),
-      Text('${l.minutes} min', style: Barako.kickerStyle),
+      Text('${displayMinutes(l)} min', style: Barako.kickerStyle),
       const SizedBox(height: 6),
       Text(
         l.title,

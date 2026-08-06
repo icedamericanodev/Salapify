@@ -20,6 +20,7 @@ import '../money/expansion_recommendation.dart';
 import '../money/lesson_flow.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
+import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
@@ -1026,7 +1027,7 @@ class _LearnScreenState extends State<LearnScreen> {
                         style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       Text(
-                        '${l.minutes} min',
+                        '${displayMinutes(l)} min',
                         style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       if (started)
@@ -1171,7 +1172,21 @@ class _LessonReaderState extends State<_LessonReader> {
       const SizedBox(height: 20),
     ];
 
-    for (final b in blocks) {
+    // Same split the expansion reader makes: a warning teaches, a citation
+    // proves, so citations and the boundary statement gather into one line
+    // at the end instead of interrupting the lesson. None of the core 22
+    // carry these blocks today, so this changes nothing for them and is
+    // here so the two readers cannot drift apart the moment one does.
+    final teaching = [
+      for (final b in blocks)
+        if (!isReferenceBlock(b)) b,
+    ];
+    final reference = [
+      for (final b in blocks)
+        if (isReferenceBlock(b)) b,
+    ];
+
+    for (final b in teaching) {
       children.add(
         RiseIn(
           index: step++,
@@ -1213,6 +1228,15 @@ class _LessonReaderState extends State<_LessonReader> {
         ),
       );
       children.add(const SizedBox(height: 16));
+    }
+
+    if (reference.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: LessonReferenceFooter(reference),
+        ),
+      );
     }
 
     children.add(RiseIn(index: step, child: _finishCard()));
