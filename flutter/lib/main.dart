@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.52 \u00b7 Money Courses: final integration and course recommendations.';
+    'f3.53 \u00b7 Screenshot coverage for the recommendation badge and list.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
