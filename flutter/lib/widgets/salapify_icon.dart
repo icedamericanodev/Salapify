@@ -182,6 +182,10 @@ const Map<String, IconData> _icons = {
   'offline': Icons.cloud_off_outlined,
   'backedUp': Icons.cloud_done_outlined,
   'network': Icons.wifi,
+  // The contactless-payment arcs on a bank card. A meaning of its own, not
+  // 'network': the two happen to share Material's wifi-ish family but mean
+  // different things and are free to diverge.
+  'contactless': Icons.contactless_outlined,
   'notifications': Icons.notifications_none,
   'notificationsOff': Icons.notifications_off_outlined,
   'phoneRing': Icons.phonelink_ring_outlined,

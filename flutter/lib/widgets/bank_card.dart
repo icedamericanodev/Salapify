@@ -25,6 +25,7 @@ import 'package:flutter/material.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/institutions.dart' show initialsFor;
 import '../theme.dart';
+import 'salapify_icon.dart' show salapifyIcon;
 
 /// Which face a [BankCard] shows. Savings shows one balance; credit shows the
 /// outstanding balance against a limit, with a utilization bar.
@@ -166,7 +167,7 @@ class BankCard extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.08),
                           fontSize: 96,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: -2,
                         ),
                       ),
@@ -209,14 +210,12 @@ class BankCard extends StatelessWidget {
                               const _CardChip(),
                               const SizedBox(width: 10),
                               // The contactless mark, the same cue a real card
-                              // carries. A rotated wifi glyph reads as the arcs.
-                              Transform.rotate(
-                                angle: math.pi / 2,
-                                child: Icon(
-                                  Icons.wifi,
-                                  size: 18,
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                ),
+                              // carries. Routed through the icon system, drawn
+                              // white to sit on the card rather than in accent.
+                              Icon(
+                                salapifyIcon('contactless'),
+                                size: 18,
+                                color: Colors.white.withValues(alpha: 0.85),
                               ),
                             ],
                           ),
