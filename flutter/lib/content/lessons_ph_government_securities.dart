@@ -217,13 +217,14 @@ const _lendingToGovernment = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Who is borrowing here',
       paragraphs: [
-        'A government security represents money lent to the government '
-            'that issued it. Buying one generally means the buyer is '
-            'lending money to the Republic of the Philippines, which '
-            'promises to pay it back later, usually along with a return '
-            'set by the security\'s own terms.',
+        'You hear the words government security and assume it works '
+            'like putting money in a bank. A government security represents '
+            'money lent to the government that issued it. Buying one '
+            'generally means you are lending to the Republic of the '
+            'Philippines, which promises to pay it back later. That usually '
+            'comes with a return set by the security\'s own terms.',
         'A government security is an investment security, not a bank '
             'savings account, even though opening either one can feel '
             'similarly simple. The Republic raises funds this way through '
@@ -433,12 +434,13 @@ const _typesOfSecurities = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Two questions tell them apart',
       paragraphs: [
-        'The Bureau of the Treasury issues a few different Philippine '
-            'government securities. Telling them apart starts with two '
-            'questions: about how long until the money is scheduled to '
-            'come back, and how the return is built into the security.',
+        'You see three names on an offering and cannot tell what '
+            'actually separates them. The Bureau of the Treasury issues a '
+            'few different Philippine government securities. Telling them '
+            'apart starts with two questions: how long until the money is '
+            'scheduled to come back, and how the return is built into it.',
         'A Treasury bill is generally a shorter term security, maturing '
             'in a year or less. It is generally sold on a discount basis, '
             'bought below its face value and paying the full face value '
@@ -638,19 +640,15 @@ const _couponYieldPriceMaturity = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Five words, one security',
       paragraphs: [
-        'A few terms describe a government security\'s own mechanics. '
-            'Face value is the amount printed on the security, scheduled '
-            'to be paid back at maturity. Purchase price is what was '
-            'actually paid to acquire it, which can sit above, at, or '
-            'below face value. Coupon is the periodic interest payment '
-            'some securities pay, stated as a rate on face value. Yield '
-            'describes the return actually available given the price '
-            'paid, which can differ from the coupon rate whenever the '
-            'purchase price is above or below face value. Maturity is '
-            'the date the security is scheduled to return its face '
-            'value.',
+        'You keep meeting five words that all sound like the same '
+            'thing. Face value is the amount printed on the security, '
+            'scheduled to be paid back at maturity, its own end date. '
+            'Coupon is the periodic interest some securities pay, stated as '
+            'a rate on face value. Purchase price is what was paid, above, '
+            'at, or below face value, and yield, the return available at '
+            'that price, can differ from the coupon.',
         'The primary market is where a security is first issued, bought '
             'directly through the offering itself. The secondary market '
             'is where an already issued security can be bought or sold '
@@ -829,14 +827,15 @@ const _howSecuritiesReachInvestors = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Two ways in',
       paragraphs: [
-        'A new, or primary, offering is where a government security is '
-            'first issued, bought directly through that specific '
-            'offering. Buying in the secondary market means buying an '
-            'already issued security from another investor instead, at '
-            'whatever price the market sets at that moment. Both are '
-            'real paths, and they are not the same transaction.',
+        'You saw a poster for an offering months ago, and you are not '
+            'sure it still exists. A new, or primary, offering is where a '
+            'government security is first issued and bought directly '
+            'through that offering. The secondary market means buying an '
+            'already issued security from another investor, at whatever '
+            'price the market sets that moment. Both are real paths, and '
+            'they are not the same transaction.',
         'Offering schedules and the specific securities available change '
             'over time. An old advertisement or a previous offering page '
             'does not prove that the same terms remain available today, '
@@ -1022,15 +1021,17 @@ const _risksAndScamChecks = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'What still goes wrong',
       paragraphs: [
-        'Several separate risks run underneath a government security: '
-            'interest rate and price risk, inflation risk, liquidity '
-            'risk, reinvestment risk, opportunity cost, tax and fee '
-            'impact, and sovereign credit risk, the chance that even a '
-            'national government can face difficulty meeting its own '
-            'obligations. None of these disappear simply because the '
-            'issuer is the government.',
+        'Government issued sounds like nothing can go wrong, and that '
+            'is the belief worth testing before your money moves. Several '
+            'separate risks run underneath a government security: interest '
+            'rate and price risk, inflation risk, liquidity risk, and '
+            'reinvestment risk. Then opportunity cost, tax and fee impact, '
+            'and sovereign credit risk, the chance even a national '
+            'government faces difficulty meeting its own obligations. None '
+            'of these disappear simply because the issuer is the '
+            'government.',
         'A separate kind of risk sits alongside all of these: a fake '
             'offering built to imitate a real one. Warning signs include '
             'a guaranteed unusually high return, pressure to transfer '
@@ -1393,17 +1394,17 @@ const _decisionPlan = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Eight honest questions',
       paragraphs: [
-        'A few questions are worth answering honestly before acting on '
-            'any government security. What financial goal would this '
-            'money serve. When might the money be needed. Is an '
-            'emergency buffer already in place. Could the money realistically stay '
-            'in place until the stated maturity. What happens if it '
-            'needs to be accessed early. Has the current official '
-            'offering actually been reviewed. Are the channel, fees, '
-            'taxes, and risks understood. How would this fit alongside '
-            'other savings and investments already in place.',
+        'You have gone through six lessons, and the last work is the '
+            'questions you ask yourself. A few are worth answering honestly '
+            'before acting on any government security: what financial goal '
+            'would this money serve, and when might it be needed? Is an '
+            'emergency buffer already in place, could the money stay until '
+            'the stated maturity, and what happens if it is needed early? '
+            'Has the current official offering been reviewed, are the '
+            'channel, fees, taxes, and risks understood, and how would this '
+            'fit alongside existing savings and investments?',
         'None of these questions has one correct answer. The point is '
             'reviewing them honestly, not producing a score, a suitable '
             'label, or a recommended amount.',

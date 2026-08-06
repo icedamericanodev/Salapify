@@ -170,15 +170,15 @@ const _whatCryptoIsAndIsNot = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Not what the app suggests',
       paragraphs: [
-        'A crypto asset is a digitally represented asset that uses '
-            'distributed-ledger or related technology to record who holds '
-            'it. That description covers a wide range of things, and '
-            'different crypto assets are built to claim different '
-            'purposes: some are meant as a way to pay, some are meant to '
-            'represent a stake in a project, and some exist mainly to be '
-            'traded.',
+        'A new coin turns up in your feed every week, and the app '
+            'selling it looks like your banking app. A crypto asset is a '
+            'digitally represented asset that uses distributed-ledger or '
+            'related technology to record who holds it. That covers a wide '
+            'range of things, built to claim different purposes. Some are '
+            'meant as a way to pay, some to represent a stake in a project, '
+            'and some exist mainly to be traded.',
         'Owning a crypto asset is not the same as owning a share of a '
             'company. A shareholder owns a legal claim on a business, its '
             'profits, and its assets. A crypto asset generally carries no '
@@ -384,11 +384,12 @@ const _volatilityAndPossibleTotalLoss = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'All the way down',
       paragraphs: [
-        'Crypto asset prices can change sharply, in either direction, over '
-            'a short period of time. That includes the possibility of '
-            'losing all of what was put in.',
+        'You check the price before bed and again at breakfast, and it '
+            'is a different number. Crypto asset prices can change sharply, '
+            'in either direction, over a short period of time. That '
+            'includes the possibility of losing all of what was put in.',
         'Liquidity, how easily an asset can be turned back into cash at the '
             'price expected, can weaken during a period of market stress. '
             'That is often exactly when someone most wants to sell.',
@@ -573,14 +574,14 @@ const _custodyAndIrreversibleMistakes = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'No undo button',
       paragraphs: [
-        'On a custodial platform, the platform generally holds and '
-            'controls access to the crypto asset on the user\'s behalf, '
-            'similar in feel to a bank holding a deposit. With '
-            'self-custody, the person holding the asset controls access '
-            'directly, and takes on more of the security responsibility '
-            'that a platform would otherwise carry.',
+        'You send to the wrong address once, and there is no hotline '
+            'that can pull it back. On a custodial platform, the platform '
+            'generally holds the crypto asset and controls access on your '
+            'behalf, much like a bank holding a deposit. With self-custody, '
+            'you control access directly, and take on more of the security '
+            'responsibility a platform would otherwise carry.',
         'A private key or a seed phrase, a specific sequence of words, can '
             'control access to a self-custodied crypto asset. Whoever has '
             'that information can generally move the asset, whether or not '
@@ -883,12 +884,13 @@ const _stablecoinsYieldAndLeverage = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Stable is an attempt',
       paragraphs: [
-        'A stablecoin is a type of crypto asset that attempts to hold a '
-            'steady reference value, often tied to a currency. Attempting '
-            'to hold a steady value is not the same as always succeeding: '
-            'a stablecoin can still lose its peg or fail outright, and it '
+        'A post tells you this one is stable, so you relax before '
+            'reading anything else. A stablecoin is a type of crypto asset '
+            'that attempts to hold a steady reference value, often tied to '
+            'a currency. Attempting is not the same as always succeeding, '
+            'and a stablecoin can still lose its peg or fail outright. It '
             'is not automatically covered by the deposit insurance a bank '
             'account carries.',
         'An advertised yield on a crypto product is not the same thing as '
@@ -1136,18 +1138,17 @@ const _scamsAndProviderVerification = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'The same script, again',
       paragraphs: [
-        'Crypto scams reuse a small set of patterns again and again: a '
-            'claim that returns are guaranteed, a giveaway that asks for a '
-            'payment first, '
-            'someone impersonating a real person or company, a message '
-            'trying to steal login details, a stranger building trust '
-            'before asking for money, an offer to "recover" money already '
-            'lost, pressure to act immediately, a request for credentials '
-            'or a seed phrase, fake customer support, recruitment that '
-            'pays for bringing in more people, and screenshots offered as '
-            'proof of profit.',
+        'Someone in your group chat posts profit screenshots and offers '
+            'to pay you for every friend you bring in. Crypto scams reuse a '
+            'small set of patterns: a claim that returns are guaranteed, a '
+            'giveaway that asks for payment first. Then someone '
+            'impersonating a real person or company, a message fishing for '
+            'login details, a stranger building trust before asking for '
+            'money. Also an offer to recover money already lost, pressure '
+            'to act immediately, a request for credentials or a seed '
+            'phrase, and fake customer support.',
         'Checking whether a provider is registered is one real, verifiable '
             'step, and it should be done through a current official '
             'source, never through a screenshot, a link in a message, or '
@@ -1424,12 +1425,13 @@ const _theCryptoDecisionLab = MoneyLesson(
   topics: [ContentTopic.cryptocurrency],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Your own honest review',
       paragraphs: [
-        'This checklist pulls together everything this course covered, in '
-            'one place. It is a private review for your own use, never a '
-            'result, a score, or a green light, and it never recommends '
-            'buying anything.',
+        'You have read six lessons, and the pull to just try a small '
+            'amount is still there. This checklist pulls together '
+            'everything this course covered, in one place. It is a private '
+            'review for your own use, never a result, a score, or a green '
+            'light. It never recommends buying anything.',
       ],
     ),
     RiskWarningBlock(

@@ -131,12 +131,14 @@ const _giveYourMoneyAJob = MoneyLesson(
   sources: [_pseAcademy],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Before you pick a product',
       paragraphs: [
-        'Saving and investing solve different problems. Saving keeps money '
-            'safe and ready for something you expect to need soon. '
-            'Investing puts money to work over a longer stretch of time, '
-            'and that work comes with real uncertainty.',
+        'Your salary lands and, for once, some of it is still there a '
+            'week later. Saving and investing solve different problems, so '
+            'the answer starts with the job you give that money. Saving '
+            'keeps it safe and ready for something you expect to need soon. '
+            'Investing puts it to work over a longer stretch of time, and '
+            'that work comes with real uncertainty.',
         'Money you need soon, like rent due next month or a bill due in a '
             'few weeks, generally belongs somewhere stable and easy to '
             'reach. A sudden drop in value at the wrong moment could leave '
@@ -292,12 +294,14 @@ const _protectTheBaseFirst = MoneyLesson(
   sources: [_secInvestment101],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'When a bad month hits',
       paragraphs: [
-        'Investing sits on top of a foundation, not instead of one. If '
-            'essential bills are not reliably covered, a market drop can '
-            'force a sale at the worst possible time just to cover an '
-            'ordinary month.',
+        'Your rent is due, your parent needs medicine, and payday is '
+            'still eight days out. That is the month that decides how an '
+            'investment behaves. Investing sits on top of a foundation, not '
+            'instead of one. If essential bills are not reliably covered, a '
+            'market drop can force a sale at the worst possible time, just '
+            'to cover an ordinary month.',
         'An emergency buffer exists so a surprise, a medical bill, a job '
             'gap, a broken appliance, becomes a bad week instead of a '
             'reason to sell an investment early and lock in a loss.',
@@ -462,12 +466,13 @@ const _goalTimeAndAccess = MoneyLesson(
   sources: [_pseAcademy, _secInvestment101],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'What for, and when',
       paragraphs: [
-        'Every investment should be able to answer one question: what is '
-            'this money for, and when will it be needed? Without an '
-            'answer, there is no way to judge whether the amount of '
-            'uncertainty involved makes sense.',
+        'You have money parked somewhere and no date attached to it, '
+            'only a vague someday. Every investment should be able to '
+            'answer one question: what is this money for, and when will it '
+            'be needed? Without an answer, there is no way to judge whether '
+            'the uncertainty involved makes sense.',
         'Liquidity is how quickly, and how predictably, money can be '
             'turned back into cash at the value expected. Cash in a '
             'savings account is highly liquid. Some investments are not, '
@@ -653,12 +658,13 @@ const _riskComfortVsCapacity = MoneyLesson(
   sources: [_secInvestment101, _pseAcademy],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Feeling brave is not enough',
       paragraphs: [
-        'Risk tolerance is how comfortable you feel, emotionally, '
-            'watching an investment go up and down in value. Risk '
-            'capacity is different: it is whether your actual finances '
-            'can absorb a loss without disrupting your life.',
+        'You can feel calm about a big drop and still not afford one. '
+            'Risk tolerance is how comfortable you feel, emotionally, '
+            'watching an investment go up and down in value. Risk capacity '
+            'is different. It is whether your actual finances can absorb a '
+            'loss without disrupting your life.',
         'It is possible to feel adventurous and still not be able to '
             'afford a loss right now, for example if bills, an unstarted '
             'emergency buffer, or upcoming expenses leave little room to '
@@ -795,12 +801,13 @@ const _investmentReadinessCard = MoneyLesson(
   sources: [_pseAcademy, _secInvestment101],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Four lessons, one page',
       paragraphs: [
-        'This is a short summary built from the last four lessons: '
-            'purpose, timing, and the areas most worth protecting first. '
-            'It stays on this screen. It is a reflection, not a result or '
-            'a green light.',
+        'You have worked through four lessons, and it is easy to lose '
+            'the thread. This is a short summary built from them: purpose, '
+            'timing, and the areas most worth protecting first. It stays on '
+            'this screen. It is a reflection, not a result or a green '
+            'light.',
       ],
     ),
     RiskWarningBlock(

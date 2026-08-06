@@ -192,12 +192,14 @@ const _ownerOrLender = MoneyLesson(
   topics: [ContentTopic.stocks, ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Owning, lending, or depositing',
       paragraphs: [
-        'A share of common stock generally makes you a part owner of a '
-            'company. As an owner, you may benefit if the company does '
-            'well, and you share in the risk if it does not. Nothing about '
-            'owning a share promises a fixed payment.',
+        'An officemate says they put money in the market, and you nod '
+            'without knowing what they actually hold. A share of common '
+            'stock generally makes you a part owner of a company. As an '
+            'owner, you may benefit if the company does well, and you share '
+            'in the risk if it does not. Nothing about owning a share '
+            'promises a fixed payment.',
         'A bond generally works differently. Buying a bond generally means '
             'lending money to whoever issued it, a government or a '
             'company, in exchange for a promise to pay the money back '
@@ -395,12 +397,14 @@ const _stockReturnsAndLosses = MoneyLesson(
   topics: [ContentTopic.stocks, ContentTopic.productReturns],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Why the number moves',
       paragraphs: [
-        'A share of stock can rise or fall in price, sometimes by a lot, '
-            'over a short period. That movement reflects many things at '
-            'once: how the company is doing, what investors expect for '
-            'the future, and broader conditions in the market.',
+        'You open an app, see red, and feel your stomach drop before '
+            'you know why. A share of stock can rise or fall in price, '
+            'sometimes by a lot, over a short period. That movement '
+            'reflects many things at once. It reflects how the company is '
+            'doing, what investors expect for the future, and broader '
+            'conditions in the market.',
         'Some companies pay a dividend, a portion of profit shared with '
             'shareholders. A dividend is never guaranteed. A company can '
             'reduce it, skip it, or stop paying it, especially if '
@@ -561,13 +565,15 @@ const _priceIsNotValue = MoneyLesson(
   topics: [ContentTopic.stocks],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'One number, whole business',
       paragraphs: [
-        'A company\'s share price is just one number. Behind it sits a '
-            'real business with revenue, money coming in, profit, what is '
-            'left after costs, cash flow, actual cash moving in and out, '
-            'debt, what the company owes, and a share count, how many '
-            'pieces the company is divided into.',
+        'You see one stock at four pesos and another at four hundred, '
+            'and the cheap one looks like the bargain. A company\'s share '
+            'price is just one number. Behind it sits a real business with '
+            'revenue, money coming in, profit, what is left after costs, '
+            'and debt, what the company owes. It also has cash flow, actual '
+            'cash moving in and out, and a share count, how many pieces the '
+            'company is divided into.',
         'No single one of these numbers tells the full story on its own. '
             'A company can have strong revenue and weak cash flow. A '
             'company can look inexpensive on price alone and still carry '
@@ -721,13 +727,14 @@ const _diversificationAndConcentration = MoneyLesson(
   topics: [ContentTopic.stocks],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'When everything moves together',
       paragraphs: [
-        'Owning shares in only one company means everything depends on '
-            'that one company. If something goes wrong there, the whole '
-            'holding can be affected at once. That concentrated position '
-            'is exactly the kind of risk diversification is meant to '
-            'reduce.',
+        'Your barkada group chat is all in on the same one thing, and '
+            'it feels safer because everyone agrees. Owning shares in only '
+            'one company means everything depends on that one company. If '
+            'something goes wrong there, the whole holding can be affected '
+            'at once. That concentrated position is exactly the kind of '
+            'risk diversification is meant to reduce.',
         'Diversification generally means spreading money across a number '
             'of different holdings, so a problem with any single one has '
             'a smaller effect on the whole. It does not remove risk '
@@ -924,16 +931,16 @@ const _howBondsWork = MoneyLesson(
   topics: [ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Lending on a schedule',
       paragraphs: [
-        'A bond has a few core parts. The principal is the amount '
-            'originally lent. The coupon is the regular interest payment '
-            'the issuer promises to pay. Maturity is the date the '
-            'principal is scheduled to be paid back. The issuer is '
-            'whoever borrowed the money, a government or a company. '
-            'Yield describes the return a buyer can expect given the '
-            'price paid, which can differ from the coupon rate if the '
-            'bond was bought above or below its face value.',
+        'Someone at work calls bonds the boring, sensible option, and '
+            'you are the one lending the money. The principal is the amount '
+            'originally lent, and the issuer is whoever borrowed it, a '
+            'government or a company. The coupon is the regular interest '
+            'the issuer promises, and maturity is the date the principal is '
+            'scheduled to be repaid. Yield is the return a buyer can expect '
+            'for the price paid, above or below face value, which can '
+            'differ from the coupon.',
         'A government bond and a corporate bond both work through the '
             'same basic structure, principal, coupon, maturity, but the '
             'issuer is different, and that difference affects the risk. A '
@@ -1219,14 +1226,15 @@ const _verifyBeforeYouInvest = MoneyLesson(
   topics: [ContentTopic.stocks, ContentTopic.bonds],
   authoredBlocks: [
     ProseBlock(
-      heading: 'Why it matters',
+      heading: 'Check before the money moves',
       paragraphs: [
-        'Before acting on any investment offer, a few checks are worth '
-            'doing every time. Is the person or platform offering it '
-            'authorized to do so. Does the offer actually appear in '
-            'official records. Is a return described as guaranteed. Is '
-            'there pressure to act immediately. Is recruiting other '
-            'people emphasized more than the investment itself.',
+        'A cousin sends you a screenshot of daily payouts and says the '
+            'slots close tonight. Before acting on any investment offer, a '
+            'few checks are worth doing every time. Is the person or '
+            'platform authorized to offer it, and does the offer appear in '
+            'official records? Is a return described as guaranteed, is '
+            'there pressure to act immediately, and is recruiting other '
+            'people emphasized over the investment itself?',
         'Fees, risks, and how withdrawals work should be clearly '
             'disclosed before money moves. A legitimate offer can '
             'explain these plainly. An offer that avoids the question, '
