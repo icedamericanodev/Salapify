@@ -20,7 +20,6 @@ import '../money/expansion_recommendation.dart';
 import '../money/lesson_flow.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
-import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
@@ -37,6 +36,7 @@ import 'log_sheet.dart';
 import 'mindset.dart';
 import 'notes.dart';
 import 'paluwagan.dart';
+import 'path_screen.dart';
 import 'recurring.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
@@ -785,8 +785,6 @@ class _LearnScreenState extends State<LearnScreen> {
   // TrackProgress, and prerequisites shown as advisory "Recommended first"
   // text rather than anything that blocks opening a lesson.
   Widget _pathCard(LearningPath path, {String? recommendedReason}) {
-    final key = path.id;
-    final isOpen = _open.contains(key);
     final pathLessons = lessonsForPath(path.id);
     final progress = widget.store.expansionProgressFor(path.id);
     final stat = widget.store.expansionPathProgress(
@@ -940,147 +938,26 @@ class _LearnScreenState extends State<LearnScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Pushes a real screen instead of expanding up to thirty rows
+                // into the middle of this scroll (audit H3). The accordion was
+                // right at six rows and broken at thirty: the collapse control
+                // scrolled away from under the reader, the scroll position
+                // jumped when it closed, and there was no way to reach a
+                // single course at all.
                 TextButton(
-                  onPressed: () => setState(() {
-                    if (isOpen) {
-                      _open.remove(key);
-                    } else {
-                      _open.add(key);
-                    }
-                  }),
-                  child: Text(isOpen ? 'Hide lessons' : 'All lessons'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PathScreen(
+                        path: path,
+                        store: widget.store,
+                        onOpenLesson: (ctx, id, l) =>
+                            _openExpansionLesson(ctx, id, l),
+                      ),
+                    ),
+                  ),
+                  child: const Text('All courses'),
                 ),
               ],
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              alignment: Alignment.topCenter,
-              child: isOpen
-                  ? Column(
-                      children: [
-                        const SizedBox(height: 6),
-                        ..._pathLessonRows(path, pathLessons, progress),
-                      ],
-                    )
-                  : const SizedBox(width: double.infinity),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Grouped by course (LearningPathGroup), not a flat list, per the Phase 16
-  // specialist review: a recommendation reason names a specific course
-  // ("Finish Investment Readiness before..."), but the expanded "All
-  // lessons" list never showed where one course ends and the next begins, so
-  // a reader had no way to see what that course actually contained. Numbers
-  // still count against the WHOLE path (pathLessons.length), matching what
-  // the header above and stat.total already show; only a heading is new.
-  List<Widget> _pathLessonRows(
-    LearningPath path,
-    List<MoneyLesson> pathLessons,
-    Map<String, LessonState> progress,
-  ) {
-    final indexById = {
-      for (var i = 0; i < pathLessons.length; i++) pathLessons[i].id: i,
-    };
-    final rows = <Widget>[];
-    for (final group in path.groups) {
-      final groupLessons = [
-        for (final id in group.lessonIds)
-          if (indexById[id] case final i?) pathLessons[i],
-      ];
-      if (groupLessons.isEmpty) continue;
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 2),
-          child: Text(group.title, style: Barako.kickerStyle),
-        ),
-      );
-      for (final l in groupLessons) {
-        rows.add(
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: _pathLessonRow(
-              path.id,
-              l,
-              indexById[l.id]! + 1,
-              pathLessons.length,
-              progress[l.id] ?? LessonState.notStarted,
-            ),
-          ),
-        );
-      }
-    }
-    return rows;
-  }
-
-  Widget _pathLessonRow(
-    String pathId,
-    MoneyLesson l,
-    int position,
-    int outOf,
-    LessonState state,
-  ) {
-    final done = isDone(state);
-    final started = state != LessonState.notStarted && !done;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => _openExpansionLesson(context, pathId, l),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              done
-                  ? salapifyIcon('selected')
-                  : started
-                  ? salapifyIcon('paused')
-                  : salapifyIcon('unselected'),
-              size: 18,
-              color: done
-                  ? Barako.primary
-                  : started
-                  ? Barako.primaryText
-                  : Barako.faint,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l.title, style: AppText.label),
-                  const SizedBox(height: 2),
-                  Text(
-                    l.summary,
-                    style: AppText.caption.copyWith(height: 1.35),
-                  ),
-                  const SizedBox(height: 3),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 2,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        '$position of $outOf',
-                        style: AppText.micro.w4.tint(Barako.faint),
-                      ),
-                      Text(
-                        '${displayMinutes(l)} min',
-                        style: AppText.micro.w4.tint(Barako.faint),
-                      ),
-                      if (started)
-                        Text(
-                          'Continue',
-                          style: AppText.micro.w7.tint(Barako.primaryText),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ],
         ),

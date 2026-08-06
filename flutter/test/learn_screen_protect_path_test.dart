@@ -21,6 +21,7 @@ import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/path_screen.dart';
 import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,15 +108,24 @@ void main() {
       of: find.text('Protect Your Future'),
       matching: find.byType(Card),
     );
-    final allLessonsButton = find.descendant(
+    // Since Phase 4 this pushes a real PathScreen listing the path's
+    // COURSES, rather than expanding eighteen lesson rows into the hub's own
+    // scroll. Reaching a lesson is now path, then course, then lesson.
+    final allCoursesButton = find.descendant(
       of: protectCard,
-      matching: find.widgetWithText(TextButton, 'All lessons'),
+      matching: find.widgetWithText(TextButton, 'All courses'),
     );
-    expect(allLessonsButton, findsOneWidget);
-    await tester.tap(allLessonsButton);
+    expect(allCoursesButton, findsOneWidget);
+    await tester.tap(allCoursesButton);
     await tester.pumpAndSettle();
+    expect(find.byType(PathScreen), findsOneWidget);
+    expect(find.text('Insurance Decoded'), findsOneWidget);
+    expect(find.text('SSS & PhilHealth Essentials'), findsOneWidget);
+
+    await tester.tap(find.text('Insurance Decoded'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CourseScreen), findsOneWidget);
     expect(find.text('What Insurance Is For'), findsOneWidget);
-    expect(find.text('Meet Your Two Safety Nets'), findsOneWidget);
 
     await tester.tap(find.text('What Insurance Is For'));
     await tester.pumpAndSettle();

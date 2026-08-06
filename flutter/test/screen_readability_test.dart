@@ -41,6 +41,7 @@ import 'package:flutter/material.dart';
 // is the only thing in this file that needs to reach past the widget layer.
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/content/learning_paths.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/appearance.dart';
@@ -59,6 +60,7 @@ import 'package:salapify/screens/recurring.dart';
 import 'package:salapify/screens/search.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/paluwagan.dart';
+import 'package:salapify/screens/path_screen.dart';
 import 'package:salapify/screens/tools.dart';
 import 'package:salapify/screens/treats.dart';
 import 'package:salapify/screens/pan.dart';
@@ -421,6 +423,20 @@ void main() {
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
     'Diagnostics': (s) => DiagnosticsScreen(store: s),
+    // The Phase 4 catalog screens. A path's courses, and one course's
+    // lessons, which is where a learner now reaches every expansion lesson
+    // since the hub stopped expanding thirty rows inline.
+    'Path courses': (s) => PathScreen(
+      path: publishedLearningPaths.firstWhere((p) => p.id == 'grow_your_money'),
+      store: s,
+      onOpenLesson: (_, _, _) {},
+    ),
+    'Course lessons': (s) => CourseScreen(
+      path: publishedLearningPaths.firstWhere((p) => p.id == 'grow_your_money'),
+      groupId: 'investing_readiness',
+      store: s,
+      onOpenLesson: (_, _, _) {},
+    ),
     'Notifications and security': (s) => NotificationsSecurityScreen(store: s),
     // The calculators. Each was exempted as "input-driven; cold pump shows an
     // empty form", which was a reason to drive them, not to skip them (this
@@ -568,6 +584,7 @@ void main() {
       'insights.dart',
       'menu.dart',
       'learn.dart',
+      'path_screen.dart',
       'appearance.dart',
       'accounts.dart',
       'categories.dart',
@@ -635,12 +652,31 @@ void main() {
 
     // Every entry in the swept set is actually built by the map above. Without
     // this, sweptFiles is just a second list that can agree with nothing.
+    //
+    // The arithmetic is one screen per file, with the exceptions named here
+    // rather than absorbed into a fuzzy comparison. A file holding two real
+    // destinations is legitimate, but it has to be DECLARED: an inequality
+    // ("at least as many pumped as claimed") would also pass a file that
+    // quietly stopped being pumped while another gained a second face.
+    const extraFaces = <String, int>{
+      // PathScreen (a path's courses) and CourseScreen (one course's
+      // lessons). Two separate screens a learner navigates between, and
+      // both are pumped, so the file contributes one extra entry.
+      'path_screen.dart': 1,
+    };
+    final claimed =
+        sweptFiles.length + extraFaces.values.fold(0, (a, b) => a + b);
     expect(
       screens.length,
-      sweptFiles.length,
+      claimed,
       reason:
           'the swept file list and the screens actually pumped have drifted '
-          'apart: ${screens.length} pumped, ${sweptFiles.length} claimed',
+          'apart: ${screens.length} pumped, $claimed claimed',
+    );
+    expect(
+      extraFaces.keys.where((n) => !sweptFiles.contains(n)),
+      isEmpty,
+      reason: 'a file granted extra faces is not even in the swept list',
     );
   });
 

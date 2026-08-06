@@ -22,6 +22,7 @@ import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/path_screen.dart';
 import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -111,12 +112,19 @@ void main() {
       of: find.text('Build Your Business'),
       matching: find.byType(Card),
     );
-    final allLessonsButton = find.descendant(
+    // Since Phase 4 this pushes a PathScreen listing this path's four
+    // courses, rather than expanding twenty four lesson rows inline.
+    final allCoursesButton = find.descendant(
       of: businessCard,
-      matching: find.widgetWithText(TextButton, 'All lessons'),
+      matching: find.widgetWithText(TextButton, 'All courses'),
     );
-    expect(allLessonsButton, findsOneWidget);
-    await tester.tap(allLessonsButton);
+    expect(allCoursesButton, findsOneWidget);
+    await tester.tap(allCoursesButton);
+    await tester.pumpAndSettle();
+    expect(find.byType(PathScreen), findsOneWidget);
+    expect(find.text('Start Your Business Legally'), findsOneWidget);
+
+    await tester.tap(find.text('Start Your Business Legally'));
     await tester.pumpAndSettle();
     expect(find.text('Before You Register'), findsOneWidget);
     expect(find.text('Build Your Registration Roadmap'), findsOneWidget);

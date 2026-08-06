@@ -2640,10 +2640,13 @@ void main() {
         of: find.text('Grow Your Money'),
         matching: find.byType(Card),
       );
+      // Since Phase 4 this pushes a real PathScreen: the courses are cards a
+      // learner can open directly, not kicker headings inside an expanded hub
+      // card. The shot is renamed to match what it now shows.
       await tester.scrollUntilVisible(
         find.descendant(
           of: growCard,
-          matching: find.widgetWithText(TextButton, 'All lessons'),
+          matching: find.widgetWithText(TextButton, 'All courses'),
         ),
         300,
         scrollable: find.byType(Scrollable).first,
@@ -2652,22 +2655,29 @@ void main() {
       await tester.tap(
         find.descendant(
           of: growCard,
-          matching: find.widgetWithText(TextButton, 'All lessons'),
+          matching: find.widgetWithText(TextButton, 'All courses'),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.descendant(
-          of: growCard,
-          matching: find.text('Are You Ready to Invest?'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Are You Ready to Invest?'), findsOneWidget);
 
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('shots/learn-recommendation-grouped-list-dark.png'),
+        matchesGoldenFile('shots/learn-path-courses-dark.png'),
+      );
+
+      // And one level deeper, because the courses screen is only half the
+      // change: tapping a course card is what a learner does next, and the
+      // lesson list behind it is where the minutes, the state and the
+      // ordering actually show up. Shooting only the parent would leave the
+      // screen this phase exists to create unlooked at.
+      await tester.tap(find.text('Are You Ready to Invest?'));
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/learn-course-lessons-dark.png'),
       );
     },
   );

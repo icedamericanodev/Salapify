@@ -109,6 +109,92 @@ class FinishOutcome {
   });
 }
 
+/// One course's standing inside a path, for a catalog screen.
+class CourseProgress {
+  final String groupId;
+  final String groupTitle;
+  final int done;
+  final int total;
+
+  /// The first unfinished lesson in this course, or null when it is done.
+  final String? nextLessonId;
+
+  const CourseProgress({
+    required this.groupId,
+    required this.groupTitle,
+    required this.done,
+    required this.total,
+    required this.nextLessonId,
+  });
+
+  bool get isComplete => total > 0 && done >= total;
+  bool get isStarted => done > 0;
+
+  /// What a button on this course should say.
+  String get actionLabel => isComplete
+      ? 'Read again'
+      : isStarted
+      ? 'Continue'
+      : 'Start';
+}
+
+/// The one course a learner should be nudged into next, or null when the
+/// whole path is finished.
+///
+/// A screen listing five courses can only have ONE loud button. The first
+/// draft of the courses screen gave every card the same filled accent
+/// button, and the render showed five identical orange slabs down the page
+/// with nothing for the eye to follow, which is the same "everything is
+/// emphasised so nothing is" note the experience audit made about the hub.
+///
+/// A started-but-unfinished course wins over an untouched one even if the
+/// untouched one comes first, because resuming something half-read is a
+/// smaller ask than starting a new subject. Otherwise it is simply the
+/// first unfinished course in order.
+String? focusCourseId(List<CourseProgress> courses) {
+  for (final c in courses) {
+    if (c.isStarted && !c.isComplete) return c.groupId;
+  }
+  for (final c in courses) {
+    if (!c.isComplete) return c.groupId;
+  }
+  return null;
+}
+
+/// Every course in [sequence], in order, with its own counts.
+///
+/// Derived from the sequence rather than from the path's groups directly, so
+/// a course whose lessons are missing content simply does not appear instead
+/// of showing as an empty card. Courses keep the order they first appear in.
+List<CourseProgress> courseProgress(
+  List<FlowLesson> sequence,
+  Map<String, LessonState> progress,
+) {
+  final order = <String>[];
+  final byGroup = <String, List<FlowLesson>>{};
+  for (final l in sequence) {
+    if (!byGroup.containsKey(l.groupId)) order.add(l.groupId);
+    byGroup.putIfAbsent(l.groupId, () => []).add(l);
+  }
+  return [
+    for (final id in order)
+      () {
+        final lessons = byGroup[id]!;
+        bool done(String x) => isDone(progress[x] ?? LessonState.notStarted);
+        return CourseProgress(
+          groupId: id,
+          groupTitle: lessons.first.groupTitle,
+          done: lessons.where((l) => done(l.id)).length,
+          total: lessons.length,
+          nextLessonId: lessons
+              .where((l) => !done(l.id))
+              .map((l) => l.id)
+              .firstOrNull,
+        );
+      }(),
+  ];
+}
+
 /// What finishing [finishedId] completed, and what to read next.
 ///
 /// [sequence] is the full ordered reading order the learner is inside: all
