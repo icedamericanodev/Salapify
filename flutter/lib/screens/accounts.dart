@@ -24,12 +24,14 @@ import '../money/transfers.dart'
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
-import '../money/institutions.dart' show institutionById, institutionLabel;
+import '../money/institutions.dart'
+    show institutionBrandColor, institutionById, institutionLabel;
 import '../theme.dart';
 import '../typography.dart';
 import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
+import '../widgets/bank_card.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -211,6 +213,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 };
 
             final anyRows = groups.values.any((g) => g.isNotEmpty);
+            // The cards shown in the swipeable carousel: every cash or wallet
+            // account, then any credit card. The grouped list below still shows
+            // and edits all of them, so this is a hero on top, not a
+            // replacement, and the net worth subtotals it owns are untouched.
+            //
+            // Shown only with TWO or more cards. A carousel is a "swipe between
+            // several" affordance, so a lone card with one page dot and nothing
+            // to peek at is not one; a single account keeps the familiar row and
+            // gains the card the moment a second account joins it.
+            final cards = _cardItems(groups);
+            final showCarousel = cards.length > 1;
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -253,6 +266,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
                       ],
                     ),
                   ),
+                if (showCarousel) ...[
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('YOUR CARDS', style: Barako.kickerStyle),
+                  ),
+                  _AccountsCarousel(
+                    items: cards,
+                    onTap: (it) => _openCard(context, it),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 // ONE button. It used to be two, "+ Account" and "+ Asset",
                 // which asked people to know Salapify's internal split before
@@ -817,6 +841,90 @@ class _AccountsScreenState extends State<AccountsScreen> {
       );
     }
     return rowKey == null ? result : KeyedSubtree(key: rowKey, child: result);
+  }
+
+  /// The cards for the carousel: cash and wallet accounts as savings cards,
+  /// then credit cards as credit cards. Order matches the sections below.
+  List<_CardItem> _cardItems(
+    Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
+  ) {
+    final out = <_CardItem>[];
+    for (final (row, which) in groups['cash_equivalents']!) {
+      final kind = resolveKind(row, which);
+      final inst = institutionLabel(row);
+      // A foreign account is shown in its OWN currency on the card, the same
+      // way the row does, so the card never prints a peso symbol on dollars.
+      // Net worth already leaves an unpriced currency out and the row says so;
+      // the card just has to be honest about the symbol.
+      final code = _foreignCodeOf(row);
+      final bal = amountOf(row['balance']);
+      out.add(
+        _CardItem(
+          row: row,
+          store: which,
+          name: row['name']?.toString() ?? 'Account',
+          typeLabel: _shortType(row['kind']?.toString()),
+          subtitle: [kind.subtype.label, ?inst].join(' · '),
+          // A cash or unlisted account has no brand color, so the card falls
+          // back to the neutral gradient rather than looking broken.
+          brandColor: institutionBrandColor(row['institutionId']?.toString()),
+          last4: _last4Of(row),
+          amount: bal,
+          amountText: code == null ? null : formatConverted(bal, code),
+          variant: BankCardVariant.savings,
+        ),
+      );
+    }
+    for (final (row, which) in groups['credit']!) {
+      final inst = institutionLabel(row);
+      out.add(
+        _CardItem(
+          row: row,
+          store: which,
+          name: row['name']?.toString() ?? 'Credit card',
+          typeLabel: 'Credit',
+          subtitle: ['Credit card', ?inst].join(' · '),
+          brandColor: institutionBrandColor(row['institutionId']?.toString()),
+          last4: _last4Of(row),
+          amount: amountOf(row['remaining']),
+          limit: amountOf(row['creditLimit']),
+          variant: BankCardVariant.credit,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// The short top-right label on a card, from the legacy kind.
+  String _shortType(String? kind) => switch (kind) {
+    'savings' => 'Savings',
+    'checking' => 'Checking',
+    'ewallet' => 'E-wallet',
+    'cash' => 'Cash',
+    _ => 'Account',
+  };
+
+  /// The last four digits, only when a stored value is exactly four digits.
+  /// Anything else (absent, or a longer string a backup should never carry)
+  /// shows as masked dots with no digits.
+  String? _last4Of(Map<String, dynamic> row) {
+    final v = row['last4'];
+    return (v is String && RegExp(r'^\d{4}$').hasMatch(v)) ? v : null;
+  }
+
+  /// Tapping a card opens the right editor: the account form for a deposit, the
+  /// debt form for a credit card. Deliberately, a credit card's CARD is tappable
+  /// even though the debt LIST ROW below is not: the row withholds tapping only
+  /// because opening the account form on a debt would offer the wrong fields,
+  /// and this routes to showDebtFormSheet, the proper debt editor, instead. So
+  /// the card is a real shortcut to the correct sheet, not the dead end the row
+  /// was avoiding.
+  void _openCard(BuildContext context, _CardItem it) {
+    if (it.store == AccountStore.debts) {
+      showDebtFormSheet(context, store, debt: it.row);
+    } else {
+      _openForm(context, isAccount: true, item: it.row);
+    }
   }
 
   void _openTransfer(BuildContext context) {
@@ -1398,7 +1506,10 @@ class _AccountFormState extends State<_AccountForm> {
               ),
               if (!_isEdit && widget.seed != null) ...[
                 const SizedBox(height: 4),
-                Text(widget.seed!.hint, style: AppText.small.tint(Barako.muted)),
+                Text(
+                  widget.seed!.hint,
+                  style: AppText.small.tint(Barako.muted),
+                ),
               ],
               _label('Name'),
               _input(_name, hint: 'e.g. GCash', action: TextInputAction.next),
@@ -1972,6 +2083,232 @@ class _ManualRateDialogState extends State<_ManualRateDialog> {
           child: const Text('Use this rate'),
         ),
       ],
+    );
+  }
+}
+
+/// One card's worth of data for the carousel, resolved from a stored row so the
+/// PageView and the detail panel never re-read the raw map.
+class _CardItem {
+  final Map<String, dynamic> row;
+  final AccountStore store;
+  final String name;
+  final String typeLabel;
+  final String subtitle;
+  final Color? brandColor;
+  final String? last4;
+  final double amount;
+
+  /// The preformatted amount for a foreign-currency account (its own symbol).
+  /// Null for a base-currency account, where the card formats [amount] as pesos.
+  final String? amountText;
+  final double? limit;
+  final BankCardVariant variant;
+  const _CardItem({
+    required this.row,
+    required this.store,
+    required this.name,
+    required this.typeLabel,
+    required this.subtitle,
+    required this.brandColor,
+    required this.last4,
+    required this.amount,
+    required this.variant,
+    this.amountText,
+    this.limit,
+  });
+}
+
+/// A horizontal, peeking carousel of bank cards.
+///
+/// viewportFraction 0.88 leaves the next card peeking from the right, so it
+/// reads as swipeable at a glance. A light selection tick fires when the page
+/// settles on a new card, and the card in focus drives the detail panel below.
+class _AccountsCarousel extends StatefulWidget {
+  final List<_CardItem> items;
+  final void Function(_CardItem) onTap;
+  const _AccountsCarousel({required this.items, required this.onTap});
+
+  @override
+  State<_AccountsCarousel> createState() => _AccountsCarouselState();
+}
+
+class _AccountsCarouselState extends State<_AccountsCarousel> {
+  final _controller = PageController(viewportFraction: 0.88);
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_AccountsCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A card was deleted while this was open and the focus now points past the
+    // last page. Clamp it and jump the controller after the frame, so the
+    // viewport does not sit on a blank page the swipe never corrected.
+    final last = widget.items.length - 1;
+    if (_index > last && last >= 0) {
+      _index = last;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) _controller.jumpToPage(last);
+      });
+    }
+  }
+
+  void _onPageChanged(int i) {
+    if (i == _index) return;
+    setState(() => _index = i);
+    // The page settled on a new card: a light tick, the same feel as a native
+    // wallet flicking between cards.
+    HapticFeedback.selectionClick();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    // Defensive: the parent only builds this with two or more cards, but a
+    // clamp on an empty list throws, so never assume it.
+    if (items.isEmpty) return const SizedBox.shrink();
+    final focus = _index.clamp(0, items.length - 1);
+    // A card is never wider than a phone-sized card, even on a tablet or a wide
+    // window: past this it becomes a giant rectangle, and it also pushed the
+    // account list far enough down that a lazy sliver stopped building it.
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = constraints.maxWidth * 0.88 - 12;
+            // The card's own aspect ratio, plus a little room for its tinted
+            // shadow so the shadow is not clipped by the PageView's bounds.
+            final height = cardWidth / 1.586 + 22;
+            return Column(
+              children: [
+                SizedBox(
+                  height: height,
+                  child: PageView.builder(
+                    controller: _controller,
+                    onPageChanged: _onPageChanged,
+                    itemCount: items.length,
+                    itemBuilder: (context, i) {
+                      final it = items[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        child: PressableScale(
+                          child: GestureDetector(
+                            onTap: () => widget.onTap(it),
+                            child: BankCard(
+                              bankName: it.name,
+                              accountType: it.typeLabel,
+                              brandColor: it.brandColor,
+                              last4: it.last4,
+                              balance: it.amount,
+                              amountText: it.amountText,
+                              creditLimit: it.limit,
+                              variant: it.variant,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _pageIndicator(items.length, focus),
+                const SizedBox(height: 12),
+                _CardDetail(item: items[focus]),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Dots for a handful of cards, a compact "n of m" once there are enough that
+  /// a row of dots would overflow a narrow phone.
+  Widget _pageIndicator(int count, int focus) {
+    if (count > 8) {
+      return Text('${focus + 1} of $count', style: AppText.caption);
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < count; i++)
+          Container(
+            width: i == focus ? 18 : 6,
+            height: 6,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: i == focus ? Barako.primary : Barako.border,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The panel under the carousel, driven by the focused card.
+///
+/// It deliberately does NOT repeat the card's name or its big balance, which
+/// the card already shows two centimetres above. It adds what the card cannot:
+/// what the account IS (subtype and institution), and, for a credit card, how
+/// much room is left. Keeping the name off this panel is also what stops it
+/// colliding with the card in a "find this account once" test: the card is the
+/// one on-screen copy of the name, and tapping it opens the editor.
+class _CardDetail extends StatelessWidget {
+  final _CardItem item;
+  const _CardDetail({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCredit = item.variant == BankCardVariant.credit;
+    final limit = item.limit ?? 0;
+    final available = (limit - item.amount)
+        .clamp(0, double.infinity)
+        .toDouble();
+    return Card(
+      color: Barako.surfaceRaised,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body.w6,
+            ),
+            if (isCredit && limit > 0) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Available credit', style: AppText.caption),
+                  Text(
+                    formatMoneyText(available),
+                    style: AppText.amountRow.tint(Barako.primaryText),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 4),
+              Text(
+                'Tap the card to edit this account.',
+                style: AppText.caption,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
