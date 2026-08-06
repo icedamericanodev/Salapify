@@ -67,6 +67,48 @@ ProseBlock? _openingProse(MoneyLesson l) {
 final _second = RegExp(r'\b(you|your)\b', caseSensitive: false);
 
 void main() {
+  // The measurer, measured.
+  //
+  // This splitter shipped broken: it cut on '. ' alone, so a sentence ending
+  // in a question mark glued to the next one and three openings were
+  // reported as 35, 39 and 73 word monsters nobody had written. The
+  // retrospective for f3.56 found the sharper point. Break-then-prove was
+  // fully satisfied while the instrument was defective, because that ritual
+  // watches the red/green bit and never the NUMBER, so a wrong measurement
+  // sails straight through it.
+  //
+  // Measurement code inside a test file was the only measurement code here
+  // with no tests of its own, purely because of which folder it sits in;
+  // f3.55's reading-time model got twelve tests because it ships in lib/.
+  group('the sentence splitter itself', () {
+    test('splits on a question mark', () {
+      expect(_sentences('Is it? Yes it is.'), ['Is it?', 'Yes it is.']);
+    });
+
+    test('splits on an exclamation mark', () {
+      expect(_sentences('Stop! Read this.'), ['Stop!', 'Read this.']);
+    });
+
+    test('splits on a full stop', () {
+      expect(_sentences('One thing. Another thing.'), [
+        'One thing.',
+        'Another thing.',
+      ]);
+    });
+
+    test('a single sentence stays whole', () {
+      expect(_sentences('Just the one.'), ['Just the one.']);
+    });
+
+    test('an abbreviation splits early, a known limitation', () {
+      // Pinned rather than fixed. No shipped opening contains e.g., i.e. or a
+      // decimal, so this costs nothing today; pinning it means a future
+      // opening that does introduce one fails HERE, with an obvious cause,
+      // instead of quietly reporting a short sentence as two.
+      expect(_sentences('Bring cash, e.g. coins.').length, 2);
+    });
+  });
+
   test('the covered set is exactly what it claims', () {
     // Guards the honesty of this file's own scope, so widening it is a
     // deliberate edit rather than a side effect.

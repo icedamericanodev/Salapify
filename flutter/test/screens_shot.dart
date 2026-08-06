@@ -50,6 +50,7 @@ import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/utang.dart';
 import 'package:salapify/screens/quick_add_editor.dart';
@@ -583,6 +584,15 @@ void main() {
     'grow-readiness-card': (s) => ExpansionLessonReader(
       pathId: 'grow_your_money',
       lesson: growYourMoneyLessons.firstWhere((l) => l.id == investRefCard),
+      store: s,
+    ),
+    // The paged reader (Phase 3), which is what a learner now actually
+    // opens. Rendered beside the scrolling shot above rather than replacing
+    // it, so the two shapes can be compared directly while the scrolling
+    // reader is still the fallback.
+    'paged-lesson-first-screen': (s) => PagedLessonReader(
+      pathId: 'grow_your_money',
+      lesson: growYourMoneyLessons.firstWhere((l) => l.id == investRefMoneyJob),
       store: s,
     ),
     // Money Courses Phase 7A: "How Bonds Work", the first production lesson

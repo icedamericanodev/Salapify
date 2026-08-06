@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
-import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<SalapifyStore> _freshStore() async {
@@ -32,7 +32,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ExpansionLessonReader), findsOneWidget);
+    expect(find.byType(PagedLessonReader), findsOneWidget);
     expect(find.text('Give Your Money a Job'), findsOneWidget);
   });
 
@@ -47,7 +47,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ExpansionLessonReader), findsNothing);
+    expect(find.byType(PagedLessonReader), findsNothing);
     expect(find.text('Money courses'), findsOneWidget);
   });
 
@@ -62,7 +62,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ExpansionLessonReader), findsNothing);
+    expect(find.byType(PagedLessonReader), findsNothing);
     expect(find.text('See it before you fix it'), findsOneWidget);
   });
 }

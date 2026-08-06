@@ -21,7 +21,7 @@ import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/learn.dart';
-import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final int _protectPathTotal = lessonsForPath('protect_your_future').length;
@@ -119,7 +119,7 @@ void main() {
 
     await tester.tap(find.text('What Insurance Is For'));
     await tester.pumpAndSettle();
-    expect(find.byType(ExpansionLessonReader), findsOneWidget);
+    expect(find.byType(PagedLessonReader), findsOneWidget);
   });
 
   testWidgets(

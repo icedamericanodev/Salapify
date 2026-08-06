@@ -28,7 +28,7 @@ import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/course_plan.dart';
 import 'package:salapify/screens/learn.dart';
-import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final int _pathLessonTotal = lessonsForPath('grow_your_money').length;
@@ -105,7 +105,7 @@ void main() {
 
     await tester.tap(startFinder);
     await tester.pumpAndSettle();
-    expect(find.byType(ExpansionLessonReader), findsOneWidget);
+    expect(find.byType(PagedLessonReader), findsOneWidget);
   });
 
   testWidgets(

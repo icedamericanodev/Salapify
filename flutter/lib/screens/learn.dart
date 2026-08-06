@@ -25,6 +25,7 @@ import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
 import '../widgets/expansion_lesson_reader.dart';
+import '../widgets/paged_lesson_reader.dart';
 import '../widgets/lesson_block_views.dart';
 import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
@@ -108,10 +109,16 @@ class _LearnScreenState extends State<LearnScreen> {
     bool replace = false,
   }) {
     final route = MaterialPageRoute<void>(
-      builder: (_) => ExpansionLessonReader(
+      // The paged reader (Phase 3): one idea per screen instead of one long
+      // scroll. ExpansionLessonReader is still the scrolling implementation
+      // and still fully tested; it stays until this has been confirmed on a
+      // real phone, so there is always a working reader to fall back to.
+      builder: (context) => PagedLessonReader(
         pathId: pathId,
         lesson: lesson,
         store: widget.store,
+        resolveSalapifyRoute: (r) =>
+            resolveExpansionActionRoute(context, widget.store, r),
         onOpenLesson: (id) {
           final next = expansionLessonById(id);
           if (next != null) {

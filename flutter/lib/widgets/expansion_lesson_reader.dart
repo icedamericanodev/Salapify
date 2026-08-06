@@ -55,7 +55,10 @@ import 'salapify_icon.dart';
 /// Future path), for its recurring-premium and reminders actions. Every
 /// prior route still resolves exactly as before, so this changes nothing
 /// for any earlier course.
-VoidCallback? _resolveGrowAction(
+/// Promoted from private so the paged reader (widgets/paged_lesson_reader
+/// .dart) resolves the very same closed set. Two readers with two route
+/// tables is how one of them quietly ends up with a dead button.
+VoidCallback? resolveExpansionActionRoute(
   BuildContext context,
   SalapifyStore store,
   String route,
@@ -256,7 +259,7 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
               onComplete: _onInteractionComplete,
               onReset: _onInteractionReset,
               resolveSalapifyRoute: (route) =>
-                  _resolveGrowAction(context, widget.store, route),
+                  resolveExpansionActionRoute(context, widget.store, route),
               onAnySalapifyActionConfirmed: _onAnySalapifyActionConfirmed,
             ),
           ),
