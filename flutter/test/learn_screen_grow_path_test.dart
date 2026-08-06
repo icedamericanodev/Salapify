@@ -26,6 +26,7 @@ import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
 import 'package:salapify/content/lessons.dart' as core;
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/course_plan.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -108,19 +109,46 @@ void main() {
   });
 
   testWidgets(
-    'finishing every pilot lesson never changes the core "X of 22" figure',
+    'finishing every pilot lesson never touches the core progress store',
     (tester) async {
+      // This used to assert the on-screen "0 of 22 lessons" figure. That was
+      // a PROXY for the invariant, and the founder has since chosen to make
+      // the headline count the whole catalog (audit finding H2), so the
+      // proxy is gone. The invariant it stood for is unchanged and is now
+      // asserted directly: an expansion write must never reach
+      // settings.lessonProgress or the legacy lessonsRead list, and must
+      // never move a core track's own progress. Checking the store rather
+      // than a rendered string is also strictly stronger, since a screen can
+      // render the right number for the wrong reason.
       final store = await _freshStore();
       for (final lesson in growYourMoneyLessons) {
         await store.markExpansionLessonCompleted('grow_your_money', lesson.id);
       }
       await _pumpTall(tester, store);
 
-      expect(find.text('0 of ${core.lessons.length} lessons'), findsOneWidget);
       expect(
-        find.text('0 of ${core.courseTracks.length} courses'),
-        findsOneWidget,
+        store.lessonProgress,
+        isEmpty,
+        reason: 'an expansion write leaked into the core progress store',
       );
+      for (final t in core.courseTracks) {
+        final key = t['key'] as String;
+        expect(
+          trackProgress(
+            trackId: key,
+            lessonIds: [
+              for (final l in core.lessonsForTrack(key)) l['id'] as String,
+            ],
+            minutesById: {
+              for (final l in core.lessons)
+                l['id'] as String: l['minutes'] as int,
+            },
+            progress: store.lessonProgress,
+          ).done,
+          0,
+          reason: 'core track $key moved because of an expansion write',
+        );
+      }
       // Only the 5 pilot lessons were completed above; the path's total now
       // includes the Phase 7A course's 6 lessons too, so 5 done out of the
       // real path total, not "5 of 5".
