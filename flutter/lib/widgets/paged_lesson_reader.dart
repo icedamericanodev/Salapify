@@ -30,6 +30,7 @@ import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'celebration.dart';
+import 'expansion_lesson_reader.dart' show resolveExpansionActionRoute;
 import 'interaction_block_views.dart';
 import 'lesson_block_views.dart';
 import 'lesson_finish_card.dart';
@@ -41,8 +42,25 @@ class PagedLessonReader extends StatefulWidget {
   final SalapifyStore store;
   final void Function(String lessonId)? onOpenLesson;
 
-  /// Resolves a SalapifyActionsBlock route to a real navigation, supplied by
-  /// the screen that opened this reader so this file never imports screens.
+  /// Resolves a SalapifyActionsBlock route to a real navigation.
+  ///
+  /// OPTIONAL, and when it is absent this reader resolves the route itself
+  /// through `resolveExpansionActionRoute`, which is what the scrolling
+  /// reader has always done inline. That default is the point of this
+  /// parameter existing at all, and it is a fix, not a convenience.
+  ///
+  /// Phase 3 moved this decision from INSIDE the reader out to the call
+  /// site, and an absent value here does not crash: SalapifyActionsView
+  /// falls back to `(_) => null` and renders every action as plain text
+  /// instead of a button. So deleting the two lines in learn.dart that
+  /// supply it silently removed a working button from the phone while the
+  /// whole suite stayed green, which the f3.57 retrospective reproduced by
+  /// doing exactly that. A dependency that moved from default-on to
+  /// default-off, whose absent value is a degraded app rather than an error,
+  /// is invisible by construction.
+  ///
+  /// Passing a resolver still overrides this, so a screen with its own route
+  /// table (or a test) loses nothing.
   final VoidCallback? Function(String route)? resolveSalapifyRoute;
 
   const PagedLessonReader({
@@ -224,7 +242,12 @@ class _PagedLessonReaderState extends State<PagedLessonReader> {
       step.block,
       onComplete: (id) => setState(() => _completedBlockIds.add(id)),
       onReset: (id) => setState(() => _completedBlockIds.remove(id)),
-      resolveSalapifyRoute: widget.resolveSalapifyRoute,
+      // The same closed route table the scrolling reader resolves inline,
+      // so the two readers can never drift into different sets of live
+      // buttons. See the doc comment on the field.
+      resolveSalapifyRoute:
+          widget.resolveSalapifyRoute ??
+          (route) => resolveExpansionActionRoute(context, widget.store, route),
       onAnySalapifyActionConfirmed: () {
         if (widget.store.canWrite) {
           widget.store.markExpansionLessonApplied(
