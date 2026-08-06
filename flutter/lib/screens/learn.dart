@@ -1560,14 +1560,29 @@ class _LessonReaderState extends State<_LessonReader> {
                   foregroundColor: Barako.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: Text(
-                  '${outcome?.nextStartsNewCourse == true ? 'Next course' : 'Next'}: '
-                  '${next.title} · ${next.minutes} min',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+                // Two lines by design. As one run the minutes wrapped onto
+                // their own line anyway and left "min" stranded there,
+                // which reads like a layout bug rather than a choice.
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${outcome?.nextStartsNewCourse == true ? 'Next course' : 'Next'}: '
+                      '${next.title}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${next.minutes} min',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

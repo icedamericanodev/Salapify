@@ -2502,6 +2502,46 @@ void main() {
     );
   });
 
+  testWidgets('the finish card, the moment a lesson ends', (tester) async {
+    // The centre of the Phase 1 quick wins, and the one screen the audit's
+    // C2 finding was about: what a reader sees the instant they finish. It
+    // used to be a single quiet row and a back button. Rendered here so the
+    // founder can look at the replacement rather than take a diff's word
+    // for it.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({});
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: LearnScreen(store: store, focusId: 'see-it-first'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Finish this lesson'), 250);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Finish this lesson'));
+    await tester.pumpAndSettle();
+    // Scrolled so the card, not the prose above it, is what the shot shows.
+    await tester.scrollUntilVisible(find.text('Back to courses'), 250);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/lesson-finish-card-dark.png'),
+    );
+  });
+
   testWidgets(
     'Phase 16: the CONTINUE THIS PATH recommendation badge on Grow Your '
     'Money, dark',
