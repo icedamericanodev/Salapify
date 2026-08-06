@@ -292,6 +292,20 @@ broken in exactly the second half, and only the second half, on its first
 version. An alarm that cries wolf gets its battery taken out, and then it is
 not there during the fire.
 
+When the deliberate break does NOT produce a failure, that is the most
+informative result this procedure can give, and it means the test is wrong,
+not that the code is unusually good. Do not shrug and move on, and do not
+"fix" it by breaking something else until something goes red. Work out which
+branch the test actually reaches, then rewrite the test into the only shape
+that reaches the branch the guard lives on. Session 34 hit this: a guard
+against re-offering a just-finished lesson passed with the guard deleted,
+because the forward scan found a later unfinished lesson before the fallback
+branch containing the guard could ever run. Coverage cannot save you here,
+and a future session should not build that machine: the guard's LINE was
+covered by a sibling test the whole time, what was never exercised was the
+condition evaluating false, and `flutter test --coverage` counts line hits,
+not condition outcomes.
+
 Restore the deliberate break only AFTER the test run reports, never while it is
 still going. The break-then-prove step is usually run by reverting a fix and
 launching the test in the background, and on f2.97 the fix was very nearly put

@@ -10,6 +10,384 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-06, session 34: f3.54 shipped clean, a new test that passed with its own guard deleted and caught itself, and a suite that refused a change the audit had asked for
+
+**What we believed / What was true.** The founder confirmed the Update stamp on
+the phone reads "f3.54 patch 46". The delivery log's last row agrees:
+`| 2026-08-06 03:26 UTC | f3.54 | 46 | patch | 0.9.0+15 | [35946207](.../31067688776) |`
+(docs/delivery-log.md, last row on origin/main, PR #332, merge commit
+`3594620`, delivery commit `6437d6c`). Mode is `patch`, base APK still
+0.9.0+15, so no manual install was needed and none was claimed. The row before
+it is f3.53 patch 45, so patch numbers ran 45 then 46 with nothing between and
+no unrecorded patch slipped through. `flutter/lib/main.dart` line 33 carries
+`'f3.54 · Lessons now celebrate, hand you the next one, and remember you
+finished.'`, which is what the founder read on the phone. The phone, the
+delivery log, origin/main and the stamp constant all agree.
+
+Say the top line plainly, because it is the finding and not a warm-up: this was
+a clean delivery. One stamp, one patch, one merge, no collision, no stranded
+base APK, no version number spoken to the founder before its row existed.
+Nothing in this session's evidence contradicts that, and nothing was
+manufactured to make the session feel earned.
+
+Underneath the clean line sit four things worth examining, and the interesting
+part is that three of them are the repository's own guards WORKING, one of them
+loudly and in a way that had not been documented here before. All four were
+checked against git history and file contents this session rather than taken
+from the task brief, per the standing rule that a handed-down claim is audited
+exactly like any other.
+
+**Timeline (with evidence).**
+
+- The batch is four commits on `claude/salapify-money-courses-audit-i3rrxi`,
+  all inside 43 minutes, all under one stamp: `50dce2b` at 02:06 (Phase 1 quick
+  wins), `5ae7845` at 02:18 (render the finish card, fix the Next button),
+  `d5ed304` at 02:43 (revert the header change), `e068897` at 02:49 (correct
+  the qa-log row). Merged as PR #332, published as patch 46.
+
+- `50dce2b` added `flutter/lib/money/lesson_flow.dart` (191 lines, pure) and
+  `flutter/lib/content/course_sequences.dart` (75 lines), rewrote the end of
+  both readers into a finish card, and fixed audit finding C6: a finished
+  expansion lesson reopened showing "0 of N required interactions completed"
+  over a disabled Finish button, because completion lived only in the reader's
+  ephemeral `_completedBlockIds` and nothing ever read the stored `LessonState`
+  back. Three new test files, 44 new tests. `git diff --name-status
+  82d820d..e068897 -- flutter/test` shows three files ADDED and one MODIFIED
+  (`screens_shot.dart`, the render harness), and `git diff --diff-filter=D`
+  across the whole batch returns nothing. That matters for the standing trap:
+  no existing test was changed or deleted anywhere in this batch, so nothing
+  here has the shape of a suite that was defending a defect. The opposite
+  happened, twice, below.
+
+- THE SELF-CAUGHT TEST DEFECT, verified in the file rather than in prose. The
+  fallback branch of `finishOutcome` (`lib/money/lesson_flow.dart` lines 151 to
+  157) offers the first unfinished lesson anywhere when there is none after the
+  finished one, and it carries a guard, `l.id != finishedId`, so a lesson whose
+  completion write never landed is never re-offered as its own next step. The
+  first version of the test for that guard finished lesson "a1" and expected
+  the next lesson not to be "a1". It passed with the guard deleted. The reason
+  is structural and is now written into the test itself
+  (`flutter/test/lesson_flow_test.dart` lines 78 to 96): "It has to be the LAST
+  lesson with everything before it done. Any earlier position and the forward
+  scan finds a later unfinished lesson first, so the fallback never runs and
+  the guard is never exercised. An earlier draft of this test used position
+  one, passed with the guard deleted, and proved nothing." It was rewritten to
+  finish "b1", the last lesson, with everything before it already done, and
+  only then watched fail: `Expected: not 'b1' / Actual: 'b1'`, quoted in
+  `50dce2b`'s own commit message alongside three other proven-fail lines. The
+  only thing that found this was the repository's own "prove a new test can
+  fail before trusting it" rule, actually being run.
+
+- THE REVERT THE SUITE FORCED. The same batch changed the Learn hub header to
+  count the whole 93-lesson catalog instead of the core 22, which is audit
+  finding H2 (docs/money_courses_experience_audit.md lines 189 to 195: "the
+  headline metric counts only the 22 core lessons... The header ignores 76
+  percent of the catalog"). The full suite went red. This session counted the
+  failures rather than repeating "four": exactly four test cases assert that
+  figure, and all four break under a whole-catalog count.
+  `learn_screen_grow_path_test.dart:111`,
+  `learn_screen_protect_path_test.dart:125` and
+  `learn_screen_business_path_test.dart:130` each finish an ENTIRE expansion
+  path and then assert `find.text('0 of ${core.lessons.length} lessons')`, and
+  `learn_screen_test.dart:15` asserts the same figure three times inside one
+  case. The tests are not stale.
+  `flutter/lib/content/learning_path.dart` lines 7 to 9 call the core four
+  tracks "load-bearing for the 'X of 22 lessons' figure on the Learn screen",
+  and those tests are how the two separate progress stores are proven isolated.
+  `d5ed304` reverted the change, kept the two parts of it that conflict with
+  nothing (the warm first-visit line, and no "about 43 min left" bill until
+  something is finished, neither asserted by any test), and left H2 open in the
+  audit for the founder, on the stated ground that changing what a headline
+  number MEANS is a product decision with a documented rationale on the other
+  side and not a quick win.
+
+- THE FALSE SENTENCE THAT ALMOST SHIPPED IN THE QA LOG. The f3.54 row was
+  written in `50dce2b` at 02:06, before the revert existed, and it claimed "the
+  hub header now counts the WHOLE catalog (core plus every published path)
+  instead of only the core 22". The production code that made that true was
+  removed at 02:43. The row was corrected at 02:49 in `e068897`, whose diff
+  (read this session) replaces that clause with an explicit "HONEST CORRECTION,
+  recorded because the first version of this row claimed otherwise" naming the
+  revert and the four tests. docs/qa-log.md's own header, lines 11 to 21, warns
+  that the guard "CANNOT stop a row being written for a pass that did not
+  happen. Nothing automated can." This was the reverse direction of exactly
+  that: a row describing something that did not ship. It was caught because the
+  author remembered, and by nothing else.
+
+- THE LAYOUT FLAW ONLY THE PICTURE CAUGHT. `5ae7845` added the finish card's
+  first render (`flutter/test/screens_shot.dart` line 2505, "the finish card,
+  the moment a lesson ends", dark, real fonts, tapping through to the finished
+  state for real) and its commit message records what looking at it caught:
+  "Next: Needs, wants, and the 24-hour rule . 1 min" wrapped as one run and
+  stranded "min" alone on the second line. The fix (visible in the diff at
+  `lib/screens/learn.dart` around line 1560, mirrored in
+  `expansion_lesson_reader.dart`) makes the label deliberately two lines, title
+  then minutes, with the reason in a code comment. This was invisible in the
+  diff and invisible to every one of the 2,560 tests that later ran green.
+
+**Root cause.**
+
+There are three, and they are different from each other, which is why they get
+separate lessons.
+
+For the test that passed for the wrong reason: the test and the code were
+written from the same mental model in the same sitting, and that model was
+wrong about ONE thing, which position in the sequence reaches the fallback
+branch. A test built on a wrong model does not fail, it agrees. Nothing about
+attention would have helped, because the author was paying attention and still
+believed the input reached the branch. What separated belief from reality was
+deleting the guard and watching the test not care.
+
+Worth foreclosing precisely, because it sounds like the obvious machine: LINE
+COVERAGE WOULD NOT HAVE CAUGHT THIS. The sibling test at
+`lesson_flow_test.dart:67`, "sends a learner backwards to an earlier gap",
+finishes "b1" with an unread "a2" and does reach the fallback loop, so the
+guard line `l.id != finishedId` was executed by the suite either way. What was
+never exercised was that condition evaluating to FALSE. `flutter test
+--coverage` reports per-line hit counts, not per-condition outcomes, so that
+line would have shown covered and green. Recorded here so a future session does
+not spend a day building a coverage gate that this exact defect would have
+walked straight through, in the same spirit as session 31 naming its proposed
+pre-commit gate as theater.
+
+For H2: the experience audit examined the SCREEN. It described the header
+figure accurately, filed a fair complaint about it, and never looked at what
+depended on that figure. Checked this session:
+`grep -i "load-bearing\|isolat\|learning_path.dart"` across
+docs/money_courses_experience_audit.md returns NOTHING. The invariant existed,
+in writing, in `content/learning_path.dart`'s own header comment, and the audit
+had no reason to be reading that file. The structural gap is that a
+recommendation to change a displayed value was produced by reading the display,
+while the reason not to change it lived in a file two layers away that the
+recommendation never touched. The strong guard that caught it, the full suite
+on a real runner before merge, worked exactly as designed. Its only cost was
+ordering: it ran late in the batch, after the change had been written,
+reviewed, and written up.
+
+For the qa-log row: the row was written with the FIRST commit of a batch that
+then kept changing, and nothing re-reads a row against the final diff. This is
+not a discipline failure, it is a sequencing one. Writing the row early is good
+practice for every other reason (it forces the QA thinking before the code is
+frozen), and it is precisely what makes the row go stale when the batch
+continues. The file's own header already says no machine can check a row is
+TRUE. But this failure was not about truth in general, it was about a row going
+stale under production code that changed after it, and THAT is mechanically
+observable, which lesson 3 takes up.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. A test can pass because its input never reaches the code it names, and only
+   deliberately breaking that code reveals it. GUARD, already in place and now
+   with a second documented save: CLAUDE.md's "Prove a new test can fail before
+   trusting it". Strength: MEDIUM, and honestly so, because it is a rule read
+   at authoring time and nothing can observe whether it was run. It is,
+   however, the ONLY thing that catches this class, which the coverage analysis
+   above establishes rather than asserts. One real SHARPENING is available and
+   is recommended: CLAUDE.md currently says break it, watch it fail, paste the
+   failure line. It says nothing about the case where the break does NOT
+   produce a failure, which is the case that just happened and the most
+   informative outcome the procedure has. Add one sentence to that section: a
+   prove-fail attempt that stays GREEN is itself a finding about the test, not
+   a formality to redo quietly, and both the rewrite and what made the original
+   shape unreachable belong in the test's own comment and in the qa-log row.
+   This session did all of that voluntarily (`lesson_flow_test.dart` lines 84
+   to 88, and the f3.54 qa-log row's verdict column), which is the argument
+   that the sentence is writable rather than aspirational. Strength of the
+   sharpening: MEDIUM, a documentation guard, and it is stated as such.
+
+2. A recommendation produced by reading a screen can be blind to an invariant
+   that lives two files away, and the full suite is the thing that finds it.
+   GUARD, and this one was BUILT this session rather than recommended:
+   `d5ed304` put the invariant at the exact site where the next person will
+   make the same change, `lib/screens/learn.dart`'s `_header` doc comment
+   (verified this session, lines 368 to 391), naming
+   `content/learning_path.dart`'s "load-bearing" phrase, naming the three
+   expansion-path tests that assert it, and naming H2 as an open product
+   decision rather than an oversight. The comment's own count is precise, not
+   sloppy: it says three tests assert that finishing an entire expansion path
+   never moves the figure, which is exactly true; the fourth failing case is
+   the core screen's own test, not an expansion one. Strength: MEDIUM, because
+   a comment still has to be read, but it is the strongest form of medium
+   available, sitting at the moment of the change rather than in a document.
+   The STRONG guard here already existed and needs no work: the full suite on
+   the branch check, which caught this unaided. The only improvement available
+   is workflow, not machinery, so it is ranked WEAK and named honestly: run the
+   focused test files for a screen as soon as that screen is changed, instead
+   of meeting them in the full suite at the end of the batch. Nothing can
+   enforce that, and it would have saved ordering cost only, not correctness.
+
+3. A qa-log row written with the first commit of a batch describes a batch that
+   has not finished happening yet. GUARD, buildable, mechanical, and
+   RECOMMENDED rather than built this session: a branch-check script in the
+   shape `.github/scripts/check-stamp-unique.sh` already establishes, asserting
+   that on the branch, the last commit touching `docs/qa-log.md` is not OLDER
+   than the last commit touching `flutter/lib/`. Checked against this exact
+   history, it would have gone red at 02:18 and again at 02:43, and green only
+   after 02:49 (`git log 82d820d..e068897 -- docs/qa-log.md` gives 02:06 and
+   02:49; `git log 82d820d..e068897 -- flutter/lib` gives 02:06, 02:18, 02:43).
+   Strength: STRONG, because it is a machine that runs on every push and needs
+   no judgment, with one limit and one cost stated up front. The limit: it
+   cannot verify a row is TRUE, only that nobody changed production code after
+   writing it without re-reading it, which is exactly the shape that happened
+   here and is not the general problem the file's header correctly calls
+   unsolvable. The cost: it will fire on a trivial `lib/` tweak made after the
+   row is written, and CLAUDE.md's own reasoning about the destructive-edit
+   hook says a guard that fires on normal work gets switched off. The
+   mitigation is that satisfying it is a one-word edit whose whole purpose is
+   forcing the re-read, but the nag is real and should be a deliberate decision
+   rather than a surprise. It belongs in
+   `.github/workflows/flutter-check.yml` next to the stamp check, and could
+   also ride in `.githooks/pre-push`.
+
+4. Positive result, recorded as one, because it is evidence for a rule that
+   costs time every batch and has to keep earning it. Looking at the picture
+   caught a real layout flaw that the diff could not show and 2,560 tests did
+   not notice. GUARD: CLAUDE.md's "Look at the screen before shipping a
+   screen", already in place, and this is now the third named instance of it
+   catching something (a lesson rendering prose as a wall of text, lessons
+   losing their completed tick, and now the orphaned "min"). Strength: MEDIUM
+   as written, because the render is opt-in and a picture nobody opens proves
+   nothing. The honest gap this batch adds evidence for is NOT new: the finish
+   card, the centre of the whole batch, had no render at all in `50dce2b` and
+   only got one in the follow-up `5ae7845`. That is the known "the sweep's
+   screen list is a LIST, not every screen" gap CLAUDE.md already names,
+   hitting a brand new surface. No new guard is invented for it here; it is
+   carried forward with this batch as fresh evidence, and the model for closing
+   it properly is still `palette_contrast_test.dart`, which iterates a registry
+   and then asserts it saw all of it.
+
+**What went well, credited honestly.** Three separate guards fired in one
+43-minute batch and all three fired BEFORE the phone, which is the whole design
+intent: prove-fail caught a hollow test, the full suite refused a change that
+would have broken a documented invariant, and the render caught a layout flaw
+nothing else could see. None of the three was a near-miss that got lucky; each
+is a mechanism doing the specific job it was written for. The revert is the
+best of them, and belongs here as a positive rather than a problem: the code
+was changed to obey the tests, not the tests changed to permit the code, and
+`git diff --diff-filter=D` across the batch confirms no test was weakened or
+deleted anywhere. The one thing with no mechanism behind it, the stale qa-log
+sentence, is the one thing that came closest to shipping wrong, which is a
+clean natural experiment on the value of machines over memory.
+
+**CLAUDE.md factual re-check (done as a step, not a favour).** Every path
+CLAUDE.md names was checked for existence this session and all 23 exist where
+it says: `flutter/lib/main.dart`, both workflow files,
+`.github/scripts/check-stamp-unique.sh`, `.githooks/pre-push`,
+`flutter/test/screens_shot.dart`, `palette_contrast_test.dart`,
+`screen_readability_test.dart`, `test/golden/ui_golden.dart`,
+`test/golden/baseline/`, `segmented_test.dart`,
+`.claude/hooks/guard-destructive-edits.sh`, `.claude/settings.json`,
+`lib/widgets/salapify_icon.dart`, `test/journeys_test.dart`,
+`.claude/agents/journey-tester.md`, `test/qa_record_test.dart`,
+`test/update_stamp_test.dart`, `docs/Product_Vision_Spec.md`,
+`mobile/app/(tabs)/more.js`, `flutter/shorebird.yaml`, `docs/qa-log.md`,
+`docs/delivery-log.md`. Triggers were read, not assumed:
+`.github/workflows/flutter-check.yml` still triggers on `push` to `claude/**`,
+and `.github/workflows/flutter-preview.yml` still triggers on `push` to `main`
+filtered on `flutter/**`, exactly as Flutter rule 1 describes. `updateStamp` is
+still at `flutter/lib/main.dart` line 33. The render-harness paragraph's claim
+that shots land in a gitignored folder holds: `.gitignore` line 7 is
+`flutter/test/shots/`. No stale path and no false factual claim was found in
+CLAUDE.md this session. Recorded as required even though the answer is that
+everything matched, since two consecutive earlier sessions found a false claim
+here and the value of the check is destroyed if it is only reported when it
+fails.
+
+**Open lessons carried forward.**
+- From session 33: both of its recommendations were built the same day
+  (`.githooks/pre-push`, confirmed present this session, and the "each URL"
+  sentence in CLAUDE.md's Money Courses rule, confirmed present). Neither was
+  exercised this batch, which touched no course content and no government
+  source, so no new evidence either way.
+- From session 31: the prove-fail marker-file sharpening is still open and this
+  session declined to build it for the same reason session 31 gave, that the
+  marker depends on being written and is therefore itself a rule. Lesson 1
+  above is a different and cheaper sharpening of the same rule, aimed at the
+  green-break case rather than at the restore-ordering case. The stale
+  `goals.dart` allowlist entry, the 320dp readability question, and the
+  fixture-through-the-writer shape test are all untouched by this batch and
+  carried forward unchanged.
+- The screens_shot list gap (lesson 4) is carried forward with new evidence: a
+  brand new surface, the finish card, shipped its first commit with no render.
+  Still not closed, still the same known shape, still buildable by the
+  `palette_contrast_test.dart` iterate-then-assert pattern.
+- NEW and open: audit finding H2 itself. The Learn header counts the core 22,
+  so a learner who finishes all 18 Protect Your Future lessons still reads "0
+  of 22 lessons". That is a genuine product problem, deliberately not fixed,
+  now waiting on a founder decision. The reason it was not fixed is written at
+  the site (`learn.dart`'s `_header` doc comment) so it cannot be mistaken for
+  an oversight by whoever reads it next.
+- NEW and open: lesson 3's qa-log staleness check, specified precisely enough
+  to build in one sitting, verified against this batch's own commit
+  timestamps, and not built this session.
+
+**For the founder, over lunch.** f3.54, patch 46, is on your phone and it is
+correct. Lessons now end with a real card: what to keep, how far you are
+through the course, and a button straight into the next lesson instead of a
+dead end and a back button. Finishing a whole course or a whole path sets off
+the confetti; finishing one ordinary lesson does not, on purpose, because a
+party for every one of 93 lessons stops meaning anything. It also fixes a real
+bug you could have hit: a lesson you had already finished, reopened, used to
+say "0 of N required interactions completed" over a greyed-out Finish button,
+as if your progress had vanished. It had not, the screen just was not reading
+it back. It reads it back now.
+
+Three things went right underneath that, and one nearly went wrong. Worth two
+minutes each.
+
+First, a test caught itself lying. When we add a safety test here, the house
+rule is to deliberately break the code first and check the test really turns
+red, because a test written with the same wrong idea in it as the code will
+happily agree with a bug. This time the break was made and the test stayed
+green. It was testing a piece of code its example never actually reached, so it
+was proving nothing while looking exactly like proof. It got rewritten until it
+really did fail, and only then trusted. That rule costs about three minutes a
+test and it just paid for itself again.
+
+Second, our own test suite refused a change I made. The audit that started this
+work pointed out, fairly, that the "0 of 22 lessons" figure at the top of Learn
+ignores most of the catalog: you could finish all 18 Protect Your Future
+lessons and it would still read zero. I changed it to count everything. Four
+existing tests immediately went red, because those tests exist to prove the
+core lessons and the newer path lessons keep completely separate progress, and
+that number is how they prove it. So I put the change back and left the
+question open for you, rather than quietly redefining what a number on your
+screen means. That is a real decision for you to make, and it is written down
+in the audit and in the code so it does not get lost. The important part: I
+changed the code to obey the tests, never the other way round. Rewriting a test
+so a change can pass is how a bug ends up protected by its own safety net.
+
+Third, and this is the near miss. Every shipped version gets a written QA
+record. I wrote f3.54's record early, at the first commit, and it said the
+header now counts everything. Forty minutes later I undid exactly that, and the
+record still said it. I caught it and corrected it, but only because I happened
+to remember, and "I happened to remember" is not something you should have to
+rely on. So I am recommending a small automatic check: if the code changes
+after the QA record is written, the build goes red until someone reopens the
+record and reads it again. I tested that idea against this batch's real
+timestamps and it would have fired twice and then gone quiet at the right
+moment. It cannot tell whether the record is TRUE, nothing can, but it can stop
+a record going stale underneath work that kept moving.
+
+Fourth, a small one that argues for a habit that costs time. A button ended up
+reading "Next: Needs, wants, and the 24-hour rule . 1 min" with the word "min"
+stranded alone on its own line, which just looks broken. Two thousand five
+hundred and sixty automated tests did not see it and no code review could have.
+Looking at an actual picture of the screen caught it in about one second. That
+is the third time that habit has caught something a test could not.
+
+What it costs if these ever go away. The break-it-first rule is the only thing
+standing between us and tests that agree with bugs; without it a green suite
+starts meaning less every month, and you would find out from your phone instead
+of from a build. The four tests that blocked the header change are what keep
+your core lesson progress and your path lesson progress from bleeding into each
+other; if someone ever deletes them to make a change pass, the two counters can
+silently start reporting each other's numbers and nothing will complain. And
+the screenshot habit is the only check on whether a screen actually reads well,
+as opposed to merely fitting; drop it and layout bugs reach you first.
+
+---
+
 ## 2026-08-05, session 33: f3.51 shipped clean, a third pre-authored stamp collision this same day, and a review that caught three real bugs but missed a fourth of its own kind
 
 **What we believed / What was true.** The founder confirmed the Update stamp
