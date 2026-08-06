@@ -19,8 +19,11 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
+import '../content/learning_paths.dart';
+import '../content/lessons.dart';
 import '../data/store.dart';
 import '../main.dart' show updateStamp;
+import '../money/course_funnel.dart';
 import '../services/diagnostics.dart';
 import '../theme.dart';
 import '../typography.dart';
@@ -66,7 +69,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: _report()));
     if (mounted) {
-      setState(() => _status = 'Copied. Paste it in a message to report a bug.');
+      setState(
+        () => _status = 'Copied. Paste it in a message to report a bug.',
+      );
     }
   }
 
@@ -103,6 +108,10 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             Kicker('WHAT IS STORED, COUNTS ONLY'),
             const SizedBox(height: 8),
             _countsCard(counts),
+            const SizedBox(height: 20),
+            Kicker('COURSE FUNNEL, COUNTS ONLY'),
+            const SizedBox(height: 8),
+            _funnelCard(),
             const SizedBox(height: 20),
             Kicker('RECENT ERRORS'),
             const SizedBox(height: 8),
@@ -172,6 +181,84 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   ],
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// How far this phone actually got through each course.
+  ///
+  /// Here rather than anywhere a learner would meet it, on purpose. This is
+  /// an instrument for deciding what to build next, not a scoreboard: a
+  /// screen that told someone they had abandoned four courses would be the
+  /// app being unkind about the exact thing people already feel bad about.
+  ///
+  /// Counts only, no lesson named and no date kept, so it cannot violate the
+  /// privacy rule this screen is guarded by.
+  Widget _funnelCard() {
+    final store = widget.store;
+    final rows = <FunnelRow>[
+      if (store != null) ...[
+        for (final t in courseTracks)
+          funnelFor(
+            label: t['title'] as String,
+            lessonIds: [
+              for (final l in lessonsForTrack(t['key'] as String))
+                l['id'] as String,
+            ],
+            progress: store.lessonProgress,
+          ),
+        for (final p in publishedLearningPaths)
+          funnelFor(
+            label: p.title,
+            lessonIds: p.lessonIds,
+            progress: store.expansionProgressFor(p.id),
+          ),
+      ],
+    ];
+    if (rows.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No course data on this device yet.',
+            style: AppText.small.tint(Barako.muted),
+          ),
+        ),
+      );
+    }
+    final total = totalFunnel(rows);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('All courses', style: AppText.label.w7),
+            const SizedBox(height: 2),
+            Text(total.summary, style: AppText.small.tint(Barako.muted)),
+            if (total.droppedOff > 0) ...[
+              const SizedBox(height: 2),
+              Text(
+                '${total.droppedOff} started but not finished',
+                style: AppText.small.tint(Barako.primaryText),
+              ),
+            ],
+            const Divider(height: 22),
+            for (final r in rows) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(r.label, style: AppText.small.w7),
+                    const SizedBox(height: 2),
+                    Text(r.summary, style: AppText.caption.tint(Barako.muted)),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
