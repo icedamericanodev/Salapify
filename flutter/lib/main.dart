@@ -31,7 +31,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.58 \u00b7 Each learning path opens its own screen, with courses you can reach directly.';
+    'f3.59 \u00b7 Buttons inside a lesson are wired for good now, and tested end to end.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
