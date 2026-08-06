@@ -2502,6 +2502,126 @@ void main() {
     );
   });
 
+  testWidgets(
+    'Phase 16: the CONTINUE THIS PATH recommendation badge on Grow Your '
+    'Money, dark',
+    (tester) async {
+      // Nothing in screens_shot.dart rendered this feature before it shipped
+      // (f3.52): the badge only ever appears once real expansion progress
+      // exists, and every existing shot of the Learn screen used either an
+      // empty store or the lived-in fixture, which carries no expansion
+      // progress at all. A screenshot against a fixture that cannot show a
+      // feature proves nothing, the exact gap CLAUDE.md's own "lived-in
+      // phone" lesson warns about, so this uses a dedicated fixture instead.
+      await loadRealFonts(tester);
+      await loadPanFaces(tester);
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      await store.markExpansionLessonCompleted(
+        'grow_your_money',
+        growYourMoneyLessons.first.id,
+      );
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: LearnScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Grow Your Money'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('CONTINUE THIS PATH'), findsOneWidget);
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/learn-recommendation-badge-dark.png'),
+      );
+    },
+  );
+
+  testWidgets(
+    'Phase 16: All lessons on Grow Your Money, grouped by course title, '
+    'dark',
+    (tester) async {
+      // The other Phase 16 specialist fix: the expanded list used to be one
+      // flat, ungrouped run of lessons, so a recommendation reason that
+      // names a specific course ("Finish Investment Readiness before...")
+      // pointed at nothing a reader could actually find in the list below
+      // it. Same fixture as the badge shot above, tapped open, so both real
+      // findings from that review are visible in the same screenshot.
+      await loadRealFonts(tester);
+      await loadPanFaces(tester);
+      SharedPreferences.setMockInitialValues({});
+      final store = SalapifyStore();
+      await store.load();
+      await store.markExpansionLessonCompleted(
+        'grow_your_money',
+        growYourMoneyLessons.first.id,
+      );
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: LearnScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final growCard = find.ancestor(
+        of: find.text('Grow Your Money'),
+        matching: find.byType(Card),
+      );
+      await tester.scrollUntilVisible(
+        find.descendant(
+          of: growCard,
+          matching: find.widgetWithText(TextButton, 'All lessons'),
+        ),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: growCard,
+          matching: find.widgetWithText(TextButton, 'All lessons'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: growCard,
+          matching: find.text('Are You Ready to Invest?'),
+        ),
+        findsOneWidget,
+      );
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/learn-recommendation-grouped-list-dark.png'),
+      );
+    },
+  );
+
   testWidgets('the Privacy receipt, dark', (tester) async {
     // A launch trust surface, so look at it whole. It provides its own
     // Scaffold and AppBar, so render it as home directly rather than through
