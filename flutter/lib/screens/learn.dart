@@ -20,6 +20,7 @@ import '../money/expansion_recommendation.dart';
 import '../money/lesson_flow.dart';
 import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
+import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
@@ -300,10 +301,39 @@ class _LearnScreenState extends State<LearnScreen> {
               for (final p in paths)
                 p.id: widget.store.expansionProgressFor(p.id),
             });
+            // Progress across the WHOLE catalog. Every published path's own
+            // lessons and courses count too, so the headline figure can no
+            // longer ignore three quarters of what this screen offers.
+            var allDone = doneCount;
+            var allTotal = lessons.length;
+            var coursesDone = tracksDone;
+            var coursesTotal = courseTracks.length;
+            for (final p in paths) {
+              final pathProgress = widget.store.expansionProgressFor(p.id);
+              allTotal += p.lessonIds.length;
+              coursesTotal += p.groups.length;
+              for (final g in p.groups) {
+                final ids = g.lessonIds;
+                final gDone = ids
+                    .where(
+                      (id) =>
+                          isDone(pathProgress[id] ?? LessonState.notStarted),
+                    )
+                    .length;
+                allDone += gDone;
+                if (ids.isNotEmpty && gDone >= ids.length) coursesDone++;
+              }
+            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                _header(doneCount, tracksDone, minutesLeft),
+                _header(
+                  allDone,
+                  allTotal,
+                  coursesDone,
+                  coursesTotal,
+                  minutesLeft,
+                ),
                 const SizedBox(height: 18),
                 Semantics(
                   header: true,
@@ -367,30 +397,36 @@ class _LearnScreenState extends State<LearnScreen> {
 
   /// The header.
   ///
-  /// The lesson and course figures deliberately count the CORE 22 ONLY, and
-  /// that is not an oversight. content/learning_path.dart's own header calls
-  /// the core four tracks "load-bearing for the 'X of 22 lessons' figure on
-  /// the Learn screen", and three separate tests
-  /// (learn_screen_grow_path_test.dart and its two siblings) assert that
-  /// finishing an entire expansion path never moves it, which is how the two
-  /// progress stores are proven to stay isolated.
+  /// The figures count the WHOLE catalog: the core 22 plus every published
+  /// path's lessons and courses. They used to count only the core 22, so a
+  /// learner who finished all 18 lessons of Protect Your Future still read
+  /// "0 of 22 lessons" at the top of the screen, which the experience audit
+  /// filed as H2.
   ///
-  /// The experience audit filed the opposite as finding H2: a learner who
-  /// finishes all 18 Protect Your Future lessons still reads "0 of 22
-  /// lessons" here, which is a fair complaint. Changing what the headline
-  /// number MEANS is a product decision with a documented architectural
-  /// rationale on the other side, so it is not being made inside a
-  /// quick-wins batch. It needs the founder, and it is written down in the
-  /// audit rather than quietly reversed here.
+  /// That change was made once, reverted, and then made again deliberately,
+  /// and the reason is worth keeping. Reverting it the first time was right:
+  /// content/learning_path.dart calls the core figure "load-bearing", and
+  /// four tests asserted that finishing an entire expansion path never moves
+  /// it. But those tests were guarding the number ON SCREEN as a proxy for
+  /// the thing that actually matters, which is that the two progress stores
+  /// never write into each other. The founder chose the audit's reading, so
+  /// the number now reflects everything a learner has done, and those tests
+  /// were rewritten to assert the isolation directly against the store
+  /// instead of through a rendered string. The invariant is unchanged and
+  /// better guarded; only the proxy is gone.
   ///
-  /// What this DOES change is the first impression, which conflicts with
-  /// nothing: a warm line about what the lessons are, and no running total
-  /// of minutes left until the learner has actually started something. A
-  /// first visit that opens with a bill for 43 minutes is answering "how
-  /// much work is left" when the only useful question is "what do I do
-  /// next".
-  Widget _header(int doneCount, int tracksDone, int minutesLeft) {
-    final total = lessons.length;
+  /// The first impression is also handled here: a warm line about what the
+  /// lessons are, and no running total of minutes left until the learner has
+  /// actually started something. A first visit that opens with a bill for 43
+  /// minutes is answering "how much work is left" when the only useful
+  /// question is "what do I do next".
+  Widget _header(
+    int doneCount,
+    int total,
+    int coursesDone,
+    int coursesTotal,
+    int minutesLeft,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -425,7 +461,7 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             Text('$doneCount of $total lessons', style: AppText.smallStrong),
             Text(
-              '$tracksDone of ${courseTracks.length} courses',
+              '$coursesDone of $coursesTotal courses',
               style: AppText.small.tint(Barako.muted),
             ),
             // Suppressed until something is started: see this method's own
@@ -1026,7 +1062,7 @@ class _LearnScreenState extends State<LearnScreen> {
                         style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       Text(
-                        '${l.minutes} min',
+                        '${displayMinutes(l)} min',
                         style: AppText.micro.w4.tint(Barako.faint),
                       ),
                       if (started)
@@ -1171,7 +1207,21 @@ class _LessonReaderState extends State<_LessonReader> {
       const SizedBox(height: 20),
     ];
 
-    for (final b in blocks) {
+    // Same split the expansion reader makes: a warning teaches, a citation
+    // proves, so citations and the boundary statement gather into one line
+    // at the end instead of interrupting the lesson. None of the core 22
+    // carry these blocks today, so this changes nothing for them and is
+    // here so the two readers cannot drift apart the moment one does.
+    final teaching = [
+      for (final b in blocks)
+        if (!isReferenceBlock(b)) b,
+    ];
+    final reference = [
+      for (final b in blocks)
+        if (isReferenceBlock(b)) b,
+    ];
+
+    for (final b in teaching) {
       children.add(
         RiseIn(
           index: step++,
@@ -1213,6 +1263,15 @@ class _LessonReaderState extends State<_LessonReader> {
         ),
       );
       children.add(const SizedBox(height: 16));
+    }
+
+    if (reference.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: LessonReferenceFooter(reference),
+        ),
+      );
     }
 
     children.add(RiseIn(index: step, child: _finishCard()));

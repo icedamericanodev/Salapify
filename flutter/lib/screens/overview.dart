@@ -41,6 +41,8 @@ import 'pan.dart';
 import 'accounts.dart';
 import 'search.dart';
 import 'shell.dart';
+import '../content/course_sequences.dart';
+import 'learn.dart';
 import '../widgets/salapify_icon.dart';
 
 // formatMoney moved to money/format.dart so the home screen tile, which must
@@ -175,7 +177,9 @@ class OverviewScreen extends StatelessWidget {
               children: [
                 Text(
                   '₱',
-                  style: AppText.title.copyWith(fontSize: 30).tint(Barako.primary),
+                  style: AppText.title
+                      .copyWith(fontSize: 30)
+                      .tint(Barako.primary),
                 ),
                 SizedBox(width: 10),
                 // Flexible + scaleDown: on a very narrow phone the wordmark
@@ -187,7 +191,10 @@ class OverviewScreen extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'SALAPIFY',
-                      style: AppText.title.copyWith(fontSize: 26, letterSpacing: 3),
+                      style: AppText.title.copyWith(
+                        fontSize: 26,
+                        letterSpacing: 3,
+                      ),
                     ),
                   ),
                 ),
@@ -341,7 +348,17 @@ class OverviewScreen extends StatelessWidget {
                 // and the error banner above already explains it, so the welcome
                 // lanes (which would be dead or misleading) are suppressed.
                 if (!hasStarted) ...[
-                  if (store.loadError == null) _welcomeCard(context),
+                  if (store.loadError == null) ...[
+                    _welcomeCard(context),
+                    const SizedBox(height: 12),
+                    // Offered to a brand new user too, and that is the whole
+                    // point rather than an afterthought: someone who has
+                    // logged nothing yet is exactly who a two minute lesson
+                    // helps most, and the first draft of this card lived
+                    // only in the started branch, so the people who most
+                    // needed the door never saw it.
+                    ..._nextLessonCard(context, now),
+                  ],
                 ] else ...[
                   // The habit layer, RN's Home order: the chain, then the
                   // treat, then the month numbers. Habits sit above the
@@ -354,6 +371,7 @@ class OverviewScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   TreatCard(store: store, clock: clock),
                   const SizedBox(height: 12),
+                  ..._nextLessonCard(context, now),
                   // Tappable: THIS MONTH is made of Activity's rows, so the
                   // card leads there. It was a dead surface between two
                   // tappable siblings, the last cards on Home that informed
@@ -1038,10 +1056,7 @@ class OverviewScreen extends StatelessWidget {
             ),
             if (payday.length >= 10) ...[
               const SizedBox(height: 2),
-              Text(
-                'Until ${prettyDay(payday)}.',
-                style: AppText.small,
-              ),
+              Text('Until ${prettyDay(payday)}.', style: AppText.small),
             ],
           ],
         ),
@@ -1104,7 +1119,11 @@ class OverviewScreen extends StatelessWidget {
                     children: [
                       Kicker('YOUR NUMBER'),
                       const Spacer(),
-                      Icon(salapifyIcon('forward'), color: Barako.faint, size: 18),
+                      Icon(
+                        salapifyIcon('forward'),
+                        color: Barako.faint,
+                        size: 18,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1125,10 +1144,7 @@ class OverviewScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    sub,
-                    style: AppText.small.copyWith(height: 1.4),
-                  ),
+                  Text(sub, style: AppText.small.copyWith(height: 1.4)),
                   // What is already spoken for, drawn rather than described.
                   // Both figures come from the SAME safeToSpend call that
                   // produced the per-day number above, so the bar can never
@@ -1247,6 +1263,81 @@ class OverviewScreen extends StatelessWidget {
   /// path as a quiet link for the tester migrating from the old app, rather
   /// than as the loud primary button a new user cannot use.
   Widget _nameAsk(BuildContext context) => _NameAsk(store: store);
+
+  /// The one lesson offered on Home, or nothing at all.
+  ///
+  /// A list rather than a widget so "there is nothing to offer" costs no
+  /// SizedBox and no spacing, the same spread pattern _timelineCard uses.
+  ///
+  /// Deliberately quiet: a bordered row, not a coloured hero. It is an
+  /// offer, and an offer that shouts competes with the money the user
+  /// actually opened the app for. It disappears entirely once every core
+  /// lesson is finished, rather than degrading into a card that congratulates
+  /// itself forever.
+  List<Widget> _nextLessonCard(BuildContext context, DateTime now) {
+    final lesson = nextCoreLesson(
+      data: store.data,
+      progress: store.lessonProgress,
+      now: now,
+    );
+    if (lesson == null) return const [];
+    return [
+      Card(
+        child: Semantics(
+          button: true,
+          label:
+              'Next money lesson, ${lesson.title}, '
+              '${lesson.minutes} minutes. Opens Money courses.',
+          child: ExcludeSemantics(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LearnScreen(
+                    store: store,
+                    focusId: lesson.id,
+                    onSwitchTab: onSwitchTab,
+                  ),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Icon(
+                      salapifyIcon('spotlight'),
+                      size: 18,
+                      color: Barako.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${lesson.minutes} MIN LESSON',
+                            style: Barako.kickerStyle,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(lesson.title, style: AppText.label.w7),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      salapifyIcon('forward'),
+                      size: 18,
+                      color: Barako.faint,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
 
   Widget _welcomeCard(BuildContext context) => Card(
     child: Padding(
@@ -1440,10 +1531,7 @@ class _NameAskState extends State<_NameAsk> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'What should Pan call you?',
-            style: AppText.bodyStrong,
-          ),
+          Text('What should Pan call you?', style: AppText.bodyStrong),
           const SizedBox(height: 4),
           Text(
             // Said plainly because this is a money app asking for a personal
@@ -1946,10 +2034,7 @@ class _ImportScreenState extends State<ImportScreen> {
               ),
               if (error != null) ...[
                 const SizedBox(height: 10),
-                Text(
-                  error!,
-                  style: AppText.small.tint(Barako.warning),
-                ),
+                Text(error!, style: AppText.small.tint(Barako.warning)),
               ],
               const SizedBox(height: 12),
               SizedBox(

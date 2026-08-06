@@ -660,3 +660,145 @@ class EducationalBoundaryView extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// The reference footer.
+// ---------------------------------------------------------------------------
+
+/// True for a block that PROVES something rather than teaches it.
+///
+/// The dividing line, stated once so both readers agree: a warning teaches
+/// (it changes what a reader does next, and RiskWarningBlock carries a
+/// severity for exactly that reason), a citation proves. Citations and the
+/// educational-boundary statement are reference material, so they belong at
+/// the end in one place instead of interrupting the teaching three times per
+/// lesson.
+bool isReferenceBlock(LessonBlock b) =>
+    b is OfficialSourceBlock || b is EducationalBoundaryBlock;
+
+/// Every lesson's citations and boundary statement, folded into one line
+/// that opens.
+///
+/// This exists because the compliance apparatus had grown to roughly a
+/// quarter of the visible cards in a long lesson: 63 official-source cards
+/// and 29 identical boundary paragraphs across the 29 lessons of one path
+/// (see docs/money_courses_experience_audit.md, finding H1). Worse than the
+/// count was the placement, three to five grey cards landing exactly where a
+/// reader decides whether to continue.
+///
+/// Nothing is removed and nothing is weakened. The rule this widget holds
+/// itself to:
+///
+/// 1. The boundary SENTENCE is visible while collapsed, not hidden behind
+///    the tap. A disclaimer a reader must work to find is not a disclaimer,
+///    so the collapsed line carries the actual statement rather than a
+///    label like "Legal".
+/// 2. Every agency is NAMED while collapsed, so a reader can see whose word
+///    this rests on without opening anything.
+/// 3. Expanding renders the original, unchanged [OfficialSourceView] and
+///    [EducationalBoundaryView], so every URL, issuance number and
+///    verification date stays exactly as reachable as before.
+class LessonReferenceFooter extends StatefulWidget {
+  final List<LessonBlock> blocks;
+  const LessonReferenceFooter(this.blocks, {super.key});
+
+  @override
+  State<LessonReferenceFooter> createState() => _LessonReferenceFooterState();
+}
+
+class _LessonReferenceFooterState extends State<LessonReferenceFooter> {
+  bool _open = false;
+
+  /// The agencies cited, in order, deduplicated. A lesson can cite the same
+  /// regulator twice (a law and the circular implementing it); naming it
+  /// twice in one line reads like a stutter.
+  List<String> get _agencies {
+    final out = <String>[];
+    for (final b in widget.blocks) {
+      if (b is OfficialSourceBlock && !out.contains(b.agency)) {
+        out.add(b.agency);
+      }
+    }
+    return out;
+  }
+
+  bool get _hasBoundary =>
+      widget.blocks.any((b) => b is EducationalBoundaryBlock);
+
+  String get _summary {
+    final parts = <String>[
+      if (_hasBoundary)
+        'Educational, not advice. Rules and product terms can change.',
+      if (_agencies.isNotEmpty) 'Sources: ${_agencies.join(', ')}.',
+    ];
+    return parts.join(' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.blocks.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: Barako.border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(salapifyIcon('protected'), size: 16, color: Barako.muted),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _summary,
+                  style: AppText.caption
+                      .tint(Barako.muted)
+                      .copyWith(height: 1.45),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Semantics(
+              expanded: _open,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: kMinInteractiveDimension,
+                ),
+                child: TextButton(
+                  onPressed: () => setState(() => _open = !_open),
+                  child: Text(
+                    _open ? 'Hide sources' : 'Sources and full notice',
+                    style: AppText.caption.w7.tint(Barako.primaryText),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: _open
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final b in widget.blocks)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: viewForBlock(b),
+                        ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ],
+      ),
+    );
+  }
+}

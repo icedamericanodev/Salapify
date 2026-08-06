@@ -17,7 +17,10 @@
 // stays testable against invented fixtures rather than against the real 93
 // lessons.
 
+import '../money/course_plan.dart';
 import '../money/lesson_flow.dart';
+import '../money/lesson_progress.dart';
+import '../money/reading_time.dart';
 import 'learning_path.dart';
 import 'learning_paths.dart';
 import 'lessons.dart';
@@ -57,7 +60,9 @@ List<FlowLesson> expansionFlowSequence(LearningPath path) {
           FlowLesson(
             id: lesson.id,
             title: lesson.title,
-            minutes: lesson.minutes,
+            // The honest figure, so a "Next: ... 5 min" button cannot
+            // promise less time than the lesson behind it needs.
+            minutes: displayMinutes(lesson),
             groupId: group.id,
             groupTitle: group.title,
           ),
@@ -70,6 +75,42 @@ List<FlowLesson> expansionFlowSequence(LearningPath path) {
 LearningPath? learningPathById(String pathId) {
   for (final p in publishedLearningPaths) {
     if (p.id == pathId) return p;
+  }
+  return null;
+}
+
+/// The one core lesson worth offering someone right now, or null when every
+/// core lesson is finished.
+///
+/// This exists for the Home screen. Money Courses is reached today through
+/// Menu, then Tools, then a row below the currency converter, and the
+/// experience audit's blunt finding was that the app's largest content
+/// investment sits behind a door most people never open. A lesson offered
+/// where the user already is costs them nothing to decline and is the
+/// cheapest possible fix for that.
+///
+/// It defers to the existing recommendation engine rather than inventing a
+/// second one: [recommendedTrack] already reads real transaction signals
+/// (a debt being paid down, irregular income, a recent windfall) and always
+/// answers, so the offer is the same one the Learn screen would make. Only
+/// if that track is finished does it fall back to the first unfinished
+/// lesson anywhere, so a learner is never offered nothing while unread
+/// lessons remain.
+FlowLesson? nextCoreLesson({
+  required Map<String, dynamic> data,
+  required Map<String, LessonState> progress,
+  required DateTime now,
+}) {
+  bool unfinished(FlowLesson l) =>
+      !isDone(progress[l.id] ?? LessonState.notStarted);
+
+  final sequence = coreFlowSequence();
+  final recommended = recommendedTrack(data, now).trackId;
+  for (final l in sequence) {
+    if (l.groupId == recommended && unfinished(l)) return l;
+  }
+  for (final l in sequence) {
+    if (unfinished(l)) return l;
   }
   return null;
 }

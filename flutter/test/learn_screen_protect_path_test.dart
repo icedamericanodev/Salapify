@@ -15,7 +15,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/learning_paths.dart' show lessonsForPath;
-import 'package:salapify/content/lessons.dart' as core;
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
@@ -141,10 +140,14 @@ void main() {
       }
       await _pumpTall(tester, store);
 
-      expect(find.text('0 of ${core.lessons.length} lessons'), findsOneWidget);
+      // Was an assertion on the on-screen "0 of 22 lessons" figure. The
+      // headline now counts the whole catalog by the founder's decision
+      // (audit H2), so the invariant is asserted against the store directly,
+      // which is what it always meant.
       expect(
-        find.text('0 of ${core.courseTracks.length} courses'),
-        findsOneWidget,
+        store.lessonProgress,
+        isEmpty,
+        reason: 'an expansion write leaked into the core progress store',
       );
       expect(
         find.text(
