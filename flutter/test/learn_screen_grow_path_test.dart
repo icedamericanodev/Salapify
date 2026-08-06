@@ -28,6 +28,7 @@ import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/course_plan.dart';
 import 'package:salapify/screens/learn.dart';
+import 'package:salapify/screens/path_screen.dart';
 import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -178,11 +179,15 @@ void main() {
       await tester.tap(
         find.descendant(
           of: growCard,
-          matching: find.widgetWithText(TextButton, 'All lessons'),
+          matching: find.widgetWithText(TextButton, 'All courses'),
         ),
       );
       await tester.pumpAndSettle();
 
+      // Since Phase 4 the courses are cards on their own PathScreen rather
+      // than kicker headings inside an expanded hub card, so each is a real
+      // destination a learner can open directly. That was the whole point:
+      // "Crypto Without the Hype" was previously unreachable on its own.
       for (final title in const [
         'Are You Ready to Invest?',
         'Stocks and Bonds Without the Hype',
@@ -191,11 +196,15 @@ void main() {
         'Philippine Government Securities',
       ]) {
         expect(
-          find.descendant(of: growCard, matching: find.text(title)),
+          find.text(title),
           findsOneWidget,
-          reason: 'course heading "$title" should appear once',
+          reason: 'course "$title" should be its own card',
         );
       }
+
+      await tester.tap(find.text('Crypto Without the Hype'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CourseScreen), findsOneWidget);
     },
   );
 }

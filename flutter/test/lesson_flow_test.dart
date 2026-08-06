@@ -231,4 +231,98 @@ void main() {
       expect(out.scope, FinishScope.lesson);
     });
   });
+
+  // One path's courses, for the catalog screens added in Phase 4
+  // (screens/path_screen.dart), where a course became a real destination
+  // rather than a kicker heading inside an expanded hub card.
+  group('courseProgress', () {
+    test('groups the sequence into courses, in first-seen order', () {
+      final out = courseProgress(_sequence, const {});
+      expect(out.map((c) => c.groupId), ['a', 'b']);
+      expect(out.first.groupTitle, 'Course A');
+      expect(out.first.total, 2);
+      expect(out.last.total, 1);
+    });
+
+    test('counts only its own course', () {
+      final out = courseProgress(_sequence, _doneAll(['a1', 'b1']));
+      expect(out.first.done, 1);
+      expect(out.last.done, 1);
+    });
+
+    test('names the next unfinished lesson', () {
+      final out = courseProgress(_sequence, _doneAll(['a1']));
+      expect(out.first.nextLessonId, 'a2');
+    });
+
+    test('a finished course offers no next lesson', () {
+      final out = courseProgress(_sequence, _doneAll(['a1', 'a2']));
+      expect(out.first.isComplete, isTrue);
+      expect(out.first.nextLessonId, isNull);
+    });
+
+    test('the button says what the learner should expect', () {
+      expect(courseProgress(_sequence, const {}).first.actionLabel, 'Start');
+      expect(
+        courseProgress(_sequence, _doneAll(['a1'])).first.actionLabel,
+        'Continue',
+      );
+      expect(
+        courseProgress(_sequence, _doneAll(['a1', 'a2'])).first.actionLabel,
+        'Read again',
+      );
+    });
+
+    test('an empty sequence yields no courses', () {
+      expect(courseProgress(const [], const {}), isEmpty);
+    });
+  });
+
+  // Which single course gets the loud button. Only one card on the screen may
+  // have it, so this decides which.
+  group('focusCourseId', () {
+    test('a fresh path points at the first course', () {
+      expect(focusCourseId(courseProgress(_sequence, const {})), 'a');
+    });
+
+    test('a half-read course wins over an untouched earlier one', () {
+      // Course B is started and not finished, course A has not been opened.
+      // B is the smaller ask, so it takes the button even though A comes
+      // first. Written this way round on purpose: "first unfinished" alone
+      // would answer 'a' here, so this is the only case that can tell the two
+      // rules apart.
+      //
+      // Its own fixture because _sequence's course B holds a single lesson,
+      // so there is no way to leave it half-read there.
+      const seq = <FlowLesson>[
+        ..._sequence,
+        FlowLesson(
+          id: 'b2',
+          title: 'Second of B',
+          minutes: 2,
+          groupId: 'b',
+          groupTitle: 'Course B',
+        ),
+      ];
+      expect(focusCourseId(courseProgress(seq, _doneAll(['b1']))), 'b');
+    });
+
+    test('skips a finished course', () {
+      expect(
+        focusCourseId(courseProgress(_sequence, _doneAll(['a1', 'a2']))),
+        'b',
+      );
+    });
+
+    test('a finished path focuses nothing', () {
+      expect(
+        focusCourseId(courseProgress(_sequence, _doneAll(['a1', 'a2', 'b1']))),
+        isNull,
+      );
+    });
+
+    test('no courses at all is safe', () {
+      expect(focusCourseId(const []), isNull);
+    });
+  });
 }
