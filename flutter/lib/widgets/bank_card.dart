@@ -295,11 +295,15 @@ class BankCard extends StatelessWidget {
 /// Cash has no number to mask, no chip, no contactless tap, and no network, so
 /// dressing it as a bank card was a small lie the founder caught at a glance:
 /// "Cash on hand" wore a `•••• •••• •••• 1111` and a gold chip. This is the
-/// honest visual, sharing the card's exact footprint (the same 1.586 ratio,
-/// shadow, neutral graphite gradient and FittedBox scaling, so it sits in the
-/// carousel beside the real cards) but carrying a wallet emblem and the balance
-/// instead. It does not flip, because there is no back worth turning to: a tap
-/// opens the account, the same as before the flip card shipped.
+/// honest visual, and it deliberately does NOT look like the bank cards: where
+/// a card is a dark, glossy, brand-coloured rectangle with a chip, this is a
+/// FLAT tile in the app's own surface colour, drawn in the theme accent with a
+/// wallet emblem, a dashed edge and no gradient, so at a glance in the carousel
+/// it reads as "your cash", a different kind of thing from the accounts. It
+/// keeps the card's 1.586 footprint only so the carousel's page sizing does not
+/// change. It does not flip, because there is no back worth turning to: a tap
+/// opens the account, the same as before the flip card shipped. Every colour is
+/// a Barako getter, so it follows all sixteen palettes and both brightnesses.
 class CashCard extends StatelessWidget {
   /// The account's display name, e.g. "Cash on hand".
   final String name;
@@ -309,11 +313,12 @@ class CashCard extends StatelessWidget {
   final double balance;
   final String? amountText;
 
-  /// The short kicker, top-right, e.g. "Cash". Defaults to "Cash".
+  /// The short kicker, e.g. "Cash". Defaults to "Cash".
   final String label;
 
-  // Not const: reads no Barako getter today, but kept parallel to BankCard so a
-  // later themed cash color cannot silently freeze behind a const call site.
+  // Not const: every colour below is a mutable Barako getter read in build, so
+  // a const call site would freeze the tile in the previous palette after a
+  // theme switch (the same trap SalapifyGlyph documents).
   // ignore: prefer_const_constructors_in_immutables
   CashCard({
     super.key,
@@ -325,112 +330,126 @@ class CashCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final g = bankCardGradient(null); // always the neutral graphite: cash has no brand
+    final accent = Barako.primary;
+    // A soft accent wash over the app's card surface: distinctly warmer and far
+    // flatter than a bank card's dark brand gradient, in every palette.
+    final fill = Color.alphaBlend(accent.withValues(alpha: 0.08), Barako.card);
     return AspectRatio(
       aspectRatio: 1.586,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: g[1].withValues(alpha: 0.42),
-              blurRadius: 20,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: MediaQuery.withClampedTextScaling(
-            maxScaleFactor: 1.0,
-            child: FittedBox(
-              fit: BoxFit.fill,
-              child: SizedBox(
-                width: _designWidth,
-                height: _designWidth / 1.586,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [_sheen(g[0]), g[0], g[1]],
-                            stops: const [0.0, 0.5, 1.0],
-                          ),
-                        ),
-                      ),
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.0,
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: SizedBox(
+            width: _designWidth,
+            height: _designWidth / 1.586,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(22),
+                // A visible accent edge, where a card has none: the clearest
+                // single tell that this is a tile, not a card.
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.45),
+                  width: 2,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // A faint banknote motif bleeding off the corner, the cash
+                  // stand-in for a card's brand monogram. A glyph, in accent.
+                  Positioned(
+                    right: -18,
+                    bottom: -24,
+                    child: Icon(
+                      salapifyIcon('cash'),
+                      size: 132,
+                      color: accent.withValues(alpha: 0.10),
                     ),
-                    // The wallet emblem bleeding off the corner, standing in for
-                    // the brand monogram a real card carries. A glyph, not text.
-                    Positioned(
-                      right: -10,
-                      bottom: -22,
-                      child: Icon(
-                        salapifyIcon('wallet'),
-                        size: 128,
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            // The wallet emblem in an accent disc, the app's own
+                            // icon treatment, which the bank cards never use.
+                            Container(
+                              padding: const EdgeInsets.all(11),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.16),
+                                shape: BoxShape.circle,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
+                              child: Icon(
+                                salapifyIcon('wallet'),
+                                size: 24,
+                                color: accent,
+                              ),
+                            ),
+                            const Spacer(),
+                            // The kicker as an accent pill, not white card text.
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
                                 label.toUpperCase(),
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                  color: accent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
                                   letterSpacing: 1.2,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // The wallet emblem where a card's chip would sit: a
-                          // soft rounded pouch with the wallet glyph, so the
-                          // tile reads as money you are holding, not a card.
-                          Container(
-                            width: 44,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(9),
-                              color: Colors.white.withValues(alpha: 0.14),
                             ),
-                            child: Icon(
-                              salapifyIcon('wallet'),
-                              size: 22,
-                              color: Colors.white.withValues(alpha: 0.92),
+                          ],
+                        ),
+                        const Spacer(),
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Barako.text,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'BALANCE',
+                          style: TextStyle(
+                            color: Barako.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            amountText ?? formatMoneyText(balance),
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: Barako.primaryText,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const Spacer(),
-                          _SavingsFooter(
-                            amountText: amountText ?? formatMoneyText(balance),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

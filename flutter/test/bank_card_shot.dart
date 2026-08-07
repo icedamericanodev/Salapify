@@ -283,6 +283,8 @@ void main() {
       await _shot(
         tester,
         name: 'cash-wallet-$suffix',
+        // Cash tile beside a real bank card and a credit card, so the
+        // distinction is judged the way the carousel shows them.
         home: Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(20),
@@ -291,13 +293,29 @@ void main() {
               children: [
                 CashCard(name: 'Cash on hand', balance: 3200),
                 const SizedBox(height: 16),
-                CashCard(name: 'Jar savings', balance: 12500, label: 'Cash'),
+                BankCard(
+                  bankName: 'BPI Savings',
+                  accountType: 'Savings',
+                  brandColor: institutionBrandColor('bpi'),
+                  last4: '1234',
+                  balance: 48500.55,
+                ),
+                const SizedBox(height: 16),
+                BankCard(
+                  bankName: 'BPI Card',
+                  accountType: 'Credit',
+                  brandColor: institutionBrandColor('bpi'),
+                  last4: '9012',
+                  balance: 42000,
+                  creditLimit: 50000,
+                  variant: BankCardVariant.credit,
+                ),
               ],
             ),
           ),
         ),
         brightness: b,
-        size: const Size(390, 620),
+        size: const Size(390, 820),
       );
     });
 
