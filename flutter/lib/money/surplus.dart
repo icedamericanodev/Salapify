@@ -8,6 +8,7 @@
 // promise.
 
 import 'analytics.dart' show emergencyRunway, goalPace;
+import 'base_currency_scope.dart' show baseCurrencyOf, inBaseCurrency;
 import 'commitments.dart' show safeToSpend;
 import 'ledger.dart' show amountOf;
 
@@ -77,10 +78,15 @@ Map<String, dynamic> nextPesoPlan(Map<String, dynamic> data, DateTime ref) {
   // strict `>` keeps the first of any tie, matching the RN linear scan.
   Map<String, dynamic>? topDebt;
   var rateUnfilled = false;
+  // A foreign-currency debt is left out of the peso order of operations: its
+  // remaining is not a peso figure, so ranking it here or surfacing it as the
+  // costliest debt would compare pesos to a different currency.
+  final base = baseCurrencyOf(data);
   for (final raw
       in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
+    if (!inBaseCurrency(d, base)) continue;
     final remaining = amountOf(d['remaining']);
     if (!(remaining > 0.5)) continue;
     final rate = amountOf(d['monthlyRate']);

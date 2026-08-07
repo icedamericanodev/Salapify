@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.71 \u00b7 Recurring bills now remind you before they are due, the way the screen already promised.';
+    'f3.72 \u00b7 Money fix: foreign debts left out of spoken-for, the next-peso order, and windfall split too.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

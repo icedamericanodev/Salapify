@@ -19,8 +19,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/money/analytics.dart'
     show emergencyRunway, healthScore;
 import 'package:salapify/money/base_currency_scope.dart';
+import 'package:salapify/money/commitmentload.dart' show commitmentLoad;
 import 'package:salapify/money/commitments.dart' show safeToSpend;
 import 'package:salapify/money/statements.dart' show netWorthParts;
+import 'package:salapify/money/surplus.dart' show nextPesoPlan;
+import 'package:salapify/money/windfall.dart' show splitWindfall;
 
 Map<String, dynamic> _data({
   String? base,
@@ -372,6 +375,122 @@ void main() {
       );
       final parts = healthScore(d, ref)['parts'] as Map;
       expect(parts['debt'], 13);
+    });
+  });
+
+  group('the debt-side engines respect the base currency', () {
+    // The three sites the f3.67 QA pass named: a foreign debt must not be added
+    // as pesos to the commitment load, ranked in the next-peso order, or paid
+    // down from a peso windfall. Rate 3 is well above the 1 percent high-rate
+    // floor, so these debts genuinely qualify for the debt tiers.
+
+    test('commitmentLoad leaves a foreign debt minimum out of the total', () {
+      final d = _data(
+        debts: [
+          {
+            'id': 'a',
+            'type': 'credit card',
+            'remaining': 40000,
+            'minPayment': 500,
+          },
+          {
+            'id': 'b',
+            'type': 'credit card',
+            'remaining': 40000,
+            'minPayment': 2000,
+            'currencyCode': 'USD',
+          },
+        ],
+      );
+      final load = commitmentLoad(d, ref);
+      expect(
+        load['minimumsTotal'],
+        500,
+        reason: 'the USD 2000 minimum was counted as pesos',
+      );
+      expect(load['minimumsCount'], 1);
+    });
+
+    test('commitmentLoad still counts a base debt minimum', () {
+      final d = _data(
+        debts: [
+          {
+            'id': 'a',
+            'type': 'credit card',
+            'remaining': 40000,
+            'minPayment': 500,
+          },
+        ],
+      );
+      expect(commitmentLoad(d, ref)['minimumsTotal'], 500);
+    });
+
+    test('nextPesoPlan never picks a foreign debt as the costliest', () {
+      final foreignOnly = _data(
+        debts: [
+          {
+            'id': 'b',
+            'name': 'US card',
+            'type': 'credit card',
+            'remaining': 50000,
+            'monthlyRate': 3,
+            'currencyCode': 'USD',
+          },
+        ],
+      );
+      expect(
+        nextPesoPlan(foreignOnly, ref)['topDebt'],
+        isNull,
+        reason: 'a USD debt was ranked in a peso order of operations',
+      );
+      final baseDebt = _data(
+        debts: [
+          {
+            'id': 'a',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 50000,
+            'monthlyRate': 3,
+          },
+        ],
+      );
+      expect(nextPesoPlan(baseDebt, ref)['topDebt'], isNotNull);
+    });
+
+    test('splitWindfall never allocates pesos to a foreign debt', () {
+      final foreignOnly = _data(
+        debts: [
+          {
+            'id': 'b',
+            'name': 'US card',
+            'type': 'credit card',
+            'remaining': 50000,
+            'monthlyRate': 3,
+            'currencyCode': 'USD',
+          },
+        ],
+      );
+      final slices =
+          splitWindfall(foreignOnly, ref, amount: 100000)['slices'] as List;
+      expect(
+        slices.every((s) => (s as Map)['key'] != 'debt'),
+        isTrue,
+        reason: 'a USD debt got a peso payment from the windfall',
+      );
+      final baseDebt = _data(
+        debts: [
+          {
+            'id': 'a',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 50000,
+            'monthlyRate': 3,
+          },
+        ],
+      );
+      final baseSlices =
+          splitWindfall(baseDebt, ref, amount: 100000)['slices'] as List;
+      expect(baseSlices.any((s) => (s as Map)['key'] == 'debt'), isTrue);
     });
   });
 
