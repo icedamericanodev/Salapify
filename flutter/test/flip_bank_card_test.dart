@@ -10,6 +10,8 @@
 // in for the platform channel (there is none in a test), exactly as the detail
 // screen's own tests do.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/theme.dart';
@@ -31,6 +33,16 @@ class _FakeAuth implements LockAuthenticator {
     prompts++;
     return ok;
   }
+}
+
+/// An authenticator whose result is held open until the test releases it, so a
+/// flip-back can be staged WHILE the auth prompt is still pending.
+class _GatedAuth implements LockAuthenticator {
+  final Completer<bool> gate = Completer<bool>();
+  @override
+  Future<bool> canLock() async => true;
+  @override
+  Future<bool> authenticate() => gate.future;
 }
 
 /// Hosts one card and owns its flip state, the same contract the carousel
@@ -292,6 +304,26 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
     expect(find.text('•••• 9012'), findsNothing);
+  });
+
+  testWidgets('a reveal finishing after a flip-back does not reveal', (
+    tester,
+  ) async {
+    final auth = _GatedAuth();
+    await _pump(tester, _Host((f, on) => _savings(f, on, auth: auth)));
+    await tester.tap(find.byType(FlipBankCard)); // flip to the back
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Reveal the last four digits'));
+    await tester.pump(); // canLock resolves; parked on the pending auth
+    await tester.tap(find.byType(FlipBankCard)); // flip back to the front
+    await tester.pumpAndSettle();
+    auth.gate.complete(true); // auth now resolves, on a front-facing card
+    await tester.pumpAndSettle();
+    // Flip to the back again: still masked, the stale auth did not leak through.
+    await tester.tap(find.byType(FlipBankCard));
+    await tester.pumpAndSettle();
+    expect(find.text(_revealed), findsNothing);
+    expect(find.text(_masked), findsOneWidget);
   });
 
   testWidgets('only one card is flipped at a time', (tester) async {

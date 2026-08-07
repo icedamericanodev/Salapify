@@ -2323,7 +2323,18 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
                         ),
                         child: PressableScale(
                           child: FlipBankCard(
-                            key: ValueKey(it.row['id'] ?? i),
+                            // Key by the stored id so deleting a card disposes
+                            // the RIGHT card (releasing its secure latch), but
+                            // fall back to the index for a malformed row whose
+                            // id is missing or an empty string, so two such rows
+                            // cannot collapse to the same key and trip Flutter's
+                            // duplicate-key assertion.
+                            key: ValueKey(
+                              (it.row['id'] is String &&
+                                      (it.row['id'] as String).isNotEmpty)
+                                  ? it.row['id']
+                                  : i,
+                            ),
                             row: it.row,
                             vault: widget.vault,
                             bankName: it.name,

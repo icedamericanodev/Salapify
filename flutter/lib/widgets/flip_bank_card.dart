@@ -146,6 +146,10 @@ class _FlipBankCardState extends State<FlipBankCard>
       // Flipping back to the front always re-hides a revealed number.
       if (!widget.flipped) _hide();
     }
+    // The number was edited to empty while revealed: the reveal/hide buttons
+    // disappear with it, so remask now rather than stranding the latch until
+    // the timeout.
+    if (old.last4 != null && widget.last4 == null) _hide();
   }
 
   @override
@@ -191,7 +195,10 @@ class _FlipBankCardState extends State<FlipBankCard>
     if (await _auth.canLock()) {
       if (!await _auth.authenticate()) return;
     }
-    if (!mounted) return;
+    // The auth prompt can drive the app off the foreground, which flips this
+    // card back to its front. If it did, do not reveal onto a front-facing card
+    // or hold FLAG_SECURE for the timeout: the next flip must ask again.
+    if (!mounted || !widget.flipped) return;
     if (!_secured) {
       SecureWindow.retain();
       _secured = true;

@@ -967,12 +967,21 @@ Future<void> showAccountQrSheet(
   String? label,
 }) {
   SecureWindow.retain();
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Barako.background,
-    builder: (_) => _QrViewSheet(vault: vault, qrRef: qrRef, label: label),
-  ).whenComplete(SecureWindow.release);
+  try {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Barako.background,
+      builder: (_) => _QrViewSheet(vault: vault, qrRef: qrRef, label: label),
+    ).whenComplete(SecureWindow.release);
+  } catch (_) {
+    // showModalBottomSheet throws synchronously only with no Navigator in
+    // context, so .whenComplete never attaches and the latch would be stranded
+    // on for the app's life. Release it here and rethrow so the caller still
+    // sees the failure.
+    SecureWindow.release();
+    rethrow;
+  }
 }
 
 /// The focused, full-width QR viewer. A white field so a phone camera reads it.
