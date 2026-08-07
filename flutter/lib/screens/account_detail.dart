@@ -290,10 +290,21 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   Widget _heroCard(Map<String, dynamic> row, String typeLabel, String? last4) {
     final instId = row['institutionId']?.toString();
     final bankName = institutionLabel(row) ?? (row['name']?.toString() ?? '');
+    // Physical cash is a wallet, not a card: the same honest visual the carousel
+    // shows, so tapping the wallet never opens onto a bank card with a chip and
+    // a masked number cash does not have.
+    final isCash = !_isDebt && row['kind']?.toString() == 'cash';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        BankCard(
+        if (isCash)
+          CashCard(
+            name: row['name']?.toString() ?? bankName,
+            balance: amountOf(row['balance']),
+            label: _shortType(row['kind']?.toString()),
+          )
+        else
+          BankCard(
           bankName: row['name']?.toString() ?? bankName,
           accountType: _isDebt ? 'Credit' : _shortType(row['kind']?.toString()),
           brandColor: institutionBrandColor(instId),

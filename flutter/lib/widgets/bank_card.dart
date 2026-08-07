@@ -290,6 +290,156 @@ class BankCard extends StatelessWidget {
   }
 }
 
+/// A wallet, not a card, for physical cash.
+///
+/// Cash has no number to mask, no chip, no contactless tap, and no network, so
+/// dressing it as a bank card was a small lie the founder caught at a glance:
+/// "Cash on hand" wore a `•••• •••• •••• 1111` and a gold chip. This is the
+/// honest visual, sharing the card's exact footprint (the same 1.586 ratio,
+/// shadow, neutral graphite gradient and FittedBox scaling, so it sits in the
+/// carousel beside the real cards) but carrying a wallet emblem and the balance
+/// instead. It does not flip, because there is no back worth turning to: a tap
+/// opens the account, the same as before the flip card shipped.
+class CashCard extends StatelessWidget {
+  /// The account's display name, e.g. "Cash on hand".
+  final String name;
+
+  /// The balance, and its preformatted foreign-currency form when the account
+  /// is not in the base currency (same contract as [BankCard.amountText]).
+  final double balance;
+  final String? amountText;
+
+  /// The short kicker, top-right, e.g. "Cash". Defaults to "Cash".
+  final String label;
+
+  // Not const: reads no Barako getter today, but kept parallel to BankCard so a
+  // later themed cash color cannot silently freeze behind a const call site.
+  // ignore: prefer_const_constructors_in_immutables
+  CashCard({
+    super.key,
+    required this.name,
+    required this.balance,
+    this.amountText,
+    this.label = 'Cash',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final g = bankCardGradient(null); // always the neutral graphite: cash has no brand
+    return AspectRatio(
+      aspectRatio: 1.586,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: g[1].withValues(alpha: 0.42),
+              blurRadius: 20,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.0,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: SizedBox(
+                width: _designWidth,
+                height: _designWidth / 1.586,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [_sheen(g[0]), g[0], g[1]],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // The wallet emblem bleeding off the corner, standing in for
+                    // the brand monogram a real card carries. A glyph, not text.
+                    Positioned(
+                      right: -10,
+                      bottom: -22,
+                      child: Icon(
+                        salapifyIcon('wallet'),
+                        size: 128,
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                label.toUpperCase(),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // The wallet emblem where a card's chip would sit: a
+                          // soft rounded pouch with the wallet glyph, so the
+                          // tile reads as money you are holding, not a card.
+                          Container(
+                            width: 44,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(9),
+                              color: Colors.white.withValues(alpha: 0.14),
+                            ),
+                            child: Icon(
+                              salapifyIcon('wallet'),
+                              size: 22,
+                              color: Colors.white.withValues(alpha: 0.92),
+                            ),
+                          ),
+                          const Spacer(),
+                          _SavingsFooter(
+                            amountText: amountText ?? formatMoneyText(balance),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The savings face: a label and the balance, no bar.
 class _SavingsFooter extends StatelessWidget {
   final String amountText;

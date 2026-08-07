@@ -279,6 +279,28 @@ void main() {
       );
     });
 
+    testWidgets('cash wallet card $suffix', (tester) async {
+      await _shot(
+        tester,
+        name: 'cash-wallet-$suffix',
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CashCard(name: 'Cash on hand', balance: 3200),
+                const SizedBox(height: 16),
+                CashCard(name: 'Jar savings', balance: 12500, label: 'Cash'),
+              ],
+            ),
+          ),
+        ),
+        brightness: b,
+        size: const Size(390, 620),
+      );
+    });
+
     testWidgets('accounts carousel $suffix', (tester) async {
       final store = await _store(_blob);
       await _shot(

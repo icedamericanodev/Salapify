@@ -905,6 +905,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           amountText: code == null ? null : formatConverted(bal, code),
           monogram: institutionById(row['institutionId']?.toString())?.initials,
           variant: BankCardVariant.savings,
+          isCash: row['kind']?.toString() == 'cash',
         ),
       );
     }
@@ -2160,6 +2161,11 @@ class _CardItem {
   /// The card network's wordmark ("VISA"), or null. Credit cards only.
   final String? networkMark;
   final BankCardVariant variant;
+
+  /// Physical cash: rendered as a wallet, not a bank card, and it does not flip
+  /// (there is no number, chip, network or QR to turn over to). A tap opens the
+  /// account instead.
+  final bool isCash;
   const _CardItem({
     required this.row,
     required this.store,
@@ -2174,6 +2180,7 @@ class _CardItem {
     this.monogram,
     this.limit,
     this.networkMark,
+    this.isCash = false,
   });
 }
 
@@ -2322,41 +2329,63 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
                           vertical: 4,
                         ),
                         child: PressableScale(
-                          child: FlipBankCard(
-                            // Key by the stored id so deleting a card disposes
-                            // the RIGHT card (releasing its secure latch), but
-                            // fall back to the index for a malformed row whose
-                            // id is missing or an empty string, so two such rows
-                            // cannot collapse to the same key and trip Flutter's
-                            // duplicate-key assertion.
-                            key: ValueKey(
-                              (it.row['id'] is String &&
-                                      (it.row['id'] as String).isNotEmpty)
-                                  ? it.row['id']
-                                  : i,
-                            ),
-                            row: it.row,
-                            vault: widget.vault,
-                            bankName: it.name,
-                            accountType: it.typeLabel,
-                            brandColor: it.brandColor,
-                            last4: it.last4,
-                            balance: it.amount,
-                            amountText: it.amountText,
-                            monogram: it.monogram,
-                            creditLimit: it.limit,
-                            networkMark: it.networkMark,
-                            variant: it.variant,
-                            flipped: _flipped == i,
-                            // The nudge sits only on the focused, front-facing
-                            // card, never on the peeking neighbour.
-                            showHint: widget.showHint &&
-                                i == focus &&
-                                _flipped == null,
-                            onFlip: (want) => _flip(i, want),
-                            onViewFullDetails: () => _open(it),
-                            onEdit: () => widget.onEdit(it),
-                          ),
+                          // Cash is a wallet, not a card: no number, chip,
+                          // network or QR to flip to, so it renders a CashCard
+                          // and a tap opens the account directly.
+                          child: it.isCash
+                              ? GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _open(it),
+                                  child: CashCard(
+                                    key: ValueKey(
+                                      (it.row['id'] is String &&
+                                              (it.row['id'] as String).isNotEmpty)
+                                          ? it.row['id']
+                                          : i,
+                                    ),
+                                    name: it.name,
+                                    balance: it.amount,
+                                    amountText: it.amountText,
+                                    label: it.typeLabel,
+                                  ),
+                                )
+                              : FlipBankCard(
+                                  // Key by the stored id so deleting a card
+                                  // disposes the RIGHT card (releasing its
+                                  // secure latch), but fall back to the index for
+                                  // a malformed row whose id is missing or an
+                                  // empty string, so two such rows cannot
+                                  // collapse to the same key and trip Flutter's
+                                  // duplicate-key assertion.
+                                  key: ValueKey(
+                                    (it.row['id'] is String &&
+                                            (it.row['id'] as String).isNotEmpty)
+                                        ? it.row['id']
+                                        : i,
+                                  ),
+                                  row: it.row,
+                                  vault: widget.vault,
+                                  bankName: it.name,
+                                  accountType: it.typeLabel,
+                                  brandColor: it.brandColor,
+                                  last4: it.last4,
+                                  balance: it.amount,
+                                  amountText: it.amountText,
+                                  monogram: it.monogram,
+                                  creditLimit: it.limit,
+                                  networkMark: it.networkMark,
+                                  variant: it.variant,
+                                  flipped: _flipped == i,
+                                  // The nudge sits only on the focused,
+                                  // front-facing card, never on the peeking
+                                  // neighbour.
+                                  showHint: widget.showHint &&
+                                      i == focus &&
+                                      _flipped == null,
+                                  onFlip: (want) => _flip(i, want),
+                                  onViewFullDetails: () => _open(it),
+                                  onEdit: () => widget.onEdit(it),
+                                ),
                         ),
                       );
                     },
@@ -2445,7 +2474,10 @@ class _CardDetail extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 4),
               Text(
-                'Tap the card to flip it over.',
+                // Cash does not flip; every other card does.
+                item.isCash
+                    ? 'Tap to open this account.'
+                    : 'Tap the card to flip it over.',
                 style: AppText.caption,
               ),
             ],
