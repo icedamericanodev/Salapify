@@ -138,6 +138,22 @@ void main() {
     expect(find.text('Move it'), findsNothing);
   });
 
+  testWidgets('a successful transfer shows a receipt', (tester) async {
+    // The biggest single-tap money move in the app used to confirm NOTHING: it
+    // just popped the sheet, unlike every other write, which shows a receipt.
+    // formatMoneyText renders whole pesos, so 1,000 reads back as P1,000.
+    await _open(tester);
+    await _openSheet(tester);
+    await tester.enterText(find.byType(TextField), '1,000');
+    await tester.tap(find.text('Move it'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Moved ₱1,000 from Cash to BPI.'),
+      findsOneWidget,
+      reason: 'a successful transfer must confirm what happened',
+    );
+  });
+
   testWidgets('an overdraft is refused in words, and nothing moves', (
     tester,
   ) async {
