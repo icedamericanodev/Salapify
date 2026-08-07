@@ -25,9 +25,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/store.dart';
 import '../data/qr_vault.dart';
-import '../money/account_taxonomy.dart' show AccountStore;
 import '../money/debtmath.dart' show formatMoneyText;
 import '../screens/account_detail.dart' show showAccountQrSheet;
 import '../services/secure_window.dart';
@@ -39,11 +37,10 @@ import 'salapify_icon.dart';
 const Duration _revealTimeout = Duration(seconds: 30);
 
 class FlipBankCard extends StatefulWidget {
-  /// The stored row and which collection it is in, so the back reads current
-  /// values and the actions address the right record.
+  /// The stored row, so the back reads current values (limit, due day, notes,
+  /// QR). The parent owns navigation and editing, so nothing here needs the
+  /// store or which collection the row lives in.
   final Map<String, dynamic> row;
-  final AccountStore accountStore;
-  final SalapifyStore store;
 
   // Front (BankCard) props, resolved by the caller exactly as for a plain card.
   final String bankName;
@@ -81,8 +78,6 @@ class FlipBankCard extends StatefulWidget {
   const FlipBankCard({
     super.key,
     required this.row,
-    required this.accountStore,
-    required this.store,
     required this.bankName,
     required this.accountType,
     required this.balance,
@@ -446,20 +441,31 @@ class _FlipBankCardState extends State<FlipBankCard>
           ),
         ),
         const SizedBox(width: 10),
-        // The digits themselves are excluded from the semantic tree when hidden,
-        // so a screen reader never announces a value the eye cannot see.
-        ExcludeSemantics(
-          child: Text(
-            masked,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
+        // Expanded + scale-down, not a fixed value + Spacer: the digits keep
+        // the reveal and copy buttons at the right edge and shrink themselves on
+        // a narrow phone rather than pushing the row past the card. The digits
+        // are also excluded from the semantic tree when hidden, so a screen
+        // reader never announces a value the eye cannot see.
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: ExcludeSemantics(
+                child: Text(
+                  masked,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-        const Spacer(),
         if (last4 != null) ...[
           _iconButton(
             _revealed ? 'hidden' : 'reveal',
@@ -538,30 +544,42 @@ class _FlipBankCardState extends State<FlipBankCard>
       if (hasNotes)
         _iconButton('note', 'View the notes', widget.onViewFullDetails),
       _iconButton('edit', 'Edit this account', widget.onEdit),
-      const Spacer(),
-      // The one that leaves the card: the full wallet page.
-      TextButton(
-        onPressed: widget.onViewFullDetails,
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          minimumSize: const Size(0, 36),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'View full details',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+      // Expanded, not a Spacer + fixed button: it hands the trailing button all
+      // the room the icons leave and no more, so on a narrow card (or the wider
+      // test font) the label ellipsizes inside its own space instead of pushing
+      // the row a few pixels past the edge.
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerRight,
+          // The one that leaves the card: the full wallet page.
+          child: TextButton(
+            onPressed: widget.onViewFullDetails,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            const SizedBox(width: 2),
-            Icon(salapifyIcon('forward'), size: 16, color: Colors.white),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Flexible(
+                  child: Text(
+                    'View full details',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(salapifyIcon('forward'), size: 16, color: Colors.white),
+              ],
+            ),
+          ),
         ),
       ),
     ],

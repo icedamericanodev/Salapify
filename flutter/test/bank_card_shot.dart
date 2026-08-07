@@ -12,7 +12,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
-import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/money/institutions.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/theme.dart';
@@ -154,9 +153,7 @@ Future<void> _shot(
 }
 
 FlipBankCard _flip({
-  required SalapifyStore store,
   required Map<String, dynamic> row,
-  required AccountStore accountStore,
   required String bank,
   required String type,
   required String brandId,
@@ -170,8 +167,6 @@ FlipBankCard _flip({
   LockAuthenticator? authenticator,
 }) => FlipBankCard(
   row: row,
-  accountStore: accountStore,
-  store: store,
   bankName: bank,
   accountType: type,
   brandColor: institutionBrandColor(brandId),
@@ -188,7 +183,7 @@ FlipBankCard _flip({
   onEdit: () {},
 );
 
-Widget _flipGallery(SalapifyStore store) {
+Widget _flipGallery() {
   final savingsRow = {
     'id': 'bpi',
     'name': 'BPI Savings',
@@ -214,9 +209,7 @@ Widget _flipGallery(SalapifyStore store) {
         children: [
           const _ShotLabel('Front, with the one-time hint'),
           _flip(
-            store: store,
             row: savingsRow,
-            accountStore: AccountStore.accounts,
             bank: 'BPI Savings',
             type: 'Savings',
             brandId: 'bpi',
@@ -228,9 +221,7 @@ Widget _flipGallery(SalapifyStore store) {
           const SizedBox(height: 20),
           const _ShotLabel('Back, savings, number masked by default'),
           _flip(
-            store: store,
             row: savingsRow,
-            accountStore: AccountStore.accounts,
             bank: 'BPI Savings',
             type: 'Savings',
             brandId: 'bpi',
@@ -241,9 +232,7 @@ Widget _flipGallery(SalapifyStore store) {
           const SizedBox(height: 20),
           const _ShotLabel('Back, credit card, outstanding and limit'),
           _flip(
-            store: store,
             row: creditRow,
-            accountStore: AccountStore.debts,
             bank: 'BPI Card',
             type: 'Credit',
             brandId: 'bpi',
@@ -302,7 +291,6 @@ void main() {
     });
 
     testWidgets('flip card faces $suffix', (tester) async {
-      final store = await _store(_blob);
       await _shot(
         tester,
         name: 'flip-card-faces-$suffix',
@@ -310,7 +298,7 @@ void main() {
         // want to review: the back-face content and colour, not a mid-turn.
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
-          child: _flipGallery(store),
+          child: _flipGallery(),
         ),
         brightness: b,
         size: const Size(390, 1050),
@@ -321,7 +309,6 @@ void main() {
   // Dark only, matching the founder's phone: the number revealed after auth on
   // the savings back, so the "•••• 1234" state can be reviewed too.
   testWidgets('flip card revealed dark', (tester) async {
-    final store = await _store(_blob);
     await loadRealFonts(tester);
     tester.view.physicalSize = const Size(390 * 3, 320 * 3);
     tester.view.devicePixelRatio = 3.0;
@@ -335,7 +322,6 @@ void main() {
             body: Padding(
               padding: const EdgeInsets.all(20),
               child: _flip(
-                store: store,
                 row: {
                   'id': 'bpi',
                   'name': 'BPI Savings',
@@ -343,7 +329,6 @@ void main() {
                   'target': 10000,
                   'qrRef': '',
                 },
-                accountStore: AccountStore.accounts,
                 bank: 'BPI Savings',
                 type: 'Savings',
                 brandId: 'bpi',

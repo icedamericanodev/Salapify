@@ -23,6 +23,7 @@ import '../money/transfers.dart'
     show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
+import '../data/qr_vault.dart';
 import '../money/account_taxonomy.dart';
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
@@ -34,6 +35,7 @@ import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/bank_card.dart';
+import '../widgets/flip_bank_card.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -98,13 +100,33 @@ class _AccountsScreenState extends State<AccountsScreen> {
   String? _highlightId;
   Timer? _fade;
 
+  /// Loaded once and passed down to the flipped card's QR shortcut, so the
+  /// carousel does not re-read the documents directory per card. Best effort:
+  /// off a device (web, tests) this stays null and the QR button simply does
+  /// not appear, exactly as the detail screen behaves.
+  QrVault? _vault;
+
   @override
   void initState() {
     super.initState();
+    QrVault.inAppDocuments().then((v) {
+      if (mounted) setState(() => _vault = v);
+    }).catchError((_) {});
     final id = widget.focusAccountId;
     if (id != null) {
       _highlightId = id;
       WidgetsBinding.instance.addPostFrameCallback((_) => _revealFocus(id));
+    }
+  }
+
+  /// Open the edit sheet for a card, the same one "View full details" reaches a
+  /// tap deeper. Accounts and debts have different editors, so the card's own
+  /// collection decides which one opens.
+  void _editCard(BuildContext context, _CardItem it) {
+    if (it.store == AccountStore.debts) {
+      showDebtFormSheet(context, store, debt: it.row);
+    } else {
+      _openForm(context, isAccount: true, item: it.row);
     }
   }
 
@@ -276,7 +298,15 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   ),
                   _AccountsCarousel(
                     items: cards,
-                    onTap: (it) => _openCard(context, it),
+                    store: store,
+                    vault: _vault,
+                    onOpen: (it) => _openCard(context, it),
+                    onEdit: (it) => _editCard(context, it),
+                    // The first-time nudge, shown until the founder flips any
+                    // card once. Persisted so it never returns on the next open.
+                    showHint:
+                        (store.data['settings'] as Map?)?['flipHintSeen'] != true,
+                    onFirstFlip: () => store.setSetting('flipHintSeen', true),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -2154,21 +2184,65 @@ class _CardItem {
 /// settles on a new card, and the card in focus drives the detail panel below.
 class _AccountsCarousel extends StatefulWidget {
   final List<_CardItem> items;
-  final void Function(_CardItem) onTap;
-  const _AccountsCarousel({required this.items, required this.onTap});
+  final SalapifyStore store;
+  final QrVault? vault;
+
+  /// Open the full wallet page for a card (its back's "View full details").
+  final void Function(_CardItem) onOpen;
+
+  /// Open the edit sheet for a card (its back's edit action).
+  final void Function(_CardItem) onEdit;
+
+  /// Show the one-time "Tap to view details" nudge on the focused front.
+  final bool showHint;
+
+  /// The founder flipped a card for the first time; persist that the nudge is
+  /// no longer needed.
+  final VoidCallback onFirstFlip;
+
+  const _AccountsCarousel({
+    required this.items,
+    required this.store,
+    required this.vault,
+    required this.onOpen,
+    required this.onEdit,
+    required this.showHint,
+    required this.onFirstFlip,
+  });
 
   @override
   State<_AccountsCarousel> createState() => _AccountsCarouselState();
 }
 
-class _AccountsCarouselState extends State<_AccountsCarousel> {
+class _AccountsCarouselState extends State<_AccountsCarousel>
+    with WidgetsBindingObserver {
   final _controller = PageController(viewportFraction: 0.88);
   int _index = 0;
 
+  /// Which card is currently flipped to its back, or null for all-front. A
+  /// single int is what enforces "only one card flipped at a time" for free.
+  int? _flipped;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Backgrounding returns every card to its front. The FlipBankCard re-masks
+    // any revealed digits itself; this is the other half, the cards' faces.
+    if (state != AppLifecycleState.resumed && _flipped != null) {
+      setState(() => _flipped = null);
+    }
   }
 
   @override
@@ -2184,14 +2258,33 @@ class _AccountsCarouselState extends State<_AccountsCarousel> {
         if (mounted && _controller.hasClients) _controller.jumpToPage(last);
       });
     }
+    // A flipped card that no longer exists (deleted, filtered) returns to none.
+    if (_flipped != null && _flipped! > last) _flipped = null;
   }
 
   void _onPageChanged(int i) {
     if (i == _index) return;
-    setState(() => _index = i);
+    // Swiping to another card returns the one we left to its front, so a list
+    // never scrolls with a card sitting open behind the one in focus.
+    setState(() {
+      _index = i;
+      _flipped = null;
+    });
     // The page settled on a new card: a light tick, the same feel as a native
     // wallet flicking between cards.
     HapticFeedback.selectionClick();
+  }
+
+  void _flip(int i, bool want) {
+    if (want && widget.showHint) widget.onFirstFlip();
+    setState(() => _flipped = want ? i : null);
+  }
+
+  void _open(_CardItem it) {
+    // Leaving for the full page returns the card to its front, so it is not
+    // sitting flipped when the founder swipes back.
+    setState(() => _flipped = null);
+    widget.onOpen(it);
   }
 
   @override
@@ -2229,20 +2322,29 @@ class _AccountsCarouselState extends State<_AccountsCarousel> {
                           vertical: 4,
                         ),
                         child: PressableScale(
-                          child: GestureDetector(
-                            onTap: () => widget.onTap(it),
-                            child: BankCard(
-                              bankName: it.name,
-                              accountType: it.typeLabel,
-                              brandColor: it.brandColor,
-                              last4: it.last4,
-                              balance: it.amount,
-                              amountText: it.amountText,
-                              monogram: it.monogram,
-                              creditLimit: it.limit,
-                              networkMark: it.networkMark,
-                              variant: it.variant,
-                            ),
+                          child: FlipBankCard(
+                            key: ValueKey(it.row['id'] ?? i),
+                            row: it.row,
+                            vault: widget.vault,
+                            bankName: it.name,
+                            accountType: it.typeLabel,
+                            brandColor: it.brandColor,
+                            last4: it.last4,
+                            balance: it.amount,
+                            amountText: it.amountText,
+                            monogram: it.monogram,
+                            creditLimit: it.limit,
+                            networkMark: it.networkMark,
+                            variant: it.variant,
+                            flipped: _flipped == i,
+                            // The nudge sits only on the focused, front-facing
+                            // card, never on the peeking neighbour.
+                            showHint: widget.showHint &&
+                                i == focus &&
+                                _flipped == null,
+                            onFlip: (want) => _flip(i, want),
+                            onViewFullDetails: () => _open(it),
+                            onEdit: () => widget.onEdit(it),
                           ),
                         ),
                       );
@@ -2332,7 +2434,7 @@ class _CardDetail extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 4),
               Text(
-                'Tap the card to open it.',
+                'Tap the card to flip it over.',
                 style: AppText.caption,
               ),
             ],
