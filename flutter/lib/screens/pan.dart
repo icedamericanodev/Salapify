@@ -21,6 +21,7 @@ import '../money/plan.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/pan_mascot.dart';
+import '../widgets/progress_bar.dart';
 import 'accounts.dart';
 import 'debts.dart';
 import 'goals.dart';
@@ -336,15 +337,10 @@ class _PanScreenState extends State<PanScreen> {
               ),
               if (state != 'orphaned' && state != 'done') ...[
                 const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    semanticsLabel: 'Plan progress',
-                    backgroundColor: Barako.border,
-                    valueColor: AlwaysStoppedAnimation(Barako.primary),
-                  ),
+                SalapifyProgressBar(
+                  value: pct,
+                  size: ProgressBarSize.micro,
+                  semanticsLabel: 'Plan progress',
                 ),
               ],
               const SizedBox(height: 8),

@@ -266,7 +266,11 @@ class PeriodSelector extends StatelessWidget {
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: Icon(salapifyIcon('close'), size: 16, color: Barako.faint),
+                  child: Icon(
+                    salapifyIcon('close'),
+                    size: 16,
+                    color: Barako.faint,
+                  ),
                 ),
               ),
             ),

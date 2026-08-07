@@ -13,6 +13,7 @@ import '../data/store.dart';
 import '../money/treats.dart' as treats;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 
@@ -124,6 +125,16 @@ class TreatsScreen extends StatelessWidget {
   );
 
   List<Widget> _emptyState(BuildContext context) => [
+    // The shared empty-state shape. No button on it, because the template
+    // cards below are the action.
+    EmptyState(
+      icon: 'treat',
+      title: 'No treats yet',
+      body:
+          'A treat is a small reward you earn by doing a money action a set '
+          'number of times.',
+    ),
+    const SizedBox(height: Gap.lg),
     Text('PICK ONE TO START', style: Barako.kickerStyle),
     const SizedBox(height: 12),
     for (final tpl in treats.treatTemplates)

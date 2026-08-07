@@ -19,16 +19,20 @@ import 'salapify_icon.dart';
 
 /// The section label, inside a card or outside one.
 ///
-/// theme.dart also defines `cardKickerStyle`, a caramel variant, with a note
-/// that "the outside label orients, the inside label belongs to its card".
-/// That distinction is deliberately NOT wired up here: the style is currently
-/// used by nothing in the app, and debts.dart, the one screen already on the
-/// theme style, uses the muted one inside its cards too. So muted everywhere
-/// is the real convention, and one style is what this widget exists to
-/// enforce. Splitting inside from outside is a design decision worth making
-/// on its own, with a render to look at, not smuggled into a deduplication.
+/// The inside/outside rule, written down at last (an earlier version of this
+/// comment claimed cardKickerStyle was "used by nothing in the app", which
+/// was stale the day the audit counted twenty-plus screens using it): a
+/// kicker OUTSIDE a card orients the reader down the page and stays muted; a
+/// kicker INSIDE a card belongs to its card and warms to caramel. Pass
+/// [inCard] accordingly. One widget owning both halves is what stops the 26
+/// hand-rolled letterspacing forks the audit found from growing back.
 class Kicker extends StatelessWidget {
   final String text;
+
+  /// True for a label inside a card or sheet surface: caramel, the accent
+  /// that makes a card's own headings feel owned rather than utilitarian.
+  /// False (the default) for the muted page-level label between cards.
+  final bool inCard;
 
   // NOT const. Barako.kickerStyle is a getter over the ACTIVE palette, read
   // during build. Dart canonicalizes const instances, so a const call site
@@ -37,10 +41,11 @@ class Kicker extends StatelessWidget {
   // constructor is what makes that impossible at every call site rather than
   // something each caller has to remember.
   // ignore: prefer_const_constructors_in_immutables
-  Kicker(this.text, {super.key});
+  Kicker(this.text, {super.key, this.inCard = false});
 
   @override
-  Widget build(BuildContext context) => Text(text, style: Barako.kickerStyle);
+  Widget build(BuildContext context) =>
+      Text(text, style: inCard ? Barako.cardKickerStyle : Barako.kickerStyle);
 }
 
 /// A section label with an optional total on the right.
@@ -118,6 +123,22 @@ class StatPair extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // At large accessibility text the two half-width columns would force the
+    // FittedBox to shrink the figures back toward 1.0x, quietly cancelling
+    // the one setting a low-vision user relies on, on exactly the numbers
+    // they most need. Stacking full-width lets the figures keep their scale;
+    // the FittedBox stays as the last resort within each side.
+    final large = MediaQuery.textScalerOf(context).scale(14) / 14 >= 1.5;
+    if (large) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _side(leftLabel, leftValue, leftColor, false),
+          const SizedBox(height: Gap.sm),
+          _side(rightLabel, rightValue, rightColor, false),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -135,12 +156,12 @@ class StatPair extends StatelessWidget {
           ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          textAlign: align,
-          style: TextStyle(color: Barako.muted, fontSize: 13),
-        ),
-        const SizedBox(height: 2),
+        // The two styles this widget exists to standardize used to be
+        // hand-rolled right here, invisible to the ladder they were dodging.
+        // Now they name their rungs: small muted label, metric figure
+        // (17, heavy, tabular so the two columns line up digit for digit).
+        Text(label, textAlign: align, style: AppText.small.tint(Barako.muted)),
+        const SizedBox(height: Gap.xxs),
         // scaleDown, not ellipsis: a truncated peso figure is worse than a
         // small one, because "₱1,234..." reads as a different amount rather
         // than as a rendering limit. Money never gets cut off here.
@@ -151,15 +172,9 @@ class StatPair extends StatelessWidget {
             value,
             maxLines: 1,
             textAlign: align,
-            style: TextStyle(
-              color: color ?? Barako.text,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              // Tabular figures so the two columns line up digit for digit.
-              // Without it a 5 and a 1 are different widths and the pair reads
-              // as ragged even when both are correct.
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: color == null
+                ? AppText.amountMetric
+                : AppText.amountMetric.tint(color),
           ),
         ),
       ],
@@ -211,23 +226,39 @@ class _CollapsibleCardState extends State<CollapsibleCard> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => _open = !_open),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(child: Text(widget.title, style: AppText.label.w7)),
-                  ExcludeSemantics(
-                    child: Icon(
-                      _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
-                      color: Barako.muted,
+        // The chevron below is decorative, so without this a screen reader
+        // hears only a tappable title with no open/closed state; expanded
+        // maps to the platform's expanded/collapsed announcement.
+        child: Semantics(
+          button: true,
+          expanded: _open,
+          child: InkWell(
+            // The card's own radius, so the tap ripple clips at the corner the
+            // eye already sees instead of squaring off 8dp short of it.
+            borderRadius: BorderRadius.circular(Radii.card),
+            onTap: () => setState(() => _open = !_open),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(widget.title, style: AppText.label.w7),
                     ),
-                  ),
-                ],
+                    ExcludeSemantics(
+                      child: Icon(
+                        _open
+                            ? salapifyIcon('collapse')
+                            : salapifyIcon('expand'),
+                        color: Barako.muted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

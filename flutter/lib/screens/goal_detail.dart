@@ -23,6 +23,7 @@ import '../money/ledger.dart' show amountOf;
 import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 import 'goal_create.dart' show goalAccentColor;
 import 'milestone_share.dart' show showMilestoneCelebration;
@@ -202,15 +203,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 style: AppText.heading.w8.tabular,
               ),
               const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Radii.pill),
-                child: LinearProgressIndicator(
-                  value: (pct / 100).clamp(0.0, 1.0),
-                  minHeight: 10,
-                  semanticsLabel: 'Goal progress',
-                  backgroundColor: Barako.border,
-                  color: accent,
-                ),
+              SalapifyProgressBar(
+                value: (pct / 100).clamp(0.0, 1.0),
+                semanticsLabel: 'Goal progress',
+                color: accent,
               ),
               const SizedBox(height: 10),
               Text(

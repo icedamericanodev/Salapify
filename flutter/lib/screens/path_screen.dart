@@ -28,6 +28,7 @@ import '../money/lesson_progress.dart';
 import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 
 const TextStyle _actionTextStyle = TextStyle(
@@ -150,15 +151,11 @@ class PathScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: c.total == 0 ? 0 : c.done / c.total,
-                  minHeight: 5,
-                  backgroundColor: Barako.border,
-                  color: c.isComplete ? Barako.celebrate : Barako.primary,
-                  semanticsLabel: '${c.groupTitle} progress',
-                ),
+              SalapifyProgressBar(
+                value: c.total == 0 ? 0 : c.done / c.total,
+                size: ProgressBarSize.micro,
+                semanticsLabel: '${c.groupTitle} progress',
+                color: c.isComplete ? Barako.celebrate : Barako.primary,
               ),
               const SizedBox(height: 8),
               Text(
@@ -260,17 +257,13 @@ class CourseScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 if (lessons.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: doneCount / lessons.length,
-                      minHeight: 5,
-                      backgroundColor: Barako.border,
-                      color: doneCount == lessons.length
-                          ? Barako.celebrate
-                          : Barako.primary,
-                      semanticsLabel: '${group.title} progress',
-                    ),
+                  SalapifyProgressBar(
+                    value: doneCount / lessons.length,
+                    size: ProgressBarSize.micro,
+                    semanticsLabel: '${group.title} progress',
+                    color: doneCount == lessons.length
+                        ? Barako.celebrate
+                        : Barako.primary,
                   ),
                   const SizedBox(height: 8),
                   Text(

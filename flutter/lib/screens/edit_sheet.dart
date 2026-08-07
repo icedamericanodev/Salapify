@@ -14,10 +14,10 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/entry_form.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import 'split_expense.dart' show showSplitSheet;
-import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// Opens the right sheet for a history row: the edit form when the row is
 /// editable, otherwise the read-only explainer that says why not and where
@@ -31,10 +31,12 @@ Future<void> showEntrySheet(
   bool utangLinked = false,
 }) {
   if (editable) {
+    // No surface override: the theme's bottomSheetTheme is the one doorway,
+    // shared with the log sheet, so the two forms stop changing dialect.
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Barako.card,
+      showDragHandle: true,
       builder: (sheetContext) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
@@ -100,7 +102,6 @@ Future<void> _showRecordSheet(
   final amount = t['amount'] is num ? (t['amount'] as num).toDouble() : 0.0;
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Barako.card,
     builder: (_) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -177,9 +178,6 @@ class _EditSheetState extends State<EditSheet> {
 
   String get _iso => day.toIso8601String().substring(0, 10);
 
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   @override
   void dispose() {
     amountController.dispose();
@@ -236,6 +234,12 @@ class _EditSheetState extends State<EditSheet> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final before = await widget.store.updateEntry(id, patch);
+      // Felt, not just shown, and only when something WAS written: a null
+      // here means the row vanished and nothing changed, and buzzing the
+      // money-written word on a no-op is exactly the lie the haptic
+      // vocabulary forbids. QA caught the first version firing before this
+      // check.
+      if (before != null) Haptics.moneyWritten();
       if (mounted) Navigator.of(context).pop();
       if (before == null) {
         // The row vanished between opening the sheet and saving. A sheet
@@ -305,183 +309,42 @@ class _EditSheetState extends State<EditSheet> {
         .map((a) => a.cast<String, dynamic>())
         .where((a) => a['id'] is String && (a['id'] as String).isNotEmpty)
         .toList();
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('EDIT ENTRY', style: Barako.cardKickerStyle),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _choice(
-                  'Expense',
-                  type == 'expense',
-                  () => setState(() => type = 'expense'),
-                ),
-                const SizedBox(width: 8),
-                _choice(
-                  'Income',
-                  type == 'income',
-                  () => setState(() => type = 'income'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: labelController,
-              style: TextStyle(color: Barako.text, fontSize: 16),
-              decoration: _decor(
-                type == 'income' ? 'e.g. Salary' : 'e.g. Groceries',
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text('WHEN', style: Barako.cardKickerStyle),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: _dayChips()),
-            if (accounts.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text('LINKED ACCOUNT', style: Barako.cardKickerStyle),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _choice(
-                    'Not linked',
-                    accountId == null,
-                    () => setState(() => accountId = null),
-                  ),
-                  for (final a in accounts)
-                    _choice(
-                      a['name']?.toString() ?? 'Account',
-                      accountId == a['id'],
-                      () => setState(() => accountId = a['id'] as String),
-                    ),
-                ],
-              ),
-            ],
-            if (error != null) ...[
-              const SizedBox(height: 10),
-              Text(error!, style: AppText.small.tint(Barako.warning)),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: saving ? null : _save,
+    // The shared form language (widgets/entry_form.dart), the same dialect
+    // the log sheet speaks; only the state and the reverse-then-apply save
+    // semantics stay this sheet's own.
+    return EntryFormBody(
+      kicker: 'EDIT ENTRY',
+      type: type,
+      onType: (v) => setState(() => type = v),
+      amountController: amountController,
+      labelController: labelController,
+      day: day,
+      onDay: (v) => setState(() => day = v),
+      accounts: accounts,
+      accountId: accountId,
+      onAccount: (v) => setState(() => accountId = v),
+      accountsKicker: 'LINKED ACCOUNT',
+      noAccountLabel: 'Not linked',
+      error: error,
+      saving: saving,
+      saveLabel: 'Save changes',
+      onSave: _save,
+      footer: widget.splittable
+          ? Center(
+              child: TextButton(
+                onPressed: () {
+                  final store = widget.store;
+                  final tx = widget.tx;
+                  Navigator.of(context).pop();
+                  showSplitSheet(context, store, tx);
+                },
                 child: Text(
-                  saving ? 'Saving...' : 'Save changes',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  'Split with friends instead',
+                  style: AppText.label.tint(Barako.primaryText),
                 ),
               ),
-            ),
-            if (widget.splittable)
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    final store = widget.store;
-                    final tx = widget.tx;
-                    Navigator.of(context).pop();
-                    showSplitSheet(context, store, tx);
-                  },
-                  child: Text(
-                    'Split with friends instead',
-                    style: TextStyle(
-                      color: Barako.primaryText,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+            )
+          : null,
     );
   }
-
-  List<Widget> _dayChips() {
-    final now = DateTime.now();
-    final yesterday = now.subtract(const Duration(days: 1));
-    final isToday = _sameDay(day, now);
-    final isYesterday = _sameDay(day, yesterday);
-    final custom = !isToday && !isYesterday;
-    return [
-      _choice('Today', isToday, () => setState(() => day = now)),
-      _choice('Yesterday', isYesterday, () => setState(() => day = yesterday)),
-      _choice(custom ? prettyDay(_iso) : 'Pick a date', custom, () async {
-        // BOTH bounds clamped around the row's own date. A restored RN
-        // backup can legally carry any date, and showDatePicker asserts
-        // initialDate inside [firstDate, lastDate]; the unclamped version
-        // crashed on a 2014 entry. Paluwagan learned this first
-        // (paluwagan.dart), and QA caught this sheet not copying the clamp.
-        final floor = DateTime(2015);
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: day.isAfter(now) ? now : day,
-          firstDate: day.isBefore(floor) ? day : floor,
-          // No future dates, same rule as logging: this row records money
-          // that already moved.
-          lastDate: now,
-        );
-        if (picked != null) setState(() => day = picked);
-      }),
-    ];
-  }
-
-  Widget _choice(String label, bool on, VoidCallback pick) => ChoiceChip(
-    label: Text(label),
-    selected: on,
-    onSelected: (_) => pick(),
-    selectedColor: Barako.primary,
-    backgroundColor: Barako.background,
-    labelStyle: TextStyle(
-      color: on ? Barako.onPrimary : Barako.textSecondary,
-      fontWeight: FontWeight.w600,
-    ),
-    side: BorderSide(color: Barako.border),
-  );
-
-  InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
-    hintText: hint,
-    prefixText: prefix,
-    prefixStyle: TextStyle(
-      color: Barako.muted,
-      fontSize: 24,
-      fontWeight: FontWeight.w700,
-    ),
-    filled: true,
-    fillColor: Barako.background,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(Radii.md),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(Radii.md),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-  );
 }

@@ -88,9 +88,7 @@ class SpokenForBar extends StatelessWidget {
       const SizedBox(width: Gap.sm),
       // Expanded so a large system font scale grows the label and pushes the
       // amount, rather than overflowing the Row.
-      Expanded(
-        child: Text(label, style: AppText.small),
-      ),
+      Expanded(child: Text(label, style: AppText.small)),
       Text(value, style: AppText.smallStrong.tabular),
     ],
   );

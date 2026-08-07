@@ -2886,32 +2886,6 @@ class _EditWinSheetState extends State<_EditWinSheet> {
     await widget.onSave(text, amount, note.isEmpty ? null : note);
   }
 
-  InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
-      InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Barako.faint),
-        prefixText: prefix,
-        prefixStyle: AppText.body.tint(Barako.textSecondary),
-        filled: true,
-        fillColor: Barako.card,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.primary),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2944,7 +2918,7 @@ class _EditWinSheetState extends State<_EditWinSheet> {
                 key: const Key('mindsetEditWinText'),
                 controller: _textCtl,
                 style: AppText.body,
-                decoration: _fieldDecoration(hint: 'e.g. New shoes'),
+                decoration: const InputDecoration(hintText: 'e.g. New shoes'),
               ),
               const SizedBox(height: 12),
               Text(
@@ -2959,9 +2933,10 @@ class _EditWinSheetState extends State<_EditWinSheet> {
                   decimal: true,
                 ),
                 style: AppText.body,
-                decoration: _fieldDecoration(
-                  hint: 'e.g. 150',
-                  prefix: '$baseCurrencySymbol ',
+                decoration: InputDecoration(
+                  hintText: 'e.g. 150',
+                  prefixText: '$baseCurrencySymbol ',
+                  prefixStyle: AppText.body.tint(Barako.textSecondary),
                 ),
               ),
               const SizedBox(height: 12),
@@ -2975,7 +2950,9 @@ class _EditWinSheetState extends State<_EditWinSheet> {
                 controller: _noteCtl,
                 maxLines: 2,
                 style: AppText.body,
-                decoration: _fieldDecoration(hint: 'A short reflection'),
+                decoration: const InputDecoration(
+                  hintText: 'A short reflection',
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 6),

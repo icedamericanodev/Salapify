@@ -22,7 +22,9 @@ import '../money/goals_calc.dart' show goalPercent;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 import 'goal_create.dart';
 import 'goal_detail.dart';
@@ -161,41 +163,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             const SizedBox(height: 8),
-            Center(
-              child: Column(
-                children: [
-                  SalapifyGlyph('goal', size: 34),
-                  const SizedBox(height: 12),
-                  Text(
-                    'What are you saving for?',
-                    textAlign: TextAlign.center,
-                    style: AppText.title.copyWith(fontSize: 19),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Choose a goal and Salapify will help you build a plan '
-                    'you can adjust anytime.',
-                    textAlign: TextAlign.center,
-                    style: AppText.small.tint(Barako.muted).copyWith(height: 1.45),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: () => _openCreate(),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Barako.primary,
-                      foregroundColor: Barako.onPrimary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: const Text(
-                      'Create a goal',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
+            // The shared empty-state shape; the template cards below stay,
+            // because they are the real invitation on this screen.
+            EmptyState(
+              icon: 'goal',
+              title: 'What are you saving for?',
+              body:
+                  'Choose a goal and Salapify will help you build a plan '
+                  'you can adjust anytime.',
+              actionLabel: 'Create a goal',
+              onAction: () => _openCreate(),
             ),
             const SizedBox(height: Gap.xl),
             Text('POPULAR GOAL TEMPLATES', style: Barako.kickerStyle),
@@ -575,15 +552,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 ),
                 if (!f.broken) ...[
                   const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                    child: LinearProgressIndicator(
-                      value: (pct / 100).clamp(0.0, 1.0),
-                      minHeight: 8,
-                      semanticsLabel: 'Progress',
-                      backgroundColor: Barako.border,
-                      color: accent,
-                    ),
+                  SalapifyProgressBar(
+                    value: (pct / 100).clamp(0.0, 1.0),
+                    semanticsLabel: 'Goal progress',
+                    color: accent,
                   ),
                   const SizedBox(height: 8),
                   Text(

@@ -641,6 +641,7 @@ class Barako {
   /// One constant, deliberately, so this is one edit and not forty. There is a
   /// test that fails on any file naming a font family directly.
   static const displayFont = 'Jakarta';
+
   /// The workhorse: every sentence, label, heading and row amount.
   ///
   /// Same family as [displayFont] today. They are kept as two constants
@@ -655,7 +656,6 @@ class Barako {
   /// is exactly how a font change ships everywhere the founder looks and
   /// nowhere they do not, until somebody shares a win and sees the old face.
   static const bodyFont = 'Jakarta';
-
 
   /// The section kicker: the small uppercase label above a card's content.
   ///
@@ -1036,8 +1036,12 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.field),
         ),
+        // bodyLg, not Material's 14: a filled button IS the primary action,
+        // and the app's main CTAs were all hand-raising themselves to 16
+        // anyway. One size here beats a size at forty call sites.
         textStyle: const TextStyle(
           fontFamily: 'Jakarta',
+          fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.2,
         ),

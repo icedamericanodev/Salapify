@@ -539,24 +539,7 @@ class _SplitSheetState extends State<_SplitSheet> {
   Widget _input(TextEditingController c, {String? hint}) => TextField(
     controller: c,
     style: TextStyle(color: Barako.text, fontSize: 15),
-    decoration: InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Barako.faint),
-      filled: true,
-      fillColor: Barako.card,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Barako.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Barako.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Barako.primary),
-      ),
-    ),
+    // The theme's input decoration carries fill, borders and hint color.
+    decoration: InputDecoration(hintText: hint),
   );
 }

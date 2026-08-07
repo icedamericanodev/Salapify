@@ -13,6 +13,7 @@ import '../typography.dart';
 import 'quick_add_editor.dart';
 import '../money/quick_adds.dart' show QuickAdd;
 import '../widgets/empty_state.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
 import 'overview.dart' show formatMoney;
@@ -295,14 +296,10 @@ class BudgetScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: pct / 100,
-                  minHeight: 8,
-                  backgroundColor: Barako.border,
-                  color: over ? Barako.warning : Barako.primary,
-                ),
+              SalapifyProgressBar(
+                value: pct / 100,
+                semanticsLabel: 'Budget used',
+                color: over ? Barako.warning : Barako.primary,
               ),
               const SizedBox(height: 8),
               Text(
@@ -369,14 +366,11 @@ class BudgetScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: frac,
-              minHeight: 5,
-              backgroundColor: Barako.border,
-              color: overCap ? Barako.warning : Barako.primary,
-            ),
+          SalapifyProgressBar(
+            value: frac,
+            size: ProgressBarSize.micro,
+            semanticsLabel: '${w['label']} spending',
+            color: overCap ? Barako.warning : Barako.primary,
           ),
         ],
       ),

@@ -26,6 +26,8 @@ import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' as ledger;
 import '../widgets/section.dart' show Kicker;
+import '../widgets/entry_form.dart' show AmountField;
+import '../widgets/choice_chip.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The open receivables behind one aging row. utangAging folds rows by the
@@ -1016,17 +1018,15 @@ class _PersonSheetState extends State<PersonSheet> {
                   decimal: true,
                 ),
                 style: AppText.heading,
+                // The theme decoration carries the fill and borders now; only
+                // the hint and the currency prefix are this field's own. The
+                // hint stays label sized because it is a sentence, not a
+                // figure, and would shout at heading size.
                 decoration: InputDecoration(
                   hintText: 'How much came back?',
                   hintStyle: AppText.label.w4.tint(Barako.faint),
                   prefixText: '$baseCurrencySymbol ',
                   prefixStyle: AppText.heading.tint(Barako.muted),
-                  filled: true,
-                  fillColor: Barako.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Barako.border),
-                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -1228,7 +1228,9 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               autofocus: true,
               textCapitalization: TextCapitalization.words,
               style: AppText.bodyLg,
-              decoration: _decor('Who borrowed? e.g. Juan'),
+              decoration: const InputDecoration(
+                hintText: 'Who borrowed? e.g. Juan',
+              ),
               onChanged: (_) => setState(() {}),
             ),
             if (people.isNotEmpty) ...[
@@ -1254,14 +1256,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               ),
             ],
             const SizedBox(height: 10),
-            TextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: AppText.title.copyWith(fontSize: 24).w7,
-              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
-            ),
+            AmountField(controller: amountController),
             const SizedBox(height: 10),
             // Read only, tap to pick. This used to ask a phone keyboard for
             // hand-typed ISO 8601, on a field that later drives overdue
@@ -1272,7 +1267,8 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
               controller: dueController,
               readOnly: true,
               style: AppText.bodyLg,
-              decoration: _decor('Due date (optional), tap to pick').copyWith(
+              decoration: InputDecoration(
+                hintText: 'Due date (optional), tap to pick',
                 suffixIcon: dueController.text.isEmpty
                     ? null
                     : IconButton(
@@ -1325,7 +1321,9 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
             TextField(
               controller: noteController,
               style: AppText.bodyLg,
-              decoration: _decor('Note, like "sa jeep" (optional)'),
+              decoration: const InputDecoration(
+                hintText: 'Note, like "sa jeep" (optional)',
+              ),
             ),
             if (accounts.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -1385,32 +1383,11 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
     );
   }
 
-  InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
-    hintText: hint,
-    hintStyle: TextStyle(color: Barako.faint),
-    prefixText: prefix,
-    prefixStyle: AppText.title.copyWith(fontSize: 24).w7.tint(Barako.muted),
-    filled: true,
-    fillColor: Barako.card,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-  );
-
   Widget _accountChip(String label, String id) {
-    final on = fromAccount == id;
-    return ChoiceChip(
-      label: Text(label),
-      selected: on,
+    return SalapifyChoiceChip(
+      label: label,
+      selected: fromAccount == id,
       onSelected: (_) => setState(() => fromAccount = id),
-      selectedColor: Barako.primary,
-      backgroundColor: Barako.card,
-      labelStyle: TextStyle(
-        color: on ? Barako.onPrimary : Barako.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      side: BorderSide(color: Barako.border),
     );
   }
 }

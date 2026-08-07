@@ -24,9 +24,9 @@ import '../data/store.dart';
 import '../money/quick_adds.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/entry_form.dart' show AmountField;
 import '../widgets/salapify_icon.dart';
 import 'overview.dart' show formatMoney;
-import '../money/currencies.dart' show baseCurrencySymbol;
 
 Future<void> showQuickAddEditor(BuildContext context, SalapifyStore store) {
   // Opening writes NOTHING. The first version seeded the defaults here so a
@@ -184,23 +184,17 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
                       child: TextField(
                         controller: _label,
                         style: TextStyle(color: Barako.text),
-                        decoration: _field('Name, like Jeep'),
+                        decoration: const InputDecoration(
+                          hintText: 'Name, like Jeep',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       flex: 2,
-                      child: TextField(
-                        controller: _amount,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        style: TextStyle(color: Barako.text),
-                        decoration: _field('0').copyWith(
-                          prefixText: '$baseCurrencySymbol ',
-                          prefixStyle: TextStyle(color: Barako.muted),
-                        ),
-                      ),
+                      // The shared money entry field, so typing a preset's
+                      // amount looks like typing any other amount in the app.
+                      child: AmountField(controller: _amount),
                     ),
                   ],
                 ),
@@ -253,26 +247,6 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
       },
     );
   }
-
-  InputDecoration _field(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: TextStyle(color: Barako.faint, fontSize: 14),
-    filled: true,
-    fillColor: Barako.card,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Barako.primary),
-    ),
-  );
 
   Widget _row(QuickAdd q, int index) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
