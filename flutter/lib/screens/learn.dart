@@ -26,6 +26,7 @@ import '../widgets/celebration.dart';
 import '../widgets/expansion_lesson_reader.dart';
 import '../widgets/paged_lesson_reader.dart';
 import '../widgets/lesson_block_views.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
 import 'cashflow.dart';
@@ -450,15 +451,9 @@ class _LearnScreenState extends State<LearnScreen> {
           ),
         ],
         const SizedBox(height: 14),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: total == 0 ? 0 : doneCount / total,
-            minHeight: 8,
-            backgroundColor: Barako.border,
-            color: Barako.primary,
-            semanticsLabel: 'Overall course progress',
-          ),
+        SalapifyProgressBar(
+          value: total == 0 ? 0 : doneCount / total,
+          semanticsLabel: 'Overall course progress',
         ),
         const SizedBox(height: 8),
         // Wrap, not Row: three facts at a large font scale would overflow.
@@ -556,14 +551,11 @@ class _LearnScreenState extends State<LearnScreen> {
               ),
             ],
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: stat.fraction,
-                minHeight: 5,
-                backgroundColor: Barako.border,
-                color: stat.isComplete ? Barako.celebrate : Barako.primary,
-              ),
+            SalapifyProgressBar(
+              value: stat.fraction,
+              size: ProgressBarSize.micro,
+              semanticsLabel: '${track['title']} progress',
+              color: stat.isComplete ? Barako.celebrate : Barako.primary,
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -891,14 +883,11 @@ class _LearnScreenState extends State<LearnScreen> {
               ),
             ],
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: stat.fraction,
-                minHeight: 5,
-                backgroundColor: Barako.border,
-                color: stat.isComplete ? Barako.celebrate : Barako.primary,
-              ),
+            SalapifyProgressBar(
+              value: stat.fraction,
+              size: ProgressBarSize.micro,
+              semanticsLabel: '${path.title} progress',
+              color: stat.isComplete ? Barako.celebrate : Barako.primary,
             ),
             const SizedBox(height: 8),
             Text(

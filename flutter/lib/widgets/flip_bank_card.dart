@@ -134,8 +134,7 @@ class _FlipBankCardState extends State<FlipBankCard>
   void didUpdateWidget(FlipBankCard old) {
     super.didUpdateWidget(old);
     if (widget.flipped != old.flipped) {
-      final reduce =
-          MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
       if (reduce) {
         _anim.value = widget.flipped ? 1 : 0;
       } else if (widget.flipped) {
@@ -235,8 +234,12 @@ class _FlipBankCardState extends State<FlipBankCard>
       );
   }
 
-  Future<void> _openQr(String ref, String? label) =>
-      showAccountQrSheet(context, vault: widget.vault, qrRef: ref, label: label);
+  Future<void> _openQr(String ref, String? label) => showAccountQrSheet(
+    context,
+    vault: widget.vault,
+    qrRef: ref,
+    label: label,
+  );
 
   // --- Build ----------------------------------------------------------------
 
@@ -348,7 +351,8 @@ class _FlipBankCardState extends State<FlipBankCard>
     final g = bankCardGradient(widget.brandColor);
     final row = widget.row;
     final qrRef = _qrRef(row);
-    final hasNotes = (row['paymentInstructions'] as String?)?.isNotEmpty == true;
+    final hasNotes =
+        (row['paymentInstructions'] as String?)?.isNotEmpty == true;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -476,7 +480,9 @@ class _FlipBankCardState extends State<FlipBankCard>
         if (last4 != null) ...[
           _iconButton(
             _revealed ? 'hidden' : 'reveal',
-            _revealed ? 'Hide the last four digits' : 'Reveal the last four digits',
+            _revealed
+                ? 'Hide the last four digits'
+                : 'Reveal the last four digits',
             _toggleReveal,
           ),
           _iconButton('copy', 'Copy the last four digits', _copyLast4),
@@ -491,7 +497,9 @@ class _FlipBankCardState extends State<FlipBankCard>
     if (_isCredit) {
       final limit = (row['creditLimit'] as num?)?.toDouble() ?? 0;
       final outstanding = widget.balance;
-      final available = (limit - outstanding).clamp(0, double.infinity).toDouble();
+      final available = (limit - outstanding)
+          .clamp(0, double.infinity)
+          .toDouble();
       chips.add(_stat('Outstanding', formatMoneyText(outstanding)));
       if (limit > 0) {
         chips.add(_stat('Available', formatMoneyText(available)));
@@ -502,17 +510,15 @@ class _FlipBankCardState extends State<FlipBankCard>
       if (stmt > 0) chips.add(_stat('Statement', 'Day $stmt'));
       if (due > 0) chips.add(_stat('Due', 'Day $due'));
     } else {
-      chips.add(_stat('Balance', widget.amountText ?? formatMoneyText(widget.balance)));
+      chips.add(
+        _stat('Balance', widget.amountText ?? formatMoneyText(widget.balance)),
+      );
       final target = (row['target'] as num?)?.toDouble() ?? 0;
       if (target > 0) chips.add(_stat('Maintaining', formatMoneyText(target)));
     }
     return Align(
       alignment: Alignment.topLeft,
-      child: Wrap(
-        spacing: 18,
-        runSpacing: 6,
-        children: chips,
-      ),
+      child: Wrap(spacing: 18, runSpacing: 6, children: chips),
     );
   }
 
@@ -546,8 +552,11 @@ class _FlipBankCardState extends State<FlipBankCard>
   Widget _actionRow(String? qrRef, bool hasNotes) => Row(
     children: [
       if (qrRef != null)
-        _iconButton('qr', 'Show the receiving QR code',
-            () => _openQr(qrRef, widget.row['qrLabel'] as String?)),
+        _iconButton(
+          'qr',
+          'Show the receiving QR code',
+          () => _openQr(qrRef, widget.row['qrLabel'] as String?),
+        ),
       if (hasNotes)
         _iconButton('note', 'View the notes', widget.onViewFullDetails),
       _iconButton('edit', 'Edit this account', widget.onEdit),

@@ -21,6 +21,7 @@ import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
@@ -1198,14 +1199,10 @@ class InsightsScreen extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: (parts[key] as double) / partMax[key]!,
-                          minHeight: 6,
-                          backgroundColor: Barako.border,
-                          color: Barako.primary,
-                        ),
+                      child: SalapifyProgressBar(
+                        value: (parts[key] as double) / partMax[key]!,
+                        size: ProgressBarSize.micro,
+                        semanticsLabel: '${partLabel[key]} score',
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1346,19 +1343,16 @@ class InsightsScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: maxNow > 0 ? (c['now'] as double) / maxNow : 0,
-                        minHeight: 5,
-                        backgroundColor: Barako.border,
-                        color:
-                            (c['expected'] as double) > 0 &&
-                                (c['now'] as double) >
-                                    (c['expected'] as double) * 1.2
-                            ? Barako.warning
-                            : Barako.primary,
-                      ),
+                    SalapifyProgressBar(
+                      value: maxNow > 0 ? (c['now'] as double) / maxNow : 0,
+                      size: ProgressBarSize.micro,
+                      semanticsLabel: '${c['label']} spending',
+                      color:
+                          (c['expected'] as double) > 0 &&
+                              (c['now'] as double) >
+                                  (c['expected'] as double) * 1.2
+                          ? Barako.warning
+                          : Barako.primary,
                     ),
                   ],
                 ),

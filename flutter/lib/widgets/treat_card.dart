@@ -64,10 +64,7 @@ class TreatCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Earn your treats',
-                          style: AppText.bodyStrong,
-                        ),
+                        Text('Earn your treats', style: AppText.bodyStrong),
                         const SizedBox(height: 2),
                         Text(
                           'Pair a small reward with a healthy habit. Guilt free.',
@@ -186,12 +183,7 @@ class TreatCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 24),
                   ),
                 const SizedBox(width: Gap.sm),
-                Expanded(
-                  child: Text(
-                    treatName,
-                    style: AppText.bodyStrong,
-                  ),
-                ),
+                Expanded(child: Text(treatName, style: AppText.bodyStrong)),
               ],
             ),
             const SizedBox(height: Gap.sm),

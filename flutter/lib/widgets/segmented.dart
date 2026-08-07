@@ -210,7 +210,11 @@ class Segmented<T> extends StatelessWidget {
                     // Excluded from semantics because the Semantics wrapper
                     // above already announces the selected state, and a screen
                     // reader saying "check, Dark, selected" is noise.
-                    Icon(salapifyIcon('check'), size: 16, color: Barako.onPrimary),
+                    Icon(
+                      salapifyIcon('check'),
+                      size: 16,
+                      color: Barako.onPrimary,
+                    ),
                     const SizedBox(width: Gap.xs),
                   ] else
                     const SizedBox(width: _leadingSlot),

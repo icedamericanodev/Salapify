@@ -15,9 +15,8 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/quickadd.dart';
 import '../theme.dart';
-import '../typography.dart';
+import '../widgets/entry_form.dart';
 import 'overview.dart' show formatMoney, prettyDay;
-import '../money/currencies.dart' show baseCurrencySymbol;
 
 final Random _rand = Random();
 
@@ -51,13 +50,13 @@ Future<void> showLogSheet(
   SalapifyStore store, {
   String initialType = 'expense',
 }) {
+  // No surface or shape overrides: the theme's bottomSheetTheme is the one
+  // doorway (card fill, Radii.sheet corners), so this sheet and the edit
+  // sheet stop disagreeing about their own entrance.
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Barako.background,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    showDragHandle: true,
     builder: (sheetContext) => Padding(
       // Lift the sheet above the keyboard.
       padding: EdgeInsets.only(
@@ -160,6 +159,9 @@ class _LogSheetState extends State<LogSheet> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await widget.store.addEntry(tx);
+      // Felt, not just shown: the save moment gets the moneyWritten word of
+      // the haptic vocabulary, AFTER persistence succeeded, never before.
+      Haptics.moneyWritten();
       if (mounted) Navigator.of(context).pop();
       // The receipt, and the escape hatch. The most used write path in the
       // app saved in silence while the Budget quick add showed both; a
@@ -224,216 +226,25 @@ class _LogSheetState extends State<LogSheet> {
     // tap on a chip, not retyping. Recomputes when the type toggles.
     final recents = recentLabels(widget.store.data['transactions'], type);
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Barako.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _typeChip('Expense', 'expense'),
-                const SizedBox(width: 8),
-                _typeChip('Income', 'income'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: amountController,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: TextStyle(
-                color: Barako.text,
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: _decor('0.00', prefix: '$baseCurrencySymbol '),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: labelController,
-              style: TextStyle(color: Barako.text, fontSize: 16),
-              decoration: _decor(
-                type == 'income' ? 'e.g. Salary' : 'e.g. Groceries',
-              ),
-            ),
-            if (recents.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final label in recents) _recentChip(label)],
-              ),
-            ],
-            const SizedBox(height: 14),
-            Text('WHEN', style: Barako.cardKickerStyle),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: _dayChips()),
-            if (accounts.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text('FROM WHICH ACCOUNT', style: Barako.cardKickerStyle),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _accountChip('No account', null),
-                  for (final a in accounts)
-                    _accountChip(
-                      a['name']?.toString() ?? 'Account',
-                      a['id'] as String,
-                    ),
-                ],
-              ),
-            ],
-            if (error != null) ...[
-              const SizedBox(height: 10),
-              Text(error!, style: AppText.small.tint(Barako.warning)),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Barako.primary,
-                  foregroundColor: Barako.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: saving ? null : _save,
-                child: Text(
-                  saving ? 'Saving...' : 'Save entry',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    // The whole body is the shared form language (widgets/entry_form.dart),
+    // the same dialect the edit sheet speaks; only the state and the save
+    // semantics stay this sheet's own.
+    return EntryFormBody(
+      type: type,
+      onType: (v) => setState(() => type = v),
+      amountController: amountController,
+      labelController: labelController,
+      amountAutofocus: true,
+      recents: recents,
+      day: logDay,
+      onDay: (v) => setState(() => logDay = v),
+      accounts: accounts,
+      accountId: accountId,
+      onAccount: (v) => setState(() => accountId = v),
+      error: error,
+      saving: saving,
+      saveLabel: 'Save entry',
+      onSave: _save,
     );
-  }
-
-  InputDecoration _decor(String hint, {String? prefix}) => InputDecoration(
-    hintText: hint,
-    hintStyle: TextStyle(color: Barako.faint),
-    prefixText: prefix,
-    prefixStyle: TextStyle(
-      color: Barako.muted,
-      fontSize: 28,
-      fontWeight: FontWeight.w700,
-    ),
-    filled: true,
-    fillColor: Barako.card,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Barako.border),
-    ),
-  );
-
-  Widget _recentChip(String label) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: () {
-        setState(() {
-          labelController.text = label;
-          labelController.selection = TextSelection.collapsed(
-            offset: label.length,
-          );
-        });
-      },
-      backgroundColor: Barako.card,
-      labelStyle: TextStyle(
-        color: Barako.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      side: BorderSide(color: Barako.border),
-    );
-  }
-
-  Widget _typeChip(String label, String value) {
-    final on = type == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: on,
-      onSelected: (_) => setState(() => type = value),
-      selectedColor: Barako.primary,
-      backgroundColor: Barako.card,
-      labelStyle: TextStyle(
-        color: on ? Barako.onPrimary : Barako.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      side: BorderSide(color: Barako.border),
-    );
-  }
-
-  Widget _accountChip(String label, String? id) {
-    final on = accountId == id;
-    return ChoiceChip(
-      label: Text(label),
-      selected: on,
-      onSelected: (_) => setState(() => accountId = id),
-      selectedColor: Barako.primary,
-      backgroundColor: Barako.card,
-      labelStyle: TextStyle(
-        color: on ? Barako.onPrimary : Barako.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      side: BorderSide(color: Barako.border),
-    );
-  }
-
-  /// Today, Yesterday, and a picker for any other day, one selected at a
-  /// time. When a picked day is neither of the quick two, the picker chip
-  /// itself shows the chosen date, so the selection is always readable on
-  /// the sheet and never hidden inside a dialog that already closed.
-  List<Widget> _dayChips() {
-    final now = DateTime.now();
-    final yesterday = now.subtract(const Duration(days: 1));
-    final isToday = _sameDay(logDay, now);
-    final isYesterday = _sameDay(logDay, yesterday);
-    final custom = !isToday && !isYesterday;
-    Widget chip(String label, bool on, VoidCallback pick) => ChoiceChip(
-      label: Text(label),
-      selected: on,
-      onSelected: (_) => pick(),
-      selectedColor: Barako.primary,
-      backgroundColor: Barako.card,
-      labelStyle: TextStyle(
-        color: on ? Barako.onPrimary : Barako.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      side: BorderSide(color: Barako.border),
-    );
-    return [
-      chip('Today', isToday, () => setState(() => logDay = now)),
-      chip('Yesterday', isYesterday, () => setState(() => logDay = yesterday)),
-      chip(custom ? prettyDay(_logIso) : 'Pick a date', custom, () async {
-        // No future dates: this sheet records money that already moved.
-        // Recurring bills and planned spending have their own screens.
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: logDay.isAfter(now) ? now : logDay,
-          firstDate: DateTime(2015),
-          lastDate: now,
-        );
-        if (picked != null) setState(() => logDay = picked);
-      }),
-    ];
   }
 }

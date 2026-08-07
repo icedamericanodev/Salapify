@@ -126,14 +126,28 @@ abstract final class AppText {
   );
 
   /// A hero number one step down (34).
-  static TextStyle get amountXl => amountHero.copyWith(fontSize: TypeScale.huge);
+  static TextStyle get amountXl =>
+      amountHero.copyWith(fontSize: TypeScale.huge);
 
   /// A hero number on a busier screen (30).
-  static TextStyle get amountLg => amountHero.copyWith(fontSize: TypeScale.hero);
+  static TextStyle get amountLg =>
+      amountHero.copyWith(fontSize: TypeScale.hero);
 
   /// A card's headline figure (28). Also the amount INPUT size in the log and
   /// edit sheets, so entering a figure and reading it back feel like one act.
   static TextStyle get amount => amountHero.copyWith(fontSize: TypeScale.big);
+
+  /// A labelled metric figure (17, heavy, tabular): the StatPair columns and
+  /// any amount standing beside a twin. Named here so the metric face lives
+  /// on the ladder instead of being composed in two widget files.
+  static TextStyle get amountMetric => TextStyle(
+    fontFamily: Barako.bodyFont,
+    fontSize: TypeScale.subtitle,
+    fontWeight: TypeWeight.heavy,
+    height: 1.25,
+    color: Barako.text,
+    fontFeatures: _tabular,
+  );
 
   /// Money inline in a list row: body size, bold, tabular, so a column of
   /// amounts lines up on the decimal.

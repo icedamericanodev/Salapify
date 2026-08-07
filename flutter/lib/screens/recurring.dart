@@ -674,28 +674,8 @@ class _RecurringSheetState extends State<_RecurringSheet> {
           : TextInputType.text,
       inputFormatters: formatters.isEmpty ? null : formatters,
       style: AppText.body,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Barako.faint),
-        filled: true,
-        fillColor: Barako.card,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Barako.primary),
-        ),
-      ),
+      // The theme's input decoration carries fill, borders and hint color.
+      decoration: InputDecoration(hintText: hint),
     );
   }
 }

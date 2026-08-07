@@ -14,7 +14,9 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/paluwagan.dart' as eng;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 
 const List<String> _months = [
@@ -115,39 +117,15 @@ class PaluwaganScreen extends StatelessWidget {
     );
   }
 
-  Widget _empty(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 24),
-    child: Column(
-      children: [
-        Icon(salapifyIcon('group'), color: Barako.faint, size: 40),
-        const SizedBox(height: 10),
-        Text(
-          'No paluwagan yet',
-          style: AppText.bodyLg.w8,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Add your office or friend group paluwagan to see your payout date '
-          'and where you stand.',
-          textAlign: TextAlign.center,
-          style: AppText.small.tint(Barako.muted),
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: () => _openSheet(context, null),
-          style: FilledButton.styleFrom(
-            backgroundColor: Barako.primary,
-            foregroundColor: Barako.onPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
-          icon: Icon(salapifyIcon('add'), size: 18),
-          label: const Text(
-            'Add your first paluwagan',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
-    ),
+  // The shared empty-state shape, in place of a hand-rolled column.
+  Widget _empty(BuildContext context) => EmptyState(
+    icon: 'group',
+    title: 'No paluwagan yet',
+    body:
+        'Add your office or friend group paluwagan to see your payout date '
+        'and where you stand.',
+    actionLabel: 'Add your first paluwagan',
+    onAction: () => _openSheet(context, null),
   );
 
   void _openSheet(BuildContext context, Map<String, dynamic>? item) {
@@ -342,14 +320,12 @@ class _PaluwaganCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ExcludeSemantics(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: frac,
-                minHeight: 6,
-                backgroundColor: Barako.border,
-                valueColor: AlwaysStoppedAnimation(Barako.primary),
-              ),
+            // Null label on purpose: the Semantics above already names this
+            // bar, and ExcludeSemantics keeps it from announcing twice.
+            child: SalapifyProgressBar(
+              value: frac,
+              size: ProgressBarSize.micro,
+              semanticsLabel: null,
             ),
           ),
           const SizedBox(height: 5),

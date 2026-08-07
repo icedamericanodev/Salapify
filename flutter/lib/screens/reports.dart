@@ -21,6 +21,7 @@ import '../theme.dart';
 import '../typography.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
+import '../widgets/segmented.dart';
 import 'history.dart';
 import 'overview.dart' show formatMoney, formatMoneyAbout;
 import 'shell.dart';
@@ -103,7 +104,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 else ...[
                   _netWorthLead(),
                   const SizedBox(height: 14),
-                  _segmented(),
+                  Segmented<int>(
+                    options: const [
+                      SegmentOption(value: 0, label: 'Income'),
+                      SegmentOption(value: 1, label: 'Cash flow'),
+                      SegmentOption(value: 2, label: 'Position'),
+                    ],
+                    current: _tab,
+                    onPick: (i) => setState(() => _tab = i),
+                  ),
                   const SizedBox(height: 12),
                   // Position is always "as of today" and the card already says
                   // so in its kicker, so only Income and Cash flow get a stepper.
@@ -193,55 +202,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  // ---- Segmented control ----
-  Widget _segmented() {
-    Widget seg(String label, int i) {
-      final on = _tab == i;
-      return Expanded(
-        child: Material(
-          color: on ? Barako.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _tab = i);
-            },
-            child: Container(
-              height: 44,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.small.copyWith(
-                    color: on ? Barako.onPrimary : Barako.textSecondary,
-                    fontWeight: on ? TypeWeight.bold : TypeWeight.medium,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Barako.border),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [seg('Income', 0), seg('Cash flow', 1), seg('Position', 2)],
       ),
     );
   }

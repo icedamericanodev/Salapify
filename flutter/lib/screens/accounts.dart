@@ -35,8 +35,10 @@ import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/bank_card.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/flip_bank_card.dart';
 import '../widgets/pressable_scale.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 
 const _accountKinds = [
@@ -391,9 +393,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
                           : null,
                     ),
                 if (!anyRows)
-                  _empty(
-                    'Nothing recorded yet. Tap Add an account above and '
-                    'Salapify will ask what it is.',
+                  // The shared empty-state shape. No button here, because the
+                  // Add an account button already sits right above.
+                  EmptyState(
+                    icon: 'wallet',
+                    title: 'Nothing recorded yet',
+                    body:
+                        'Tap Add an account above and Salapify will ask what '
+                        'it is.',
                   ),
               ],
             );
@@ -578,11 +585,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
       ),
     );
   }
-
-  Widget _empty(String text) => Padding(
-    padding: const EdgeInsets.all(16),
-    child: Text(text, style: AppText.small.tint(Barako.faint)),
-  );
 
   /// Which debt category renders the "manage debts elsewhere" note.
   ///
@@ -855,14 +857,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ],
                 if (progress != null) ...[
                   const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: Barako.border,
-                      color: Barako.primary,
-                    ),
+                  SalapifyProgressBar(
+                    value: progress,
+                    size: ProgressBarSize.micro,
+                    semanticsLabel: 'Savings progress',
                   ),
                 ],
               ],
