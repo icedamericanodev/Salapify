@@ -40,26 +40,60 @@ class SecureWindow {
   /// channel; only turning App Lock on ever sets it.
   static bool _applied = false;
 
-  /// Ask the OS to set or clear FLAG_SECURE. Idempotent, crash-proof, and a
+  /// The App Lock baseline: FLAG_SECURE follows this whenever nothing is forcing
+  /// it on. Set by [apply], which the App Lock listener drives.
+  static bool _baseline = false;
+
+  /// How many transient owners (a reveal, an open QR sheet) are currently
+  /// FORCING the flag on regardless of App Lock. A refcount rather than a bool
+  /// so two overlapping owners cannot release each other's protection early.
+  /// This is the fix for the race where a background store notify, firing
+  /// `apply(store.appLockOn)` on an App-Lock-off phone, would otherwise clear
+  /// FLAG_SECURE in the middle of a reveal and let the recents thumbnail catch
+  /// the digits.
+  static int _forced = 0;
+
+  /// Set the App Lock BASELINE and re-sync. Idempotent, crash-proof, and a
   /// no-op on platforms without the channel (web, tests), so it is always safe
-  /// to call.
+  /// to call. The effective flag is `baseline OR forced`, so this can never
+  /// clear the flag out from under a live [retain].
   static Future<void> apply(bool secure) async {
-    if (secure == _applied) return;
+    _baseline = secure;
+    return _sync();
+  }
+
+  /// Force FLAG_SECURE on for a sensitive moment (a revealed number, an open QR),
+  /// regardless of App Lock. Pair every call with exactly one [release].
+  static Future<void> retain() {
+    _forced++;
+    return _sync();
+  }
+
+  /// End one [retain]. The flag drops back to the App Lock baseline only once
+  /// the last owner has released.
+  static Future<void> release() {
+    if (_forced > 0) _forced--;
+    return _sync();
+  }
+
+  static Future<void> _sync() async {
+    final want = _baseline || _forced > 0;
+    if (want == _applied) return;
     if (kIsWeb) {
-      _applied = secure; // no channel on web; record so we do not retry
+      _applied = want; // no channel on web; record so we do not retry
       return;
     }
     try {
-      await channel.invokeMethod('setSecure', {'secure': secure});
+      await channel.invokeMethod('setSecure', {'secure': want});
       // Commit ONLY after the platform confirms. If the call throws for a
-      // transient reason, _applied stays as it was, so the next store notify
-      // retries the sync instead of falsely believing the flag is set.
-      _applied = secure;
+      // transient reason, _applied stays as it was, so the next sync retries
+      // instead of falsely believing the flag is set.
+      _applied = want;
     } on MissingPluginException {
       // No native side (a test, or a platform that does not register the
       // channel). Treat as applied so we do not cross the channel on every
       // notify; there is nothing to secure and nothing to crash over.
-      _applied = secure;
+      _applied = want;
     } catch (_) {
       // A window-flag failure must never take the app down, and must not be
       // recorded as success: leave _applied unchanged so a later sync retries.
@@ -79,5 +113,9 @@ class SecureWindow {
   /// start from a known state so the idempotence guard does not swallow the
   /// first call.
   @visibleForTesting
-  static void resetForTest() => _applied = false;
+  static void resetForTest() {
+    _applied = false;
+    _baseline = false;
+    _forced = 0;
+  }
 }

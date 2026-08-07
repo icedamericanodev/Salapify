@@ -86,6 +86,12 @@ class BankCard extends StatelessWidget {
   /// Credit only: the credit limit, used for the utilization bar.
   final double? creditLimit;
 
+  /// The card network's WORDMARK, e.g. "VISA", or null. Drawn as plain text at
+  /// the bottom-right, the corner a real card carries its scheme mark, never a
+  /// logo image. White on the card's darker end, which already clears the small
+  /// text AA bar the gradient guarantees.
+  final String? networkMark;
+
   final BankCardVariant variant;
 
   // Not const: every Barako read happens at build time.
@@ -100,6 +106,7 @@ class BankCard extends StatelessWidget {
     this.amountText,
     this.monogram,
     this.creditLimit,
+    this.networkMark,
     this.variant = BankCardVariant.savings,
   });
 
@@ -217,16 +224,46 @@ class BankCard extends StatelessWidget {
                                 size: 18,
                                 color: Colors.white.withValues(alpha: 0.85),
                               ),
+                              const Spacer(),
+                              // The network wordmark rides this row, well clear
+                              // of the balance and the credit utilization bar
+                              // below. Text only, never a logo, white on the
+                              // card's darker end so it clears the small-text AA
+                              // bar the gradient guarantees.
+                              if (networkMark != null && networkMark!.isNotEmpty)
+                                Text(
+                                  networkMark!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
                             ],
                           ),
                           const Spacer(),
-                          Text(
-                            _maskedNumber(last4),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 2.0,
+                          // A screen reader hears "ending 1234" once, not the
+                          // run of bullets. The last four is not a secret (a
+                          // physical card shows it), so the hero states it
+                          // cleanly; the secure section below is where reveal,
+                          // copy and auth live for the account number.
+                          Semantics(
+                            label: (last4 != null &&
+                                    RegExp(r'^\d{4}$').hasMatch(last4!))
+                                ? 'Card number ending $last4'
+                                : 'Card number not saved',
+                            child: ExcludeSemantics(
+                              child: Text(
+                                _maskedNumber(last4),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 2.0,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),

@@ -442,6 +442,79 @@ ResolvedKind _derive(Map row, AccountStore store) {
 bool _isFourDigits(dynamic v) =>
     v is String && RegExp(r'^\d{4}$').hasMatch(v);
 
+/// The card networks Salapify recognises, as stable lowercase ids. Kept here,
+/// not imported from card_products.dart, so the persistence contract has no
+/// dependency on the display catalogue: a network the catalogue later renames
+/// or restyles must never change what is allowed on disk.
+const Set<String> kCardNetworks = {
+  'visa',
+  'mastercard',
+  'jcb',
+  'amex',
+  'unionpay',
+};
+
+/// A user-typed note kept beside an account, trimmed and length-capped. Returns
+/// null (so the key is dropped) for anything empty or not a string, and never
+/// stores more than [max] characters.
+///
+/// These are free-text fields: a holder name, a branch, a line of payment
+/// instructions. The dedicated number field only ever takes four digits, but a
+/// person could still TYPE a full card number into a note, and the screen tells
+/// them not to. So the promise is enforced here too, not just advised: any run
+/// that looks like a real card number, 13 to 19 digits that pass the Luhn
+/// check, is redacted before the note is stored. A Luhn check rather than a bare
+/// length rule so an ordinary long reference number (which almost never passes
+/// Luhn) is kept, while an actual PAN (which always does) is masked. A CVV, PIN
+/// or password cannot be recognised from digits alone and stays the user's
+/// responsibility, which is what the screen copy says.
+String? _cappedNote(dynamic v, int max) {
+  if (v is! String) return null;
+  final t = _redactCardNumbers(v.trim());
+  if (t.isEmpty) return null;
+  return t.length > max ? t.substring(0, max) : t;
+}
+
+/// Replace any Luhn-valid 13 to 19 digit run (digits optionally separated by
+/// single spaces or dashes, the way people type a card number) with a redaction
+/// marker. Deliberately conservative: it only fires on something that really is
+/// a card number, so it never eats a date, an amount, or a short reference.
+String _redactCardNumbers(String s) => s.replaceAllMapped(
+  RegExp(r'\b(?:\d[ -]?){13,19}\b'),
+  (m) {
+    final digits = m[0]!.replaceAll(RegExp(r'[ -]'), '');
+    if (digits.length < 13 || digits.length > 19) return m[0]!;
+    return _luhnValid(digits) ? '[removed for safety]' : m[0]!;
+  },
+);
+
+bool _luhnValid(String digits) {
+  var sum = 0;
+  var alt = false;
+  for (var i = digits.length - 1; i >= 0; i--) {
+    var d = digits.codeUnitAt(i) - 48;
+    if (d < 0 || d > 9) return false;
+    if (alt) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    alt = !alt;
+  }
+  return sum % 10 == 0;
+}
+
+/// A locally stored QR image is referenced by FILENAME only, never a path. The
+/// vault owns the name and stamps this exact shape (`qr_...png`), so a stored
+/// value that carries a directory separator, a `..`, or any other shape is a
+/// hand-edited or corrupt blob and is dropped rather than trusted: a path that
+/// escaped the app's own folder is exactly what this guard exists to refuse.
+/// Public so the QR vault and this persistence contract validate one shape, and
+/// can never disagree about what a legal reference looks like.
+bool isQrRef(dynamic v) =>
+    v is String && RegExp(r'^qr_[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|webp)$')
+        .hasMatch(v);
+
 /// The new fields, validated, as keys to merge into a stored row.
 ///
 /// CONDITIONAL, every one of them. The backup goldens compare key sets
@@ -486,6 +559,47 @@ Map<String, dynamic> taxonomyKeys(dynamic row, AccountStore store) {
   }
 
   if (_isFourDigits(m['last4'])) out['last4'] = m['last4'];
+
+  // Card metadata, only meaningful on a debt (a credit card lives in the debts
+  // collection). Restricted to that store so a hand-edited savings row can
+  // never carry a card network into the cash total's neighbourhood; there is no
+  // screen that would set it, and dropping it here is the same safe fallback
+  // the rest of this function uses.
+  if (store == AccountStore.debts) {
+    final net = m['cardNetwork'];
+    if (net is String && kCardNetworks.contains(net.toLowerCase())) {
+      out['cardNetwork'] = net.toLowerCase();
+    }
+    final prod = m['cardProductId'];
+    if (prod is String && RegExp(r'^[a-z0-9_]{1,64}$').hasMatch(prod)) {
+      out['cardProductId'] = prod;
+    }
+    final fee = m['annualFee'];
+    if (fee is num && fee.isFinite && fee >= 0) {
+      out['annualFee'] = fee.toDouble();
+    }
+  }
+
+  // Non-secret notes and a QR reference, valid on any collection: a bank
+  // account, an e-wallet and a credit card can each carry a holder name, a
+  // branch, payment instructions and a receiving QR. Trimmed and length-capped;
+  // the QR is a FILENAME only, validated to the vault's own shape.
+  final holder = _cappedNote(m['accountHolderName'], 80);
+  if (holder != null) out['accountHolderName'] = holder;
+  final instr = _cappedNote(m['paymentInstructions'], 280);
+  if (instr != null) out['paymentInstructions'] = instr;
+  final branch = _cappedNote(m['branchDetails'], 120);
+  if (branch != null) out['branchDetails'] = branch;
+  final qrLabel = _cappedNote(m['qrLabel'], 80);
+  if (qrLabel != null) out['qrLabel'] = qrLabel;
+  if (isQrRef(m['qrRef'])) out['qrRef'] = m['qrRef'];
+
+  // Records WHICH protection scheme guarded this row's sensitive fields, so a
+  // later scheme can tell an old row from a new one without guessing. Version 1
+  // is "last four digits only, revealed behind device authentication"; there is
+  // no full number to protect because none is ever stored.
+  final prot = m['sensitiveDataProtectionVersion'];
+  if (prot is int && prot >= 1) out['sensitiveDataProtectionVersion'] = prot;
 
   // Both default to the safe answer when absent, so only the NON-default is
   // ever written. A row that counts and is not archived carries neither key,

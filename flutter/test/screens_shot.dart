@@ -64,6 +64,8 @@ import 'package:salapify/screens/goal_detail.dart';
 import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/onboarding.dart';
+import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
+import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
@@ -291,6 +293,10 @@ final Map<String, dynamic> livedInBlob = () {
         'subtype': 'savings_account',
         'institutionId': 'bpi',
         'target': 100000,
+        'last4': '4821',
+        'accountHolderName': 'Carla Dimaguila',
+        'branchDetails': 'BPI Ayala Makati',
+        'sensitiveDataProtectionVersion': 1,
       },
       {
         'id': 'gcash',
@@ -386,6 +392,14 @@ final Map<String, dynamic> livedInBlob = () {
         'dueDay': 15,
         'statementDay': 25,
         'creditLimit': 50000,
+        'subtype': 'credit_card',
+        'institutionId': 'bpi',
+        'cardNetwork': 'mastercard',
+        'cardProductId': 'platinum',
+        'last4': '7702',
+        'annualFee': 2500,
+        'accountHolderName': 'Carla Dimaguila',
+        'sensitiveDataProtectionVersion': 1,
       },
       {
         'id': 'moto',
@@ -627,6 +641,12 @@ void main() {
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
     'appearance': (s) => AppearanceScreen(store: s),
+    // The wallet detail screens, one for a deposit account (secure info, holder,
+    // branch) and one for a credit card (network, limit, statement and due).
+    'account-detail': (s) =>
+        AccountDetailScreen(store: s, id: 'bpi', accountStore: AccountStore.accounts),
+    'card-detail': (s) =>
+        AccountDetailScreen(store: s, id: 'card', accountStore: AccountStore.debts),
     // Money Courses Phase 6 pilot: the readiness card, the most novel new
     // widget this course adds (content/interaction_blocks.dart's
     // ReadinessCardBlock plus the Salapify actions menu underneath it).

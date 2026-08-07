@@ -114,6 +114,12 @@ const Map<String, IconData> _icons = {
   'swap': Icons.swap_vert,
   'split': Icons.call_split,
   'copy': Icons.copy,
+  // The account detail screen: an overflow menu, the secure-information lock,
+  // and the reveal or hide toggle for the saved last four digits.
+  'more': Icons.more_vert,
+  'lock': Icons.lock_outline,
+  'reveal': Icons.visibility_outlined,
+  'hide': Icons.visibility_off_outlined,
   'download': Icons.download,
   'import': Icons.upload_file,
   'install': Icons.system_update_alt,
