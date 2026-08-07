@@ -35,7 +35,8 @@ import '../services/secure_window.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/bank_card.dart';
-import '../widgets/lock_gate.dart' show BiometricAuthenticator, LockAuthenticator;
+import '../widgets/lock_gate.dart'
+    show BiometricAuthenticator, LockAuthenticator;
 import '../widgets/salapify_icon.dart';
 import '../widgets/section.dart';
 
@@ -97,9 +98,11 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     if (_vault == null) {
       // path_provider only exists on a device, so this is a no-op in a widget
       // test and the QR section simply shows its empty state there.
-      QrVault.inAppDocuments().then((v) {
-        if (mounted) setState(() => _vault = v);
-      }).catchError((_) {});
+      QrVault.inAppDocuments()
+          .then((v) {
+            if (mounted) setState(() => _vault = v);
+          })
+          .catchError((_) {});
     }
   }
 
@@ -227,7 +230,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
                 ),
                 PopupMenuItem(
                   value: 'delete',
-                  child: Text('Delete', style: TextStyle(color: Barako.warningStrong)),
+                  child: Text(
+                    'Delete',
+                    style: TextStyle(color: Barako.warningStrong),
+                  ),
                 ),
               ];
             },
@@ -298,40 +304,44 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isCash)
-          CashCard(
+          CashBalanceTile(
             name: row['name']?.toString() ?? bankName,
             balance: amountOf(row['balance']),
-            label: _shortType(row['kind']?.toString()),
+          )
+        // The hero follows the reveal: hidden by default it shows only dots, so
+        // the digits are in one place on this screen (behind the reveal), not
+        // stated on the card while the secure section below still gates them.
+        // Revealing shows them here and there together.
+        else if (_isDebt)
+          CreditCardAccountCard(
+            bankName: row['name']?.toString() ?? bankName,
+            brandColor: institutionBrandColor(instId),
+            last4: _revealed ? last4 : null,
+            outstanding: amountOf(row['remaining']),
+            creditLimit: amountOf(row['creditLimit']),
+            monogram: institutionById(instId)?.initials,
+            networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
           )
         else
-          BankCard(
-          bankName: row['name']?.toString() ?? bankName,
-          accountType: _isDebt ? 'Credit' : _shortType(row['kind']?.toString()),
-          brandColor: institutionBrandColor(instId),
-          // The hero follows the reveal: hidden by default it shows only dots,
-          // so the digits are in one place on this screen (behind the reveal),
-          // not stated on the card while the secure section below still gates
-          // them. Revealing shows them here and there together.
-          last4: _revealed ? last4 : null,
-          balance: _isDebt
-              ? amountOf(row['remaining'])
-              : amountOf(row['balance']),
-          creditLimit: _isDebt ? amountOf(row['creditLimit']) : null,
-          monogram: institutionById(instId)?.initials,
-          networkMark: _isDebt
-              ? cardNetworkWordmark(row['cardNetwork']?.toString())
-              : null,
-          variant: _isDebt ? BankCardVariant.credit : BankCardVariant.savings,
-        ),
+          BankAccountCard(
+            bankName: row['name']?.toString() ?? bankName,
+            accountType: _shortType(row['kind']?.toString()),
+            brandColor: institutionBrandColor(instId),
+            last4: _revealed ? last4 : null,
+            balance: amountOf(row['balance']),
+            monogram: institutionById(instId)?.initials,
+          ),
         const SizedBox(height: 12),
         Text(
           [
             typeLabel,
             if (institutionLabel(row) != null) institutionLabel(row)!,
-            if (_isDebt && cardNetworkById(row['cardNetwork']?.toString()) != null)
+            if (_isDebt &&
+                cardNetworkById(row['cardNetwork']?.toString()) != null)
               cardNetworkById(row['cardNetwork']?.toString())!.displayName,
             if (_isDebt &&
-                cardProductLabel(instId, row['cardProductId']?.toString()) != null)
+                cardProductLabel(instId, row['cardProductId']?.toString()) !=
+                    null)
               cardProductLabel(instId, row['cardProductId']?.toString())!,
           ].join(' · '),
           style: AppText.small.tint(Barako.muted),
@@ -355,9 +365,13 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       final limit = amountOf(row['creditLimit']);
       rows.add(_stat('Outstanding balance', formatMoney(outstanding)));
       if (limit > 0) {
-        final available = (limit - outstanding).clamp(0, double.infinity).toDouble();
+        final available = (limit - outstanding)
+            .clamp(0, double.infinity)
+            .toDouble();
         rows.add(_stat('Credit limit', formatMoney(limit)));
-        rows.add(_stat('Available credit', formatMoney(available), strong: true));
+        rows.add(
+          _stat('Available credit', formatMoney(available), strong: true),
+        );
       }
       final stmt = amountOf(row['statementDay']).round();
       final due = amountOf(row['dueDay']).round();
@@ -366,9 +380,17 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       final fee = amountOf(row['annualFee']);
       if (fee > 0) rows.add(_stat('Annual fee', formatMoney(fee)));
     } else {
-      rows.add(_stat('Current balance', formatMoney(amountOf(row['balance'])), strong: true));
+      rows.add(
+        _stat(
+          'Current balance',
+          formatMoney(amountOf(row['balance'])),
+          strong: true,
+        ),
+      );
       final target = amountOf(row['target']);
-      if (target > 0) rows.add(_stat('Maintaining or target', formatMoney(target)));
+      if (target > 0) {
+        rows.add(_stat('Maintaining or target', formatMoney(target)));
+      }
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,7 +414,12 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   String _dayLabel(int day) {
     final suffix = (day >= 11 && day <= 13)
         ? 'th'
-        : switch (day % 10) { 1 => 'st', 2 => 'nd', 3 => 'rd', _ => 'th' };
+        : switch (day % 10) {
+            1 => 'st',
+            2 => 'nd',
+            3 => 'rd',
+            _ => 'th',
+          };
     return '$day$suffix of the month';
   }
 
@@ -419,7 +446,11 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
 
   // --- Secure information ---------------------------------------------------
 
-  Widget _secureSection(Map<String, dynamic> row, String? instId, String? last4) {
+  Widget _secureSection(
+    Map<String, dynamic> row,
+    String? instId,
+    String? last4,
+  ) {
     final holder = row['accountHolderName']?.toString();
     final branch = row['branchDetails']?.toString();
     final instructions = row['paymentInstructions']?.toString();
@@ -485,9 +516,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
 
   Widget _revealRow(String last4) {
     // Semantics: when hidden, the screen reader hears "hidden", not the digits.
-    final shown = _revealed
-        ? '•••• $last4'
-        : '•••• ••••';
+    final shown = _revealed ? '•••• $last4' : '•••• ••••';
     return Row(
       children: [
         Expanded(
@@ -509,17 +538,18 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         ),
         TextButton.icon(
           onPressed: _toggleReveal,
-          icon: Icon(
-            salapifyIcon(_revealed ? 'hide' : 'reveal'),
-            size: 18,
-          ),
+          icon: Icon(salapifyIcon(_revealed ? 'hide' : 'reveal'), size: 18),
           label: Text(_revealed ? 'Hide' : 'Reveal'),
         ),
         if (_revealed)
           IconButton(
             tooltip: 'Copy',
             onPressed: () => _copyLast4(last4),
-            icon: Icon(salapifyIcon('copy'), size: 18, color: Barako.primaryText),
+            icon: Icon(
+              salapifyIcon('copy'),
+              size: 18,
+              color: Barako.primaryText,
+            ),
           ),
       ],
     );
@@ -615,7 +645,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     final messenger = ScaffoldMessenger.of(context);
     if (vault == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('QR storage is not ready yet. Try again.')),
+        const SnackBar(
+          content: Text('QR storage is not ready yet. Try again.'),
+        ),
       );
       return;
     }
@@ -672,7 +704,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Keep it', style: TextStyle(color: Barako.textSecondary)),
+            child: Text(
+              'Keep it',
+              style: TextStyle(color: Barako.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -739,7 +774,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         .whereType<Map>()
         .where((t) => t['accountId'] == widget.id)
         .toList();
-    txs.sort((a, b) => (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()));
+    txs.sort(
+      (a, b) =>
+          (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()),
+    );
     return [
       for (final t in txs.take(8))
         _activityRow(
@@ -757,7 +795,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         .whereType<Map>()
         .where((p) => p['debtId'] == widget.id)
         .toList();
-    ps.sort((a, b) => (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()));
+    ps.sort(
+      (a, b) =>
+          (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()),
+    );
     return [
       for (final p in ps.take(8))
         _activityRow(
@@ -770,7 +811,13 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     ];
   }
 
-  Widget _activityRow(String label, String iso, double amount, String? flow, String? type) {
+  Widget _activityRow(
+    String label,
+    String iso,
+    double amount,
+    String? flow,
+    String? type,
+  ) {
     final isIn = flow == 'in' || (flow == null && type == 'income');
     final sign = type == 'payment' ? '-' : (isIn ? '+' : '-');
     return Row(
@@ -779,7 +826,12 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: AppText.body.w6, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                label,
+                style: AppText.body.w6,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               if (iso.isNotEmpty)
                 Text(prettyDay(iso), style: AppText.caption.tint(Barako.muted)),
             ],
@@ -787,7 +839,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         ),
         Text(
           '$sign${formatMoney(amount)}',
-          style: AppText.body.w6.tint(isIn && type != 'payment' ? Barako.primaryText : Barako.text),
+          style: AppText.body.w6.tint(
+            isIn && type != 'payment' ? Barako.primaryText : Barako.text,
+          ),
         ),
       ],
     );
@@ -824,7 +878,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: _EditDetailsSheet(
           row: row,
           isDebt: _isDebt,
@@ -841,7 +897,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Delete this account?', style: TextStyle(color: Barako.text)),
+        title: Text(
+          'Delete this account?',
+          style: TextStyle(color: Barako.text),
+        ),
         content: Text(
           _isDebt
               ? 'The debt is removed. Your logged payments and history stay.'
@@ -851,7 +910,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Keep it', style: TextStyle(color: Barako.textSecondary)),
+            child: Text(
+              'Keep it',
+              style: TextStyle(color: Barako.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -870,7 +932,10 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
             },
             child: Text(
               'Delete',
-              style: TextStyle(color: Barako.warningStrong, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: Barako.warningStrong,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -914,7 +979,11 @@ class _QrThumb extends StatefulWidget {
   final QrVault? vault;
   final String qrRef;
   final VoidCallback onView;
-  const _QrThumb({required this.vault, required this.qrRef, required this.onView});
+  const _QrThumb({
+    required this.vault,
+    required this.qrRef,
+    required this.onView,
+  });
 
   @override
   State<_QrThumb> createState() => _QrThumbState();
@@ -956,10 +1025,18 @@ class _QrThumbState extends State<_QrThumb> {
             final bytes = snap.data;
             if (bytes == null) {
               return Center(
-                child: Icon(salapifyIcon('card'), color: Barako.faint, size: 40),
+                child: Icon(
+                  salapifyIcon('card'),
+                  color: Barako.faint,
+                  size: 40,
+                ),
               );
             }
-            return Image.memory(bytes, fit: BoxFit.contain, gaplessPlayback: true);
+            return Image.memory(
+              bytes,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+            );
           },
         ),
       ),
@@ -1054,7 +1131,11 @@ class _QrViewSheetState extends State<_QrViewSheet> {
                         ),
                       );
                     }
-                    return Image.memory(bytes, fit: BoxFit.contain, gaplessPlayback: true);
+                    return Image.memory(
+                      bytes,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    );
                   },
                 ),
               ),
@@ -1102,9 +1183,13 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
     super.initState();
     final r = widget.row;
     _last4 = TextEditingController(text: r['last4']?.toString() ?? '');
-    _holder = TextEditingController(text: r['accountHolderName']?.toString() ?? '');
+    _holder = TextEditingController(
+      text: r['accountHolderName']?.toString() ?? '',
+    );
     _branch = TextEditingController(text: r['branchDetails']?.toString() ?? '');
-    _notes = TextEditingController(text: r['paymentInstructions']?.toString() ?? '');
+    _notes = TextEditingController(
+      text: r['paymentInstructions']?.toString() ?? '',
+    );
     _qrLabel = TextEditingController(text: r['qrLabel']?.toString() ?? '');
     _network = r['cardNetwork']?.toString() ?? '';
   }
@@ -1122,8 +1207,11 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
   Future<void> _save() async {
     final last4 = _last4.text.trim();
     if (last4.isNotEmpty && !RegExp(r'^\d{4}$').hasMatch(last4)) {
-      setState(() => _err = 'The last four digits are exactly four numbers, '
-          'or leave it blank.');
+      setState(
+        () => _err =
+            'The last four digits are exactly four numbers, '
+            'or leave it blank.',
+      );
       return;
     }
     final fields = <String, dynamic>{
@@ -1164,9 +1252,14 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
               style: AppText.caption.tint(Barako.muted),
             ),
             const SizedBox(height: 14),
-            _field(_last4, widget.isDebt ? 'Card number, last 4 (optional)'
-                : 'Account number, last 4 (optional)',
-                number: true, maxLen: 4),
+            _field(
+              _last4,
+              widget.isDebt
+                  ? 'Card number, last 4 (optional)'
+                  : 'Account number, last 4 (optional)',
+              number: true,
+              maxLen: 4,
+            ),
             if (widget.isDebt) ...[
               _label('Card network (optional)'),
               Wrap(
@@ -1183,7 +1276,9 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
                       selectedColor: Barako.primary,
                       backgroundColor: Barako.card,
                       labelStyle: TextStyle(
-                        color: _network == n.id ? Barako.onPrimary : Barako.textSecondary,
+                        color: _network == n.id
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -1194,7 +1289,11 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
             ],
             _field(_holder, 'Account holder name (optional)'),
             _field(_branch, 'Branch or reference (optional)'),
-            _field(_notes, 'Notes or payment instructions (optional)', maxLines: 3),
+            _field(
+              _notes,
+              'Notes or payment instructions (optional)',
+              maxLines: 3,
+            ),
             _field(_qrLabel, 'QR label (optional)'),
             if (_err != null) ...[
               const SizedBox(height: 6),
@@ -1203,10 +1302,7 @@ class _EditDetailsSheetState extends State<_EditDetailsSheet> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                onPressed: _save,
-                child: const Text('Save'),
-              ),
+              child: FilledButton(onPressed: _save, child: const Text('Save')),
             ),
           ],
         ),

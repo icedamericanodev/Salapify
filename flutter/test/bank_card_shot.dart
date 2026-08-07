@@ -291,8 +291,26 @@ void main() {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CashCard(name: 'Cash on hand', balance: 3200),
-                const SizedBox(height: 16),
+                // A CASH ON HAND kicker over the compact tile, the way the
+                // Accounts screen frames its own section.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('CASH ON HAND', style: Barako.kickerStyle),
+                  ),
+                ),
+                CashBalanceTile(name: 'Cash on hand', balance: 3200),
+                const SizedBox(height: 8),
+                CashBalanceTile(name: 'Jar (big savings)', balance: 1234567.89),
+                const SizedBox(height: 22),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('YOUR CARDS', style: Barako.kickerStyle),
+                  ),
+                ),
                 BankCard(
                   bankName: 'BPI Savings',
                   accountType: 'Savings',
@@ -315,7 +333,7 @@ void main() {
           ),
         ),
         brightness: b,
-        size: const Size(390, 820),
+        size: const Size(390, 1060),
       );
     });
 
