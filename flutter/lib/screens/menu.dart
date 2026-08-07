@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/export_files.dart';
+import '../data/qr_vault.dart';
 import '../data/store.dart';
 import '../money/currencies.dart' show currencies;
 import '../money/greeting.dart';
@@ -883,6 +884,12 @@ class MenuScreen extends StatelessWidget {
       try {
         await store.startFresh();
         await Reminders.cancelAll();
+        // Erase the QR image files too, now, not on next launch: after a fresh
+        // start no account references any, so the keep-set is empty and every
+        // saved QR is deleted as part of the erase the person just confirmed.
+        await QrVault.inAppDocuments()
+            .then((v) => v.cleanupOrphans(qrRefsInData(store.data)))
+            .catchError((_) => 0);
         messenger.showSnackBar(
           const SnackBar(content: Text('Everything erased. Fresh start.')),
         );

@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'data/qr_vault.dart';
 import 'data/storage_bootstrap.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
@@ -31,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.62 \u00b7 The bank cards got a premium glow up, richer brand gradients and a subtle brand mark.';
+    'f3.63 \u00b7 Tap any account for a wallet detail screen, pick your card network, and save a receiving QR.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
@@ -87,6 +88,15 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     // Reminders.reschedule was lost the same way.
     widget.store.load().whenComplete(() {
       Reminders.reschedule(widget.store.data, DateTime.now());
+      // Sweep QR image files whose account was deleted, or whose image was
+      // replaced by a path this code never saw. Best effort and off the
+      // critical path: a failure here never blocks startup, and the only thing
+      // an orphan costs is a little disk. The lifecycle deletes (remove,
+      // replace, delete account) already handle the common cases; this is the
+      // backstop for the ones a crash or an old build missed.
+      QrVault.inAppDocuments()
+          .then((v) => v.cleanupOrphans(qrRefsInData(widget.store.data)))
+          .catchError((_) => 0);
       // Post-frame, so the first build has already resolved the palette and
       // the base currency. Until this runs HomeTile.ready is false and every
       // push is dropped, so the first thing ever written to the tile is never

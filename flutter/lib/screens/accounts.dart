@@ -24,6 +24,8 @@ import '../money/transfers.dart'
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
+import '../money/card_products.dart' show cardNetworkWordmark;
+import 'account_detail.dart' show AccountDetailScreen;
 import '../money/institutions.dart'
     show institutionBrandColor, institutionById, institutionLabel;
 import '../theme.dart';
@@ -890,6 +892,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           amount: amountOf(row['remaining']),
           limit: amountOf(row['creditLimit']),
           monogram: institutionById(row['institutionId']?.toString())?.initials,
+          networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
           variant: BankCardVariant.credit,
         ),
       );
@@ -914,19 +917,33 @@ class _AccountsScreenState extends State<AccountsScreen> {
     return (v is String && RegExp(r'^\d{4}$').hasMatch(v)) ? v : null;
   }
 
-  /// Tapping a card opens the right editor: the account form for a deposit, the
-  /// debt form for a credit card. Deliberately, a credit card's CARD is tappable
-  /// even though the debt LIST ROW below is not: the row withholds tapping only
-  /// because opening the account form on a debt would offer the wrong fields,
-  /// and this routes to showDebtFormSheet, the proper debt editor, instead. So
-  /// the card is a real shortcut to the correct sheet, not the dead end the row
-  /// was avoiding.
+  /// Tapping a card opens its full detail screen, the wallet page for that one
+  /// account: the card, its numbers, the secure information, a saved receiving
+  /// QR, and recent activity, with Edit, Archive and Delete inside. This
+  /// replaces the old shortcut that jumped straight to the edit sheet; editing
+  /// still lives one tap deeper, and a credit card's CARD reaches the right
+  /// screen even though the debt LIST ROW below stays non-tappable.
   void _openCard(BuildContext context, _CardItem it) {
-    if (it.store == AccountStore.debts) {
-      showDebtFormSheet(context, store, debt: it.row);
-    } else {
-      _openForm(context, isAccount: true, item: it.row);
+    final id = it.row['id'];
+    if (id is! String || id.isEmpty) {
+      // A hand-edited backup row with no id cannot be addressed by the detail
+      // screen, so fall back to the old editor rather than opening a blank page.
+      if (it.store == AccountStore.debts) {
+        showDebtFormSheet(context, store, debt: it.row);
+      } else {
+        _openForm(context, isAccount: true, item: it.row);
+      }
+      return;
     }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountDetailScreen(
+          store: store,
+          id: id,
+          accountStore: it.store,
+        ),
+      ),
+    );
   }
 
   void _openTransfer(BuildContext context) {
@@ -2109,6 +2126,9 @@ class _CardItem {
   /// card derive them from the name.
   final String? monogram;
   final double? limit;
+
+  /// The card network's wordmark ("VISA"), or null. Credit cards only.
+  final String? networkMark;
   final BankCardVariant variant;
   const _CardItem({
     required this.row,
@@ -2123,6 +2143,7 @@ class _CardItem {
     this.amountText,
     this.monogram,
     this.limit,
+    this.networkMark,
   });
 }
 
@@ -2219,6 +2240,7 @@ class _AccountsCarouselState extends State<_AccountsCarousel> {
                               amountText: it.amountText,
                               monogram: it.monogram,
                               creditLimit: it.limit,
+                              networkMark: it.networkMark,
                               variant: it.variant,
                             ),
                           ),
@@ -2310,7 +2332,7 @@ class _CardDetail extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 4),
               Text(
-                'Tap the card to edit this account.',
+                'Tap the card to open it.',
                 style: AppText.caption,
               ),
             ],

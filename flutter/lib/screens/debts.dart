@@ -10,10 +10,13 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
-import '../money/account_taxonomy.dart' show AccountSubtype;
+import '../money/account_taxonomy.dart' show AccountSubtype, kCardNetworks;
+import '../money/card_products.dart' show networksForIssuer;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
+import '../money/institutions.dart' show institutionById;
 import '../money/ledger.dart' show amountOf;
+import 'add_account_flow.dart' show InstitutionAvatar, showInstitutionPicker;
 import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
 import '../typography.dart';
@@ -904,7 +907,11 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
   late final TextEditingController statementDay;
   late final TextEditingController graceDays;
   late final TextEditingController creditLimit;
+  late final TextEditingController last4;
+  late final TextEditingController annualFee;
   late String type;
+  late String institutionId;
+  late String network;
   String? error;
   bool busy = false;
 
@@ -944,6 +951,10 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     statementDay = TextEditingController(text: numText(d?['statementDay']));
     graceDays = TextEditingController(text: numText(d?['graceDays']));
     creditLimit = TextEditingController(text: numText(d?['creditLimit']));
+    last4 = TextEditingController(text: (d?['last4'] ?? '').toString());
+    annualFee = TextEditingController(text: numText(d?['annualFee']));
+    institutionId = (d?['institutionId'] ?? '').toString();
+    network = (d?['cardNetwork'] ?? '').toString();
   }
 
   @override
@@ -956,17 +967,25 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     statementDay.dispose();
     graceDays.dispose();
     creditLimit.dispose();
+    last4.dispose();
+    annualFee.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (busy) return;
+    final last4Text = last4.text.trim();
+    if (last4Text.isNotEmpty && !RegExp(r'^\d{4}$').hasMatch(last4Text)) {
+      setState(() => error = 'The last four digits are exactly four numbers, '
+          'or leave it blank.');
+      return;
+    }
     setState(() {
       busy = true;
       error = null;
     });
     try {
-      await widget.store.saveDebt(
+      final savedId = await widget.store.saveDebt(
         {
           'id': widget.debt != null
               ? (widget.debt!['id'] ?? '').toString()
@@ -988,6 +1007,25 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
             ? {'subtype': widget.seed!.id}
             : const {},
       );
+      // The card metadata rides on a separate patch, for both add and edit:
+      // saveDebt owns the money fields, patchDebtMeta owns the bank, network,
+      // last four and annual fee. Empty values CLEAR, because sanitizeData drops
+      // an institution id, a network or a last four that is blank on the next
+      // load. Only ever the LAST FOUR digits, never a full number.
+      final id = savedId ?? (widget.debt?['id']?.toString());
+      if (id != null && id.isNotEmpty) {
+        final meta = <String, dynamic>{
+          'institutionId': institutionId,
+          if (type == 'credit card') ...{
+            'cardNetwork': kCardNetworks.contains(network) ? network : '',
+            'last4': last4Text,
+            if (last4Text.isNotEmpty) 'sensitiveDataProtectionVersion': 1,
+            if (double.tryParse(annualFee.text.trim()) != null)
+              'annualFee': double.parse(annualFee.text.trim()),
+          },
+        };
+        await widget.store.patchDebtMeta(id, meta);
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
@@ -1001,7 +1039,12 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     }
   }
 
-  Widget _field(TextEditingController c, String label, {bool number = true}) {
+  Widget _field(
+    TextEditingController c,
+    String label, {
+    bool number = true,
+    int? maxLen,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
@@ -1009,8 +1052,105 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
         keyboardType: number
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.text,
+        maxLength: maxLen,
         style: TextStyle(color: Barako.text),
         decoration: InputDecoration(labelText: label),
+      ),
+    );
+  }
+
+  /// Which bank or lender this debt is with, the same picker the account flow
+  /// uses. Optional: a debt with no institution is a real answer (money owed to
+  /// a person, an unlisted lender), so the row can be left as "Choose".
+  Widget _institutionRow() {
+    final label = institutionId.isEmpty
+        ? 'Choose bank or lender (optional)'
+        : (institutionById(institutionId)?.displayName ?? 'Choose');
+    return Material(
+      color: Barako.card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final picked = await showInstitutionPicker(
+            context,
+            current: institutionId,
+          );
+          if (picked == null || !mounted) return;
+          setState(() {
+            institutionId = picked;
+            // A network the newly chosen issuer is not known to use is cleared,
+            // so the chips below never show a selected chip the issuer list no
+            // longer contains.
+            if (network.isNotEmpty &&
+                !networksForIssuer(institutionId)
+                    .any((n) => n.id == network)) {
+              network = '';
+            }
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              InstitutionAvatar(id: institutionId, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: institutionId.isEmpty ? Barako.muted : Barako.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The card network, as chips adapted to the chosen issuer: an issuer known to
+  /// use only Mastercard shows only that, an unlisted issuer shows all five.
+  /// Tapping a selected chip clears it, because "I do not know" is a valid
+  /// answer this catalog never forces past.
+  Widget _networkPicker() {
+    final networks = networksForIssuer(
+      institutionId.isEmpty ? null : institutionId,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Card network (optional)', style: AppText.small.tint(Barako.muted)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final n in networks)
+                ChoiceChip(
+                  label: Text(n.displayName),
+                  selected: network == n.id,
+                  onSelected: (_) => setState(
+                    () => network = network == n.id ? '' : n.id,
+                  ),
+                  selectedColor: Barako.primary,
+                  backgroundColor: Barako.background,
+                  labelStyle: TextStyle(
+                    color: network == n.id
+                        ? Barako.onPrimary
+                        : Barako.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1052,6 +1192,8 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
               ],
             ),
             const SizedBox(height: 12),
+            _institutionRow(),
+            const SizedBox(height: 12),
             _field(remaining, 'Remaining balance'),
             _field(rateCtl, 'Interest % per month (0 if none)'),
             _field(minPay, 'Minimum payment (0 if none)'),
@@ -1060,6 +1202,18 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
               _field(statementDay, 'Statement day (optional)'),
               _field(graceDays, 'Days after statement until due (optional)'),
               _field(creditLimit, 'Credit limit (optional)'),
+              const SizedBox(height: 4),
+              _networkPicker(),
+              _field(last4, 'Card number, last 4 only (optional)',
+                  number: true, maxLen: 4),
+              _field(annualFee, 'Annual fee (optional)'),
+              const SizedBox(height: 4),
+              Text(
+                'For your safety, save only the last four digits. Never store '
+                'your PIN, CVV, password, or OTP.',
+                style: AppText.caption.tint(Barako.muted),
+              ),
+              const SizedBox(height: 12),
             ],
             if (error != null)
               Padding(

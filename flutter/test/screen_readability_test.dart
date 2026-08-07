@@ -43,6 +43,8 @@ import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/learning_paths.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
+import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/bnpl_calculator.dart';
@@ -393,6 +395,10 @@ void main() {
     'Courses': (s) => LearnScreen(store: s),
     'Appearance': (s) => AppearanceScreen(store: s),
     'Accounts': (s) => AccountsScreen(store: s),
+    'Account detail': (s) =>
+        AccountDetailScreen(store: s, id: 'bpi', accountStore: AccountStore.accounts),
+    'Card detail': (s) =>
+        AccountDetailScreen(store: s, id: 'card', accountStore: AccountStore.debts),
     'Categories': (s) => CategoriesScreen(store: s),
     // Reports and Debts were missing for this file's whole life, and both
     // carry f2.88's rounding fix, so two of the four screens that change
@@ -587,6 +593,7 @@ void main() {
       'path_screen.dart',
       'appearance.dart',
       'accounts.dart',
+      'account_detail.dart',
       'categories.dart',
       'reports.dart',
       'debts.dart',
@@ -663,6 +670,10 @@ void main() {
       // lessons). Two separate screens a learner navigates between, and
       // both are pumped, so the file contributes one extra entry.
       'path_screen.dart': 1,
+      // AccountDetailScreen renders both a deposit account and a credit card,
+      // which lay out differently (a savings face vs a credit face, a secure
+      // section vs a card one), so both are pumped from the one file.
+      'account_detail.dart': 1,
     };
     final claimed =
         sweptFiles.length + extraFaces.values.fold(0, (a, b) => a + b);

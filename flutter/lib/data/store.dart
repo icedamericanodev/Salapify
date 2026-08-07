@@ -1162,6 +1162,68 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  /// The ONLY keys the detail screen may patch onto a stored row. Deliberately
+  /// small: the secure notes, the card metadata, the QR reference, and the two
+  /// flags (count-in-net-worth, archived). It cannot reach `balance`, `id`,
+  /// `name`, `kind`, `remaining`, or a subtype, so a patch can never move money,
+  /// rename a row, or reclassify it. sanitizeData validates every one of these
+  /// again on the way to disk, so a junk value never survives a load either.
+  static const Set<String> _patchableMeta = {
+    'institutionId',
+    'institutionName',
+    'currencyCode',
+    'last4',
+    'cardNetwork',
+    'cardProductId',
+    'annualFee',
+    'accountHolderName',
+    'paymentInstructions',
+    'branchDetails',
+    'qrLabel',
+    'qrRef',
+    'sensitiveDataProtectionVersion',
+    'includeInNetWorth',
+    'isArchived',
+    'updatedAt',
+  };
+
+  Map<String, dynamic> _safeMeta(Map<String, dynamic> fields) => {
+    for (final e in fields.entries)
+      if (_patchableMeta.contains(e.key)) e.key: e.value,
+  };
+
+  Map<String, dynamic> _patchRow(
+    Map<String, dynamic> d,
+    String collection,
+    String id,
+    Map<String, dynamic> fields,
+  ) {
+    final safe = _safeMeta(fields);
+    return {
+      ...d,
+      collection: [
+        for (final row in (d[collection] as List? ?? const []))
+          if (row is Map && row['id'] == id)
+            {...row.cast<String, dynamic>(), ...safe}
+          else
+            row,
+      ],
+    };
+  }
+
+  /// Patch the metadata (secure notes, card fields, QR, archive flag) of one
+  /// account, asset or debt. Only [_patchableMeta] keys are applied; everything
+  /// else in [fields] is ignored. Passing an empty string for a note or `qrRef`
+  /// clears it, because sanitizeData drops an empty value on the next load.
+  Future<void> patchAccountMeta(String id, Map<String, dynamic> fields) =>
+      _mutate((d) => _patchRow(d, 'accounts', id, fields));
+
+  Future<void> patchAssetMeta(String id, Map<String, dynamic> fields) =>
+      _mutate((d) => _patchRow(d, 'assets', id, fields));
+
+  Future<void> patchDebtMeta(String id, Map<String, dynamic> fields) =>
+      _mutate((d) => _patchRow(d, 'debts', id, fields));
+
   /// Delete an account. Entries stay (their accountId simply stops resolving,
   /// matching the RN screen, so no logged money is ever lost), and settings
   /// that pointed at it are cleared so they never point at a ghost.

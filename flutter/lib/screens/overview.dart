@@ -12,6 +12,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../data/backup.dart';
 import '../data/backup_file.dart';
+import '../data/qr_vault.dart';
 import '../data/store.dart';
 import '../money/coach.dart' as coach;
 import '../money/commitments.dart' show upcomingCommitments;
@@ -1943,6 +1944,12 @@ class _ImportScreenState extends State<ImportScreen> {
     });
     try {
       await widget.store.importBackupText(text);
+      // A restore replaces the data, so QR files the OLD data referenced are now
+      // orphans. Sweep them against the freshly imported keep-set here, rather
+      // than leaving them until the next launch.
+      await QrVault.inAppDocuments()
+          .then((v) => v.cleanupOrphans(qrRefsInData(widget.store.data)))
+          .catchError((_) => 0);
       if (mounted) Navigator.of(context).pop();
     } on NewerBackupException catch (e) {
       if (mounted) setState(() => error = e.message);
