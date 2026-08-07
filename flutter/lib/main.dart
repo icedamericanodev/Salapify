@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.69 \u00b7 Insights visual: Spoken For is now a bills, minimums, free bar instead of a paragraph.';
+    'f3.70 \u00b7 Insights chart: the 6 month graph shows amounts and fills the area so it reads at a glance.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

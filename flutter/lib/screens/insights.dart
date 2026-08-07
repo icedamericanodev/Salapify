@@ -1778,6 +1778,33 @@ class _TrendPainter extends CustomPainter {
   final List<double> expenses;
   _TrendPainter({required this.income, required this.expenses});
 
+  /// A short peso label for the y axis, so 32000 reads as "P32k" and the
+  /// height of the chart finally means a number. Display only, not money math.
+  String _compact(double v) {
+    if (!v.isFinite || v <= 0) return '₱0';
+    if (v >= 1000) {
+      final k = v / 1000;
+      return '₱${k >= 10 ? k.round() : k.toStringAsFixed(1)}k';
+    }
+    return '₱${v.round()}';
+  }
+
+  void _label(Canvas canvas, String text, Offset at) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: Barako.faint,
+          fontSize: 9,
+          fontFamily: Barako.bodyFont,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final grid = Paint()
@@ -1788,8 +1815,19 @@ class _TrendPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
     final max = chartgeom.sharedMax([income, expenses]);
+    // Fills first (area under each line), then the crisp lines on top, so the
+    // shape reads as magnitude while the two lines stay legible. Spending is
+    // drawn last, so a month where spending rose above income shows more red.
+    _drawSeries(canvas, size, income, max, Barako.primary, fill: true);
+    _drawSeries(canvas, size, expenses, max, Barako.warning, fill: true);
     _drawSeries(canvas, size, income, max, Barako.primary);
     _drawSeries(canvas, size, expenses, max, Barako.warning);
+    // Y axis magnitude: the top grid line is the shared max, the bottom is
+    // zero. Now the chart's height answers "how much".
+    if (max.isFinite && max > 0) {
+      _label(canvas, _compact(max), const Offset(2, 1));
+      _label(canvas, '₱0', Offset(2, size.height - 11));
+    }
   }
 
   void _drawSeries(
@@ -1797,8 +1835,9 @@ class _TrendPainter extends CustomPainter {
     Size size,
     List<double> values,
     double max,
-    Color color,
-  ) {
+    Color color, {
+    bool fill = false,
+  }) {
     final pts = chartgeom.linePointsScaled(
       values,
       max,
@@ -1807,6 +1846,18 @@ class _TrendPainter extends CustomPainter {
       8,
     );
     if (pts.isEmpty) return;
+    if (fill) {
+      final area = Path()..moveTo(pts.first['x']!, size.height);
+      area.lineTo(pts.first['x']!, pts.first['y']!);
+      for (final p in pts.skip(1)) {
+        area.lineTo(p['x']!, p['y']!);
+      }
+      area
+        ..lineTo(pts.last['x']!, size.height)
+        ..close();
+      canvas.drawPath(area, Paint()..color = color.withValues(alpha: 0.12));
+      return;
+    }
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2
