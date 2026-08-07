@@ -793,6 +793,10 @@ class InsightsScreen extends StatelessWidget {
     final rc = load['recurringCount'] as int;
     final mc = load['minimumsCount'] as int;
     final minimumUnfilled = load['minimumUnfilled'] as bool;
+    // The two committed parts, kept apart so the bar can show bills and debt
+    // minimums as separate segments instead of one lump.
+    final recurringTotal = load['recurringTotal'] as double;
+    final minimumsTotal = load['minimumsTotal'] as double;
 
     // The only way the card is applicable with nothing committed is an
     // interest-bearing debt with no minimum saved. Show just the nudge; a "0%"
@@ -843,23 +847,22 @@ class InsightsScreen extends StatelessWidget {
       return r > 999 ? '999+%' : '$r%';
     }
 
-    final String hero;
-    final String support;
-    if (!showShare) {
-      hero = _wholePeso(committed);
-      support = hasIncomeBase
-          ? 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause.'
-          : 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause. Log your salary for a few months and I can show this as a share of your income.';
-    } else if (over) {
-      hero = pctText(share);
-      support =
-          'More is committed than your typical ${_wholePeso(income)} salary covers$fromClause. One lean month can turn into borrowing, so trimming a bill or paying off one debt makes real room.';
-    } else {
-      hero = pctText(share);
-      support =
-          'About ${_wholePeso(committed)} of your typical ${_wholePeso(income)} salary goes to bills and minimums$fromClause. The rest, about ${_wholePeso(free!)}, still has to cover everything else, food, transport, and load, plus whatever you save.';
-    }
+    // The hero: the committed SHARE when we can size it against income, else
+    // the committed peso total.
+    final hero = showShare ? pctText(share) : _wholePeso(committed);
     final heroColor = over ? Barako.warningStrong : Barako.primaryText;
+
+    // No income logged yet, so the peso total needs a sentence to mean
+    // anything; that one path stays as words.
+    final noShareSupport = hasIncomeBase
+        ? 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause.'
+        : 'About ${_wholePeso(committed)} goes to bills and minimums each month$fromClause. Log your salary for a few months to see this as a share of your income.';
+
+    // The concise readout that replaces the old paragraph: three amounts in the
+    // same left to right order as the bar segments.
+    final barCaption = over
+        ? 'Bills and minimums come to ${_wholePeso(committed)}, more than your typical ${_wholePeso(income)} salary. Trim a bill or clear a debt to make room.'
+        : '${_wholePeso(recurringTotal)} bills, ${_wholePeso(minimumsTotal)} minimums, ${_wholePeso(free ?? 0)} free.';
 
     return Card(
       child: Padding(
@@ -879,29 +882,26 @@ class InsightsScreen extends StatelessWidget {
               ),
             ),
             if (showShare) ...[
-              const SizedBox(height: 10),
-              // Committed vs free as one proportion bar, capped at full so an
-              // over-committed month reads as a full red bar, not overflow. The
-              // label keeps the screen reader in sync with the hero percent.
+              const SizedBox(height: 12),
               Semantics(
                 label: 'Committed ${pctText(share)} of your income',
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: share.clamp(0.0, 1.0),
-                    minHeight: 8,
-                    backgroundColor: Barako.border,
-                    color: over ? Barako.warningStrong : Barako.primary,
-                  ),
+                child: _spokenForBar(
+                  recurringTotal,
+                  minimumsTotal,
+                  free ?? 0,
+                  over,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(barCaption, style: AppText.small.copyWith(height: 1.4)),
+            ] else ...[
+              const SizedBox(height: 10),
+              Text(noShareSupport, style: AppText.small.copyWith(height: 1.45)),
             ],
-            const SizedBox(height: 10),
-            Text(support, style: AppText.small.copyWith(height: 1.45)),
             if (showShare && incomeMonths < 6) ...[
               const SizedBox(height: 6),
               Text(
-                'This uses your months with income. On a lean or no-income month, a bigger share is spoken for.',
+                'This uses months with income. On a lean month, more is spoken for.',
                 style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
@@ -912,11 +912,44 @@ class InsightsScreen extends StatelessWidget {
                 style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
-            const SizedBox(height: 8),
-            Text(
-              'From the bills and minimums you have logged. The more you log, the truer this gets.',
-              style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
-            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The committed salary as one stacked bar: bills, then debt minimums, then
+  /// the free remainder. Widths come straight from commitmentLoad, so the
+  /// picture reads the same numbers the caption names. An over-committed month
+  /// has no free segment and fills with bills and minimums. Colours read live
+  /// (never const) so a theme switch repaints them.
+  Widget _spokenForBar(double bills, double minimums, double free, bool over) {
+    int flex(double v) => v <= 0 || !v.isFinite ? 0 : (v * 100).round();
+    final bf = flex(bills);
+    final mf = flex(minimums);
+    final ff = over ? 0 : flex(free);
+    if (bf + mf + ff == 0) return const SizedBox(height: 10);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(5),
+      child: SizedBox(
+        height: 10,
+        child: Row(
+          children: [
+            if (bf > 0)
+              Expanded(
+                flex: bf,
+                child: ColoredBox(color: Barako.primary),
+              ),
+            if (mf > 0)
+              Expanded(
+                flex: mf,
+                child: ColoredBox(color: Barako.warning),
+              ),
+            if (ff > 0)
+              Expanded(
+                flex: ff,
+                child: ColoredBox(color: Barako.border),
+              ),
           ],
         ),
       ),

@@ -482,7 +482,10 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('25%'), findsOneWidget);
-    expect(find.textContaining('everything else'), findsOneWidget);
+    // The breakdown now reads off the stacked bar: 2000 bills, 500 minimums,
+    // and the 7500 free remainder (10000 income minus 2500 committed).
+    expect(find.textContaining('7,500 free'), findsOneWidget);
+    expect(find.textContaining('bills,'), findsOneWidget);
   });
 
   testWidgets('spoken-for survives an absurd backup instead of crashing', (
