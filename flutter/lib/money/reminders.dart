@@ -85,6 +85,26 @@ const _monthAbbrev = [
 ];
 String _niceDate(DateTime d) => '${_monthAbbrev[d.month - 1]} ${d.day}';
 
+// The next date a monthly recurring item lands on or after today: this month's
+// day if it has not passed, otherwise next month's, each capped to that
+// month's length (a "day 31" bill lands on the 30th in April). Mirrors the
+// capping in recurring.postDueRecurring so the reminder and the auto-posting
+// agree on which day the bill is.
+DateTime _nextMonthlyDue(num dayOfMonth, DateTime now) {
+  int daysIn(int y, int m) => DateTime(y, m + 1, 0).day;
+  final day = (dayOfMonth.isFinite && dayOfMonth >= 1) ? dayOfMonth : 1;
+  final capThis = day < daysIn(now.year, now.month)
+      ? day.toInt()
+      : daysIn(now.year, now.month);
+  final today = DateTime(now.year, now.month, now.day);
+  final thisMonth = DateTime(now.year, now.month, capThis);
+  if (!thisMonth.isBefore(today)) return thisMonth;
+  final ny = now.month == 12 ? now.year + 1 : now.year;
+  final nm = now.month == 12 ? 1 : now.month + 1;
+  final capNext = day < daysIn(ny, nm) ? day.toInt() : daysIn(ny, nm);
+  return DateTime(ny, nm, capNext);
+}
+
 // 'YYYY-MM-DD' to a local DateTime at the given hour, or null if the grammar
 // rejects it (a made-up 2026-02-31 would otherwise roll into March).
 DateTime? _atHour(dynamic dateStr, int hour) {
@@ -225,6 +245,35 @@ List<PlannedReminder> plannedReminders(
                   ? '$name is due today. Pay at least $minTxt today to avoid penalties.'
                   : '$name is due today. Pay at least the minimum on your SOA today to avoid penalties.')
             : 'A bill is due today. Open Salapify to pay at least the minimum and avoid penalties.',
+        DateTime(due.year, due.month, due.day, 9),
+      );
+    }
+    // Recurring EXPENSE bills (rent, subscriptions) nudge here too, under the
+    // same generic-title privacy contract as debts. Income recurrences (a
+    // salary) never do; a "bill is due" for your own paycheck is nonsense.
+    // Before this, the Recurring screen promised "logged every month on its
+    // day" but no reminder ever fired, because this block only read debts.
+    for (final r in _list(data['recurring'])) {
+      if (r['type'] == 'income') continue;
+      final rawDay = amountOf(r['dayOfMonth']);
+      if (!rawDay.isFinite) continue;
+      final due = _nextMonthlyDue(rawDay, now);
+      final label =
+          (r['label'] is String && (r['label'] as String).trim().isNotEmpty)
+          ? (r['label'] as String).trim()
+          : 'A bill';
+      add(
+        'A bill is due in 3 days',
+        detailed
+            ? '$label is due in 3 days. Set the money aside, and remember GCash and over the counter payments can take 1 to 3 days to post.'
+            : 'One of your bills is due in 3 days. Open Salapify to see which and how much.',
+        DateTime(due.year, due.month, due.day - 3, 18),
+      );
+      add(
+        'A bill is due today',
+        detailed
+            ? '$label is due today. Make sure the money is there so it does not bounce.'
+            : 'A bill is due today. Open Salapify to see which.',
         DateTime(due.year, due.month, due.day, 9),
       );
     }

@@ -216,6 +216,71 @@ void main() {
     });
   });
 
+  group('recurring bills due', () {
+    // Rent on the 25th, an expense. Today is the 15th, so the 25th is still
+    // ahead this month, and both reminders land in the future.
+    Map<String, dynamic> rentData({String type = 'expense'}) => withNotifs(
+      {'bills': true},
+      extra: {
+        'recurring': [
+          {
+            'id': 'r1',
+            'type': type,
+            'label': 'Rent',
+            'amount': 12000,
+            'dayOfMonth': 25,
+          },
+        ],
+      },
+    );
+
+    test('a recurring bill fires a heads-up and a due-day reminder', () {
+      // This is the whole point of the fix: before it, plannedReminders read
+      // only debts, so a recurring rent produced nothing despite the screen's
+      // promise. Both reminders must be in the future.
+      final plans = plannedReminders(rentData(), now);
+      expect(plans.any((p) => p.title.contains('due in 3 days')), true);
+      expect(plans.any((p) => p.title.contains('due today')), true);
+      expect(plans.every((p) => p.when.isAfter(now)), true);
+    });
+
+    test('the default reminder names no bill and no amount, anywhere', () {
+      // Same lock-screen privacy contract as debts: with detailed off, not the
+      // title nor the body may carry the bill label or the peso amount.
+      final plans = plannedReminders(rentData(), now);
+      expect(plans, isNotEmpty);
+      for (final p in plans) {
+        expect(p.title.contains('Rent'), isFalse, reason: 'label in title');
+        expect(p.body.contains('Rent'), isFalse, reason: 'label in body');
+        expect(p.body.contains('12,000'), isFalse, reason: 'amount in body');
+        expect(p.body.contains('12000'), isFalse, reason: 'amount in body');
+      }
+    });
+
+    test('detailed names the bill in the body, never the title', () {
+      final plans = plannedReminders(rentData(), now, detailed: true);
+      expect(
+        plans.any((p) => p.body.contains('Rent')),
+        isTrue,
+        reason: 'opt-in detail should name the bill in the body',
+      );
+      for (final p in plans) {
+        expect(
+          p.title.contains('Rent'),
+          isFalse,
+          reason: 'the bill label must never reach the title',
+        );
+      }
+    });
+
+    test('a recurring INCOME (salary) never nudges as a bill', () {
+      // A "bill is due" for your own paycheck is nonsense, so income
+      // recurrences are skipped entirely by the bills planner.
+      final plans = plannedReminders(rentData(type: 'income'), now);
+      expect(plans.any((p) => p.title.contains('bill')), isFalse);
+    });
+  });
+
   group('utang to collect', () {
     // Migs owes 1000, has paid 400, so 600 remains.
     Map<String, dynamic> collectData() => withNotifs(
