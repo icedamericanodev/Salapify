@@ -545,8 +545,12 @@ Map<String, dynamic>? pickWin(Map<String, dynamic>? data, DateTime ref) {
   final rate = savingsRate(d['transactions'] ?? [], d['payments'] ?? [], ref);
   if (loggingHealthy && rate != null && rate > 0) {
     return {
+      // Says SPENT, not "kept". The rate is income minus expenses over income,
+      // and debt payments are not expenses, so "kept" credited paying off a
+      // card as money saved. The honest, plain version is how much of your
+      // income you have not spent yet.
       'text':
-          'You kept ${_jsRound(rate * 100).toInt()}% of your income this month. Nice.',
+          'You spent only ${100 - _jsRound(rate * 100).toInt()}% of your income this month. Nice.',
     };
   }
 

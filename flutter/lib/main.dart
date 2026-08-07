@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.67 \u00b7 Money fix: foreign balances excluded from runway and health, and no stray negative zero.';
+    'f3.68 \u00b7 Insights tidy-up: plainer words, category shares, cut a repeat line, truer money-kept line.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
