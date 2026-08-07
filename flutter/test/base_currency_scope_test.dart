@@ -16,6 +16,8 @@
 // that reaches Home and the home screen widget.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/money/analytics.dart'
+    show emergencyRunway, healthScore;
 import 'package:salapify/money/base_currency_scope.dart';
 import 'package:salapify/money/commitments.dart' show safeToSpend;
 import 'package:salapify/money/statements.dart' show netWorthParts;
@@ -70,7 +72,12 @@ void main() {
       }
       expect(baseCurrencyOf({'settings': <String, dynamic>{}}), 'PHP');
       expect(baseCurrencyOf(<String, dynamic>{}), 'PHP');
-      expect(baseCurrencyOf({'settings': {'currencyCode': 'usd'}}), 'USD');
+      expect(
+        baseCurrencyOf({
+          'settings': {'currencyCode': 'usd'},
+        }),
+        'USD',
+      );
     });
   });
 
@@ -79,7 +86,12 @@ void main() {
       final d = _data(
         accounts: [
           {'id': 'a', 'kind': 'cash', 'balance': 5000},
-          {'id': 'b', 'kind': 'savings', 'balance': 1000, 'currencyCode': 'USD'},
+          {
+            'id': 'b',
+            'kind': 'savings',
+            'balance': 1000,
+            'currencyCode': 'USD',
+          },
         ],
       );
       final parts = netWorthParts(d);
@@ -163,7 +175,12 @@ void main() {
       final d = _data(
         accounts: [
           {'id': 'a', 'kind': 'cash', 'balance': 10000},
-          {'id': 'b', 'kind': 'ewallet', 'balance': 2000, 'currencyCode': 'USD'},
+          {
+            'id': 'b',
+            'kind': 'ewallet',
+            'balance': 2000,
+            'currencyCode': 'USD',
+          },
         ],
       );
       expect(safeToSpend(d, ref)['liquid'], 10000);
@@ -264,6 +281,97 @@ void main() {
       )!;
       expect(notice.contains('—'), isFalse);
       expect(notice.contains('–'), isFalse);
+    });
+  });
+
+  group('the runway and health engines respect the base currency', () {
+    // These two engines were ported 1:1 from RN and never gained the exclusion
+    // rule, so they summed foreign balances as pesos while safeToSpend and
+    // netWorthParts (right beside them, on the same data) did not. That is the
+    // exact "two screens disagree about the money" failure the rule exists to
+    // stop.
+
+    test('a dollar account is NOT added to the emergency runway buffer', () {
+      final d = _data(
+        accounts: [
+          {'id': 'a', 'kind': 'cash', 'balance': 5000},
+          {
+            'id': 'b',
+            'kind': 'savings',
+            'balance': 1000,
+            'currencyCode': 'USD',
+          },
+        ],
+      );
+      // The bug counted $1,000 as ₱1,000, so the buffer read 6000 and
+      // disagreed with safeToSpend's liquid figure on the very same data.
+      expect(emergencyRunway(d, ref)['buffer'], 5000);
+    });
+
+    test('with no foreign account the runway buffer is unchanged', () {
+      // The filter-not-off-switch half: an all-base blob takes the old path.
+      final d = _data(
+        accounts: [
+          {'id': 'a', 'kind': 'cash', 'balance': 5000},
+          {'id': 'b', 'kind': 'savings', 'balance': 1000},
+        ],
+      );
+      expect(emergencyRunway(d, ref)['buffer'], 6000);
+    });
+
+    test('a dollar DEBT does not drag down the health debt score', () {
+      // With a peso buffer and no peso debt the debt sub-score is a full 25.
+      // The bug counted a $2,000 debt as ₱2,000, inventing a debt load and
+      // dropping the score. The fix leaves the foreign debt out.
+      final d = _data(
+        accounts: [
+          {'id': 'a', 'kind': 'cash', 'balance': 100000},
+        ],
+        debts: [
+          {'id': 'e', 'remaining': 2000, 'currencyCode': 'USD'},
+        ],
+      );
+      final parts = healthScore(d, ref)['parts'] as Map;
+      expect(parts['debt'], 25);
+    });
+
+    test('a real peso debt still lowers the health debt score', () {
+      // The companion that proves the line above is a filter, not an off
+      // switch: a base-currency debt is counted exactly as before. Debt 50000
+      // over assets 100000 is a 0.5 ratio, so round((1 - 0.5) * 25) = 13.
+      final d = _data(
+        accounts: [
+          {'id': 'a', 'kind': 'cash', 'balance': 100000},
+        ],
+        debts: [
+          {'id': 'd', 'remaining': 50000},
+        ],
+      );
+      final parts = healthScore(d, ref)['parts'] as Map;
+      expect(parts['debt'], 13);
+      expect(parts['debt'], lessThan(25));
+    });
+
+    test('a dollar account does not inflate health assets', () {
+      // A foreign account counted as pesos would swell assets and make the
+      // same peso debt look small (ratio 0.05, score 24). Excluding it keeps
+      // the ratio honest at 0.5, score 13.
+      final d = _data(
+        accounts: [
+          {'id': 'a', 'kind': 'cash', 'balance': 100000},
+          {
+            'id': 'b',
+            'kind': 'savings',
+            'balance': 900000,
+            'currencyCode': 'USD',
+          },
+        ],
+        debts: [
+          {'id': 'd', 'remaining': 50000},
+        ],
+      );
+      final parts = healthScore(d, ref)['parts'] as Map;
+      expect(parts['debt'], 13);
     });
   });
 

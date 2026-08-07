@@ -14,6 +14,7 @@
 // - sort ties keep insertion order (JS sort is stable; Dart's is not, so an
 //   index tiebreak is added)
 
+import 'base_currency_scope.dart' show baseCurrencyOf, inBaseCurrency;
 import 'ledger.dart' show amountOf;
 
 double _jsRound(num x) => (x + 0.5).floorToDouble();
@@ -391,8 +392,16 @@ const int runwayCap = 12;
 /// null instead of a made-up number.
 Map<String, dynamic> emergencyRunway(Map<String, dynamic>? data, DateTime ref) {
   final d = data ?? const {};
+  // A foreign account balance is never added as if it were base currency, the
+  // same rule statements.netWorthParts and commitments.safeToSpend already
+  // follow. Without this a $1,000 balance counted as ₱1,000 here, so the
+  // runway buffer disagreed with the safe-to-spend liquid figure on the same
+  // data. Absent currencyCode means base by construction, so every existing
+  // backup (and every RN golden, none of which carry the key) is unchanged.
+  final base = baseCurrencyOf(d);
   var accountSum = 0.0;
   for (final a in (d['accounts'] is List ? d['accounts'] as List : const [])) {
+    if (a is Map && !inBaseCurrency(a, base)) continue;
     accountSum += amountOf(a is Map ? a['balance'] : null);
   }
   final buffer = accountSum > 0 ? accountSum : 0.0;
@@ -456,9 +465,17 @@ Map<String, dynamic> healthScore(Map<String, dynamic> data, DateTime ref) {
           );
   }
 
+  // Same base-currency rule as emergencyRunway, applied to accounts, assets,
+  // and debts alike: a foreign row is left out of a base-currency total rather
+  // than counted at face value. A foreign account or asset counted here would
+  // overstate assets; a foreign debt counted here would overstate the debt
+  // load. Absent currencyCode is base, so no existing backup or RN golden
+  // changes.
+  final base = baseCurrencyOf(data);
   double sum(dynamic arr, String key) {
     var t = 0.0;
     for (final x in (arr is List ? arr : const [])) {
+      if (x is Map && !inBaseCurrency(x, base)) continue;
       t += amountOf(x is Map ? x[key] : null);
     }
     return t;

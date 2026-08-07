@@ -136,5 +136,11 @@ String formatMoney(num value) {
     buf.write(digits[i]);
   }
   final centsPart = cents > 0 ? '.${cents.toString().padLeft(2, '0')}' : '';
-  return '${negative ? '-' : ''}$baseCurrencySymbol$buf$centsPart';
+  // Take the sign from the ROUNDED magnitude, not the raw input. A value in
+  // (-0.005, 0) is negative but rounds to a zero magnitude, and printing that
+  // as "-₱0" made the screen formatter disagree with formatMoneyText, which
+  // already derives its sign from the rounded integer. A balance a hair below
+  // zero from float drift should read "₱0", not a struck minus on nothing.
+  final showNeg = negative && !(whole == 0 && cents == 0);
+  return '${showNeg ? '-' : ''}$baseCurrencySymbol$buf$centsPart';
 }
