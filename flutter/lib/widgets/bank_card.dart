@@ -4,21 +4,28 @@
 // institutions catalog (money/institutions.dart, ported from the RN
 // mobile/lib/banks.js). This widget never reads a second color list and never
 // draws a logo: text and color only, which is the trademark line the project
-// keeps. An account with no known brand color (cash on hand, an unlisted
-// wallet) gets a neutral graphite gradient so it still looks like a card.
+// keeps. A bank is recognised by its brand color plus a faint MONOGRAM (its
+// initials), not by its mark, which needs a permission this project does not
+// have and cannot travel in a Shorebird patch anyway. An account with no known
+// brand color (cash, an unlisted wallet) gets a neutral graphite gradient so it
+// still looks like a card.
 //
-// All text is white or white with opacity, and the base of every gradient is
-// darkened until OPAQUE white clears WCAG AA (4.5:1) against it, so the lightest
-// bank color and the darkest both stay readable. bank_card_test.dart proves
-// that against every brand color in the catalog. The small labels sit at a high
-// opacity (0.85 and up) so they keep clear headroom rather than riding the line.
+// All text is white or white with opacity. bankCardGradient darkens the base
+// until OPAQUE white clears WCAG AA (4.5:1) on the two stops that carry the
+// small text (the base and the darker end); bank_card_test.dart proves that
+// against every brand color in the catalog. The card also paints a lighter
+// SHEEN stop above the base for depth, and only the large, bold bank name sits
+// on it, which needs the gentler 3:1 large-text bar, so the sheen is a visual
+// highlight rather than part of the AA contract.
 
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/institutions.dart' show initialsFor;
 import '../theme.dart';
+import 'salapify_icon.dart' show salapifyIcon;
 
 /// Which face a [BankCard] shows. Savings shows one balance; credit shows the
 /// outstanding balance against a limit, with a utilization bar.
@@ -33,9 +40,11 @@ const Color kBankCardNeutral = Color(0xFF3A424E);
 /// readable while editing.
 const double _designWidth = 320;
 
-/// The two stops of a card gradient for a brand color: a readable base and a
-/// darker end. Exposed so the carousel fallback and the contrast test read the
-/// exact colors the card paints, never a re-derived copy.
+/// The two AA-safe stops of a card gradient for a brand color: a readable base
+/// and a darker end. Exposed so the carousel fallback and the contrast test
+/// read the exact colors the card paints under its small text, never a
+/// re-derived copy. The card adds a lighter sheen ABOVE [0] for depth (see the
+/// file header); that sheen only underlies the large bank name.
 List<Color> bankCardGradient(Color? brandColor) {
   final start = _readableBase(brandColor ?? kBankCardNeutral);
   return [start, _scale(start, 0.72)];
@@ -69,6 +78,11 @@ class BankCard extends StatelessWidget {
   /// the base currency, where [balance] is simply formatted as pesos.
   final String? amountText;
 
+  /// The faint corner watermark, the bank's initials standing in for a logo.
+  /// Null derives it from [bankName], so the carousel can pass the institution's
+  /// own initials for accuracy ("UB" for a UnionBank "Salary account").
+  final String? monogram;
+
   /// Credit only: the credit limit, used for the utilization bar.
   final double? creditLimit;
 
@@ -84,6 +98,7 @@ class BankCard extends StatelessWidget {
     this.brandColor,
     this.last4,
     this.amountText,
+    this.monogram,
     this.creditLimit,
     this.variant = BankCardVariant.savings,
   });
@@ -91,93 +106,142 @@ class BankCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final g = bankCardGradient(brandColor);
+    final mark = (monogram == null || monogram!.isEmpty)
+        ? initialsFor(bankName)
+        : monogram!;
     return AspectRatio(
       aspectRatio: 1.586,
       child: Container(
+        // Shadow only, tinted with the darkest gradient color, drawn outside
+        // the clip so it is not itself clipped.
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: g,
-          ),
           boxShadow: [
-            // Soft drop shadow tinted with the card's own gradient color.
             BoxShadow(
-              color: g[1].withValues(alpha: 0.38),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+              color: g[1].withValues(alpha: 0.42),
+              blurRadius: 20,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
-        // The content is laid out at a fixed REFERENCE size that shares the
-        // card's 1.586 ratio, then scaled to the real card by FittedBox, the way
-        // a physical card scales: a narrow phone gets a smaller but identical
-        // card instead of an overflow, a wide one gets a larger one. System font
-        // scaling is clamped first so the design stays stable before it scales;
-        // the freely scaling copy of every number lives in the detail panel and
-        // the account rows below, which is where accessibility lives.
-        child: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.0,
-          child: FittedBox(
-            fit: BoxFit.fill,
-            child: SizedBox(
-              width: _designWidth,
-              height: _designWidth / 1.586,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          // The content is laid out at a fixed REFERENCE size that shares the
+          // card's 1.586 ratio, then scaled to the real card by FittedBox, the
+          // way a physical card scales: a narrow phone gets a smaller but
+          // identical card instead of an overflow, a wide one gets a larger one.
+          // System font scaling is clamped first so the design stays stable; the
+          // freely scaling copy of every number lives in the detail panel and
+          // the account rows below, which is where accessibility lives.
+          child: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.0,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: SizedBox(
+                width: _designWidth,
+                height: _designWidth / 1.586,
+                child: Stack(
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            bankName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                    // Two-tone brand gradient: a lighter sheen at the top-left,
+                    // the readable base through the middle, the darker end at the
+                    // bottom-right where the balance sits.
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [_sheen(g[0]), g[0], g[1]],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // The faint brand monogram, a logo stand-in, bleeding off the
+                    // bottom-right corner. Text and color only.
+                    Positioned(
+                      right: -6,
+                      bottom: -18,
+                      child: Text(
+                        mark,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          fontSize: 96,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -2,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  bankName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                accountType.toUpperCase(),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const _CardChip(),
+                              const SizedBox(width: 10),
+                              // The contactless mark, the same cue a real card
+                              // carries. Routed through the icon system, drawn
+                              // white to sit on the card rather than in accent.
+                              Icon(
+                                salapifyIcon('contactless'),
+                                size: 18,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Text(
+                            _maskedNumber(last4),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 2.0,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          accountType.toUpperCase(),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.82),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    const _CardChip(),
-                    const Spacer(),
-                    Text(
-                      _maskedNumber(last4),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 2.0,
+                          const SizedBox(height: 8),
+                          if (variant == BankCardVariant.credit)
+                            _CreditFooter(
+                              outstanding: balance,
+                              limit: creditLimit ?? 0,
+                            )
+                          else
+                            _SavingsFooter(
+                              amountText: amountText ?? formatMoneyText(balance),
+                            ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    if (variant == BankCardVariant.credit)
-                      _CreditFooter(
-                        outstanding: balance,
-                        limit: creditLimit ?? 0,
-                      )
-                    else
-                      _SavingsFooter(
-                        amountText: amountText ?? formatMoneyText(balance),
-                      ),
                   ],
                 ),
               ),
@@ -313,7 +377,7 @@ class _CardChip extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF2D68A), Color(0xFFB8860B)],
+          colors: [Color(0xFFF6DE9A), Color(0xFFC79A2E)],
         ),
       ),
       child: Center(
@@ -362,8 +426,16 @@ Color _readableBase(Color base) {
   return c;
 }
 
-Color _scale(Color c, double f) =>
-    Color.fromARGB(255, _byte(c.r * f), _byte(c.g * f), _byte(c.b * f));
+/// The lighter sheen stop, a small step toward white for depth. Only the large
+/// bank name sits on it, so it is not held to the small-text AA bar.
+Color _sheen(Color c) => Color.lerp(c, Colors.white, 0.10)!;
+
+Color _scale(Color c, double f) => Color.fromARGB(
+  255,
+  _byte(c.r * f),
+  _byte(c.g * f),
+  _byte(c.b * f),
+);
 
 int _byte(double channel01) => (channel01 * 255).round().clamp(0, 255);
 

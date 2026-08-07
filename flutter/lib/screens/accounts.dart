@@ -871,6 +871,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           last4: _last4Of(row),
           amount: bal,
           amountText: code == null ? null : formatConverted(bal, code),
+          monogram: institutionById(row['institutionId']?.toString())?.initials,
           variant: BankCardVariant.savings,
         ),
       );
@@ -888,6 +889,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           last4: _last4Of(row),
           amount: amountOf(row['remaining']),
           limit: amountOf(row['creditLimit']),
+          monogram: institutionById(row['institutionId']?.toString())?.initials,
           variant: BankCardVariant.credit,
         ),
       );
@@ -2102,6 +2104,10 @@ class _CardItem {
   /// The preformatted amount for a foreign-currency account (its own symbol).
   /// Null for a base-currency account, where the card formats [amount] as pesos.
   final String? amountText;
+
+  /// The bank's initials for the card's corner watermark, or null to let the
+  /// card derive them from the name.
+  final String? monogram;
   final double? limit;
   final BankCardVariant variant;
   const _CardItem({
@@ -2115,6 +2121,7 @@ class _CardItem {
     required this.amount,
     required this.variant,
     this.amountText,
+    this.monogram,
     this.limit,
   });
 }
@@ -2210,6 +2217,7 @@ class _AccountsCarouselState extends State<_AccountsCarousel> {
                               last4: it.last4,
                               balance: it.amount,
                               amountText: it.amountText,
+                              monogram: it.monogram,
                               creditLimit: it.limit,
                               variant: it.variant,
                             ),
