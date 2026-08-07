@@ -626,6 +626,18 @@ Widget lessonShot({
 );
 
 void main() {
+  // A missed tap must fail LOUDLY, at the tap, for every tap in this file at
+  // once. This harness taps by finder (e.g. "Move money between accounts") and
+  // then screenshots or asserts the result; if a layout change pushes the
+  // target below the fold in the fixed viewport, a bare tap silently misses and
+  // the failure surfaces several steps later and illegibly ("Found 0 widgets
+  // with text ..."), which is exactly how the Cash on hand section broke the
+  // transfer-sheet shot on the f3.65 runner while 2729 local tests stayed green
+  // (docs/lunch-and-learn.md session 38). With this on, a missed tap throws at
+  // the tap site with a clear message, so the next taller-list regression is a
+  // one-line error here, not a wasted round trip through CI. CI runs this file
+  // as its own step, so the guard is enforced there unconditionally.
+  WidgetController.hitTestWarningShouldBeFatal = true;
   // onMenu is wired on every tab, as the shell wires it. It was omitted once
   // and every per-tab shot then rendered WITHOUT the Menu button, so the
   // founder was looking at a header on the phone that no render had ever

@@ -10,6 +10,177 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-07, session 38: f3.64 clean, f3.65 reddened CI on a harness tap that silently missed because a taller screen pushed the button below the fold
+
+**What we believed / What was true.**
+
+Two stamps shipped and both have a publisher-written row on `origin/main` in
+`docs/delivery-log.md`:
+
+    | 2026-08-07 05:27 UTC | f3.64 | 57 | patch | 0.9.0+15 | ac09822b |
+    | 2026-08-07 07:41 UTC | f3.65 | 58 | patch | 0.9.0+15 | fd57b0ed |
+
+Patches 57 and 58 are consecutive, both mode `patch` on the same base APK
+`0.9.0+15`, so no manual install was needed and none was claimed. The founder
+confirmed both on the phone. On delivery, belief and reality match for both.
+
+f3.64, the interactive flip card (tap a savings, bank, e-wallet, or credit
+card to flip it to a condensed back, the masked number revealed only behind
+device auth, one card flipped at a time), delivered clean and first try. Full
+suite and CI green, the QA pass found 0 must-fix and 4 minor hardening items
+and all 4 were fixed and re-checked (`docs/qa-log.md` line 123). There is
+nothing to dig into there, and this session does not invent one. A clean patch
+is a real outcome.
+
+f3.65, cash on hand redesigned from a bank-card look into a compact wallet tile
+in its own section, is the one with a real gap between believed and true, and
+it is a gap in the CI belief, not the phone belief. The belief that failed was
+"the local full suite passed 2729 tests and `flutter analyze` is clean,
+therefore CI will be green." It was not. The `Analyze and test` job went red.
+Nothing false was ever said to the founder: the wording while this was open was
+"waiting on CI", never "it shipped". So this cost a round trip through CI and
+back, the same kind of waste sessions 32 and 33 recorded for the stamp
+collisions, not a phone outage. CI is the backstop and it did exactly its job
+(`.github/workflows/flutter-check.yml` lines 5 to 13 are the note that this job
+exists precisely so a runner-only failure shows up before the merge).
+
+**Timeline, with evidence.**
+
+- `8301461` through `ff73e39` build the cash redesign. It restructures the
+  Accounts screen `build()` so a new "Cash on hand" section sits ABOVE the card
+  carousel (`flutter/lib/screens/accounts.dart`). This makes the scrolling
+  Accounts list taller than it was.
+- The redesign was pushed on a local belief of green: `flutter test` passed
+  2729 tests and `flutter analyze` reported zero issues. Both are true, and
+  both are the wrong evidence, for the reason in the root cause below.
+- CI's `Analyze and test` job reddened on ONE step, `The screenshot harness
+  still renders` (`.github/workflows/flutter-check.yml` line 191 to 192, which
+  runs `flutter test test/screens_shot.dart --update-goldens`). The failing
+  shot is the transfer sheet, dark, at `flutter/test/screens_shot.dart`. The
+  shot drags the list, then at the old line taps
+  `find.text('Move money between accounts')` with a bare `tester.tap(...)`,
+  then asserts `expect(find.text('Move money'), findsOneWidget)`.
+- The taller list pushed the "Move money between accounts" button below the
+  fold of the harness's fixed viewport. A bare tap on an off-screen target does
+  NOT fail at the tap. Flutter prints a hit-test warning (it is in the CI log,
+  "a call to tap() derived an Offset that would not hit test") and moves on.
+  The sheet never opened, so the assertion failed downstream with `Found 0
+  widgets with text "Move money"`. The reported error named the wrong place:
+  the cause was the tap, the message was about the title.
+- Fixed in `e421062`: `await tester.ensureVisible(find.text('Move money
+  between accounts'))` before the tap (`flutter/test/screens_shot.dart` lines
+  2326 to 2327), so the button is on screen no matter how tall the list is.
+  Verified locally with `flutter test test/screens_shot.dart --update-goldens`:
+  93 shots pass, was 92 pass and 1 fail. f3.65 then merged and delivered as
+  patch 58.
+
+**Root cause.**
+
+Two structural facts, not a lapse of attention:
+
+1. `flutter/test/screens_shot.dart` has NO `_test` suffix, so a bare local
+   `flutter test` never collects it. That is deliberate and documented in
+   `CLAUDE.md` (so the harness can never fail a normal CI run on fonts), and CI
+   runs it instead as a SEPARATE step. The consequence is that the render
+   harness is a whole test category that the local suite does not exercise at
+   all. A layout change to a shared screen like Accounts can pass every one of
+   the 2729 collected tests locally and still break the harness on the runner.
+   So "local suite green plus analyze clean" is simply not evidence about this
+   category, and the belief that it was is the divergence point.
+2. The harness taps interactive targets with a bare
+   `tester.tap(find.text(...))`, which silently misses an off-screen target
+   instead of failing at the tap. There are 38 bare `tester.tap` calls in the
+   file and only 4 `ensureVisible` guards, so 34 taps carry the same latent
+   behavior: any of them turns into a confusing downstream "0 widgets" failure
+   the moment a screen it touches grows taller. "Claude did not run the
+   harness" is not a root cause, because the fix would be "run it harder" and
+   that fails the next busy day. "The local check does not exercise the
+   harness, and the harness fails illegibly when a tap misses" is a root cause,
+   because both halves have a machine fix.
+
+**Lessons, each with its guard and the guard's strength.**
+
+Lesson one: the render harness is a test category the local check does not run,
+so local-green can be CI-red for any shared-screen layout change.
+
+- Guard (recommended, MEDIUM): add the harness command to `.githooks/pre-push`,
+  invoked exactly as CI does it, `cd flutter && flutter test
+  test/screens_shot.dart --update-goldens`. It runs clean in the sandbox with
+  no network, 93 shots, so it moves this class of failure one push earlier.
+  Strength is MEDIUM and honestly so: `CLAUDE.md` and the hook's own header
+  (`.githooks/pre-push` lines 10 to 17) are emphatic that a pre-push hook is
+  not server-side and only protects a checkout that has run `git config
+  core.hooksPath .githooks` once. It saves the round trip where the hook is
+  enabled; it does not prevent an outage, because CI already prevents the
+  outage. That is the whole of its value, stated plainly.
+
+Lesson two: a bare `tester.tap` on an off-screen target misses silently and
+reports the failure downstream, turning a one-line cause into a "0 widgets"
+mystery in a different file.
+
+- Guard (recommended, STRONGEST durable piece here): set
+  `WidgetController.hitTestWarningShouldBeFatal = true` once at the top of
+  `main()` in `flutter/test/screens_shot.dart`. Flutter already prints the
+  hit-test warning; this makes it THROW at the tap site with the "would not hit
+  test" message, for all 38 bare taps at once, instead of a downstream
+  `findsOneWidget` failure. It is committed into the file, so it fires wherever
+  the harness runs, and CI runs the harness unconditionally, so this protects
+  every future push without anyone enabling anything. Prove it the standard
+  way: revert the `ensureVisible` at line 2326, run the harness, and confirm it
+  now fails at the tap (line 2328) with the hit-test message, not at the
+  `expect` (line 2330) with "0 widgets"; then restore only after the run
+  reports. Strength: automated and committed, strong where it runs. It does not
+  by itself move detection before the push, that is guard one's job, but it
+  removes the illegible-failure mode permanently.
+
+Recommended smallest set is BOTH, with clear roles: the harness in the
+pre-push hook moves detection one push earlier (medium, hook-gated), and
+`hitTestWarningShouldBeFatal` makes any future miss loud and legible for the
+whole class (strong, committed, unconditional on CI). A bespoke "assert every
+tap target is on screen" test was considered and rejected: it reimplements by
+hand what the framework gives for free through the second guard. The part that
+stays a human rule is small and named: nothing forces a checkout to enable the
+hook, so the pre-push idea depends on the one-time config, and CI stays the real
+backstop, which already worked here.
+
+UPDATE, same session (f3.66): the strong guard was implemented and proven, not
+deferred. `WidgetController.hitTestWarningShouldBeFatal = true` now sits at the
+top of `screens_shot.dart` main(), so CI enforces it on every push for all of
+this file's taps at once. Break-then-prove: removing the `ensureVisible` that
+fixed the transfer shot, so the tap misses the below-the-fold button again,
+turned the run red AT THE TAP with `Finder specifies a widget that would not
+receive pointer events ... Offset(195.0, 859.6) is outside the bounds of the
+root of the render tree, Size(390.0, 844.0)`, exactly the loud, legible failure
+this guard exists to produce in place of the downstream `Found 0 widgets with
+text "Move money"`. Restored, and all 93 shots pass with the guard on, which
+also proves no other bare tap in the file is currently missing. The pre-push
+complement was NOT added and stays the smaller, optional follow-up.
+
+**Open lessons carried forward.**
+
+Session 37's open lesson is now CLOSED, and recording a confirmed close is
+worth more than a new finding. That lesson was that 17 render-harness shots and
+the only lesson-surface accessibility checks were aimed at
+`ExpansionLessonReader`, a reader `learn.dart` no longer opens. Commit
+`7810e7b`, "fix(courses): the lesson screenshots and tests now point at the
+reader you open", shipped at f3.60 (patch 52, delivered 2026-08-06 17:29 UTC).
+Verified today: `flutter/test/screens_shot.dart` now builds `PagedLessonReader`
+(two references) and the only surviving `ExpansionLessonReader` token in the
+file is a doc comment at line 613; `flutter/lib/screens/learn.dart` line 116
+still constructs `PagedLessonReader`. The pictures and the checks now point at
+the reader the founder can reach.
+
+CLAUDE.md factual re-check, done as a step and not a favor. Every claim this
+session touched still matches the repository: `screens_shot.dart` lives under
+`test/` without a `_test` suffix (true, `flutter/test/screens_shot.dart`); CI
+runs it separately with `--update-goldens` (true, `flutter-check.yml` line
+192); the harness renders sheets in dark only (consistent, the shot is
+`shots/transfer-sheet-dark.png` at line 2333); and the pre-push hook is not a
+server-side check and only protects a checkout that enabled it (true,
+`.githooks/pre-push` lines 10 to 17). Nothing read false today.
+
+---
+
 ## 2026-08-06, session 37: f3.58 and f3.59 both shipped clean, two real defects found by two mechanisms that are not the test suite, and 17 of the render harness's lesson pictures point at a reader the app can no longer open
 
 **What we believed / What was true.**
