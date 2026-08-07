@@ -15,6 +15,7 @@
 // dark at night repaints the whole tree). See analysis_options.yaml.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 /// One brightness worth of colors. Pure color DATA, so it stays const; identity
 /// (key, label) lives on BarakoTheme, not here.
@@ -37,6 +38,13 @@ class BarakoPalette {
   final Color warning;
   final Color warningStrong;
   final Color onPrimary;
+
+  /// The win gold. THEME-INVARIANT by rule: every dark palette carries the
+  /// same gold and every light palette the same deep gold, the same reasoning
+  /// as Pan's fixed orange. The reward signature should read identically in
+  /// every screenshot; before this, Voltage celebrated in hot pink and
+  /// Ultraviolet in lime, so a win looked like a different app per theme.
+  /// The invariance is enforced by palette_contrast_test, not by this comment.
   final Color celebrate;
   final Color positiveSurface;
   final Color positiveBorder;
@@ -146,7 +154,7 @@ const _tidalDark = BarakoPalette(
   warning: Color(0xFFFF9F45),
   warningStrong: Color(0xFFFF7A38),
   onPrimary: Color(0xFF052730),
-  celebrate: Color(0xFFFFD24A),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF122A33),
   positiveBorder: Color(0xFF1E4C57),
   overlay: Color.fromRGBO(4, 9, 16, 0.64),
@@ -167,7 +175,7 @@ const _tidalLight = BarakoPalette(
   warning: Color(0xFFB4551A),
   warningStrong: Color(0xFF924213),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF8A6400),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFE1F0F2),
   positiveBorder: Color(0xFFBCDDE0),
   overlay: Color.fromRGBO(8, 20, 28, 0.42),
@@ -188,7 +196,7 @@ const _ultravioletDark = BarakoPalette(
   warning: Color(0xFFFF8A4C),
   warningStrong: Color(0xFFFF6A3D),
   onPrimary: Color(0xFF1A0F33),
-  celebrate: Color(0xFFC6FF4A),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF24204C),
   positiveBorder: Color(0xFF443B7A),
   overlay: Color.fromRGBO(10, 7, 24, 0.64),
@@ -209,7 +217,7 @@ const _ultravioletLight = BarakoPalette(
   warning: Color(0xFFC23A1B),
   warningStrong: Color(0xFF9C2C12),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF526E00),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFEEEAFB),
   positiveBorder: Color(0xFFD6CCF4),
   overlay: Color.fromRGBO(26, 16, 48, 0.42),
@@ -230,7 +238,7 @@ const _voltageDark = BarakoPalette(
   warning: Color(0xFFFFA13D),
   warningStrong: Color(0xFFFF7E33),
   onPrimary: Color(0xFF04122B),
-  celebrate: Color(0xFFFF5CA8),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF111C30),
   positiveBorder: Color(0xFF1E3355),
   overlay: Color.fromRGBO(3, 4, 8, 0.66),
@@ -251,7 +259,7 @@ const _voltageLight = BarakoPalette(
   warning: Color(0xFFB4551A),
   warningStrong: Color(0xFF924213),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFFB01C6E),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFE3ECF9),
   positiveBorder: Color(0xFFC2D3F0),
   overlay: Color.fromRGBO(8, 12, 22, 0.42),
@@ -275,7 +283,7 @@ const _emberDark = BarakoPalette(
   // Same reason as Barako above: this colour carries 13pt subtotals.
   warningStrong: Color(0xFFFA3F5C),
   onPrimary: Color(0xFF2A0E04),
-  celebrate: Color(0xFFFFB020),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF2E2016),
   positiveBorder: Color(0xFF55402C),
   overlay: Color.fromRGBO(12, 8, 6, 0.64),
@@ -317,7 +325,7 @@ const _orchidgoldDark = BarakoPalette(
   warning: Color(0xFFFF7A45),
   warningStrong: Color(0xFFF55A2C),
   onPrimary: Color(0xFF2B0A1E),
-  celebrate: Color(0xFFF7C64B),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF28193A),
   positiveBorder: Color(0xFF4A2F63),
   overlay: Color.fromRGBO(10, 5, 16, 0.64),
@@ -338,7 +346,7 @@ const _orchidgoldLight = BarakoPalette(
   warning: Color(0xFFBC3A16),
   warningStrong: Color(0xFF992C0F),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF8A6000),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFF3E4F0),
   positiveBorder: Color(0xFFE1C6DC),
   overlay: Color.fromRGBO(26, 10, 22, 0.42),
@@ -359,7 +367,7 @@ const _forestDark = BarakoPalette(
   warning: Color(0xFFFF6B7E),
   warningStrong: Color(0xFFFF4D66),
   onPrimary: Color(0xFF3A1E07),
-  celebrate: Color(0xFFA8E85C),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF243424),
   positiveBorder: Color(0xFF4A6247),
   overlay: Color.fromRGBO(8, 14, 9, 0.62),
@@ -376,14 +384,16 @@ const _forestDark = BarakoPalette(
 // palette's lime. The orange primary is deliberately unchanged: warm orange on
 // green IS the theme, and it is what the name promises.
 //
-// Distance was checked against every other light palette, not just Barako. The
-// background is now 14 away from Barako per channel and the win color 77, which
-// puts this pair in line with the most distinct pairs the system already has
-// (the whole light range spans about 23). Every contrast pair clears AA; faint
-// on background is 4.77, above the 4.50 floor Orchid Gold light already sets.
+// Distance was checked against every other light palette, not just Barako.
+// When the win color went theme-invariant (2026-08-07) it stopped counting
+// toward theme identity, and background became the pair's whole distance, so
+// it moved two more points green (E9 to E7 in the red channel): 16 away from
+// Barako per channel, above the 15 floor appearance_test holds every pair to.
+// Every contrast pair still clears AA; primary on background is 4.72 and faint
+// on background 4.76, above the 4.50 floor Orchid Gold light already sets.
 const _forestLight = BarakoPalette(
   brightness: Brightness.light,
-  background: Color(0xFFE9F1E1),
+  background: Color(0xFFE7F1E1),
   card: Color(0xFFFAFDF6),
   surfaceRaised: Color(0xFFFFFFFF),
   border: Color(0xFFD6E1C8),
@@ -400,7 +410,7 @@ const _forestLight = BarakoPalette(
   warning: Color(0xFFB01E38),
   warningStrong: Color(0xFF8C1329),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF3D6B14),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFDFEBD2),
   positiveBorder: Color(0xFFC2D4A8),
   overlay: Color.fromRGBO(16, 26, 14, 0.45),
@@ -421,7 +431,7 @@ const _mintDark = BarakoPalette(
   warning: Color(0xFFF2A05F),
   warningStrong: Color(0xFFE0633A),
   onPrimary: Color(0xFF04261A),
-  celebrate: Color(0xFFFFD166),
+  celebrate: Color(0xFFFFC24D),
   positiveSurface: Color(0xFF12291E),
   positiveBorder: Color(0xFF1F4A36),
   overlay: Color.fromRGBO(5, 12, 9, 0.62),
@@ -442,7 +452,7 @@ const _mintLight = BarakoPalette(
   warning: Color(0xFFB84A22),
   warningStrong: Color(0xFF93381A),
   onPrimary: Color(0xFFFFFFFF),
-  celebrate: Color(0xFF946300),
+  celebrate: Color(0xFF8A5A00),
   positiveSurface: Color(0xFFE4F3EB),
   positiveBorder: Color(0xFFBFE0D0),
   overlay: Color.fromRGBO(10, 20, 15, 0.45),
@@ -501,14 +511,14 @@ const List<BarakoTheme> barakoThemes = [
   BarakoTheme(
     key: 'ultraviolet',
     label: 'Ultraviolet',
-    hint: 'Midnight violet, electric lime.',
+    hint: 'Midnight violet, soft lavender.',
     light: _ultravioletLight,
     dark: _ultravioletDark,
   ),
   BarakoTheme(
     key: 'voltage',
     label: 'Voltage',
-    hint: 'Ink black, blue, hot pink wins.',
+    hint: 'Ink black, electric blue.',
     light: _voltageLight,
     dark: _voltageDark,
   ),
@@ -674,6 +684,13 @@ class Barako {
 /// Ported from the React Native app's scale so the two stay in step. Before
 /// this the Flutter app hand typed 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22
 /// and 24, plus a literal 12.5 font size, so there was no rhythm to read.
+///
+/// The semantic rules, written once so screens stop deciding per file:
+/// - Screen edge: [gutter] (20) on the left and right, every screen.
+/// - Between cards: [lg] (16), the one vertical rhythm.
+/// - Inside a standard card: [lg] (16) padding.
+/// - Inside the one raised hero card: [gutter] (20) padding, so the headline
+///   surface visibly breathes more than the furniture.
 class Gap {
   const Gap._();
   static const double xxs = 2;
@@ -682,21 +699,202 @@ class Gap {
   static const double md = 12;
 
   /// The standard gap between cards. Was 12 in 95 places, which is most of
-  /// what "the other app feels more generous" actually was.
+  /// what "the other app feels more generous" actually was. Also the standard
+  /// card interior padding.
   static const double lg = 16;
+
+  /// The screen edge, and the hero card's interior padding. The horizontal 20
+  /// was already the app's de facto gutter; this names it so a screen cannot
+  /// quietly ship 16 on one edge and 20 on the other.
+  static const double gutter = 20;
   static const double xl = 24;
   static const double xxl = 32;
 }
 
-/// Corner radii. Heroes get more than flat cards, so the eye can tell the
-/// headline from the supporting cast without reading it.
+/// The two scroll paddings a screen body uses, so LTRB literals stop drifting.
+class Insets {
+  const Insets._();
+
+  /// A plain scrollable screen: gutter sides, room to breathe at the bottom.
+  static const EdgeInsets screen = EdgeInsets.fromLTRB(
+    Gap.gutter,
+    Gap.lg,
+    Gap.gutter,
+    Gap.xxl,
+  );
+
+  /// A tab screen, whose scroll end must clear the floating action button.
+  static const EdgeInsets tabScreen = EdgeInsets.fromLTRB(
+    Gap.gutter,
+    Gap.lg,
+    Gap.gutter,
+    96,
+  );
+
+  /// Standard card interior.
+  static const EdgeInsets card = EdgeInsets.all(Gap.lg);
+
+  /// The one raised hero card's interior.
+  static const EdgeInsets hero = EdgeInsets.all(Gap.gutter);
+}
+
+/// Corner radii, cut around the geometry that actually ships. Heroes get more
+/// corner than furniture, so the eye can tell the headline from the supporting
+/// cast without reading it.
+///
+/// Semantic rungs are the system; a screen names what a corner IS (a control,
+/// a field, a card) and this class decides the number. One rule rides along:
+/// an InkWell that fills a card takes the card's own radius, so the tap ripple
+/// clips at the corner the eye already sees.
 class Radii {
   const Radii._();
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 20;
-  static const double xl = 26;
+
+  /// Chips, inline controls, small tiles. This legalizes the 12 the app
+  /// already uses in over a hundred places; it was the most used radius in
+  /// the app and the only one with no name.
+  static const double control = 12;
+
+  /// Inputs and buttons.
+  static const double field = 14;
+
+  /// Cards and dialogs. The theme's card shape reads this.
+  static const double card = 20;
+
+  /// Bottom sheet top corners, set once in the theme's bottomSheetTheme so
+  /// the log and edit sheets stop disagreeing about their own doorway.
+  static const double sheet = 24;
+
+  /// The one raised hero surface.
+  static const double hero = 26;
   static const double pill = 999;
+
+  // LEGACY aliases, kept so the migration can move screen by screen instead
+  // of in one big-bang diff. Same numbers as before, new names above. Phase 2
+  // and later convert call sites to the semantic rungs and then delete these.
+  // Not @Deprecated: the branch check runs analyze at zero issues, and these
+  // are scheduled for conversion, not accidents.
+
+  /// LEGACY: use [control] (12) for controls; 10 snaps up on conversion.
+  static const double sm = 10;
+
+  /// LEGACY: use [field].
+  static const double md = field;
+
+  /// LEGACY: use [card].
+  static const double lg = card;
+
+  /// LEGACY: use [hero].
+  static const double xl = hero;
+}
+
+/// The opacity ladder. Four names instead of the 23 ad-hoc alpha levels the
+/// screens grew, so a wash cannot drift one file at a time.
+///
+/// The scrim deliberately has no rung here: a modal barrier needs a different
+/// strength per palette (dark themes scrim darker), so it stays the palette's
+/// own [BarakoPalette.overlay].
+class BarakoAlpha {
+  const BarakoAlpha._();
+
+  /// The faintest presence of a color: a tinted card background, a hover.
+  static const double wash = 0.06;
+
+  /// A visible tint that still reads as background: selected-state fills,
+  /// icon discs.
+  static const double tint = 0.12;
+
+  /// The strongest wash: a color you notice but never read text against.
+  static const double hint = 0.24;
+}
+
+// THE SURFACE MODEL, the app's entire elevation story:
+//
+// - Level 0, the screen: BarakoPalette.background. Nothing sits below it.
+// - Level 1, a reading surface: BarakoPalette.card with a border hairline.
+//   Identified by FILL, not by shadow.
+// - Level 2, the hero: BarakoPalette.surfaceRaised with a border. ONE per
+//   screen, the screen's headline. Two raised surfaces is zero heroes.
+// - Overlay: the palette's BarakoPalette.overlay scrim behind modals.
+//
+// Borders over shadows, deliberately. The only shadow in the app is the
+// floating action button's elevation 2; cards never cast one. Hierarchy is
+// carried by surface contrast, borders, spacing and type, which is why a
+// screenshot of any theme still reads as Salapify with the shadows off.
+
+/// Motion tokens: five durations, one curve, and the reduce-motion gate.
+///
+/// Grounded in the values the app already shipped rather than imported from a
+/// spec: tap is the pressable dip, state absorbs the 160/180/200 crossfades,
+/// move the 220 to 260 slides, reveal the 300 to 420 fills and flips.
+class Motion {
+  const Motion._();
+
+  /// A press acknowledging a finger (the pressable dip).
+  static const Duration tap = Duration(milliseconds: 120);
+
+  /// A state change in place: fills, crossfades, selection moves.
+  static const Duration state = Duration(milliseconds: 160);
+
+  /// Something traveling: page turns, scroll-into-view.
+  static const Duration move = Duration(milliseconds: 240);
+
+  /// A reveal that earns a beat: the card flip, a progress fill.
+  static const Duration reveal = Duration(milliseconds: 420);
+
+  /// Confetti only. Reserved the way the gold is reserved.
+  static const Duration celebrate = Duration(milliseconds: 1400);
+
+  /// The one curve. Thirteen of fourteen animation sites already used it.
+  static const Curve curve = Curves.easeOut;
+
+  /// The reduce-motion gate: pass every animation duration through this and
+  /// the accessibility setting becomes the system's default behavior instead
+  /// of something each screen has to remember. Returns [Duration.zero] when
+  /// the user asked the OS to disable animations.
+  ///
+  /// The aspect-scoped lookup, not MediaQuery.maybeOf: the whole-object read
+  /// would rebuild every adopting widget on ANY media change, including each
+  /// keyboard open, which matters once Phase 2 spreads this across the app.
+  static Duration of(BuildContext context, Duration duration) =>
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false)
+      ? Duration.zero
+      : duration;
+}
+
+/// The haptic vocabulary. Three words, used for exactly three meanings, so a
+/// buzz keeps meaning something:
+///
+/// - [select]: a choice or position change (a chip, a segment, a scrub step).
+/// - [moneyWritten]: a successful financial write. The save moment, felt.
+/// - [milestone]: a celebration-grade win. Reserved like the gold.
+///
+/// NEVER a haptic on a failed, blocked, gated or invalid action. A buzz says
+/// "that worked"; buzzing a rejection teaches the hand to distrust every
+/// other buzz in the app. Adoption across screens is a later phase; this
+/// class exists so that phase adds calls, not decisions.
+class Haptics {
+  const Haptics._();
+  static void select() => HapticFeedback.selectionClick();
+  static void moneyWritten() => HapticFeedback.lightImpact();
+  static void milestone() => HapticFeedback.mediumImpact();
+}
+
+/// Icon sizes, named once. Special artwork (Pan, the bank cards) is art, not
+/// iconography, and does not pass through these.
+class IconSizes {
+  const IconSizes._();
+
+  /// Dense metadata beside small text.
+  static const double dense = 16;
+
+  /// The standard inline icon.
+  static const double inline = 20;
+
+  /// Bottom navigation glyphs.
+  static const double nav = 22;
+
+  /// The major disc icon (salapify_icon's orange disc).
+  static const double disc = 40;
 }
 
 /// The theme for one palette (one theme in one brightness).
@@ -728,18 +926,59 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     fontFamily: 'Jakarta',
     scaffoldBackgroundColor: p.background,
     colorScheme: scheme,
-    splashColor: p.primary.withValues(alpha: 0.08),
-    highlightColor: p.primary.withValues(alpha: 0.05),
+    splashColor: p.primary.withValues(alpha: BarakoAlpha.wash),
+    highlightColor: p.primary.withValues(alpha: BarakoAlpha.wash),
     cardTheme: CardThemeData(
       color: p.card,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.card)),
         side: BorderSide(color: p.border),
       ),
     ),
     dividerColor: p.border,
+    // The one AppBar. Every screen used to repeat this trio of properties (30
+    // copies, one already diverged); the theme owns it now, so a bare AppBar
+    // with just a title is already correct.
+    appBarTheme: AppBarTheme(
+      backgroundColor: p.background,
+      foregroundColor: p.text,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Jakarta',
+        fontSize: 22,
+        fontWeight: FontWeight.w800,
+        height: 1.2,
+        color: p.text,
+      ),
+      // No size here: the audit names no AppBar icon size, and setting one
+      // would resize every screen's chrome as a side effect. Icons keep the
+      // Material 24 until a phase decides otherwise on purpose.
+      iconTheme: IconThemeData(color: p.text),
+    ),
+    // The one bottom-sheet doorway: card surface, Radii.sheet top corners,
+    // the palette's own scrim. The log and edit sheets each declared their
+    // own surface and radius and disagreed; sheets that stop passing
+    // overrides land here.
+    // No clipBehavior here, deliberately: thirteen shipped sheets pass a
+    // transparent background and draw their own rounded container inside, and
+    // a theme-level Clip.antiAlias would shave their corners at the theme's
+    // radius instead of their own (QA finding, f3.74). Clipping joins in
+    // Phase 2 when those sheets adopt the theme surface.
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: p.card,
+      modalBackgroundColor: p.card,
+      surfaceTintColor: Colors.transparent,
+      modalBarrierColor: p.overlay,
+      dragHandleColor: p.border,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet)),
+      ),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       indicatorColor: p.primary,
@@ -761,7 +1000,7 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       ),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
-          size: 22,
+          size: IconSizes.nav,
           color: states.contains(WidgetState.selected) ? p.onPrimary : p.muted,
         ),
       ),
@@ -778,7 +1017,7 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       actionTextColor: p.primary,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         side: isLight ? BorderSide.none : BorderSide(color: p.border),
       ),
     ),
@@ -786,7 +1025,7 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       backgroundColor: p.card,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.card)),
         side: BorderSide(color: p.border),
       ),
     ),
@@ -794,7 +1033,9 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       style: FilledButton.styleFrom(
         backgroundColor: p.primary,
         foregroundColor: p.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.field),
+        ),
         textStyle: const TextStyle(
           fontFamily: 'Jakarta',
           fontWeight: FontWeight.w700,
@@ -806,7 +1047,9 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: p.border),
         foregroundColor: p.textSecondary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.field),
+        ),
         textStyle: const TextStyle(
           fontFamily: 'Jakarta',
           fontWeight: FontWeight.w600,
@@ -822,15 +1065,42 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
         ),
       ),
     ),
+    // The one chip: background fill, border, secondary ink at label size,
+    // Radii.control corners, selected fill in the accent, and the default
+    // MaterialTapTargetSize keeping the touch target at 48.
+    //
+    // The labelStyle is deliberately a PLAIN TextStyle, not a
+    // WidgetStateTextStyle. The chip framework merges the theme style UNDER a
+    // chip's own labelStyle (labelStyle.merge(widget.labelStyle)), and a
+    // WidgetStateTextStyle carries all its fields inside resolve(), so the
+    // merge reads every field as null and the family silently falls off:
+    // chips rendered in the fallback face, and the readability sweep caught
+    // the widened labels overflowing the loan calculator before it shipped.
+    // Until the framework resolves states through that merge, the selected
+    // label color stays a call-site concern (every ChoiceChip site already
+    // sets it), consolidated in Phase 2's chip adoption.
     chipTheme: ChipThemeData(
       backgroundColor: p.background,
+      selectedColor: p.primary,
+      disabledColor: p.background,
       side: BorderSide(color: p.border),
+      // The COLOR field alone is per-state: the chip framework resolves a
+      // WidgetStateColor inside the label style even though it merges the
+      // style object itself, so a bare selected chip gets onPrimary ink on
+      // the primary fill instead of unreadable textSecondary-on-accent.
       labelStyle: TextStyle(
         fontFamily: 'Jakarta',
-        color: p.textSecondary,
+        fontSize: 14,
+        color: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? p.onPrimary
+              : p.textSecondary,
+        ),
         fontWeight: FontWeight.w600,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.control),
+      ),
       showCheckmark: false,
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -843,21 +1113,61 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     ),
+    // The one input decoration, complete enough that a bare TextField is
+    // already right. Fifteen-plus screens grew private _decor helpers because
+    // this theme used to define only three of the states; those helpers stay
+    // for now (they override this wholesale) and Phase 2 deletes them.
+    //
+    // Fill is the CARD surface: most inputs sit on the background scaffold,
+    // where a card-colored field reads as a place to type. On a card-surfaced
+    // sheet the fill matches the sheet and the border alone carries the
+    // outline, which is the standard outlined-input look, not a defect.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: p.background,
+      fillColor: p.card,
       hintStyle: TextStyle(fontFamily: 'Jakarta', color: p.faint),
+      labelStyle: TextStyle(fontFamily: 'Jakarta', color: p.textSecondary),
+      floatingLabelStyle: TextStyle(fontFamily: 'Jakarta', color: p.primary),
+      errorStyle: TextStyle(
+        fontFamily: 'Jakarta',
+        fontSize: 12,
+        color: scheme.error,
+      ),
+      // 12 horizontal, not 16: narrow fixed-width fields (the calculators'
+      // 110dp term and rate inputs) size their hints against this, and 16
+      // ellipsized "e.g. 1.5" in the loan calculator. The readability sweep
+      // is the arbiter here, not taste.
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: Gap.md,
+        vertical: Gap.lg,
+      ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: p.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: p.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: p.primary, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Radii.field),
+        borderSide: BorderSide(color: scheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Radii.field),
+        borderSide: BorderSide(color: scheme.error, width: 1.4),
+      ),
+      // Disabled reads as inert: the same border at the strongest wash the
+      // ladder allows, so the outline recedes without inventing a new alpha.
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Radii.field),
+        borderSide: BorderSide(
+          color: p.border.withValues(alpha: BarakoAlpha.hint),
+        ),
       ),
     ),
   );

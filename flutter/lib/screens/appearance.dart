@@ -135,7 +135,7 @@ class AppearanceScreen extends StatelessWidget {
 /// Deliberately paired Rows rather than a Wrap. A Wrap lets every tile take its
 /// own height, which sounds harmless and renders as a ragged edge whenever two
 /// neighbours have hints of different lengths: "Deep navy, vivid aqua." is one
-/// line and "Ink black, blue, hot pink wins." is two, so that row came out
+/// line and "Coral on charcoal. Barako, hotter." is two, so that row came out
 /// visibly lopsided. IntrinsicHeight with a stretched Row gives the pair the
 /// taller of the two heights.
 ///
@@ -298,9 +298,9 @@ class ThemeTile extends StatelessWidget {
 /// [muted] make this a live legibility demo that cannot flatter a palette it
 /// does not deserve; [primary] with [onPrimary] INSIDE it shows whether buttons
 /// carry white or dark labels, which changes how every action in the app feels
-/// and which no dot preview can show; [celebrate] is the second most
-/// identifying token in the whole system and is the one that separates the warm
-/// trio outright (amber, amber orange, lime).
+/// and which no dot preview can show; [celebrate] is deliberately the SAME
+/// gold in every theme now (the win signature is brand, like Pan's orange), so
+/// in the preview it reads as the one constant across all eight tiles.
 ///
 /// Deliberately no peso amount. Money is golden locked, and a settings screen
 /// is the last place a figure should appear where it could be mistaken for

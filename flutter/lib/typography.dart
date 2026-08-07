@@ -131,11 +131,17 @@ abstract final class AppText {
   /// A hero number on a busier screen (30).
   static TextStyle get amountLg => amountHero.copyWith(fontSize: TypeScale.hero);
 
-  /// A card's headline figure (28).
+  /// A card's headline figure (28). Also the amount INPUT size in the log and
+  /// edit sheets, so entering a figure and reading it back feel like one act.
   static TextStyle get amount => amountHero.copyWith(fontSize: TypeScale.big);
 
   /// Money inline in a list row: body size, bold, tabular, so a column of
   /// amounts lines up on the decimal.
+  ///
+  /// STRICT, deliberately. A row amount read five different ways in five
+  /// screens before this rule: never resize it, never reweight it. The only
+  /// permitted modifier is `.tint(color)`, for direction or warning color.
+  /// A screen that wants a bigger figure wants [amount], not a resized row.
   static TextStyle get amountRow => TextStyle(
     fontFamily: Barako.bodyFont,
     fontSize: TypeScale.body,
@@ -153,6 +159,26 @@ abstract final class AppText {
     fontSize: TypeScale.title,
     fontWeight: TypeWeight.heavy,
     height: 1.2,
+    color: Barako.text,
+  );
+
+  /// An oversized page moment (24): onboarding steps, lesson covers. The
+  /// screens kept inventing raw 24s for exactly this role; now it has a name,
+  /// a fresh literal 24 is drift and not a normal thing to type.
+  static TextStyle get titleLg => TextStyle(
+    fontSize: TypeScale.xl,
+    fontWeight: TypeWeight.heavy,
+    height: 1.2,
+    color: Barako.text,
+  );
+
+  /// The rare non-money statement at hero size (30): the onboarding welcome,
+  /// a full-screen moment. For a NUMBER this big, use [amountLg] instead,
+  /// which carries the tabular figures a money hero needs.
+  static TextStyle get hero => TextStyle(
+    fontSize: TypeScale.hero,
+    fontWeight: TypeWeight.heavy,
+    height: 1.15,
     color: Barako.text,
   );
 

@@ -86,6 +86,21 @@ const List<Pair> _pairs = [
   ('warning on card', _warning, _card, 4.5),
   ('warningStrong on card', _warningStrong, _card, 4.5),
 
+  // The caramel kicker inside a card. This pair was previously guaranteed
+  // only by a comment on Barako.cardKickerStyle ("ranges 5.42 to 9.75"); the
+  // repo's own lesson applies, a rule in a comment is not a machine.
+  ('caramel on card', _caramel, _card, 4.5),
+
+  // The win gold, now theme-invariant, drawn as small text and icons on both
+  // main surfaces (diagnostics status lines, finished-lesson ticks). Held to
+  // the small-text bar because it IS small text in places.
+  ('celebrate on card', _celebrate, _card, 4.5),
+  ('celebrate on background', _celebrate, _background, 4.5),
+
+  // Words on the positive surface (win banners, settled states). The surface
+  // is a tinted card, so plain text must still read on it.
+  ('text on positiveSurface', _text, _positiveSurface, 4.5),
+
   // NOT the card border against the page.
   //
   // That pair was in this list first, held to WCAG's 3.0 for a meaningful
@@ -121,6 +136,9 @@ Color _faint(BarakoPalette p) => p.faint;
 Color _warning(BarakoPalette p) => p.warning;
 Color _warningStrong(BarakoPalette p) => p.warningStrong;
 Color _onPrimary(BarakoPalette p) => p.onPrimary;
+Color _caramel(BarakoPalette p) => p.caramel;
+Color _celebrate(BarakoPalette p) => p.celebrate;
+Color _positiveSurface(BarakoPalette p) => p.positiveSurface;
 
 void main() {
   test('the contrast maths agrees with the values WCAG defines', () {
@@ -214,6 +232,33 @@ void main() {
     ];
     expect(failures, contains('text on card'));
     expect(failures, contains('text on background'));
+  });
+
+  test('the win gold is theme-invariant, like Pan\'s orange', () {
+    // The reward signature reads identically in every theme: one gold for
+    // all dark palettes, one deep gold for all light. Before this rule
+    // Voltage celebrated in hot pink and Ultraviolet in lime, so the same
+    // win looked like a different app per theme. The registry is the source
+    // of truth here, so a new theme with its own win color goes red.
+    final darkGold = barakoThemes.first.dark.celebrate;
+    final lightGold = barakoThemes.first.light.celebrate;
+    expect(darkGold, isNot(lightGold), reason: 'the two brightnesses need their own gold');
+    for (final t in barakoThemes) {
+      expect(
+        t.dark.celebrate,
+        darkGold,
+        reason:
+            '${t.key} dark celebrates in its own color; the win gold is brand, '
+            'not theme',
+      );
+      expect(
+        t.light.celebrate,
+        lightGold,
+        reason:
+            '${t.key} light celebrates in its own color; the win gold is '
+            'brand, not theme',
+      );
+    }
   });
 
   test('every palette in the registry is actually reached', () {
