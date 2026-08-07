@@ -692,13 +692,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   }
 
   void _viewQr(String ref, String? label) {
-    SecureWindow.retain();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Barako.background,
-      builder: (_) => _QrViewSheet(vault: _vault, qrRef: ref, label: label),
-    ).whenComplete(SecureWindow.release);
+    showAccountQrSheet(context, vault: _vault, qrRef: ref, label: label);
   }
 
   // --- History --------------------------------------------------------------
@@ -959,6 +953,34 @@ class _QrThumbState extends State<_QrThumb> {
         ),
       ),
     );
+  }
+}
+
+/// Open the focused QR viewer from anywhere, holding FLAG_SECURE for exactly
+/// as long as the sheet is up. The flip card's QR shortcut reuses this so the
+/// receiving QR is shown the one way it is shown here: a white field, on-device
+/// only, screenshot-blocked, and never rendered onto the card face itself.
+Future<void> showAccountQrSheet(
+  BuildContext context, {
+  required QrVault? vault,
+  required String qrRef,
+  String? label,
+}) {
+  SecureWindow.retain();
+  try {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Barako.background,
+      builder: (_) => _QrViewSheet(vault: vault, qrRef: qrRef, label: label),
+    ).whenComplete(SecureWindow.release);
+  } catch (_) {
+    // showModalBottomSheet throws synchronously only with no Navigator in
+    // context, so .whenComplete never attaches and the latch would be stranded
+    // on for the app's life. Release it here and rethrow so the caller still
+    // sees the failure.
+    SecureWindow.release();
+    rethrow;
   }
 }
 
