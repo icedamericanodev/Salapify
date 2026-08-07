@@ -234,9 +234,12 @@ class _EditSheetState extends State<EditSheet> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final before = await widget.store.updateEntry(id, patch);
-      // Felt, not just shown: moneyWritten AFTER persistence succeeded,
-      // same word the log sheet speaks.
-      Haptics.moneyWritten();
+      // Felt, not just shown, and only when something WAS written: a null
+      // here means the row vanished and nothing changed, and buzzing the
+      // money-written word on a no-op is exactly the lie the haptic
+      // vocabulary forbids. QA caught the first version firing before this
+      // check.
+      if (before != null) Haptics.moneyWritten();
       if (mounted) Navigator.of(context).pop();
       if (before == null) {
         // The row vanished between opening the sheet and saving. A sheet
