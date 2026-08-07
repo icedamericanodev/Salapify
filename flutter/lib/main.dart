@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.66 \u00b7 Test-only guard so a missed tap in the screenshot harness fails loudly, no app change.';
+    'f3.67 \u00b7 Money fix: foreign balances excluded from runway and health, and no stray negative zero.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

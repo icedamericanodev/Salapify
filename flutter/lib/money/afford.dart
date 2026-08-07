@@ -189,8 +189,10 @@ Map<String, dynamic> affordCheck(
   }
 
   // One-time buy. Your accounts are ONE pot: emergencyRunway.buffer already
-  // sums every account, so the spendable cash in `available` is money that is
-  // ALSO inside `buffer`, not a separate layer on top of it. So the honest test
+  // sums every base-currency account, so the spendable cash in `available` is
+  // money that is ALSO inside `buffer`, not a separate layer on top of it. A
+  // foreign account is outside both, excluded from `buffer` and from spendable
+  // cash by the same base-currency rule. So the honest test
   // is the whole price against the whole pot, never the cushion stacked above
   // spendable cash. `overflow` (price past spendable-till-sweldo) stays as the
   // informational "this dips past your day to day cash" figure.

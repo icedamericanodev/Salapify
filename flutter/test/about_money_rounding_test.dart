@@ -22,7 +22,10 @@ import 'package:salapify/money/format.dart';
 /// Matches the centavo formatter only. formatMoneyAbout and formatMoneyText
 /// both end in whole pesos, so both are fine after "about" and neither may
 /// match here, or the guard flags its own fix.
-final _hedgedWithCentavos = RegExp(r'\babout \$\{formatMoney\(', caseSensitive: false);
+final _hedgedWithCentavos = RegExp(
+  r'\babout \$\{formatMoney\(',
+  caseSensitive: false,
+);
 
 void main() {
   group('the helper', () {
@@ -56,6 +59,23 @@ void main() {
       expect(() => formatMoneyAbout(double.infinity), returnsNormally);
       expect(() => formatMoneyAbout(double.nan), returnsNormally);
       expect(() => formatMoneyAbout(double.maxFinite), returnsNormally);
+    });
+  });
+
+  group('formatMoney never prints a negative zero', () {
+    test('a hair below zero rounds to a plain zero, no minus', () {
+      // A balance nudged just under zero by float drift used to read "-₱0", a
+      // struck minus on nothing, and disagreed with formatMoneyText, which
+      // takes its sign from the rounded integer and so never did this.
+      expect(formatMoney(-0.004), '${baseCurrencySymbol}0');
+      expect(formatMoney(-0.0001), '${baseCurrencySymbol}0');
+    });
+
+    test('a real negative still keeps its sign', () {
+      // The filter-not-off-switch half: a genuine negative is untouched.
+      expect(formatMoney(-0.01), '-${baseCurrencySymbol}0.01');
+      expect(formatMoney(-720), '-${baseCurrencySymbol}720');
+      expect(formatMoney(-99.6), '-${baseCurrencySymbol}99.60');
     });
   });
 
@@ -97,7 +117,9 @@ void main() {
       reason: 'capitalised at the start of a sentence is the same bug',
     );
     expect(
-      _hedgedWithCentavos.hasMatch(r"'about ${formatMoneyAbout(perDay)} a day'"),
+      _hedgedWithCentavos.hasMatch(
+        r"'about ${formatMoneyAbout(perDay)} a day'",
+      ),
       isFalse,
       reason: 'the fix must not be flagged, or the guard is unusable',
     );
