@@ -49,7 +49,8 @@ import 'package:salapify/content/lessons_bir_tax_setup.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
-import 'package:salapify/widgets/expansion_lesson_reader.dart';
+import 'package:salapify/content/lesson_model.dart';
+import 'package:salapify/money/lesson_steps.dart';
 import 'package:salapify/widgets/paged_lesson_reader.dart';
 import 'package:salapify/screens/money.dart';
 import 'package:salapify/screens/utang.dart';
@@ -562,6 +563,54 @@ Future<void> shoot(
   );
 }
 
+/// The step holding a lesson's first EXERCISE, which is what these lesson
+/// shots exist to look at.
+///
+/// Every lesson shot in this file was written against the scrolling reader,
+/// where the whole lesson was one column and the novel widget was somewhere
+/// down it. The app stopped opening that reader at f3.57 and nobody moved the
+/// shots, so seventeen pictures pointed at a widget a learner could no longer
+/// reach (session 37, docs/lunch-and-learn.md; shot_reachability_test.dart is
+/// now the machine that catches this).
+///
+/// A paged reader opens on prose, so pointing these shots at it without a
+/// step index would produce seventeen pictures of first screens: technically
+/// the real reader, and useless for reviewing a bond timeline or a loss
+/// simulator. That is the "tidy shot of an empty screen" the render rule
+/// already warns about.
+///
+/// Throws rather than falling back to step zero. A lesson that loses its
+/// exercises should fail loudly here, not quietly start photographing its
+/// opening paragraph while the shot name still promises a fact sheet.
+int firstExerciseStep(MoneyLesson lesson) {
+  final steps = stepsForLesson(lesson);
+  for (var i = 0; i < steps.length; i++) {
+    if (steps[i] is InteractionStep) return i;
+  }
+  throw StateError(
+    'no exercise step in "${lesson.title}", so this shot would photograph '
+    'the opening paragraph while claiming to show an activity',
+  );
+}
+
+/// One lesson shot, opened on its first exercise in the reader the app really
+/// uses.
+///
+/// Deliberately takes the same named arguments the old ExpansionLessonReader
+/// shots took, so migrating all seventeen was one mechanical rename rather
+/// than seventeen hand edits, each of which could have quietly pointed at the
+/// wrong lesson.
+Widget lessonShot({
+  required String pathId,
+  required MoneyLesson lesson,
+  required SalapifyStore store,
+}) => PagedLessonReader(
+  pathId: pathId,
+  lesson: lesson,
+  store: store,
+  initialStep: firstExerciseStep(lesson),
+);
+
 void main() {
   // onMenu is wired on every tab, as the shell wires it. It was omitted once
   // and every per-tab shot then rendered WITHOUT the Menu button, so the
@@ -581,7 +630,7 @@ void main() {
     // Money Courses Phase 6 pilot: the readiness card, the most novel new
     // widget this course adds (content/interaction_blocks.dart's
     // ReadinessCardBlock plus the Salapify actions menu underneath it).
-    'grow-readiness-card': (s) => ExpansionLessonReader(
+    'grow-readiness-card': (s) => lessonShot(
       pathId: 'grow_your_money',
       lesson: growYourMoneyLessons.firstWhere((l) => l.id == investRefCard),
       store: s,
@@ -598,7 +647,7 @@ void main() {
     // Money Courses Phase 7A: "How Bonds Work", the first production lesson
     // to render SortingBlock (the bond timeline) and a five-bucket
     // CategorizeBlock (risk matching) together.
-    'stocks-bonds-how-bonds-work': (s) => ExpansionLessonReader(
+    'stocks-bonds-how-bonds-work': (s) => lessonShot(
       pathId: 'grow_your_money',
       lesson: stocksAndBondsLessons.firstWhere((l) => l.id == sbHowBondsWork),
       store: s,
@@ -607,7 +656,7 @@ void main() {
     // course with a scam red-flag CategorizeBlock, two ScenarioChoiceBlocks,
     // an offline ChecklistBlock, and the Salapify actions menu carrying the
     // two new routes this phase added (mindset, accounts).
-    'stocks-bonds-verify-before-you-invest': (s) => ExpansionLessonReader(
+    'stocks-bonds-verify-before-you-invest': (s) => lessonShot(
       pathId: 'grow_your_money',
       lesson: stocksAndBondsLessons.firstWhere(
         (l) => l.id == sbVerifyBeforeYouInvest,
@@ -622,7 +671,7 @@ void main() {
     // instance next to the one named example a compliance test checks for.
     // This is the lesson to look at to confirm the trim actually reads
     // better, not just measures shorter.
-    'deposits-read-a-fact-sheet': (s) => ExpansionLessonReader(
+    'deposits-read-a-fact-sheet': (s) => lessonShot(
       pathId: 'grow_your_money',
       lesson: depositsAndPooledFundsLessons.firstWhere(
         (l) => l.id == dpReadAFactSheet,
@@ -634,7 +683,7 @@ void main() {
     // the most novel new widget this course adds: a user-chosen fictional
     // amount, a 30/60/100 percent loss scenario, transparent arithmetic,
     // never a forecast.
-    'crypto-volatility-total-loss': (s) => ExpansionLessonReader(
+    'crypto-volatility-total-loss': (s) => lessonShot(
       pathId: 'grow_your_money',
       lesson: cryptoWithoutHypeLessons.firstWhere(
         (l) => l.id == cryptoRefVolatilityTotalLoss,
@@ -648,7 +697,7 @@ void main() {
     // guaranteed-versus-illustrated sorting activity, and the fictional
     // VUL policy summary checklist, the lesson most likely to read as a
     // sales pitch if the tone slipped anywhere.
-    'insurance-vul-no-sales-pitch': (s) => ExpansionLessonReader(
+    'insurance-vul-no-sales-pitch': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: insuranceDecodedLessons.firstWhere(
         (l) => l.id == insuranceRefVulNoSalesPitch,
@@ -659,7 +708,7 @@ void main() {
     // agent-verification checklist, the pressure-selling red-flag
     // challenge, three "what would you ask next" scenarios, and the final
     // protection review with its three result strings, never an approval.
-    'insurance-verify-compare-decide': (s) => ExpansionLessonReader(
+    'insurance-verify-compare-decide': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: insuranceDecodedLessons.firstWhere(
         (l) => l.id == insuranceRefVerifyCompareDecide,
@@ -671,7 +720,7 @@ void main() {
     // RiskReviewChecklistBlock readiness checklist with the task's own
     // three result strings, the lesson most likely to read as an
     // eligibility verdict if the tone slipped anywhere.
-    'sss-philhealth-check-before-you-count': (s) => ExpansionLessonReader(
+    'sss-philhealth-check-before-you-count': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: sssPhilhealthBenefitsLessons.firstWhere(
         (l) => l.id == sspRefCheckBeforeYouCount,
@@ -681,7 +730,7 @@ void main() {
     // The course's closing lesson: the checklist action plan and the
     // Salapify actions menu, the lesson most likely to read as a promise
     // or an automatic write if the tone or the action descriptions slipped.
-    'sss-philhealth-safety-net-plan': (s) => ExpansionLessonReader(
+    'sss-philhealth-safety-net-plan': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: sssPhilhealthBenefitsLessons.firstWhere(
         (l) => l.id == sspRefSafetyNetPlan,
@@ -692,7 +741,7 @@ void main() {
     // third course. "MP2 Without the Hype" carries the myth-or-fact block
     // and the dividend-rate framing, the lesson most likely to read as a
     // guaranteed-return promise if the tone slipped anywhere.
-    'pagibig-mp2-without-hype': (s) => ExpansionLessonReader(
+    'pagibig-mp2-without-hype': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: pagibigSavingsMp2HousingLessons.firstWhere(
         (l) => l.id == pagibigRefMp2WithoutHype,
@@ -702,7 +751,7 @@ void main() {
     // The course's closing lesson: the action-plan checklist and the
     // Salapify actions menu, the lesson most likely to read as a promise
     // or an automatic write if the tone or the action descriptions slipped.
-    'pagibig-make-your-plan': (s) => ExpansionLessonReader(
+    'pagibig-make-your-plan': (s) => lessonShot(
       pathId: 'protect_your_future',
       lesson: pagibigSavingsMp2HousingLessons.firstWhere(
         (l) => l.id == pagibigRefMakeYourPlan,
@@ -713,7 +762,7 @@ void main() {
     // Your Business" path's first course. "Compare Business Structures"
     // carries the ComparisonBlock across five structures, the lesson most
     // likely to read as ranking one as best if the tone slipped anywhere.
-    'business-compare-structures': (s) => ExpansionLessonReader(
+    'business-compare-structures': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: startABusinessLegallyLessons.firstWhere(
         (l) => l.id == brCompareBusinessStructures,
@@ -723,7 +772,7 @@ void main() {
     // The course's closing lesson: the roadmap checklist and the Salapify
     // actions menu, the lesson most likely to read as a promise or an
     // automatic write if the tone or the action descriptions slipped.
-    'business-registration-roadmap': (s) => ExpansionLessonReader(
+    'business-registration-roadmap': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: startABusinessLegallyLessons.firstWhere(
         (l) => l.id == brBuildRegistrationRoadmap,
@@ -734,7 +783,7 @@ void main() {
     // path's second course. "Get Your TIN and Certificate of Registration"
     // states real current national figures (the abolished annual fee), the
     // lesson most likely to read as stale or wrong if a figure slipped.
-    'bir-local-get-your-tin': (s) => ExpansionLessonReader(
+    'bir-local-get-your-tin': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
         (l) => l.id == birlGetYourTin,
@@ -745,7 +794,7 @@ void main() {
     // deliberately never states a peso figure, since local permit fees
     // vary by city and municipality. Most likely to read as evasive or
     // incomplete if the tone slipped, rather than deliberately careful.
-    'bir-local-barangay-and-mayor': (s) => ExpansionLessonReader(
+    'bir-local-barangay-and-mayor': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
         (l) => l.id == birlBarangayAndMayor,
@@ -756,7 +805,7 @@ void main() {
     // "Know What You Registered For" carries the tax-type awareness
     // checklist, the lesson most likely to read as determining a real
     // reader's own obligations if the tone slipped anywhere.
-    'bir-tax-know-what-you-registered-for': (s) => ExpansionLessonReader(
+    'bir-tax-know-what-you-registered-for': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: birRegistrationTaxSetupLessons.firstWhere(
         (l) => l.id == btaxKnowWhatYouRegisteredFor,
@@ -766,7 +815,7 @@ void main() {
     // The course's closing lesson: the tax-money-system checklist and the
     // Salapify actions menu, the lesson most likely to read as a promise
     // or an automatic write if the tone or the action descriptions slipped.
-    'bir-tax-create-your-tax-money-system': (s) => ExpansionLessonReader(
+    'bir-tax-create-your-tax-money-system': (s) => lessonShot(
       pathId: 'build_your_business',
       lesson: birRegistrationTaxSetupLessons.firstWhere(
         (l) => l.id == btaxMoneySystem,
