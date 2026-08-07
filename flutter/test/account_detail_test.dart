@@ -78,7 +78,6 @@ Future<void> _pump(
   SalapifyStore store, {
   required Directory dir,
   required LockAuthenticator auth,
-  bool settle = true,
 }) async {
   // A tall surface so the whole ListView (secure section, QR, history) is built
   // and findable; the default 800x600 leaves the lower sections below the fold
@@ -100,15 +99,7 @@ Future<void> _pump(
       ),
     ),
   );
-  // A real image decodes on the platform thread, which pumpAndSettle's fake
-  // clock never advances, so a screen carrying a decodable QR must pump plain
-  // frames instead of settling or it waits for the ten-minute timeout.
-  if (settle) {
-    await tester.pumpAndSettle();
-  } else {
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-  }
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -200,16 +191,16 @@ void main() {
   });
 
   testWidgets('a saved QR shows View, Replace and Remove', (tester) async {
-    // A real, decodable 1x1 PNG so the thumbnail's Image.memory does not error.
-    final png = base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
-      '+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    );
-    final vault = QrVault(dir.path);
-    final ref = await vault.save(png, ext: 'png', nonce: 'bpi');
-    final store = await _load(_blob(qrRef: ref));
-    // settle:false, because the thumbnail decodes a real image (see _pump).
-    await _pump(tester, store, dir: dir, auth: _FakeAuth(), settle: false);
+    // A valid qrRef with NO file on disk: the "restored backup" state, where the
+    // reference is stored but the image is not. The action buttons and label are
+    // siblings of the thumbnail, so they render whether or not the image loads,
+    // and no real Image.memory decode runs here. That decode happens on a
+    // background thread a widget test's fake clock never advances, so rendering a
+    // real image would time the test out on a runner even when it passes locally
+    // (it did exactly that once, f3.63). The vault's read/write is covered by
+    // account_metadata_test instead, where real files are the point.
+    final store = await _load(_blob(qrRef: 'qr_bpi.png'));
+    await _pump(tester, store, dir: dir, auth: _FakeAuth());
     expect(find.text('View'), findsOneWidget);
     expect(find.text('Replace'), findsOneWidget);
     expect(find.text('Remove'), findsOneWidget);
