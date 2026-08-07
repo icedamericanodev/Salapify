@@ -1866,7 +1866,24 @@ class _TransferSheetState extends State<_TransferSheet> {
       });
       return;
     }
+    // A receipt, so the largest single-tap money move in the app confirms what
+    // happened, the way every other write here already does. No Undo: deleting
+    // a transfer row does not reverse the balances (see transfers.dart), so the
+    // honest thing is to confirm, not offer an undo that would not undo. The
+    // messenger is captured BEFORE the pop, because the sheet's own context is
+    // gone the moment it closes.
+    final messenger = ScaffoldMessenger.of(context);
+    final moved = amountOf(_amount.text.replaceAll(RegExp(r'[, ]'), ''));
+    final fromName = _nameOf(_fromId);
+    final toName = _nameOf(_toId);
     Navigator.of(context).pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Moved ${formatMoneyText(moved)} from $fromName to $toName.',
+        ),
+      ),
+    );
   }
 
   /// The refusal as a sentence that cannot contradict itself.
