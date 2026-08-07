@@ -2319,6 +2319,12 @@ void main() {
     );
     await tester.drag(find.byType(ListView).first, const Offset(0, 1400));
     await tester.pumpAndSettle();
+    // Scroll the button into view before tapping: the Cash on hand section
+    // above the carousel makes the list taller, so the button can sit below the
+    // fold and a bare tap would miss it. ensureVisible actually brings it on
+    // screen (scrollUntilVisible only guarantees it is built).
+    await tester.ensureVisible(find.text('Move money between accounts'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Move money between accounts'));
     await tester.pumpAndSettle();
     expect(find.text('Move money'), findsOneWidget);

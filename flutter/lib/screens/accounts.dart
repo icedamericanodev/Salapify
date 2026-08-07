@@ -109,9 +109,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
   @override
   void initState() {
     super.initState();
-    QrVault.inAppDocuments().then((v) {
-      if (mounted) setState(() => _vault = v);
-    }).catchError((_) {});
+    QrVault.inAppDocuments()
+        .then((v) {
+          if (mounted) setState(() => _vault = v);
+        })
+        .catchError((_) {});
     final id = widget.focusAccountId;
     if (id != null) {
       _highlightId = id;
@@ -246,8 +248,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
             // several" affordance, so a lone card with one page dot and nothing
             // to peek at is not one; a single account keeps the familiar row and
             // gains the card the moment a second account joins it.
-            final cards = _cardItems(groups);
-            final showCarousel = cards.length > 1;
+            // Cash is money you hold, not an account at an institution, so it is
+            // NOT a card: it gets its own compact "Cash on hand" section (a
+            // CashBalanceTile per cash account) above the card carousel, which is
+            // bank and credit only. The hero zone appears at two or more accounts
+            // TOTAL, the same threshold as before, so a single account keeps just
+            // its list row and no one loses a card when cash moves out of the
+            // deck (the carousel itself handles a lone bank card, dots suppressed).
+            final all = _cardItems(groups);
+            final cashItems = all.where((it) => it.isCash).toList();
+            final cardItems = all.where((it) => !it.isCash).toList();
+            final showHero = all.length > 1;
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -290,14 +301,35 @@ class _AccountsScreenState extends State<AccountsScreen> {
                       ],
                     ),
                   ),
-                if (showCarousel) ...[
+                if (showHero && cashItems.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('CASH ON HAND', style: Barako.kickerStyle),
+                  ),
+                  for (var i = 0; i < cashItems.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    PressableScale(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _openCard(context, cashItems[i]),
+                        child: CashBalanceTile(
+                          name: cashItems[i].name,
+                          balance: cashItems[i].amount,
+                          amountText: cashItems[i].amountText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+                if (showHero && cardItems.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 10),
                     child: Text('YOUR CARDS', style: Barako.kickerStyle),
                   ),
                   _AccountsCarousel(
-                    items: cards,
+                    items: cardItems,
                     store: store,
                     vault: _vault,
                     onOpen: (it) => _openCard(context, it),
@@ -305,7 +337,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     // The first-time nudge, shown until the founder flips any
                     // card once. Persisted so it never returns on the next open.
                     showHint:
-                        (store.data['settings'] as Map?)?['flipHintSeen'] != true,
+                        (store.data['settings'] as Map?)?['flipHintSeen'] !=
+                        true,
                     onFirstFlip: () => store.setSetting('flipHintSeen', true),
                   ),
                 ],
@@ -905,6 +938,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           amountText: code == null ? null : formatConverted(bal, code),
           monogram: institutionById(row['institutionId']?.toString())?.initials,
           variant: BankCardVariant.savings,
+          isCash: row['kind']?.toString() == 'cash',
         ),
       );
     }
@@ -967,11 +1001,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
     }
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AccountDetailScreen(
-          store: store,
-          id: id,
-          accountStore: it.store,
-        ),
+        builder: (_) =>
+            AccountDetailScreen(store: store, id: id, accountStore: it.store),
       ),
     );
   }
@@ -2160,6 +2191,11 @@ class _CardItem {
   /// The card network's wordmark ("VISA"), or null. Credit cards only.
   final String? networkMark;
   final BankCardVariant variant;
+
+  /// Physical cash: rendered as a wallet, not a bank card, and it does not flip
+  /// (there is no number, chip, network or QR to turn over to). A tap opens the
+  /// account instead.
+  final bool isCash;
   const _CardItem({
     required this.row,
     required this.store,
@@ -2174,6 +2210,7 @@ class _CardItem {
     this.monogram,
     this.limit,
     this.networkMark,
+    this.isCash = false,
   });
 }
 
@@ -2306,65 +2343,37 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
             // The card's own aspect ratio, plus a little room for its tinted
             // shadow so the shadow is not clipped by the PageView's bounds.
             final height = cardWidth / 1.586 + 22;
+            // A lone card is not a "swipe between several": show it centred with
+            // no page dots, rather than a one-page PageView that peeks at empty
+            // space. It still flips and reveals through the same state. This is
+            // the case that keeps a user with one bank card and cash from losing
+            // their card when cash moved out of the deck.
+            final single = items.length == 1;
             return Column(
               children: [
                 SizedBox(
                   height: height,
-                  child: PageView.builder(
-                    controller: _controller,
-                    onPageChanged: _onPageChanged,
-                    itemCount: items.length,
-                    itemBuilder: (context, i) {
-                      final it = items[i];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        child: PressableScale(
-                          child: FlipBankCard(
-                            // Key by the stored id so deleting a card disposes
-                            // the RIGHT card (releasing its secure latch), but
-                            // fall back to the index for a malformed row whose
-                            // id is missing or an empty string, so two such rows
-                            // cannot collapse to the same key and trip Flutter's
-                            // duplicate-key assertion.
-                            key: ValueKey(
-                              (it.row['id'] is String &&
-                                      (it.row['id'] as String).isNotEmpty)
-                                  ? it.row['id']
-                                  : i,
+                  child: single
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: _card(items[0], 0, focus),
+                        )
+                      : PageView.builder(
+                          controller: _controller,
+                          onPageChanged: _onPageChanged,
+                          itemCount: items.length,
+                          itemBuilder: (context, i) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
                             ),
-                            row: it.row,
-                            vault: widget.vault,
-                            bankName: it.name,
-                            accountType: it.typeLabel,
-                            brandColor: it.brandColor,
-                            last4: it.last4,
-                            balance: it.amount,
-                            amountText: it.amountText,
-                            monogram: it.monogram,
-                            creditLimit: it.limit,
-                            networkMark: it.networkMark,
-                            variant: it.variant,
-                            flipped: _flipped == i,
-                            // The nudge sits only on the focused, front-facing
-                            // card, never on the peeking neighbour.
-                            showHint: widget.showHint &&
-                                i == focus &&
-                                _flipped == null,
-                            onFlip: (want) => _flip(i, want),
-                            onViewFullDetails: () => _open(it),
-                            onEdit: () => widget.onEdit(it),
+                            child: _card(items[i], i, focus),
                           ),
                         ),
-                      );
-                    },
-                  ),
                 ),
                 const SizedBox(height: 10),
-                _pageIndicator(items.length, focus),
-                const SizedBox(height: 12),
+                if (!single) _pageIndicator(items.length, focus),
+                if (!single) const SizedBox(height: 12),
                 _CardDetail(item: items[focus]),
               ],
             );
@@ -2373,6 +2382,42 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
       ),
     );
   }
+
+  /// One flip card in the deck. Extracted so the single-card layout and the
+  /// PageView share exactly one construction (same key discipline, same flip
+  /// wiring), and the itemBuilder stays a one-liner.
+  Widget _card(_CardItem it, int i, int focus) => PressableScale(
+    child: FlipBankCard(
+      // Key by the stored id so deleting a card disposes the RIGHT card
+      // (releasing its secure latch), but fall back to the index for a malformed
+      // row whose id is missing or an empty string, so two such rows cannot
+      // collapse to the same key and trip Flutter's duplicate-key assertion.
+      key: ValueKey(
+        (it.row['id'] is String && (it.row['id'] as String).isNotEmpty)
+            ? it.row['id']
+            : i,
+      ),
+      row: it.row,
+      vault: widget.vault,
+      bankName: it.name,
+      accountType: it.typeLabel,
+      brandColor: it.brandColor,
+      last4: it.last4,
+      balance: it.amount,
+      amountText: it.amountText,
+      monogram: it.monogram,
+      creditLimit: it.limit,
+      networkMark: it.networkMark,
+      variant: it.variant,
+      flipped: _flipped == i,
+      // The nudge sits only on the focused, front-facing card, never on the
+      // peeking neighbour.
+      showHint: widget.showHint && i == focus && _flipped == null,
+      onFlip: (want) => _flip(i, want),
+      onViewFullDetails: () => _open(it),
+      onEdit: () => widget.onEdit(it),
+    ),
+  );
 
   /// Dots for a handful of cards, a compact "n of m" once there are enough that
   /// a row of dots would overflow a narrow phone.
@@ -2444,10 +2489,7 @@ class _CardDetail extends StatelessWidget {
               ),
             ] else ...[
               const SizedBox(height: 4),
-              Text(
-                'Tap the card to flip it over.',
-                style: AppText.caption,
-              ),
+              Text('Tap the card to flip it over.', style: AppText.caption),
             ],
           ],
         ),

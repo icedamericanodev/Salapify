@@ -279,6 +279,64 @@ void main() {
       );
     });
 
+    testWidgets('cash wallet card $suffix', (tester) async {
+      await _shot(
+        tester,
+        name: 'cash-wallet-$suffix',
+        // Cash tile beside a real bank card and a credit card, so the
+        // distinction is judged the way the carousel shows them.
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // A CASH ON HAND kicker over the compact tile, the way the
+                // Accounts screen frames its own section.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('CASH ON HAND', style: Barako.kickerStyle),
+                  ),
+                ),
+                CashBalanceTile(name: 'Cash on hand', balance: 3200),
+                const SizedBox(height: 8),
+                CashBalanceTile(name: 'Jar (big savings)', balance: 1234567.89),
+                const SizedBox(height: 22),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('YOUR CARDS', style: Barako.kickerStyle),
+                  ),
+                ),
+                BankCard(
+                  bankName: 'BPI Savings',
+                  accountType: 'Savings',
+                  brandColor: institutionBrandColor('bpi'),
+                  last4: '1234',
+                  balance: 48500.55,
+                ),
+                const SizedBox(height: 16),
+                BankCard(
+                  bankName: 'BPI Card',
+                  accountType: 'Credit',
+                  brandColor: institutionBrandColor('bpi'),
+                  last4: '9012',
+                  balance: 42000,
+                  creditLimit: 50000,
+                  variant: BankCardVariant.credit,
+                ),
+              ],
+            ),
+          ),
+        ),
+        brightness: b,
+        size: const Size(390, 1060),
+      );
+    });
+
     testWidgets('accounts carousel $suffix', (tester) async {
       final store = await _store(_blob);
       await _shot(

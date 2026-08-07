@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.64 \u00b7 Tap a card to flip it over and see the key details on the back, no new screen for basics.';
+    'f3.65 \u00b7 Cash on hand now shows as a wallet, not a card, no chip or card number where there is none.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

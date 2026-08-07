@@ -25,7 +25,8 @@ import 'package:flutter/material.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/institutions.dart' show initialsFor;
 import '../theme.dart';
-import 'salapify_icon.dart' show salapifyIcon;
+import '../typography.dart';
+import 'salapify_icon.dart' show salapifyIcon, SalapifyGlyph;
 
 /// Which face a [BankCard] shows. Savings shows one balance; credit shows the
 /// outstanding balance against a limit, with a utilization bar.
@@ -230,7 +231,8 @@ class BankCard extends StatelessWidget {
                               // below. Text only, never a logo, white on the
                               // card's darker end so it clears the small-text AA
                               // bar the gradient guarantees.
-                              if (networkMark != null && networkMark!.isNotEmpty)
+                              if (networkMark != null &&
+                                  networkMark!.isNotEmpty)
                                 Text(
                                   networkMark!,
                                   style: const TextStyle(
@@ -250,7 +252,8 @@ class BankCard extends StatelessWidget {
                           // cleanly; the secure section below is where reveal,
                           // copy and auth live for the account number.
                           Semantics(
-                            label: (last4 != null &&
+                            label:
+                                (last4 != null &&
                                     RegExp(r'^\d{4}$').hasMatch(last4!))
                                 ? 'Card number ending $last4'
                                 : 'Card number not saved',
@@ -274,7 +277,8 @@ class BankCard extends StatelessWidget {
                             )
                           else
                             _SavingsFooter(
-                              amountText: amountText ?? formatMoneyText(balance),
+                              amountText:
+                                  amountText ?? formatMoneyText(balance),
                             ),
                         ],
                       ),
@@ -288,6 +292,202 @@ class BankCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A compact balance tile for physical cash, deliberately NOT card-shaped.
+///
+/// Cash is money you are holding, not an account at an institution, so it must
+/// not share the bank cards' visual language. The founder's complaint, twice
+/// over, was that a restyled card is still a card: same 16:9 footprint, same
+/// swipe deck. So this is a different COMPONENT: a short, full-width soft panel
+/// (no [AspectRatio], no chip, no contactless, no masked number, no gradient),
+/// content-height, with a wallet emblem, the balance, and a chevron that says a
+/// tap opens the account. It lives in its own "Cash on hand" section above the
+/// card carousel and never flips. Every colour is a Barako getter, so it follows
+/// all sixteen palettes and both brightnesses; it presents [balance] and does no
+/// arithmetic (the golden-locked [formatMoneyText] does the formatting).
+class CashBalanceTile extends StatelessWidget {
+  /// The account's display name, e.g. "Cash on hand".
+  final String name;
+
+  /// The balance, and its preformatted foreign-currency form when the account
+  /// is not in the base currency (same contract as [BankCard.amountText]).
+  final double balance;
+  final String? amountText;
+
+  /// The plain-English subtitle under the name. Defaults to "Physical cash".
+  final String subtitle;
+
+  // Not const: every colour below is a mutable Barako getter read in build, so
+  // a const call site would freeze the tile in the previous palette after a
+  // theme switch (the same trap SalapifyGlyph documents).
+  // ignore: prefer_const_constructors_in_immutables
+  CashBalanceTile({
+    super.key,
+    required this.name,
+    required this.balance,
+    this.amountText,
+    this.subtitle = 'Physical cash',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Barako.primary;
+    // A soft accent wash over the app's card surface: warm, flat, and light
+    // enough that it stays ~equal to Barako.card, so every text-on-card pair the
+    // contrast sweep already validates still holds and no new pair is added.
+    final fill = Color.alphaBlend(accent.withValues(alpha: 0.08), Barako.card);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accent.withValues(alpha: 0.25), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: Stack(
+            children: [
+              // A faint banknote motif bleeding off the corner, small so it
+              // never crowds a short tile. The cash stand-in for a card's
+              // brand monogram: a glyph, in accent.
+              Positioned(
+                right: -14,
+                bottom: -18,
+                child: Icon(
+                  salapifyIcon('cash'),
+                  size: 76,
+                  color: accent.withValues(alpha: 0.06),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // The wallet emblem in the app's own accent disc, which the
+                    // bank cards never use: the primary "this is your cash" cue.
+                    SalapifyGlyph('wallet', size: 24),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.subtitle,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(subtitle, style: AppText.caption),
+                          const SizedBox(height: 10),
+                          Text('AVAILABLE CASH', style: Barako.kickerStyle),
+                          const SizedBox(height: 2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              amountText ?? formatMoneyText(balance),
+                              maxLines: 1,
+                              style: AppText.amountRow.w8
+                                  .copyWith(fontSize: 24)
+                                  .tint(Barako.primaryText),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // A tap opens the account: the chevron says so, where a card
+                    // would carry the flip glyph.
+                    Icon(
+                      salapifyIcon('forward'),
+                      size: 20,
+                      color: Barako.faint,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A bank / savings account rendered as a realistic bank card. A thin, named
+/// alias over [BankCard] so call sites read as the account type they show,
+/// while the single BankCard implementation keeps the one AA-contrast contract.
+class BankAccountCard extends StatelessWidget {
+  final String bankName;
+  final String accountType;
+  final Color? brandColor;
+  final String? last4;
+  final double balance;
+  final String? amountText;
+  final String? monogram;
+
+  const BankAccountCard({
+    super.key,
+    required this.bankName,
+    required this.accountType,
+    required this.balance,
+    this.brandColor,
+    this.last4,
+    this.amountText,
+    this.monogram,
+  });
+
+  @override
+  Widget build(BuildContext context) => BankCard(
+    bankName: bankName,
+    accountType: accountType,
+    brandColor: brandColor,
+    last4: last4,
+    balance: balance,
+    amountText: amountText,
+    monogram: monogram,
+    variant: BankCardVariant.savings,
+  );
+}
+
+/// A credit card rendered with its outstanding balance, limit and utilization.
+/// A thin, named alias over [BankCard], for the same reason as [BankAccountCard].
+class CreditCardAccountCard extends StatelessWidget {
+  final String bankName;
+  final Color? brandColor;
+  final String? last4;
+  final double outstanding;
+  final double? creditLimit;
+  final String? monogram;
+  final String? networkMark;
+
+  const CreditCardAccountCard({
+    super.key,
+    required this.bankName,
+    required this.outstanding,
+    this.brandColor,
+    this.last4,
+    this.creditLimit,
+    this.monogram,
+    this.networkMark,
+  });
+
+  @override
+  Widget build(BuildContext context) => BankCard(
+    bankName: bankName,
+    accountType: 'Credit',
+    brandColor: brandColor,
+    last4: last4,
+    balance: outstanding,
+    creditLimit: creditLimit,
+    monogram: monogram,
+    networkMark: networkMark,
+    variant: BankCardVariant.credit,
+  );
 }
 
 /// The savings face: a label and the balance, no bar.
@@ -467,12 +667,8 @@ Color _readableBase(Color base) {
 /// bank name sits on it, so it is not held to the small-text AA bar.
 Color _sheen(Color c) => Color.lerp(c, Colors.white, 0.10)!;
 
-Color _scale(Color c, double f) => Color.fromARGB(
-  255,
-  _byte(c.r * f),
-  _byte(c.g * f),
-  _byte(c.b * f),
-);
+Color _scale(Color c, double f) =>
+    Color.fromARGB(255, _byte(c.r * f), _byte(c.g * f), _byte(c.b * f));
 
 int _byte(double channel01) => (channel01 * 255).round().clamp(0, 255);
 
