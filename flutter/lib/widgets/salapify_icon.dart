@@ -209,6 +209,12 @@ const Map<String, IconData> _icons = {
   'bank': Icons.account_balance_outlined,
   'send': Icons.send_outlined,
   'quick': Icons.bolt_outlined,
+  // The bank-card back. 'flip' is the tap-to-turn-over affordance on a card
+  // face; 'qr' is the receiving QR shortcut on the card's back. Distinct from
+  // 'scheduled'/'event' and from 'grid': a QR is neither a calendar nor a
+  // layout, and the flip glyph is its own meaning, not 'refresh' or 'swap'.
+  'flip': Icons.flip_camera_android_outlined,
+  'qr': Icons.qr_code_2,
 
   // Goal templates. Content declares which fund a template is; the pictures
   // stay swappable here. The old goal template emoji (a lifebuoy, a tree, a

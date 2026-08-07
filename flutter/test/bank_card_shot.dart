@@ -12,14 +12,27 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/money/institutions.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/bank_card.dart';
+import 'package:salapify/widgets/flip_bank_card.dart';
+import 'package:salapify/widgets/lock_gate.dart' show LockAuthenticator;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadRealFonts;
 import 'support/golden_app.dart';
+
+/// A phone that cannot lock, so a reveal shot needs no platform auth channel
+/// (there is none in the sandbox). The owner is never hidden from their own
+/// last four when the device has no lock, so this matches the real path.
+class _NoLockAuth implements LockAuthenticator {
+  @override
+  Future<bool> canLock() async => false;
+  @override
+  Future<bool> authenticate() async => true;
+}
 
 Future<SalapifyStore> _store(Map<String, dynamic> blob) async {
   SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
@@ -140,6 +153,130 @@ Future<void> _shot(
   );
 }
 
+FlipBankCard _flip({
+  required SalapifyStore store,
+  required Map<String, dynamic> row,
+  required AccountStore accountStore,
+  required String bank,
+  required String type,
+  required String brandId,
+  required double balance,
+  required String last4,
+  required bool flipped,
+  BankCardVariant variant = BankCardVariant.savings,
+  double? creditLimit,
+  String? networkMark,
+  bool showHint = false,
+  LockAuthenticator? authenticator,
+}) => FlipBankCard(
+  row: row,
+  accountStore: accountStore,
+  store: store,
+  bankName: bank,
+  accountType: type,
+  brandColor: institutionBrandColor(brandId),
+  last4: last4,
+  balance: balance,
+  variant: variant,
+  creditLimit: creditLimit,
+  networkMark: networkMark,
+  flipped: flipped,
+  showHint: showHint,
+  authenticator: authenticator,
+  onFlip: (_) {},
+  onViewFullDetails: () {},
+  onEdit: () {},
+);
+
+Widget _flipGallery(SalapifyStore store) {
+  final savingsRow = {
+    'id': 'bpi',
+    'name': 'BPI Savings',
+    'last4': '1234',
+    'target': 10000,
+    'qrRef': '',
+    'paymentInstructions': 'Send to my BPI account for the paluwagan pot.',
+  };
+  final creditRow = {
+    'id': 'card',
+    'name': 'BPI Card',
+    'last4': '9012',
+    'creditLimit': 50000,
+    'dueDay': 15,
+    'statementDay': 2,
+    'qrRef': '',
+  };
+  return Scaffold(
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _ShotLabel('Front, with the one-time hint'),
+          _flip(
+            store: store,
+            row: savingsRow,
+            accountStore: AccountStore.accounts,
+            bank: 'BPI Savings',
+            type: 'Savings',
+            brandId: 'bpi',
+            balance: 48500.55,
+            last4: '1234',
+            flipped: false,
+            showHint: true,
+          ),
+          const SizedBox(height: 20),
+          const _ShotLabel('Back, savings, number masked by default'),
+          _flip(
+            store: store,
+            row: savingsRow,
+            accountStore: AccountStore.accounts,
+            bank: 'BPI Savings',
+            type: 'Savings',
+            brandId: 'bpi',
+            balance: 48500.55,
+            last4: '1234',
+            flipped: true,
+          ),
+          const SizedBox(height: 20),
+          const _ShotLabel('Back, credit card, outstanding and limit'),
+          _flip(
+            store: store,
+            row: creditRow,
+            accountStore: AccountStore.debts,
+            bank: 'BPI Card',
+            type: 'Credit',
+            brandId: 'bpi',
+            balance: 42000,
+            last4: '9012',
+            variant: BankCardVariant.credit,
+            creditLimit: 50000,
+            networkMark: 'VISA',
+            flipped: true,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ShotLabel extends StatelessWidget {
+  final String text;
+  const _ShotLabel(this.text);
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: Barako.muted,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
 void main() {
   for (final b in [Brightness.dark, Brightness.light]) {
     final suffix = b == Brightness.dark ? 'dark' : 'light';
@@ -163,5 +300,70 @@ void main() {
         size: const Size(390, 900),
       );
     });
+
+    testWidgets('flip card faces $suffix', (tester) async {
+      final store = await _store(_blob);
+      await _shot(
+        tester,
+        name: 'flip-card-faces-$suffix',
+        // Reduced motion renders both faces flat, which is exactly what we
+        // want to review: the back-face content and colour, not a mid-turn.
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: _flipGallery(store),
+        ),
+        brightness: b,
+        size: const Size(390, 1050),
+      );
+    });
   }
+
+  // Dark only, matching the founder's phone: the number revealed after auth on
+  // the savings back, so the "•••• 1234" state can be reviewed too.
+  testWidgets('flip card revealed dark', (tester) async {
+    final store = await _store(_blob);
+    await loadRealFonts(tester);
+    tester.view.physicalSize = const Size(390 * 3, 320 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      goldenApp(
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _flip(
+                store: store,
+                row: {
+                  'id': 'bpi',
+                  'name': 'BPI Savings',
+                  'last4': '1234',
+                  'target': 10000,
+                  'qrRef': '',
+                },
+                accountStore: AccountStore.accounts,
+                bank: 'BPI Savings',
+                type: 'Savings',
+                brandId: 'bpi',
+                balance: 48500.55,
+                last4: '1234',
+                flipped: true,
+                authenticator: _NoLockAuth(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Tap the reveal toggle (the eye), then let the state settle.
+    await tester.tap(find.byTooltip('Reveal the last four digits'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/flip-card-revealed-dark.png'),
+    );
+  });
 }

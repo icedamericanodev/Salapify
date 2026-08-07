@@ -692,13 +692,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   }
 
   void _viewQr(String ref, String? label) {
-    SecureWindow.retain();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Barako.background,
-      builder: (_) => _QrViewSheet(vault: _vault, qrRef: ref, label: label),
-    ).whenComplete(SecureWindow.release);
+    showAccountQrSheet(context, vault: _vault, qrRef: ref, label: label);
   }
 
   // --- History --------------------------------------------------------------
@@ -960,6 +954,25 @@ class _QrThumbState extends State<_QrThumb> {
       ),
     );
   }
+}
+
+/// Open the focused QR viewer from anywhere, holding FLAG_SECURE for exactly
+/// as long as the sheet is up. The flip card's QR shortcut reuses this so the
+/// receiving QR is shown the one way it is shown here: a white field, on-device
+/// only, screenshot-blocked, and never rendered onto the card face itself.
+Future<void> showAccountQrSheet(
+  BuildContext context, {
+  required QrVault? vault,
+  required String qrRef,
+  String? label,
+}) {
+  SecureWindow.retain();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Barako.background,
+    builder: (_) => _QrViewSheet(vault: vault, qrRef: qrRef, label: label),
+  ).whenComplete(SecureWindow.release);
 }
 
 /// The focused, full-width QR viewer. A white field so a phone camera reads it.
