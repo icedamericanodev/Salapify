@@ -279,18 +279,10 @@ class InsightsScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
               children: [
-                // The one-glance takeaway, above the detail. Shown only when
-                // there ARE decisions, so it triages rather than repeats: it
-                // says how many things need a call and how urgent the first is,
-                // then the DO NEXT cards below carry the specifics. On a calm
-                // week the "You are on track" card below is already the whole
-                // story, so no summary is added.
-                if (candidates.isNotEmpty) ...[
-                  Kicker('WHAT MATTERS NOW'),
-                  const SizedBox(height: 8),
-                  _whatMattersLine(candidates),
-                  const SizedBox(height: 18),
-                ],
+                // The DO NEXT cards carry the specifics, most urgent first, so
+                // they are the takeaway on their own. A "WHAT MATTERS NOW" line
+                // used to sit above them and only restated the count, which was
+                // words before the first real content; it was cut for that.
                 if (candidates.isNotEmpty) ...[
                   Kicker('DO NEXT'),
                   SizedBox(height: 8),
@@ -445,45 +437,6 @@ class InsightsScreen extends StatelessWidget {
   // NOT repeat any decision title (the DO NEXT cards own those); it names the
   // count and how urgent the lead is, carried by the WORD and the glyph, never
   // colour alone.
-  Widget _whatMattersLine(List<Map<String, dynamic>> candidates) {
-    final shown = candidates.length > 3 ? 3 : candidates.length;
-    final urgent = candidates.first['tone'] == 'urgent';
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SalapifyGlyph(
-          'target',
-          size: 18,
-          color: urgent ? Barako.warning : Barako.primary,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: urgent ? 'Needs your attention. ' : 'Worth a look. ',
-                  style: TextStyle(
-                    color: Barako.text,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                TextSpan(
-                  text: shown == 1
-                      ? 'One money decision is waiting just below.'
-                      : '$shown money decisions are below, the most urgent '
-                            'first.',
-                  style: TextStyle(color: Barako.textSecondary),
-                ),
-              ],
-            ),
-            style: AppText.small.copyWith(height: 1.4),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _decisionCard(Map<String, dynamic> c) {
     final tone = c['tone'] as String;
     final color = tone == 'urgent'
@@ -1039,7 +992,7 @@ class InsightsScreen extends StatelessWidget {
         activeIndex = 2;
         title = 'Grow your safety net';
         support =
-            'Your ${rated}debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or an ospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
+            'Your ${rated}debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or a hospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
         break;
       case 'goal':
         activeIndex = 3;
@@ -1163,10 +1116,15 @@ class InsightsScreen extends StatelessWidget {
     final rawTotal = health['total'] as double;
     final total = rawTotal.isFinite ? rawTotal.toInt() : 0;
     const partMax = {'savings': 35, 'budget': 25, 'debt': 25, 'logging': 15};
+    // "Money not spent" not "Savings rate": the part is fed by savingsRate,
+    // which is income minus expenses, and debt payments are not expenses. So
+    // it measures money not spent on day to day costs, not money saved. The
+    // old label credited paying off a card as saving, which is not what the
+    // number means.
     const partLabel = {
-      'savings': 'Savings rate',
+      'savings': 'Money not spent',
       'budget': 'Budget',
-      'debt': 'Debt load',
+      'debt': 'Debt',
       'logging': 'Logging habit',
     };
     return Card(
@@ -1304,6 +1262,11 @@ class InsightsScreen extends StatelessWidget {
     for (final c in visible) {
       if ((c['now'] as double) > maxNow) maxNow = c['now'] as double;
     }
+    // Total spent this month, used to show each category's SHARE (34%) next to
+    // its amount, so the bars read as "how much of my money went here", not
+    // just rank. A share is a ratio of two figures the engine already gave us,
+    // not new money math, and it is guarded against a zero total.
+    final spentTotal = forecast['spent'] as double;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1333,9 +1296,19 @@ class InsightsScreen extends StatelessWidget {
                             style: AppText.small.tint(Barako.text),
                           ),
                         ),
-                        Text(
-                          formatMoney(c['now'] as double),
-                          style: AppText.small.w6.tabular,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${spentTotal > 0 ? ((c['now'] as double) / spentTotal * 100).round() : 0}%',
+                              style: AppText.micro.w4.tint(Barako.faint),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              formatMoney(c['now'] as double),
+                              style: AppText.small.w6.tabular,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1359,7 +1332,7 @@ class InsightsScreen extends StatelessWidget {
               ),
             const SizedBox(height: 4),
             Text(
-              'An orange bar is running past its usual pace for this point in the month.',
+              'Percent shows each category\'s share of your spending. Orange means it is running faster than usual this month.',
               style: AppText.micro.w4.tint(Barako.faint),
             ),
           ],
