@@ -8,6 +8,7 @@
 // executed RN engine. A mirror, not a promise.
 
 import 'analytics.dart' show monthlySeries;
+import 'base_currency_scope.dart' show baseCurrencyOf, inBaseCurrency;
 import 'ledger.dart' show amountOf;
 
 /// Debt types that carry a real monthly minimum; a debt of one of these with
@@ -54,10 +55,15 @@ Map<String, dynamic> commitmentLoad(Map<String, dynamic> data, DateTime ref) {
   var minimumsTotal = 0.0;
   var minimumsCount = 0;
   var minimumUnfilled = false;
+  // A foreign-currency debt is left out of this peso commitment total, the same
+  // base-currency rule netWorthParts and safeToSpend follow. Counting a USD
+  // debt's minimum as pesos would overstate how spoken-for the salary is.
+  final base = baseCurrencyOf(data);
   for (final raw
       in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
+    if (!inBaseCurrency(d, base)) continue;
     final remaining = amountOf(d['remaining']);
     if (!(remaining > 0.5)) continue;
     final minPay = amountOf(d['minPayment']);

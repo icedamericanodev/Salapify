@@ -12,6 +12,7 @@
 // then acts on by hand, not a promise.
 
 import 'analytics.dart' show emergencyRunway, goalPace;
+import 'base_currency_scope.dart' show baseCurrencyOf, inBaseCurrency;
 import 'ledger.dart' show amountOf;
 
 /// The exact interest-bearing set surplus.dart uses: a 0 rate on one of these
@@ -99,10 +100,15 @@ Map<String, dynamic> splitWindfall(
   final debts = <Map<String, dynamic>>[];
   final bnplZero = <Map<String, dynamic>>[];
   var rateUnfilled = false;
+  // A foreign-currency debt is not paid down from a peso windfall pool: its
+  // remaining is in another currency, so allocating pesos against it would be
+  // spending the windfall against a number that is not pesos.
+  final base = baseCurrencyOf(data);
   for (final raw
       in (data['debts'] is List ? data['debts'] as List : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
+    if (!inBaseCurrency(d, base)) continue;
     final remaining = _num(d['remaining']);
     if (!(remaining > 0.5)) continue;
     final rate = _num(d['monthlyRate']);
