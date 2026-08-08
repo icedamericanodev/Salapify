@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.83 \u00b7 Polish pass: every filter chip on the shared control, steadier budget bars, and the sparkline draws in.';
+    'f3.84 \u00b7 Phase 3 wrap: the validation sweep is banked and the full report is written. Nothing visible changes.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
