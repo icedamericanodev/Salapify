@@ -15,6 +15,8 @@
 //    something tappable without making it findable is a regression dressed as
 //    a feature.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
@@ -29,17 +31,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'support/app_harness.dart';
 
 Future<SalapifyStore> _storeWithSomeMoney() async {
-  SharedPreferences.setMockInitialValues({});
+  // A real decision (an overdue utang) so the check-in renders the FULL Pan
+  // card. The calm all-clear became a slim row without Pan in the Phase 3
+  // calmer-Home pass, so Pan's tap contract is pinned on the state where he
+  // actually appears.
+  final overdue = DateTime.now().subtract(const Duration(days: 20));
+  final iso =
+      '${overdue.year.toString().padLeft(4, '0')}-${overdue.month.toString().padLeft(2, '0')}-${overdue.day.toString().padLeft(2, '0')}';
+  SharedPreferences.setMockInitialValues({
+    storageKey: jsonEncode({
+      'schemaVersion': 12,
+      'settings': {'onboarded': true},
+      'accounts': [
+        {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 5000},
+      ],
+      'transactions': <Map<String, dynamic>>[],
+      'receivables': [
+        {
+          'id': 'r1',
+          'person': 'Ana',
+          'amount': 1000,
+          'dueDate': iso,
+          'paid': false,
+        },
+      ],
+    }),
+  });
   final store = SalapifyStore();
   await store.load();
-  // Enough logged that the coach produces a check-in card, which is what
-  // carries Pan on Home.
-  await store.addEntry({
-    'type': 'expense',
-    'amount': 250.0,
-    'category': 'Food',
-    'date': DateTime.now().toIso8601String(),
-  });
   return store;
 }
 

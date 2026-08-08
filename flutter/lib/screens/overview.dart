@@ -136,6 +136,11 @@ class OverviewScreen extends StatelessWidget {
     // (with different rounding) would put two versions of one number on
     // screen, so the card goes quiet on its pace line.
     final checkInIsPayday = checkIn != null && checkIn['kind'] == 'payday';
+    // One pulse per screen: when the calm check-in row is showing its
+    // all-clear, the hero does not also say its fitting pace line. The two
+    // were the same reassurance twice. The over-pace warning is never
+    // suppressed; it is information, not reassurance.
+    final checkInIsGood = checkIn != null && checkIn['tone'] == 'good';
     // Payday morning: the three-minute ritual card, fully derived from the
     // ledger (the salary-logged state IS the data, no stored flag exists to
     // drift). Only when writes are open, since both its actions write.
@@ -294,7 +299,12 @@ class OverviewScreen extends StatelessWidget {
                   const SizedBox(height: Gap.lg),
                 ],
                 if (cycle.show) ...[
-                  _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
+                  _yourNumberCard(
+                    context,
+                    cycle,
+                    hidePace: checkInIsPayday,
+                    hideFittingPace: checkInIsGood,
+                  ),
                   const SizedBox(height: Gap.lg),
                 ] else if (hasStarted && dues['daysLeft'] is int) ...[
                   // The countdown used to live ONLY inside Your Number, which
@@ -317,6 +327,11 @@ class OverviewScreen extends StatelessWidget {
                     format: formatMoney,
                     formatDay: prettyDay,
                     committedShownAbove: committedShown,
+                    onMore: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CashFlowScreen(store: store),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: Gap.lg),
                 ],
@@ -668,6 +683,52 @@ class OverviewScreen extends StatelessWidget {
         builder: (_) => PanScreen(store: store, onSwitchTab: onSwitchTab),
       ),
     );
+    // The all-clear earns one quiet row, not 80dp of Pan and a bubble every
+    // single day. Pan stays big where he has something to SAY (watch, nudge,
+    // urgent); the good tone is a check, one line, and the same tap through
+    // to Ask Pan. This is also half of the one-pulse rule: the slim row and
+    // the hero's pace line stop stacking two all-clears.
+    if (good) {
+      return PressableScale(
+        child: Card(
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.card),
+            // The hint keeps the door audible: the full Pan card announced
+            // "Ask Pan", and a sighted-only slim row would have silently
+            // dropped that for screen reader users.
+            child: Semantics(
+              button: true,
+              hint: 'Opens Ask Pan',
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      salapifyIcon('check'),
+                      size: 20,
+                      color: Barako.primary,
+                    ),
+                    const SizedBox(width: Gap.md),
+                    Expanded(
+                      child: Text(
+                        c['title'] as String,
+                        style: AppText.bodyStrong.tint(Barako.primaryText),
+                      ),
+                    ),
+                    Icon(
+                      salapifyIcon('forward'),
+                      size: 18,
+                      color: Barako.muted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final Widget card = Card(
       child: InkWell(
         onTap: onTap,
@@ -1089,6 +1150,11 @@ class OverviewScreen extends StatelessWidget {
     BuildContext context,
     CycleStatus s, {
     bool hidePace = false,
+    // Suppresses only the FITTING branch (the reassurance), never the
+    // over-pace warning: when the calm check-in row is already saying all
+    // clear, a second all-clear here is the double pulse the panel flagged,
+    // but a warning is information and always speaks.
+    bool hideFittingPace = false,
   }) {
     final sub = s.comeback
         ? 'Welcome back, life happens. Fresh from your real balances: '
@@ -1108,7 +1174,7 @@ class OverviewScreen extends StatelessWidget {
         // Says the finish line, so the praise is verifiable: the pace is
         // measured against the payday projection, and the over-pace branch
         // below already names it. The two branches are symmetric now.
-        ? 'This pace holds to payday. Keep going.'
+        ? (hideFittingPace ? null : 'This pace holds to payday. Keep going.')
         : 'Recent pace is about ${formatMoneyAbout(s.dailyPace)} '
               'a day. Easing ${formatMoney(easeWhole)} a day keeps you '
               'covered to payday.';

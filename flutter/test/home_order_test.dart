@@ -144,10 +144,12 @@ void main() {
     testWidgets('a positive check-in sits BELOW Your Number', (tester) async {
       await _pump(tester, _healthy());
       expect(find.text('SAFE TO SPEND'), findsOneWidget);
-      expect(find.text('MONEY CHECK-IN'), findsOneWidget);
+      // The calm all-clear is the slim row now (no MONEY CHECK-IN kicker),
+      // so the ordering is measured against its title.
+      expect(find.text('You are on track this week'), findsOneWidget);
       expect(
         _y(tester, 'SAFE TO SPEND'),
-        lessThan(_y(tester, 'MONEY CHECK-IN')),
+        lessThan(_y(tester, 'You are on track this week')),
         reason:
             'The all-clear card is above the number again. weeklyCheckIn never '
             'returns null, so this card is an unconditional 200 pixel tax paid '
