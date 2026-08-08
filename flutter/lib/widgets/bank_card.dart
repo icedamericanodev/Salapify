@@ -95,6 +95,11 @@ class BankCard extends StatelessWidget {
 
   final BankCardVariant variant;
 
+  /// An e-wallet is a phone-number-addressed balance, not an embossed card:
+  /// no chip, no contactless mark, no fabricated masked number. The brand
+  /// color and the corner label already carry the identity.
+  final bool isWallet;
+
   // Not const: every Barako read happens at build time.
   // ignore: prefer_const_constructors_in_immutables
   BankCard({
@@ -108,6 +113,7 @@ class BankCard extends StatelessWidget {
     this.monogram,
     this.creditLimit,
     this.networkMark,
+    this.isWallet = false,
     this.variant = BankCardVariant.savings,
   });
 
@@ -181,7 +187,15 @@ class BankCard extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      // 16 horizontal, 12 vertical. The credit face's fixed
+                      // furniture summed about 9px past the 1.586 aspect at a
+                      // 390dp phone width, an overflow that had never been
+                      // rendered at exactly this size; the batch 4 guard
+                      // caught it in the shipped font.
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -203,8 +217,11 @@ class BankCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(
                                 accountType.toUpperCase(),
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.85),
+                                // Opaque white: the gradient's AA guarantee
+                                // only covers full white, and 0.85 landed
+                                // around 3.7:1 on the lightest brands.
+                                style: const TextStyle(
+                                  color: Colors.white,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.2,
@@ -212,19 +229,25 @@ class BankCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
-                              const _CardChip(),
-                              const SizedBox(width: 10),
-                              // The contactless mark, the same cue a real card
-                              // carries. Routed through the icon system, drawn
-                              // white to sit on the card rather than in accent.
-                              Icon(
-                                salapifyIcon('contactless'),
-                                size: 18,
-                                color: Colors.white.withValues(alpha: 0.85),
-                              ),
+                              // A wallet has no chip and no tap-to-pay; the
+                              // payment-card furniture only draws where a
+                              // payment card exists.
+                              if (!isWallet) ...[
+                                const _CardChip(),
+                                const SizedBox(width: 10),
+                                // The contactless mark, the same cue a real
+                                // card carries. Routed through the icon
+                                // system, drawn white to sit on the card
+                                // rather than in accent.
+                                Icon(
+                                  salapifyIcon('contactless'),
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                              ],
                               const Spacer(),
                               // The network wordmark rides this row, well clear
                               // of the balance and the credit utilization bar
@@ -246,29 +269,35 @@ class BankCard extends StatelessWidget {
                             ],
                           ),
                           const Spacer(),
-                          // A screen reader hears "ending 1234" once, not the
-                          // run of bullets. The last four is not a secret (a
-                          // physical card shows it), so the hero states it
-                          // cleanly; the secure section below is where reveal,
-                          // copy and auth live for the account number.
-                          Semantics(
-                            label:
-                                (last4 != null &&
-                                    RegExp(r'^\d{4}$').hasMatch(last4!))
-                                ? 'Card number ending $last4'
-                                : 'Card number not saved',
-                            child: ExcludeSemantics(
-                              child: Text(
-                                _maskedNumber(last4),
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.92),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2.0,
+                          // A wallet shows no number line at all: sixteen
+                          // fabricated dots on a card that has no PAN taught
+                          // nothing and lied a little.
+                          if (isWallet)
+                            const SizedBox.shrink()
+                          else
+                            // The digits never show HERE since f3.88: the same
+                            // four digits sit behind device auth on the flip
+                            // side and the detail screen, so the front saying
+                            // them out loud made that auth theater. Dots only,
+                            // and the label says where the number lives.
+                            Semantics(
+                              label:
+                                  (last4 != null &&
+                                      RegExp(r'^\d{4}$').hasMatch(last4!))
+                                  ? 'Card number ending $last4'
+                                  : 'Card number hidden here',
+                              child: ExcludeSemantics(
+                                child: Text(
+                                  _maskedNumber(last4),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 2.0,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           const SizedBox(height: 8),
                           if (variant == BankCardVariant.credit)
                             _CreditFooter(
@@ -535,7 +564,10 @@ class _CreditFooter extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _footerKicker('OUTSTANDING'),
+        // Plain words on the most important number a card shows: to a
+        // first-jobber, "outstanding" reads as praise, not debt. It also
+        // makes the card agree with the summary's "Total owed".
+        _footerKicker('YOU OWE'),
         const SizedBox(height: 2),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -560,8 +592,8 @@ class _CreditFooter extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'of ${formatMoneyText(limit)}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -587,14 +619,37 @@ class _UtilizationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final warn = fraction >= 0.70;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: LinearProgressIndicator(
-        value: fraction,
-        minHeight: 6,
-        backgroundColor: Colors.white.withValues(alpha: 0.24),
-        color: warn ? Barako.warning : Colors.white,
-      ),
+    // The warning is words AND color: the tint flip alone was invisible to a
+    // colorblind or grayscale reader, and the bare percentage TalkBack spoke
+    // had no name. The words ride BESIDE the bar because the card face is a
+    // fixed aspect with no vertical room to give.
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 6,
+              semanticsLabel: 'Credit used',
+              backgroundColor: Colors.white.withValues(alpha: 0.24),
+              color: warn ? Barako.warning : Colors.white,
+            ),
+          ),
+        ),
+        if (warn) ...[
+          const SizedBox(width: 6),
+          const Text(
+            'Getting full',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -635,8 +690,9 @@ class _CardChip extends StatelessWidget {
 
 Widget _footerKicker(String text) => Text(
   text,
-  style: TextStyle(
-    color: Colors.white.withValues(alpha: 0.85),
+  // Opaque, same AA reasoning as the type label above.
+  style: const TextStyle(
+    color: Colors.white,
     fontSize: 10,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,

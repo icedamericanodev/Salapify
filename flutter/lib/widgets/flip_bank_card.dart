@@ -55,6 +55,9 @@ class FlipBankCard extends StatefulWidget {
   final String? networkMark;
   final BankCardVariant variant;
 
+  /// E-wallets suppress the payment-card furniture on the front face.
+  final bool isWallet;
+
   /// Controlled flip state: the PARENT owns which card is flipped so a list can
   /// keep only one open at a time. Null-safe default is front (false).
   final bool flipped;
@@ -93,6 +96,7 @@ class FlipBankCard extends StatefulWidget {
     this.creditLimit,
     this.networkMark,
     this.variant = BankCardVariant.savings,
+    this.isWallet = false,
     this.showHint = false,
     this.authenticator,
     this.vault,
@@ -306,13 +310,19 @@ class _FlipBankCardState extends State<FlipBankCard>
           bankName: widget.bankName,
           accountType: widget.accountType,
           brandColor: widget.brandColor,
-          last4: widget.last4,
+          // NEVER the digits on the front. The same four digits sit behind
+          // device authentication on the back and the detail screen, and a
+          // front that says them out loud (and announces them to a screen
+          // reader) makes that auth theater. The front shows plain dots;
+          // the reveal is where the number lives.
+          last4: null,
           balance: widget.balance,
           amountText: widget.amountText,
           monogram: widget.monogram,
           creditLimit: widget.creditLimit,
           networkMark: widget.networkMark,
           variant: widget.variant,
+          isWallet: widget.isWallet,
         ),
       ),
       // The affordance that the card turns over: a small rotate glyph, plus a

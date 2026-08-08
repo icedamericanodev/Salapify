@@ -312,13 +312,24 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   for (var i = 0; i < cashItems.length; i++) ...[
                     if (i > 0) const SizedBox(height: 10),
                     PressableScale(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _openCard(context, cashItems[i]),
-                        child: CashBalanceTile(
-                          name: cashItems[i].name,
-                          balance: cashItems[i].amount,
-                          amountText: cashItems[i].amountText,
+                      // A named button, not a stream of fragments: TalkBack
+                      // had no role and no destination for this tap.
+                      child: Semantics(
+                        button: true,
+                        label:
+                            '${cashItems[i].name}, '
+                            '${cashItems[i].amountText ?? formatMoneyText(cashItems[i].amount)}. '
+                            'Opens the account.',
+                        child: ExcludeSemantics(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _openCard(context, cashItems[i]),
+                            child: CashBalanceTile(
+                              name: cashItems[i].name,
+                              balance: cashItems[i].amount,
+                              amountText: cashItems[i].amountText,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -367,8 +378,28 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 // here yet" lines is a screen that looks like a chore list, and
                 // the old two-section version already had two of them. One
                 // honest empty state instead, below.
-                for (final c in accountCategories)
-                  if (groups[c.id]!.isNotEmpty)
+                for (final (ci, c) in accountCategories.indexed)
+                  if (groups[c.id]!.isNotEmpty) ...[
+                    // The own/owe superstructure: one class kicker above the
+                    // first section of each class, so the asset-liability
+                    // boundary is structural, not a tint a colorblind reader
+                    // cannot see. Rows and subtotals below went neutral in
+                    // the same change; red is reserved for overdue, not for
+                    // owing money on schedule.
+                    if (!accountCategories
+                        .take(ci)
+                        .any((p) => p.cls == c.cls && groups[p.id]!.isNotEmpty))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          c.cls == AccountClass.liability
+                              ? 'WHAT YOU OWE'
+                              : 'WHAT YOU OWN',
+                          style: AppText.smallStrong.copyWith(
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
                     _section(
                       c.label.toUpperCase(),
                       // Counts exactly what the total above counts: base
@@ -388,10 +419,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
                             c.id == _lastDebtCategoryWithRows(groups))
                           _manageDebtsNote(),
                       ],
-                      subtotalColor: c.cls == AccountClass.liability
-                          ? Barako.warningStrong
-                          : null,
                     ),
+                  ],
                 if (!anyRows)
                   // The shared empty-state shape. No button here, because the
                   // Add an account button already sits right above.
@@ -508,11 +537,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
     children: [
       Text(label, style: AppText.caption),
       const SizedBox(height: 2),
-      Text(
-        formatMoneyText(value),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: AppText.amountRow.tint(color).copyWith(fontSize: 16),
+      // Scale down, never truncate: an ellipsized peso figure reads as a
+      // DIFFERENT amount. Same pattern as the net worth hero above, and the
+      // 16pt resize fork on amountRow dies with it.
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          formatMoneyText(value),
+          maxLines: 1,
+          style: AppText.amountRow.tint(color),
+        ),
       ),
     ],
   );
@@ -526,7 +561,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
             borderRadius: BorderRadius.circular(14),
             onTap: onTap,
             child: Container(
-              height: 48,
+              // Min height, not fixed: at 2.0x text on a narrow phone the
+              // label wraps, and a fixed 48 clipped the second line.
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
@@ -568,11 +606,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // The strict row face, tint only: the 13pt resize was one of
+                // the forks amountRow's rule exists to end.
                 Text(
                   formatMoneyText(subtotal),
-                  style: AppText.amountRow
-                      .tint(subtotalColor ?? Barako.textSecondary)
-                      .copyWith(fontSize: 13),
+                  style: AppText.amountRow.tint(
+                    subtotalColor ?? Barako.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -691,7 +731,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
           name: row['name']?.toString() ?? 'Debt',
           sub: parts.join(' · '),
           amount: amountOf(row['remaining']),
-          amountColor: Barako.warningStrong,
+          // Neutral ink on purpose: a borrower current on every payment is
+          // not in an emergency, and a wall of red is visually punitive.
+          // The class kicker above carries the owe meaning; red stays
+          // reserved for the Total owed summary and true urgency.
         );
     }
   }
@@ -937,6 +980,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           monogram: institutionById(row['institutionId']?.toString())?.initials,
           variant: BankCardVariant.savings,
           isCash: row['kind']?.toString() == 'cash',
+          isWallet: row['kind']?.toString() == 'ewallet',
         ),
       );
     }
@@ -2209,6 +2253,7 @@ class _CardItem {
   /// The card network's wordmark ("VISA"), or null. Credit cards only.
   final String? networkMark;
   final BankCardVariant variant;
+  final bool isWallet;
 
   /// Physical cash: rendered as a wallet, not a bank card, and it does not flip
   /// (there is no number, chip, network or QR to turn over to). A tap opens the
@@ -2229,6 +2274,7 @@ class _CardItem {
     this.limit,
     this.networkMark,
     this.isCash = false,
+    this.isWallet = false,
   });
 }
 
@@ -2428,6 +2474,7 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
       creditLimit: it.limit,
       networkMark: it.networkMark,
       variant: it.variant,
+      isWallet: it.isWallet,
       flipped: _flipped == i,
       // The nudge sits only on the focused, front-facing card, never on the
       // peeking neighbour.
