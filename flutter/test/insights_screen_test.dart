@@ -192,15 +192,20 @@ void main() {
 
     await scrollTo('SAFE TO SPEND UNTIL PAYDAY');
 
+    // THIS MONTH: the Phase 5 story band. The dominant chart states its
+    // name, its legend renders, and WHAT CHANGED sits under it.
+    await scrollTo('THIS MONTH');
+    await scrollTo('INCOME VS SPENDING');
+    await scrollTo('Income');
+    await scrollTo('Spending');
+    await scrollTo('WHAT CHANGED');
+    await scrollTo('See the full month in Reports');
+
     // THE BIGGER PICTURE band renders open always now, no CollapsibleCard
     // and nothing to tap: founder feedback that collapsing the one band
     // that IS the reason someone opens this tab (real numbers, a chart, a
     // score) behind a chevron hid the entire point.
     await scrollTo('MONEY HEALTH');
-
-    await scrollTo('LAST 6 MONTHS');
-    await scrollTo('Income');
-    await scrollTo('Spending');
 
     await scrollTo('EMERGENCY RUNWAY');
     // Only the current month has spending: runway has no honest number.
@@ -544,6 +549,71 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
+  });
+
+  testWidgets('low data: the month story refuses to fabricate comparisons', (
+    tester,
+  ) async {
+    // Three entries in the current month and nothing before it: the exact
+    // state where a careless build prints "+100%" deltas against a month
+    // that was simply never logged. WHAT CHANGED must explain itself
+    // instead, the pulse may state this month's share but never a history
+    // claim, and no shift rows exist to tap.
+    final now = DateTime.now();
+    String d(int day) =>
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 9000,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+          {
+            'id': 't2',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 450,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+          {
+            'id': 't3',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 120,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await goToTab(tester, 'Insights');
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('WHAT CHANGED'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    // No prior month: the card says why it is not comparing, and no delta
+    // row is invented.
+    expect(find.textContaining('another logged month'), findsOneWidget);
+    // No best-month claim can exist on one month of history.
+    expect(find.textContaining('strongest savings month'), findsNothing);
   });
 
   testWidgets('an empty app invites logging instead of a wall of zeros', (

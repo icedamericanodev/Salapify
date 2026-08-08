@@ -23,8 +23,8 @@ Map<String, dynamic> _tx(
   'type': type,
   'amount': amount,
   'date': date,
-  if (label != null) 'label': label,
-  if (note != null) 'note': note,
+  'label': ?label,
+  'note': ?note,
 };
 
 void main() {
