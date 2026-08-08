@@ -63,68 +63,74 @@ void main() {
   // exercise the ledger boundary.
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('the store reads and writes the ledger through the injected engine', () async {
-    final fake = FakeLedgerRepository();
-    final store = SalapifyStore(repository: fake);
-    await store.load();
-    expect(store.canWrite, isTrue);
+  test(
+    'the store reads and writes the ledger through the injected engine',
+    () async {
+      final fake = FakeLedgerRepository();
+      final store = SalapifyStore(repository: fake);
+      await store.load();
+      expect(store.canWrite, isTrue);
 
-    await store.addEntry({
-      'type': 'expense',
-      'amount': 250.0,
-      'date': '2026-07-30',
-      'label': 'lunch',
-    });
-
-    // It wrote through the fake, not SharedPreferences.
-    expect(fake.ledger, isNotNull);
-    expect(fake.ledger, contains('lunch'));
-    expect(fake.writes, greaterThan(0));
-
-    // A second store on the SAME engine reads it back.
-    final reopened = SalapifyStore(repository: fake);
-    await reopened.load();
-    final txns = reopened.data['transactions'] as List;
-    expect(txns.any((t) => t['label'] == 'lunch'), isTrue);
-  });
-
-  test('an unreadable ledger disables writes and is never overwritten', () async {
-    final fake = FakeLedgerRepository()
-      ..ledger = jsonEncode({
-        'schemaVersion': 12,
-        'accounts': <dynamic>[],
-        'transactions': [
-          {
-            'id': 't1',
-            'type': 'expense',
-            'amount': 100.0,
-            'date': '2026-07-01',
-            'label': 'kept',
-          },
-        ],
-      })
-      ..failReads = true;
-    final store = SalapifyStore(repository: fake);
-    await store.load();
-
-    expect(store.loadError, isNotNull);
-    expect(store.canWrite, isFalse);
-
-    // A write is refused, and the on-disk ledger is untouched.
-    final before = fake.ledger;
-    await expectLater(
-      store.addEntry({
+      await store.addEntry({
         'type': 'expense',
-        'amount': 9.0,
+        'amount': 250.0,
         'date': '2026-07-30',
-        'label': 'should not land',
-      }),
-      throwsA(anything),
-    );
-    expect(fake.ledger, before);
-    expect(fake.ledger, contains('kept'));
-    expect(fake.ledger, isNot(contains('should not land')));
-  });
+        'label': 'lunch',
+      });
+
+      // It wrote through the fake, not SharedPreferences.
+      expect(fake.ledger, isNotNull);
+      expect(fake.ledger, contains('lunch'));
+      expect(fake.writes, greaterThan(0));
+
+      // A second store on the SAME engine reads it back.
+      final reopened = SalapifyStore(repository: fake);
+      await reopened.load();
+      final txns = reopened.data['transactions'] as List;
+      expect(txns.any((t) => t['label'] == 'lunch'), isTrue);
+    },
+  );
+
+  test(
+    'an unreadable ledger disables writes and is never overwritten',
+    () async {
+      final fake = FakeLedgerRepository()
+        ..ledger = jsonEncode({
+          'schemaVersion': 12,
+          'accounts': <dynamic>[],
+          'transactions': [
+            {
+              'id': 't1',
+              'type': 'expense',
+              'amount': 100.0,
+              'date': '2026-07-01',
+              'label': 'kept',
+            },
+          ],
+        })
+        ..failReads = true;
+      final store = SalapifyStore(repository: fake);
+      await store.load();
+
+      expect(store.loadError, isNotNull);
+      expect(store.canWrite, isFalse);
+
+      // A write is refused, and the on-disk ledger is untouched.
+      final before = fake.ledger;
+      await expectLater(
+        store.addEntry({
+          'type': 'expense',
+          'amount': 9.0,
+          'date': '2026-07-30',
+          'label': 'should not land',
+        }),
+        throwsA(anything),
+      );
+      expect(fake.ledger, before);
+      expect(fake.ledger, contains('kept'));
+      expect(fake.ledger, isNot(contains('should not land')));
+    },
+  );
 
   test('a failed write never lands durably and rolls back memory', () async {
     final fake = FakeLedgerRepository();
@@ -164,15 +170,18 @@ void main() {
     expect(fake.ledger, isNot(contains('doomed')));
   });
 
-  test('the SharedPreferences default engine still uses the salapify_data_v2 key', () async {
-    // Behaviour-identical to the old inline code: same key, so every existing
-    // backup and every persistence-reopen test still holds.
-    SharedPreferences.setMockInitialValues({});
-    const repo = SharedPrefsLedgerRepository();
-    expect(await repo.readLedger(), isNull);
-    await repo.writeLedger('{"schemaVersion":12}');
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('salapify_data_v2'), '{"schemaVersion":12}');
-    expect(await repo.readLedger(), '{"schemaVersion":12}');
-  });
+  test(
+    'the SharedPreferences default engine still uses the salapify_data_v2 key',
+    () async {
+      // Behaviour-identical to the old inline code: same key, so every existing
+      // backup and every persistence-reopen test still holds.
+      SharedPreferences.setMockInitialValues({});
+      const repo = SharedPrefsLedgerRepository();
+      expect(await repo.readLedger(), isNull);
+      await repo.writeLedger('{"schemaVersion":12}');
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('salapify_data_v2'), '{"schemaVersion":12}');
+      expect(await repo.readLedger(), '{"schemaVersion":12}');
+    },
+  );
 }

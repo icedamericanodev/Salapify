@@ -18,27 +18,34 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/debtmath_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/debtmath_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 16, 12);
 
   test('monthlyInterest matches the RN arrow on every vector', () {
-    final mi = jsonDecode(
-        File('test/goldens/monthly_interest_goldens.json').readAsStringSync())
-        as Map<String, dynamic>;
+    final mi =
+        jsonDecode(
+              File(
+                'test/goldens/monthly_interest_goldens.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
     for (final c in (mi['cases'] as List).cast<Map<String, dynamic>>()) {
       final debt = (c['debt'] as Map).cast<String, dynamic>();
-      expect(monthlyInterest(debt), (c['result'] as num).toDouble(),
-          reason: c['name'] as String);
+      expect(
+        monthlyInterest(debt),
+        (c['result'] as num).toDouble(),
+        reason: c['name'] as String,
+      );
     }
   });
 
   test('whatIfLadder matches the RN projection at every extra, and the '
       'months and interest saved are the honest differences', () {
-    final wi = jsonDecode(
-        File('test/goldens/whatif_goldens.json').readAsStringSync())
-        as Map<String, dynamic>;
+    final wi =
+        jsonDecode(File('test/goldens/whatif_goldens.json').readAsStringSync())
+            as Map<String, dynamic>;
     // The golden was generated at new Date(2026, 6, 16, 12); mirror it.
     final wref = DateTime(2026, 7, 16, 12);
     final extras = [200, 500, 1000];
@@ -53,8 +60,11 @@ void main() {
       final base = byExtra[0]; // {months,totalInterest,date} or null
       final result = whatIfLadder(debts, extras, wref);
 
-      expect(normalize(result['baseline']), normalize(base),
-          reason: '$name baseline');
+      expect(
+        normalize(result['baseline']),
+        normalize(base),
+        reason: '$name baseline',
+      );
 
       final steps = (result['steps'] as List).cast<Map<String, dynamic>>();
       expect(steps.length, extras.length, reason: '$name step count');
@@ -63,8 +73,11 @@ void main() {
         final step = steps[i];
         final want = byExtra[e]; // RN projection at this extra, or null
         expect(step['extra'], e, reason: '$name extra $e');
-        expect(normalize(step['projection']), normalize(want),
-            reason: '$name projection $e');
+        expect(
+          normalize(step['projection']),
+          normalize(want),
+          reason: '$name projection $e',
+        );
         // Saved values are the plain differences, or null when either side
         // has no finite payoff. Compute the expectation from the RN numbers.
         final expMonthsSaved = (want != null && base != null)
@@ -73,14 +86,18 @@ void main() {
         final expInterestSaved = (want != null && base != null)
             ? (base['totalInterest'] as num) - (want['totalInterest'] as num)
             : null;
-        expect(step['monthsSaved'], expMonthsSaved,
-            reason: '$name monthsSaved $e');
         expect(
-            step['interestSaved'] == null
-                ? null
-                : (step['interestSaved'] as num).toDouble(),
-            expInterestSaved?.toDouble(),
-            reason: '$name interestSaved $e');
+          step['monthsSaved'],
+          expMonthsSaved,
+          reason: '$name monthsSaved $e',
+        );
+        expect(
+          step['interestSaved'] == null
+              ? null
+              : (step['interestSaved'] as num).toDouble(),
+          expInterestSaved?.toDouble(),
+          reason: '$name interestSaved $e',
+        );
       }
     }
   });
@@ -88,37 +105,62 @@ void main() {
   test('splitDebtPayment matches the RN engine on every vector', () {
     for (final v in (raw['splits'] as List)) {
       final a = (v['args'] as Map).cast<String, dynamic>();
-      final result = splitDebtPayment(a['remaining'], a['monthlyRate'],
-          a['interestThroughISO'], a['amount'], a['todayStr'] as String);
-      expect(normalize(result), normalize(v['result']),
-          reason: v['name'] as String);
+      final result = splitDebtPayment(
+        a['remaining'],
+        a['monthlyRate'],
+        a['interestThroughISO'],
+        a['amount'],
+        a['todayStr'] as String,
+      );
+      expect(
+        normalize(result),
+        normalize(v['result']),
+        reason: v['name'] as String,
+      );
     }
   });
 
-  test('debtFreeProjection matches the RN engine, null and junk included',
-      () {
+  test('debtFreeProjection matches the RN engine, null and junk included', () {
     final g = raw['projections'];
     final debts = raw['projDebts'] as List;
     final hopeless = raw['hopeless'] as List;
-    expect(normalize(debtFreeProjection(debts, 'avalanche', 0, ref)),
-        normalize(g['avalanche']));
-    expect(normalize(debtFreeProjection(debts, 'snowball', 0, ref)),
-        normalize(g['snowball']));
-    expect(normalize(debtFreeProjection(debts, 'avalanche', 2000, ref)),
-        normalize(g['avalancheExtra']));
-    expect(normalize(debtFreeProjection(debts, 'snowball', 2000, ref)),
-        normalize(g['snowballExtra']));
+    expect(
+      normalize(debtFreeProjection(debts, 'avalanche', 0, ref)),
+      normalize(g['avalanche']),
+    );
+    expect(
+      normalize(debtFreeProjection(debts, 'snowball', 0, ref)),
+      normalize(g['snowball']),
+    );
+    expect(
+      normalize(debtFreeProjection(debts, 'avalanche', 2000, ref)),
+      normalize(g['avalancheExtra']),
+    );
+    expect(
+      normalize(debtFreeProjection(debts, 'snowball', 2000, ref)),
+      normalize(g['snowballExtra']),
+    );
     expect(debtFreeProjection(hopeless, 'avalanche', 0, ref), isNull);
     expect(g['hopeless'], isNull);
-    expect(normalize(debtFreeProjection([], 'avalanche', 0, ref)),
-        normalize(g['empty']));
     expect(
-        normalize(debtFreeProjection([
-          null,
-          {'remaining': 'abc'},
-          {'id': 'x', 'remaining': 300, 'monthlyRate': 2, 'minPayment': 50},
-        ], 'snowball', 0, ref)),
-        normalize(g['junk']));
+      normalize(debtFreeProjection([], 'avalanche', 0, ref)),
+      normalize(g['empty']),
+    );
+    expect(
+      normalize(
+        debtFreeProjection(
+          [
+            null,
+            {'remaining': 'abc'},
+            {'id': 'x', 'remaining': 300, 'monthlyRate': 2, 'minPayment': 50},
+          ],
+          'snowball',
+          0,
+          ref,
+        ),
+      ),
+      normalize(g['junk']),
+    );
   });
 
   test('cardForecast and dueDateFor match the RN engine per card', () {
@@ -126,25 +168,34 @@ void main() {
     final payments = raw['payments'] as List;
     for (final name in cards.keys) {
       final card = (cards[name] as Map).cast<String, dynamic>();
-      expect(normalize(cardForecast(card, payments, ref)),
-          normalize((raw['forecasts'] as Map)[name]),
-          reason: 'forecast $name');
-      expect(dueDateFor(card, ref), (raw['dueDates'] as Map)[name],
-          reason: 'dueDate $name');
+      expect(
+        normalize(cardForecast(card, payments, ref)),
+        normalize((raw['forecasts'] as Map)[name]),
+        reason: 'forecast $name',
+      );
+      expect(
+        dueDateFor(card, ref),
+        (raw['dueDates'] as Map)[name],
+        reason: 'dueDate $name',
+      );
     }
   });
 
   test('an overflowing utilization caps at 999% instead of crashing', () {
     // remaining / creditLimit overflows to Infinity; RN prints 999%, Dart
     // used to throw on toInt(). Reachable from an imported backup.
-    final soa = buildSOA({
-      'id': 'huge',
-      'name': 'Huge Card',
-      'remaining': 1.7e308,
-      'creditLimit': 0.5,
-      'monthlyRate': 0,
-      'minPayment': 0,
-    }, [], ref);
+    final soa = buildSOA(
+      {
+        'id': 'huge',
+        'name': 'Huge Card',
+        'remaining': 1.7e308,
+        'creditLimit': 0.5,
+        'monthlyRate': 0,
+        'minPayment': 0,
+      },
+      [],
+      ref,
+    );
     // The real RN engine prints exactly this line for these inputs.
     expect(soa, contains('Credit used: 999% of ₱1'));
   });
@@ -169,8 +220,11 @@ void main() {
     final payments = raw['payments'] as List;
     for (final name in cards.keys) {
       final card = (cards[name] as Map).cast<String, dynamic>();
-      expect(buildSOA(card, payments, ref), (raw['soas'] as Map)[name],
-          reason: 'SOA $name');
+      expect(
+        buildSOA(card, payments, ref),
+        (raw['soas'] as Map)[name],
+        reason: 'SOA $name',
+      );
     }
   });
 }

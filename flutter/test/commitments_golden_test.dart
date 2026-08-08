@@ -27,9 +27,11 @@ DateTime parseISO(String s) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/commitments_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(
+            File('test/goldens/commitments_goldens.json').readAsStringSync(),
+          )
+          as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 16, 12);
   final fixtures = raw['fixtures'] as Map<String, dynamic>;
   final data = (fixtures['data'] as Map).cast<String, dynamic>();
@@ -39,15 +41,27 @@ void main() {
     for (final entry in (raw['calendar'] as List)) {
       final date = parseISO(entry['date'] as String);
       final adj = bankingAdjust(date);
-      expect(holidayName(date), entry['holiday'],
-          reason: 'holiday on ${entry['date']}');
-      expect(nonBankingReason(date), entry['reason'],
-          reason: 'reason on ${entry['date']}');
-      expect(iso(adj.date!), entry['adjusted'],
-          reason: 'adjusted ${entry['date']}');
+      expect(
+        holidayName(date),
+        entry['holiday'],
+        reason: 'holiday on ${entry['date']}',
+      );
+      expect(
+        nonBankingReason(date),
+        entry['reason'],
+        reason: 'reason on ${entry['date']}',
+      );
+      expect(
+        iso(adj.date!),
+        entry['adjusted'],
+        reason: 'adjusted ${entry['date']}',
+      );
       expect(adj.moved, entry['moved'], reason: 'moved ${entry['date']}');
-      expect(adj.reason, entry['adjReason'],
-          reason: 'adjReason ${entry['date']}');
+      expect(
+        adj.reason,
+        entry['adjReason'],
+        reason: 'adjReason ${entry['date']}',
+      );
     }
   });
 
@@ -65,27 +79,37 @@ void main() {
     for (final name in schedules.keys) {
       final sch = schedules[name];
       final g = (raw['schedules'] as Map)[name] as Map;
-      expect(normalize(normalizeSchedule(sch)), normalize(g['normalized']),
-          reason: '$name normalized');
+      expect(
+        normalize(normalizeSchedule(sch)),
+        normalize(g['normalized']),
+        reason: '$name normalized',
+      );
       expect(iso(nextPayday(ref, sch)), g['next'], reason: '$name next');
       expect(iso(prevPayday(ref, sch)), g['prev'], reason: '$name prev');
-      expect(iso(nextPayday(DateTime(2026, 7, 15, 12), sch)),
-          g['nextFromPayday'],
-          reason: '$name on payday');
-      expect(iso(nextPayday(DateTime(2026, 2, 20, 12), sch)), g['nextFeb'],
-          reason: '$name Feb clamp');
+      expect(
+        iso(nextPayday(DateTime(2026, 7, 15, 12), sch)),
+        g['nextFromPayday'],
+        reason: '$name on payday',
+      );
+      expect(
+        iso(nextPayday(DateTime(2026, 2, 20, 12), sch)),
+        g['nextFeb'],
+        reason: '$name Feb clamp',
+      );
     }
   });
 
   test('upcomingDues matches the RN engine, bank adjustments included', () {
     final dues = upcomingDues(debts, 30, ref)
-        .map((x) => {
-              'debtId': (x['debt'] as Map)['id'],
-              'dueISO': x['dueISO'],
-              'inDays': x['inDays'],
-              'moved': x['moved'],
-              'amount': x['amount'],
-            })
+        .map(
+          (x) => {
+            'debtId': (x['debt'] as Map)['id'],
+            'dueISO': x['dueISO'],
+            'inDays': x['inDays'],
+            'moved': x['moved'],
+            'amount': x['amount'],
+          },
+        )
         .toList();
     expect(normalize(dues), normalize(raw['upcomingDues30']));
   });
@@ -94,19 +118,25 @@ void main() {
     final g = raw['upcomingCommitments'];
     expect(normalize(upcomingCommitments(data, ref)), normalize(g['rich']));
     expect(
-        normalize(upcomingCommitments(data, DateTime(2026, 7, 15, 12))),
-        normalize(g['onPayday']));
+      normalize(upcomingCommitments(data, DateTime(2026, 7, 15, 12))),
+      normalize(g['onPayday']),
+    );
     final noSchedule = {...data, 'settings': <String, dynamic>{}};
-    expect(normalize(upcomingCommitments(noSchedule, ref)),
-        normalize(g['noSchedule']));
     expect(
-        normalize(upcomingCommitments({
+      normalize(upcomingCommitments(noSchedule, ref)),
+      normalize(g['noSchedule']),
+    );
+    expect(
+      normalize(
+        upcomingCommitments({
           'accounts': [],
           'debts': [],
           'recurring': [],
           'settings': <String, dynamic>{},
-        }, ref)),
-        normalize(g['empty']));
+        }, ref),
+      ),
+      normalize(g['empty']),
+    );
   });
 
   test('safeToSpend matches the RN engine, savings protected', () {
@@ -120,13 +150,16 @@ void main() {
     };
     expect(normalize(safeToSpend(broke, ref)), normalize(g['broke']));
     expect(
-        normalize(safeToSpend({
+      normalize(
+        safeToSpend({
           'accounts': [],
           'debts': [],
           'recurring': [],
           'settings': <String, dynamic>{},
-        }, ref)),
-        normalize(g['empty']));
+        }, ref),
+      ),
+      normalize(g['empty']),
+    );
   });
 
   group('paydayProjection', () {
@@ -136,22 +169,30 @@ void main() {
     // excluded: debt interest, a debtId expense, a recurring bill, a transfer,
     // debt principal, and an expense older than the window.
     List<Map<String, dynamic>> paceTxs() => [
-          for (final day in [3, 5, 7, 9, 11, 13, 15])
-            {
-              'type': 'expense',
-              'amount': 500,
-              'date': '2026-07-${day.toString().padLeft(2, '0')}',
-            },
-          {'type': 'expense', 'source': 'interest', 'debtId': 'x',
-              'amount': 700, 'date': '2026-07-10'},
-          {'type': 'expense', 'debtId': 'y', 'amount': 900,
-              'date': '2026-07-12'},
-          {'type': 'expense', 'recurringId': 'r', 'amount': 800,
-              'date': '2026-07-14'},
-          {'type': 'transfer', 'amount': 1000, 'date': '2026-07-08'},
-          {'type': 'debt', 'amount': 1200, 'date': '2026-07-06'},
-          {'type': 'expense', 'amount': 5000, 'date': '2026-06-01'},
-        ];
+      for (final day in [3, 5, 7, 9, 11, 13, 15])
+        {
+          'type': 'expense',
+          'amount': 500,
+          'date': '2026-07-${day.toString().padLeft(2, '0')}',
+        },
+      {
+        'type': 'expense',
+        'source': 'interest',
+        'debtId': 'x',
+        'amount': 700,
+        'date': '2026-07-10',
+      },
+      {'type': 'expense', 'debtId': 'y', 'amount': 900, 'date': '2026-07-12'},
+      {
+        'type': 'expense',
+        'recurringId': 'r',
+        'amount': 800,
+        'date': '2026-07-14',
+      },
+      {'type': 'transfer', 'amount': 1000, 'date': '2026-07-08'},
+      {'type': 'debt', 'amount': 1200, 'date': '2026-07-06'},
+      {'type': 'expense', 'amount': 5000, 'date': '2026-06-01'},
+    ];
 
     test('warns with the honest ease-off when the pace outruns the runway', () {
       final blob = {
@@ -180,7 +221,10 @@ void main() {
       final expRunOut = (available / 250).floor();
       expect(pp['daysShort'], daysLeft - expRunOut);
       expect(pp['easeOff'] as double, closeTo(250 - perDay, 1e-9));
-      expect(pp['leftover'] as double, closeTo(available - 250 * daysLeft, 1e-9));
+      expect(
+        pp['leftover'] as double,
+        closeTo(available - 250 * daysLeft, 1e-9),
+      );
       expect(pp['runOutISO'], iso(DateTime(2026, 7, 16 + expRunOut)));
     });
 

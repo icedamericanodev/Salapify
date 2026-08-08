@@ -15,16 +15,20 @@ void main() {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
-  testWidgets('a receipt note computes live and persists on close',
-      (tester) async {
+  testWidgets('a receipt note computes live and persists on close', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Tools');
+    await openFromMenu(tester, 'Calculators');
 
-    await tester.scrollUntilVisible(find.text('Notes'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Notes'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
@@ -33,8 +37,10 @@ void main() {
     await tester.tap(find.text('New note'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField),
-        'Pasalubong\nlunch 120\njeep 24 + 24\n7-11 run 250');
+    await tester.enterText(
+      find.byType(TextField),
+      'Pasalubong\nlunch 120\njeep 24 + 24\n7-11 run 250',
+    );
     await tester.pumpAndSettle();
 
     // The live panel: three computed rows and the total.
@@ -53,8 +59,10 @@ void main() {
     await fresh.load();
     final notes = (fresh.data['notes'] as List).cast<Map<String, dynamic>>();
     expect(notes.length, 1);
-    expect(notes.single['text'],
-        'Pasalubong\nlunch 120\njeep 24 + 24\n7-11 run 250');
+    expect(
+      notes.single['text'],
+      'Pasalubong\nlunch 120\njeep 24 + 24\n7-11 run 250',
+    );
   });
 
   testWidgets('an empty note is discarded quietly on close', (tester) async {
@@ -62,10 +70,13 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Tools');
+    await openFromMenu(tester, 'Calculators');
 
-    await tester.scrollUntilVisible(find.text('Notes'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Notes'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
@@ -83,10 +94,13 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Tools');
+    await openFromMenu(tester, 'Calculators');
 
-    await tester.scrollUntilVisible(find.text('Notes'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Notes'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();

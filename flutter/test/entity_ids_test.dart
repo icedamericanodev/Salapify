@@ -34,8 +34,8 @@ void main() {
       'settings': {'defaultAccountId': 7},
     });
 
-    final accounts =
-        (repaired['accounts'] as List).cast<Map<String, dynamic>>();
+    final accounts = (repaired['accounts'] as List)
+        .cast<Map<String, dynamic>>();
     expect(accounts[0]['id'], '7');
     expect(accounts[1]['id'], 'acct_restored_0');
 
@@ -45,18 +45,21 @@ void main() {
     expect(debts[2]['id'], 'debt_ok');
     expect(debts[3]['id'], isNot('debt_ok'));
 
-    final tx =
-        (repaired['transactions'] as List).cast<Map<String, dynamic>>().single;
+    final tx = (repaired['transactions'] as List)
+        .cast<Map<String, dynamic>>()
+        .single;
     expect(tx['accountId'], '7');
     expect(tx['debtId'], '5');
-    final pay =
-        (repaired['payments'] as List).cast<Map<String, dynamic>>().single;
+    final pay = (repaired['payments'] as List)
+        .cast<Map<String, dynamic>>()
+        .single;
     expect(pay['debtId'], '5');
     expect(pay['account'], '7');
     expect(
-        ((repaired['receivables'] as List).cast<Map<String, dynamic>>())
-            .single['accountId'],
-        '7');
+      ((repaired['receivables'] as List).cast<Map<String, dynamic>>())
+          .single['accountId'],
+      '7',
+    );
     expect((repaired['settings'] as Map)['defaultAccountId'], '7');
   });
 
@@ -86,25 +89,28 @@ void main() {
     expect(identical(ensureEntityIds(input), input), isTrue);
   });
 
-  test('a ghost debt from an imported blob becomes payable and deletable',
-      () async {
-    SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode({
-        'schemaVersion': 12,
-        'accounts': [],
-        'debts': [
-          {'name': 'Ghost', 'type': 'other', 'remaining': 5000},
-        ],
-      })
-    });
-    final store = SalapifyStore();
-    await store.load();
-    final debt =
-        (store.data['debts'] as List).cast<Map<String, dynamic>>().single;
-    expect(debt['id'], 'debt_restored_0');
-    final r = await store.logDebtPayment('debt_restored_0', '500', null);
-    expect(r.newRemaining, 4500.0);
-    await store.deleteDebt('debt_restored_0');
-    expect((store.data['debts'] as List), isEmpty);
-  });
+  test(
+    'a ghost debt from an imported blob becomes payable and deletable',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'accounts': [],
+          'debts': [
+            {'name': 'Ghost', 'type': 'other', 'remaining': 5000},
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      final debt = (store.data['debts'] as List)
+          .cast<Map<String, dynamic>>()
+          .single;
+      expect(debt['id'], 'debt_restored_0');
+      final r = await store.logDebtPayment('debt_restored_0', '500', null);
+      expect(r.newRemaining, 4500.0);
+      await store.deleteDebt('debt_restored_0');
+      expect((store.data['debts'] as List), isEmpty);
+    },
+  );
 }

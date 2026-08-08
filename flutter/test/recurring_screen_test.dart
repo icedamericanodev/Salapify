@@ -25,8 +25,9 @@ Future<void> _openRecurring(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('a due recurring item posts on load and moves the account',
-      (tester) async {
+  testWidgets('a due recurring item posts on load and moves the account', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({
         'accounts': [
@@ -34,7 +35,15 @@ void main() {
         ],
         // Day 1 has always passed, no lastPosted, so it is due this month.
         'recurring': [
-          {'id': 'r1', 'type': 'expense', 'label': 'Rent', 'amount': 3000, 'dayOfMonth': 1, 'accountId': 'cash', 'lastPosted': ''},
+          {
+            'id': 'r1',
+            'type': 'expense',
+            'label': 'Rent',
+            'amount': 3000,
+            'dayOfMonth': 1,
+            'accountId': 'cash',
+            'lastPosted': '',
+          },
         ],
       }),
     });
@@ -48,8 +57,9 @@ void main() {
     expect(tx['recurringId'], 'r1');
     expect(tx['type'], 'expense');
     expect(tx['amount'], 3000);
-    final cash = (store.data['accounts'] as List)
-        .firstWhere((a) => a['id'] == 'cash') as Map;
+    final cash =
+        (store.data['accounts'] as List).firstWhere((a) => a['id'] == 'cash')
+            as Map;
     expect(cash['balance'], 2000);
     // The item is stamped, so a second load never double posts.
     expect((_recur(store).first as Map)['lastPosted'], _monthKey());
@@ -94,7 +104,15 @@ void main() {
 
     final items = [
       for (var i = 0; i < 5; i++)
-        {'id': 'r$i', 'type': 'expense', 'label': 'Bill $i', 'amount': 100, 'dayOfMonth': 28, 'accountId': '', 'lastPosted': _monthKey()},
+        {
+          'id': 'r$i',
+          'type': 'expense',
+          'label': 'Bill $i',
+          'amount': 100,
+          'dayOfMonth': 28,
+          'accountId': '',
+          'lastPosted': _monthKey(),
+        },
     ];
     SharedPreferences.setMockInitialValues({
       'salapify_data_v2': jsonEncode({'recurring': items}),

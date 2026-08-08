@@ -27,7 +27,7 @@ void main() {
       final parts = {
         'assets': double.infinity,
         'receivables': 0,
-        'liabilities': 0
+        'liabilities': 0,
       };
       expect(spendablePosition(parts), 0);
     });
@@ -87,9 +87,9 @@ void main() {
   group('spendingVsUsual', () {
     // monthlySeries is oldest-first; the last entry is the focus month.
     List<Map<String, dynamic>> series(List<double> expenses) => [
-          for (var i = 0; i < expenses.length; i++)
-            {'key': 'm$i', 'expenses': expenses[i]},
-        ];
+      for (var i = 0; i < expenses.length; i++)
+        {'key': 'm$i', 'expenses': expenses[i]},
+    ];
 
     test('usual averages only the prior months that had spending', () {
       // Three prior months: 4000, 0, 6000. The zero month is skipped, so
@@ -156,9 +156,12 @@ void main() {
   group('priorCategoryHistory', () {
     // ref is mid-current-month; the helper looks at the PRIOR months only.
     final ref = DateTime(2026, 7, 15);
-    Map<String, dynamic> tx(String date, String label, num amount,
-            [String type = 'expense']) =>
-        {'date': date, 'label': label, 'amount': amount, 'type': type};
+    Map<String, dynamic> tx(
+      String date,
+      String label,
+      num amount, [
+      String type = 'expense',
+    ]) => {'date': date, 'label': label, 'amount': amount, 'type': type};
 
     test('counts prior months a category appears in, and active months', () {
       final txs = [
@@ -208,9 +211,9 @@ void main() {
 
   group('netFlowSummary', () {
     List<Map<String, dynamic>> mk(List<List<num>> ie) => [
-          for (final row in ie)
-            {'income': row[0], 'expenses': row[1], 'net': row[0] - row[1]},
-        ];
+      for (final row in ie)
+        {'income': row[0], 'expenses': row[1], 'net': row[0] - row[1]},
+    ];
 
     test('counts saver months, total, and the largest swing', () {
       // +2000, -500, +1000, 0-activity month
@@ -228,10 +231,12 @@ void main() {
     });
 
     test('an all-empty window is safe', () {
-      final r = netFlowSummary(mk([
-        [0, 0],
-        [0, 0],
-      ]));
+      final r = netFlowSummary(
+        mk([
+          [0, 0],
+          [0, 0],
+        ]),
+      );
       expect(r.saverMonths, 0);
       expect(r.activeMonths, 0);
       expect(r.totalNet, 0);
@@ -249,8 +254,9 @@ void main() {
   });
 
   group('weekdayPeak', () {
-    List<Map<String, dynamic>> mk(List<num> avgByDay) =>
-        [for (var i = 0; i < avgByDay.length; i++) {'day': i, 'avg': avgByDay[i]}];
+    List<Map<String, dynamic>> mk(List<num> avgByDay) => [
+      for (var i = 0; i < avgByDay.length; i++) {'day': i, 'avg': avgByDay[i]},
+    ];
 
     test('names the busiest and quietest active day', () {
       // Sun..Sat; Fri (5) highest, Mon (1) lowest active.

@@ -33,29 +33,38 @@ void main() {
     expect(await repo.readLedger(), '{"schemaVersion":12,"a":2}');
   });
 
-  test('the undo snapshot is a separate file, round-trips, and clears', () async {
-    await repo.writeUndoSnapshot('{"prev":true}');
-    expect(await repo.readUndoSnapshot(), '{"prev":true}');
-    await repo.clearUndoSnapshot();
-    expect(await repo.readUndoSnapshot(), isNull);
-  });
+  test(
+    'the undo snapshot is a separate file, round-trips, and clears',
+    () async {
+      await repo.writeUndoSnapshot('{"prev":true}');
+      expect(await repo.readUndoSnapshot(), '{"prev":true}');
+      await repo.clearUndoSnapshot();
+      expect(await repo.readUndoSnapshot(), isNull);
+    },
+  );
 
-  test('a leftover temp file (a crash mid-write) is never exposed by a read', () async {
-    // The last COMPLETE write.
-    await repo.writeLedger('{"complete":true}');
-    // Simulate a crash during the NEXT write: the bytes made it into the temp
-    // file but the rename never happened.
-    await File('${dir.path}/ledger.json.tmp').writeAsString('{"torn":');
-    // The read still returns the last complete ledger, not the torn temp.
-    expect(await repo.readLedger(), '{"complete":true}');
-  });
+  test(
+    'a leftover temp file (a crash mid-write) is never exposed by a read',
+    () async {
+      // The last COMPLETE write.
+      await repo.writeLedger('{"complete":true}');
+      // Simulate a crash during the NEXT write: the bytes made it into the temp
+      // file but the rename never happened.
+      await File('${dir.path}/ledger.json.tmp').writeAsString('{"torn":');
+      // The read still returns the last complete ledger, not the torn temp.
+      expect(await repo.readLedger(), '{"complete":true}');
+    },
+  );
 
-  test('a crash before the first write ever completes reads as empty, not torn', () async {
-    // Only a temp exists (a kill during the very first write); the target was
-    // never created.
-    await File('${dir.path}/ledger.json.tmp').writeAsString('{"torn":');
-    expect(await repo.readLedger(), isNull);
-  });
+  test(
+    'a crash before the first write ever completes reads as empty, not torn',
+    () async {
+      // Only a temp exists (a kill during the very first write); the target was
+      // never created.
+      await File('${dir.path}/ledger.json.tmp').writeAsString('{"torn":');
+      expect(await repo.readLedger(), isNull);
+    },
+  );
 
   test('the next write recovers over a leftover temp', () async {
     await repo.writeLedger('{"v":1}');

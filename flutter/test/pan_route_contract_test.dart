@@ -46,7 +46,8 @@ void main() {
     expect(
       routes,
       isNotEmpty,
-      reason: 'Scanned lib/money/pan and found no route literals. The scan '
+      reason:
+          'Scanned lib/money/pan and found no route literals. The scan '
           'drifted, so this test would pass without checking anything.',
     );
     final unknown = [
@@ -56,7 +57,8 @@ void main() {
     expect(
       unknown,
       isEmpty,
-      reason: 'Pan emits these routes with no destination in PanRoute, so each '
+      reason:
+          'Pan emits these routes with no destination in PanRoute, so each '
           'renders a reply whose button is missing: $unknown. Add them to the '
           'PanRoute registry (lib/screens/pan_routes.dart).',
     );

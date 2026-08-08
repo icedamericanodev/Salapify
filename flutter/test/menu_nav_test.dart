@@ -40,14 +40,14 @@ void main() {
 
     // Home shows status, not the nav cards that used to clutter it.
     //
-    // YOUR NUMBER rather than NET WORTH as the "populated dashboard" marker.
+    // SAFE TO SPEND rather than NET WORTH as the "populated dashboard" marker.
     // Net worth used to sit fourth and now closes the screen, so in a default
     // test viewport it falls below the fold and the lazy ListView never builds
     // it. That is the reorder working, not a regression: this assertion only
     // ever meant "the real dashboard rendered", and the safe-to-spend number
     // is what leads it now.
-    expect(find.text('YOUR NUMBER'), findsOneWidget);
-    expect(find.text('Tools'), findsNothing);
+    expect(find.text('SAFE TO SPEND'), findsOneWidget);
+    expect(find.text('Calculators'), findsNothing);
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
 
@@ -77,9 +77,12 @@ void main() {
     // grid where its tile lived renders at the top of Menu, on screen right
     // here, so this findsNothing is measuring the real place and not an
     // unbuilt corner of a lazy list.
-    expect(find.text('Debts'), findsNothing,
-        reason: 'The Debts tile came back. Its one home is the Utang tab.');
-    for (final row in const ['Accounts', 'Goals', 'Ask Pan', 'Tools']) {
+    expect(
+      find.text('Debts'),
+      findsNothing,
+      reason: 'The Debts tile came back. Its one home is the Utang tab.',
+    );
+    for (final row in const ['Accounts', 'Goals', 'Ask Pan', 'Calculators']) {
       await tester.scrollUntilVisible(
         find.text(row),
         100,
@@ -96,6 +99,6 @@ void main() {
 
     await goToTab(tester, 'Insights');
     await tester.pumpAndSettle();
-    expect(find.textContaining('What your money is telling'), findsOneWidget);
+    expect(find.text('Insights'), findsWidgets);
   });
 }

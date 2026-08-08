@@ -916,7 +916,7 @@ void main() {
 
     // In through the front door a person actually uses: the road-ahead card
     // on Home, which only renders because the seed has something projectable.
-    await _tap(tester, find.text('THE ROAD AHEAD'));
+    await _tap(tester, find.text('CASH AHEAD'));
     expect(find.text('NOW'), findsOneWidget);
     // Rendered through the same formatMoneyText the screen uses, so this
     // stays a money test and never becomes a formatter test: a grouping or

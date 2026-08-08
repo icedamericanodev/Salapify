@@ -271,12 +271,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  d.title,
-                  style: AppText.bodyLg.w7,
-                ),
-              ),
+              Expanded(child: Text(d.title, style: AppText.bodyLg.w7)),
               const SizedBox(width: 8),
               Text(
                 deadlineDaysLabel(d.daysLeft),
@@ -287,10 +282,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            '${d.form}  ${_fmtDate(d.date)}',
-            style: AppText.small,
-          ),
+          Text('${d.form}  ${_fmtDate(d.date)}', style: AppText.small),
           const SizedBox(height: 6),
           Text(
             d.what,

@@ -20,8 +20,9 @@ String _today(int day) {
 }
 
 void main() {
-  testWidgets('overview shows the brand, import path, and the update stamp',
-      (tester) async {
+  testWidgets('overview shows the brand, import path, and the update stamp', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
@@ -31,7 +32,10 @@ void main() {
     // the backup import as a quiet link for a migrating tester.
     expect(find.text('WELCOME'), findsOneWidget);
     expect(find.text('Track my spending'), findsOneWidget);
-    expect(find.text('Coming from the old app? Import a backup'), findsOneWidget);
+    expect(
+      find.text('Coming from the old app? Import a backup'),
+      findsOneWidget,
+    );
     // The stamp and the full import screen now live under the Menu tab, off
     // the decluttered dashboard.
     // Scrolled to separately, because they sit far apart in a long lazy list
@@ -39,18 +43,25 @@ void main() {
     // happened to be on screen together. They are not, and a padding change
     // was enough to prove it. What matters is that each is reachable.
     await openMenu(tester);
-    await scrollTo(tester, find.text('Import backup'),
-        scope: find.byType(MenuScreen));
+    await scrollTo(
+      tester,
+      find.text('Import backup'),
+      scope: find.byType(MenuScreen),
+    );
     expect(find.text('Import backup'), findsOneWidget);
 
-    await scrollTo(tester, find.text('Update stamp'),
-        scope: find.byType(MenuScreen));
+    await scrollTo(
+      tester,
+      find.text('Update stamp'),
+      scope: find.byType(MenuScreen),
+    );
     expect(find.text('Update stamp'), findsOneWidget);
     expect(find.textContaining(RegExp(r'f\d+\.')), findsOneWidget);
   });
 
-  testWidgets('Home surfaces the top money decision and it jumps to its tab',
-      (tester) async {
+  testWidgets('Home surfaces the top money decision and it jumps to its tab', (
+    tester,
+  ) async {
     // Spending passed income (overspend, prio 85) and Migs is years overdue
     // (utang, prio 90), so the check-in shows the utang decision, which is
     // tappable and jumps to the Utang tab.
@@ -61,17 +72,35 @@ void main() {
           {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3000},
         ],
         'transactions': [
-          {'id': 'i1', 'type': 'income', 'label': 'Sweldo', 'amount': 5000,
-              'date': _today(15), 'accountId': 'cash'},
-          {'id': 'e1', 'type': 'expense', 'label': 'Milk tea',
-              'amount': 6600, 'date': _today(8)},
+          {
+            'id': 'i1',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 5000,
+            'date': _today(15),
+            'accountId': 'cash',
+          },
+          {
+            'id': 'e1',
+            'type': 'expense',
+            'label': 'Milk tea',
+            'amount': 6600,
+            'date': _today(8),
+          },
         ],
         'people': [
           {'id': 'p1', 'name': 'Migs'},
         ],
         'receivables': [
-          {'id': 'r1', 'personId': 'p1', 'person': 'Migs', 'amount': 1500,
-              'payments': [], 'paid': false, 'dueDate': '2020-01-01'},
+          {
+            'id': 'r1',
+            'personId': 'p1',
+            'person': 'Migs',
+            'amount': 1500,
+            'payments': [],
+            'paid': false,
+            'dueDate': '2020-01-01',
+          },
         ],
         'settings': {'monthlyLimit': 5000},
       }),
@@ -87,8 +116,9 @@ void main() {
     expect(find.text('STILL OUT'), findsOneWidget);
   });
 
-  testWidgets('a due-soon check-in lands on the Utang tab, bottom bar intact',
-      (tester) async {
+  testWidgets('a due-soon check-in lands on the Utang tab, bottom bar intact', (
+    tester,
+  ) async {
     // A card due today (dueDay = today) is a debtdue decision at prio 92, the
     // top of the check-in here. Its route is /debts, whose home is the Utang
     // tab's "I owe" segment. It used to push a standalone DebtsScreen, which
@@ -102,9 +132,15 @@ void main() {
           {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 50000},
         ],
         'debts': [
-          {'id': 'd1', 'name': 'BPI card', 'type': 'credit card',
-              'remaining': 12000, 'monthlyRate': 3, 'minPayment': 500,
-              'dueDay': dueDay},
+          {
+            'id': 'd1',
+            'name': 'BPI card',
+            'type': 'credit card',
+            'remaining': 12000,
+            'monthlyRate': 3,
+            'minPayment': 500,
+            'dueDay': dueDay,
+          },
         ],
         'settings': <String, dynamic>{},
       }),

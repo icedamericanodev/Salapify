@@ -380,10 +380,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
         children: [
           Text('THE PLAN', style: Barako.kickerStyle),
           const SizedBox(height: 6),
-          Text(
-            line,
-            style: AppText.label.w4.copyWith(height: 1.45),
-          ),
+          Text(line, style: AppText.label.w4.copyWith(height: 1.45)),
           if (estimate != null) ...[
             const SizedBox(height: 10),
             InkWell(
@@ -398,7 +395,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       child: Text(
                         'Estimated safe amount right now: '
                         '${formatMoneyAbout(estimate['amount'] as double)}',
-                        style: AppText.small.w6.tabular.tint(Barako.primaryText),
+                        style: AppText.small.w6.tabular.tint(
+                          Barako.primaryText,
+                        ),
                       ),
                     ),
                     Icon(
@@ -426,7 +425,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             Text(
               'Add upcoming bills or income dates to get a safe-amount '
               'estimate.',
-              style: AppText.caption.copyWith(fontSize: 12.5).tint(Barako.faint),
+              style: AppText.caption
+                  .copyWith(fontSize: 12.5)
+                  .tint(Barako.faint),
             ),
           ],
         ],
@@ -702,10 +703,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       warning ? Barako.warningStrong : Barako.text,
                     ),
                   ),
-                  Text(
-                    sub,
-                    style: AppText.caption.tint(Barako.faint),
-                  ),
+                  Text(sub, style: AppText.caption.tint(Barako.faint)),
                 ],
               ),
             ),
@@ -1352,9 +1350,9 @@ class _AmountSheetState extends State<_AmountSheet> {
               const SizedBox(height: 6),
               Text(
                 widget.hint!,
-                style: AppText.caption.w6.copyWith(fontSize: 12.5).tint(
-                  Barako.primaryText,
-                ),
+                style: AppText.caption.w6
+                    .copyWith(fontSize: 12.5)
+                    .tint(Barako.primaryText),
               ),
             ],
             const SizedBox(height: 12),

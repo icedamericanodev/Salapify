@@ -60,9 +60,7 @@ void main() {
     test('a STALE rate still converts, and says how old it is', () {
       // Converting with an old rate is better than pretending the money is not
       // there, but only if the reader is told.
-      final t = _table(
-        fetchedAt: _nowMs - Duration.millisecondsPerDay * 3,
-      );
+      final t = _table(fetchedAt: _nowMs - Duration.millisecondsPerDay * 3);
       final r = resolveRate(t, 'USD');
       expect(r.source, RateSource.stale);
       expect(r.basePerUnit, closeTo(1 / 0.017, 0.0001));
@@ -157,12 +155,7 @@ void main() {
     test('a dollar account converts into the peso total', () {
       final d = _data([
         {'id': 'a', 'kind': 'cash', 'balance': 5000},
-        {
-          'id': 'b',
-          'kind': 'savings',
-          'balance': 100,
-          'currencyCode': 'USD',
-        },
+        {'id': 'b', 'kind': 'savings', 'balance': 100, 'currencyCode': 'USD'},
       ]);
       final parts = netWorthParts(d, fx: _table());
       // 100 / 0.017 = 5882.35...
@@ -265,7 +258,9 @@ void main() {
     test('rate age reads in days, and never as a negative', () {
       expect(rateAgeDays(_table(fetchedAt: _nowMs)), 0);
       expect(
-        rateAgeDays(_table(fetchedAt: _nowMs - Duration.millisecondsPerDay * 3)),
+        rateAgeDays(
+          _table(fetchedAt: _nowMs - Duration.millisecondsPerDay * 3),
+        ),
         3,
       );
       expect(rateAgeDays(_table(fetchedAt: null)), isNull);
@@ -277,11 +272,17 @@ void main() {
 
   test('junk never throws', () {
     for (final rates in <dynamic>[null, 'nope', 42, [], <String, dynamic>{}]) {
-      final t = FxTable(base: 'PHP', rates: rates is Map ? rates.cast<String, dynamic>() : const {}, nowMs: _nowMs);
+      final t = FxTable(
+        base: 'PHP',
+        rates: rates is Map ? rates.cast<String, dynamic>() : const {},
+        nowMs: _nowMs,
+      );
       expect(() => resolveRate(t, 'USD'), returnsNormally);
       expect(() => convertAll(t, [(1, 'USD')]), returnsNormally);
-      expect(() => conversionNotice(t, convertAll(t, [(1, 'USD')])),
-          returnsNormally);
+      expect(
+        () => conversionNotice(t, convertAll(t, [(1, 'USD')])),
+        returnsNormally,
+      );
     }
     final t = _table();
     expect(() => convertAll(t, [(double.nan, 'USD')]), returnsNormally);

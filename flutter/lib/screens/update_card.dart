@@ -180,7 +180,9 @@ class _UpdateCardState extends State<UpdateCard> {
                 // the phone became the one screen nobody could read.
                 SelectableText(
                   text,
-                  style: AppText.caption.tint(Barako.text).copyWith(height: 1.35),
+                  style: AppText.caption
+                      .tint(Barako.text)
+                      .copyWith(height: 1.35),
                 ),
               ],
             ),
@@ -227,10 +229,7 @@ class _UpdateCardState extends State<UpdateCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Update stamp',
-                  style: AppText.label.w4,
-                ),
+                Text('Update stamp', style: AppText.label.w4),
                 const SizedBox(width: 16),
                 Expanded(
                   // Capped on purpose. A stamp is meant to answer one
@@ -294,10 +293,7 @@ class _UpdateCardState extends State<UpdateCard> {
             ),
             if (status != null) ...[
               const SizedBox(height: 8),
-              Text(
-                status!,
-                style: AppText.caption,
-              ),
+              Text(status!, style: AppText.caption),
             ],
           ],
         ),
@@ -336,8 +332,8 @@ class _StorageRow extends StatelessWidget {
                 child: Text(
                   encrypted
                       ? (health.migratedThisRun
-                          ? 'Encrypted (moved this run)'
-                          : 'Encrypted')
+                            ? 'Encrypted (moved this run)'
+                            : 'Encrypted')
                       : health.engineLabel,
                   textAlign: TextAlign.right,
                   maxLines: 2,

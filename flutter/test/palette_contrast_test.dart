@@ -57,7 +57,12 @@ double contrast(Color a, Color b) {
 /// non-text edges a person needs to SEE rather than read. Nothing here is set
 /// to a value merely because the current palettes happen to pass it; where a
 /// pair is held to 3.0 the reason is written next to it.
-typedef Pair = (String, Color Function(BarakoPalette), Color Function(BarakoPalette), double);
+typedef Pair = (
+  String,
+  Color Function(BarakoPalette),
+  Color Function(BarakoPalette),
+  double,
+);
 
 const List<Pair> _pairs = [
   // Body text. The floor for anything somebody reads a sentence of.
@@ -242,7 +247,11 @@ void main() {
     // of truth here, so a new theme with its own win color goes red.
     final darkGold = barakoThemes.first.dark.celebrate;
     final lightGold = barakoThemes.first.light.celebrate;
-    expect(darkGold, isNot(lightGold), reason: 'the two brightnesses need their own gold');
+    expect(
+      darkGold,
+      isNot(lightGold),
+      reason: 'the two brightnesses need their own gold',
+    );
     for (final t in barakoThemes) {
       expect(
         t.dark.celebrate,
@@ -268,7 +277,11 @@ void main() {
     var seen = 0;
     for (final t in barakoThemes) {
       for (final b in [Brightness.light, Brightness.dark]) {
-        expect(t.resolve(b).brightness, b, reason: '${t.key} $b resolved wrong');
+        expect(
+          t.resolve(b).brightness,
+          b,
+          reason: '${t.key} $b resolved wrong',
+        );
         seen++;
       }
     }

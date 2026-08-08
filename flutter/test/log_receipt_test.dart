@@ -33,9 +33,7 @@ Future<void> _logExpense(WidgetTester tester) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({
-      storageKey: jsonEncode(_blob()),
-    });
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(_blob())});
   });
 
   testWidgets('saving from the Log sheet shows a receipt', (tester) async {
@@ -56,7 +54,7 @@ void main() {
   });
 
   testWidgets('the receipt Undo really removes the entry', (tester) async {
-    // Tall viewport so the lazy Home column builds the MY MONEY rows; the
+    // Tall viewport so the lazy Home column builds the ACCOUNTS rows; the
     // balance assertion at the end reads them. Same reason as log_entry_test.
     tester.view.physicalSize = const Size(1200, 3600);
     tester.view.devicePixelRatio = 1.0;
@@ -73,7 +71,8 @@ void main() {
     expect(
       txs,
       isEmpty,
-      reason: 'Undo left the entry in the store. The receipt promised an '
+      reason:
+          'Undo left the entry in the store. The receipt promised an '
           'escape hatch it did not deliver.',
     );
     // And the balance is whole again on screen. findsWidgets, not one: with

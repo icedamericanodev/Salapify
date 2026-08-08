@@ -18,28 +18,38 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final g = jsonDecode(File('test/goldens/fx_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final g =
+      jsonDecode(File('test/goldens/fx_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final rates = g['rates'] as Map<String, dynamic>;
 
   test('crossRate matches on every pair, gaps and junk included', () {
     for (final c in (g['cross'] as List).cast<Map<String, dynamic>>()) {
-      expect(normalize(crossRate(rates, c['from'], c['to'])), normalize(c['r']),
-          reason: '${c['from']}->${c['to']}');
+      expect(
+        normalize(crossRate(rates, c['from'], c['to'])),
+        normalize(c['r']),
+        reason: '${c['from']}->${c['to']}',
+      );
     }
   });
 
   test('basePerUnit matches, missing and non-positive included', () {
     for (final c in (g['basePerUnit'] as List).cast<Map<String, dynamic>>()) {
-      expect(normalize(basePerUnit(rates, c['code'])), normalize(c['r']),
-          reason: '${c['code']}');
+      expect(
+        normalize(basePerUnit(rates, c['code'])),
+        normalize(c['r']),
+        reason: '${c['code']}',
+      );
     }
   });
 
   test('roundRate matches JS toPrecision(4) on every case', () {
     for (final c in (g['roundRate'] as List).cast<Map<String, dynamic>>()) {
-      expect(normalize(roundRate(c['in'])), normalize(c['out']),
-          reason: '${c['in']}');
+      expect(
+        normalize(roundRate(c['in'])),
+        normalize(c['out']),
+        reason: '${c['in']}',
+      );
     }
   });
 
@@ -51,8 +61,11 @@ void main() {
 
   test('isFresh matches on fresh, stale, and null', () {
     for (final c in (g['isFresh'] as List).cast<Map<String, dynamic>>()) {
-      expect(isFresh(c['fetchedAt'], c['now'] as num), c['out'],
-          reason: '${c['fetchedAt']}');
+      expect(
+        isFresh(c['fetchedAt'], c['now'] as num),
+        c['out'],
+        reason: '${c['fetchedAt']}',
+      );
     }
   });
 
@@ -63,18 +76,25 @@ void main() {
   });
 
   test('formatConverted matches, zero-decimal and grouping included', () {
-    for (final c in (g['formatConverted'] as List).cast<Map<String, dynamic>>()) {
+    for (final c
+        in (g['formatConverted'] as List).cast<Map<String, dynamic>>()) {
       final amount = c['amount'] == 'NaN' ? double.nan : c['amount'];
-      expect(formatConverted(amount, c['code'] as String), c['out'],
-          reason: '${c['amount']} ${c['code']}');
+      expect(
+        formatConverted(amount, c['code'] as String),
+        c['out'],
+        reason: '${c['amount']} ${c['code']}',
+      );
     }
   });
 
   test('formatForeign matches, rounds to whole', () {
     for (final c in (g['formatForeign'] as List).cast<Map<String, dynamic>>()) {
       final amount = c['amount'] == 'NaN' ? double.nan : c['amount'];
-      expect(formatForeign(amount, c['code'] as String), c['out'],
-          reason: '${c['amount']} ${c['code']}');
+      expect(
+        formatForeign(amount, c['code'] as String),
+        c['out'],
+        reason: '${c['amount']} ${c['code']}',
+      );
     }
   });
 

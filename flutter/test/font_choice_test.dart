@@ -65,10 +65,9 @@ void main() {
     // A typo here is invisible: Flutter silently falls back to the platform
     // font, so the app keeps working and simply stops looking like itself.
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final families = RegExp(r'- family:\s*(\w+)')
-        .allMatches(pubspec)
-        .map((m) => m.group(1))
-        .toSet();
+    final families = RegExp(
+      r'- family:\s*(\w+)',
+    ).allMatches(pubspec).map((m) => m.group(1)).toSet();
     expect(families, isNotEmpty, reason: 'the pubspec scan found no fonts');
     expect(
       families,
@@ -89,10 +88,9 @@ void main() {
       dotAll: true,
     ).firstMatch(pubspec);
     expect(block, isNotNull);
-    final weights = RegExp(r'weight:\s*(\d+)')
-        .allMatches(block!.group(1)!)
-        .map((m) => int.parse(m.group(1)!))
-        .toSet();
+    final weights = RegExp(
+      r'weight:\s*(\d+)',
+    ).allMatches(block!.group(1)!).map((m) => int.parse(m.group(1)!)).toSet();
     expect(
       weights,
       contains(700),

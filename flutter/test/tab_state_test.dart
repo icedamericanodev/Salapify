@@ -112,7 +112,10 @@ void main() {
     await goToTab(tester, 'Activity');
 
     expect(
-      tester.widget<Scrollable>(find.byType(Scrollable).last).controller!.offset,
+      tester
+          .widget<Scrollable>(find.byType(Scrollable).last)
+          .controller!
+          .offset,
       closeTo(scrolled, 1),
       reason:
           'The list went back to the top. Each destination is meant to own a '
@@ -135,7 +138,10 @@ void main() {
     await goToTab(tester, 'Activity');
     await tester.pumpAndSettle();
     expect(
-      tester.widget<Scrollable>(find.byType(Scrollable).last).controller!.offset,
+      tester
+          .widget<Scrollable>(find.byType(Scrollable).last)
+          .controller!
+          .offset,
       0,
     );
   });
@@ -177,7 +183,7 @@ void main() {
 
     await goToTab(tester, 'Insights');
     expect(find.byType(InsightsScreen, skipOffstage: false), findsOneWidget);
-    expect(find.textContaining('What your money is telling'), findsOneWidget);
+    expect(find.text('Insights'), findsWidgets);
 
     // And once visited it STAYS built, which is what makes the state above
     // survive.

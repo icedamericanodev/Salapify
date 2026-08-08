@@ -19,14 +19,17 @@ dynamic normalize(dynamic v) {
   return v;
 }
 
-DateTime _ref(List ref) =>
-    DateTime((ref[0] as num).toInt(), (ref[1] as num).toInt() + 1,
-        (ref[2] as num).toInt(), 12);
+DateTime _ref(List ref) => DateTime(
+  (ref[0] as num).toInt(),
+  (ref[1] as num).toInt() + 1,
+  (ref[2] as num).toInt(),
+  12,
+);
 
 void main() {
-  final raw = jsonDecode(
-          File('test/goldens/recurring_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/recurring_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   final postCases = raw['postCases'] as Map<String, dynamic>;
   final postResults = raw['postResults'] as Map<String, dynamic>;
@@ -36,8 +39,10 @@ void main() {
       final data = (c['data'] as Map).cast<String, dynamic>();
       var seq = 0;
       final got = postDueRecurring(
-          Map<String, dynamic>.from(data), _ref(c['ref'] as List),
-          () => 'tx_${seq++}');
+        Map<String, dynamic>.from(data),
+        _ref(c['ref'] as List),
+        () => 'tx_${seq++}',
+      );
       expect(normalize(got), normalize(postResults[name]), reason: name);
     });
   }
@@ -47,7 +52,10 @@ void main() {
   for (final name in restoreResults.keys) {
     test('stampRecurringOnRestore matches RN: $name', () {
       final c = restoreCases[name] as Map;
-      final got = stampRecurringOnRestore(c['recurring'], _ref(c['ref'] as List));
+      final got = stampRecurringOnRestore(
+        c['recurring'],
+        _ref(c['ref'] as List),
+      );
       expect(normalize(got), normalize(restoreResults[name]), reason: name);
     });
   }

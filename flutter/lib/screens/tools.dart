@@ -38,7 +38,7 @@ class ToolsScreen extends StatelessWidget {
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
         title: Text(
-          'Tools',
+          'Calculators',
           style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
         ),
       ),

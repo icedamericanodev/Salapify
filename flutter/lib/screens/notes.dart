@@ -429,7 +429,9 @@ class _NoteEditorState extends State<NoteEditor> {
                           ),
                           Text(
                             formatMoney(calc['total'] as double),
-                            style: AppText.amountRow.w8.tint(Barako.primaryText),
+                            style: AppText.amountRow.w8.tint(
+                              Barako.primaryText,
+                            ),
                           ),
                         ],
                       ),

@@ -39,21 +39,25 @@ void main() {
   });
 
   test('falls back to the file only when SharedPreferences is empty', () async {
-    final prefs = MemRepo(); // empty (a phone that never ran B1 would have this too)
+    final prefs =
+        MemRepo(); // empty (a phone that never ran B1 would have this too)
     final file = MemRepo()..ledger = 'from-file';
     final store = FrozenPlaintextStore(prefs: prefs, file: file);
     expect(await store.readLedger(), 'from-file');
   });
 
-  test('writes are frozen no-ops, so the coordinator can never advance the fallback', () async {
-    final prefs = MemRepo()..ledger = 'x';
-    final file = MemRepo()..ledger = 'x';
-    final store = FrozenPlaintextStore(prefs: prefs, file: file);
-    await store.writeLedger('new');
-    expect(prefs.writes, 0);
-    expect(file.writes, 0);
-    expect(prefs.ledger, 'x', reason: 'unchanged; the fallback is read-only');
-  });
+  test(
+    'writes are frozen no-ops, so the coordinator can never advance the fallback',
+    () async {
+      final prefs = MemRepo()..ledger = 'x';
+      final file = MemRepo()..ledger = 'x';
+      final store = FrozenPlaintextStore(prefs: prefs, file: file);
+      await store.writeLedger('new');
+      expect(prefs.writes, 0);
+      expect(file.writes, 0);
+      expect(prefs.ledger, 'x', reason: 'unchanged; the fallback is read-only');
+    },
+  );
 
   test('erase clears BOTH the prefs and the file copy', () async {
     final prefs = MemRepo()..ledger = 'x';

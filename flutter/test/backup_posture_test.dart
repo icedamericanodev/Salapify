@@ -50,7 +50,8 @@ void main() {
       expect(
         manifest.contains('android:allowBackup="true"'),
         isFalse,
-        reason: 'allowBackup is explicitly true, which re-enables cloud backup.',
+        reason:
+            'allowBackup is explicitly true, which re-enables cloud backup.',
       );
     });
 

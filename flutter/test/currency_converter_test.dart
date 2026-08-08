@@ -30,9 +30,12 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Tools');
-    await tester.scrollUntilVisible(find.text('Currency converter'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await openFromMenu(tester, 'Calculators');
+    await tester.scrollUntilVisible(
+      find.text('Currency converter'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Currency converter'));
     await tester.pumpAndSettle();
 

@@ -392,12 +392,7 @@ ResolvedKind resolveKind(dynamic row, AccountStore store) {
     final s = subtypeById(stored);
     final c = categoryOfSubtype(stored);
     if (s != null && c != null && c.store == store) {
-      return ResolvedKind(
-        cls: c.cls,
-        category: c,
-        subtype: s,
-        derived: false,
-      );
+      return ResolvedKind(cls: c.cls, category: c, subtype: s, derived: false);
     }
   }
   return _derive(m, store);
@@ -439,8 +434,7 @@ ResolvedKind _derive(Map row, AccountStore store) {
   }
 }
 
-bool _isFourDigits(dynamic v) =>
-    v is String && RegExp(r'^\d{4}$').hasMatch(v);
+bool _isFourDigits(dynamic v) => v is String && RegExp(r'^\d{4}$').hasMatch(v);
 
 /// The card networks Salapify recognises, as stable lowercase ids. Kept here,
 /// not imported from card_products.dart, so the persistence contract has no
@@ -479,14 +473,12 @@ String? _cappedNote(dynamic v, int max) {
 /// single spaces or dashes, the way people type a card number) with a redaction
 /// marker. Deliberately conservative: it only fires on something that really is
 /// a card number, so it never eats a date, an amount, or a short reference.
-String _redactCardNumbers(String s) => s.replaceAllMapped(
-  RegExp(r'\b(?:\d[ -]?){13,19}\b'),
-  (m) {
-    final digits = m[0]!.replaceAll(RegExp(r'[ -]'), '');
-    if (digits.length < 13 || digits.length > 19) return m[0]!;
-    return _luhnValid(digits) ? '[removed for safety]' : m[0]!;
-  },
-);
+String _redactCardNumbers(String s) =>
+    s.replaceAllMapped(RegExp(r'\b(?:\d[ -]?){13,19}\b'), (m) {
+      final digits = m[0]!.replaceAll(RegExp(r'[ -]'), '');
+      if (digits.length < 13 || digits.length > 19) return m[0]!;
+      return _luhnValid(digits) ? '[removed for safety]' : m[0]!;
+    });
 
 bool _luhnValid(String digits) {
   var sum = 0;
@@ -512,8 +504,8 @@ bool _luhnValid(String digits) {
 /// Public so the QR vault and this persistence contract validate one shape, and
 /// can never disagree about what a legal reference looks like.
 bool isQrRef(dynamic v) =>
-    v is String && RegExp(r'^qr_[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|webp)$')
-        .hasMatch(v);
+    v is String &&
+    RegExp(r'^qr_[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|webp)$').hasMatch(v);
 
 /// The new fields, validated, as keys to merge into a stored row.
 ///

@@ -16,16 +16,19 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/notecalc_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/notecalc_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   test('evaluateMath matches the RN engine on every expression', () {
     for (final v in (raw['evaluateMath'] as List)) {
       final expected = v['value'];
       final actual = evaluateMath(v['text'] as String);
-      expect(normalize(actual), normalize(expected),
-          reason: 'expression "${v['text']}"');
+      expect(
+        normalize(actual),
+        normalize(expected),
+        reason: 'expression "${v['text']}"',
+      );
     }
   });
 
@@ -33,18 +36,23 @@ void main() {
     for (final v in (raw['analyzeLine'] as List)) {
       final expected = (v['result'] as Map).cast<String, dynamic>();
       final actual = analyzeLine(v['text'] as String);
-      expect(normalize(actual.value), normalize(expected['value']),
-          reason: 'value of "${v['text']}"');
-      expect(actual.bare, expected['bare'],
-          reason: 'bare of "${v['text']}"');
+      expect(
+        normalize(actual.value),
+        normalize(expected['value']),
+        reason: 'value of "${v['text']}"',
+      );
+      expect(actual.bare, expected['bare'], reason: 'bare of "${v['text']}"');
     }
   });
 
   test('computeCalc matches the RN engine on every note', () {
     for (final entry in (raw['computeCalc'] as Map<String, dynamic>).entries) {
       final s = entry.value as Map<String, dynamic>;
-      expect(normalize(computeCalc(s['text'])), normalize(s['calc']),
-          reason: 'note ${entry.key}');
+      expect(
+        normalize(computeCalc(s['text'])),
+        normalize(s['calc']),
+        reason: 'note ${entry.key}',
+      );
     }
   });
 }

@@ -68,11 +68,14 @@ void main() {
         '- family: ${Barako.bodyFont}(.*?)(?=\n    - family:|\$)',
         dotAll: true,
       ).firstMatch(pubspec);
-      expect(block, isNotNull, reason: 'no ${Barako.bodyFont} block in pubspec');
-      final shipped = RegExp(r'weight:\s*(\d+)')
-          .allMatches(block!.group(1)!)
-          .map((m) => int.parse(m.group(1)!))
-          .toSet();
+      expect(
+        block,
+        isNotNull,
+        reason: 'no ${Barako.bodyFont} block in pubspec',
+      );
+      final shipped = RegExp(
+        r'weight:\s*(\d+)',
+      ).allMatches(block!.group(1)!).map((m) => int.parse(m.group(1)!)).toSet();
       int numeric(FontWeight w) => w.value;
       for (final w in [
         TypeWeight.regular,

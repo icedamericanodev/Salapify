@@ -44,7 +44,11 @@ class CardNetwork {
 /// on a Philippine consumer credit card. The ids match [kCardNetworks] exactly.
 const List<CardNetwork> cardNetworks = [
   CardNetwork(id: 'visa', displayName: 'Visa', wordmark: 'VISA'),
-  CardNetwork(id: 'mastercard', displayName: 'Mastercard', wordmark: 'Mastercard'),
+  CardNetwork(
+    id: 'mastercard',
+    displayName: 'Mastercard',
+    wordmark: 'Mastercard',
+  ),
   CardNetwork(id: 'jcb', displayName: 'JCB', wordmark: 'JCB'),
   CardNetwork(id: 'amex', displayName: 'American Express', wordmark: 'AMEX'),
   CardNetwork(id: 'unionpay', displayName: 'UnionPay', wordmark: 'UnionPay'),
@@ -255,10 +259,29 @@ bool issuerOffersCreditCards(String? institutionId) =>
 /// SeaBank is deliberately absent: it was not found on the current QR Ph P2P
 /// roster this cycle, and a hint is better silent than wrong.
 const Set<String> _qrReceivingInstitutions = {
-  'bdo', 'bpi', 'metrobank', 'unionbank', 'securitybank', 'rcbc', 'pnb',
-  'landbank', 'chinabank', 'eastwest', 'psbank', 'aub', 'bankofcommerce',
-  'gcash', 'maya', 'mayabank', 'shopeepay', 'grabpay',
-  'cimb', 'tonik', 'ownbank', 'gotyme', 'uno',
+  'bdo',
+  'bpi',
+  'metrobank',
+  'unionbank',
+  'securitybank',
+  'rcbc',
+  'pnb',
+  'landbank',
+  'chinabank',
+  'eastwest',
+  'psbank',
+  'aub',
+  'bankofcommerce',
+  'gcash',
+  'maya',
+  'mayabank',
+  'shopeepay',
+  'grabpay',
+  'cimb',
+  'tonik',
+  'ownbank',
+  'gotyme',
+  'uno',
 };
 
 bool institutionSupportsQrReceiving(String? institutionId) =>

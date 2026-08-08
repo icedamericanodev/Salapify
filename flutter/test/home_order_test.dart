@@ -143,10 +143,10 @@ void main() {
   group('the number comes first', () {
     testWidgets('a positive check-in sits BELOW Your Number', (tester) async {
       await _pump(tester, _healthy());
-      expect(find.text('YOUR NUMBER'), findsOneWidget);
+      expect(find.text('SAFE TO SPEND'), findsOneWidget);
       expect(find.text('MONEY CHECK-IN'), findsOneWidget);
       expect(
-        _y(tester, 'YOUR NUMBER'),
+        _y(tester, 'SAFE TO SPEND'),
         lessThan(_y(tester, 'MONEY CHECK-IN')),
         reason:
             'The all-clear card is above the number again. weeklyCheckIn never '
@@ -159,8 +159,8 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _healthy());
-      final n = _y(tester, 'YOUR NUMBER');
-      for (final below in ['THIS MONTH', 'MY MONEY', 'NET WORTH']) {
+      final n = _y(tester, 'SAFE TO SPEND');
+      for (final below in ['THIS MONTH', 'ACCOUNTS', 'NET WORTH']) {
         expect(find.text(below), findsOneWidget, reason: '$below vanished');
         expect(_y(tester, below), greaterThan(n), reason: '$below is above it');
       }
@@ -170,9 +170,9 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _healthy());
-      expect(_y(tester, 'THIS MONTH'), lessThan(_y(tester, 'MY MONEY')));
+      expect(_y(tester, 'THIS MONTH'), lessThan(_y(tester, 'ACCOUNTS')));
       expect(
-        _y(tester, 'MY MONEY'),
+        _y(tester, 'ACCOUNTS'),
         lessThan(_y(tester, 'NET WORTH')),
         reason:
             'Net worth is the slowest figure on Home to change and the least '
@@ -212,7 +212,7 @@ void main() {
       await _pump(tester, _crunch());
       expect(find.text('MONEY CHECK-IN'), findsOneWidget);
       expect(
-        find.text('YOUR NUMBER'),
+        find.text('SAFE TO SPEND'),
         findsNothing,
         reason: 'Crunch means there is no positive number to show.',
       );

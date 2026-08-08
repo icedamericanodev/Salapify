@@ -265,10 +265,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Total interest',
-                              style: AppText.small,
-                            ),
+                            child: Text('Total interest', style: AppText.small),
                           ),
                           Text(
                             _m(r['totalInterest'] as double),
@@ -279,10 +276,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Total to pay',
-                              style: AppText.small,
-                            ),
+                            child: Text('Total to pay', style: AppText.small),
                           ),
                           Text(
                             _m(r['totalPaid'] as double),

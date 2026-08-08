@@ -97,9 +97,7 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('Pan greets a new user on the empty tab screens', (
-    tester,
-  ) async {
+  testWidgets('Pan greets a new user on the empty tab screens', (tester) async {
     // The narrow rule: Pan appears on the empty state of a TAB, because that
     // is where a brand new user meets the app with nothing else on screen to
     // build any warmth. He must NOT appear on a filtered empty state, which

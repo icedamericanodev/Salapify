@@ -270,17 +270,9 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: AppText.small,
-          ),
-        ),
+        Expanded(child: Text(label, style: AppText.small)),
         const SizedBox(width: 12),
-        Text(
-          formatMoneyText(value),
-          style: AppText.label.w7,
-        ),
+        Text(formatMoneyText(value), style: AppText.label.w7),
       ],
     ),
   );

@@ -59,7 +59,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    expect(find.text('YOUR NUMBER'), findsOneWidget);
+    expect(find.text('SAFE TO SPEND'), findsOneWidget);
     expect(find.textContaining('a day'), findsWidgets);
     expect(find.textContaining('payday'), findsWidgets);
     // Logged today, so no comeback greeting.
@@ -67,7 +67,7 @@ void main() {
 
     // Tapping the card lands on the Insights tab, where the full
     // safe-to-spend breakdown lives.
-    await tester.tap(find.text('YOUR NUMBER'));
+    await tester.tap(find.text('SAFE TO SPEND'));
     await tester.pumpAndSettle();
     expect(find.text('SAFE TO SPEND UNTIL PAYDAY'), findsWidgets);
   });
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    expect(find.text('YOUR NUMBER'), findsOneWidget);
+    expect(find.text('SAFE TO SPEND'), findsOneWidget);
     expect(find.textContaining('Welcome back, life happens'), findsOneWidget);
   });
 
@@ -109,6 +109,6 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    expect(find.text('YOUR NUMBER'), findsNothing);
+    expect(find.text('SAFE TO SPEND'), findsNothing);
   });
 }

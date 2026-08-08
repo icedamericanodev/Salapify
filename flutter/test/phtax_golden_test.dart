@@ -16,8 +16,11 @@ import 'package:salapify/money/thirteenth.dart';
 void expectMatches(dynamic actual, dynamic golden, String path) {
   if (golden is num) {
     expect(actual, isA<num>(), reason: '$path should be a number');
-    expect((actual as num).toDouble(), closeTo(golden.toDouble(), 1e-9),
-        reason: path);
+    expect(
+      (actual as num).toDouble(),
+      closeTo(golden.toDouble(), 1e-9),
+      reason: path,
+    );
   } else if (golden is bool || golden is String) {
     expect(actual, equals(golden), reason: path);
   } else if (golden is Map) {
@@ -25,45 +28,59 @@ void expectMatches(dynamic actual, dynamic golden, String path) {
     for (final key in golden.keys) {
       expectMatches((actual as Map)[key], golden[key], '$path.$key');
     }
-    expect((actual as Map).keys.toSet(), equals(golden.keys.toSet().cast()),
-        reason: '$path keys');
+    expect(
+      (actual as Map).keys.toSet(),
+      equals(golden.keys.toSet().cast()),
+      reason: '$path keys',
+    );
   } else {
     fail('$path: unhandled golden type ${golden.runtimeType}');
   }
 }
 
 void main() {
-  final goldens = jsonDecode(
-          File('test/goldens/phtax_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final goldens =
+      jsonDecode(File('test/goldens/phtax_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   test('annualIncomeTax matches the RN engine on every vector', () {
     for (final c in goldens['annualIncomeTax'] as List) {
-      expectMatches(annualIncomeTax(c['input'] as num), c['out'],
-          'annualIncomeTax(${c['input']})');
+      expectMatches(
+        annualIncomeTax(c['input'] as num),
+        c['out'],
+        'annualIncomeTax(${c['input']})',
+      );
     }
   });
 
   test('marginalRate matches the RN engine on every vector', () {
     for (final c in goldens['marginalRate'] as List) {
-      expectMatches(marginalRate(c['input'] as num), c['out'],
-          'marginalRate(${c['input']})');
+      expectMatches(
+        marginalRate(c['input'] as num),
+        c['out'],
+        'marginalRate(${c['input']})',
+      );
     }
   });
 
   test('contributionBreakdown matches the RN engine on every vector', () {
     for (final c in goldens['contributions'] as List) {
-      expectMatches(contributionBreakdown(c['input'] as num), c['out'],
-          'contributions(${c['input']})');
+      expectMatches(
+        contributionBreakdown(c['input'] as num),
+        c['out'],
+        'contributions(${c['input']})',
+      );
     }
   });
 
   test('takeHomePay matches the RN engine on every vector', () {
     for (final c in goldens['takeHomePay'] as List) {
       final opts = c['opts'] as Map<String, dynamic>;
-      final out = takeHomePay(c['basic'] as num,
-          taxableAllowance: (opts['taxableAllowance'] as num?) ?? 0,
-          nonTaxableAllowance: (opts['nonTaxableAllowance'] as num?) ?? 0);
+      final out = takeHomePay(
+        c['basic'] as num,
+        taxableAllowance: (opts['taxableAllowance'] as num?) ?? 0,
+        nonTaxableAllowance: (opts['nonTaxableAllowance'] as num?) ?? 0,
+      );
       expectMatches(out, c['out'], 'takeHomePay(${c['basic']}, $opts)');
     }
   });
@@ -71,11 +88,13 @@ void main() {
   test('selfEmployedTax matches the RN engine on every vector', () {
     for (final c in goldens['selfEmployed'] as List) {
       final opts = c['opts'] as Map<String, dynamic>;
-      final out = selfEmployedTax(c['gross'] as num,
-          mixedIncome: (opts['mixedIncome'] as bool?) ?? false,
-          useOSD: (opts['useOSD'] as bool?) ?? true,
-          expenses: (opts['expenses'] as num?) ?? 0,
-          salaryTaxable: (opts['salaryTaxable'] as num?) ?? 0);
+      final out = selfEmployedTax(
+        c['gross'] as num,
+        mixedIncome: (opts['mixedIncome'] as bool?) ?? false,
+        useOSD: (opts['useOSD'] as bool?) ?? true,
+        expenses: (opts['expenses'] as num?) ?? 0,
+        salaryTaxable: (opts['salaryTaxable'] as num?) ?? 0,
+      );
       expectMatches(out, c['out'], 'selfEmployedTax(${c['gross']}, $opts)');
     }
   });
@@ -83,11 +102,13 @@ void main() {
   test('annualizeCompensation matches the RN engine on every vector', () {
     for (final c in goldens['annualize'] as List) {
       final opts = c['opts'] as Map<String, dynamic>;
-      final out = annualizeCompensation(c['basic'] as num,
-          taxableAllowance: (opts['taxableAllowance'] as num?) ?? 0,
-          monthsWorked: opts['monthsWorked'] as num?,
-          bonuses: (opts['bonuses'] as num?) ?? 0,
-          taxWithheld: (opts['taxWithheld'] as num?) ?? 0);
+      final out = annualizeCompensation(
+        c['basic'] as num,
+        taxableAllowance: (opts['taxableAllowance'] as num?) ?? 0,
+        monthsWorked: opts['monthsWorked'] as num?,
+        bonuses: (opts['bonuses'] as num?) ?? 0,
+        taxWithheld: (opts['taxWithheld'] as num?) ?? 0,
+      );
       expectMatches(out, c['out'], 'annualize(${c['basic']}, $opts)');
     }
   });
@@ -95,9 +116,11 @@ void main() {
   test('thirteenthMonth matches the RN engine on every vector', () {
     for (final c in goldens['thirteenth'] as List) {
       final opts = c['opts'] as Map<String, dynamic>;
-      final out = thirteenthMonth(c['basic'] as num,
-          monthsWorked: opts['monthsWorked'] as num?,
-          otherBenefits: (opts['otherBenefits'] as num?) ?? 0);
+      final out = thirteenthMonth(
+        c['basic'] as num,
+        monthsWorked: opts['monthsWorked'] as num?,
+        otherBenefits: (opts['otherBenefits'] as num?) ?? 0,
+      );
       expectMatches(out, c['out'], 'thirteenth(${c['basic']}, $opts)');
     }
   });

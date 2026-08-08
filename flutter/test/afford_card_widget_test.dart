@@ -23,7 +23,9 @@ DateTime _mAgo(int n) {
 }
 
 void main() {
-  testWidgets('an absurd amount never crashes the Insights tab', (tester) async {
+  testWidgets('an absurd amount never crashes the Insights tab', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 5000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -38,11 +40,41 @@ void main() {
           {'id': 'c', 'name': 'Cash', 'kind': 'cash', 'balance': 50},
         ],
         'transactions': [
-          {'id': 'i1', 'date': _iso(_mAgo(1)), 'type': 'income', 'label': 'x', 'amount': 50},
-          {'id': 'i2', 'date': _iso(_mAgo(2)), 'type': 'income', 'label': 'x', 'amount': 50},
-          {'id': 'i3', 'date': _iso(_mAgo(3)), 'type': 'income', 'label': 'x', 'amount': 50},
-          {'id': 'e1', 'date': _iso(_mAgo(1)), 'type': 'expense', 'label': 'y', 'amount': 5},
-          {'id': 'e2', 'date': _iso(_mAgo(2)), 'type': 'expense', 'label': 'y', 'amount': 5},
+          {
+            'id': 'i1',
+            'date': _iso(_mAgo(1)),
+            'type': 'income',
+            'label': 'x',
+            'amount': 50,
+          },
+          {
+            'id': 'i2',
+            'date': _iso(_mAgo(2)),
+            'type': 'income',
+            'label': 'x',
+            'amount': 50,
+          },
+          {
+            'id': 'i3',
+            'date': _iso(_mAgo(3)),
+            'type': 'income',
+            'label': 'x',
+            'amount': 50,
+          },
+          {
+            'id': 'e1',
+            'date': _iso(_mAgo(1)),
+            'type': 'expense',
+            'label': 'y',
+            'amount': 5,
+          },
+          {
+            'id': 'e2',
+            'date': _iso(_mAgo(2)),
+            'type': 'expense',
+            'label': 'y',
+            'amount': 5,
+          },
         ],
       }),
     });

@@ -186,7 +186,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   // does nothing.
                   hintText: 'Search jollibee, Ana, or 1500',
                   hintStyle: TextStyle(color: Barako.faint),
-                  prefixIcon: Icon(salapifyIcon('search'), color: Barako.faint, size: 20),
+                  prefixIcon: Icon(
+                    salapifyIcon('search'),
+                    color: Barako.faint,
+                    size: 20,
+                  ),
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
@@ -240,10 +244,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Find anything, fast',
-            style: AppText.heading.w8,
-          ),
+          Text('Find anything, fast', style: AppText.heading.w8),
           const SizedBox(height: 8),
           Text(
             'Search across your entries, IOUs, debts, goals, and notes. Try a name, a place, a category, or an amount.',
@@ -263,10 +264,7 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           SalapifyGlyph('search', size: 28),
           const SizedBox(height: 10),
-          Text(
-            'No matches',
-            style: AppText.heading.w8,
-          ),
+          Text('No matches', style: AppText.heading.w8),
           const SizedBox(height: 4),
           Text(
             'Nothing found for "$q". Try fewer or different words.',

@@ -13,7 +13,7 @@ import 'support/app_harness.dart';
 
 Future<void> openSalary(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Tools');
+  await openFromMenu(tester, 'Calculators');
   await tester.tap(find.text('Take-home pay'));
   await tester.pumpAndSettle();
 }
@@ -23,14 +23,17 @@ void main() {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
-  testWidgets('25,000 basic renders the honest breakdown and rescales',
-      (tester) async {
+  testWidgets('25,000 basic renders the honest breakdown and rescales', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await openSalary(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. 25,000'), '25,000');
+      find.widgetWithText(TextField, 'e.g. 25,000'),
+      '25,000',
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('- ₱1,250'), findsOneWidget); // SSS
@@ -40,31 +43,41 @@ void main() {
     expect(find.text('₱22,611'), findsOneWidget); // net
 
     await tester.scrollUntilVisible(
-        find.textContaining('15% tax bracket'), 200,
-        scrollable: find.byType(Scrollable).first);
+      find.textContaining('15% tax bracket'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('15% tax bracket'), findsOneWidget);
 
     // Per year rescales the same engine numbers.
-    await tester.scrollUntilVisible(find.text('Per year'), -200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Per year'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Per year'));
     await tester.pumpAndSettle();
     expect(find.text('₱271,335'), findsOneWidget);
   });
 
-  testWidgets('a too-low basic gets the honest nudge, not a breakdown',
-      (tester) async {
+  testWidgets('a too-low basic gets the honest nudge, not a breakdown', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await openSalary(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. 25,000'), '300');
+      find.widgetWithText(TextField, 'e.g. 25,000'),
+      '300',
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('That looks too low for a monthly salary'),
-        findsOneWidget);
+    expect(
+      find.textContaining('That looks too low for a monthly salary'),
+      findsOneWidget,
+    );
     expect(find.text('SHOW RESULTS'), findsNothing);
   });
 }

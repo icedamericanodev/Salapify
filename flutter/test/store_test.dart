@@ -13,9 +13,9 @@ import 'package:salapify/money/statements.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  final goldens = jsonDecode(
-          File('test/goldens/backup_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final goldens =
+      jsonDecode(File('test/goldens/backup_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final fixture = (goldens['fixtures'] as Map)['v12rich'];
 
   test('import persists, reloads, and computes the golden net worth', () async {
@@ -25,7 +25,8 @@ void main() {
     expect(store.hasData, isFalse);
 
     await store.importBackupText(
-        jsonEncode({'app': 'salapify', 'version': 2, 'data': fixture}));
+      jsonEncode({'app': 'salapify', 'version': 2, 'data': fixture}),
+    );
     expect(store.hasData, isTrue);
 
     // The numbers flow through the golden-verified engine: bank 42500.5 +
@@ -50,10 +51,12 @@ void main() {
     final store = SalapifyStore();
     await store.load();
     await expectLater(
-      store.importBackupText(jsonEncode({
-        'app': 'salapify',
-        'data': {'schemaVersion': 99, 'accounts': []}
-      })),
+      store.importBackupText(
+        jsonEncode({
+          'app': 'salapify',
+          'data': {'schemaVersion': 99, 'accounts': []},
+        }),
+      ),
       throwsA(isA<NewerBackupException>()),
     );
     expect(store.hasData, isFalse);
@@ -63,10 +66,12 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await expectLater(
-        store.importBackupText('not json at all'),
-        throwsA(isA<FormatException>()));
+      store.importBackupText('not json at all'),
+      throwsA(isA<FormatException>()),
+    );
     await expectLater(
-        store.importBackupText('{"hello":"world"}'),
-        throwsA(isA<NotABackupException>()));
+      store.importBackupText('{"hello":"world"}'),
+      throwsA(isA<NotABackupException>()),
+    );
   });
 }

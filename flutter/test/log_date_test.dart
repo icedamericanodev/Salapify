@@ -92,7 +92,10 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
 
-    final due = find.widgetWithText(TextField, 'Due date (optional), tap to pick');
+    final due = find.widgetWithText(
+      TextField,
+      'Due date (optional), tap to pick',
+    );
     expect(due, findsOneWidget);
     expect(
       tester.widget<TextField>(due).readOnly,
@@ -110,7 +113,8 @@ void main() {
     expect(
       RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(text),
       isTrue,
-      reason: 'The picker must write the exact YYYY-MM-DD shape the store '
+      reason:
+          'The picker must write the exact YYYY-MM-DD shape the store '
           'already expects, got "$text".',
     );
   });

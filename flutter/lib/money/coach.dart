@@ -164,7 +164,7 @@ List<Map<String, dynamic>> decisionCandidates(
         'crunch',
         'urgent',
         'Money is tight until payday',
-        'The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.',
+        'The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.',
         'See what is committed',
         '/insights',
       ),

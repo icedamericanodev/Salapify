@@ -74,7 +74,8 @@ void main() {
     expect(
       File(_script).existsSync(),
       isTrue,
-      reason: 'the merged-manifest check script is missing; CI would pass by '
+      reason:
+          'the merged-manifest check script is missing; CI would pass by '
           'calling nothing.',
     );
   });
@@ -132,7 +133,10 @@ void main() {
       ),
     );
     expect(r.exitCode, isNot(0));
-    expect(r.stdout, contains('com.sec.android.provider.badge.permission.WRITE'));
+    expect(
+      r.stdout,
+      contains('com.sec.android.provider.badge.permission.WRITE'),
+    );
   });
 
   test('a rogue exported component fails', () {

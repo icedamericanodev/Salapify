@@ -102,31 +102,34 @@ Future<void> _pump(WidgetTester tester, SalapifyStore store) async {
 }
 
 void main() {
-  test('the two figures really are the same number, through the store', () async {
-    // The PRECONDITION, on the data AS THE STORE LOADS IT. An earlier version
-    // proved this on the raw blob while the widget saw store-rewritten data,
-    // which is how a precondition test and the test it protects diverge.
-    final store = await _seed(_withCommittedBills());
-    final cycle = cycleStatus(store.data, _today);
-    final dues = upcomingCommitments(store.data, _today);
-    expect(cycle.show, isTrue);
-    expect(
-      cycle.liquid - cycle.available,
-      closeTo((dues['total'] as num).toDouble(), 0.005),
-      reason:
-          'Your Number computes committed as liquid minus available, and the '
-          'bills card takes it straight from upcomingCommitments. These are '
-          'meant to be one value.',
-    );
-    expect(
-      cycle.liquid - cycle.available,
-      greaterThan(0),
-      reason:
-          'The fixture must produce committed money on the pinned date, or '
-          'the widget test below renders neither the bar nor the bills card '
-          'and asserts nothing.',
-    );
-  });
+  test(
+    'the two figures really are the same number, through the store',
+    () async {
+      // The PRECONDITION, on the data AS THE STORE LOADS IT. An earlier version
+      // proved this on the raw blob while the widget saw store-rewritten data,
+      // which is how a precondition test and the test it protects diverge.
+      final store = await _seed(_withCommittedBills());
+      final cycle = cycleStatus(store.data, _today);
+      final dues = upcomingCommitments(store.data, _today);
+      expect(cycle.show, isTrue);
+      expect(
+        cycle.liquid - cycle.available,
+        closeTo((dues['total'] as num).toDouble(), 0.005),
+        reason:
+            'Your Number computes committed as liquid minus available, and the '
+            'bills card takes it straight from upcomingCommitments. These are '
+            'meant to be one value.',
+      );
+      expect(
+        cycle.liquid - cycle.available,
+        greaterThan(0),
+        reason:
+            'The fixture must produce committed money on the pinned date, or '
+            'the widget test below renders neither the bar nor the bills card '
+            'and asserts nothing.',
+      );
+    },
+  );
 
   testWidgets('the committed figure appears exactly once on Home', (
     tester,

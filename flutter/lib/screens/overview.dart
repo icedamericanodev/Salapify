@@ -456,7 +456,7 @@ class OverviewScreen extends StatelessWidget {
                     // the card opens the Accounts screen.
                     Semantics(
                       button: true,
-                      label: 'My money, open Accounts',
+                      label: 'Accounts, open Accounts',
                       child: _tailCard(
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -471,7 +471,11 @@ class OverviewScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Kicker('MY MONEY'),
+                                // 'ACCOUNTS', matching the Menu row and the
+                                // screen this card opens: one name per
+                                // destination teaches navigation for free,
+                                // and 'MY MONEY' overlapped NET WORTH below.
+                                Kicker('ACCOUNTS'),
                                 const Spacer(),
                                 ExcludeSemantics(
                                   child: Icon(
@@ -866,13 +870,15 @@ class OverviewScreen extends StatelessWidget {
               // the sentence points at what IS true instead.
               r.salaryLogged
                   ? numberShows
-                        ? 'Your number below is fresh from the new balance. '
-                              'Moving a little to savings first, before the '
-                              'spending starts, is what makes it honest.'
-                        : 'Your number appears below once the salary sits in '
-                              'an account with room past the upcoming bills.'
+                        ? 'Your safe-to-spend below is fresh from the new '
+                              'balance. Moving a little to savings first, '
+                              'before the spending starts, is what makes it '
+                              'honest.'
+                        : 'Your safe-to-spend appears below once the salary '
+                              'sits in an account with room past the upcoming '
+                              'bills.'
                   : 'Log your salary, move a little to savings first, and '
-                        'carry your number until the next payday.',
+                        'carry your safe-to-spend until the next payday.',
               style: AppText.small.copyWith(height: 1.4),
             ),
             const SizedBox(height: 12),
@@ -987,7 +993,7 @@ class OverviewScreen extends StatelessWidget {
         child: Card(
           child: Semantics(
             button: true,
-            label: 'The road ahead. $caption',
+            label: 'Cash ahead. $caption',
             child: ExcludeSemantics(
               child: InkWell(
                 borderRadius: BorderRadius.circular(Radii.card),
@@ -1005,7 +1011,10 @@ class OverviewScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              'THE ROAD AHEAD',
+                              // 'CASH AHEAD', not 'THE ROAD AHEAD': the
+                              // sparkline plots projected cash, so the kicker
+                              // names the money, not a metaphor.
+                              'CASH AHEAD',
                               style: Barako.kickerStyle,
                             ),
                           ),
@@ -1096,7 +1105,10 @@ class OverviewScreen extends StatelessWidget {
     final String? paceLine = hidePace || s.onTrack == null
         ? null
         : paceFits
-        ? 'Your recent pace fits. Keep going.'
+        // Says the finish line, so the praise is verifiable: the pace is
+        // measured against the payday projection, and the over-pace branch
+        // below already names it. The two branches are symmetric now.
+        ? 'This pace holds to payday. Keep going.'
         : 'Recent pace is about ${formatMoneyAbout(s.dailyPace)} '
               'a day. Easing ${formatMoney(easeWhole)} a day keeps you '
               'covered to payday.';
@@ -1123,7 +1135,11 @@ class OverviewScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Kicker('YOUR NUMBER'),
+                      // 'SAFE TO SPEND', not 'YOUR NUMBER': the old kicker
+                      // failed the stranger test (a number of what?), and with
+                      // the amount line ending in "a day" the card now teaches
+                      // itself: SAFE TO SPEND, PX a day.
+                      Kicker('SAFE TO SPEND'),
                       const Spacer(),
                       Icon(
                         salapifyIcon('forward'),
@@ -1393,7 +1409,7 @@ class OverviewScreen extends StatelessWidget {
             context,
             salapifyIcon('handshake'),
             'See who owes me',
-            'Keep a who-owes-you list that adds itself up',
+            'Names and amounts, totaled for you.',
             // Money owed TO the user is the "Owed to me" segment of the Utang
             // tab. Plain onSwitchTab lands on the default "I owe" segment, a
             // screen with none of their receivables on it. Falls back to the

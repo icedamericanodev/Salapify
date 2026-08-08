@@ -142,7 +142,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
         backgroundColor: Barako.background,
         foregroundColor: Barako.text,
         title: Text(
-          'Payday',
+          'Payday schedule',
           style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
         ),
       ),
@@ -315,9 +315,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
                       size: 20,
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(title, style: AppText.bodyStrong),
-                    ),
+                    Expanded(child: Text(title, style: AppText.bodyStrong)),
                   ],
                 ),
                 const SizedBox(height: 4),

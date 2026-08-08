@@ -282,10 +282,7 @@ class _PaluwaganCard extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        text,
-        style: AppText.micro.w7.tint(fg),
-      ),
+      child: Text(text, style: AppText.micro.w7.tint(fg)),
     );
   }
 
@@ -329,10 +326,7 @@ class _PaluwaganCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            'Cycle $done of $members',
-            style: AppText.micro.w4,
-          ),
+          Text('Cycle $done of $members', style: AppText.micro.w4),
         ],
       ),
     );
@@ -645,10 +639,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
               _input(_note, hint: 'e.g. Draws every 15th'),
               if (_err != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _err!,
-                  style: AppText.small.tint(Barako.warningStrong),
-                ),
+                Text(_err!, style: AppText.small.tint(Barako.warningStrong)),
               ],
               const SizedBox(height: 22),
               Row(
@@ -784,10 +775,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
                   color: Barako.muted,
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  _prettyDate(_startDate),
-                  style: AppText.body,
-                ),
+                Text(_prettyDate(_startDate), style: AppText.body),
               ],
             ),
           ),

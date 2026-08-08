@@ -170,7 +170,11 @@ class TreatsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
+                    Icon(
+                      salapifyIcon('forward'),
+                      color: Barako.faint,
+                      size: 20,
+                    ),
                   ],
                 ),
               ),
@@ -249,15 +253,9 @@ class TreatsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        treatName,
-                        style: AppText.bodyLg.w8,
-                      ),
+                      Text(treatName, style: AppText.bodyLg.w8),
                       const SizedBox(height: 2),
-                      Text(
-                        action,
-                        style: AppText.small.tint(Barako.muted),
-                      ),
+                      Text(action, style: AppText.small.tint(Barako.muted)),
                     ],
                   ),
                 ),

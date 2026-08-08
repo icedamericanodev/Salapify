@@ -39,10 +39,17 @@ Future<LedgerRepository> buildLedgerRepository() async {
       prefs: const SharedPrefsLedgerRepository(),
       file: FileLedgerRepository(directoryPath: docs),
     );
-    final dbExisted = await File('$docs/${SqlCipherLedgerRepository.dbName}').exists();
+    final dbExisted = await File(
+      '$docs/${SqlCipherLedgerRepository.dbName}',
+    ).exists();
     try {
-      final encrypted = await SqlCipherLedgerRepository.open(directoryPath: docs);
-      return EncryptedStoreCoordinator(encrypted: encrypted, fallback: fallback);
+      final encrypted = await SqlCipherLedgerRepository.open(
+        directoryPath: docs,
+      );
+      return EncryptedStoreCoordinator(
+        encrypted: encrypted,
+        fallback: fallback,
+      );
     } catch (_) {
       if (dbExisted) {
         // Established but unopenable: read-only over the frozen plaintext, never

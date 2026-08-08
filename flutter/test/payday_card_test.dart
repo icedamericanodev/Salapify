@@ -131,10 +131,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Salary logged. Your cycle is set.'), findsOneWidget);
-      expect(find.text('YOUR NUMBER'), findsNothing);
-      expect(find.textContaining('Your number below is fresh'), findsNothing);
+      expect(find.text('SAFE TO SPEND'), findsNothing);
       expect(
-        find.textContaining('Your number appears below once'),
+        find.textContaining('Your safe-to-spend below is fresh'),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('Your safe-to-spend appears below once'),
         findsOneWidget,
       );
     },

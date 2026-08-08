@@ -194,7 +194,10 @@ class MenuScreen extends StatelessWidget {
                   if (store.canWrite)
                     NavTile(
                       icon: 'calendar',
-                      label: 'Payday',
+                      // 'Payday schedule', because the row opens a settings
+                      // form (when do you get paid), not a status screen; a
+                      // label is a promise the screen should keep.
+                      label: 'Payday schedule',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => PaydayScreen(store: store),
@@ -204,13 +207,18 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Gap.gutter),
-              Kicker('HELPERS'),
+              // 'EXTRAS', not 'HELPERS': the band holds calculators, treats
+              // and sharing, which reward and share rather than help.
+              Kicker('EXTRAS'),
               const SizedBox(height: Gap.sm),
               NavBand(
                 tiles: [
                   NavTile(
                     icon: 'tools',
-                    label: 'Tools',
+                    // 'Calculators' says exactly what opens (loan, BNPL,
+                    // take-home pay, 13th month, tax); 'Tools' was a junk
+                    // drawer word hiding the app's strongest education asset.
+                    label: 'Calculators',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) =>

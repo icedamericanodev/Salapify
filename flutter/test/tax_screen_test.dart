@@ -12,9 +12,12 @@ import 'support/app_harness.dart';
 
 Future<void> openTax(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Tools');
-  await tester.scrollUntilVisible(find.text('Income tax'), 200,
-      scrollable: find.byType(Scrollable).first);
+  await openFromMenu(tester, 'Calculators');
+  await tester.scrollUntilVisible(
+    find.text('Income tax'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.text('Income tax'));
   await tester.pumpAndSettle();
@@ -25,20 +28,25 @@ void main() {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
-  testWidgets('600k gross recommends the flat 8% and shows the saving',
-      (tester) async {
+  testWidgets('600k gross recommends the flat 8% and shows the saving', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await openTax(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. 600,000'), '600,000');
+      find.widgetWithText(TextField, 'e.g. 600,000'),
+      '600,000',
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Take the flat 8%'), findsOneWidget);
     await tester.scrollUntilVisible(
-        find.textContaining('Saves you about ₱6,500'), 200,
-        scrollable: find.byType(Scrollable).first);
+      find.textContaining('Saves you about ₱6,500'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('Saves you about ₱6,500'), findsOneWidget);
     expect(find.text('LOWER'), findsOneWidget);

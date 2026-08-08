@@ -159,7 +159,11 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
             Center(
               child: TextButton.icon(
                 onPressed: _swap,
-                icon: Icon(salapifyIcon('swap'), color: Barako.primary, size: 18),
+                icon: Icon(
+                  salapifyIcon('swap'),
+                  color: Barako.primary,
+                  size: 18,
+                ),
                 label: Text(
                   'Swap',
                   style: TextStyle(
@@ -258,10 +262,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
         ],
       );
     } else if (_loading) {
-      body = Text(
-        "Getting today's rates...",
-        style: AppText.small,
-      );
+      body = Text("Getting today's rates...", style: AppText.small);
     } else if (_fx != null) {
       // Rates are loaded, this pair just is not covered by the table. Do not
       // tell an online user to connect.

@@ -11,7 +11,7 @@ import 'support/app_harness.dart';
 
 Future<void> openThirteenth(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Tools');
+  await openFromMenu(tester, 'Calculators');
   await tester.tap(find.text('13th month pay'));
   await tester.pumpAndSettle();
 }
@@ -21,14 +21,17 @@ void main() {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
-  testWidgets('a full year at 25,000 is tax free; big bonuses split it',
-      (tester) async {
+  testWidgets('a full year at 25,000 is tax free; big bonuses split it', (
+    tester,
+  ) async {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await openThirteenth(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. 25,000'), '25,000');
+      find.widgetWithText(TextField, 'e.g. 25,000'),
+      '25,000',
+    );
     await tester.pumpAndSettle();
     expect(find.text('₱25,000'), findsOneWidget);
     expect(find.text('TAX FREE'), findsOneWidget);
@@ -39,8 +42,11 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, '0'), '80,000');
     await tester.pumpAndSettle();
     expect(find.text('TAX FREE'), findsNothing);
-    await tester.scrollUntilVisible(find.text('Taxable part'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Taxable part'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text('₱10,000'), findsOneWidget); // tax free part
     expect(find.text('₱15,000'), findsOneWidget); // taxable part
@@ -54,7 +60,9 @@ void main() {
     await openThirteenth(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. 25,000'), '25000');
+      find.widgetWithText(TextField, 'e.g. 25,000'),
+      '25000',
+    );
     await tester.enterText(find.widgetWithText(TextField, '12'), '6');
     await tester.pumpAndSettle();
     expect(find.text('₱12,500'), findsOneWidget);

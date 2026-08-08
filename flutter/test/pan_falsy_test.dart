@@ -16,7 +16,13 @@ void main() {
         {'id': 'c1', 'name': 0},
       ],
       'transactions': [
-        {'type': 'expense', 'categoryId': 'c1', 'label': 'FallbackLabel', 'amount': 100, 'date': '2026-07-10'},
+        {
+          'type': 'expense',
+          'categoryId': 'c1',
+          'label': 'FallbackLabel',
+          'amount': 100,
+          'date': '2026-07-10',
+        },
         {'type': 'expense', 'label': 0, 'amount': 120, 'date': '2026-07-11'},
         {'type': 'expense', 'label': false, 'amount': 80, 'date': '2026-07-12'},
       ],
@@ -31,15 +37,26 @@ void main() {
   });
 
   test('a falsy goal name never matches a zero in the message', () {
-    final reply = ask({
-      'goals': [
-        {'name': 'Vacation', 'target': 1000, 'saved': 100, 'targetDate': '2026-01'},
-        {'name': 0, 'target': 2000, 'saved': 1900},
-      ],
-    }, 'is my 0 goal on track', now: now);
+    final reply = ask(
+      {
+        'goals': [
+          {
+            'name': 'Vacation',
+            'target': 1000,
+            'saved': 100,
+            'targetDate': '2026-01',
+          },
+          {'name': 0, 'target': 2000, 'saved': 1900},
+        ],
+      },
+      'is my 0 goal on track',
+      now: now,
+    );
     // RN coaches the behind Vacation goal, never the junk-named one.
     expect(reply['mood'], 'worried');
-    expect(reply['text'],
-        'Vacation is 10%, and the target date has passed with ₱900 still to go. Set a fresh date and I will give you a new weekly pace.');
+    expect(
+      reply['text'],
+      'Vacation is 10%, and the target date has passed with ₱900 still to go. Set a fresh date and I will give you a new weekly pace.',
+    );
   });
 }
