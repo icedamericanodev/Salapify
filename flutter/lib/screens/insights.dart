@@ -348,12 +348,12 @@ class InsightsScreen extends StatelessWidget {
                     return const <Widget>[];
                   }
                   return [
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Gap.lg),
                     _steadyPayCard(context, data, ref, accepted, suggestion),
                   ];
                 })(),
                 if (plan['applicable'] == true) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   _nextPesoCard(plan, focusGoal),
                 ],
                 // The TOOLS band: things a user reaches for on purpose, not
@@ -414,15 +414,15 @@ class InsightsScreen extends StatelessWidget {
                 // commitment load feeds the debt-load health.
                 if (load['applicable'] == true) ...[
                   _spokenForCard(load),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 _healthCard(health),
-                const SizedBox(height: 12),
+                const SizedBox(height: Gap.lg),
                 _trendCard(series),
-                const SizedBox(height: 12),
+                const SizedBox(height: Gap.lg),
                 if (cats.any((c) => (c['now'] as double) > 0))
                   _categoriesCard(cats, forecast),
-                const SizedBox(height: 12),
+                const SizedBox(height: Gap.lg),
                 _runwayCard(runway),
                 const SizedBox(height: 24),
               ],

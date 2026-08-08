@@ -113,12 +113,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     current: _tab,
                     onPick: (i) => setState(() => _tab = i),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   // Position is always "as of today" and the card already says
                   // so in its kicker, so only Income and Cash flow get a stepper.
                   if (_tab != 2) ...[
                     _monthStepper(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Gap.lg),
                   ],
                   if (_tab == 0) ...[
                     _incomeCard(),
@@ -197,7 +197,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(height: 6),
               Text(
                 'A big part of this is money owed to you. Your real, spendable position is closer to ${formatMoney(spendablePosition(parts))} until it lands.',
-                style: AppText.caption.tint(Barako.faint).copyWith(height: 1.35),
+                style: AppText.caption
+                    .tint(Barako.faint)
+                    .copyWith(height: 1.35),
               ),
             ],
           ],
@@ -219,10 +221,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               : null,
           tooltip: 'Earlier month',
         ),
-        Text(
-          label,
-          style: AppText.body.w7,
-        ),
+        Text(label, style: AppText.body.w7),
         IconButton(
           icon: Icon(salapifyIcon('forward')),
           color: _monthOffset > 0 ? Barako.primaryText : Barako.faint,
@@ -392,10 +391,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text('SPENDING TREND', style: Barako.kickerStyle),
             const SizedBox(height: 4),
-            Text(
-              'Last 6 months, spending per month',
-              style: AppText.caption,
-            ),
+            Text('Last 6 months, spending per month', style: AppText.caption),
             const SizedBox(height: 14),
             _TrendBars(
               series: series,
@@ -654,10 +650,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       : 'Weekday spending chart.',
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  read,
-                  style: AppText.small.copyWith(height: 1.45),
-                ),
+                Text(read, style: AppText.small.copyWith(height: 1.45)),
               ],
             ),
           ),
@@ -921,7 +914,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     children: [
       Text(
         'Unlock Pro to see your debt-free date and how much interest the right strategy saves you.',
-        style: AppText.label.w4.tint(Barako.textSecondary).copyWith(height: 1.4),
+        style: AppText.label.w4
+            .tint(Barako.textSecondary)
+            .copyWith(height: 1.4),
       ),
       const SizedBox(height: 12),
       FilledButton(
@@ -1110,10 +1105,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               colorOverride: headlineColor,
             ),
             const SizedBox(height: 8),
-            Text(
-              interp,
-              style: AppText.small.copyWith(height: 1.45),
-            ),
+            Text(interp, style: AppText.small.copyWith(height: 1.45)),
             if (visual != null) ...[const SizedBox(height: 14), visual],
             if (legend != null) ...[
               const SizedBox(height: 8),
@@ -1209,10 +1201,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: AppText.caption.tabular,
-        ),
+        Text(label, style: AppText.caption.tabular),
       ],
     );
   }
@@ -1233,7 +1222,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 6),
             Text(
               'Add an account and log a few entries, and three statements appear here. Position shows what you own and owe. Income shows what you earned and spent this month. Cash flow shows where the pesos actually moved. Nothing to set up, just log.',
-              style: AppText.label.w4.tint(Barako.textSecondary).copyWith(height: 1.45),
+              style: AppText.label.w4
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.45),
             ),
             const SizedBox(height: 14),
             FilledButton(

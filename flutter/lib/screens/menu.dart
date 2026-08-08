@@ -94,13 +94,16 @@ class MenuScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
               _askPanBanner(context),
-              const SizedBox(height: 20),
+              const SizedBox(height: Gap.gutter),
               Kicker('MONEY'),
-              const SizedBox(height: Gap.md),
-              // A grid, not sixteen stacked rows. The old shape reached the
-              // eighth destination before running off the screen, so half the
-              // app sat behind a scroll with nothing hinting it was there.
-              NavTileGrid(
+              const SizedBox(height: Gap.sm),
+              // Rows in ONE card per band, not a tile per destination. The
+              // 2-up grid this replaces was denser than the sixteen stacked
+              // rows before it, but it was still a wall of identical
+              // bordered boxes (the audit's "tile wall"); a band of
+              // hairline-divided rows is the same list physics the rest of
+              // the app uses, and the eye scans one column, not two.
+              NavBand(
                 tiles: [
                   NavTile(
                     icon: 'search',
@@ -200,10 +203,10 @@ class MenuScreen extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: Gap.gutter),
               Kicker('HELPERS'),
-              const SizedBox(height: Gap.md),
-              NavTileGrid(
+              const SizedBox(height: Gap.sm),
+              NavBand(
                 tiles: [
                   NavTile(
                     icon: 'tools',

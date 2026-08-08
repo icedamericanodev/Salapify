@@ -61,7 +61,7 @@ class BudgetScreen extends StatelessWidget {
               children: [
                 _limitCard(context, summary),
                 if (store.canWrite) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -152,7 +152,7 @@ class BudgetScreen extends StatelessWidget {
                       .toList();
                   if (todays.isEmpty) return const <Widget>[];
                   return <Widget>[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Gap.lg),
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -197,7 +197,7 @@ class BudgetScreen extends StatelessWidget {
                   ];
                 })(),
                 if (rows.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -215,7 +215,7 @@ class BudgetScreen extends StatelessWidget {
                   // The 1st of the month is not a broken screen. WHERE IT
                   // WENT simply has nothing to show yet, and this says so
                   // instead of leaving 60 percent of the tab as a void.
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   EmptyState(
                     icon: 'chart',
                     title: 'Nothing spent yet this month',
@@ -462,7 +462,9 @@ class BudgetScreen extends StatelessWidget {
           style: AppText.bodyLg.copyWith(fontSize: 20),
           decoration: InputDecoration(
             prefixText: '$baseCurrencySymbol ',
-            prefixStyle: AppText.bodyLg.copyWith(fontSize: 20).tint(Barako.muted),
+            prefixStyle: AppText.bodyLg
+                .copyWith(fontSize: 20)
+                .tint(Barako.muted),
             hintText: '15000',
             hintStyle: TextStyle(color: Barako.faint),
           ),
