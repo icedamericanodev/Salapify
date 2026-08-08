@@ -52,7 +52,7 @@ const Map<String, int> _baseline = {
   'lib/screens/afford_card.dart': 1,
   'lib/screens/bnpl_calculator.dart': 3,
   'lib/screens/budget.dart': 2,
-  'lib/screens/cashflow.dart': 9,
+  'lib/screens/cashflow.dart': 1,
   'lib/screens/categories.dart': 3,
   'lib/screens/contribution_calculator.dart': 2,
   'lib/screens/debts.dart': 6,
@@ -72,7 +72,7 @@ const Map<String, int> _baseline = {
   'lib/screens/path_screen.dart': 1,
   'lib/screens/payday.dart': 2,
   'lib/screens/recurring.dart': 1,
-  'lib/screens/reports.dart': 8,
+  'lib/screens/reports.dart': 7,
   'lib/screens/salary_calculator.dart': 3,
   'lib/screens/search.dart': 1,
   'lib/screens/split_expense.dart': 5,
@@ -116,10 +116,9 @@ final Set<double> _ladder = {
 /// frozen. The conversion phases purge these; nothing may join them. If a
 /// value disappears from the tree, delete it here in the same change.
 final Set<double> _legacyOffLadder = {
-  8.5,
-  9,
-  10.5,
-  11.5,
+  // 8.5, 9, 10.5, and 11.5 were purged in Phase 5 (reports, insights, and
+  // cashflow); per the rule above, a value that leaves the tree leaves this
+  // set in the same change so it cannot quietly return.
   12.5,
   13.5,
   14.5,

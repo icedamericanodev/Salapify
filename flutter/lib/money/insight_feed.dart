@@ -233,8 +233,8 @@ class CategoryShift {
   /// now - pacedBefore. Positive means running higher than last month.
   final double change;
 
-  /// 'mostly from <note>' when one note-group dominates the category, or
-  /// 'mostly one ₱X entry' when a single row does. Null when no driver
+  /// `Mostly from <note>.` when one note-group dominates the category, or
+  /// `Mostly one ₱X entry.` when a single row does. Null when no driver
   /// stands out; the screen then says nothing rather than something weak.
   final String? driver;
 
