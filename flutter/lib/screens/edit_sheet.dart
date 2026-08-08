@@ -258,6 +258,7 @@ Future<void> _showReceiptSheet(
                           SnackBar(
                             content: const Text('Deleted.'),
                             duration: const Duration(seconds: 5),
+                            persist: false,
                             action: SnackBarAction(
                               label: 'Undo',
                               onPressed: () async {
