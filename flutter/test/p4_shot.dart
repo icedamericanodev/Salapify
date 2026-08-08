@@ -8,13 +8,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadRealFonts, loadPanFaces, livedInBlob;
 
-Future<void> _shoot(WidgetTester tester, String name, {String? tapText}) async {
+Future<void> _shoot(
+  WidgetTester tester,
+  String name, {
+  String? tapText,
+  Widget Function(SalapifyStore)? build,
+}) async {
   await loadRealFonts(tester);
   await loadPanFaces(tester);
   SharedPreferences.setMockInitialValues({storageKey: jsonEncode(livedInBlob)});
@@ -32,7 +38,9 @@ Future<void> _shoot(WidgetTester tester, String name, {String? tapText}) async {
       theme: salapifyTheme(Barako.current),
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: HistoryScreen(store: store, onMenu: () {}),
+        body: build != null
+            ? build(store)
+            : HistoryScreen(store: store, onMenu: () {}),
       ),
     ),
   );
@@ -50,5 +58,13 @@ Future<void> _shoot(WidgetTester tester, String name, {String? tapText}) async {
 void main() {
   testWidgets('the receipt for an editable expense', (tester) async {
     await _shoot(tester, 'p4b2-receipt', tapText: 'Groceries');
+  });
+
+  testWidgets('budget leads with what is left', (tester) async {
+    await _shoot(
+      tester,
+      'p4b3-budget-safe',
+      build: (s) => BudgetScreen(store: s, onMenu: () {}),
+    );
   });
 }
