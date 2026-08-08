@@ -17,7 +17,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/screen_header.dart';
 import 'log_sheet.dart' show newEntryId, parseAmount, showLogSheet;
-import 'overview.dart' show formatMoney;
+import 'overview.dart' show formatMoney, formatMoneyAbout;
 import '../money/currencies.dart' show baseCurrencySymbol;
 
 /// The RN default quick adds, shown when the imported settings carry none.
@@ -304,12 +304,13 @@ class BudgetScreen extends StatelessWidget {
     } else if (near) {
       stateLine = room == null
           ? 'Getting close.'
-          : 'Getting close. About ${formatMoney(room)} a day keeps you '
+          : 'Getting close. About ${formatMoneyAbout(room)} a day keeps you '
                 'inside the limit.';
     } else {
       stateLine = room == null
           ? ''
-          : 'About ${formatMoney(room)} a day until the end of the month.';
+          : 'About ${formatMoneyAbout(room)} a day until the end of the '
+                'month.';
     }
     return Card(
       child: Padding(
