@@ -38,6 +38,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../money/pan_mood.dart';
+import '../theme.dart' show Motion;
 
 /// The single source of truth for where the real Pan Rive file will live.
 const String kPanRivAsset = 'assets/pan/pan.riv';
@@ -106,8 +107,23 @@ class _PanMascotState extends State<PanMascot>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bob = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 420),
-  )..forward();
+    duration: Motion.reveal,
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduce-motion collapses the bob to an instant settle. The duration is
+    // set here because Motion.of needs a context, which the field initializer
+    // does not have, and the first forward waits for the same reason: this
+    // controller used to ignore the OS setting entirely.
+    _bob.duration = Motion.of(context, Motion.reveal);
+    if (!_started) {
+      _started = true;
+      _bob.forward();
+    }
+  }
 
   @override
   void didUpdateWidget(PanMascot old) {

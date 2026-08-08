@@ -11,6 +11,8 @@
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/widgets.dart';
 
+import '../theme.dart' show Motion;
+
 class PressableScale extends StatefulWidget {
   final Widget child;
 
@@ -37,8 +39,6 @@ class _PressableScaleState extends State<PressableScale> {
 
   @override
   Widget build(BuildContext context) {
-    // Honor the OS "remove animations" / reduce-motion setting.
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Listener(
       onPointerDown: (e) {
         _downPos = e.position;
@@ -58,8 +58,11 @@ class _PressableScaleState extends State<PressableScale> {
       onPointerCancel: (_) => _set(false),
       child: AnimatedScale(
         scale: _down ? widget.pressedScale : 1.0,
-        duration: Duration(milliseconds: reduce ? 0 : 120),
-        curve: Curves.easeOut,
+        // Motion.of collapses to zero under reduce-motion, and reads only
+        // that aspect: this widget wraps nearly every card on Home, so a
+        // whole-MediaQuery read here rebuilt all of them on keyboard opens.
+        duration: Motion.of(context, Motion.tap),
+        curve: Motion.curve,
         child: widget.child,
       ),
     );

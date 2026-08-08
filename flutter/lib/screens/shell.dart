@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../services/home_tile.dart';
 import '../theme.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
 import 'budget.dart';
 import 'history.dart';
@@ -188,6 +189,10 @@ class _ShellScreenState extends State<ShellScreen> {
 
   void _select(Destination d) {
     if (d != tab) {
+      // A position change clicks, per the Phase 1 vocabulary. Change only:
+      // re-tapping the current tab is a no-op selection and stays silent,
+      // the same rule the choice chip enforces.
+      Haptics.select();
       setState(() {
         tab = d;
         _visited.add(d);
@@ -202,15 +207,13 @@ class _ShellScreenState extends State<ShellScreen> {
         ? _moneyKey.currentState?.activeController
         : _controllers[d];
     if (c == null || !c.hasClients || c.offset <= 0) return;
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (reduce) {
+    // Motion.of collapses to zero under the OS reduce-motion setting, and
+    // reads only that aspect, so the shell does not rebuild on keyboard opens.
+    final d240 = Motion.of(context, Motion.move);
+    if (d240 == Duration.zero) {
       c.jumpTo(0);
     } else {
-      c.animateTo(
-        0,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOut,
-      );
+      c.animateTo(0, duration: d240, curve: Motion.curve);
     }
   }
 
@@ -291,13 +294,18 @@ class _ShellScreenState extends State<ShellScreen> {
       // Hidden, not disabled, after a failed read: saving would overwrite data
       // we could not read, so the write path stays shut. The store enforces it
       // too; this hides the door.
+      // The most tapped control in the app gets the house press dip. Colors
+      // and the label weight come from floatingActionButtonTheme now, not the
+      // call site; a theme change must reach the Log button too. Haptically
+      // silent on purpose: opening a sheet is neither a selection nor money
+      // written, and the save itself buzzes at the moment that matters.
       floatingActionButton: widget.store.canWrite
-          ? FloatingActionButton.extended(
-              backgroundColor: Barako.primary,
-              foregroundColor: Barako.onPrimary,
-              onPressed: () => showLogSheet(context, widget.store),
-              icon: Icon(salapifyIcon('add')),
-              label: Text('Log', style: TextStyle(fontWeight: FontWeight.w700)),
+          ? PressableScale(
+              child: FloatingActionButton.extended(
+                onPressed: () => showLogSheet(context, widget.store),
+                icon: Icon(salapifyIcon('add')),
+                label: const Text('Log'),
+              ),
             )
           : null,
       body: IndexedStack(
@@ -315,21 +323,19 @@ class _ShellScreenState extends State<ShellScreen> {
                 : const SizedBox.shrink(),
         ],
       ),
+      // No inline colors: navigationBarTheme owns the bar's background, the
+      // indicator, and the per-state icon color. Re-passing them here is how a
+      // theme change ships everywhere except the nav bar.
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab.index,
         onDestinationSelected: (i) => _select(Destination.values[i]),
-        backgroundColor: Barako.card,
-        indicatorColor: Barako.primary,
         // Every glyph resolves by NAME through salapify_icon.dart, the same as
         // the rest of the app's own icons.
         destinations: [
           for (final d in Destination.values)
             NavigationDestination(
               icon: Icon(salapifyIcon(d.icon)),
-              selectedIcon: Icon(
-                salapifyIconSelected(d.icon),
-                color: Barako.onPrimary,
-              ),
+              selectedIcon: Icon(salapifyIconSelected(d.icon)),
               label: d.label,
             ),
         ],
