@@ -1239,12 +1239,17 @@ class _BalanceChartState extends State<_BalanceChart> {
             ),
             const SizedBox(height: 6),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(_pretty(first), style: AppText.micro.w4.tint(Barako.faint)),
-                Text(
-                  'Touch the chart to read a day',
-                  style: AppText.micro.w4.tint(Barako.faint),
+                // Expanded and wrapping, so the hint can never push the two
+                // dates off a narrow phone at a large text scale.
+                Expanded(
+                  child: Text(
+                    'Touch the chart to read a day',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: AppText.micro.w4.tint(Barako.faint),
+                  ),
                 ),
                 Text(_pretty(last), style: AppText.micro.w4.tint(Barako.faint)),
               ],

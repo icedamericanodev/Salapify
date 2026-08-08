@@ -1445,6 +1445,120 @@ void main() {
     );
   });
 
+  testWidgets('Insights month story, fixed clock, dark', (tester) async {
+    // The populated WHAT CHANGED band: paced shifts, a driver sentence, the
+    // Ask Pan action, the win card, and the Reports door. A fixed clock (Jul
+    // 20) because the band's honesty gate hides all of this for the first
+    // eleven days of any real month, which is exactly when a founder is most
+    // likely to look.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+        ],
+        'transactions': [
+          {
+            'id': 'i6',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-06-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f6',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 1000,
+            'date': '2026-06-10',
+            'accountId': 'cash',
+          },
+          {
+            'id': 't6',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 2000,
+            'date': '2026-06-12',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'i7',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-07-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7a',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 900,
+            'date': '2026-07-02',
+            'note': 'Grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7b',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 800,
+            'date': '2026-07-09',
+            'note': 'grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7c',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 400,
+            'date': '2026-07-11',
+            'note': 'groceries',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: InsightsScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+            clock: () => DateTime(2026, 7, 20),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Bring the story band itself into frame; the top bands have their own
+    // shots.
+    await tester.scrollUntilVisible(
+      find.text('WHAT CHANGED'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/insights-month-story-dark.png'),
+    );
+  });
+
   testWidgets('Reports, all three tabs, real data, dark', (tester) async {
     // Reports had never been through the look-at-the-screen discipline: the
     // Phase 5 dataviz audit found this harness did not render it at all, so

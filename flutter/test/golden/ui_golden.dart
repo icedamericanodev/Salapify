@@ -220,6 +220,89 @@ void main() {
         home: InsightsScreen(store: store),
       );
     });
+
+    testWidgets('populated month story (fixed clock)', (tester) async {
+      // Possible since Phase 5 gave InsightsScreen an injectable clock (the
+      // header's old exclusion of populated Insights was about calendar
+      // rot, and a fixed clock removes it): two fixed months, Jul 20, so
+      // the pulse, the chart readout, and WHAT CHANGED's paced shifts
+      // produce the same bytes every run. Tall canvas: the story band is
+      // the subject.
+      final store = await _storeFrom({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+        ],
+        'transactions': [
+          {
+            'id': 'i6',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-06-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f6',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 1000,
+            'date': '2026-06-10',
+            'accountId': 'cash',
+          },
+          {
+            'id': 't6',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 2000,
+            'date': '2026-06-12',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'i7',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-07-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7a',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 900,
+            'date': '2026-07-02',
+            'note': 'Grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7b',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 800,
+            'date': '2026-07-09',
+            'note': 'grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7c',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 400,
+            'date': '2026-07-11',
+            'note': 'groceries',
+            'accountId': 'cash',
+          },
+        ],
+      });
+      await _golden(
+        tester,
+        name: 'insights-month-story',
+        home: InsightsScreen(store: store, clock: () => DateTime(2026, 7, 20)),
+        size: const Size(390, 2600),
+      );
+    });
   });
 
   testWidgets('the currency converter offline state', (tester) async {
