@@ -47,7 +47,7 @@ const Set<String> _exempt = {
 /// screens convert to AppText; they never go up.
 const Map<String, int> _baseline = {
   'lib/screens/account_detail.dart': 3,
-  'lib/screens/accounts.dart': 8,
+  'lib/screens/accounts.dart': 6,
   'lib/screens/add_account_flow.dart': 2,
   'lib/screens/afford_card.dart': 1,
   'lib/screens/bnpl_calculator.dart': 3,

@@ -363,7 +363,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     if (_isDebt) {
       final outstanding = amountOf(row['remaining']);
       final limit = amountOf(row['creditLimit']);
-      rows.add(_stat('Outstanding balance', formatMoney(outstanding)));
+      // Plain words: "outstanding" reads as praise to a first-jobber, and
+      // this now agrees with the card face's YOU OWE kicker.
+      rows.add(_stat('What you owe', formatMoney(outstanding)));
       if (limit > 0) {
         final available = (limit - outstanding)
             .clamp(0, double.infinity)
@@ -428,17 +430,20 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     children: [
       Flexible(child: Text(label, style: AppText.body.tint(Barako.muted))),
       const SizedBox(width: 12),
-      // Flexible with an ellipsis so a seven-figure amount at large text wraps
-      // its edge instead of overflowing once the label is at its minimum.
+      // Scale down, never truncate: an ellipsized peso figure reads as a
+      // DIFFERENT amount, which is worse than a smaller one.
       Flexible(
-        child: Text(
-          value,
-          textAlign: TextAlign.right,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: strong
-              ? AppText.amountRow.tint(Barako.primaryText)
-              : AppText.body.w6,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            style: strong
+                ? AppText.amountRow.tint(Barako.primaryText)
+                : AppText.body.w6,
+          ),
         ),
       ),
     ],
