@@ -259,7 +259,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return SafeArea(
       top: !widget.pushed,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        // The same 8dp outer top the other four tabs give their header, so
+        // Activity stops sitting 8 pixels higher than its siblings. This was
+        // the one tab whose header wrap had no top padding at all.
+        padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.sm, Gap.gutter, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -278,11 +281,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
               decoration: InputDecoration(
                 hintText: 'Filter entries, like jollibee or 1500',
                 hintStyle: TextStyle(color: Barako.faint),
-                prefixIcon: Icon(salapifyIcon('search'), color: Barako.faint, size: 20),
+                prefixIcon: Icon(
+                  salapifyIcon('search'),
+                  color: Barako.faint,
+                  size: 20,
+                ),
                 suffixIcon: _query.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: Icon(salapifyIcon('close'), color: Barako.muted, size: 18),
+                        icon: Icon(
+                          salapifyIcon('close'),
+                          color: Barako.muted,
+                          size: 18,
+                        ),
                         tooltip: 'Clear filter',
                         onPressed: () => setState(() => _query.clear()),
                       ),
@@ -358,7 +369,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // which read as an accident rather than a decision, and it moved as soon as
   // a chip wrapped to a second line.
   Widget _empty(bool trulyEmpty) => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+    padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.xs, Gap.gutter, Gap.xl),
     children: [
       trulyEmpty
           ? EmptyState(
@@ -453,10 +464,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   // Food" tells you which row this is, and tappability is
                   // one experiment away. The hints remain for rows with no
                   // context to show.
-                  Text(
-                    rowContext,
-                    style: AppText.micro.w4,
-                  )
+                  Text(rowContext, style: AppText.micro.w4)
                 else if (showSplitHint)
                   Text(
                     'Tap to edit or split with friends',

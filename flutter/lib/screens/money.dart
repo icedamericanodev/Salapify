@@ -75,7 +75,12 @@ class MoneyScreenState extends State<MoneyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+              Gap.gutter,
+              Gap.sm,
+              Gap.gutter,
+              0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -133,12 +138,12 @@ class MoneyScreenState extends State<MoneyScreen> {
                 DebtsView(
                   store: widget.store,
                   controller: _oweController,
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                  padding: Insets.tabScreen.copyWith(top: Gap.md),
                 ),
                 UtangBody(
                   store: widget.store,
                   controller: _owedController,
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                  padding: Insets.tabScreen.copyWith(top: Gap.md),
                 ),
               ],
             ),

@@ -174,7 +174,7 @@ class InsightsScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.sm, Gap.gutter, 0),
           child: ScreenHeader(
             'Insights',
             subtitle: 'What your money is telling you, and what to do next',
@@ -183,7 +183,7 @@ class InsightsScreen extends StatelessWidget {
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+            padding: Insets.tabScreen.copyWith(top: 0),
             children: [card],
           ),
         ),
@@ -269,7 +269,12 @@ class InsightsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+              Gap.gutter,
+              Gap.sm,
+              Gap.gutter,
+              0,
+            ),
             child: ScreenHeader(
               'Insights',
               subtitle: 'What your money is telling you, and what to do next',
@@ -278,7 +283,7 @@ class InsightsScreen extends StatelessWidget {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+              padding: Insets.tabScreen.copyWith(top: 0),
               children: [
                 // The DO NEXT cards carry the specifics, most urgent first, so
                 // they are the takeaway on their own. A "WHAT MATTERS NOW" line
