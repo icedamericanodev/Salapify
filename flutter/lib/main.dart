@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.82 \u00b7 One face for money on Home: every amount now draws from the shared ladder, aligned on the decimal.';
+    'f3.83 \u00b7 Polish pass: every filter chip on the shared control, steadier budget bars, and the sparkline draws in.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -58,18 +58,30 @@ class TimelineSparkline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The line draws itself in once, left to right, when the card mounts: a
+    // reveal, the one motion token sized for content arriving. The tween
+    // runs begin-to-end at mount and never again on rebuilds (the tween
+    // object is value-equal across builds), and under reduce-motion
+    // Motion.of collapses the duration to zero so the chart simply appears
+    // complete, which is exactly what that setting asks for.
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: CustomPaint(
-        painter: _SparkPainter(
-          days: days,
-          line: Barako.primary,
-          fill: Barako.primary.withValues(alpha: BarakoAlpha.hint),
-          baseline: Barako.border,
-          warn: Barako.warningStrong,
-          anyNegative: anyNegative,
-          lowDate: lowDate,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: Motion.of(context, Motion.reveal),
+        curve: Motion.curve,
+        builder: (context, t, _) => CustomPaint(
+          painter: _SparkPainter(
+            days: days,
+            line: Barako.primary,
+            fill: Barako.primary.withValues(alpha: BarakoAlpha.hint),
+            baseline: Barako.border,
+            warn: Barako.warningStrong,
+            anyNegative: anyNegative,
+            lowDate: lowDate,
+            progress: t,
+          ),
         ),
       ),
     );
@@ -84,6 +96,10 @@ class _SparkPainter extends CustomPainter {
   final Color warn;
   final bool anyNegative;
   final String lowDate;
+
+  /// 0..1 draw-in reveal; the painted content is clipped to this fraction of
+  /// the width. 1 is the fully drawn chart.
+  final double progress;
   _SparkPainter({
     required this.days,
     required this.line,
@@ -92,6 +108,7 @@ class _SparkPainter extends CustomPainter {
     required this.warn,
     required this.anyNegative,
     required this.lowDate,
+    this.progress = 1,
   });
 
   @override
@@ -116,6 +133,12 @@ class _SparkPainter extends CustomPainter {
     for (var dx = 0.0; dx < size.width; dx += dash * 2) {
       canvas.drawLine(Offset(dx, zeroY), Offset(dx + dash, zeroY), zp);
     }
+
+    // Everything below reveals left to right with [progress]; the baseline
+    // above stays whole from the first frame so the chart's ground is never
+    // the thing animating.
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width * progress, size.height));
 
     // The fill fades to nothing on the way down. A uniform fill was most of
     // the "flat orange block": with the domain fixed the line has room, and
@@ -164,9 +187,20 @@ class _SparkPainter extends CustomPainter {
       2.5,
       Paint()..color = anyNegative ? warn : line,
     );
+
+    canvas.restore();
   }
 
+  // Colors included, closing the deferred note from f3.76: they were safe to
+  // omit only while the days list was rebuilt every build, which is exactly
+  // the kind of coincidence that stops being true silently.
   @override
   bool shouldRepaint(covariant _SparkPainter old) =>
-      old.days != days || old.anyNegative != anyNegative;
+      old.days != days ||
+      old.anyNegative != anyNegative ||
+      old.progress != progress ||
+      old.line != line ||
+      old.fill != fill ||
+      old.baseline != baseline ||
+      old.warn != warn;
 }
