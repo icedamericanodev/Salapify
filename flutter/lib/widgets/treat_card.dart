@@ -32,6 +32,50 @@ class TreatCard extends StatelessWidget {
     context,
   ).push(MaterialPageRoute(builder: (_) => TreatsScreen(store: store)));
 
+  /// The quiet one-line form of this card: title, one sub line, a chevron,
+  /// the same tap through to Treats. Used when there is nothing yet and when
+  /// the pick is not close enough to earn front-page excitement.
+  Widget _slimRow(
+    BuildContext context, {
+    required String title,
+    required String sub,
+  }) {
+    return Card(
+      child: Semantics(
+        button: true,
+        label: title,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _open(context),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: AppText.bodyStrong),
+                      const SizedBox(height: 2),
+                      Text(sub, style: AppText.caption.copyWith(height: 1.35)),
+                    ],
+                  ),
+                ),
+                ExcludeSemantics(
+                  child: Icon(
+                    salapifyIcon('forward'),
+                    size: 18,
+                    color: Barako.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ref = clock();
@@ -49,42 +93,10 @@ class TreatCard extends StatelessWidget {
 
     if (pick == null) {
       // No treats yet: a slim invite, not a wall.
-      return Card(
-        child: Semantics(
-          button: true,
-          label: 'Earn your treats',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _open(context),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Earn your treats', style: AppText.bodyStrong),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Pair a small reward with a healthy habit. Guilt free.',
-                          style: AppText.caption.copyWith(height: 1.35),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ExcludeSemantics(
-                    child: Icon(
-                      salapifyIcon('forward'),
-                      size: 18,
-                      color: Barako.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      return _slimRow(
+        context,
+        title: 'Earn your treats',
+        sub: 'Pair a small reward with a healthy habit. Guilt free.',
       );
     }
 
@@ -95,6 +107,20 @@ class TreatCard extends StatelessWidget {
     final remaining = pick['remaining'] as int;
     final action = (pick['action'] ?? 'habit').toString().toLowerCase();
     final treatName = (pick['treat'] ?? 'treat').toString();
+
+    // The full card with its dots earns front-page space only when something
+    // is HAPPENING: the treat is earned (the win must show) or one check-in
+    // away (the nudge can close it today). Mid-journey, one quiet line keeps
+    // the habit visible without spending ~140dp of Home on it every day.
+    if (!earned && remaining > 1) {
+      return _slimRow(
+        context,
+        title: 'Earn your treats',
+        sub:
+            '$recent of $target toward ${treatName.toLowerCase()}. '
+            '${remaining == target ? 'Start today.' : 'Keep going.'}',
+      );
+    }
 
     // Payday nudge only when the user explicitly set a schedule; without one
     // the line would fire on guesses and read as noise, the RN rule.
