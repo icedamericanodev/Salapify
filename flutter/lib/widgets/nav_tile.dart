@@ -1,20 +1,22 @@
-// A destination as a tile, and the 2-up grid they sit in.
+// A destination as a row, and the band of rows they sit in.
 //
-// Menu used to be sixteen full-width rows, each an icon, a title, a two-line
-// blurb and a chevron. Rendered, it reached the eighth destination before
-// running off the screen, so half the app was behind a scroll with no hint it
-// was there. Two columns of tiles put most of it in view at once.
+// Menu's history, in three shapes: sixteen full-width blurbed rows (half the
+// app below the fold), then a 2-up grid of boxed tiles (denser, but a wall
+// of sixteen identical bordered boxes, the audit's "tile wall"), and now
+// rows grouped into ONE card per band. Rows in a card, not a card per row:
+// the same list physics Overview's MY MONEY card and Utang's people list
+// use, so Menu reads as a few short lists instead of a wall of buttons.
 //
-// The blurbs are gone, deliberately. Sixteen of them is a wall of text nobody
-// reads, and labels like Accounts, Goals, Recurring and Reports explain
-// themselves. Where a label does not, the fix is a better label rather than a
-// sentence underneath it.
+// Blurbs stay out for plain destinations (a label like Accounts explains
+// itself; where it does not, the fix is a better label). The optional
+// [detail] line exists for rows that carry STATE (Appearance: "Barako,
+// System") or a promise the label cannot make alone (Privacy receipt),
+// because that second line is information, not decoration.
 
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../typography.dart';
-import 'pressable_scale.dart';
 import 'salapify_icon.dart';
 
 class NavTile extends StatelessWidget {
@@ -24,47 +26,58 @@ class NavTile extends StatelessWidget {
   /// of letting it reach the silent fallback marker.
   final String icon;
   final String label;
+
+  /// A second line only when it carries state or a needed promise.
+  final String? detail;
   final VoidCallback onTap;
 
   // NOT const. build() reads Barako getters, and a const call site would let
-  // Element.updateChild skip build(), freezing the tile in the previous
+  // Element.updateChild skip build(), freezing the row in the previous
   // palette after a theme switch. Same rule as SalapifyGlyph and EmptyState.
   // ignore: prefer_const_constructors_in_immutables
   NavTile({
     super.key,
     required this.icon,
     required this.label,
+    this.detail,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PressableScale(
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.lg),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: Gap.lg,
-              horizontal: Gap.md,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Unboxed: a row of discs reads as a row of buttons, which is
-                // right for a single icon in a card and wrong for a grid where
-                // the CARD is already the button.
-                SalapifyGlyph(icon, size: 24, boxed: false),
-                const SizedBox(height: Gap.sm),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: AppText.label.w7.copyWith(height: 1.2),
+    return InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        // The Android tap floor. The padding alone leaves a one-line row a
+        // few pixels short of it, and the a11y suite measures Menu.
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.lg,
+            vertical: Gap.md,
+          ),
+          child: Row(
+            children: [
+              // Unboxed: a column of discs reads as a column of buttons,
+              // which is wrong when the ROW is already the button.
+              SalapifyGlyph(icon, size: IconSizes.inline, boxed: false),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(label, style: AppText.body.w7),
+                    if (detail != null) ...[
+                      const SizedBox(height: 2),
+                      Text(detail!, style: AppText.caption),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: Gap.sm),
+              Icon(salapifyIcon('forward'), size: 18, color: Barako.faint),
+            ],
           ),
         ),
       ),
@@ -72,29 +85,28 @@ class NavTile extends StatelessWidget {
   }
 }
 
-/// Lay tiles out two to a row.
-///
-/// A Wrap over a GridView on purpose. GridView wants a fixed childAspectRatio,
-/// which clips the label the moment someone turns the system font size up;
-/// Wrap lets every tile take the height its text actually needs. The rows stay
-/// even because each tile is given exactly half the width.
-class NavTileGrid extends StatelessWidget {
+/// One band of Menu: its rows in ONE card, hairline dividers between them.
+class NavBand extends StatelessWidget {
   final List<NavTile> tiles;
 
   // ignore: prefer_const_constructors_in_immutables
-  NavTileGrid({super.key, required this.tiles});
+  NavBand({super.key, required this.tiles});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, c) {
-        final width = (c.maxWidth - Gap.md) / 2;
-        return Wrap(
-          spacing: Gap.md,
-          runSpacing: Gap.md,
-          children: [for (final t in tiles) SizedBox(width: width, child: t)],
-        );
-      },
+    return Card(
+      margin: EdgeInsets.zero,
+      // Clipped so the first and last rows' ripples bend at the card's own
+      // corner instead of squaring past it (P1-5's rule).
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final (i, t) in tiles.indexed) ...[
+            if (i > 0) Divider(height: 1, color: Barako.border),
+            t,
+          ],
+        ],
+      ),
     );
   }
 }

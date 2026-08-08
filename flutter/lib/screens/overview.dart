@@ -273,7 +273,7 @@ class OverviewScreen extends StatelessWidget {
                 // roughly 530 logical pixels down a 800pt screen, right at the fold.
                 if (ritual.isPayday && !ritual.salaryLogged) ...[
                   _paydayCard(context, ritual, numberShows: cycle.show),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 // An URGENT check-in outranks the number.
                 //
@@ -286,11 +286,11 @@ class OverviewScreen extends StatelessWidget {
                 // right up until the coach grows a second urgent kind.
                 if (checkIn != null && checkIn['tone'] == 'urgent') ...[
                   _checkInCard(context, checkIn),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 if (cycle.show) ...[
                   _yourNumberCard(context, cycle, hidePace: checkInIsPayday),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ] else if (hasStarted && dues['daysLeft'] is int) ...[
                   // The countdown used to live ONLY inside Your Number, which
                   // hides whenever there is nothing positive to spend. So the
@@ -300,7 +300,7 @@ class OverviewScreen extends StatelessWidget {
                   // says how many days are left, and two countdowns on one screen
                   // is worse than none.
                   _daysToPaydayCard(dues),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 // What the committed money is actually FOR. The bar above says how
                 // much is spoken for; this says to whom. Both read the same
@@ -313,13 +313,13 @@ class OverviewScreen extends StatelessWidget {
                     formatDay: prettyDay,
                     committedShownAbove: committedShown,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 // The payday ritual once the salary IS logged: below the number it
                 // just refreshed, because at that point it reports rather than asks.
                 if (ritual.isPayday && ritual.salaryLogged) ...[
                   _paydayCard(context, ritual, numberShows: cycle.show),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 // A normal, positive or informational check-in, AFTER the number.
                 //
@@ -331,7 +331,7 @@ class OverviewScreen extends StatelessWidget {
                 // good news before reaching the figure they opened the app for.
                 if (checkIn != null && checkIn['tone'] != 'urgent') ...[
                   _checkInCard(context, checkIn),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                 ],
                 // The road ahead at a glance: the Sweldo Timeline's free
                 // window as a sparkline, with the tightest day named. Only
@@ -351,7 +351,7 @@ class OverviewScreen extends StatelessWidget {
                 if (!hasStarted) ...[
                   if (store.loadError == null) ...[
                     _welcomeCard(context),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Gap.lg),
                     // Offered to a brand new user too, and that is the whole
                     // point rather than an afterthought: someone who has
                     // logged nothing yet is exactly who a two minute lesson
@@ -369,174 +369,165 @@ class OverviewScreen extends StatelessWidget {
                     transactions: data['transactions'],
                     clock: clock,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
                   TreatCard(store: store, clock: clock),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.lg),
+                  // From here down is the TAIL: the lesson offer, the month,
+                  // what it is made of, and the whole picture. Borderless
+                  // tinted surfaces at a tighter rhythm, so the footer reads
+                  // as one quiet band instead of four more bordered
+                  // headlines competing with the money cards above (the
+                  // audit's Phase 3).
                   ..._nextLessonCard(context, now),
                   // Tappable: THIS MONTH is made of Activity's rows, so the
                   // card leads there. It was a dead surface between two
                   // tappable siblings, the last cards on Home that informed
                   // without leading anywhere.
-                  Card(
-                    child: Semantics(
-                      button: true,
-                      label: 'This month, open Activity',
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: onSwitchTab == null
-                            ? null
-                            : () => onSwitchTab!(Destination.history),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  Semantics(
+                    button: true,
+                    label: 'This month, open Activity',
+                    child: _tailCard(
+                      onTap: onSwitchTab == null
+                          ? null
+                          : () => onSwitchTab!(Destination.history),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Kicker('THIS MONTH'),
-                                  const Spacer(),
-                                  if (onSwitchTab != null)
-                                    ExcludeSemantics(
-                                      child: Icon(
-                                        salapifyIcon('forward'),
-                                        size: 18,
-                                        color: Barako.muted,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              // The ANSWER first, its two parts underneath. This was
-                              // three equal rows and a divider, which made the reader
-                              // do the subtraction with their eyes before learning
-                              // whether the month was up or down. The net is the only
-                              // figure most people want, so it gets the headline.
-                              Builder(
-                                builder: (context) {
-                                  final net = istmt['netIncome'] as double;
-                                  return Text(
-                                    // The sign is explicit on a gain. Without it a
-                                    // good month and a bad month look identical until
-                                    // you notice the minus.
-                                    '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                                    style: AppText.amountLg.w7
-                                        .tint(
-                                          net >= 0
-                                              ? Barako.primary
-                                              : Barako.warning,
-                                        )
-                                        .copyWith(fontFeatures: const []),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: Gap.md),
-                              StatPair(
-                                leftLabel: 'Money in',
-                                leftValue: formatMoney(
-                                  istmt['income'] as double,
+                              Kicker('THIS MONTH'),
+                              const Spacer(),
+                              if (onSwitchTab != null)
+                                ExcludeSemantics(
+                                  child: Icon(
+                                    salapifyIcon('forward'),
+                                    size: 18,
+                                    color: Barako.muted,
+                                  ),
                                 ),
-                                leftColor: Barako.primary,
-                                rightLabel: 'Money out',
-                                rightValue: formatMoney(
-                                  istmt['expenses'] as double,
-                                ),
-                              ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          // The ANSWER first, its two parts underneath. This was
+                          // three equal rows and a divider, which made the reader
+                          // do the subtraction with their eyes before learning
+                          // whether the month was up or down. The net is the only
+                          // figure most people want, so it gets the headline.
+                          Builder(
+                            builder: (context) {
+                              final net = istmt['netIncome'] as double;
+                              return Text(
+                                // The sign is explicit on a gain. Without it a
+                                // good month and a bad month look identical until
+                                // you notice the minus.
+                                '${net > 0 ? '+' : ''}${formatMoney(net)}',
+                                style: AppText.amountLg.w7
+                                    .tint(
+                                      net >= 0
+                                          ? Barako.primary
+                                          : Barako.warning,
+                                    )
+                                    .copyWith(fontFeatures: const []),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: Gap.md),
+                          StatPair(
+                            leftLabel: 'Money in',
+                            leftValue: formatMoney(istmt['income'] as double),
+                            leftColor: Barako.primary,
+                            rightLabel: 'Money out',
+                            rightValue: formatMoney(
+                              istmt['expenses'] as double,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: Gap.sm),
                   if (accounts.isNotEmpty) ...[
                     // Tappable for the same reason: the rows ARE accounts, so
                     // the card opens the Accounts screen.
-                    Card(
-                      child: Semantics(
-                        button: true,
-                        label: 'My money, open Accounts',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AccountsScreen(
-                                store: store,
-                                onOpenPayables: onOpenPayables,
-                              ),
+                    Semantics(
+                      button: true,
+                      label: 'My money, open Accounts',
+                      child: _tailCard(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AccountsScreen(
+                              store: store,
+                              onOpenPayables: onOpenPayables,
                             ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Row(
+                                Kicker('MY MONEY'),
+                                const Spacer(),
+                                ExcludeSemantics(
+                                  child: Icon(
+                                    salapifyIcon('forward'),
+                                    size: 18,
+                                    color: Barako.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // Flat rows with hairline separators, the same content
+                            // treatment as Utang's people list. Rows in a card, not
+                            // a card per row.
+                            for (final (i, a) in accounts.indexed) ...[
+                              if (i > 0)
+                                Divider(height: 1, color: Barako.border),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Kicker('MY MONEY'),
-                                    const Spacer(),
-                                    ExcludeSemantics(
-                                      child: Icon(
-                                        salapifyIcon('forward'),
-                                        size: 18,
-                                        color: Barako.muted,
+                                    Expanded(
+                                      child: Text(
+                                        a['name'] as String? ?? 'Account',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppText.bodyLg,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // A big balance scales down instead of
+                                    // overflowing the row on a narrow phone.
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          formatMoney(amount(a['balance'])),
+                                          style: AppText.amountRow.w6
+                                              .tint(Barako.textSecondary)
+                                              .copyWith(fontSize: 16),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
-                                // Flat rows with hairline separators, the same content
-                                // treatment as Utang's people list. Rows in a card, not
-                                // a card per row.
-                                for (final (i, a) in accounts.indexed) ...[
-                                  if (i > 0)
-                                    Divider(height: 1, color: Barako.border),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            a['name'] as String? ?? 'Account',
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppText.bodyLg,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        // A big balance scales down instead of
-                                        // overflowing the row on a narrow phone.
-                                        Flexible(
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerRight,
-                                            child: Text(
-                                              formatMoney(amount(a['balance'])),
-                                              style: AppText.amountRow.w6
-                                                  .tint(Barako.textSecondary)
-                                                  .copyWith(fontSize: 16),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Gap.sm),
                   ],
                   // The month, then what it is made of, then the whole picture.
                   // Net worth is the least urgent figure on Home and the slowest
                   // to change, so it reads as a footer rather than a headline.
-                  const SizedBox(height: 12),
-                  _netWorthHero(parts),
+                  _netWorthFooter(parts),
                 ],
               ],
             ),
@@ -667,7 +658,7 @@ class OverviewScreen extends StatelessWidget {
     final Widget card = Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.card),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -985,7 +976,7 @@ class OverviewScreen extends StatelessWidget {
             label: 'The road ahead. $caption',
             child: ExcludeSemantics(
               child: InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(Radii.card),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => CashFlowScreen(store: store),
@@ -1026,7 +1017,7 @@ class OverviewScreen extends StatelessWidget {
                                   ? Barako.warningStrong
                                   : Barako.textSecondary,
                             )
-                            .copyWith(fontSize: 12.5, height: 1.35),
+                            .copyWith(height: 1.35),
                       ),
                     ],
                   ),
@@ -1036,7 +1027,7 @@ class OverviewScreen extends StatelessWidget {
           ),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: Gap.lg),
     ];
   }
 
@@ -1107,7 +1098,7 @@ class OverviewScreen extends StatelessWidget {
         child: Card(
           color: Barako.surfaceRaised,
           child: InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Radii.card),
             onTap: onSwitchTab == null
                 ? null
                 : () => onSwitchTab!(Destination.insights),
@@ -1185,78 +1176,101 @@ class OverviewScreen extends StatelessWidget {
     );
   }
 
-  /// The dashboard hero. Now that the clutter moved to Menu, net worth is the
-  /// headline: raised surface, bigger figure, and a negative total reads in the
-  /// warning color so the sign lands instantly. Numbers come straight from the
-  /// golden-locked netWorthParts, this only restyles them.
-  Widget _netWorthHero(Map<String, dynamic> parts) {
+  /// The tail's closing row. Net worth is the least urgent figure on Home and
+  /// the slowest to change, so it wears the same quiet tinted surface as its
+  /// tail neighbours rather than a bordered card, let alone the raised hero
+  /// it once was (that surface belongs to Your Number now). Numbers come
+  /// straight from the golden-locked netWorthParts, this only restyles them.
+  Widget _netWorthFooter(Map<String, dynamic> parts) {
     final nw = parts['netWorth'] as double;
-    // A supporting card now, not the hero. It had the raised surface, 20 of
-    // padding and the biggest type on the screen, which crowned the figure
-    // that changes slowest and demands nothing. The hero surface moved to
-    // Your Number; this matches THIS MONTH, its neighbour in the tail.
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Kicker('NET WORTH'),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(nw),
-                maxLines: 1,
-                style: AppText.amountLg.w7
-                    .tint(nw < 0 ? Barako.text : Barako.primary)
-                    .copyWith(fontFeatures: const []),
-                // Colour: a negative net worth is honest, not an emergency. It
-                // stays in plain ink, not alarm red, so a user who owes more
-                // than they hold is not shamed by the biggest number on the
-                // screen. Red is reserved for urgent, time-bound things like
-                // an overdue utang.
-                //
-                // No tabular figures on this hero, deliberately, preserved from
-                // the original literal with fontFeatures empty: it is a lone
-                // number with no column to line up with. The StatPair below
-                // inherits Jakarta, which does have tnum, and that is where
-                // digit alignment actually matters.
-              ),
+    return _tailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Kicker('NET WORTH'),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoney(nw),
+              maxLines: 1,
+              style: AppText.amountLg.w7
+                  .tint(nw < 0 ? Barako.text : Barako.primary)
+                  .copyWith(fontFeatures: const []),
+              // Colour: a negative net worth is honest, not an emergency. It
+              // stays in plain ink, not alarm red, so a user who owes more
+              // than they hold is not shamed by the biggest number on the
+              // screen. Red is reserved for urgent, time-bound things like
+              // an overdue utang.
+              //
+              // No tabular figures on this hero, deliberately, preserved from
+              // the original literal with fontFeatures empty: it is a lone
+              // number with no column to line up with. The StatPair below
+              // inherits Jakarta, which does have tnum, and that is where
+              // digit alignment actually matters.
             ),
-            const SizedBox(height: Gap.md),
-            // Net worth is one number made of two, so both halves get a name
-            // and a column. This was a single 13pt muted caption reading
-            // "Assets X  ·  Owed Y": present, and unreadable, because a middle
-            // dot is not a column and grey is not a label.
-            StatPair(
-              leftLabel: 'Total assets',
-              leftValue: formatMoney(parts['assets'] as double),
-              leftColor: Barako.primary,
-              rightLabel: 'Total owed',
-              rightValue: formatMoney(parts['liabilities'] as double),
-              // Warning ONLY when something is actually owed. Owing nothing is
-              // good news, and rendering "₱0" in the alarm colour makes the
-              // best possible state look like a problem. Same rule the
-              // headline above already follows: colour is reserved for a fact
-              // that warrants attention, not for a category of number.
-              rightColor: (parts['liabilities'] as double) > 0
-                  ? Barako.warning
-                  : Barako.text,
+          ),
+          const SizedBox(height: Gap.md),
+          // Net worth is one number made of two, so both halves get a name
+          // and a column. This was a single 13pt muted caption reading
+          // "Assets X  ·  Owed Y": present, and unreadable, because a middle
+          // dot is not a column and grey is not a label.
+          StatPair(
+            leftLabel: 'Total assets',
+            leftValue: formatMoney(parts['assets'] as double),
+            leftColor: Barako.primary,
+            rightLabel: 'Total owed',
+            rightValue: formatMoney(parts['liabilities'] as double),
+            // Warning ONLY when something is actually owed. Owing nothing is
+            // good news, and rendering "₱0" in the alarm colour makes the
+            // best possible state look like a problem. Same rule the
+            // headline above already follows: colour is reserved for a fact
+            // that warrants attention, not for a category of number.
+            rightColor: (parts['liabilities'] as double) > 0
+                ? Barako.warning
+                : Barako.text,
+          ),
+          if (nw < 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
+              style: AppText.small.copyWith(height: 1.4),
             ),
-            if (nw < 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
-                style: AppText.small.copyWith(height: 1.4),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
+
+  /// One surface of the tail band: borderless, tinted, the card radius.
+  ///
+  /// De-bordered on purpose (the audit's Phase 3): the tail is a footer, and
+  /// four hairline boxes at the bottom of Home competed with the bordered
+  /// money cards above them. The tint is ink at the wash level rather than
+  /// the card fill, because a white card without its border disappears
+  /// entirely on light palettes; a 6 percent ink wash reads as a soft panel
+  /// on every one of the sixteen.
+  ///
+  /// The InkWell takes the surface's own radius, so the tap ripple clips at
+  /// the corner the eye already sees (P1-5). Callers keep their own
+  /// Semantics wrappers: THIS MONTH lets its figures announce themselves,
+  /// the lesson row replaces its content with one spoken sentence, and this
+  /// helper has no business deciding which is right.
+  Widget _tailCard({
+    required Widget child,
+    VoidCallback? onTap,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(Gap.lg),
+  }) => Material(
+    color: Barako.text.withValues(alpha: BarakoAlpha.wash),
+    borderRadius: const BorderRadius.all(Radius.circular(Radii.card)),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(Radii.card),
+      onTap: onTap,
+      child: Padding(padding: padding, child: child),
+    ),
+  );
 
   /// First-run card, shown in place of MY MONEY and THIS MONTH when there is no
   /// data yet. It leads with a real first action for a brand-new user (log, or
@@ -1270,7 +1284,7 @@ class OverviewScreen extends StatelessWidget {
   /// A list rather than a widget so "there is nothing to offer" costs no
   /// SizedBox and no spacing, the same spread pattern _timelineCard uses.
   ///
-  /// Deliberately quiet: a bordered row, not a coloured hero. It is an
+  /// Deliberately quiet: a tinted tail row, not a coloured hero. It is an
   /// offer, and an offer that shouts competes with the money the user
   /// actually opened the app for. It disappears entirely once every core
   /// lesson is finished, rather than degrading into a card that congratulates
@@ -1283,60 +1297,51 @@ class OverviewScreen extends StatelessWidget {
     );
     if (lesson == null) return const [];
     return [
-      Card(
-        child: Semantics(
-          button: true,
-          label:
-              'Next money lesson, ${lesson.title}, '
-              '${lesson.minutes} minutes. Opens Money courses.',
-          child: ExcludeSemantics(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => LearnScreen(
-                    store: store,
-                    focusId: lesson.id,
-                    onSwitchTab: onSwitchTab,
+      Semantics(
+        button: true,
+        label:
+            'Next money lesson, ${lesson.title}, '
+            '${lesson.minutes} minutes. Opens Money courses.',
+        child: ExcludeSemantics(
+          child: _tailCard(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => LearnScreen(
+                  store: store,
+                  focusId: lesson.id,
+                  onSwitchTab: onSwitchTab,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(
+                  salapifyIcon('spotlight'),
+                  size: 18,
+                  color: Barako.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${lesson.minutes} MIN LESSON',
+                        style: Barako.kickerStyle,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(lesson.title, style: AppText.label.w7),
+                    ],
                   ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Icon(
-                      salapifyIcon('spotlight'),
-                      size: 18,
-                      color: Barako.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${lesson.minutes} MIN LESSON',
-                            style: Barako.kickerStyle,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(lesson.title, style: AppText.label.w7),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      salapifyIcon('forward'),
-                      size: 18,
-                      color: Barako.faint,
-                    ),
-                  ],
-                ),
-              ),
+                Icon(salapifyIcon('forward'), size: 18, color: Barako.faint),
+              ],
             ),
           ),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: Gap.sm),
     ];
   }
 
@@ -1452,14 +1457,14 @@ class OverviewScreen extends StatelessWidget {
   ) => PressableScale(
     child: Material(
       color: Barako.background,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Radii.control),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.control),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Radii.control),
             border: Border.all(color: Barako.border),
           ),
           child: Row(

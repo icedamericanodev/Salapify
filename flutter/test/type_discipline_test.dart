@@ -66,7 +66,7 @@ const Map<String, int> _baseline = {
   'lib/screens/new_phone_day.dart': 1,
   'lib/screens/notes.dart': 2,
   'lib/screens/onboarding.dart': 8,
-  'lib/screens/overview.dart': 13,
+  'lib/screens/overview.dart': 12,
   'lib/screens/paluwagan.dart': 2,
   'lib/screens/pan.dart': 4,
   'lib/screens/path_screen.dart': 1,
@@ -94,14 +94,38 @@ const Map<String, int> _baseline = {
 /// one of these sizes is still drift (it should be an AppText role), but it
 /// is COUNTED drift, held by the baseline above.
 final Set<double> _ladder = {
-  10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 30, 34, 42,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  20,
+  22,
+  24,
+  28,
+  30,
+  34,
+  42,
 };
 
 /// Off-ladder sizes that already shipped when the ratchet was installed,
 /// frozen. The conversion phases purge these; nothing may join them. If a
 /// value disappears from the tree, delete it here in the same change.
 final Set<double> _legacyOffLadder = {
-  8.5, 9, 10.5, 11.5, 12.5, 13.5, 14.5, 19, 26, 27,
+  8.5,
+  9,
+  10.5,
+  11.5,
+  12.5,
+  13.5,
+  14.5,
+  19,
+  26,
+  27,
 };
 
 final RegExp _rawFontSize = RegExp(r'fontSize:\s*([0-9]+(?:\.[0-9]+)?)');
@@ -136,21 +160,24 @@ void main() {
     expect(offenders, isEmpty, reason: offenders.join('\n'));
   });
 
-  test('a converted file lowers its baseline row, so the ratchet stays tight', () {
-    final slack = <String>[];
-    _baseline.forEach((path, allowed) {
-      final n = counts[path] ?? 0;
-      if (n < allowed) {
-        slack.add(
-          '$path now has $n raw fontSize literals but the baseline still '
-          'says $allowed. Lower (or remove) its row in '
-          'test/type_discipline_test.dart so the freed slack cannot be '
-          'spent on new drift.',
-        );
-      }
-    });
-    expect(slack, isEmpty, reason: slack.join('\n'));
-  });
+  test(
+    'a converted file lowers its baseline row, so the ratchet stays tight',
+    () {
+      final slack = <String>[];
+      _baseline.forEach((path, allowed) {
+        final n = counts[path] ?? 0;
+        if (n < allowed) {
+          slack.add(
+            '$path now has $n raw fontSize literals but the baseline still '
+            'says $allowed. Lower (or remove) its row in '
+            'test/type_discipline_test.dart so the freed slack cannot be '
+            'spent on new drift.',
+          );
+        }
+      });
+      expect(slack, isEmpty, reason: slack.join('\n'));
+    },
+  );
 
   test('no new off-ladder size value appears anywhere', () {
     final offenders = <String>[];
