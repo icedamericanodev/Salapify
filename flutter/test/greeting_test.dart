@@ -28,22 +28,31 @@ void main() {
       }
     });
 
-    test('a non-string from a hand-edited backup is ignored, not crashed on', () {
-      expect(normalizeDisplayName(42), isNull);
-      expect(normalizeDisplayName(['Ana']), isNull);
-      expect(normalizeDisplayName({'name': 'Ana'}), isNull);
-      expect(normalizeDisplayName(null), isNull);
-    });
+    test(
+      'a non-string from a hand-edited backup is ignored, not crashed on',
+      () {
+        expect(normalizeDisplayName(42), isNull);
+        expect(normalizeDisplayName(['Ana']), isNull);
+        expect(normalizeDisplayName({'name': 'Ana'}), isNull);
+        expect(normalizeDisplayName(null), isNull);
+      },
+    );
   });
 
   group('it uses the name when there is one', () {
     test('the name is greeted by part of day', () {
-      expect(greetingFor(DateTime(2026, 7, 26, 9), name: 'Ana'),
-          'Good morning, Ana');
-      expect(greetingFor(DateTime(2026, 7, 26, 14), name: 'Ana'),
-          'Good afternoon, Ana');
-      expect(greetingFor(DateTime(2026, 7, 26, 20), name: 'Ana'),
-          'Good evening, Ana');
+      expect(
+        greetingFor(DateTime(2026, 7, 26, 9), name: 'Ana'),
+        'Good morning, Ana',
+      );
+      expect(
+        greetingFor(DateTime(2026, 7, 26, 14), name: 'Ana'),
+        'Good afternoon, Ana',
+      );
+      expect(
+        greetingFor(DateTime(2026, 7, 26, 20), name: 'Ana'),
+        'Good evening, Ana',
+      );
     });
 
     test('surrounding and doubled spaces are tidied', () {
@@ -58,16 +67,21 @@ void main() {
       final huge = 'A' * 4000;
       final got = normalizeDisplayName(huge)!;
       expect(got.length, displayNameMaxLength);
-      expect(greetingFor(DateTime(2026, 7, 26, 9), name: huge).length,
-          lessThan(60));
+      expect(
+        greetingFor(DateTime(2026, 7, 26, 9), name: huge).length,
+        lessThan(60),
+      );
     });
 
-    test('a name that is all emoji survives, because that is the user\'s call', () {
-      // Category and treat icons are user data and stay emoji by house rule.
-      // The same respect applies here: if someone wants to be a star, the app
-      // does not get an opinion.
-      expect(normalizeDisplayName('⭐'), '⭐');
-    });
+    test(
+      'a name that is all emoji survives, because that is the user\'s call',
+      () {
+        // Category and treat icons are user data and stay emoji by house rule.
+        // The same respect applies here: if someone wants to be a star, the app
+        // does not get an opinion.
+        expect(normalizeDisplayName('⭐'), '⭐');
+      },
+    );
   });
 
   group('the clock boundaries', () {

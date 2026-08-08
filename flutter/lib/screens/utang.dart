@@ -387,10 +387,7 @@ class _PersonRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    person['name'] as String,
-                    style: AppText.bodyLg.w6,
-                  ),
+                  Text(person['name'] as String, style: AppText.bodyLg.w6),
                   const SizedBox(height: 2),
                   Text(
                     '$sub · $count ${count == 1 ? 'entry' : 'entries'}',
@@ -753,10 +750,7 @@ class _PersonSheetState extends State<PersonSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  widget.name,
-                  style: AppText.title,
-                ),
+                Text(widget.name, style: AppText.title),
                 Text(
                   items.isEmpty
                       ? 'All settled. Thank you, ${widget.name}!'
@@ -770,10 +764,7 @@ class _PersonSheetState extends State<PersonSheet> {
                 for (final r in items) _utangCard(r),
                 if (error != null) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    error!,
-                    style: AppText.small.tint(Barako.warning),
-                  ),
+                  Text(error!, style: AppText.small.tint(Barako.warning)),
                 ],
                 if (settled.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -997,10 +988,7 @@ class _PersonSheetState extends State<PersonSheet> {
             if (note.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  note,
-                  style: AppText.caption.tint(Barako.faint),
-                ),
+                child: Text(note, style: AppText.caption.tint(Barako.faint)),
               ),
             // The payments used to be listed HERE as well as under PAYMENT
             // HISTORY, so every payment appeared twice on one sheet, once
@@ -1273,7 +1261,11 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
                     ? null
                     : IconButton(
                         tooltip: 'Clear due date',
-                        icon: Icon(salapifyIcon('close'), size: 18, color: Barako.muted),
+                        icon: Icon(
+                          salapifyIcon('close'),
+                          size: 18,
+                          color: Barako.muted,
+                        ),
                         onPressed: () => setState(() => dueController.clear()),
                       ),
               ),
@@ -1353,10 +1345,7 @@ class _AddUtangSheetState extends State<AddUtangSheet> {
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(
-                error!,
-                style: AppText.small.tint(Barako.warning),
-              ),
+              Text(error!, style: AppText.small.tint(Barako.warning)),
             ],
             const SizedBox(height: 16),
             SizedBox(

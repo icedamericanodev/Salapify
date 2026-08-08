@@ -113,11 +113,7 @@ Widget _row(String label, String big, String body) {
         const SizedBox(height: 2),
         Text(
           'Groceries   ₱1,111.11',
-          style: TextStyle(
-            fontFamily: body,
-            fontSize: 15,
-            color: Barako.muted,
-          ),
+          style: TextStyle(fontFamily: body, fontSize: 15, color: Barako.muted),
         ),
       ],
     ),
@@ -153,11 +149,7 @@ void main() {
                   'Roboto',
                   'Roboto',
                 ),
-                _row(
-                  'D. SYSTEM NUMBERS, JAKARTA TEXT',
-                  'Roboto',
-                  'Jakarta',
-                ),
+                _row('D. SYSTEM NUMBERS, JAKARTA TEXT', 'Roboto', 'Jakarta'),
               ],
             ),
           ),

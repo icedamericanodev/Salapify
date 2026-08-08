@@ -15,8 +15,9 @@ List _accounts(SalapifyStore s) => s.data['accounts'] as List;
 List _txs(SalapifyStore s) => s.data['transactions'] as List;
 
 void main() {
-  testWidgets('add an account, adjust its balance, then delete it',
-      (tester) async {
+  testWidgets('add an account, adjust its balance, then delete it', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final store = SalapifyStore();
     await store.load();
@@ -64,11 +65,14 @@ void main() {
 
     expect((_accounts(store).first as Map)['balance'], 6000.0);
     expect(
-        _txs(store).any((t) =>
+      _txs(store).any(
+        (t) =>
             t is Map &&
             t['type'] == 'adjustment' &&
-            t['label'] == 'Balance adjustment'),
-        isTrue);
+            t['label'] == 'Balance adjustment',
+      ),
+      isTrue,
+    );
 
     // Delete.
     await tester.tap(find.text('GCash'));
@@ -85,8 +89,9 @@ void main() {
     expect(_txs(store).isNotEmpty, isTrue);
   });
 
-  testWidgets('an imported asset with a numeric id edits without crashing',
-      (tester) async {
+  testWidgets('an imported asset with a numeric id edits without crashing', (
+    tester,
+  ) async {
     // Regression: assets were not covered by the id-hardening, so a numeric id
     // crashed the edit on the `as String` cast. ensureEntityIds now normalizes
     // asset ids on load, and the screen guards the cast.

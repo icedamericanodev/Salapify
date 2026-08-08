@@ -319,7 +319,11 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (needsPro && !_pro) ...[
-                      Icon(salapifyIcon('locked'), size: 13, color: Barako.faint),
+                      Icon(
+                        salapifyIcon('locked'),
+                        size: 13,
+                        color: Barako.faint,
+                      ),
                       const SizedBox(width: 4),
                     ],
                     Text(label),
@@ -685,9 +689,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(head, style: AppText.subtitle.w8),
-                ),
+                Expanded(child: Text(head, style: AppText.subtitle.w8)),
               ],
             ),
             const SizedBox(height: 8),
@@ -801,7 +803,9 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               Icon(
                 isScenario
                     ? salapifyIcon('sparkle')
-                    : (isIn ? salapifyIcon('incoming') : salapifyIcon('outgoing')),
+                    : (isIn
+                          ? salapifyIcon('incoming')
+                          : salapifyIcon('outgoing')),
                 size: 18,
                 color: color,
               ),
@@ -843,7 +847,9 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               const SizedBox(width: 8),
               Text(
                 '${isIn ? '+' : '-'}${formatMoneyText(amount)}',
-                style: AppText.amountRow.w8.tint(color).copyWith(fontSize: 14.5),
+                style: AppText.amountRow.w8
+                    .tint(color)
+                    .copyWith(fontSize: 14.5),
               ),
             ],
           ),

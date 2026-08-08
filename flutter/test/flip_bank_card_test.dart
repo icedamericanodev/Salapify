@@ -341,11 +341,7 @@ void main() {
   });
 
   testWidgets('reduced motion still flips both ways', (tester) async {
-    await _pump(
-      tester,
-      _Host((f, on) => _savings(f, on)),
-      reduceMotion: true,
-    );
+    await _pump(tester, _Host((f, on) => _savings(f, on)), reduceMotion: true);
     await tester.tap(find.byType(FlipBankCard));
     await tester.pumpAndSettle();
     expect(find.text('NUMBER'), findsOneWidget);

@@ -209,7 +209,7 @@ void main() {
       // one screen is worse than none, because the reader has to work out
       // whether they agree.
       await _pumpHome(tester, await _seed(_cashOnly(50000)));
-      expect(find.text('YOUR NUMBER'), findsOneWidget);
+      expect(find.text('SAFE TO SPEND'), findsOneWidget);
       expect(
         find.text('DAYS TO PAYDAY'),
         findsNothing,

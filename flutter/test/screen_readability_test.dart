@@ -395,10 +395,16 @@ void main() {
     'Courses': (s) => LearnScreen(store: s),
     'Appearance': (s) => AppearanceScreen(store: s),
     'Accounts': (s) => AccountsScreen(store: s),
-    'Account detail': (s) =>
-        AccountDetailScreen(store: s, id: 'bpi', accountStore: AccountStore.accounts),
-    'Card detail': (s) =>
-        AccountDetailScreen(store: s, id: 'card', accountStore: AccountStore.debts),
+    'Account detail': (s) => AccountDetailScreen(
+      store: s,
+      id: 'bpi',
+      accountStore: AccountStore.accounts,
+    ),
+    'Card detail': (s) => AccountDetailScreen(
+      store: s,
+      id: 'card',
+      accountStore: AccountStore.debts,
+    ),
     'Categories': (s) => CategoriesScreen(store: s),
     // Reports and Debts were missing for this file's whole life, and both
     // carry f2.88's rounding fix, so two of the four screens that change
@@ -419,7 +425,7 @@ void main() {
     'Search': (s) => SearchScreen(store: s),
     'Cash flow': (s) => CashFlowScreen(store: s),
     'Paluwagan': (s) => PaluwaganScreen(store: s),
-    'Tools': (s) => ToolsScreen(store: s),
+    'Calculators': (s) => ToolsScreen(store: s),
     'Treats': (s) => TreatsScreen(store: s),
     'Ask Pan': (s) => PanScreen(store: s),
     'Payday': (s) => PaydayScreen(store: s),

@@ -2,7 +2,7 @@
 // second stack of bordered cards.
 //
 // Phase 3 of the 2026-08-07 design audit de-bordered the tail (the lesson
-// offer, THIS MONTH, MY MONEY, NET WORTH) because four hairline boxes at the
+// offer, THIS MONTH, ACCOUNTS, NET WORTH) because four hairline boxes at the
 // bottom of Home competed with the money cards above them. A regression here
 // is silent: wrapping one of these back in a Card renders perfectly and
 // passes every money test, it just quietly re-clutters the front page. So
@@ -60,7 +60,7 @@ void main() {
     // The did-anything-happen half: every tail row is actually on screen.
     // Without this, the de-bordered assertions below would pass hardest if
     // the tail were simply deleted.
-    for (final kicker in ['THIS MONTH', 'MY MONEY', 'NET WORTH']) {
+    for (final kicker in ['THIS MONTH', 'ACCOUNTS', 'NET WORTH']) {
       expect(find.text(kicker), findsOneWidget, reason: '$kicker missing');
       expect(
         find.ancestor(of: find.text(kicker), matching: find.byType(Card)),

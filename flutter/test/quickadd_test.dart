@@ -9,12 +9,30 @@ import 'package:salapify/money/quickadd.dart';
 void main() {
   group('recentLabels', () {
     final txs = [
-      {'type': 'expense', 'label': 'Groceries', 'date': '2026-07-01', 'accountId': 'a'},
-      {'type': 'expense', 'label': 'Load', 'date': '2026-07-05', 'accountId': 'a'},
+      {
+        'type': 'expense',
+        'label': 'Groceries',
+        'date': '2026-07-01',
+        'accountId': 'a',
+      },
+      {
+        'type': 'expense',
+        'label': 'Load',
+        'date': '2026-07-05',
+        'accountId': 'a',
+      },
       {'type': 'income', 'label': 'Sweldo', 'date': '2026-07-04'},
-      {'type': 'expense', 'label': 'groceries', 'date': '2026-07-06'}, // dup, newer
+      {
+        'type': 'expense',
+        'label': 'groceries',
+        'date': '2026-07-06',
+      }, // dup, newer
       {'type': 'expense', 'label': '', 'date': '2026-07-07'}, // blank, skipped
-      {'type': 'expense', 'label': 'Expense', 'date': '2026-07-08'}, // fallback, skipped
+      {
+        'type': 'expense',
+        'label': 'Expense',
+        'date': '2026-07-08',
+      }, // fallback, skipped
     ];
 
     test('newest first, distinct, filters blanks and fallbacks', () {
@@ -31,7 +49,11 @@ void main() {
     test('honors the limit', () {
       final many = [
         for (var i = 0; i < 10; i++)
-          {'type': 'expense', 'label': 'L$i', 'date': '2026-07-${(i + 1).toString().padLeft(2, '0')}'},
+          {
+            'type': 'expense',
+            'label': 'L$i',
+            'date': '2026-07-${(i + 1).toString().padLeft(2, '0')}',
+          },
       ];
       expect(recentLabels(many, 'expense', limit: 3).length, 3);
     });

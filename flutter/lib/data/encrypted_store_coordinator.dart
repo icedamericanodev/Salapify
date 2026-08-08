@@ -65,9 +65,9 @@ class StorageHealth {
   /// encrypted store could not be built, so it fell back to the B1 plaintext
   /// store). Honest: this is plaintext.
   const StorageHealth.plaintext()
-      : encrypted = false,
-        migratedThisRun = false,
-        engineLabel = 'Plaintext';
+    : encrypted = false,
+      migratedThisRun = false,
+      engineLabel = 'Plaintext';
 }
 
 class EncryptedStoreCoordinator implements LedgerRepository {
@@ -110,14 +110,14 @@ class EncryptedStoreCoordinator implements LedgerRepository {
   }
 
   StorageHealth get health => StorageHealth(
-        encrypted: lastSource == StorageEngine.encrypted,
-        migratedThisRun: migratedThisRun,
-        engineLabel: lastSource == StorageEngine.encrypted
-            ? 'Encrypted'
-            : (lastSource == StorageEngine.empty
-                ? 'Encrypted'
-                : 'Plaintext (fallback)'),
-      );
+    encrypted: lastSource == StorageEngine.encrypted,
+    migratedThisRun: migratedThisRun,
+    engineLabel: lastSource == StorageEngine.encrypted
+        ? 'Encrypted'
+        : (lastSource == StorageEngine.empty
+              ? 'Encrypted'
+              : 'Plaintext (fallback)'),
+  );
 
   bool _looksLikeLedger(String? s) {
     if (s == null || s.isEmpty) return false;

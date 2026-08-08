@@ -29,28 +29,36 @@ class _FakeAuth implements LockAuthenticator {
 }
 
 Future<SalapifyStore> _store({required bool appLock}) async {
-  SharedPreferences.setMockInitialValues(appLock
-      ? {
-          'salapify_data_v2': jsonEncode({
-            'settings': {'appLock': true},
-          }),
-        }
-      : {});
+  SharedPreferences.setMockInitialValues(
+    appLock
+        ? {
+            'salapify_data_v2': jsonEncode({
+              'settings': {'appLock': true},
+            }),
+          }
+        : {},
+  );
   final store = SalapifyStore();
   await store.load();
   return store;
 }
 
-Future<void> _pump(WidgetTester tester, SalapifyStore store, _FakeAuth auth) async {
+Future<void> _pump(
+  WidgetTester tester,
+  SalapifyStore store,
+  _FakeAuth auth,
+) async {
   Barako.currentTheme = themeForKey('barako');
   Barako.current = Barako.currentTheme.resolve(Brightness.dark);
-  await tester.pumpWidget(MaterialApp(
-    home: LockGate(
-      store: store,
-      authenticator: auth,
-      child: const Scaffold(body: Center(child: Text('SECRET'))),
+  await tester.pumpWidget(
+    MaterialApp(
+      home: LockGate(
+        store: store,
+        authenticator: auth,
+        child: const Scaffold(body: Center(child: Text('SECRET'))),
+      ),
     ),
-  ));
+  );
   // The lock prompt is scheduled in a post-frame callback and its biometric
   // check resolves across a few microtask hops; pump a handful of times so the
   // whole async unlock chain completes before we assert.
@@ -70,8 +78,9 @@ void main() {
     expect(auth.authCalls, 0);
   });
 
-  testWidgets('on: a successful biometric unlock clears the overlay',
-      (tester) async {
+  testWidgets('on: a successful biometric unlock clears the overlay', (
+    tester,
+  ) async {
     final store = await _store(appLock: true);
     final auth = _FakeAuth(can: true, auth: true);
     await _pump(tester, store, auth);
@@ -80,8 +89,9 @@ void main() {
     expect(find.text('Salapify is locked'), findsNothing);
   });
 
-  testWidgets('on with no enrolled biometrics: the lock disables itself',
-      (tester) async {
+  testWidgets('on with no enrolled biometrics: the lock disables itself', (
+    tester,
+  ) async {
     final store = await _store(appLock: true);
     final auth = _FakeAuth(can: false);
     await _pump(tester, store, auth);
@@ -92,8 +102,9 @@ void main() {
     expect(find.text('Salapify is locked'), findsNothing);
   });
 
-  testWidgets('on with a failed unlock: stays locked with a retry',
-      (tester) async {
+  testWidgets('on with a failed unlock: stays locked with a retry', (
+    tester,
+  ) async {
     final store = await _store(appLock: true);
     final auth = _FakeAuth(can: true, auth: false);
     await _pump(tester, store, auth);
@@ -105,26 +116,28 @@ void main() {
     expect((store.data['settings'] as Map)['appLock'], true);
   });
 
-  testWidgets('backgrounding covers the app; a quick return does not re-prompt',
-      (tester) async {
-    final store = await _store(appLock: true);
-    final auth = _FakeAuth(can: true, auth: true);
-    await _pump(tester, store, auth);
-    // Unlocked after the initial successful auth, so no overlay.
-    expect(find.text('Salapify is locked'), findsNothing);
-    expect(auth.authCalls, 1);
+  testWidgets(
+    'backgrounding covers the app; a quick return does not re-prompt',
+    (tester) async {
+      final store = await _store(appLock: true);
+      final auth = _FakeAuth(can: true, auth: true);
+      await _pump(tester, store, auth);
+      // Unlocked after the initial successful auth, so no overlay.
+      expect(find.text('Salapify is locked'), findsNothing);
+      expect(auth.authCalls, 1);
 
-    // Background: the cover appears so the recents thumbnail hides the money.
-    // (inactive is the valid first step away from resumed; the handler treats
-    // inactive/paused/hidden alike.)
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
-    expect(find.text('Salapify is locked'), findsOneWidget);
+      // Background: the cover appears so the recents thumbnail hides the money.
+      // (inactive is the valid first step away from resumed; the handler treats
+      // inactive/paused/hidden alike.)
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(find.text('Salapify is locked'), findsOneWidget);
 
-    // Return within the grace window: the cover lifts with no new prompt.
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
-    expect(find.text('Salapify is locked'), findsNothing);
-    expect(auth.authCalls, 1);
-  });
+      // Return within the grace window: the cover lifts with no new prompt.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.text('Salapify is locked'), findsNothing);
+      expect(auth.authCalls, 1);
+    },
+  );
 }

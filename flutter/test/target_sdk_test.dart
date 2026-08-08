@@ -26,7 +26,9 @@ void main() {
   final manifest = File(
     'android/app/src/main/AndroidManifest.xml',
   ).readAsStringSync();
-  final notifications = File('lib/services/notifications.dart').readAsStringSync();
+  final notifications = File(
+    'lib/services/notifications.dart',
+  ).readAsStringSync();
 
   group('the app targets Android 16 explicitly', () {
     test('targetSdk is the literal 36, not the moving Flutter default', () {

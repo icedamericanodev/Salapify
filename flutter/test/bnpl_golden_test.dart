@@ -16,9 +16,9 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/bnpl_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/bnpl_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   test('bnplCost matches the RN engine on every vector', () {
     for (final c in (raw['cases'] as List).cast<Map<String, dynamic>>()) {
@@ -34,8 +34,11 @@ void main() {
       for (final key in ['monthlyRate', 'annualRate']) {
         final got = (result.remove(key) as double?) ?? 0;
         final want = (expected.remove(key) as double?) ?? 0;
-        expect(got, closeTo(want, (want.abs() + 1) * 1e-9),
-            reason: '${c['name']}: $key');
+        expect(
+          got,
+          closeTo(want, (want.abs() + 1) * 1e-9),
+          reason: '${c['name']}: $key',
+        );
       }
       expect(result, expected, reason: c['name'] as String);
     }

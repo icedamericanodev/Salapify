@@ -180,10 +180,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'I also earn a salary',
-                            style: AppText.label.w7,
-                          ),
+                          Text('I also earn a salary', style: AppText.label.w7),
                           Text(
                             'Mixed income. The 250,000 tax-free part is used by your salary, so the whole business income is taxed.',
                             style: AppText.caption,
@@ -478,10 +475,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: EdgeInsets.zero,
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                  title: Text(
-                    'Show the calculation',
-                    style: AppText.small.w6,
-                  ),
+                  title: Text('Show the calculation', style: AppText.small.w6),
                   children: rows,
                 ),
               )

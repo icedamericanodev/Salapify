@@ -84,7 +84,12 @@ void main() {
         'settings': {'onboarded': true},
         // One debt so the debts section, and its note, render.
         'debts': [
-          {'id': 'd1', 'name': 'Credit Card', 'type': 'card', 'remaining': 5000},
+          {
+            'id': 'd1',
+            'name': 'Credit Card',
+            'type': 'card',
+            'remaining': 5000,
+          },
         ],
       }),
     });

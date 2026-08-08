@@ -18,9 +18,9 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-          File('test/goldens/surplus_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/surplus_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 16, 12);
   final fixtures = raw['fixtures'] as Map<String, dynamic>;
   final cases = raw['cases'] as Map<String, dynamic>;

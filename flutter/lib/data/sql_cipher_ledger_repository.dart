@@ -32,10 +32,11 @@ class SecureKeyStore {
   final FlutterSecureStorage _storage;
 
   SecureKeyStore([FlutterSecureStorage? storage])
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+          );
 
   /// The database passphrase, created on first use and stable thereafter.
   Future<String> getOrCreatePassphrase() async {
@@ -73,8 +74,8 @@ class SqlCipherLedgerRepository implements LedgerRepository {
   }) async {
     final dir =
         directoryPath ?? (await getApplicationDocumentsDirectory()).path;
-    final passphrase =
-        await (keyStore ?? SecureKeyStore()).getOrCreatePassphrase();
+    final passphrase = await (keyStore ?? SecureKeyStore())
+        .getOrCreatePassphrase();
     final db = await openDatabase(
       '$dir/$dbName',
       password: passphrase,
@@ -101,11 +102,10 @@ class SqlCipherLedgerRepository implements LedgerRepository {
   }
 
   Future<void> _put(String k, String v) async {
-    await _db.insert(
-      _table,
-      {'k': k, 'v': v},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert(_table, {
+      'k': k,
+      'v': v,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> _del(String k) async {

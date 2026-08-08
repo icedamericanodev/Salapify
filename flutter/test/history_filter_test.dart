@@ -41,7 +41,9 @@ Future<SalapifyStore> _seed() async {
 void main() {
   testWidgets('typing in History narrows the list', (tester) async {
     final store = await _seed();
-    await tester.pumpWidget(MaterialApp(home: tabHost(HistoryScreen(store: store))));
+    await tester.pumpWidget(
+      MaterialApp(home: tabHost(HistoryScreen(store: store))),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Jollibee lunch'), findsOneWidget);
@@ -53,11 +55,17 @@ void main() {
     expect(find.text('Grab home'), findsNothing);
   });
 
-  testWidgets('pushed History seeds the filter and shows a back app bar',
-      (tester) async {
+  testWidgets('pushed History seeds the filter and shows a back app bar', (
+    tester,
+  ) async {
     final store = await _seed();
-    await tester.pumpWidget(MaterialApp(
-        home: tabHost(HistoryScreen(store: store, initialQuery: 'grab', pushed: true))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: tabHost(
+          HistoryScreen(store: store, initialQuery: 'grab', pushed: true),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // Only the matching row shows, and the pushed app bar title is present.
@@ -66,25 +74,28 @@ void main() {
     expect(find.widgetWithText(AppBar, 'Activity'), findsOneWidget);
   });
 
-  testWidgets('swipe delete in pushed History rebuilds the list, no ghost',
-      (tester) async {
+  testWidgets('swipe delete in pushed History rebuilds the list, no ghost', (
+    tester,
+  ) async {
     // Regression: the pushed route is not under main's ListenableBuilder, so
     // without its own the dismissed row would stay in the tree (assert/ghost).
     final store = await _seed();
     await tester.pumpWidget(
-        MaterialApp(home: tabHost(HistoryScreen(store: store, pushed: true))));
+      MaterialApp(home: tabHost(HistoryScreen(store: store, pushed: true))),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Jollibee lunch'), findsOneWidget);
-    await tester.drag(
-        find.text('Jollibee lunch'), const Offset(-500, 0));
+    await tester.drag(find.text('Jollibee lunch'), const Offset(-500, 0));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Jollibee lunch'), findsNothing);
     expect(
-        (store.data['transactions'] as List)
-            .any((t) => t is Map && t['id'] == 't1'),
-        isFalse);
+      (store.data['transactions'] as List).any(
+        (t) => t is Map && t['id'] == 't1',
+      ),
+      isFalse,
+    );
   });
 }

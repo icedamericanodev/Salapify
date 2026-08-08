@@ -11,17 +11,18 @@ import 'package:salapify/screens/log_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Map<String, dynamic> seedBlob() => {
-      'schemaVersion': 12,
-      'accounts': [
-        {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
-        {'id': 'bank', 'name': 'Bank', 'kind': 'bank', 'balance': 5000},
-      ],
-      'transactions': <Map<String, dynamic>>[],
-    };
+  'schemaVersion': 12,
+  'accounts': [
+    {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000},
+    {'id': 'bank', 'name': 'Bank', 'kind': 'bank', 'balance': 5000},
+  ],
+  'transactions': <Map<String, dynamic>>[],
+};
 
 void main() {
-  testWidgets('logging an expense moves the account and this month',
-      (tester) async {
+  testWidgets('logging an expense moves the account and this month', (
+    tester,
+  ) async {
     // Tall viewport so the whole Home column (net worth, accounts, and the this
     // month income statement) renders; the lazy ListView would otherwise skip
     // building rows below the fold. Same pattern as reports_screen_test.
@@ -29,8 +30,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(seedBlob())});
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(seedBlob()),
+    });
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -73,10 +75,12 @@ void main() {
     expect(cash['balance'], 750);
   });
 
-  testWidgets('junk, non-finite, and comma-decimal amounts are refused',
-      (tester) async {
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(seedBlob())});
+  testWidgets('junk, non-finite, and comma-decimal amounts are refused', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(seedBlob()),
+    });
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -90,8 +94,11 @@ void main() {
       await tester.enterText(find.byType(TextField).at(0), bad);
       await tester.tap(find.text('Save entry'));
       await tester.pump();
-      expect((store.data['transactions'] as List), isEmpty,
-          reason: 'input "$bad" must not save');
+      expect(
+        (store.data['transactions'] as List),
+        isEmpty,
+        reason: 'input "$bad" must not save',
+      );
     }
 
     // And the sheet is not poisoned: a good amount still saves cleanly.
@@ -104,25 +111,39 @@ void main() {
     expect((fresh.data['transactions'] as List).length, 1);
   });
 
-  test('the store refuses a non-finite amount even if the UI missed it', () async {
-    SharedPreferences.setMockInitialValues(
-        {storageKey: jsonEncode(seedBlob())});
-    final store = SalapifyStore();
-    await store.load();
-    await expectLater(
-        store.addEntry({'id': 'x', 'type': 'expense', 'amount': double.infinity}),
-        throwsArgumentError);
-    expect((store.data['transactions'] as List), isEmpty);
-    // Later saves are NOT poisoned.
-    await store.addEntry(
-        {'id': 'y', 'type': 'expense', 'amount': 10, 'date': '2026-07-13'});
-    final fresh = SalapifyStore();
-    await fresh.load();
-    expect((fresh.data['transactions'] as List).length, 1);
-  });
+  test(
+    'the store refuses a non-finite amount even if the UI missed it',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode(seedBlob()),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await expectLater(
+        store.addEntry({
+          'id': 'x',
+          'type': 'expense',
+          'amount': double.infinity,
+        }),
+        throwsArgumentError,
+      );
+      expect((store.data['transactions'] as List), isEmpty);
+      // Later saves are NOT poisoned.
+      await store.addEntry({
+        'id': 'y',
+        'type': 'expense',
+        'amount': 10,
+        'date': '2026-07-13',
+      });
+      final fresh = SalapifyStore();
+      await fresh.load();
+      expect((fresh.data['transactions'] as List).length, 1);
+    },
+  );
 
-  testWidgets('after a failed read the Log button is gone and writes refuse',
-      (tester) async {
+  testWidgets('after a failed read the Log button is gone and writes refuse', (
+    tester,
+  ) async {
     // Unreadable stored data: the one state where saving would destroy it.
     SharedPreferences.setMockInitialValues({storageKey: 'not json at all {'});
     final store = SalapifyStore();
@@ -132,16 +153,22 @@ void main() {
     expect(store.loadError, isNotNull);
     expect(find.text('Log'), findsNothing);
     await expectLater(
-        store.addEntry(
-            {'id': 'x', 'type': 'expense', 'amount': 50, 'date': '2026-07-13'}),
-        throwsStateError);
+      store.addEntry({
+        'id': 'x',
+        'type': 'expense',
+        'amount': 50,
+        'date': '2026-07-13',
+      }),
+      throwsStateError,
+    );
     // The unreadable blob is still on disk, untouched.
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(storageKey), 'not json at all {');
   });
 
-  testWidgets('an account with a non-string id cannot crash the sheet',
-      (tester) async {
+  testWidgets('an account with a non-string id cannot crash the sheet', (
+    tester,
+  ) async {
     final blob = seedBlob();
     (blob['accounts'] as List).add({'id': 123, 'name': 'Weird', 'balance': 10});
     SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
@@ -186,8 +213,9 @@ void main() {
     expect(parseAmount(' '), isNull);
   });
 
-  testWidgets('importing a backup after a failed read restores writability',
-      (tester) async {
+  testWidgets('importing a backup after a failed read restores writability', (
+    tester,
+  ) async {
     // The recovery flow the failed-read message promises: import, then log.
     SharedPreferences.setMockInitialValues({storageKey: 'not json at all {'});
     final store = SalapifyStore();
@@ -196,11 +224,9 @@ void main() {
     expect(store.canWrite, isFalse);
     expect(find.text('Log'), findsNothing);
 
-    await store.importBackupText(jsonEncode({
-      'app': 'salapify',
-      'schemaVersion': 12,
-      'data': seedBlob(),
-    }));
+    await store.importBackupText(
+      jsonEncode({'app': 'salapify', 'schemaVersion': 12, 'data': seedBlob()}),
+    );
     await tester.pumpAndSettle();
 
     // Writable again: the error card is gone, the Log button is back, and a
@@ -208,8 +234,12 @@ void main() {
     expect(store.canWrite, isTrue);
     expect(store.loadError, isNull);
     expect(find.text('Log'), findsOneWidget);
-    await store.addEntry(
-        {'id': 'x', 'type': 'expense', 'amount': 50, 'date': '2026-07-13'});
+    await store.addEntry({
+      'id': 'x',
+      'type': 'expense',
+      'amount': 50,
+      'date': '2026-07-13',
+    });
     final fresh = SalapifyStore();
     await fresh.load();
     expect((fresh.data['transactions'] as List).length, 1);

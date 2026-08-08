@@ -82,10 +82,7 @@ void main() {
     final (a, b) = await _colourAcrossPalettes(
       tester,
       () => HistoryScreen(store: store),
-      (t) => t
-          .widget<Text>(find.text('Nothing here yet'))
-          .style
-          ?.color,
+      (t) => t.widget<Text>(find.text('Nothing here yet')).style?.color,
     );
     expect(a, isNotNull);
     expect(
@@ -106,10 +103,8 @@ void main() {
     final (a, b) = await _colourAcrossPalettes(
       tester,
       () => UtangScreen(store: store),
-      (t) => t
-          .widget<Text>(find.text('Nobody owes you right now'))
-          .style
-          ?.color,
+      (t) =>
+          t.widget<Text>(find.text('Nobody owes you right now')).style?.color,
     );
     expect(a, isNotNull);
     expect(b, isNot(a), reason: 'Utang empty state froze its palette');

@@ -13,12 +13,25 @@ import 'package:salapify/widgets/pan_mascot.dart';
 void main() {
   group('coach kind -> cup mood', () {
     test('money-at-risk kinds read worried', () {
-      for (final k in ['crunch', 'debtdue', 'overspend', 'payday', 'forecast']) {
+      for (final k in [
+        'crunch',
+        'debtdue',
+        'overspend',
+        'payday',
+        'forecast',
+      ]) {
         expect(panMoodForCoachKind(k), PanMood.worried, reason: k);
       }
     });
     test('gentle to-do kinds read nudge', () {
-      for (final k in ['utang', 'hot', 'logtoday', 'buffer', 'goal', 'lesson']) {
+      for (final k in [
+        'utang',
+        'hot',
+        'logtoday',
+        'buffer',
+        'goal',
+        'lesson',
+      ]) {
         expect(panMoodForCoachKind(k), PanMood.nudge, reason: k);
       }
     });
@@ -63,9 +76,13 @@ void main() {
     Barako.currentTheme = themeForKey('barako');
     Barako.current = Barako.currentTheme.resolve(Brightness.light);
     for (final m in PanMood.values) {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: Center(child: PanMascot(mood: m))),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(child: PanMascot(mood: m)),
+          ),
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(PanMascot), findsOneWidget);
       expect(tester.takeException(), isNull);

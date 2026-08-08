@@ -132,10 +132,7 @@ class RecurringScreen extends StatelessWidget {
       children: [
         Icon(salapifyIcon('recurringDate'), color: Barako.faint, size: 40),
         const SizedBox(height: 10),
-        Text(
-          'No recurring items yet',
-          style: AppText.bodyLg.w8,
-        ),
+        Text('No recurring items yet', style: AppText.bodyLg.w8),
         const SizedBox(height: 4),
         Text(
           'Add your rent, salary, or a subscription so it logs itself.',
@@ -184,7 +181,9 @@ class RecurringScreen extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    isIncome ? salapifyIcon('incoming') : salapifyIcon('outgoing'),
+                    isIncome
+                        ? salapifyIcon('incoming')
+                        : salapifyIcon('outgoing'),
                     color: isIncome ? Barako.primaryText : Barako.warningStrong,
                     size: 20,
                   ),
@@ -269,10 +268,7 @@ class _ProWall extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Unlimited recurring with Pro',
-            style: AppText.heading.w8,
-          ),
+          Text('Unlimited recurring with Pro', style: AppText.heading.w8),
           const SizedBox(height: 8),
           Text(
             'You have $freeLimit recurring items, the free limit. Pro makes '
@@ -509,10 +505,7 @@ class _RecurringSheetState extends State<_RecurringSheet> {
               ],
               if (_err != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _err!,
-                  style: AppText.small.tint(Barako.warningStrong),
-                ),
+                Text(_err!, style: AppText.small.tint(Barako.warningStrong)),
               ],
               const SizedBox(height: 22),
               Row(

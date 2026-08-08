@@ -18,18 +18,16 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/debts_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/debts_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final today = raw['today'] as String;
 
   for (final s in (raw['scenarios'] as List).cast<Map<String, dynamic>>()) {
-    test('debts scenario ${s['name']} matches the RN engine step by step',
-        () {
+    test('debts scenario ${s['name']} matches the RN engine step by step', () {
       var counter = 0;
       String genId(String prefix) => '${prefix}_g${counter++}';
-      var data =
-          jsonDecode(jsonEncode(raw['base'])) as Map<String, dynamic>;
+      var data = jsonDecode(jsonEncode(raw['base'])) as Map<String, dynamic>;
       for (final step in (s['steps'] as List).cast<Map<String, dynamic>>()) {
         final label = '${s['name']}: ${step['label']}';
         final args = (step['args'] as Map).cast<String, dynamic>();
@@ -44,20 +42,39 @@ void main() {
           case 'apply':
           case 'log':
             final r = step['op'] == 'apply'
-                ? applyDebtPayment(data, form, payFrom,
+                ? applyDebtPayment(
+                    data,
+                    form,
+                    payFrom,
                     (args['amt'] as num).toDouble(),
-                    today: today, genId: genId)
-                : logDebtPayment(data, form, payFrom, args['payAmount'],
-                    today: today, genId: genId);
+                    today: today,
+                    genId: genId,
+                  )
+                : logDebtPayment(
+                    data,
+                    form,
+                    payFrom,
+                    args['payAmount'],
+                    today: today,
+                    genId: genId,
+                  );
             data = r.data;
             final expected = (out as Map).cast<String, dynamic>();
             expect(r.msg, expected['msg'], reason: label);
             expect(r.celebrated, expected['celebrated'], reason: label);
-            expect(normalize(r.newRemaining), normalize(expected['newRem']),
-                reason: label);
+            expect(
+              normalize(r.newRemaining),
+              normalize(expected['newRem']),
+              reason: label,
+            );
           case 'markpaid':
-            final r = markDebtPaid(data, form, payFrom,
-                today: today, genId: genId);
+            final r = markDebtPaid(
+              data,
+              form,
+              payFrom,
+              today: today,
+              genId: genId,
+            );
             data = r.data;
             final expected = (out as Map).cast<String, dynamic>();
             expect(r.msg, expected['msg'], reason: label);

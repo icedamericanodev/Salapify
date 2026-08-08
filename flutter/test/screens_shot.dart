@@ -655,10 +655,16 @@ void main() {
     'appearance': (s) => AppearanceScreen(store: s),
     // The wallet detail screens, one for a deposit account (secure info, holder,
     // branch) and one for a credit card (network, limit, statement and due).
-    'account-detail': (s) =>
-        AccountDetailScreen(store: s, id: 'bpi', accountStore: AccountStore.accounts),
-    'card-detail': (s) =>
-        AccountDetailScreen(store: s, id: 'card', accountStore: AccountStore.debts),
+    'account-detail': (s) => AccountDetailScreen(
+      store: s,
+      id: 'bpi',
+      accountStore: AccountStore.accounts,
+    ),
+    'card-detail': (s) => AccountDetailScreen(
+      store: s,
+      id: 'card',
+      accountStore: AccountStore.debts,
+    ),
     // Money Courses Phase 6 pilot: the readiness card, the most novel new
     // widget this course adds (content/interaction_blocks.dart's
     // ReadinessCardBlock plus the Salapify actions menu underneath it).

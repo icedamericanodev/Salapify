@@ -118,23 +118,22 @@ void main() {
       // Drag the active tab's list well past a screenful. The finder skips
       // offstage trees, so .first is the visible tab's scrollable.
       for (var i = 0; i < 3; i++) {
-        await tester.drag(
-          find.byType(Scrollable).first,
-          const Offset(0, -600),
-        );
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
         await tester.pumpAndSettle();
       }
       expect(
         find.byTooltip('Menu'),
         findsWidgets,
-        reason: 'On $tab the Menu key scrolled off screen. The header must '
+        reason:
+            'On $tab the Menu key scrolled off screen. The header must '
             'be pinned outside the list on every tab.',
       );
       final after = tester.getRect(find.byTooltip('Menu').first);
       expect(
         after,
         before,
-        reason: 'On $tab the Menu key moved when the list scrolled. Pinned '
+        reason:
+            'On $tab the Menu key moved when the list scrolled. Pinned '
             'means the same rect at any depth.',
       );
     }

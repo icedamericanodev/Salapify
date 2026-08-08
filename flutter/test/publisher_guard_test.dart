@@ -156,32 +156,37 @@ void main() {
     expect(r.stdout, contains('neither patch nor release'));
   });
 
-  test('the publisher still calls this guard, and before it records anything', () {
-    // A guard wired into a workflow can be silently unwired by an edit to a
-    // different part of the same file. The ORDER is the load-bearing part: the
-    // check has to run before the delivery row is written, or the row exists
-    // whatever the check decides, and the row is what everyone believes.
-    final yaml = File('../.github/workflows/flutter-preview.yml')
-        .readAsStringSync();
-    final guardAt = yaml.indexOf('verify-shipped.sh');
-    final recordAt = yaml.indexOf('Record what actually shipped');
-    expect(
-      guardAt,
-      greaterThan(-1),
-      reason: 'the publisher no longer calls verify-shipped.sh at all',
-    );
-    expect(
-      recordAt,
-      greaterThan(-1),
-      reason: 'the delivery-log step was renamed; this check now proves nothing',
-    );
-    expect(
-      guardAt,
-      lessThan(recordAt),
-      reason:
-          'the shipped check must run BEFORE the delivery row is written. '
-          'After it, the row exists whatever the check says, and the row is '
-          'the thing this project treats as proof.',
-    );
-  });
+  test(
+    'the publisher still calls this guard, and before it records anything',
+    () {
+      // A guard wired into a workflow can be silently unwired by an edit to a
+      // different part of the same file. The ORDER is the load-bearing part: the
+      // check has to run before the delivery row is written, or the row exists
+      // whatever the check decides, and the row is what everyone believes.
+      final yaml = File(
+        '../.github/workflows/flutter-preview.yml',
+      ).readAsStringSync();
+      final guardAt = yaml.indexOf('verify-shipped.sh');
+      final recordAt = yaml.indexOf('Record what actually shipped');
+      expect(
+        guardAt,
+        greaterThan(-1),
+        reason: 'the publisher no longer calls verify-shipped.sh at all',
+      );
+      expect(
+        recordAt,
+        greaterThan(-1),
+        reason:
+            'the delivery-log step was renamed; this check now proves nothing',
+      );
+      expect(
+        guardAt,
+        lessThan(recordAt),
+        reason:
+            'the shipped check must run BEFORE the delivery row is written. '
+            'After it, the row exists whatever the check says, and the row is '
+            'the thing this project treats as proof.',
+      );
+    },
+  );
 }

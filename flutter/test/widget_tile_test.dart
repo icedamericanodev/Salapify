@@ -11,8 +11,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/backup.dart' show sanitizeData;
 import 'package:salapify/money/widget_tile.dart';
-import 'package:salapify/money/format.dart'
-    show monthAbbrevs, prettyDay;
+import 'package:salapify/money/format.dart' show monthAbbrevs, prettyDay;
 
 void main() {
   final ref = DateTime(2026, 7, 10, 19, 4);
@@ -284,7 +283,8 @@ void main() {
       expect(
         out == iso || monthAbbrevs.any(out.startsWith),
         isTrue,
-        reason: 'prettyDay("$iso") returned "$out", which is neither the '
+        reason:
+            'prettyDay("$iso") returned "$out", which is neither the '
             'input nor a month from the shared list',
       );
     }

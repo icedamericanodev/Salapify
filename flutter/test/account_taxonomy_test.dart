@@ -76,7 +76,11 @@ void main() {
         expect(r.subtype.id, subtype, reason: kind);
         expect(r.cls, AccountClass.asset);
         expect(r.category.id, 'cash_equivalents');
-        expect(r.derived, isTrue, reason: 'this was a guess, and should say so');
+        expect(
+          r.derived,
+          isTrue,
+          reason: 'this was a guess, and should say so',
+        );
       });
     });
 
@@ -151,16 +155,21 @@ void main() {
         dotAll: true,
       ).firstMatch(src);
       expect(block, isNotNull, reason: '_assetKinds moved or was renamed');
-      final kinds = RegExp(r"\('([^']+)',")
-          .allMatches(block!.group(1)!)
-          .map((m) => m.group(1)!)
-          .toSet();
-      expect(kinds, isNotEmpty, reason: 'the scan found nothing, so it would '
-          'pass on any change');
+      final kinds = RegExp(
+        r"\('([^']+)',",
+      ).allMatches(block!.group(1)!).map((m) => m.group(1)!).toSet();
+      expect(
+        kinds,
+        isNotEmpty,
+        reason:
+            'the scan found nothing, so it would '
+            'pass on any change',
+      );
       expect(
         kinds,
         _picker.keys.toSet(),
-        reason: 'the Accounts screen picker and the mapping above disagree. A '
+        reason:
+            'the Accounts screen picker and the mapping above disagree. A '
             'kind the picker offers with no mapping means every asset created '
             'that way reads as unclassified; a mapping with no picker option '
             'is dead weight.',
@@ -343,7 +352,11 @@ void main() {
         }
       }
       final cats = accountCategories.map((c) => c.id).toSet();
-      expect(cats.length, accountCategories.length, reason: 'duplicate category');
+      expect(
+        cats.length,
+        accountCategories.length,
+        reason: 'duplicate category',
+      );
     });
 
     test('every subtype stored in accounts has a legal legacy kind', () {
@@ -356,7 +369,8 @@ void main() {
           expect(
             legal.contains(s.legacyKind),
             isTrue,
-            reason: '${s.id} maps to "${s.legacyKind}", which is not a legal '
+            reason:
+                '${s.id} maps to "${s.legacyKind}", which is not a legal '
                 'kind and would be clamped to cash on the next load',
           );
         }
@@ -389,8 +403,11 @@ void main() {
 
     test('every label and hint is plain, with no dashes', () {
       for (final c in accountCategories) {
-        for (final text in [c.label, ...c.subtypes.map((s) => s.label),
-            ...c.subtypes.map((s) => s.hint)]) {
+        for (final text in [
+          c.label,
+          ...c.subtypes.map((s) => s.label),
+          ...c.subtypes.map((s) => s.hint),
+        ]) {
           expect(text.contains('—'), isFalse, reason: 'em dash in "$text"');
           expect(text.contains('–'), isFalse, reason: 'en dash in "$text"');
           expect(text.trim(), isNotEmpty);
@@ -416,7 +433,10 @@ void main() {
 
     test('a name typed without its punctuation still matches', () {
       // Somebody looking for their Pag-IBIG loan types "pagibig".
-      expect(searchInstitutions('pagibig').map((i) => i.id), contains('pagibig'));
+      expect(
+        searchInstitutions('pagibig').map((i) => i.id),
+        contains('pagibig'),
+      );
       expect(searchInstitutions('gotyme').first.id, 'gotyme');
     });
 
@@ -430,8 +450,10 @@ void main() {
       expect(all, isNot(contains('other')));
       expect(all, isNot(contains('none')));
       // But they are findable when looked for.
-      expect(searchInstitutions('something else').map((i) => i.id),
-          contains('other'));
+      expect(
+        searchInstitutions('something else').map((i) => i.id),
+        contains('other'),
+      );
     });
 
     test('a search that matches nothing returns nothing, not everything', () {
@@ -466,25 +488,35 @@ void main() {
       expect(initialsFor('123'), '?');
       for (final i in institutions) {
         expect(i.initials.length, inInclusiveRange(1, 2), reason: i.id);
-        expect(i.initials, isNot('?'), reason: '${i.id} has no usable initials');
+        expect(
+          i.initials,
+          isNot('?'),
+          reason: '${i.id} has no usable initials',
+        );
       }
     });
 
-    test('a custom institution shows the typed name, a listed one does not', () {
-      expect(
-        institutionLabel({'institutionId': 'other', 'institutionName': 'Ka Juan'}),
-        'Ka Juan',
-      );
-      expect(institutionLabel({'institutionId': 'bpi'}), 'BPI');
-      // A listed id with a stray custom string: the catalog wins, because the
-      // catalog cannot have been mistyped.
-      expect(
-        institutionLabel({'institutionId': 'bpi', 'institutionName': 'typo'}),
-        'BPI',
-      );
-      expect(institutionLabel({}), isNull);
-      expect(institutionLabel(null), isNull);
-    });
+    test(
+      'a custom institution shows the typed name, a listed one does not',
+      () {
+        expect(
+          institutionLabel({
+            'institutionId': 'other',
+            'institutionName': 'Ka Juan',
+          }),
+          'Ka Juan',
+        );
+        expect(institutionLabel({'institutionId': 'bpi'}), 'BPI');
+        // A listed id with a stray custom string: the catalog wins, because the
+        // catalog cannot have been mistyped.
+        expect(
+          institutionLabel({'institutionId': 'bpi', 'institutionName': 'typo'}),
+          'BPI',
+        );
+        expect(institutionLabel({}), isNull);
+        expect(institutionLabel(null), isNull);
+      },
+    );
 
     test('a blank custom name falls back rather than showing nothing', () {
       expect(
@@ -497,8 +529,16 @@ void main() {
   test('junk never throws', () {
     for (final junk in [null, 'nope', 42, <String, dynamic>{}, []]) {
       for (final store in AccountStore.values) {
-        expect(() => resolveKind(junk, store), returnsNormally, reason: '$junk');
-        expect(() => taxonomyKeys(junk, store), returnsNormally, reason: '$junk');
+        expect(
+          () => resolveKind(junk, store),
+          returnsNormally,
+          reason: '$junk',
+        );
+        expect(
+          () => taxonomyKeys(junk, store),
+          returnsNormally,
+          reason: '$junk',
+        );
       }
       expect(() => countsInNetWorth(junk), returnsNormally);
       expect(() => institutionLabel(junk), returnsNormally);

@@ -36,35 +36,38 @@ void main() {
       expect(gradle.contains('create("prod")'), isTrue);
     });
 
-    test('prod is signed with the upload key, preview with the preview key', () {
-      // Scope each assertion to its flavor block so one flavor cannot satisfy
-      // the check for the other.
-      final prod = RegExp(
-        r'create\("prod"\)\s*\{(.*?)\}',
-        dotAll: true,
-      ).firstMatch(flavors);
-      final preview = RegExp(
-        r'create\("preview"\)\s*\{(.*?)\}',
-        dotAll: true,
-      ).firstMatch(flavors);
-      expect(prod, isNotNull);
-      expect(preview, isNotNull);
-      expect(
-        prod!.group(1)!.contains('getByName("upload")'),
-        isTrue,
-        reason: 'the prod flavor must be signed with the upload key',
-      );
-      expect(
-        prod.group(1)!.contains('getByName("preview")'),
-        isFalse,
-        reason: 'the prod flavor must NOT reference the preview key',
-      );
-      expect(
-        preview!.group(1)!.contains('getByName("preview")'),
-        isTrue,
-        reason: 'the preview flavor keeps the committed preview key',
-      );
-    });
+    test(
+      'prod is signed with the upload key, preview with the preview key',
+      () {
+        // Scope each assertion to its flavor block so one flavor cannot satisfy
+        // the check for the other.
+        final prod = RegExp(
+          r'create\("prod"\)\s*\{(.*?)\}',
+          dotAll: true,
+        ).firstMatch(flavors);
+        final preview = RegExp(
+          r'create\("preview"\)\s*\{(.*?)\}',
+          dotAll: true,
+        ).firstMatch(flavors);
+        expect(prod, isNotNull);
+        expect(preview, isNotNull);
+        expect(
+          prod!.group(1)!.contains('getByName("upload")'),
+          isTrue,
+          reason: 'the prod flavor must be signed with the upload key',
+        );
+        expect(
+          prod.group(1)!.contains('getByName("preview")'),
+          isFalse,
+          reason: 'the prod flavor must NOT reference the preview key',
+        );
+        expect(
+          preview!.group(1)!.contains('getByName("preview")'),
+          isTrue,
+          reason: 'the preview flavor keeps the committed preview key',
+        );
+      },
+    );
 
     test('the release build type does not force the preview key', () {
       // If buildTypes.release sets signingConfig, it overrides the flavor and
@@ -93,7 +96,9 @@ void main() {
       ).firstMatch(gradle);
       expect(upload, isNotNull, reason: 'no upload signing config');
       expect(
-        upload!.group(1)!.contains('System.getenv("SALAPIFY_UPLOAD_STORE_FILE")'),
+        upload!
+            .group(1)!
+            .contains('System.getenv("SALAPIFY_UPLOAD_STORE_FILE")'),
         isTrue,
         reason: 'the upload key must come from the environment (a CI secret)',
       );
@@ -147,7 +152,9 @@ void main() {
     });
 
     test('the in-app title follows the build flag', () {
-      final main = _stripKotlinComments(File('lib/main.dart').readAsStringSync());
+      final main = _stripKotlinComments(
+        File('lib/main.dart').readAsStringSync(),
+      );
       expect(
         RegExp(r"title:\s*kPreviewBuild\s*\?").hasMatch(main),
         isTrue,

@@ -65,10 +65,7 @@ void main() {
     // Each of these is a behavior a test in this suite already guards, so the
     // receipt cannot claim a protection the app does not actually ship.
     expect(find.text('Automatic backup is off'), findsOneWidget);
-    expect(
-      find.text('The screen hides when App lock is on'),
-      findsOneWidget,
-    );
+    expect(find.text('The screen hides when App lock is on'), findsOneWidget);
     expect(find.text('Lock-screen reminders stay generic'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

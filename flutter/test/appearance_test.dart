@@ -218,42 +218,43 @@ void main() {
       expect(unselected.properties.selected, isFalse);
     });
 
-    testWidgets('the preview draws the theme it is previewing, not the active one', (
-      tester,
-    ) async {
-      // The trap this guards: a preview that reads Barako.* getters shows the
-      // CURRENT theme eight times, so every tile looks identical and the
-      // picker silently becomes useless while still rendering perfectly.
-      final store = await _store({'themeKey': 'barako', 'themeMode': 'dark'});
-      await _pump(tester, store);
+    testWidgets(
+      'the preview draws the theme it is previewing, not the active one',
+      (tester) async {
+        // The trap this guards: a preview that reads Barako.* getters shows the
+        // CURRENT theme eight times, so every tile looks identical and the
+        // picker silently becomes useless while still rendering perfectly.
+        final store = await _store({'themeKey': 'barako', 'themeMode': 'dark'});
+        await _pump(tester, store);
 
-      final seen = <Color>{};
-      for (final t in barakoThemes) {
-        final tile = find.ancestor(
-          of: find.text(t.label),
-          matching: find.byType(ThemeTile),
-        );
-        expect(tile, findsOneWidget);
-        final boxes = tester.widgetList<Container>(
-          find.descendant(of: tile, matching: find.byType(Container)),
-        );
-        for (final b in boxes) {
-          final d = b.decoration;
-          if (d is BoxDecoration && d.color != null) seen.add(d.color!);
+        final seen = <Color>{};
+        for (final t in barakoThemes) {
+          final tile = find.ancestor(
+            of: find.text(t.label),
+            matching: find.byType(ThemeTile),
+          );
+          expect(tile, findsOneWidget);
+          final boxes = tester.widgetList<Container>(
+            find.descendant(of: tile, matching: find.byType(Container)),
+          );
+          for (final b in boxes) {
+            final d = b.decoration;
+            if (d is BoxDecoration && d.color != null) seen.add(d.color!);
+          }
         }
-      }
-      // Eight themes, each contributing its own page, card, accent and win
-      // colour. If the preview read the live palette they would collapse into
-      // a handful of repeats.
-      expect(
-        seen.length,
-        greaterThan(16),
-        reason:
-            'The eight previews are drawing from too few distinct colours, '
-            'which is what happens when they read the ACTIVE palette instead '
-            'of the one they are meant to be showing.',
-      );
-    });
+        // Eight themes, each contributing its own page, card, accent and win
+        // colour. If the preview read the live palette they would collapse into
+        // a handful of repeats.
+        expect(
+          seen.length,
+          greaterThan(16),
+          reason:
+              'The eight previews are drawing from too few distinct colours, '
+              'which is what happens when they read the ACTIVE palette instead '
+              'of the one they are meant to be showing.',
+        );
+      },
+    );
 
     testWidgets('the mode control switches appearance', (tester) async {
       final store = await _store();

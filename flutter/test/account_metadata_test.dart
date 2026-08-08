@@ -36,10 +36,7 @@ void main() {
     });
 
     test('an unknown network is dropped, not corrected', () {
-      final out = taxonomyKeys(
-        {'cardNetwork': 'discover'},
-        AccountStore.debts,
-      );
+      final out = taxonomyKeys({'cardNetwork': 'discover'}, AccountStore.debts);
       expect(out.containsKey('cardNetwork'), isFalse);
     });
 
@@ -49,18 +46,18 @@ void main() {
     });
 
     test('a product id with illegal characters is dropped', () {
-      final out = taxonomyKeys(
-        {'cardProductId': 'Gold Rewards!'},
-        AccountStore.debts,
-      );
+      final out = taxonomyKeys({
+        'cardProductId': 'Gold Rewards!',
+      }, AccountStore.debts);
       expect(out.containsKey('cardProductId'), isFalse);
     });
 
     test('card metadata never lands on a non-debt row', () {
-      final out = taxonomyKeys(
-        {'cardNetwork': 'visa', 'cardProductId': 'gold', 'annualFee': 100},
-        AccountStore.accounts,
-      );
+      final out = taxonomyKeys({
+        'cardNetwork': 'visa',
+        'cardProductId': 'gold',
+        'annualFee': 100,
+      }, AccountStore.accounts);
       expect(out.containsKey('cardNetwork'), isFalse);
       expect(out.containsKey('cardProductId'), isFalse);
       expect(out.containsKey('annualFee'), isFalse);
@@ -83,18 +80,16 @@ void main() {
 
     test('a very long note is capped, never rejected outright', () {
       final long = 'x' * 500;
-      final out = taxonomyKeys(
-        {'paymentInstructions': long},
-        AccountStore.accounts,
-      );
+      final out = taxonomyKeys({
+        'paymentInstructions': long,
+      }, AccountStore.accounts);
       expect((out['paymentInstructions'] as String).length, 280);
     });
 
     test('a valid QR reference is kept', () {
-      final out = taxonomyKeys(
-        {'qrRef': 'qr_abc123.png'},
-        AccountStore.accounts,
-      );
+      final out = taxonomyKeys({
+        'qrRef': 'qr_abc123.png',
+      }, AccountStore.accounts);
       expect(out['qrRef'], 'qr_abc123.png');
     });
 
@@ -116,37 +111,39 @@ void main() {
       }
     });
 
-    test('a card number typed into a note is redacted, a reference is kept', () {
-      // 4111 1111 1111 1111 is the canonical Luhn-valid test PAN.
-      final out = taxonomyKeys({
-        'paymentInstructions': 'Card 4111 1111 1111 1111 pay by the 15th',
-        'branchDetails': 'Ref 123456789012',
-      }, AccountStore.accounts);
-      expect(out['paymentInstructions'], contains('[removed for safety]'));
-      expect(out['paymentInstructions'], contains('pay by the 15th'));
-      expect(out['paymentInstructions'], isNot(contains('4111')));
-      // An ordinary 12-digit reference does not pass Luhn, so it is kept.
-      expect(out['branchDetails'], 'Ref 123456789012');
-    });
+    test(
+      'a card number typed into a note is redacted, a reference is kept',
+      () {
+        // 4111 1111 1111 1111 is the canonical Luhn-valid test PAN.
+        final out = taxonomyKeys({
+          'paymentInstructions': 'Card 4111 1111 1111 1111 pay by the 15th',
+          'branchDetails': 'Ref 123456789012',
+        }, AccountStore.accounts);
+        expect(out['paymentInstructions'], contains('[removed for safety]'));
+        expect(out['paymentInstructions'], contains('pay by the 15th'));
+        expect(out['paymentInstructions'], isNot(contains('4111')));
+        // An ordinary 12-digit reference does not pass Luhn, so it is kept.
+        expect(out['branchDetails'], 'Ref 123456789012');
+      },
+    );
 
     test('the protection version accepts a positive int only', () {
       expect(
-        taxonomyKeys({'sensitiveDataProtectionVersion': 1}, AccountStore.debts)[
-            'sensitiveDataProtectionVersion'],
+        taxonomyKeys({
+          'sensitiveDataProtectionVersion': 1,
+        }, AccountStore.debts)['sensitiveDataProtectionVersion'],
         1,
       );
       expect(
-        taxonomyKeys(
-          {'sensitiveDataProtectionVersion': 0},
-          AccountStore.debts,
-        ).containsKey('sensitiveDataProtectionVersion'),
+        taxonomyKeys({
+          'sensitiveDataProtectionVersion': 0,
+        }, AccountStore.debts).containsKey('sensitiveDataProtectionVersion'),
         isFalse,
       );
       expect(
-        taxonomyKeys(
-          {'sensitiveDataProtectionVersion': '1'},
-          AccountStore.debts,
-        ).containsKey('sensitiveDataProtectionVersion'),
+        taxonomyKeys({
+          'sensitiveDataProtectionVersion': '1',
+        }, AccountStore.debts).containsKey('sensitiveDataProtectionVersion'),
         isFalse,
       );
     });
@@ -203,7 +200,11 @@ void main() {
         'cardNetwork',
         'sensitiveDataProtectionVersion',
       ]) {
-        expect(a.containsKey(k), isFalse, reason: 'RN account must not carry $k');
+        expect(
+          a.containsKey(k),
+          isFalse,
+          reason: 'RN account must not carry $k',
+        );
       }
     });
 
@@ -211,7 +212,12 @@ void main() {
       final data = sanitizeData({
         'schemaVersion': 12,
         'debts': [
-          {'id': 'c2', 'name': 'Loan', 'type': 'personal loan', 'remaining': 5000},
+          {
+            'id': 'c2',
+            'name': 'Loan',
+            'type': 'personal loan',
+            'remaining': 5000,
+          },
         ],
       });
       final d = (data['debts'] as List).first as Map;
@@ -258,46 +264,56 @@ void main() {
       });
     });
 
-    test('patchAccountMeta ignores money, identity and reclassification', () async {
-      final store = SalapifyStore();
-      await store.load();
-      await store.patchAccountMeta('a1', {
-        'accountHolderName': 'Carla',
-        'last4': '4821',
-        'balance': 0,
-        'kind': 'cash',
-        'subtype': 'credit_card',
-        'name': 'hacked',
-      });
-      final a = (store.data['accounts'] as List).first as Map;
-      expect(a['accountHolderName'], 'Carla');
-      expect(a['last4'], '4821');
-      expect(a['balance'], 9000, reason: 'balance is not patchable');
-      expect(a['kind'], 'savings', reason: 'kind is not patchable');
-      expect(a['name'], 'BPI', reason: 'name is not patchable');
-      expect(a.containsKey('subtype'), isFalse, reason: 'subtype is not patchable');
-    });
+    test(
+      'patchAccountMeta ignores money, identity and reclassification',
+      () async {
+        final store = SalapifyStore();
+        await store.load();
+        await store.patchAccountMeta('a1', {
+          'accountHolderName': 'Carla',
+          'last4': '4821',
+          'balance': 0,
+          'kind': 'cash',
+          'subtype': 'credit_card',
+          'name': 'hacked',
+        });
+        final a = (store.data['accounts'] as List).first as Map;
+        expect(a['accountHolderName'], 'Carla');
+        expect(a['last4'], '4821');
+        expect(a['balance'], 9000, reason: 'balance is not patchable');
+        expect(a['kind'], 'savings', reason: 'kind is not patchable');
+        expect(a['name'], 'BPI', reason: 'name is not patchable');
+        expect(
+          a.containsKey('subtype'),
+          isFalse,
+          reason: 'subtype is not patchable',
+        );
+      },
+    );
 
-    test('applies allowlisted meta but never touches money or identity', () async {
-      final store = SalapifyStore();
-      await store.load();
-      await store.patchDebtMeta('c1', {
-        'cardNetwork': 'visa',
-        'last4': '1234',
-        'accountHolderName': 'Carla',
-        // These must be ignored: a patch is not a way to move money or rename.
-        'remaining': 0,
-        'id': 'hacked',
-        'name': 'not this',
-      });
-      final d = (store.data['debts'] as List).first as Map;
-      expect(d['cardNetwork'], 'visa');
-      expect(d['last4'], '1234');
-      expect(d['accountHolderName'], 'Carla');
-      expect(d['remaining'], 12480.40, reason: 'remaining is not patchable');
-      expect(d['id'], 'c1', reason: 'id is not patchable');
-      expect(d['name'], 'BPI card', reason: 'name is not patchable');
-    });
+    test(
+      'applies allowlisted meta but never touches money or identity',
+      () async {
+        final store = SalapifyStore();
+        await store.load();
+        await store.patchDebtMeta('c1', {
+          'cardNetwork': 'visa',
+          'last4': '1234',
+          'accountHolderName': 'Carla',
+          // These must be ignored: a patch is not a way to move money or rename.
+          'remaining': 0,
+          'id': 'hacked',
+          'name': 'not this',
+        });
+        final d = (store.data['debts'] as List).first as Map;
+        expect(d['cardNetwork'], 'visa');
+        expect(d['last4'], '1234');
+        expect(d['accountHolderName'], 'Carla');
+        expect(d['remaining'], 12480.40, reason: 'remaining is not patchable');
+        expect(d['id'], 'c1', reason: 'id is not patchable');
+        expect(d['name'], 'BPI card', reason: 'name is not patchable');
+      },
+    );
   });
 
   group('card_products catalogue', () {
@@ -337,12 +353,15 @@ void main() {
       expect(cardProductLabel('bpi', 'nope'), isNull);
     });
 
-    test('QR receiving is a known hint for wallets and banks, off for SeaBank', () {
-      expect(institutionSupportsQrReceiving('gcash'), isTrue);
-      expect(institutionSupportsQrReceiving('bpi'), isTrue);
-      expect(institutionSupportsQrReceiving('seabank'), isFalse);
-      expect(institutionSupportsQrReceiving('sss'), isFalse);
-    });
+    test(
+      'QR receiving is a known hint for wallets and banks, off for SeaBank',
+      () {
+        expect(institutionSupportsQrReceiving('gcash'), isTrue);
+        expect(institutionSupportsQrReceiving('bpi'), isTrue);
+        expect(institutionSupportsQrReceiving('seabank'), isFalse);
+        expect(institutionSupportsQrReceiving('sss'), isFalse);
+      },
+    );
   });
 
   group('QrVault', () {
@@ -398,15 +417,17 @@ void main() {
       await vault.remove(ref); // no throw
     });
 
-    test('cleanupOrphans removes unreferenced files and keeps referenced ones',
-        () async {
-      final kept = await vault.save(bytes(8), ext: 'png', nonce: 'keep');
-      final orphan = await vault.save(bytes(8), ext: 'png', nonce: 'orphan');
-      final removed = await vault.cleanupOrphans({kept});
-      expect(removed, 1);
-      expect(await vault.exists(kept), isTrue);
-      expect(await vault.exists(orphan), isFalse);
-    });
+    test(
+      'cleanupOrphans removes unreferenced files and keeps referenced ones',
+      () async {
+        final kept = await vault.save(bytes(8), ext: 'png', nonce: 'keep');
+        final orphan = await vault.save(bytes(8), ext: 'png', nonce: 'orphan');
+        final removed = await vault.cleanupOrphans({kept});
+        expect(removed, 1);
+        expect(await vault.exists(kept), isTrue);
+        expect(await vault.exists(orphan), isFalse);
+      },
+    );
 
     test('qrRefsInData collects references across collections', () {
       final refs = qrRefsInData({

@@ -217,9 +217,9 @@ class _DebtsViewState extends State<DebtsView> {
                         'payment splits into interest and principal '
                         'honestly.',
                         textAlign: TextAlign.center,
-                        style: AppText.small.tint(Barako.muted).copyWith(
-                          height: 1.4,
-                        ),
+                        style: AppText.small
+                            .tint(Barako.muted)
+                            .copyWith(height: 1.4),
                       ),
                     ],
                   ),
@@ -976,8 +976,11 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     if (busy) return;
     final last4Text = last4.text.trim();
     if (last4Text.isNotEmpty && !RegExp(r'^\d{4}$').hasMatch(last4Text)) {
-      setState(() => error = 'The last four digits are exactly four numbers, '
-          'or leave it blank.');
+      setState(
+        () => error =
+            'The last four digits are exactly four numbers, '
+            'or leave it blank.',
+      );
       return;
     }
     setState(() {
@@ -1083,8 +1086,7 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
             // so the chips below never show a selected chip the issuer list no
             // longer contains.
             if (network.isNotEmpty &&
-                !networksForIssuer(institutionId)
-                    .any((n) => n.id == network)) {
+                !networksForIssuer(institutionId).any((n) => n.id == network)) {
               network = '';
             }
           });
@@ -1125,7 +1127,10 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Card network (optional)', style: AppText.small.tint(Barako.muted)),
+          Text(
+            'Card network (optional)',
+            style: AppText.small.tint(Barako.muted),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -1135,9 +1140,8 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
                 ChoiceChip(
                   label: Text(n.displayName),
                   selected: network == n.id,
-                  onSelected: (_) => setState(
-                    () => network = network == n.id ? '' : n.id,
-                  ),
+                  onSelected: (_) =>
+                      setState(() => network = network == n.id ? '' : n.id),
                   selectedColor: Barako.primary,
                   backgroundColor: Barako.background,
                   labelStyle: TextStyle(
@@ -1204,8 +1208,12 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
               _field(creditLimit, 'Credit limit (optional)'),
               const SizedBox(height: 4),
               _networkPicker(),
-              _field(last4, 'Card number, last 4 only (optional)',
-                  number: true, maxLen: 4),
+              _field(
+                last4,
+                'Card number, last 4 only (optional)',
+                number: true,
+                maxLen: 4,
+              ),
               _field(annualFee, 'Annual fee (optional)'),
               const SizedBox(height: 4),
               Text(

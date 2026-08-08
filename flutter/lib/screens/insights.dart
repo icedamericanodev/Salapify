@@ -175,11 +175,12 @@ class InsightsScreen extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.sm, Gap.gutter, 0),
-          child: ScreenHeader(
-            'Insights',
-            subtitle: 'What your money is telling you, and what to do next',
-            onMenu: onMenu,
-          ),
+          // No subtitle: the first card (safe to spend) IS the screen's
+          // introduction, and the old sentence promised what that card then
+          // did, paying the same content twice in the first 120dp. The header
+          // rule: this is a hero-introduction screen, so the title only
+          // orients.
+          child: ScreenHeader('Insights', onMenu: onMenu),
         ),
         Expanded(
           child: ListView(
@@ -275,11 +276,8 @@ class InsightsScreen extends StatelessWidget {
               Gap.gutter,
               0,
             ),
-            child: ScreenHeader(
-              'Insights',
-              subtitle: 'What your money is telling you, and what to do next',
-              onMenu: onMenu,
-            ),
+            // Same no-subtitle rule as the populated branch above.
+            child: ScreenHeader('Insights', onMenu: onMenu),
           ),
           Expanded(
             child: ListView(

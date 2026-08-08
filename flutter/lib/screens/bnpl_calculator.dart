@@ -278,10 +278,7 @@ class _BnplCalculatorScreenState extends State<BnplCalculatorScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Cash price',
-                              style: AppText.small,
-                            ),
+                            child: Text('Cash price', style: AppText.small),
                           ),
                           Text(
                             _m(r['cash'] as double),

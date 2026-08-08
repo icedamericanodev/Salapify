@@ -173,7 +173,9 @@ class _WindfallCardState extends State<WindfallCard> {
             const SizedBox(height: 10),
             Text(
               'One debt has no monthly interest rate saved, so it could not be ranked. Add its rate in Utang so a real windfall knows to hit it first.',
-              style: AppText.caption.tint(Barako.warning).copyWith(height: 1.35),
+              style: AppText.caption
+                  .tint(Barako.warning)
+                  .copyWith(height: 1.35),
             ),
           ],
         ],
@@ -194,7 +196,9 @@ class _WindfallCardState extends State<WindfallCard> {
           label,
           style: AppText.label
               .tint(bold ? color : Barako.text)
-              .copyWith(fontWeight: bold ? TypeWeight.heavy : TypeWeight.medium),
+              .copyWith(
+                fontWeight: bold ? TypeWeight.heavy : TypeWeight.medium,
+              ),
         ),
       ),
       const SizedBox(width: 8),

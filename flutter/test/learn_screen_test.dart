@@ -29,7 +29,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Tools');
+    await openFromMenu(tester, 'Calculators');
     await tester.scrollUntilVisible(
       find.text('Money courses'),
       200,

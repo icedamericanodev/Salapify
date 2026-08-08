@@ -298,10 +298,7 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Hide peso amounts',
-                style: AppText.body.w6,
-              ),
+              Text('Hide peso amounts', style: AppText.body.w6),
               const SizedBox(height: 2),
               Text(
                 'Show percentages only, keep numbers private.',

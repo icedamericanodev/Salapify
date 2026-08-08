@@ -70,7 +70,8 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
             style: AppText.amountRow.copyWith(
               fontSize: strong ? 15 : 13,
               fontWeight: strong ? TypeWeight.heavy : TypeWeight.medium,
-              color: valueColor ?? (strong ? Barako.text : Barako.textSecondary),
+              color:
+                  valueColor ?? (strong ? Barako.text : Barako.textSecondary),
             ),
           ),
         ],
@@ -233,7 +234,9 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       selectedColor: Barako.primary,
                       backgroundColor: Barako.background,
                       labelStyle: AppText.caption.w6.tint(
-                        period == p.$1 ? Barako.onPrimary : Barako.textSecondary,
+                        period == p.$1
+                            ? Barako.onPrimary
+                            : Barako.textSecondary,
                       ),
                     ),
                 ],
@@ -274,10 +277,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              netLabel,
-                              style: AppText.label.w7,
-                            ),
+                            child: Text(netLabel, style: AppText.label.w7),
                           ),
                           Text(
                             ms(r['net'] as double),

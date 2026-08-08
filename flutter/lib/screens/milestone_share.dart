@@ -311,10 +311,7 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Hide peso amounts',
-                style: AppText.body.w6,
-              ),
+              Text('Hide peso amounts', style: AppText.body.w6),
               const SizedBox(height: 2),
               Text(
                 'Share the win, keep the numbers private.',
@@ -503,10 +500,7 @@ class _HideAmountsToggle extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Hide peso amounts',
-                      style: AppText.body.w6,
-                    ),
+                    Text('Hide peso amounts', style: AppText.body.w6),
                     const SizedBox(height: 2),
                     Text(
                       'Share the win, keep the numbers private.',

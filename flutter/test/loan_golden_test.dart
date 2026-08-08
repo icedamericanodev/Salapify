@@ -16,42 +16,48 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/loan_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/loan_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   test('loanSummary matches the RN engine on every vector', () {
     for (final c in (raw['summaries'] as List).cast<Map<String, dynamic>>()) {
       final args = c['args'] as List;
       final opts = (args[3] as Map).cast<String, dynamic>();
-      final result = loanSummary(args[0], args[1], args[2],
-          method: (opts['method'] ?? 'diminishing') as String,
-          rateBasis: (opts['rateBasis'] ?? 'monthly') as String);
-      expect(normalize(result), normalize(c['result']),
-          reason: c['name'] as String);
+      final result = loanSummary(
+        args[0],
+        args[1],
+        args[2],
+        method: (opts['method'] ?? 'diminishing') as String,
+        rateBasis: (opts['rateBasis'] ?? 'monthly') as String,
+      );
+      expect(
+        normalize(result),
+        normalize(c['result']),
+        reason: c['name'] as String,
+      );
     }
   });
 
   test('payoffSaving matches the RN engine', () {
     for (final c in (raw['payoffs'] as List).cast<Map<String, dynamic>>()) {
       final args = c['args'] as List;
-      expect(normalize(payoffSaving(args[0], args[1], args[2], args[3])),
-          normalize(c['result']),
-          reason: c['name'] as String);
+      expect(
+        normalize(payoffSaving(args[0], args[1], args[2], args[3])),
+        normalize(c['result']),
+        reason: c['name'] as String,
+      );
     }
   });
 
-  test('payoff at the exact rate agrees with the schedule to the centavo',
-      () {
+  test('payoff at the exact rate agrees with the schedule to the centavo', () {
     // Bank officer must-fix: the screen passes the EXACT monthly rate, not
     // the display-rounded quotedMonthlyRate, so the payoff card's balance
     // equals the schedule row on the same screen. 120k at 10% per year
     // over 24 months, paying off after month 12.
     final exactRate = 10 / 100 / 12;
-    final summary =
-        loanSummary(120000, 10, 24, rateBasis: 'annual');
-    final schedule =
-        (summary['schedule'] as List).cast<Map<String, dynamic>>();
+    final summary = loanSummary(120000, 10, 24, rateBasis: 'annual');
+    final schedule = (summary['schedule'] as List).cast<Map<String, dynamic>>();
     final payoff = payoffSaving(120000, exactRate, 24, 12);
     expect(payoff['balanceCleared'], schedule[11]['balance']);
   });
@@ -59,9 +65,11 @@ void main() {
   test('effectiveMonthlyRate matches the RN bisection', () {
     for (final c in (raw['rates'] as List).cast<Map<String, dynamic>>()) {
       final args = c['args'] as List;
-      expect(normalize(effectiveMonthlyRate(args[0], args[1], args[2])),
-          normalize(c['result']),
-          reason: c['name'] as String);
+      expect(
+        normalize(effectiveMonthlyRate(args[0], args[1], args[2])),
+        normalize(c['result']),
+        reason: c['name'] as String,
+      );
     }
     expect(maxMonths, raw['maxMonths']);
   });

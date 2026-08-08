@@ -127,7 +127,11 @@ void main() {
     await tester.tap(find.text('Reveal'));
     await tester.pumpAndSettle();
 
-    expect(auth.prompts, 1, reason: 'a reveal must ask the phone to authenticate');
+    expect(
+      auth.prompts,
+      1,
+      reason: 'a reveal must ask the phone to authenticate',
+    );
     // Revealed: the digits show in the secure row AND on the hero card.
     expect(find.textContaining('4821'), findsWidgets);
     expect(find.text('Hide'), findsOneWidget);
@@ -139,7 +143,9 @@ void main() {
     expect(find.textContaining('4821'), findsNothing);
   });
 
-  testWidgets('a denied authentication keeps the digits hidden', (tester) async {
+  testWidgets('a denied authentication keeps the digits hidden', (
+    tester,
+  ) async {
     final store = await _load(_blob(last4: '4821'));
     final auth = _FakeAuth(can: true, ok: false);
     await _pump(tester, store, dir: dir, auth: auth);
@@ -148,46 +154,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(auth.prompts, 1);
-    expect(find.textContaining('4821'), findsNothing,
-        reason: 'the reveal must stay silent when auth is refused');
+    expect(
+      find.textContaining('4821'),
+      findsNothing,
+      reason: 'the reveal must stay silent when auth is refused',
+    );
     expect(find.text('Reveal'), findsOneWidget);
   });
 
-  testWidgets('a phone with no lock still lets its owner see their own digits', (
-    tester,
-  ) async {
-    final store = await _load(_blob(last4: '4821'));
-    final auth = _FakeAuth(can: false, ok: false);
-    await _pump(tester, store, dir: dir, auth: auth);
+  testWidgets(
+    'a phone with no lock still lets its owner see their own digits',
+    (tester) async {
+      final store = await _load(_blob(last4: '4821'));
+      final auth = _FakeAuth(can: false, ok: false);
+      await _pump(tester, store, dir: dir, auth: auth);
 
-    await tester.tap(find.text('Reveal'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Reveal'));
+      await tester.pumpAndSettle();
 
-    expect(auth.prompts, 0, reason: 'no biometrics means nothing to prompt');
-    expect(find.textContaining('4821'), findsWidgets);
+      expect(auth.prompts, 0, reason: 'no biometrics means nothing to prompt');
+      expect(find.textContaining('4821'), findsWidgets);
 
-    // Cancel the auto-hide timer before teardown.
-    await tester.tap(find.text('Hide'));
-    await tester.pumpAndSettle();
-  });
+      // Cancel the auto-hide timer before teardown.
+      await tester.tap(find.text('Hide'));
+      await tester.pumpAndSettle();
+    },
+  );
 
-  testWidgets('with no digits saved, the secure section says so and cannot reveal',
-      (tester) async {
-    final store = await _load(_blob());
-    await _pump(tester, store, dir: dir, auth: _FakeAuth());
-    expect(find.text('Reveal'), findsNothing);
-    expect(find.textContaining('No digits saved'), findsOneWidget);
-  });
+  testWidgets(
+    'with no digits saved, the secure section says so and cannot reveal',
+    (tester) async {
+      final store = await _load(_blob());
+      await _pump(tester, store, dir: dir, auth: _FakeAuth());
+      expect(find.text('Reveal'), findsNothing);
+      expect(find.textContaining('No digits saved'), findsOneWidget);
+    },
+  );
 
   testWidgets('the QR section offers to add one when empty', (tester) async {
     final store = await _load(_blob());
     await _pump(tester, store, dir: dir, auth: _FakeAuth());
     expect(find.text('Add a QR image'), findsOneWidget);
     // The privacy line is present exactly where the control is.
-    expect(
-      find.textContaining('stays on your device'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('stays on your device'), findsOneWidget);
   });
 
   testWidgets('a saved QR shows View, Replace and Remove', (tester) async {

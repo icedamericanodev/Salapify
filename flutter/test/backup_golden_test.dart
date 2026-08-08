@@ -14,8 +14,11 @@ import 'package:salapify/data/backup.dart';
 void expectSame(dynamic actual, dynamic golden, String path) {
   if (golden is num) {
     expect(actual, isA<num>(), reason: '$path should be a number');
-    expect((actual as num).toDouble(), closeTo(golden.toDouble(), 1e-9),
-        reason: path);
+    expect(
+      (actual as num).toDouble(),
+      closeTo(golden.toDouble(), 1e-9),
+      reason: path,
+    );
   } else if (golden is bool || golden is String) {
     expect(actual, equals(golden), reason: path);
   } else if (golden == null) {
@@ -29,8 +32,11 @@ void expectSame(dynamic actual, dynamic golden, String path) {
   } else if (golden is Map) {
     expect(actual, isA<Map>(), reason: '$path should be a map');
     final a = actual as Map;
-    expect(a.keys.toSet(), equals(golden.keys.toSet().cast()),
-        reason: '$path key set');
+    expect(
+      a.keys.toSet(),
+      equals(golden.keys.toSet().cast()),
+      reason: '$path key set',
+    );
     for (final key in golden.keys) {
       expectSame(a[key], golden[key], '$path.$key');
     }
@@ -42,32 +48,40 @@ void expectSame(dynamic actual, dynamic golden, String path) {
 Map<String, dynamic> asMap(dynamic v) => (v as Map).cast<String, dynamic>();
 
 void main() {
-  final goldens = jsonDecode(
-          File('test/goldens/backup_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final goldens =
+      jsonDecode(File('test/goldens/backup_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   // The generator recorded the date it ran, so the legacy stamp
   // (first day of the month before) reproduces exactly.
   final nowParts = (goldens['now'] as String).split('-');
-  final now = DateTime(int.parse(nowParts[0]), int.parse(nowParts[1]),
-      int.parse(nowParts[2]));
+  final now = DateTime(
+    int.parse(nowParts[0]),
+    int.parse(nowParts[1]),
+    int.parse(nowParts[2]),
+  );
 
-  test('sanitizeData matches the RN engine on every fixture, keys included',
-      () {
-    final fixtures = asMap(goldens['fixtures']);
-    final expected = asMap(goldens['sanitized']);
-    for (final name in fixtures.keys) {
-      final out = sanitizeData(fixtures[name], now: now);
-      expectSame(out, expected[name], name);
-    }
-  });
+  test(
+    'sanitizeData matches the RN engine on every fixture, keys included',
+    () {
+      final fixtures = asMap(goldens['fixtures']);
+      final expected = asMap(goldens['sanitized']);
+      for (final name in fixtures.keys) {
+        final out = sanitizeData(fixtures[name], now: now);
+        expectSame(out, expected[name], name);
+      }
+    },
+  );
 
   test('a newer blob is refused with the RN message, nothing changed', () {
     final refusal = asMap(goldens['refusal']);
     expect(refusal['threw'], isTrue);
     expect(
       () => sanitizeData({'schemaVersion': 13, 'accounts': []}, now: now),
-      throwsA(predicate((e) =>
-          e is NewerBackupException && e.message == refusal['message'])),
+      throwsA(
+        predicate(
+          (e) => e is NewerBackupException && e.message == refusal['message'],
+        ),
+      ),
     );
   });
 
@@ -76,25 +90,35 @@ void main() {
     expect(parse['badThrew'], isTrue);
     expect(
       () => parseBackupObject(
-          jsonDecode('{"app":"salapify","data":{"notAccounts":[]}}'),
-          now: now),
-      throwsA(predicate(
-          (e) => e is NotABackupException && e.message == parse['message'])),
+        jsonDecode('{"app":"salapify","data":{"notAccounts":[]}}'),
+        now: now,
+      ),
+      throwsA(
+        predicate(
+          (e) => e is NotABackupException && e.message == parse['message'],
+        ),
+      ),
     );
     final fixtures = asMap(goldens['fixtures']);
-    final wrapped = parseBackupObject(
-        {'app': 'salapify', 'version': 2, 'data': fixtures['v12rich']},
-        now: now);
+    final wrapped = parseBackupObject({
+      'app': 'salapify',
+      'version': 2,
+      'data': fixtures['v12rich'],
+    }, now: now);
     expectSame(wrapped, parse['wrapped'], 'parse.wrapped');
     final bare = parseBackupObject(
-        jsonDecode('{"accounts":[],"transactions":[]}'),
-        now: now);
+      jsonDecode('{"accounts":[],"transactions":[]}'),
+      now: now,
+    );
     expectSame(bare, parse['bare'], 'parse.bare');
   });
 
   test('the schema version and starter categories match the RN app', () {
     expect(schemaVersion, goldens['schemaVersion']);
-    expectSame(defaultCategories, goldens['defaultCategories'],
-        'defaultCategories');
+    expectSame(
+      defaultCategories,
+      goldens['defaultCategories'],
+      'defaultCategories',
+    );
   });
 }

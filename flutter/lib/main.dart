@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.78 \u00b7 Alignment pass: every tab starts at the same height and the gutters come from one ruler.';
+    'f3.79 \u00b7 Clearer words: Safe to spend, Cash ahead, Accounts, Calculators, and a pace line that says its finish line.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

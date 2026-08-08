@@ -24,7 +24,7 @@ import 'screens_shot.dart' show loadRealFonts;
 import 'support/app_harness.dart';
 
 Future<void> _openCourses(WidgetTester tester) async {
-  await openFromMenu(tester, 'Tools');
+  await openFromMenu(tester, 'Calculators');
   await tester.scrollUntilVisible(
     find.text('Money courses'),
     200,

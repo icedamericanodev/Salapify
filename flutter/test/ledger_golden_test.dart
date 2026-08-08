@@ -14,8 +14,11 @@ import 'package:salapify/money/statements.dart';
 void expectMatches(dynamic actual, dynamic golden, String path) {
   if (golden is num) {
     expect(actual, isA<num>(), reason: '$path should be a number');
-    expect((actual as num).toDouble(), closeTo(golden.toDouble(), 1e-9),
-        reason: path);
+    expect(
+      (actual as num).toDouble(),
+      closeTo(golden.toDouble(), 1e-9),
+      reason: path,
+    );
   } else if (golden is bool || golden is String) {
     expect(actual, equals(golden), reason: path);
   } else if (golden == null) {
@@ -39,9 +42,9 @@ void expectMatches(dynamic actual, dynamic golden, String path) {
 Map<String, dynamic> asMap(dynamic v) => (v as Map).cast<String, dynamic>();
 
 void main() {
-  final goldens = jsonDecode(
-          File('test/goldens/ledger_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final goldens =
+      jsonDecode(File('test/goldens/ledger_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 15);
 
   test('statements match the RN engine on every fixture', () {
@@ -50,14 +53,26 @@ void main() {
     for (final name in fixtures.keys) {
       final data = asMap(fixtures[name]);
       final want = asMap(expected[name]);
-      expectMatches(netWorthParts(data), want['netWorthParts'],
-          '$name.netWorthParts');
-      expectMatches(balanceSheet(data), want['balanceSheet'],
-          '$name.balanceSheet');
-      expectMatches(incomeStatement(data, ref), want['incomeStatement'],
-          '$name.incomeStatement');
-      expectMatches(cashFlowStatement(data, ref), want['cashFlowStatement'],
-          '$name.cashFlowStatement');
+      expectMatches(
+        netWorthParts(data),
+        want['netWorthParts'],
+        '$name.netWorthParts',
+      );
+      expectMatches(
+        balanceSheet(data),
+        want['balanceSheet'],
+        '$name.balanceSheet',
+      );
+      expectMatches(
+        incomeStatement(data, ref),
+        want['incomeStatement'],
+        '$name.incomeStatement',
+      );
+      expectMatches(
+        cashFlowStatement(data, ref),
+        want['cashFlowStatement'],
+        '$name.cashFlowStatement',
+      );
     }
   });
 
@@ -80,9 +95,14 @@ void main() {
       } else if (action == 'remove') {
         state = removeTransaction(state, step[1] as String);
       }
-      expectMatches(state['accounts'], entry['accounts'], 'accounts after $step');
-      final ids =
-          (state['transactions'] as List).map((t) => (t as Map)['id']).toList();
+      expectMatches(
+        state['accounts'],
+        entry['accounts'],
+        'accounts after $step',
+      );
+      final ids = (state['transactions'] as List)
+          .map((t) => (t as Map)['id'])
+          .toList();
       expectMatches(ids, entry['txIds'], 'txIds after $step');
     }
   });

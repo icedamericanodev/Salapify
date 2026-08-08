@@ -198,9 +198,7 @@ String? conversionNotice(FxTable t, FxOutcome o) {
     final codes = (o.used.keys.toList()..sort()).join(', ');
     switch (o.worst) {
       case RateSource.manual:
-        parts.add(
-          'Includes $codes converted at a rate you entered yourself.',
-        );
+        parts.add('Includes $codes converted at a rate you entered yourself.');
       case RateSource.stale:
         final days = rateAgeDays(t);
         parts.add(

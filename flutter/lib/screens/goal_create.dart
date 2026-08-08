@@ -290,10 +290,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                       style: Barako.kickerStyle,
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      t.why!,
-                      style: AppText.small.copyWith(height: 1.45),
-                    ),
+                    Text(t.why!, style: AppText.small.copyWith(height: 1.45)),
                   ],
                 ),
               ),
@@ -575,10 +572,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
             ],
             if (_error != null) ...[
               const SizedBox(height: Gap.md),
-              Text(
-                _error!,
-                style: AppText.small.tint(Barako.warningStrong),
-              ),
+              Text(_error!, style: AppText.small.tint(Barako.warningStrong)),
             ],
             const SizedBox(height: Gap.xl),
             FilledButton(

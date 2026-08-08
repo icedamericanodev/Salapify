@@ -326,10 +326,7 @@ class _PanScreenState extends State<PanScreen> {
             children: [
               Text('OUR PLAN', style: Barako.cardKickerStyle),
               const SizedBox(height: 4),
-              Text(
-                factsLine,
-                style: AppText.caption.copyWith(fontSize: 12.5),
-              ),
+              Text(factsLine, style: AppText.caption.copyWith(fontSize: 12.5)),
               const SizedBox(height: 6),
               Text(
                 planLine(status),
@@ -587,10 +584,7 @@ class _PanScreenState extends State<PanScreen> {
           color: Barako.primary,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: Text(
-          text,
-          style: AppText.label.w4.tint(Barako.onPrimary),
-        ),
+        child: Text(text, style: AppText.label.w4.tint(Barako.onPrimary)),
       ),
     ),
   );
@@ -809,10 +803,7 @@ class _PlanEditSheetState extends State<_PlanEditSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Change the plan',
-              style: AppText.subtitle.w8,
-            ),
+            Text('Change the plan', style: AppText.subtitle.w8),
             const SizedBox(height: 4),
             Text(
               'Same plan, new pace. Pick an amount that fits real life.',

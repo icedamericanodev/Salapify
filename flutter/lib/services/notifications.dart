@@ -140,8 +140,7 @@ class Reminders {
       // Detailed reminders (names and amounts in the body) are strictly opt-in;
       // absent key means off, so the default is the generic, redacted text.
       final settings = data['settings'];
-      final detailed =
-          settings is Map && settings['notifDetailed'] == true;
+      final detailed = settings is Map && settings['notifDetailed'] == true;
       final details = detailsFor(detailed);
       var id = 0;
       for (final r in plannedReminders(data, now, detailed: detailed)) {

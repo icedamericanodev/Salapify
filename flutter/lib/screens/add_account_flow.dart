@@ -132,9 +132,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                 ],
               ),
             ),
-            Flexible(
-              child: open == null ? _categories() : _subtypes(open),
-            ),
+            Flexible(child: open == null ? _categories() : _subtypes(open)),
             const SizedBox(height: 12),
           ],
         ),
@@ -231,8 +229,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () =>
-                    Navigator.of(context).pop(AddAccountChoice(c, s)),
+                onTap: () => Navigator.of(context).pop(AddAccountChoice(c, s)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -264,10 +261,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
 /// Null means dismissed without choosing, which is NOT the same as choosing
 /// none, and the caller has to treat them differently or a back swipe silently
 /// clears an answer somebody already gave.
-Future<String?> showInstitutionPicker(
-  BuildContext context, {
-  String? current,
-}) {
+Future<String?> showInstitutionPicker(BuildContext context, {String? current}) {
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,

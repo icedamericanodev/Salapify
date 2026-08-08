@@ -46,8 +46,8 @@ final _destinations = <String, Type>{
   'Paluwagan': PaluwaganScreen,
   'Recurring': RecurringScreen,
   'Reports': ReportsScreen,
-  'Payday': PaydayScreen,
-  'Tools': ToolsScreen,
+  'Payday schedule': PaydayScreen,
+  'Calculators': ToolsScreen,
   'Earn your treats': TreatsScreen,
   'Share your month': RecapShareScreen,
   'Share a win': MilestoneShareScreen,
@@ -138,7 +138,7 @@ void main() {
       // reachable and say plainly that is what this asserts.
       await tester.pumpWidget(_menu(store));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(NavTile, 'Payday'), findsOneWidget);
+      expect(find.widgetWithText(NavTile, 'Payday schedule'), findsOneWidget);
     }
   });
 

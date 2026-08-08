@@ -14,9 +14,31 @@ void main() {
       {'id': 'g', 'name': 'GCash'},
     ],
     'transactions': [
-      {'id': '1', 'date': '2026-07-05', 'type': 'expense', 'label': 'Food', 'amount': 250, 'accountId': 'c'},
-      {'id': '2', 'date': '2026-07-15', 'type': 'income', 'label': 'Sweldo', 'amount': 20000, 'accountId': 'g'},
-      {'id': '3', 'date': '2026-07-10', 'type': 'expense', 'label': 'Load, and snacks', 'amount': 100, 'accountId': 'c', 'note': 'with "quotes"'},
+      {
+        'id': '1',
+        'date': '2026-07-05',
+        'type': 'expense',
+        'label': 'Food',
+        'amount': 250,
+        'accountId': 'c',
+      },
+      {
+        'id': '2',
+        'date': '2026-07-15',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 20000,
+        'accountId': 'g',
+      },
+      {
+        'id': '3',
+        'date': '2026-07-10',
+        'type': 'expense',
+        'label': 'Load, and snacks',
+        'amount': 100,
+        'accountId': 'c',
+        'note': 'with "quotes"',
+      },
     ],
   };
 
@@ -61,8 +83,16 @@ void main() {
 
   test('junk data never throws', () {
     final junk = {
-      'accounts': [null, 42, {'id': 5}],
-      'transactions': [null, 7, {'amount': 'abc', 'date': 3}],
+      'accounts': [
+        null,
+        42,
+        {'id': 5},
+      ],
+      'transactions': [
+        null,
+        7,
+        {'amount': 'abc', 'date': 3},
+      ],
     };
     expect(() => transactionRows(junk), returnsNormally);
     expect(() => transactionsCsv(junk), returnsNormally);

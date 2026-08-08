@@ -111,7 +111,7 @@
           "kind": "crunch",
           "tone": "urgent",
           "title": "Money is tight until payday",
-          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -210,7 +210,7 @@
         "kind": "crunch",
         "tone": "urgent",
         "title": "Money is tight until payday",
-        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"
@@ -406,7 +406,7 @@
           "kind": "crunch",
           "tone": "urgent",
           "title": "Money is tight until payday",
-          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -428,7 +428,7 @@
         "kind": "crunch",
         "tone": "urgent",
         "title": "Money is tight until payday",
-        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"
@@ -1033,7 +1033,7 @@
           "kind": "crunch",
           "tone": "urgent",
           "title": "Money is tight until payday",
-          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+          "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
           "action": {
             "label": "See what is committed",
             "route": "/insights"
@@ -1099,7 +1099,7 @@
         "kind": "crunch",
         "tone": "urgent",
         "title": "Money is tight until payday",
-        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until payday.",
+        "message": "The bills and minimums due before your next payday already use up your spendable cash. Best to hold off on extras until then.",
         "action": {
           "label": "See what is committed",
           "route": "/insights"

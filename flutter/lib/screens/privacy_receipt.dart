@@ -174,15 +174,9 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: AppText.bodyStrong,
-                  ),
+                  Text(title, style: AppText.bodyStrong),
                   const SizedBox(height: 4),
-                  Text(
-                    body,
-                    style: AppText.caption.copyWith(height: 1.4),
-                  ),
+                  Text(body, style: AppText.caption.copyWith(height: 1.4)),
                 ],
               ),
             ),
@@ -223,15 +217,9 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: AppText.label.w7,
-              ),
+              Text(title, style: AppText.label.w7),
               const SizedBox(height: 2),
-              Text(
-                body,
-                style: AppText.caption.copyWith(height: 1.4),
-              ),
+              Text(body, style: AppText.caption.copyWith(height: 1.4)),
             ],
           ),
         ),
@@ -329,15 +317,9 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: AppText.label.w7,
-              ),
+              Text(title, style: AppText.label.w7),
               const SizedBox(height: 2),
-              Text(
-                body,
-                style: AppText.caption.copyWith(height: 1.4),
-              ),
+              Text(body, style: AppText.caption.copyWith(height: 1.4)),
             ],
           ),
         ),
@@ -457,11 +439,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  salapifyIcon('travel'),
-                  color: Barako.primary,
-                  size: 20,
-                ),
+                Icon(salapifyIcon('travel'), color: Barako.primary, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

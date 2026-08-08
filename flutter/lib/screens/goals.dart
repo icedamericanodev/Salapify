@@ -233,10 +233,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         style: AppText.bodyStrong.copyWith(fontSize: 14.5),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        t.blurb,
-                        style: AppText.caption,
-                      ),
+                      Text(t.blurb, style: AppText.caption),
                       if (suggestion != null) ...[
                         const SizedBox(height: 2),
                         Text(

@@ -61,7 +61,7 @@ void main() {
     );
   });
 
-  testWidgets('THIS MONTH leads to Activity, MY MONEY leads to Accounts', (
+  testWidgets('THIS MONTH leads to Activity, ACCOUNTS leads to Accounts', (
     tester,
   ) async {
     final _ = await _boot(tester);
@@ -70,19 +70,21 @@ void main() {
     expect(
       find.text('Activity'),
       findsWidgets,
-      reason: 'Tapping THIS MONTH must switch to the Activity tab; the card '
+      reason:
+          'Tapping THIS MONTH must switch to the Activity tab; the card '
           'is made of its rows.',
     );
     // The Activity screen header is on screen, meaning the tab switched.
     expect(find.text('Jollibee'), findsOneWidget);
 
     await goToTab(tester, 'Home');
-    await tester.tap(find.text('MY MONEY'));
+    await tester.tap(find.text('ACCOUNTS'));
     await tester.pumpAndSettle();
     expect(
       find.byType(AccountsScreen),
       findsOneWidget,
-      reason: 'Tapping MY MONEY must open the Accounts screen; the rows ARE '
+      reason:
+          'Tapping ACCOUNTS must open the Accounts screen; the rows ARE '
           'accounts.',
     );
   });
@@ -95,7 +97,8 @@ void main() {
     expect(
       find.text('TODAY'),
       findsOneWidget,
-      reason: 'A logged entry today must be visible on the Budget tab, so a '
+      reason:
+          'A logged entry today must be visible on the Budget tab, so a '
           'quick add has a consequence you can see.',
     );
     expect(find.text('Jollibee'), findsOneWidget);

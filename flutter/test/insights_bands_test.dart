@@ -81,7 +81,8 @@ void main() {
     expect(
       find.text('CAN YOU AFFORD IT?'),
       findsOneWidget,
-      reason: 'The launcher must open the exact card that used to render '
+      reason:
+          'The launcher must open the exact card that used to render '
           'inline, values untouched.',
     );
   });

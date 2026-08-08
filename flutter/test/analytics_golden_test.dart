@@ -18,9 +18,9 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/analytics_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/analytics_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   // Noon, matching the generator's ref so date comparisons never straddle.
   final ref = DateTime(2026, 7, 16, 12);
   final fixtures = raw['fixtures'] as Map<String, dynamic>;
@@ -42,17 +42,26 @@ void main() {
   test('categoryMovers matches the RN engine', () {
     final g = raw['categoryMovers'];
     check('rich', categoryMovers(rich['transactions'], ref, 5), g['rich']);
-    check('limit3', categoryMovers(rich['transactions'], ref, 3),
-        g['richLimit3']);
+    check(
+      'limit3',
+      categoryMovers(rich['transactions'], ref, 3),
+      g['richLimit3'],
+    );
     check('empty', categoryMovers([], ref, 5), g['empty']);
   });
 
   test('categoryVsAverage matches the RN engine', () {
     final g = raw['categoryVsAverage'];
-    check('rich', categoryVsAverage(rich['transactions'], ref, 6, 5),
-        g['rich']);
-    check('sparse', categoryVsAverage(sparse['transactions'], ref, 6, 5),
-        g['sparse']);
+    check(
+      'rich',
+      categoryVsAverage(rich['transactions'], ref, 6, 5),
+      g['rich'],
+    );
+    check(
+      'sparse',
+      categoryVsAverage(sparse['transactions'], ref, 6, 5),
+      g['sparse'],
+    );
     check('empty', categoryVsAverage([], ref, 6, 5), g['empty']);
   });
 
@@ -64,8 +73,11 @@ void main() {
 
   test('savingsRate matches the RN engine, null included', () {
     final g = raw['savingsRate'];
-    check('rich', savingsRate(rich['transactions'], rich['payments'], ref),
-        g['rich']);
+    check(
+      'rich',
+      savingsRate(rich['transactions'], rich['payments'], ref),
+      g['rich'],
+    );
     expect(savingsRate(sparse['transactions'], [], ref), isNull);
     expect(g['noIncome'], isNull);
     expect(savingsRate([], [], ref), isNull);
@@ -83,14 +95,15 @@ void main() {
     check('sparse', emergencyRunway(sparse, ref), g['sparse']);
     check('empty', emergencyRunway(empty, ref), g['empty']);
     check(
-        'hugeBuffer',
-        emergencyRunway({
-          ...rich,
-          'accounts': [
-            {'id': 'c', 'kind': 'cash', 'balance': 9999999},
-          ],
-        }, ref),
-        g['hugeBuffer']);
+      'hugeBuffer',
+      emergencyRunway({
+        ...rich,
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 9999999},
+        ],
+      }, ref),
+      g['hugeBuffer'],
+    );
   });
 
   test('healthScore matches the RN engine', () {
@@ -98,19 +111,26 @@ void main() {
     check('rich', healthScore(rich, ref), g['rich']);
     check('sparse', healthScore(sparse, ref), g['sparse']);
     check('empty', healthScore(empty, ref), g['empty']);
-    check('noLimit', healthScore({...rich, 'settings': {}}, ref),
-        g['noLimit']);
+    check('noLimit', healthScore({...rich, 'settings': {}}, ref), g['noLimit']);
   });
 
   test('previousMonthLeftover matches the RN engine', () {
     final g = raw['previousMonthLeftover'];
-    check('rich', previousMonthLeftover(rich['transactions'], 15000, ref),
-        g['rich']);
-    check('overspent',
-        previousMonthLeftover(rich['transactions'], 5000, ref),
-        g['overspent']);
-    check('noLimit', previousMonthLeftover(rich['transactions'], 0, ref),
-        g['noLimit']);
+    check(
+      'rich',
+      previousMonthLeftover(rich['transactions'], 15000, ref),
+      g['rich'],
+    );
+    check(
+      'overspent',
+      previousMonthLeftover(rich['transactions'], 5000, ref),
+      g['overspent'],
+    );
+    check(
+      'noLimit',
+      previousMonthLeftover(rich['transactions'], 0, ref),
+      g['noLimit'],
+    );
     check('quiet', previousMonthLeftover([], 15000, ref), g['quietMonth']);
   });
 
@@ -124,20 +144,42 @@ void main() {
   test('chart geometry matches the RN engine', () {
     final g = raw['chartgeom'];
     final sm = g['sharedMax'];
-    check('sharedMax two', sharedMax([[1, 5, 3], [2, 9, 4]]), sm['two']);
-    check('sharedMax junk', sharedMax([[1, 'x', null], 'nope', [-5]]),
-        sm['junk']);
+    check(
+      'sharedMax two',
+      sharedMax([
+        [1, 5, 3],
+        [2, 9, 4],
+      ]),
+      sm['two'],
+    );
+    check(
+      'sharedMax junk',
+      sharedMax([
+        [1, 'x', null],
+        'nope',
+        [-5],
+      ]),
+      sm['junk'],
+    );
     check('sharedMax empty', sharedMax([]), sm['empty']);
     final lps = g['linePointsScaled'];
-    check('lps normal', linePointsScaled([0, 50, 100, 25], 100, 300, 120, 8),
-        lps['normal']);
-    check('lps single', linePointsScaled([42], 42, 300, 120, 8),
-        lps['single']);
-    check('lps allZero', linePointsScaled([0, 0, 0], 0, 300, 120, 8),
-        lps['allZero']);
+    check(
+      'lps normal',
+      linePointsScaled([0, 50, 100, 25], 100, 300, 120, 8),
+      lps['normal'],
+    );
+    check('lps single', linePointsScaled([42], 42, 300, 120, 8), lps['single']);
+    check(
+      'lps allZero',
+      linePointsScaled([0, 0, 0], 0, 300, 120, 8),
+      lps['allZero'],
+    );
     check('lps tiny', linePointsScaled([5, 10], 10, 4, 4, 8), lps['tiny']);
-    check('lps junk', linePointsScaled([3, 'x', null], 3, 200, 100, 8),
-        lps['junk']);
+    check(
+      'lps junk',
+      linePointsScaled([3, 'x', null], 3, 200, 100, 8),
+      lps['junk'],
+    );
     final lp = g['linePoints'];
     check('lp normal', linePoints([10, 40, 20], 300, 120, 8), lp['normal']);
     check('lp empty', linePoints([], 300, 120, 8), lp['empty']);

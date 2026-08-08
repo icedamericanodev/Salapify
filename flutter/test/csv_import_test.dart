@@ -48,15 +48,17 @@ void main() {
 
   group('buildImport', () {
     List<List<String>> rows() => [
-          ['2026-07-15', '-1,200.50', 'Groceries'],
-          ['2026-07-16', '20000', 'Sweldo'],
-          ['bad-date', '100', 'Junk'],
-          ['2026-07-18', 'not a number', 'Also junk'],
-        ];
+      ['2026-07-15', '-1,200.50', 'Groceries'],
+      ['2026-07-16', '20000', 'Sweldo'],
+      ['bad-date', '100', 'Junk'],
+      ['2026-07-18', 'not a number', 'Also junk'],
+    ];
 
     test('maps columns, sets sign from amount, skips unreadable rows', () {
       final r = buildImport(
-          rows(), const ColumnMap(date: 0, amount: 1, description: 2));
+        rows(),
+        const ColumnMap(date: 0, amount: 1, description: 2),
+      );
       expect(r.imported, 2);
       expect(r.skipped, 2);
       final groceries = r.transactions[0];
@@ -71,8 +73,10 @@ void main() {
     });
 
     test('a flipped sign convention makes positives expenses', () {
-      final r = buildImport(rows(),
-          const ColumnMap(date: 0, amount: 1, negativeIsExpense: false));
+      final r = buildImport(
+        rows(),
+        const ColumnMap(date: 0, amount: 1, negativeIsExpense: false),
+      );
       expect(r.transactions[0]['type'], 'income'); // negative now income
       expect(r.transactions[1]['type'], 'expense'); // positive now expense
     });
@@ -83,7 +87,9 @@ void main() {
         ['2026-07-16', '500', 'Snack', 'debit'],
       ];
       final r = buildImport(
-          data, const ColumnMap(date: 0, amount: 1, description: 2, type: 3));
+        data,
+        const ColumnMap(date: 0, amount: 1, description: 2, type: 3),
+      );
       expect(r.transactions[0]['type'], 'income'); // credit
       expect(r.transactions[1]['type'], 'expense'); // debit
     });
@@ -113,7 +119,9 @@ void main() {
 
   group('parseCsv', () {
     test('handles quoting and blank lines', () {
-      final p = parseCsv('Date,Amount,Note\n2026-07-15,100,"Food, and drinks"\n\n');
+      final p = parseCsv(
+        'Date,Amount,Note\n2026-07-15,100,"Food, and drinks"\n\n',
+      );
       expect(p.rows.length, 2);
       expect(p.rows[1][2], 'Food, and drinks');
     });

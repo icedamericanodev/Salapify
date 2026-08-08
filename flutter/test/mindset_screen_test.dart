@@ -50,7 +50,7 @@ Future<SalapifyStore> _openDirect(
 }
 
 Future<void> _openMindset(WidgetTester tester) async {
-  await openFromMenu(tester, 'Tools');
+  await openFromMenu(tester, 'Calculators');
   await tester.scrollUntilVisible(
     find.text('Money mindset'),
     200,

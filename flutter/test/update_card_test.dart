@@ -9,12 +9,15 @@ import 'package:salapify/screens/update_card.dart';
 import 'package:salapify/theme.dart';
 
 void main() {
-  testWidgets('shows the stamp and reports when updates are unavailable',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: kapeLatteTheme(),
-      home: const Scaffold(body: UpdateCard()),
-    ));
+  testWidgets('shows the stamp and reports when updates are unavailable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: kapeLatteTheme(),
+        home: const Scaffold(body: UpdateCard()),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining(updateStamp), findsOneWidget);
@@ -22,7 +25,9 @@ void main() {
 
     await tester.tap(find.text('Check for update'));
     await tester.pumpAndSettle();
-    expect(find.text('Automatic updates are not active in this build.'),
-        findsOneWidget);
+    expect(
+      find.text('Automatic updates are not active in this build.'),
+      findsOneWidget,
+    );
   });
 }

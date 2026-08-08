@@ -22,7 +22,8 @@ dynamic normalize(dynamic v) {
 
 void main() {
   final raw = jsonDecode(
-      File('test/goldens/receivables_goldens.json').readAsStringSync());
+    File('test/goldens/receivables_goldens.json').readAsStringSync(),
+  );
   final today = raw['today'] as String;
   final scenarios = (raw['scenarios'] as List).cast<Map<String, dynamic>>();
 
@@ -37,15 +38,17 @@ void main() {
       dynamic result;
       if (name.startsWith('logPartial')) {
         final args = _argsFor(name);
-        after = logPartial(initial, args.$1, args.$2,
-            today: today, genId: genId);
+        after = logPartial(
+          initial,
+          args.$1,
+          args.$2,
+          today: today,
+          genId: genId,
+        );
       } else if (name.startsWith('markPaid')) {
-        after = markPaid(initial, _targetFor(name),
-            today: today, genId: genId);
+        after = markPaid(initial, _targetFor(name), today: today, genId: genId);
       } else if (name.startsWith('removePayment')) {
-        final t = name.contains('reopens')
-            ? ('r4', 'old3')
-            : ('r1', 'old1');
+        final t = name.contains('reopens') ? ('r4', 'old3') : ('r1', 'old1');
         after = removePayment(initial, t.$1, t.$2);
       } else if (name.startsWith('save')) {
         final form = _formFor(name);
@@ -66,16 +69,24 @@ void main() {
         result = r.error != null ? {'error': r.error} : {'id': r.id};
       } else if (name.startsWith('delete')) {
         after = deleteReceivable(
-            initial, name.contains('lend leg') ? 'r2' : 'r4');
+          initial,
+          name.contains('lend leg') ? 'r2' : 'r4',
+        );
       } else {
         fail('Unknown scenario: $name');
       }
 
-      expect(normalize(after), normalize(s['after']),
-          reason: 'state mismatch in "$name"');
+      expect(
+        normalize(after),
+        normalize(s['after']),
+        reason: 'state mismatch in "$name"',
+      );
       if (result != null) {
-        expect(normalize(result), normalize(s['result']),
-            reason: 'result mismatch in "$name"');
+        expect(
+          normalize(result),
+          normalize(s['result']),
+          reason: 'result mismatch in "$name"',
+        );
       }
     });
   }

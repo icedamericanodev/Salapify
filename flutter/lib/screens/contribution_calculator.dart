@@ -181,9 +181,7 @@ class _ContributionCalculatorScreenState
                             child: Text(
                               _m(eeTotal),
                               textAlign: TextAlign.right,
-                              style: AppText.small.w8
-                                  .tint(Barako.text)
-                                  .tabular,
+                              style: AppText.small.w8.tint(Barako.text).tabular,
                             ),
                           ),
                           Expanded(

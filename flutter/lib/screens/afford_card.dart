@@ -228,11 +228,13 @@ class _AffordCardState extends State<AffordCard> {
           for (final line in lines) ...[
             Text(
               line.$1,
-              style: AppText.small.tint(line.$2 ? color : Barako.text).copyWith(
-                fontSize: 13.5,
-                height: 1.45,
-                fontWeight: line.$2 ? TypeWeight.bold : TypeWeight.medium,
-              ),
+              style: AppText.small
+                  .tint(line.$2 ? color : Barako.text)
+                  .copyWith(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    fontWeight: line.$2 ? TypeWeight.bold : TypeWeight.medium,
+                  ),
             ),
             const SizedBox(height: 6),
           ],
@@ -257,7 +259,11 @@ class _AffordCardState extends State<AffordCard> {
       Barako.warningStrong,
       salapifyIcon('warning'),
     ),
-    'no-fit' => ('Not yet affordable', Barako.warningStrong, salapifyIcon('blocked')),
+    'no-fit' => (
+      'Not yet affordable',
+      Barako.warningStrong,
+      salapifyIcon('blocked'),
+    ),
     _ => ('Not enough data yet', Barako.muted, salapifyIcon('help')),
   };
 

@@ -17,19 +17,25 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final raw = jsonDecode(
-      File('test/goldens/budget_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(File('test/goldens/budget_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
   final ref = DateTime(2026, 7, 16, 12);
 
   for (final entry in (raw['scenarios'] as Map<String, dynamic>).entries) {
     test('budget golden: ${entry.key}', () {
       final s = entry.value as Map<String, dynamic>;
       final data = (s['data'] as Map).cast<String, dynamic>();
-      expect(normalize(budgetSummary(data, ref)), normalize(s['summary']),
-          reason: '${entry.key} summary');
-      expect(normalize(whereItWent(data, ref)), normalize(s['whereItWent']),
-          reason: '${entry.key} whereItWent');
+      expect(
+        normalize(budgetSummary(data, ref)),
+        normalize(s['summary']),
+        reason: '${entry.key} summary',
+      );
+      expect(
+        normalize(whereItWent(data, ref)),
+        normalize(s['whereItWent']),
+        reason: '${entry.key} whereItWent',
+      );
     });
   }
 }

@@ -145,7 +145,10 @@ void main() {
     await _boot(tester);
     await openMenu(tester);
     final scrollable = find
-        .descendant(of: find.byType(MenuScreen), matching: find.byType(Scrollable))
+        .descendant(
+          of: find.byType(MenuScreen),
+          matching: find.byType(Scrollable),
+        )
         .first;
     var prev = -1.0;
     var screenful = 0;

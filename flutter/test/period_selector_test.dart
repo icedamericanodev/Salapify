@@ -244,7 +244,9 @@ void main() {
     await tester.tap(_chip('Month'));
     await tester.pumpAndSettle();
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.widgetWithIcon(IconButton, salapifyIcon('previous')));
+      await tester.tap(
+        find.widgetWithIcon(IconButton, salapifyIcon('previous')),
+      );
       await tester.pumpAndSettle();
     }
     expect(find.text('No entries match'), findsOneWidget);

@@ -21,9 +21,9 @@ dynamic normalize(dynamic v) {
 }
 
 void main() {
-  final goldens = jsonDecode(
-          File('test/goldens/utang_goldens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final goldens =
+      jsonDecode(File('test/goldens/utang_goldens.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   for (final name in goldens.keys) {
     test('utangAging matches the RN engine on the "$name" fixture', () {
@@ -31,8 +31,9 @@ void main() {
       final rawInput = vector['input'] as Map<String, dynamic>;
       final input = {
         'people': rawInput['people'] is List ? rawInput['people'] : [],
-        'receivables':
-            rawInput['receivables'] is List ? rawInput['receivables'] : [],
+        'receivables': rawInput['receivables'] is List
+            ? rawInput['receivables']
+            : [],
       };
       final ref = DateTime.parse(vector['ref'] as String);
       final actual = utangAging(input, ref);

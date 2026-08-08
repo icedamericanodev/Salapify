@@ -148,7 +148,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return (
         value: 0,
         error: null,
-        note: 'Left blank, so no budget for now. You can set one anytime in '
+        note:
+            'Left blank, so no budget for now. You can set one anytime in '
             'Menu.',
       );
     }
@@ -156,7 +157,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (n == null || !n.isFinite || n < 0) {
       return (
         value: null,
-        error: 'Enter a number like 15000, or leave it blank to set a budget '
+        error:
+            'Enter a number like 15000, or leave it blank to set a budget '
             'later.',
         note: null,
       );
@@ -165,7 +167,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return (
         value: 0,
         error: null,
-        note: 'No budget. Salapify still tracks everything, just without a '
+        note:
+            'No budget. Salapify still tracks everything, just without a '
             'limit. Add one anytime in Menu.',
       );
     }
@@ -173,7 +176,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return (
         value: _maxBudget,
         error: null,
-        note: 'That is above the $symbol${_plain(_maxBudget)} maximum, so '
+        note:
+            'That is above the $symbol${_plain(_maxBudget)} maximum, so '
             'Salapify will cap it there.',
       );
     }
@@ -287,18 +291,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       Center(child: PanMascot(mood: PanMood.happy, size: 132)),
       const SizedBox(height: Gap.lg),
       Center(
-        child: Text(
-          'Salapify',
-          style: AppText.title.copyWith(fontSize: 30),
-        ),
+        child: Text('Salapify', style: AppText.title.copyWith(fontSize: 30)),
       ),
       const SizedBox(height: 4),
-      Center(
-        child: Text(
-          "On your money's side.",
-          style: AppText.bodyMuted,
-        ),
-      ),
+      Center(child: Text("On your money's side.", style: AppText.bodyMuted)),
       const SizedBox(height: Gap.lg),
       Center(
         child: Wrap(
@@ -340,10 +336,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     children: [
       Text('STEP 1 OF $_stepCount', style: Barako.kickerStyle),
       const SizedBox(height: 6),
-      Text(
-        'The basics',
-        style: AppText.title.copyWith(fontSize: 24),
-      ),
+      Text('The basics', style: AppText.title.copyWith(fontSize: 24)),
       const SizedBox(height: Gap.lg),
       Text('Your currency', style: Barako.cardKickerStyle),
       const SizedBox(height: 8),
@@ -370,10 +363,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ],
       ),
       const SizedBox(height: 4),
-      Text(
-        'More currencies live in Menu.',
-        style: AppText.caption,
-      ),
+      Text('More currencies live in Menu.', style: AppText.caption),
       const SizedBox(height: Gap.lg),
       Text('Monthly spending budget', style: Barako.cardKickerStyle),
       const SizedBox(height: 8),
@@ -389,9 +379,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           hintText: '20000',
           hintStyle: TextStyle(color: Barako.faint),
           prefixText: '$symbol ',
-          prefixStyle: AppText.heading.copyWith(fontSize: 20).w4.tint(
-            Barako.muted,
-          ),
+          prefixStyle: AppText.heading
+              .copyWith(fontSize: 20)
+              .w4
+              .tint(Barako.muted),
           filled: true,
           fillColor: Barako.card,
           border: OutlineInputBorder(

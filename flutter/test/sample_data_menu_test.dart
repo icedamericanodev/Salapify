@@ -40,7 +40,12 @@ Map<String, dynamic> _realData() => {
     },
   ],
   'receivables': [
-    {'id': 'realr', 'person': 'My friend', 'amount': 500, 'dueDate': '2026-07-20'},
+    {
+      'id': 'realr',
+      'person': 'My friend',
+      'amount': 500,
+      'dueDate': '2026-07-20',
+    },
   ],
   'debts': <Map<String, dynamic>>[],
 };
@@ -50,9 +55,7 @@ Future<SalapifyStore> _open(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  SharedPreferences.setMockInitialValues({
-    storageKey: jsonEncode(_realData()),
-  });
+  SharedPreferences.setMockInitialValues({storageKey: jsonEncode(_realData())});
   final store = SalapifyStore();
   await store.load();
   Barako.current = Barako.currentTheme.resolve(Brightness.dark);

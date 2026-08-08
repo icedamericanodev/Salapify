@@ -139,10 +139,7 @@ class CategoriesScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: AppText.body.w6,
-                      ),
+                      Text(name, style: AppText.body.w6),
                       const SizedBox(height: 2),
                       Text(
                         _subtitle(spent, cap, over),
@@ -533,10 +530,7 @@ class _DeleteCategorySheetState extends State<_DeleteCategorySheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Delete $name',
-                style: AppText.title.copyWith(fontSize: 20),
-              ),
+              Text('Delete $name', style: AppText.title.copyWith(fontSize: 20)),
               const SizedBox(height: 8),
               Text(
                 used == 0
