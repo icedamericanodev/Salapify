@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const cleanFiles = [
   'lib/screens/overview.dart',
+  'lib/screens/history.dart',
   'lib/widgets/bills_before_payday.dart',
 ];
 
