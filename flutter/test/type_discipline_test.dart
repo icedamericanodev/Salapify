@@ -66,7 +66,7 @@ const Map<String, int> _baseline = {
   'lib/screens/new_phone_day.dart': 1,
   'lib/screens/notes.dart': 2,
   'lib/screens/onboarding.dart': 8,
-  'lib/screens/overview.dart': 12,
+  'lib/screens/overview.dart': 11,
   'lib/screens/paluwagan.dart': 2,
   'lib/screens/pan.dart': 4,
   'lib/screens/path_screen.dart': 1,
