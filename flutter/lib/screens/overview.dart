@@ -36,6 +36,7 @@ import '../money/fx_totals.dart' show resolveRate;
 import '../money/fxrates.dart' show convertAmount;
 import '../money/sample_data.dart' show hasSampleData;
 import '../money/timeline.dart' show sweldoTimeline, freeHorizonDays;
+import '../widgets/amount_text.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/timeline_sparkline.dart';
 import 'cashflow.dart';
@@ -474,18 +475,16 @@ class OverviewScreen extends StatelessWidget {
                           Builder(
                             builder: (context) {
                               final net = istmt['netIncome'] as double;
-                              return Text(
-                                // The sign is explicit on a gain. Without it a
-                                // good month and a bad month look identical until
-                                // you notice the minus.
-                                '${net > 0 ? '+' : ''}${formatMoney(net)}',
-                                style: AppText.amountLg.w7
-                                    .tint(
-                                      net >= 0
-                                          ? Barako.primary
-                                          : Barako.warning,
-                                    )
-                                    .copyWith(fontFeatures: const []),
+                              // The sign is explicit on a gain. Without it a
+                              // good month and a bad month look identical
+                              // until you notice the minus.
+                              return AmountText(
+                                net,
+                                role: AmountRole.lg,
+                                signed: true,
+                                tint: net >= 0
+                                    ? Barako.primary
+                                    : Barako.warning,
                               );
                             },
                           ),
@@ -563,29 +562,38 @@ class OverviewScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 8),
                                     // A big balance scales down instead of
-                                    // overflowing the row on a narrow phone.
+                                    // overflowing the row on a narrow phone
+                                    // (AmountText and the foreign FittedBox
+                                    // both scale, never clip). A foreign
+                                    // account keeps its own symbol; the
+                                    // converted figure and its provenance
+                                    // live on the Accounts screen this card
+                                    // opens. Both branches wear the plain
+                                    // row face: the old w6-at-16 fork was
+                                    // exactly the drift amountRow's strict
+                                    // rule exists to end.
                                     Flexible(
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          // A foreign account keeps its own
-                                          // symbol; the converted figure and
-                                          // its provenance live on the
-                                          // Accounts screen this card opens.
-                                          foreignCodeOf(a) == null
-                                              ? formatMoney(
-                                                  amount(a['balance']),
-                                                )
-                                              : formatForeign(
+                                      child: foreignCodeOf(a) == null
+                                          ? AmountText(
+                                              amount(a['balance']),
+                                              role: AmountRole.row,
+                                              tint: Barako.textSecondary,
+                                              textAlign: TextAlign.right,
+                                            )
+                                          : FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                formatForeign(
                                                   amount(a['balance']),
                                                   foreignCodeOf(a)!,
                                                 ),
-                                          style: AppText.amountRow.w6
-                                              .tint(Barako.textSecondary)
-                                              .copyWith(fontSize: 16),
-                                        ),
-                                      ),
+                                                maxLines: 1,
+                                                style: AmountText.styleFor(
+                                                  AmountRole.row,
+                                                ).tint(Barako.textSecondary),
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -1234,6 +1242,10 @@ class OverviewScreen extends StatelessWidget {
           children: [
             Kicker('DAYS TO PAYDAY'),
             const SizedBox(height: 6),
+            // NOT an AmountText, deliberately: this is a count of days, not
+            // money, so it stays a plain Text on the amount face. Feeding it
+            // through the money widget would wrap it in formatMoney and print
+            // a peso sign on a duration.
             Text(
               '$days ${days == 1 ? 'day' : 'days'}',
               style: AppText.amount.w7.copyWith(fontFeatures: const []),
@@ -1328,9 +1340,12 @@ class OverviewScreen extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: formatMoney(s.perDay),
-                          style: AppText.amountXl.w7.copyWith(
-                            fontFeatures: const [],
-                          ),
+                          // The ladder face for an xl amount, via the shared
+                          // resolver so the hero and every other figure make
+                          // one decision about weight and tabular digits. A
+                          // span, not an AmountText, because the "a day"
+                          // suffix must wrap WITH the number as one line.
+                          style: AmountText.styleFor(AmountRole.xl),
                         ),
                         TextSpan(
                           text: '  a day',
@@ -1393,27 +1408,21 @@ class OverviewScreen extends StatelessWidget {
         children: [
           Kicker('NET WORTH'),
           const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formatMoney(nw),
-              maxLines: 1,
-              style: AppText.amountLg.w7
-                  .tint(nw < 0 ? Barako.text : Barako.primary)
-                  .copyWith(fontFeatures: const []),
-              // Colour: a negative net worth is honest, not an emergency. It
-              // stays in plain ink, not alarm red, so a user who owes more
-              // than they hold is not shamed by the biggest number on the
-              // screen. Red is reserved for urgent, time-bound things like
-              // an overdue utang.
-              //
-              // No tabular figures on this hero, deliberately, preserved from
-              // the original literal with fontFeatures empty: it is a lone
-              // number with no column to line up with. The StatPair below
-              // inherits Jakarta, which does have tnum, and that is where
-              // digit alignment actually matters.
-            ),
+          // Colour: a negative net worth is honest, not an emergency. It
+          // stays in plain ink, not alarm red, so a user who owes more
+          // than they hold is not shamed by the biggest number on the
+          // screen. Red is reserved for urgent, time-bound things like
+          // an overdue utang.
+          //
+          // The ladder's tabular digits now apply here too. The old literal
+          // cleared them on the grounds that a lone number has no column to
+          // line up with, which was true and also not a reason to keep a
+          // second face: tnum on a lone figure changes nothing visible, and
+          // one shared style is the whole point of the ladder.
+          AmountText(
+            nw,
+            role: AmountRole.lg,
+            tint: nw < 0 ? Barako.text : Barako.primary,
           ),
           const SizedBox(height: Gap.md),
           // Net worth is one number made of two, so both halves get a name

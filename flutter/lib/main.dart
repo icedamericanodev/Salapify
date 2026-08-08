@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.81 \u00b7 Lighter Home tail: a one-line payday receipt, treats only when earned, and the accounts list previews.';
+    'f3.82 \u00b7 One face for money on Home: every amount now draws from the shared ladder, aligned on the decimal.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

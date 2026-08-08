@@ -155,8 +155,12 @@ class BillsBeforePayday extends StatelessWidget {
         Text(
           // The minus is explicit. These are all outgoings, and a bare peso
           // figure in a list reads as a balance rather than a deduction.
+          // The plain row face, tint only: amountRow's strict rule permits no
+          // reweighting, and the w8 this carried was one of the forks that
+          // rule exists to end. The warning tint and the minus carry the
+          // meaning; extra weight added nothing but a second dialect.
           '- ${format(amount is num ? amount : 0)}',
-          style: AppText.amountRow.w8.tint(Barako.warning),
+          style: AppText.amountRow.tint(Barako.warning),
         ),
       ],
     );
