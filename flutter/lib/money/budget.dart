@@ -63,6 +63,21 @@ Map<String, dynamic> budgetSummary(Map<String, dynamic> data, DateTime ref) {
   };
 }
 
+/// The remaining budget spread over the days left in [ref]'s month, today
+/// included, or null when the sentence cannot be said honestly: no limit
+/// set, or nothing left to spread. Pure derivation over [budgetSummary]'s
+/// own figures; it changes no existing calculation and exists so the screen
+/// never divides money in a widget.
+double? dailyRoom(Map<String, dynamic> summary, DateTime ref) {
+  final limit = summary['limit'];
+  final remaining = summary['remaining'];
+  if (limit is! double || remaining is! double) return null;
+  if (limit <= 0 || remaining <= 0) return null;
+  final lastDay = DateTime(ref.year, ref.month + 1, 0).day;
+  final daysLeft = lastDay - ref.day + 1;
+  return remaining / daysLeft;
+}
+
 /// This month's top spending groups: { rows: [{label, amount, cap}], max }.
 /// Tagged entries group under the category name (Pro cap attached), the
 /// rest under their trimmed label or Other, keyed case-insensitively.

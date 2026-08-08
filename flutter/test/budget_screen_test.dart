@@ -64,10 +64,14 @@ void main() {
     await goToTab(tester, 'Budget');
     await tester.pumpAndSettle();
 
-    // 1,200 of 8,000, not over (the amount also shows on the category row).
-    expect(find.text('₱1,200'), findsWidgets);
-    expect(find.text('of ₱8,000'), findsOneWidget);
-    expect(find.text('₱6,800 left this month.'), findsOneWidget);
+    // REMAINING is the hero since f3.87 (the "am I safe" inversion); spent
+    // of limit is the caption underneath.
+    expect(find.text('₱6,800'), findsOneWidget);
+    expect(find.text('left this month'), findsOneWidget);
+    expect(
+      find.textContaining('₱1,200 of ₱8,000 spent so far.'),
+      findsOneWidget,
+    );
 
     // Quick add from the remembered account.
     await tester.tap(find.textContaining('Food'));
@@ -80,6 +84,100 @@ void main() {
     await tester.pumpAndSettle();
     expect(cash(store), 5000);
     expect((store.data['transactions'] as List).length, 1);
+  });
+
+  testWidgets('at 85 percent the card says so in words, before the money '
+      'is gone', (tester) async {
+    final b = blob();
+    (b['transactions'] as List).add({
+      'id': 't2',
+      'type': 'expense',
+      'label': 'Rent',
+      'amount': 5800,
+      'date': _today(),
+      'accountId': 'cash',
+    });
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(b)});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await goToTab(tester, 'Budget');
+    await tester.pumpAndSettle();
+    // 7,000 of 8,000 is 88 percent: the approaching state, carried by words.
+    expect(find.textContaining('Getting close.'), findsOneWidget);
+    expect(find.text('₱1,000'), findsOneWidget);
+  });
+
+  testWidgets('over the limit, the overage is the hero and the biggest '
+      'category is named', (tester) async {
+    final b = blob();
+    (b['transactions'] as List).add({
+      'id': 't2',
+      'type': 'expense',
+      'label': 'Rent',
+      'amount': 7650,
+      'date': _today(),
+      'accountId': 'cash',
+    });
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(b)});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+    await goToTab(tester, 'Budget');
+    await tester.pumpAndSettle();
+    // 8,850 of 8,000: the hero is the overage, the words carry the state,
+    // and the fix names the biggest lever instead of gesturing at it.
+    expect(find.text('₱850'), findsOneWidget);
+    expect(find.text('over your limit'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Rent is your biggest category this month, so the next cut counts '
+        'most there.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('No shame'), findsNothing);
+  });
+
+  test('dailyRoom spreads the remaining over the days left, engine-side', () {
+    // Aug 8 leaves 24 days including today; 3,100 over 24 is 129.1666...
+    expect(
+      budget.dailyRoom({
+        'limit': 18000.0,
+        'remaining': 3100.0,
+      }, DateTime(2026, 8, 8)),
+      closeTo(129.1666, 0.001),
+    );
+    // The last day of the month spreads over exactly one day.
+    expect(
+      budget.dailyRoom({
+        'limit': 18000.0,
+        'remaining': 500.0,
+      }, DateTime(2026, 8, 31)),
+      closeTo(500.0, 0.0001),
+    );
+    // No limit, nothing left, or junk: the sentence cannot be said honestly.
+    expect(
+      budget.dailyRoom({
+        'limit': 0.0,
+        'remaining': 100.0,
+      }, DateTime(2026, 8, 8)),
+      isNull,
+    );
+    expect(
+      budget.dailyRoom({
+        'limit': 18000.0,
+        'remaining': -50.0,
+      }, DateTime(2026, 8, 8)),
+      isNull,
+    );
+    expect(
+      budget.dailyRoom({
+        'limit': 'x',
+        'remaining': 100.0,
+      }, DateTime(2026, 8, 8)),
+      isNull,
+    );
   });
 
   test('budgetSummary clamps the overflow pct to 100 like RN', () {
@@ -155,7 +253,7 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('of ₱12,000'), findsOneWidget);
+    expect(find.textContaining('of ₱12,000 spent so far.'), findsOneWidget);
     final fresh = SalapifyStore();
     await fresh.load();
     expect(

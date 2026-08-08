@@ -12,6 +12,7 @@ import '../theme.dart';
 import '../typography.dart';
 import 'quick_add_editor.dart';
 import '../money/quick_adds.dart' show QuickAdd;
+import '../widgets/amount_text.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/screen_header.dart';
@@ -64,7 +65,13 @@ class BudgetScreen extends StatelessWidget {
             child: ListView(
               padding: Insets.tabScreen.copyWith(top: 0),
               children: [
-                _limitCard(context, summary),
+                _limitCard(
+                  context,
+                  summary,
+                  topCategory: rows.isEmpty
+                      ? null
+                      : (rows.first['label'] ?? '').toString(),
+                ),
                 if (store.canWrite) ...[
                   const SizedBox(height: Gap.lg),
                   Card(
@@ -110,17 +117,25 @@ class BudgetScreen extends StatelessWidget {
                             runSpacing: 8,
                             children: [
                               for (final q in adds)
-                                ActionChip(
-                                  label: Text(
-                                    '${q.label}  ${formatMoney(q.amount)}',
+                                // The hint matters here more than on most
+                                // buttons: activating this chip WRITES real
+                                // money immediately, and a screen-reader
+                                // user hearing only "Coffee ₱120" cannot
+                                // know that.
+                                Semantics(
+                                  hint: 'Double tap to log this expense',
+                                  child: ActionChip(
+                                    label: Text(
+                                      '${q.label}  ${formatMoney(q.amount)}',
+                                    ),
+                                    backgroundColor: Barako.background,
+                                    labelStyle: TextStyle(
+                                      color: Barako.text,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    side: BorderSide(color: Barako.border),
+                                    onPressed: () => _quickAdd(context, q),
                                   ),
-                                  backgroundColor: Barako.background,
-                                  labelStyle: TextStyle(
-                                    color: Barako.text,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  side: BorderSide(color: Barako.border),
-                                  onPressed: () => _quickAdd(context, q),
                                 ),
                               ActionChip(
                                 label: const Text('+ Custom'),
@@ -184,14 +199,24 @@ class BudgetScreen extends StatelessWidget {
                                         style: AppText.label.w4,
                                       ),
                                     ),
-                                    Text(
-                                      '${t['type'] == 'income' ? '+' : '-'}${formatMoney(t['amount'] is num ? t['amount'] as num : 0)}',
-                                      style: AppText.label.tabular.tint(
-                                        t['type'] == 'income'
-                                            ? Barako.primary
-                                            : Barako.textSecondary,
-                                      ),
-                                    ),
+                                    // The ledger's own sign grammar, shared
+                                    // face: a real minus, an explicit plus.
+                                    t['type'] == 'income'
+                                        ? AmountText(
+                                            t['amount'] is num
+                                                ? t['amount'] as num
+                                                : 0,
+                                            role: AmountRole.row,
+                                            signed: true,
+                                            tint: Barako.primary,
+                                          )
+                                        : AmountText(
+                                            -(t['amount'] is num
+                                                ? (t['amount'] as num)
+                                                : 0),
+                                            role: AmountRole.row,
+                                            tint: Barako.textSecondary,
+                                          ),
                                   ],
                                 ),
                               ),
@@ -248,13 +273,44 @@ class BudgetScreen extends StatelessWidget {
     );
   }
 
-  Widget _limitCard(BuildContext context, Map<String, dynamic> summary) {
+  Widget _limitCard(
+    BuildContext context,
+    Map<String, dynamic> summary, {
+    String? topCategory,
+  }) {
     final limit = summary['limit'] as double;
     final spent = summary['spent'] as double;
     final carried = summary['carried'] as double;
     final remaining = summary['remaining'] as double;
     final over = summary['over'] as bool;
     final pct = summary['pct'] as int;
+    // The third state the month's most useful nudge lives in: at 85 percent
+    // the first warning arrives BEFORE the money is gone, in words, with the
+    // color underlining rather than carrying it.
+    final near = !over && pct >= 85;
+    // The daily pace comes from the engine (money/budget.dart dailyRoom), so
+    // no peso is ever divided in a widget. Null when it cannot be said
+    // honestly, and the sentence simply does not appear.
+    final room = budget.dailyRoom(summary, DateTime.now());
+    final String stateLine;
+    if (over) {
+      // The overage is the hero above; this line names the biggest lever.
+      // "No shame" named the shame it disclaimed; the named category is an
+      // instruction instead of a gesture.
+      stateLine = topCategory == null
+          ? ''
+          : '$topCategory is your biggest category this month, so the next '
+                'cut counts most there.';
+    } else if (near) {
+      stateLine = room == null
+          ? 'Getting close.'
+          : 'Getting close. About ${formatMoney(room)} a day keeps you '
+                'inside the limit.';
+    } else {
+      stateLine = room == null
+          ? ''
+          : 'About ${formatMoney(room)} a day until the end of the month.';
+    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -285,26 +341,30 @@ class BudgetScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             if (limit > 0) ...[
+              // The question between kinsenas and katapusan is "how much is
+              // still safe to spend", so REMAINING is the hero and spent-of-
+              // limit is the caption. It was the other way around: the big
+              // figure was consumption and the answer lived in small muted
+              // text. When over, the hero is the overage, in words too, so
+              // the state is never color alone.
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatMoney(spent),
-                        maxLines: 1,
-                        style: AppText.amount.w7.tint(
-                          over ? Barako.warning : Barako.text,
-                        ),
-                      ),
+                    child: AmountText(
+                      over ? spent - limit : remaining,
+                      role: AmountRole.card,
+                      tint: over
+                          ? Barako.warningStrong
+                          : near
+                          ? Barako.warning
+                          : Barako.text,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5, left: 6),
                     child: Text(
-                      'of ${formatMoney(limit)}',
+                      over ? 'over your limit' : 'left this month',
                       style: AppText.small.tint(Barako.muted),
                     ),
                   ),
@@ -314,31 +374,29 @@ class BudgetScreen extends StatelessWidget {
               SalapifyProgressBar(
                 value: pct / 100,
                 semanticsLabel: 'Budget used',
-                color: over ? Barako.warning : Barako.primary,
+                color: over || near ? Barako.warning : Barako.primary,
               ),
               const SizedBox(height: 8),
               Text(
-                over
-                    ? 'Over by ${formatMoney(spent - limit)}. No shame, just ease the biggest category below.'
-                    : '${formatMoney(remaining)} left this month.'
-                          '${carried > 0 ? ' Includes ${formatMoney(carried)} carried over from last month\'s unspent budget.' : ''}',
+                '${formatMoney(spent)} of ${formatMoney(limit)} spent so far.'
+                '${carried > 0 ? ' Includes ${formatMoney(carried)} carried over from last month\'s unspent budget.' : ''}'
+                '${stateLine.isEmpty ? '' : ' $stateLine'}',
                 style: AppText.small
-                    .tint(over ? Barako.warning : Barako.muted)
+                    .tint(
+                      over
+                          ? Barako.warning
+                          : near
+                          ? Barako.warning
+                          : Barako.muted,
+                    )
                     .copyWith(height: 1.4),
               ),
             ] else ...[
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  formatMoney(spent),
-                  maxLines: 1,
-                  style: AppText.amount,
-                ),
-              ),
+              AmountText(spent, role: AmountRole.card),
               const SizedBox(height: 4),
               Text(
-                'Spent so far this month. Set a monthly limit and the bar will keep you honest.',
+                'Spent so far this month. Set a monthly limit and this card '
+                'will show what is left.',
                 style: AppText.small.tint(Barako.muted),
               ),
             ],
@@ -427,9 +485,22 @@ class BudgetScreen extends StatelessWidget {
       // One chip tap wrote real money; the hand hears the same word the log
       // sheet speaks. Only after the awaited write, never on the catch.
       Haptics.moneyWritten();
+      // The receipt states the consequence, not just the action: the new
+      // remaining (an engine value, recomputed after the write) turns every
+      // quick log into a micro budget check.
+      final s = budget.budgetSummary(store.data, DateTime.now());
+      final sLimit = s['limit'] as double;
+      final sRemaining = s['remaining'] as double;
+      final consequence = sLimit <= 0
+          ? ''
+          : sRemaining >= 0
+          ? ' ${formatMoney(sRemaining)} left this month.'
+          : ' ${formatMoney(-sRemaining)} over your limit.';
       messenger.showSnackBar(
         SnackBar(
-          content: Text('${item.label} ${formatMoney(item.amount)} logged.'),
+          content: Text(
+            '${item.label} ${formatMoney(item.amount)} logged.$consequence',
+          ),
           duration: const Duration(seconds: 4),
           persist: false,
           action: SnackBarAction(
