@@ -86,7 +86,7 @@ void main() {
           'The default segment must be what you owe. That is the pressing '
           'half, and it is the reason the merge happened at all.',
     );
-    expect(find.text('STILL OUT'), findsNothing);
+    expect(find.text('STILL UNPAID'), findsNothing);
   });
 
   testWidgets('Owed to me holds the receivables, and the header follows', (
@@ -94,7 +94,7 @@ void main() {
   ) async {
     await _boot(tester);
     await goToOwedToMe(tester);
-    expect(find.text('STILL OUT'), findsOneWidget);
+    expect(find.text('STILL UNPAID'), findsOneWidget);
     expect(find.text('Migs'), findsOneWidget);
     expect(find.text('TOTAL DEBT'), findsNothing);
     expect(find.text('Money owed to you, oldest first'), findsOneWidget);
@@ -169,7 +169,7 @@ void main() {
     expect(find.text('Follow up Migs'), findsOneWidget);
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();
-    expect(find.text('STILL OUT'), findsOneWidget);
+    expect(find.text('STILL UNPAID'), findsOneWidget);
     expect(find.text('Migs'), findsOneWidget);
   });
 }

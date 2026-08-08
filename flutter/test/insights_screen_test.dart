@@ -215,7 +215,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();
-    expect(find.text('STILL OUT'), findsOneWidget);
+    expect(find.text('STILL UNPAID'), findsOneWidget);
   });
 
   testWidgets('the what-if simulator projects savings and reacts to the chips', (

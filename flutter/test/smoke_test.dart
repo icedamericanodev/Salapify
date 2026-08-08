@@ -113,7 +113,7 @@ void main() {
     expect(find.text('Follow up Migs'), findsOneWidget);
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();
-    expect(find.text('STILL OUT'), findsOneWidget);
+    expect(find.text('STILL UNPAID'), findsOneWidget);
   });
 
   testWidgets('a due-soon check-in lands on the Utang tab, bottom bar intact', (
