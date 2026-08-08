@@ -41,12 +41,17 @@ class WeekChainCard extends StatelessWidget {
             )
           : null,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        // Densified in the Phase 3 pass: the habit strip earns its slot by
+        // changing daily, not by being tall. Smaller dots and tighter gaps
+        // took the card from ~140dp toward ~110 with every piece of
+        // information kept: seven days, their letters, today's ring, the
+        // message that meets the user where they are.
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('LOGGING CHAIN', style: Barako.cardKickerStyle),
-            const SizedBox(height: Gap.md),
+            const SizedBox(height: Gap.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -54,8 +59,8 @@ class WeekChainCard extends StatelessWidget {
                   Column(
                     children: [
                       Container(
-                        width: 30,
-                        height: 30,
+                        width: 26,
+                        height: 26,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -77,7 +82,7 @@ class WeekChainCard extends StatelessWidget {
                             ? ExcludeSemantics(
                                 child: Icon(
                                   salapifyIcon('check'),
-                                  size: 16,
+                                  size: 14,
                                   color: Barako.onPrimary,
                                 ),
                               )
@@ -97,7 +102,7 @@ class WeekChainCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: Gap.md),
+            const SizedBox(height: Gap.sm),
             Text(
               s.message,
               style: AppText.small.copyWith(

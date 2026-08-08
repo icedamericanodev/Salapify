@@ -30,6 +30,10 @@ import '../widgets/bills_before_payday.dart';
 import '../widgets/spoken_for_bar.dart';
 import '../widgets/pan_mascot.dart';
 import '../money/format.dart' show formatMoney, formatMoneyAbout, prettyDay;
+import '../money/base_currency_scope.dart' show baseCurrencyOf;
+import '../money/currencies.dart' show formatForeign;
+import '../money/fx_totals.dart' show resolveRate;
+import '../money/fxrates.dart' show convertAmount;
 import '../money/sample_data.dart' show hasSampleData;
 import '../money/timeline.dart' show sweldoTimeline, freeHorizonDays;
 import '../widgets/pressable_scale.dart';
@@ -112,6 +116,40 @@ class OverviewScreen extends StatelessWidget {
     final parts = netWorthParts(data, fx: store.fxTable);
     final istmt = incomeStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
+    // The Home tail PREVIEWS accounts, the top three by balance, and the card
+    // opens the full Accounts screen. Comparison only, never a widget-side
+    // sum: the money math for totals lives in the engines. Original order is
+    // the tiebreak so equal balances keep the user's own arrangement.
+    //
+    // A foreign balance ranks by its CONVERTED value when a rate exists
+    // (resolveRate and convertAmount are the engines' own golden-locked
+    // helpers), and at face value when none does; otherwise a dollar account
+    // that is really the biggest would hide behind the fold. The same
+    // foreign-or-not answer drives the row's label below, so a dollar
+    // balance is never printed behind a peso sign.
+    final fx = store.fxTable;
+    final baseCode = baseCurrencyOf(data);
+    String? foreignCodeOf(Map<String, dynamic> a) {
+      final c = a['currencyCode'];
+      if (c is! String || c.isEmpty) return null;
+      return c.toUpperCase() == baseCode ? null : c.toUpperCase();
+    }
+
+    double rankOf(Map<String, dynamic> a) {
+      final raw = amount(a['balance']);
+      final code = foreignCodeOf(a);
+      if (code == null || fx == null) return raw;
+      return convertAmount(raw, resolveRate(fx, code).basePerUnit) ?? raw;
+    }
+
+    final accountsPreview = () {
+      final idx = [for (final (i, a) in accounts.indexed) (i, a)];
+      idx.sort((x, y) {
+        final c = rankOf(y.$2).compareTo(rankOf(x.$2));
+        return c != 0 ? c : x.$1.compareTo(y.$1);
+      });
+      return [for (final e in idx.take(3)) e.$2];
+    }();
     // The one thing to do about money right now, seen the moment Home opens.
     // Reuses the same coach decision layer Insights renders, so the two can
     // never disagree. Only once there is real data to reason about.
@@ -505,7 +543,7 @@ class OverviewScreen extends StatelessWidget {
                             // Flat rows with hairline separators, the same content
                             // treatment as Utang's people list. Rows in a card, not
                             // a card per row.
-                            for (final (i, a) in accounts.indexed) ...[
+                            for (final (i, a) in accountsPreview.indexed) ...[
                               if (i > 0)
                                 Divider(height: 1, color: Barako.border),
                               Padding(
@@ -531,7 +569,18 @@ class OverviewScreen extends StatelessWidget {
                                         fit: BoxFit.scaleDown,
                                         alignment: Alignment.centerRight,
                                         child: Text(
-                                          formatMoney(amount(a['balance'])),
+                                          // A foreign account keeps its own
+                                          // symbol; the converted figure and
+                                          // its provenance live on the
+                                          // Accounts screen this card opens.
+                                          foreignCodeOf(a) == null
+                                              ? formatMoney(
+                                                  amount(a['balance']),
+                                                )
+                                              : formatForeign(
+                                                  amount(a['balance']),
+                                                  foreignCodeOf(a)!,
+                                                ),
                                           style: AppText.amountRow.w6
                                               .tint(Barako.textSecondary)
                                               .copyWith(fontSize: 16),
@@ -539,6 +588,24 @@ class OverviewScreen extends StatelessWidget {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                            // Past three, a caption names the fold. No peso
+                            // figure here on purpose: a widget-side sum is
+                            // forbidden, and the engines' totals (liquid,
+                            // net worth) exclude kinds this list includes.
+                            if (accounts.length > 3) ...[
+                              Divider(height: 1, color: Barako.border),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                child: Text(
+                                  'and ${accounts.length - 3} more accounts',
+                                  style: AppText.caption.tint(
+                                    Barako.textSecondary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -902,6 +969,47 @@ class OverviewScreen extends StatelessWidget {
     PaydayRitual r, {
     required bool numberShows,
   }) {
+    // The RECEIPT state: salary logged and the fresh number is visible right
+    // below. At that point three sentences and two buttons were repeating
+    // what the hero already shows, ~170dp of told-you-so. One row keeps the
+    // one action still worth taking (savings first) and gets out of the way.
+    // When the number is NOT showing, the full card stays: its explanation of
+    // why is the only truth on screen.
+    if (r.salaryLogged && numberShows) {
+      return Card(
+        color: Barako.surfaceRaised,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Icon(salapifyIcon('cash'), color: Barako.primary, size: 18),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Text(
+                  'Salary logged. Your cycle is set.',
+                  style: AppText.bodyStrong,
+                ),
+              ),
+              const SizedBox(width: Gap.md),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => GoalsScreen(store: store)),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Barako.primaryText,
+                  side: BorderSide(color: Barako.border),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Gap.md,
+                    vertical: Gap.sm,
+                  ),
+                ),
+                child: Text('Savings first', style: AppText.small.w7),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Card(
       color: Barako.surfaceRaised,
       child: Padding(
