@@ -32,7 +32,6 @@
 //    it wrap differently (or make the row jump height) than its neighbours.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../theme.dart';
 import '../typography.dart';
@@ -79,9 +78,6 @@ class Segmented<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Zero duration under reduce-motion rather than a shorter one: the setting
-    // means "no animation", not "less animation".
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Container(
       decoration: BoxDecoration(
         color: Barako.card,
@@ -94,9 +90,7 @@ class Segmented<T> extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final horizontal = _fitsHorizontally(context, constraints.maxWidth);
-          final segments = [
-            for (final o in options) _segment(context, o, reduce),
-          ];
+          final segments = [for (final o in options) _segment(context, o)];
           if (horizontal) {
             return Row(
               children: [for (final s in segments) Expanded(child: s)],
@@ -153,8 +147,17 @@ class Segmented<T> extends StatelessWidget {
   }
 
   /// One tappable segment, identical in horizontal and vertical layouts.
-  Widget _segment(BuildContext context, SegmentOption<T> o, bool reduce) {
+  Widget _segment(BuildContext context, SegmentOption<T> o) {
     final selected = o.value == current;
+    // ONE tap handler for both the Semantics action and the InkWell, and the
+    // buzz fires only on a real change: re-tapping the segment you are on is
+    // a no-op and must stay silent, the same rule the choice chip and the tab
+    // bar follow. onPick still fires either way; only the feedback is gated.
+    void tap() {
+      if (!selected) Haptics.select();
+      onPick(o.value);
+    }
+
     return Semantics(
       button: true,
       selected: selected,
@@ -169,22 +172,16 @@ class Segmented<T> extends StatelessWidget {
       // unlabelled to a screen reader, it was INVISIBLE to the accessibility
       // test that was supposed to be checking it. The test passed with a 20
       // pixel target until this line existed.
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onPick(o.value);
-      },
+      onTap: tap,
       child: ExcludeSemantics(
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(Radii.sm),
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onPick(o.value);
-            },
+            onTap: tap,
             child: AnimatedContainer(
-              duration: Duration(milliseconds: reduce ? 0 : 160),
-              curve: Curves.easeOut,
+              duration: Motion.of(context, Motion.state),
+              curve: Motion.curve,
               // 48, the Android floor. The consequence of a mis-tap on a
               // control like this is never small: on Appearance it repaints the
               // whole app, and on Utang it swaps the screen under your thumb.

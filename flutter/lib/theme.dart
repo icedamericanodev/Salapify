@@ -982,17 +982,21 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       indicatorColor: p.primary,
-      // Six tabs share the width, so the label type is a touch smaller and
-      // tighter than the old five-tab bar to keep every label (even "Insights"
-      // at w800) on one line down to a 320dp phone.
+      // Five tabs share the width. The 10px labels date from the six-tab era;
+      // they still keep every label on one line down to a 320dp phone, and
+      // raising them is a separate, sweep-verified decision.
       height: 68,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
           fontFamily: 'Jakarta',
           fontSize: 10,
+          // w700, not w800: heavy is reserved for money and page titles
+          // (typography.dart), and at 10px the two are barely separable
+          // anyway. The indicator pill and the filled glyph carry the
+          // selected state; the label only assists.
           fontWeight: states.contains(WidgetState.selected)
-              ? FontWeight.w800
+              ? FontWeight.w700
               : FontWeight.w600,
           letterSpacing: 0.1,
           color: states.contains(WidgetState.selected) ? p.text : p.muted,
@@ -1116,6 +1120,14 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
       foregroundColor: p.onPrimary,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      // The extended FAB's label, owned here so the Log button's weight is a
+      // theme decision, not a call-site restyle.
+      extendedTextStyle: const TextStyle(
+        fontFamily: 'Jakarta',
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        letterSpacing: 0.2,
+      ),
     ),
     // The one input decoration, complete enough that a bare TextField is
     // already right. Fifteen-plus screens grew private _decor helpers because

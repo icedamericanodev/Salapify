@@ -285,7 +285,7 @@ class OverviewScreen extends StatelessWidget {
                 // both be on screen. Deleting this branch would still look correct
                 // right up until the coach grows a second urgent kind.
                 if (checkIn != null && checkIn['tone'] == 'urgent') ...[
-                  _checkInCard(context, checkIn),
+                  _checkInCard(context, checkIn, now),
                   const SizedBox(height: Gap.lg),
                 ],
                 if (cycle.show) ...[
@@ -330,7 +330,7 @@ class OverviewScreen extends StatelessWidget {
                 // Home. A user in perfect financial health read two hundred pixels of
                 // good news before reaching the figure they opened the app for.
                 if (checkIn != null && checkIn['tone'] != 'urgent') ...[
-                  _checkInCard(context, checkIn),
+                  _checkInCard(context, checkIn, now),
                   const SizedBox(height: Gap.lg),
                 ],
                 // The road ahead at a glance: the Sweldo Timeline's free
@@ -597,7 +597,11 @@ class OverviewScreen extends StatelessWidget {
     ),
   );
 
-  Widget _checkInCard(BuildContext context, Map<String, dynamic> c) {
+  Widget _checkInCard(
+    BuildContext context,
+    Map<String, dynamic> c,
+    DateTime now,
+  ) {
     final tone = c['tone'] as String;
     final action = c['action'];
     final route = action is Map ? action['route'] as String? : null;
@@ -726,11 +730,16 @@ class OverviewScreen extends StatelessWidget {
                         // to say a bill is due. That would read as a bug, not
                         // as warmth.
                         child: PanMascot(
+                          // The build's one clock, threaded in, never a second
+                          // DateTime.now(): the comment at the top of build
+                          // exists precisely so a midnight straddle cannot
+                          // split the frame, and a second clock here also broke
+                          // the injectable-clock seam for tests.
                           mood:
                               panMoodForRecentAction(
                                 store.lastActionKind,
                                 store.lastActionAt,
-                                DateTime.now(),
+                                now,
                               ) ??
                               panMoodForCoachKind(c['kind'] as String?),
                           size: 80,
