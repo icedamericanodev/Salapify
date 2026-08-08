@@ -82,7 +82,10 @@ void main() {
     final (a, b) = await _colourAcrossPalettes(
       tester,
       () => HistoryScreen(store: store),
-      (t) => t.widget<Text>(find.text('Nothing here yet')).style?.color,
+      (t) => t
+          .widget<Text>(find.text('Your money story starts with one entry'))
+          .style
+          ?.color,
     );
     expect(a, isNotNull);
     expect(

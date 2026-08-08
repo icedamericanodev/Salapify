@@ -17,8 +17,11 @@ import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/amount_text.dart';
+import '../widgets/pressable_scale.dart';
 import 'overview.dart' show formatMoney, prettyDay;
 import 'edit_sheet.dart' show showEntrySheet;
+import 'log_sheet.dart' show showLogSheet;
 
 const _filters = [
   ('all', 'All'),
@@ -207,12 +210,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final txs = [for (final e in indexed) e.$1];
 
     final now = DateTime.now();
-    // Rows interleaved with headers, newest day first.
+    // ONE card per day, rows separated by hairlines, headers outside. A card
+    // per transaction gave a phone six rows and twelve borders per screen;
+    // the ledger shape roughly doubles the rows in view and lets the eye run
+    // down one column instead of hopping islands. The audit's Phase 4 line
+    // ("grouped-day list physics") lands here.
     final items = <Widget>[];
+    var group = <Widget>[];
+    void flushGroup() {
+      if (group.isEmpty) return;
+      items.add(
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final (i, r) in group.indexed) ...[
+                if (i > 0) Divider(height: 1, color: Barako.border),
+                r,
+              ],
+            ],
+          ),
+        ),
+      );
+      group = [];
+    }
+
     String? lastHeader;
     for (final t in txs) {
       final header = dateHeader((t['date'] ?? '').toString(), now);
       if (header != lastHeader) {
+        flushGroup();
         lastHeader = header;
         items.add(
           Padding(
@@ -224,8 +252,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         );
       }
-      items.add(_row(t, locked, maps));
+      group.add(_row(t, locked, maps));
     }
+    flushGroup();
 
     // Two shapes, one screen. As a TAB it is a plain body inside the shell's
     // Scaffold, like every other destination. Pushed from Search or Reports it
@@ -370,11 +399,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ? EmptyState(
               icon: 'receipt',
               showPan: true,
-              title: 'Nothing here yet',
+              title: 'Your money story starts with one entry',
               body:
                   'Every expense and every peso in shows up here, newest '
                   'first, the moment you log it. This is also where you '
                   'search and filter once there is something to look through.',
+              actionLabel: 'Log your first entry',
+              onAction: () => showLogSheet(context, widget.store),
             )
           : EmptyState(
               icon: 'inspect',
@@ -413,9 +444,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final isIncome = type == 'income';
     final record = type != 'income' && type != 'expense';
     final amount = t['amount'] is num ? (t['amount'] as num).toDouble() : 0.0;
-    final label = (t['label'] ?? '').toString().isEmpty
-        ? (record ? type : (isIncome ? 'Income' : 'Expense'))
-        : (t['label']).toString();
+    // The label fallback is capitalized: an imported transfer with no label
+    // used to print a lowercase machine word ("transfer") as its title.
+    final typeAsTitle = type.isEmpty
+        ? 'Record'
+        : '${type[0].toUpperCase()}${type.substring(1)}';
+    // 'Entry' is sanitizeData's filler for a blank label; on a record row the
+    // type makes a better title than the filler ("Transfer", not "Entry").
+    final rawLabel = (t['label'] ?? '').toString();
+    final label = rawLabel.isEmpty || (record && rawLabel == 'Entry')
+        ? (record ? typeAsTitle : (isIncome ? 'Income' : 'Expense'))
+        : rawLabel;
+    // A money move names its two ends from the entry's own account ids, so
+    // the sentence survives an import or a missing label. The old subline
+    // ("Record of a money move, read-only here") repeated the same lesson on
+    // every record row and named no accounts; the receipt behind the tap
+    // carries the read-only explanation.
+    final moveFrom = maps.acct[(t['transferFromId'] ?? '').toString()];
+    final moveTo = maps.acct[(t['transferToId'] ?? '').toString()];
+    final recordLine = moveFrom != null && moveTo != null
+        ? 'From $moveFrom to $moveTo'
+        : 'Money move';
 
     // A plain expense you fronted can be split with friends. It must clear the
     // SAME safety gate as delete (isDeletable): a real, unlocked expense with
@@ -441,7 +490,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final showSplitHint = splittable && !alreadySplit;
 
     final rowContent = Padding(
-      padding: const EdgeInsets.all(14),
+      // 14 vertical came down to 10 with the ledger shape; the day card's own
+      // padding stopped double-counting the air between rows.
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
           Expanded(
@@ -450,9 +501,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 Text(label, style: AppText.body),
                 if (record)
-                  Text(
-                    'Record of a money move, read-only here',
-                    style: AppText.micro.w4.tint(Barako.faint),
+                  Row(
+                    children: [
+                      ExcludeSemantics(
+                        child: Icon(
+                          salapifyIcon('swap'),
+                          size: 12,
+                          color: Barako.faint,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          recordLine,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.micro.w4.tint(Barako.faint),
+                        ),
+                      ),
+                    ],
                   )
                 else if (rowContext.isNotEmpty)
                   // The context beats the tap hint when both apply: "GCash ·
@@ -479,20 +545,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(width: 10),
           ],
-          Text(
-            '${isIncome
-                ? '+'
-                : record
-                ? ''
-                : '-'}${formatMoney(amount)}',
-            style: AppText.amountRow.w6.tint(
-              isIncome
-                  ? Barako.primary
-                  : record
-                  ? Barako.muted
-                  : Barako.textSecondary,
-            ),
-          ),
+          // The shared row face. Direction is carried by the SIGN (a real
+          // negative for an expense, an explicit plus for income), never by
+          // tint alone, and a record stays unsigned and muted: a move is
+          // neither in nor out.
+          record
+              ? AmountText(amount, role: AmountRole.row, tint: Barako.muted)
+              : isIncome
+              ? AmountText(
+                  amount,
+                  role: AmountRole.row,
+                  signed: true,
+                  tint: Barako.primary,
+                )
+              : AmountText(
+                  -amount,
+                  role: AmountRole.row,
+                  tint: Barako.textSecondary,
+                ),
         ],
       ),
     );
@@ -500,25 +570,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
     // Every row is tappable, RN semantics: editable rows open the edit form
     // (with split reachable inside it), record and utang-linked rows open a
     // read-only explainer saying why not and where to manage them.
-    final row = Card(
-      margin: const EdgeInsets.symmetric(vertical: 3),
+    //
+    // The Semantics label is the WHOLE row as one sentence, money included:
+    // "Edit Jollibee" left a screen-reader user hearing a button with no
+    // amount and no direction. The visuals are excluded so nothing is read
+    // twice.
+    final spokenRow =
+        '$label, '
+        '${record
+            ? 'money move'
+            : isIncome
+            ? 'income'
+            : 'expense'}, '
+        '${formatMoney(amount)}'
+        '${record
+            ? ', $recordLine'
+            : rowContext.isNotEmpty
+            ? ', $rowContext'
+            : ''}. '
+        '${editable ? 'Opens the editor.' : 'Opens the details.'}';
+    final row = PressableScale(
       child: Semantics(
         button: true,
-        label: editable ? 'Edit $label' : 'About $label',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => showEntrySheet(
-            context,
-            widget.store,
-            t,
-            editable: editable,
-            splittable: splittable,
-            // Tells the explainer WHY a plain-looking row is locked, so a
-            // CSV import or an interest row stops being told it is "part of
-            // an utang" (QA found exactly that).
-            utangLinked: locked.contains((t['id'] ?? '').toString()),
+        label: spokenRow,
+        child: ExcludeSemantics(
+          child: InkWell(
+            onTap: () => showEntrySheet(
+              context,
+              widget.store,
+              t,
+              editable: editable,
+              splittable: splittable,
+              // Tells the explainer WHY a plain-looking row is locked, so a
+              // CSV import or an interest row stops being told it is "part of
+              // an utang" (QA found exactly that).
+              utangLinked: locked.contains((t['id'] ?? '').toString()),
+            ),
+            child: rowContent,
           ),
-          child: rowContent,
         ),
       ),
     );
@@ -536,10 +625,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Barako.warning,
-          borderRadius: BorderRadius.circular(12),
-        ),
+        // No radius of its own: the day card clips its children, so the
+        // reveal hugs the row it belongs to.
+        color: Barako.warning,
         // Palette-driven ink so the icon clears contrast on the warning
         // fill in every mood (white sat at 2.97:1 in the dark moods).
         child: Icon(salapifyIcon('delete'), color: Barako.onPrimary),
@@ -589,6 +677,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
           );
+          // The save moment is felt, not just shown, the same word the log
+          // and edit sheets speak: a committed delete moves a balance back.
+          // The failure and null paths above stay silent on purpose.
+          Haptics.moneyWritten();
           return true;
         } catch (e) {
           messenger.showSnackBar(
