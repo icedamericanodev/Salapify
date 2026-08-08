@@ -4,12 +4,14 @@
 
 import 'dart:convert';
 
-import 'package:flutter/widgets.dart' show Scrollable;
+import 'package:flutter/material.dart'
+    show MaterialApp, Scaffold, Scrollable, TextField;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/analytics.dart' as analytics;
-import 'package:salapify/screens/insights.dart' show runwayLabel, fundedOnTime;
+import 'package:salapify/screens/insights.dart'
+    show InsightsScreen, runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -615,6 +617,135 @@ void main() {
     // No best-month claim can exist on one month of history.
     expect(find.textContaining('strongest savings month'), findsNothing);
   });
+
+  testWidgets(
+    'WHAT CHANGED renders paced shifts, drivers, the History link, and Ask Pan',
+    (tester) async {
+      // A fixed clock (Jul 20, past the 34% gate) and two months of data, so
+      // the populated story band is pinned deterministically instead of only
+      // rendering after the 12th of a real month. June: Food 1,000 and
+      // Transport 2,000. July: Food 2,100, mostly Grab. Paced to day 20 of
+      // 31, Food is +1,455 (2,100 vs 645 paced) and Transport is -1,290.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {'onboarded': true},
+          'accounts': [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+          ],
+          'transactions': [
+            {
+              'id': 'i6',
+              'type': 'income',
+              'label': 'Sweldo',
+              'amount': 20000,
+              'date': '2026-06-15',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f6',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 1000,
+              'date': '2026-06-10',
+              'accountId': 'cash',
+            },
+            {
+              'id': 't6',
+              'type': 'expense',
+              'label': 'Transport',
+              'amount': 2000,
+              'date': '2026-06-12',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'i7',
+              'type': 'income',
+              'label': 'Sweldo',
+              'amount': 20000,
+              'date': '2026-07-15',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7a',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 900,
+              'date': '2026-07-02',
+              'note': 'Grab food',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7b',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 800,
+              'date': '2026-07-09',
+              'note': 'grab food',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7c',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 400,
+              'date': '2026-07-11',
+              'note': 'groceries',
+              'accountId': 'cash',
+            },
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InsightsScreen(
+              store: store,
+              clock: () => DateTime(2026, 7, 20),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> scrollTo(String label) async {
+        await tester.scrollUntilVisible(
+          find.text(label),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+      }
+
+      await scrollTo('WHAT CHANGED');
+      // Biggest absolute move first, signed, with the note-group driver.
+      await scrollTo('Food');
+      expect(find.text('+₱1,455'), findsOneWidget);
+      expect(find.text('Mostly from Grab food.'), findsOneWidget);
+      await scrollTo('Transport');
+      expect(find.text('-₱1,290'), findsOneWidget);
+
+      // The biggest rise offers Pan, with the question pre-asked as a user
+      // bubble through the same brain a typed question reaches.
+      await scrollTo('Ask Pan about food');
+      await tester.ensureVisible(find.text('Ask Pan about food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ask Pan about food'));
+      await tester.pumpAndSettle();
+      expect(find.text('Am I overspending on Food?'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // A shift row opens History filtered to the category.
+      await scrollTo('Food');
+      await tester.ensureVisible(find.text('Food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Food'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
+    },
+  );
 
   testWidgets('an empty app invites logging instead of a wall of zeros', (
     tester,

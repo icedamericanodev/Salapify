@@ -162,6 +162,12 @@ class InsightsScreen extends StatelessWidget {
   final VoidCallback? onOpenReceivables;
   final VoidCallback? onOpenPayables;
   final VoidCallback? onMenu;
+
+  /// Test seam, the TaxDeadlinesScreen pattern: the WHAT CHANGED gates are
+  /// date-relative (nothing compares before a third of the month), so
+  /// without an injectable clock the populated state renders on no test and
+  /// no screenshot for the first eleven days of every month.
+  final DateTime Function()? clock;
   const InsightsScreen({
     super.key,
     required this.store,
@@ -169,6 +175,7 @@ class InsightsScreen extends StatelessWidget {
     this.onMenu,
     this.onOpenReceivables,
     this.onOpenPayables,
+    this.clock,
   });
 
   // The pinned header + a single card, the shape both the empty and the error
@@ -246,7 +253,7 @@ class InsightsScreen extends StatelessWidget {
     if (store.loadError != null) return _errorInsights(context);
 
     final data = store.data;
-    final ref = DateTime.now();
+    final ref = (clock ?? DateTime.now)();
 
     // Before any data, every card here reads zero at once (safe-to-spend 0,
     // health 0 of 100, empty charts), which is the exact "this app is for
@@ -1376,7 +1383,7 @@ class InsightsScreen extends StatelessWidget {
     // The pace sentence obeys the same 34% gate Reports uses for its flags:
     // a day-two projection is noise stated confidently.
     final pace = frac >= 0.34 && spent > 0
-        ? '${formatMoney(spent)} spent so far, on pace for about ${formatMoney(forecast['projected'] as double)} by month end.'
+        ? '${formatMoney(spent)} spent so far, on pace for about ${formatMoneyAbout(forecast['projected'] as double)} by month end.'
         : null;
     final caption = [
       ?conclusion,
@@ -2035,22 +2042,33 @@ class _MonthTrendChartState extends State<_MonthTrendChart> {
                 '${m['label']}${isLatest ? ' so far' : ''}',
                 style: AppText.caption.w7.tint(Barako.caramel),
               ),
-              Text(
-                'In ${formatMoney(m['income'] as double)}',
-                style: AppText.caption.tabular.tint(Barako.textSecondary),
-              ),
-              Text(
-                'Out ${formatMoney(m['expenses'] as double)}',
-                style: AppText.caption.tabular.tint(Barako.textSecondary),
-              ),
-              Text(
-                kept
-                    ? 'Kept ${formatMoney(net)}'
-                    : 'Short ${formatMoney(-net)}',
-                style: AppText.caption.w7.tabular.tint(
-                  kept ? Barako.primaryText : Barako.warningStrong,
+              // A month with nothing in it says so in words; a row of three
+              // ₱0 figures reads like a verdict on a month that simply has
+              // no entries yet.
+              if ((m['income'] as double) == 0 &&
+                  (m['expenses'] as double) == 0)
+                Text(
+                  'No entries this month yet',
+                  style: AppText.caption.tint(Barako.muted),
+                )
+              else ...[
+                Text(
+                  'In ${formatMoney(m['income'] as double)}',
+                  style: AppText.caption.tabular.tint(Barako.textSecondary),
                 ),
-              ),
+                Text(
+                  'Out ${formatMoney(m['expenses'] as double)}',
+                  style: AppText.caption.tabular.tint(Barako.textSecondary),
+                ),
+                Text(
+                  kept
+                      ? 'Kept ${formatMoney(net)}'
+                      : 'Short ${formatMoney(-net)}',
+                  style: AppText.caption.w7.tabular.tint(
+                    kept ? Barako.primaryText : Barako.warningStrong,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: Gap.sm),
