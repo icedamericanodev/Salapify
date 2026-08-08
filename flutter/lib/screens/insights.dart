@@ -7,8 +7,6 @@
 // runway with its honesty rules.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
-
 import '../data/store.dart';
 import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
@@ -21,6 +19,7 @@ import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/choice_chip.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
@@ -1538,22 +1537,14 @@ class _DebtWhatIfCardState extends State<_DebtWhatIfCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
+                // The shared chip owns the click now, and it clicks on a
+                // CHANGE only; the old unconditional selectionClick buzzed
+                // on re-taps that changed nothing.
                 for (final e in _ladder)
-                  ChoiceChip(
-                    label: Text('+${_peso(e)} a month'),
+                  SalapifyChoiceChip(
+                    label: '+${_peso(e)} a month',
                     selected: _extra == e,
-                    onSelected: (_) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _extra = e);
-                    },
-                    selectedColor: Barako.primary,
-                    backgroundColor: Barako.background,
-                    labelStyle: TextStyle(
-                      color: _extra == e
-                          ? Barako.onPrimary
-                          : Barako.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    onSelected: (_) => setState(() => _extra = e),
                   ),
               ],
             ),
@@ -1692,22 +1683,13 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
+                // Same contract as the payoff ladder above: the shared chip,
+                // change-only click.
                 for (final e in _ladder)
-                  ChoiceChip(
-                    label: Text('${_wholePeso(e)} a week'),
+                  SalapifyChoiceChip(
+                    label: '${_wholePeso(e)} a week',
                     selected: _weekly == e,
-                    onSelected: (_) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _weekly = e);
-                    },
-                    selectedColor: Barako.primary,
-                    backgroundColor: Barako.background,
-                    labelStyle: TextStyle(
-                      color: _weekly == e
-                          ? Barako.onPrimary
-                          : Barako.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    onSelected: (_) => setState(() => _weekly = e),
                   ),
               ],
             ),

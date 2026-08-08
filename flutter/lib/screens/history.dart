@@ -12,6 +12,7 @@ import '../money/search.dart' as search;
 import '../money/period.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/choice_chip.dart';
 import '../widgets/period_selector.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/screen_header.dart';
@@ -330,20 +331,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  // The shared chip: the theme owns the skin, the widget owns
+                  // the change-only click, so this row can never buzz or
+                  // dress differently from every other chip group.
                   for (final (value, label) in _filters) ...[
-                    ChoiceChip(
-                      label: Text(label),
+                    SalapifyChoiceChip(
+                      label: label,
                       selected: filter == value,
                       onSelected: (_) => setState(() => filter = value),
-                      selectedColor: Barako.primary,
-                      backgroundColor: Barako.card,
-                      labelStyle: TextStyle(
-                        color: filter == value
-                            ? Barako.onPrimary
-                            : Barako.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      side: BorderSide(color: Barako.border),
                     ),
                     const SizedBox(width: 8),
                   ],

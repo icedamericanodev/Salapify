@@ -10,6 +10,23 @@ import '../theme.dart';
 import '../typography.dart';
 import 'salapify_icon.dart';
 
+/// The named header faces, so a screen picks a TIER and never a size.
+///
+/// [tab] is the per-tab title this widget renders. [cover] is the big opener
+/// a content screen composes itself (a lesson's title page); it lives here so
+/// the face has ONE definition on the ladder. Before this enum, the Learn
+/// cover set its own 27, one off-ladder point under [TypeScale.big], purely
+/// because no name existed for what it was trying to be.
+enum HeaderTier { tab, cover }
+
+TextStyle headerStyle(HeaderTier tier) => switch (tier) {
+  HeaderTier.tab => AppText.title,
+  HeaderTier.cover => AppText.title.w7.copyWith(
+    fontSize: TypeScale.big,
+    height: 1.1,
+  ),
+};
+
 class ScreenHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -51,7 +68,7 @@ class ScreenHeader extends StatelessWidget {
     // It also leaves exactly ONE uppercase treatment in the app, the 12px
     // kicker. Two all-caps sizes competing is solved by deleting one of them,
     // not by tuning both.
-    final titleText = Text(title, style: AppText.title);
+    final titleText = Text(title, style: headerStyle(HeaderTier.tab));
     // One Row whenever there is anything beside the title, rather than a
     // trailing-only special case. Menu now sits here on every primary screen,
     // and Utang carries a create button as well, so "title alone" stopped

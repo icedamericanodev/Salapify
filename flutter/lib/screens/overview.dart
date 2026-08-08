@@ -1474,16 +1474,22 @@ class OverviewScreen extends StatelessWidget {
     required Widget child,
     VoidCallback? onTap,
     EdgeInsetsGeometry padding = const EdgeInsets.all(Gap.lg),
-  }) => Material(
-    color: Barako.text.withValues(alpha: BarakoAlpha.wash),
-    borderRadius: const BorderRadius.all(Radius.circular(Radii.card)),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(Radii.card),
-      onTap: onTap,
-      child: Padding(padding: padding, child: child),
-    ),
-  );
+  }) {
+    final card = Material(
+      color: Barako.text.withValues(alpha: BarakoAlpha.wash),
+      borderRadius: const BorderRadius.all(Radius.circular(Radii.card)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.card),
+        onTap: onTap,
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+    // The house press dip, exactly when the card is tappable. Gated here so
+    // THIS MONTH, ACCOUNTS and the lesson row all dip the same way, and a
+    // quiet informational card (NET WORTH) never pretends to be a button.
+    return onTap == null ? card : PressableScale(child: card);
+  }
 
   /// First-run card, shown in place of MY MONEY and THIS MONTH when there is no
   /// data yet. It leads with a real first action for a brand-new user (log, or

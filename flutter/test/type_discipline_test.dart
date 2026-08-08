@@ -60,7 +60,7 @@ const Map<String, int> _baseline = {
   'lib/screens/goal_detail.dart': 12,
   'lib/screens/goals.dart': 4,
   'lib/screens/insights.dart': 6,
-  'lib/screens/learn.dart': 6,
+  'lib/screens/learn.dart': 5,
   'lib/screens/loan_calculator.dart': 2,
   'lib/screens/mindset.dart': 2,
   'lib/screens/new_phone_day.dart': 1,
@@ -86,7 +86,7 @@ const Map<String, int> _baseline = {
   'lib/widgets/lesson_block_views.dart': 1,
   'lib/widgets/lesson_finish_card.dart': 2,
   'lib/widgets/paged_lesson_reader.dart': 2,
-  'lib/widgets/period_selector.dart': 2,
+  'lib/widgets/period_selector.dart': 1,
   'lib/widgets/treat_card.dart': 2,
 };
 

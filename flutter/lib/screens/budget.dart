@@ -211,7 +211,17 @@ class BudgetScreen extends StatelessWidget {
                         children: [
                           Text('WHERE IT WENT', style: Barako.cardKickerStyle),
                           const SizedBox(height: 10),
-                          for (final w in rows) _catRow(w, max),
+                          // Keyed by the category, not the position: the
+                          // rows re-sort as the month's spending shifts, and
+                          // without an identity key the animated bar in slot
+                          // three would tween from the OLD slot three's
+                          // fraction when rows swap places, a bar sliding for
+                          // a category that did not change.
+                          for (final w in rows)
+                            KeyedSubtree(
+                              key: ValueKey('cat-${w['label']}'),
+                              child: _catRow(w, max),
+                            ),
                         ],
                       ),
                     ),

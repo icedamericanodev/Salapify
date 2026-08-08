@@ -22,6 +22,7 @@ import '../money/lesson_insight.dart';
 import '../money/lesson_progress.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/screen_header.dart' show HeaderTier, headerStyle;
 import '../widgets/celebration.dart';
 import '../widgets/expansion_lesson_reader.dart';
 import '../widgets/paged_lesson_reader.dart';
@@ -1194,10 +1195,9 @@ class _LessonReaderState extends State<_LessonReader> {
         ],
       ),
       const SizedBox(height: 6),
-      Text(
-        l.title,
-        style: AppText.title.w7.copyWith(fontSize: 27, height: 1.1),
-      ),
+      // The named cover tier: one point up from the old off-ladder 27, and
+      // the face now has exactly one definition, in screen_header.dart.
+      Text(l.title, style: headerStyle(HeaderTier.cover)),
       if (l.objective.isNotEmpty || l.summary.isNotEmpty) ...[
         const SizedBox(height: 8),
         Text(

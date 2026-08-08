@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import '../money/period.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/choice_chip.dart';
 import '../widgets/salapify_icon.dart';
 
 class PeriodSelector extends StatelessWidget {
@@ -145,20 +146,14 @@ class PeriodSelector extends StatelessWidget {
         Wrap(
           spacing: 8,
           children: [
+            // The shared chip. Adopting it turns the checkmark cue ON here,
+            // deliberately: selection was carried by color alone before,
+            // and the check is the shape cue the chip contract requires.
             for (final (key, label) in modes)
-              ChoiceChip(
-                label: Text(label),
+              SalapifyChoiceChip(
+                label: label,
                 selected: period.mode == key,
                 onSelected: (_) => _setMode(key),
-                showCheckmark: false,
-                backgroundColor: Barako.card,
-                selectedColor: Barako.primary,
-                side: BorderSide(color: Barako.border),
-                labelStyle: TextStyle(
-                  color: period.mode == key ? Barako.onPrimary : Barako.text,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
               ),
           ],
         ),
