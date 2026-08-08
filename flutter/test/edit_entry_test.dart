@@ -143,6 +143,8 @@ void main() {
       final store = await boot(tester);
       await tester.tap(find.text('Groceries'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit entry'));
+      await tester.pumpAndSettle();
       expect(find.text('EDIT ENTRY'), findsOneWidget);
 
       // Scoped to the sheet: the Activity screen underneath keeps its own
@@ -173,6 +175,8 @@ void main() {
       final store = await boot(tester);
       await tester.tap(find.text('Groceries'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit entry'));
+      await tester.pumpAndSettle();
       final sheetFields = find.descendant(
         of: find.byType(EditSheet),
         matching: find.byType(TextField),
@@ -192,6 +196,8 @@ void main() {
       );
 
       await tester.tap(find.text('Food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit entry'));
       await tester.pumpAndSettle();
       await tester.enterText(sheetFields.at(1), 'Random thing');
       await tester.tap(find.text('Save changes'));
@@ -252,6 +258,8 @@ void main() {
       await goToTab(tester, 'Activity');
       await tester.tap(find.text('Old jeep fare'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit entry'));
+      await tester.pumpAndSettle();
       // The custom chip shows the row's own pretty date.
       await tester.tap(find.text('Dec 31'));
       await tester.pumpAndSettle();
@@ -307,6 +315,8 @@ void main() {
     ) async {
       final store = await boot(tester);
       await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit entry'));
       await tester.pumpAndSettle();
       final sheetFields = find.descendant(
         of: find.byType(EditSheet),

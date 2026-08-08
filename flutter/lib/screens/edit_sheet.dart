@@ -14,14 +14,17 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/amount_text.dart';
 import '../widgets/entry_form.dart';
 import 'log_sheet.dart' show parseAmount;
-import 'overview.dart' show formatMoney, prettyDay;
+import 'overview.dart' show prettyDay;
 import 'split_expense.dart' show showSplitSheet;
 
-/// Opens the right sheet for a history row: the edit form when the row is
-/// editable, otherwise the read-only explainer that says why not and where
-/// to manage it.
+/// Opens the RECEIPT for a history row: what happened, in receipt grammar
+/// (amount, then labelled fact rows), with Edit and Delete underneath when
+/// the row allows them. Reading a transaction and changing one are different
+/// intents; the old flow dropped the reading intent straight into a form
+/// with a blinking cursor.
 Future<void> showEntrySheet(
   BuildContext context,
   SalapifyStore store,
@@ -30,31 +33,41 @@ Future<void> showEntrySheet(
   required bool splittable,
   bool utangLinked = false,
 }) {
-  if (editable) {
-    // No surface override: the theme's bottomSheetTheme is the one doorway,
-    // shared with the log sheet, so the two forms stop changing dialect.
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: EditSheet(store: store, tx: t, splittable: splittable),
-      ),
-    );
-  }
-  return _showRecordSheet(context, t, utangLinked: utangLinked);
+  return _showReceiptSheet(
+    context,
+    store,
+    t,
+    editable: editable,
+    splittable: splittable,
+    utangLinked: utangLinked,
+  );
 }
 
-/// The RN read-only modal, adapted: what this row is, why it cannot be
-/// edited, and what deleting it would or would not do.
-Future<void> _showRecordSheet(
+/// Opens the edit FORM directly, one tap past the receipt.
+Future<void> showEditForm(
   BuildContext context,
+  SalapifyStore store,
   Map<String, dynamic> t, {
-  required bool utangLinked,
+  required bool splittable,
 }) {
+  // No surface override: the theme's bottomSheetTheme is the one doorway,
+  // shared with the log sheet, so the two forms stop changing dialect.
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: EditSheet(store: store, tx: t, splittable: splittable),
+    ),
+  );
+}
+
+/// Why a row cannot be edited, or null for a row that can. The wording is
+/// the RN read-only modal's, adapted; it now lives on the receipt.
+String? _lockedNote(Map<String, dynamic> t, {required bool utangLinked}) {
   final type = (t['type'] ?? '').toString();
   final source = (t['source'] ?? '').toString();
   final String note;
@@ -96,33 +109,194 @@ Future<void> _showRecordSheet(
     // and generic beats confidently wrong.
     note = 'This row cannot be edited here.';
   }
-  final label = (t['label'] ?? '').toString().isEmpty
-      ? type
-      : (t['label']).toString();
+  return note;
+}
+
+/// The receipt itself. Fact rows only render facts that exist; the money is
+/// the headline; destructive actions never compete with the transaction
+/// (Edit is the filled button, Delete a quiet text button under it).
+Future<void> _showReceiptSheet(
+  BuildContext context,
+  SalapifyStore store,
+  Map<String, dynamic> t, {
+  required bool editable,
+  required bool splittable,
+  required bool utangLinked,
+}) {
+  final type = (t['type'] ?? '').toString();
+  final isIncome = type == 'income';
+  final record = type != 'income' && type != 'expense';
   final amount = t['amount'] is num ? (t['amount'] as num).toDouble() : 0.0;
+  final rawLabel = (t['label'] ?? '').toString();
+  final typeAsTitle = type.isEmpty
+      ? 'Record'
+      : '${type[0].toUpperCase()}${type.substring(1)}';
+  final label = rawLabel.isEmpty || (record && rawLabel == 'Entry')
+      ? (record ? typeAsTitle : (isIncome ? 'Income' : 'Expense'))
+      : rawLabel;
+
+  String? named(String listKey, dynamic id) {
+    if (id is! String || id.isEmpty) return null;
+    for (final a in (store.data[listKey] as List? ?? const [])) {
+      if (a is Map && a['id'] == id) return (a['name'] ?? '').toString();
+    }
+    return null;
+  }
+
+  final account = named('accounts', t['accountId']);
+  final category = named('categories', t['categoryId']);
+  final moveFrom = named('accounts', t['transferFromId']);
+  final moveTo = named('accounts', t['transferToId']);
+  final note = (t['note'] ?? '').toString();
+  final lockedNote = editable ? null : _lockedNote(t, utangLinked: utangLinked);
+
+  Widget fact(String name, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(name, style: AppText.caption.tint(Barako.muted)),
+        ),
+        Expanded(child: Text(value, style: AppText.label.w4)),
+      ],
+    ),
+  );
+
   return showModalBottomSheet<void>(
     context: context,
-    builder: (_) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: AppText.heading.w8),
-            const SizedBox(height: 4),
-            Text(
-              '${formatMoney(amount)} on ${prettyDay((t['date'] ?? '').toString())}',
-              style: AppText.label.w4.tint(Barako.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              note,
-              style: AppText.label.w4
-                  .tint(Barako.textSecondary)
-                  .copyWith(height: 1.45),
-            ),
-          ],
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                record
+                    ? 'MONEY MOVE'
+                    : isIncome
+                    ? 'MONEY IN'
+                    : 'SPENT',
+                style: Barako.kickerStyle,
+              ),
+              const SizedBox(height: 4),
+              Text(label, style: AppText.heading.w8),
+              const SizedBox(height: 6),
+              // The receipt's headline is the money, in the shared face,
+              // signed the same way the ledger rows sign it.
+              record
+                  ? AmountText(
+                      amount,
+                      role: AmountRole.card,
+                      tint: Barako.muted,
+                    )
+                  : isIncome
+                  ? AmountText(
+                      amount,
+                      role: AmountRole.card,
+                      signed: true,
+                      tint: Barako.primary,
+                    )
+                  : AmountText(-amount, role: AmountRole.card),
+              const SizedBox(height: 8),
+              Divider(height: 1, color: Barako.border),
+              fact('Date', prettyDay((t['date'] ?? '').toString())),
+              if (moveFrom != null) fact('From', moveFrom),
+              if (moveTo != null) fact('To', moveTo),
+              if (account != null && moveFrom == null) fact('Account', account),
+              if (category != null) fact('Category', category),
+              if (note.isNotEmpty) fact('Note', note),
+              if (lockedNote != null) ...[
+                Divider(height: 1, color: Barako.border),
+                const SizedBox(height: 10),
+                Text(
+                  lockedNote,
+                  style: AppText.label.w4
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.45),
+                ),
+              ],
+              if (editable) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      showEditForm(context, store, t, splittable: splittable);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: const Text('Edit entry'),
+                  ),
+                ),
+                // Delete stays quiet on purpose: reachable (a screen reader
+                // could not swipe the row), never competing with the entry.
+                Center(
+                  child: TextButton(
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(sheetContext);
+                      try {
+                        final removed = await store.removeEntry(
+                          (t['id'] ?? '').toString(),
+                        );
+                        if (removed == null) return;
+                        navigator.pop();
+                        // Felt, then shown, the same word every committed
+                        // money write speaks.
+                        Haptics.moneyWritten();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: const Text('Deleted.'),
+                            duration: const Duration(seconds: 5),
+                            persist: false,
+                            action: SnackBarAction(
+                              label: 'Undo',
+                              onPressed: () async {
+                                try {
+                                  await store.addEntry(removed);
+                                } catch (e) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Could not restore the entry, it is '
+                                        'still deleted. $e',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not delete, nothing was changed. $e',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: Text(
+                      'Delete entry',
+                      style: AppText.small.tint(Barako.warningStrong),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     ),

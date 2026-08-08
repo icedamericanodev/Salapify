@@ -527,13 +527,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   // context to show.
                   Text(rowContext, style: AppText.micro.w4)
                 else if (showSplitHint)
-                  Text(
-                    'Tap to edit or split with friends',
-                    style: AppText.micro.w4,
-                  )
+                  Text('Tap to open, edit, or split', style: AppText.micro.w4)
                 else if (editable)
                   Text(
-                    'Tap to edit',
+                    'Tap to open',
                     style: AppText.micro.w4.tint(Barako.faint),
                   ),
               ],
@@ -588,7 +585,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             : rowContext.isNotEmpty
             ? ', $rowContext'
             : ''}. '
-        '${editable ? 'Opens the editor.' : 'Opens the details.'}';
+        '${editable ? 'Opens the receipt, with edit and delete.' : 'Opens the details.'}';
     final row = PressableScale(
       child: Semantics(
         button: true,
