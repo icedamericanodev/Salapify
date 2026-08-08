@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../typography.dart';
+import 'salapify_icon.dart';
 import 'section.dart';
 
 class BillsBeforePayday extends StatelessWidget {
@@ -34,6 +35,10 @@ class BillsBeforePayday extends StatelessWidget {
 
   /// Formats an ISO date as a short human day. Injected for the same reason.
   final String Function(String) formatDay;
+
+  /// Opens the cash flow screen, for the "and N more" row when the list is
+  /// capped. Injected like the formatters, so this widget never owns a route.
+  final VoidCallback? onMore;
 
   /// Whether the same figure is already on screen just above this card.
   ///
@@ -58,8 +63,16 @@ class BillsBeforePayday extends StatelessWidget {
     required this.total,
     required this.format,
     required this.formatDay,
+    this.onMore,
     this.committedShownAbove = false,
   });
+
+  /// The most rows the card shows before folding the rest into one line. A
+  /// 15th-of-the-month user with 8 bills was paying ~320dp of the fold for a
+  /// list the cash flow screen already owns; four rows answer "what is next"
+  /// and the total above stays honest because it is an engine value, never a
+  /// sum of the visible rows.
+  static const int maxRows = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +91,34 @@ class BillsBeforePayday extends StatelessWidget {
               trailingColor: Barako.warning,
             ),
             const SizedBox(height: Gap.md),
-            for (var i = 0; i < bills.length; i++) ...[
+            for (var i = 0; i < bills.length && i < maxRows; i++) ...[
               if (i > 0) const SizedBox(height: Gap.md),
               _row(bills[i]),
+            ],
+            if (bills.length > maxRows) ...[
+              const SizedBox(height: Gap.md),
+              InkWell(
+                onTap: onMore,
+                borderRadius: BorderRadius.circular(Radii.sm),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'and ${bills.length - maxRows} more before payday',
+                          style: AppText.caption.tint(Barako.textSecondary),
+                        ),
+                      ),
+                      Icon(
+                        salapifyIcon('forward'),
+                        size: 18,
+                        color: Barako.muted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ],
         ),
