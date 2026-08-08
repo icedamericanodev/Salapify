@@ -52,12 +52,17 @@ class BudgetScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+              Gap.gutter,
+              Gap.sm,
+              Gap.gutter,
+              0,
+            ),
             child: ScreenHeader('Budget', onMenu: onMenu),
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+              padding: Insets.tabScreen.copyWith(top: 0),
               children: [
                 _limitCard(context, summary),
                 if (store.canWrite) ...[

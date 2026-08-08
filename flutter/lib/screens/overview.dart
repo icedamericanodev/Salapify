@@ -173,7 +173,12 @@ class OverviewScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+              Gap.gutter,
+              Gap.gutter,
+              Gap.gutter,
+              0,
+            ),
             child: Row(
               children: [
                 Text(
@@ -231,7 +236,7 @@ class OverviewScreen extends StatelessWidget {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+              padding: Insets.tabScreen.copyWith(top: Gap.xs),
               children: [
                 // The greeting sits under the wordmark rather than replacing it,
                 // so the app still says what it is on the screen a new user opens
