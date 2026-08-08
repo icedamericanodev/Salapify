@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.85 \u00b7 Activity reads like a ledger: one card per day, twice the rows per screen, cleaner money moves.';
+    'f3.86 \u00b7 Every entry opens a receipt first, deleting works without a swipe, and money writes are felt in the hand.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

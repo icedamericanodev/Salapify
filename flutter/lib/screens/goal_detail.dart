@@ -792,6 +792,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       return;
     }
     if (!mounted) return;
+    // A contribution that does not cross a milestone is still a money write
+    // and is felt as one; the milestone path stays with the celebration
+    // overlay's own impact, so nothing double-buzzes.
+    if (reached == null) Haptics.moneyWritten();
     final after = amountOf(_goal()?['saved']);
     messenger
       ..hideCurrentSnackBar()

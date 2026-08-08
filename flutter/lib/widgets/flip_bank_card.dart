@@ -27,6 +27,7 @@ import 'package:flutter/services.dart';
 
 import '../data/qr_vault.dart';
 import '../money/debtmath.dart' show formatMoneyText;
+import '../theme.dart' show Haptics;
 import '../screens/account_detail.dart' show showAccountQrSheet;
 import '../services/secure_window.dart';
 import 'bank_card.dart';
@@ -175,7 +176,9 @@ class _FlipBankCardState extends State<FlipBankCard>
     // A tap mid-flip is ignored so a fast double tap cannot land the card
     // half-turned or fight the animation.
     if (_anim.isAnimating) return;
-    HapticFeedback.selectionClick();
+    // Through the house vocabulary class, not the raw channel, so one grep
+    // audits every haptic in the app.
+    Haptics.select();
     widget.onFlip(!widget.flipped);
   }
 

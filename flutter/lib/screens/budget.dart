@@ -424,6 +424,9 @@ class BudgetScreen extends StatelessWidget {
     };
     try {
       await store.addEntry(tx);
+      // One chip tap wrote real money; the hand hears the same word the log
+      // sheet speaks. Only after the awaited write, never on the catch.
+      Haptics.moneyWritten();
       messenger.showSnackBar(
         SnackBar(
           content: Text('${item.label} ${formatMoney(item.amount)} logged.'),

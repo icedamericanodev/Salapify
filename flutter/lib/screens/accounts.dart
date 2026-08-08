@@ -1874,6 +1874,9 @@ class _TransferSheetState extends State<_TransferSheet> {
     final moved = amountOf(_amount.text.replaceAll(RegExp(r'[, ]'), ''));
     final fromName = _nameOf(_fromId);
     final toName = _nameOf(_toId);
+    // Felt, not just shown, the word every committed money write speaks. The
+    // refusal and error paths above stay silent on purpose.
+    Haptics.moneyWritten();
     Navigator.of(context).pop();
     messenger.showSnackBar(
       SnackBar(
@@ -2323,8 +2326,9 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
       _flipped = null;
     });
     // The page settled on a new card: a light tick, the same feel as a native
-    // wallet flicking between cards.
-    HapticFeedback.selectionClick();
+    // wallet flicking between cards. Through the house vocabulary class, so
+    // one grep audits every haptic in the app.
+    Haptics.select();
   }
 
   void _flip(int i, bool want) {

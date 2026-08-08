@@ -162,7 +162,12 @@ class PeriodSelector extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                onPressed: () => onChange(shiftPeriod(period, -1)!),
+                // A period step is a selection change and clicks like one.
+                // The disabled forward arrow can never buzz a blocked step.
+                onPressed: () {
+                  Haptics.select();
+                  onChange(shiftPeriod(period, -1)!);
+                },
                 icon: Icon(salapifyIcon('previous')),
                 color: Barako.text,
                 tooltip: 'Previous period',
@@ -179,7 +184,10 @@ class PeriodSelector extends StatelessWidget {
                 // edge of its range reads as a bug, and its neighbour then
                 // jumps sideways under the thumb that was reaching for it.
                 onPressed: canForward
-                    ? () => onChange(shiftPeriod(period, 1)!)
+                    ? () {
+                        Haptics.select();
+                        onChange(shiftPeriod(period, 1)!);
+                      }
                     : null,
                 icon: Icon(salapifyIcon('forward')),
                 color: Barako.text,
