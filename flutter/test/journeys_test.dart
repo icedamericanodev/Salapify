@@ -1441,7 +1441,10 @@ void main() {
       await tester.pumpAndSettle();
       final total = _goalSaved(store, 'fund') + _goalSaved(store, 'trip');
       expect(
-        find.text('${formatMoney(total)} put toward 2 active goals.'),
+        find.text(
+          '${formatMoney(total)} put toward 2 active goals. '
+          'This money stays in your accounts; goals just earmark it.',
+        ),
         findsOneWidget,
         reason: 'the Goals list total disagrees with the store after the move',
       );

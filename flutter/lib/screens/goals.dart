@@ -288,8 +288,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
             // "put toward", not "saved": a debt goal's figure is paid-off
             // debt, and calling that savings would overstate what is in the
             // bank.
+            // The second sentence kills the double-counting confusion that
+            // made a savings ACCOUNT and a savings GOAL feel like rival
+            // features: goals earmark money that already sits in accounts.
             '${formatMoney(totalSaved)} put toward '
-            '${active.length == 1 ? 'one active goal' : '${active.length} active goals'}.',
+            '${active.length == 1 ? 'one active goal' : '${active.length} active goals'}. '
+            'This money stays in your accounts; goals just earmark it.',
             style: AppText.small.tabular,
           ),
           const SizedBox(height: Gap.md),

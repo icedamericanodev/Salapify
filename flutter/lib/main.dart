@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.88 \u00b7 Accounts says own vs owe: card digits stay hidden until revealed, wallets stop wearing fake card numbers.';
+    'f3.89 \u00b7 Honest debt words: the rate says what it charges, debt types speak English, and payments announce out loud.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

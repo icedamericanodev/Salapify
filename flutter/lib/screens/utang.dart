@@ -224,7 +224,10 @@ class UtangBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('STILL OUT', style: Barako.cardKickerStyle),
+                  // "Out" was lending-desk shorthand only its author
+                  // understood; the segment is "Owed to me", so the kicker
+                  // extends it instead of riddling it.
+                  Text('STILL UNPAID', style: Barako.cardKickerStyle),
                   const SizedBox(height: 6),
                   FittedBox(
                     fit: BoxFit.scaleDown,
