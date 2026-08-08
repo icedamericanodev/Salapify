@@ -39,6 +39,26 @@ const List<String> kDebtTypes = [
   'other',
 ];
 
+/// The stored type as words a person reads: the stored values are lowercase
+/// machine strings, and "bnpl · 3.5% monthly" broke sentence case and taught
+/// nothing about what BNPL is. Unknown types capitalize and pass through.
+String _typeLabel(dynamic type) {
+  final t = (type ?? '').toString();
+  const map = {
+    'credit card': 'Credit card',
+    'bnpl': 'BNPL (pay later)',
+    'personal loan': 'Personal loan',
+    'mortgage': 'Mortgage',
+    'auto': 'Auto loan',
+    'short term': 'Short-term loan',
+    'long term': 'Long-term loan',
+    'insurance': 'Insurance',
+    'other': 'Other',
+  };
+  if (map.containsKey(t)) return map[t]!;
+  return t.isEmpty ? 'Debt' : '${t[0].toUpperCase()}${t.substring(1)}';
+}
+
 const List<String> _shortTermTypes = [
   'credit card',
   'bnpl',
@@ -381,8 +401,8 @@ class _DebtsViewState extends State<DebtsView> {
                       const SizedBox(height: 2),
                       Text(
                         rate > 0
-                            ? '${d['type']} · ${_rateText(rate)}% monthly'
-                            : '${d['type']}',
+                            ? '${_typeLabel(d['type'])} · ${_rateText(rate)}% monthly'
+                            : _typeLabel(d['type']),
                         style: AppText.caption,
                       ),
                     ],
@@ -824,24 +844,33 @@ class _DebtSheetState extends State<DebtSheet> {
                     ],
                   ),
                 ],
+                // liveRegion on both: a blind user who taps Log payment
+                // hears whether money moved, the same fix the transfer
+                // sheet already carries for its refusals.
                 if (msg != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      msg!,
-                      style: AppText.caption
-                          .tint(Barako.primaryText)
-                          .copyWith(height: 1.4),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        msg!,
+                        style: AppText.caption
+                            .tint(Barako.primaryText)
+                            .copyWith(height: 1.4),
+                      ),
                     ),
                   ),
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      error!,
-                      style: AppText.caption
-                          .tint(Barako.warning)
-                          .copyWith(height: 1.4),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        error!,
+                        style: AppText.caption
+                            .tint(Barako.warning)
+                            .copyWith(height: 1.4),
+                      ),
                     ),
                   ),
               ],
@@ -1199,7 +1228,21 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
             _institutionRow(),
             const SizedBox(height: 12),
             _field(remaining, 'Remaining balance'),
-            _field(rateCtl, 'Interest % per month (0 if none)'),
+            _field(rateCtl, 'Interest % per month, on the remaining balance'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              // The single most damaging ambiguity a lending screen can
+              // carry: PH lenders overwhelmingly quote ADD-ON rates on the
+              // original amount, whose true diminishing-balance rate is
+              // roughly double. A borrower typing the quoted 2.5% would see
+              // about half their real interest cost, with full confidence.
+              child: Text(
+                'If your lender quoted a rate on the original loan amount '
+                '(add-on), the real rate here is roughly double what they '
+                'said. 0 if none.',
+                style: AppText.caption.copyWith(height: 1.35),
+              ),
+            ),
             _field(minPay, 'Minimum payment (0 if none)'),
             _field(dueDay, 'Payment due day of the month (optional)'),
             if (isCard) ...[
