@@ -130,6 +130,14 @@ void main() {
     testWidgets('a treat check-in from Home writes through the store', (
       tester,
     ) async {
+      // One check-in AWAY, not fresh: since batch 3c the full card with its
+      // button only fronts Home when the treat is earned or one away, so this
+      // fixture starts at 2 of 3 (lighter_home_test.dart pins the mid-journey
+      // slim row).
+      String iso(int daysAgo) => DateTime.now()
+          .subtract(Duration(days: daysAgo))
+          .toIso8601String()
+          .substring(0, 10);
       final b = blob();
       b['settings'] = {
         'treats': [
@@ -140,8 +148,8 @@ void main() {
             'emoji': '🧋',
             'target': 3,
             'windowDays': 7,
-            'checkIns': <String>[],
-            'lifetime': 0,
+            'checkIns': <String>[iso(1), iso(2)],
+            'lifetime': 2,
           },
         ],
       };
@@ -157,7 +165,7 @@ void main() {
           .cast<Map>();
       expect(
         (treats.single['checkIns'] as List),
-        hasLength(1),
+        hasLength(3),
         reason:
             'The Home check-in must write through the same store method the '
             'Treats screen uses.',
