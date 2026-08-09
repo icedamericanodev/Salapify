@@ -38,6 +38,7 @@ import '../screens/goals.dart';
 import '../screens/mindset.dart';
 import '../screens/notifications_security.dart';
 import '../screens/recurring.dart';
+import '../screens/salary_calculator.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'screen_header.dart' show HeaderTier, headerStyle;
@@ -72,6 +73,11 @@ VoidCallback? resolveExpansionActionRoute(
     'accounts' => AccountsScreen(store: store),
     'recurring' => RecurringScreen(store: store),
     'notifications' => NotificationsSecurityScreen(store: store),
+    // Added for the Batch C1B income connection: the SSS & PhilHealth course
+    // links to the take-home-pay calculator so contributions read as the
+    // gross-to-net deductions they are. Const, no store, same as the tools hub
+    // opens it.
+    'salary' => const SalaryCalculatorScreen(),
     _ => null,
   };
   if (screen == null) return null;

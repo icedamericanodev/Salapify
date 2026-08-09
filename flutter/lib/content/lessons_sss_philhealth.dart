@@ -1337,6 +1337,20 @@ const _buildYourSafetyNetPlan = MoneyLesson(
       blockId: 'sss-philhealth-salapify-actions',
       menuPrompt: 'A few real, safe things to do next, if any of them fit',
       actions: [
+        // Batch C1B income-connection: SSS, PhilHealth and Pag-IBIG are the
+        // deductions between gross pay and take-home pay, so the course points
+        // at the calculator that shows exactly that flow. Concise link, not a
+        // rewrite of the course.
+        SalapifyActionDef(
+          id: 'see-take-home-after-deductions',
+          label: 'See your take-home pay',
+          description:
+              'Opens the Take-home pay calculator, which shows gross pay minus '
+              'SSS, PhilHealth, Pag-IBIG and tax, so these contributions show '
+              'up as the deductions they are. Nothing is saved; it only '
+              'calculates.',
+          route: 'salary',
+        ),
         SalapifyActionDef(
           id: 'review-emergency-fund',
           label: 'Review Emergency Fund',

@@ -19,6 +19,7 @@
 import 'package:flutter/material.dart';
 
 import '../content/course_sequences.dart';
+import '../content/expansion_display.dart';
 import '../content/learning_path.dart';
 import '../content/learning_paths.dart';
 import '../content/lesson_model.dart';
@@ -76,6 +77,18 @@ class PathScreen extends StatelessWidget {
             };
             final doneCourses = courses.where((c) => c.isComplete).length;
             final focus = focusCourseId(courses);
+            // Grow leads with the mainstream three and tucks the two technical
+            // courses (government securities, crypto) behind a "Go deeper"
+            // disclosure, so the five never sit at equal priority (C1B). Every
+            // other path shows its courses in order, unchanged.
+            final mainstream = [
+              for (final c in courses)
+                if (!isAdvancedGrowGroup(c.groupId)) c,
+            ];
+            final advanced = [
+              for (final c in courses)
+                if (isAdvancedGrowGroup(c.groupId)) c,
+            ];
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
@@ -89,7 +102,7 @@ class PathScreen extends StatelessWidget {
                   style: AppText.smallStrong,
                 ),
                 const SizedBox(height: 18),
-                for (final c in courses) ...[
+                for (final c in mainstream) ...[
                   _courseCard(
                     context,
                     c,
@@ -98,6 +111,18 @@ class PathScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
+                if (advanced.isNotEmpty)
+                  _GoDeeperSection(
+                    courses: advanced,
+                    focus: focus,
+                    buildCard: (c) => _courseCard(
+                      context,
+                      c,
+                      lessonsById,
+                      isFocus: c.groupId == focus,
+                      note: advancedGrowNote(c.groupId),
+                    ),
+                  ),
               ],
             );
           },
@@ -114,6 +139,10 @@ class PathScreen extends StatelessWidget {
     CourseProgress c,
     Map<String, MoneyLesson> lessonsById, {
     required bool isFocus,
+    // A one-line difficulty note for the advanced Grow courses, deliberately
+    // different per course so crypto and government securities never read as
+    // sharing a risk profile (C1B, STEP 5). Null for every ordinary course.
+    String? note,
   }) {
     final next = c.nextLessonId;
     return Card(
@@ -164,6 +193,15 @@ class PathScreen extends StatelessWidget {
                   c.isComplete ? Barako.primaryText : Barako.muted,
                 ),
               ),
+              if (note != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  note,
+                  style: AppText.caption.tint(Barako.faint).copyWith(
+                    height: 1.35,
+                  ),
+                ),
+              ],
               if (next != null && lessonsById[next] != null) ...[
                 const SizedBox(height: 12),
                 SizedBox(
@@ -201,6 +239,97 @@ class PathScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The "Go deeper" disclosure inside Grow, holding the advanced courses
+/// (government securities, crypto) below the mainstream three.
+///
+/// Collapsed by default, so the default Grow view is the three mainstream
+/// courses and the two technical ones are exposed on a tap. That is the
+/// progressive disclosure the C1B brief asks for: the hierarchy carries the
+/// difficulty, no separate top-level category does, and both courses stay
+/// inside Grow. It is stateful only for the open/closed toggle; it holds no
+/// progress or content of its own.
+class _GoDeeperSection extends StatefulWidget {
+  final List<CourseProgress> courses;
+  final String? focus;
+  final Widget Function(CourseProgress) buildCard;
+
+  const _GoDeeperSection({
+    required this.courses,
+    required this.focus,
+    required this.buildCard,
+  });
+
+  @override
+  State<_GoDeeperSection> createState() => _GoDeeperSectionState();
+}
+
+class _GoDeeperSectionState extends State<_GoDeeperSection> {
+  bool _open = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If the learner is already mid-way through one of the advanced courses,
+    // open the section so their in-progress course is not hidden behind a
+    // tap. A fresh visitor still meets it collapsed.
+    _open = widget.courses.any((c) => c.groupId == widget.focus && c.isStarted);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Semantics(
+          button: true,
+          expanded: _open,
+          label:
+              'Go deeper. Advanced topics, optional. '
+              '${widget.courses.length} more courses. '
+              '${_open ? "Expanded" : "Collapsed"}',
+          child: ExcludeSemantics(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => setState(() => _open = !_open),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('GO DEEPER', style: Barako.kickerStyle),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Advanced topics, optional',
+                            style: AppText.caption.tint(Barako.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _open ? salapifyIcon('collapse') : salapifyIcon('expand'),
+                      size: 22,
+                      color: Barako.muted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (_open)
+          for (final c in widget.courses) ...[
+            const SizedBox(height: 10),
+            widget.buildCard(c),
+          ],
+      ],
     );
   }
 }
