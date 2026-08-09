@@ -448,6 +448,29 @@ skills assist; they never override this file. Where any external guidance confli
 with these rules (merge method, never squash, golden lock, no em or en dashes),
 this file wins.
 
+## External tooling policy (Context7 and Figma)
+
+Two managed connectors are authenticated and working directly in a Claude Code
+session: Context7 (live package documentation) and Figma (design context). Use
+them, do not rely on model memory where they apply.
+
+Context7: use it before implementing, debugging, reviewing, or modifying any code
+that depends on an external Flutter or Dart package. Verify APIs against the
+version Salapify actually uses, not the latest. Inspect flutter/pubspec.yaml and
+flutter/pubspec.lock before recommending any upgrade, and do not upgrade a
+dependency unless the task requires it. Model memory of a package API is a guess
+until Context7 confirms it against the pinned version.
+
+Figma: use the Figma MCP for UI and UX work only when a Figma design or frame is
+provided. Treat what it returns as design context, never as production code.
+Translate designs into idiomatic Flutter that reuses Salapify's existing design
+tokens and widgets before creating anything new (the Barako palette,
+salapify_icon.dart, and the shared widgets in flutter/lib/widgets). Preserve
+accessibility, responsive behavior, and platform conventions. Never introduce
+React, HTML, CSS, or any web implementation into the Flutter app on the strength
+of Figma output; Salapify's icons stay Material glyphs in the accent, not emoji
+or web assets (see the icons rule above).
+
 ## Merge rules (set by the founder on 2026-07-03)
 
 Claude reviews and merges every PR itself, for all builds, when ALL of
