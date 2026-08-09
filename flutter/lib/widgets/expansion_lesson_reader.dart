@@ -40,6 +40,7 @@ import '../screens/notifications_security.dart';
 import '../screens/recurring.dart';
 import '../theme.dart';
 import '../typography.dart';
+import 'screen_header.dart' show HeaderTier, headerStyle;
 import 'interaction_block_views.dart';
 import 'lesson_block_views.dart';
 import 'salapify_icon.dart';
@@ -315,10 +316,7 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
       const SizedBox(height: 10),
       Text('${displayMinutes(l)} min', style: Barako.kickerStyle),
       const SizedBox(height: 6),
-      Text(
-        l.title,
-        style: AppText.title.w7.copyWith(fontSize: 27, height: 1.1),
-      ),
+      Text(l.title, style: headerStyle(HeaderTier.cover)),
       if (l.objective.isNotEmpty || l.summary.isNotEmpty) ...[
         const SizedBox(height: 8),
         Text(

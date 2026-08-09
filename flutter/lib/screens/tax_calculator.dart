@@ -52,23 +52,17 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
     child: Semantics(header: true, child: Kicker(text)),
   );
 
-  Widget _row(
-    String label,
-    String value, {
-    bool strong = false,
-    bool subtle = false,
-  }) => Padding(
+  Widget _row(String label, String value, {bool subtle = false}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
       children: [
         Expanded(child: Text(label, style: AppText.small)),
+        // amountRow is strict: tint only. The muted rows are the breakdown
+        // steps; the totals stand out through the label weight below, not by
+        // resizing a figure that then no longer matches the row face.
         Text(
           value,
-          style: AppText.amountRow.copyWith(
-            fontSize: strong ? 15 : 13,
-            fontWeight: strong ? TypeWeight.heavy : TypeWeight.medium,
-            color: subtle ? Barako.muted : Barako.text,
-          ),
+          style: AppText.amountRow.tint(subtle ? Barako.muted : Barako.text),
         ),
       ],
     ),
@@ -485,12 +479,9 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
             Row(
               children: [
                 Expanded(child: Text('Total tax', style: AppText.label.w7)),
-                Text(
-                  total,
-                  style: AppText.amountRow
-                      .copyWith(fontSize: 18)
-                      .tint(Barako.primary),
-                ),
+                // The card's headline figure: the metric role (heavy, tabular)
+                // rather than a one-off resize of the row face.
+                Text(total, style: AppText.amountMetric.tint(Barako.primary)),
               ],
             ),
             const SizedBox(height: 6),

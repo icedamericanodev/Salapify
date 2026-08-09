@@ -1,13 +1,20 @@
 // Tools and More: the hub for the calculators and helpers being adapted
-// one by one from the RN app. Each row opens a tool; the coming-soon list
-// keeps the founder's roadmap visible in-app so testers know what is next.
+// one by one from the RN app.
+//
+// It used to be thirteen full-width blurb cards in one undifferentiated
+// column, the audit's "card wall": every tool shouted equally, so nothing
+// guided the eye and finding the take-home pay calculator meant reading all
+// thirteen. Phase 6 groups them into a few short lists, one card per band,
+// the same NavBand/NavTile row physics Menu uses. Each row still carries a
+// one-line purpose, because a calculator's name alone ("Income tax") does
+// not always say what it answers.
 
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
-import '../typography.dart';
-import '../widgets/pressable_scale.dart';
+import '../widgets/nav_tile.dart';
+import '../widgets/section.dart';
 import 'bnpl_calculator.dart';
 import 'contribution_calculator.dart';
 import 'currency_converter.dart';
@@ -21,7 +28,6 @@ import 'tax_deadlines.dart';
 import 'year_end_tax.dart';
 import 'thirteenth_calculator.dart';
 import 'shell.dart';
-import '../widgets/salapify_icon.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -30,6 +36,10 @@ class ToolsScreen extends StatelessWidget {
   /// bottom tab (Budget, Utang, Insights).
   final void Function(Destination)? onSwitchTab;
   const ToolsScreen({super.key, required this.store, this.onSwitchTab});
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,183 +56,114 @@ class ToolsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            _tool(
-              context,
-              icon: salapifyIcon('percent'),
-              title: 'Loan calculator',
-              blurb:
-                  'The real monthly payment and the TRUE rate hiding behind an add-on quote.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LoanCalculatorScreen()),
+            _band(context, 'Salary and tax', [
+              NavTile(
+                icon: 'cash',
+                label: 'Take-home pay',
+                detail: 'Gross to net, after SSS, PhilHealth, Pag-IBIG and tax.',
+                onTap: () => _open(context, const SalaryCalculatorScreen()),
               ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('shopping'),
-              title: 'Installment true cost',
-              blurb:
-                  'Is that 0% really 0%? The plan versus paying cash, honestly.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BnplCalculatorScreen()),
+              NavTile(
+                icon: 'gift',
+                label: '13th month pay',
+                detail: 'What you should get by 24 December, and the tax-free cap.',
+                onTap: () => _open(context, const ThirteenthCalculatorScreen()),
               ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('cash'),
-              title: 'Take-home pay',
-              blurb:
-                  'Gross to net with SSS, PhilHealth, Pag-IBIG, and the BIR table.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SalaryCalculatorScreen(),
+              NavTile(
+                icon: 'bank',
+                label: 'Contribution checker',
+                detail: 'Monthly SSS, PhilHealth and Pag-IBIG for any salary.',
+                onTap: () =>
+                    _open(context, const ContributionCalculatorScreen()),
+              ),
+              NavTile(
+                icon: 'billing',
+                label: 'Income tax',
+                detail: 'For freelancers and pros: flat 8% versus graduated.',
+                onTap: () => _open(context, const TaxCalculatorScreen()),
+              ),
+              NavTile(
+                icon: 'checklist',
+                label: 'Year-end tax check',
+                detail: 'For employees: a refund coming, or still to pay?',
+                onTap: () => _open(context, YearEndTaxScreen(store: store)),
+              ),
+              NavTile(
+                icon: 'scheduled',
+                label: 'BIR dates',
+                detail: 'The next filing deadlines, counted from today.',
+                onTap: () => _open(context, TaxDeadlinesScreen(store: store)),
+              ),
+            ]),
+            const SizedBox(height: Gap.xl),
+            _band(context, 'Debt and installments', [
+              NavTile(
+                icon: 'percent',
+                label: 'Loan calculator',
+                detail: 'The real monthly payment and the true rate behind it.',
+                onTap: () => _open(context, const LoanCalculatorScreen()),
+              ),
+              NavTile(
+                icon: 'shopping',
+                label: 'Installment true cost',
+                detail: 'Is that 0% really 0%? The plan versus paying cash.',
+                onTap: () => _open(context, const BnplCalculatorScreen()),
+              ),
+            ]),
+            const SizedBox(height: Gap.xl),
+            _band(context, 'Everyday money', [
+              NavTile(
+                icon: 'exchange',
+                label: 'Currency converter',
+                detail: 'Another currency, and it works offline once rates save.',
+                onTap: () => _open(context, CurrencyConverterScreen(store: store)),
+              ),
+              NavTile(
+                icon: 'note',
+                label: 'Notes',
+                detail: 'Lines with amounts add themselves up, like a receipt.',
+                onTap: () => _open(context, NotesScreen(store: store)),
+              ),
+            ]),
+            const SizedBox(height: Gap.xl),
+            _band(context, 'Learn', [
+              NavTile(
+                icon: 'learning',
+                label: 'Money courses',
+                detail: 'Short, plain reads on your money and habits. Free.',
+                onTap: () => _open(
+                  context,
+                  LearnScreen(store: store, onSwitchTab: onSwitchTab),
                 ),
               ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('gift'),
-              title: '13th month pay',
-              blurb:
-                  'What you should get by 24 December, and the tax-free ceiling.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ThirteenthCalculatorScreen(),
+              NavTile(
+                icon: 'mindset',
+                label: 'Money mindset',
+                detail: "Today's lesson, an impulse check, and your small wins.",
+                onTap: () => _open(
+                  context,
+                  MindsetScreen(store: store, onSwitchTab: onSwitchTab),
                 ),
               ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('billing'),
-              title: 'Income tax',
-              blurb:
-                  'Freelancers and pros: the flat 8% versus graduated, compared.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TaxCalculatorScreen()),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('scheduled'),
-              title: 'BIR dates',
-              blurb:
-                  'The next filing deadlines for a freelancer, counted from today.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TaxDeadlinesScreen(store: store),
-                ),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('checklist'),
-              title: 'Year-end tax check',
-              blurb: 'Employees: a refund coming, or still something to pay?',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => YearEndTaxScreen(store: store),
-                ),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('bank'),
-              title: 'Contribution checker',
-              blurb: 'Monthly SSS, PhilHealth, and Pag-IBIG for any salary.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ContributionCalculatorScreen(),
-                ),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('exchange'),
-              title: 'Currency converter',
-              blurb:
-                  'What your money is worth in another currency. Works offline once rates are saved.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => CurrencyConverterScreen(store: store),
-                ),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('note'),
-              title: 'Notes',
-              blurb: 'Lines with amounts add themselves up, like a receipt.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => NotesScreen(store: store)),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('learning'),
-              title: 'Money courses',
-              blurb:
-                  'Short, plain reads on your money and habits. Free, always.',
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      LearnScreen(store: store, onSwitchTab: onSwitchTab),
-                ),
-              ),
-            ),
-            _tool(
-              context,
-              icon: salapifyIcon('mindset'),
-              title: 'Money mindset',
-              blurb:
-                  "Today's lesson, a quick impulse check before you buy, and your small wins.",
-              open: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      MindsetScreen(store: store, onSwitchTab: onSwitchTab),
-                ),
-              ),
-            ),
+            ]),
           ],
         ),
       ),
     );
   }
 
-  Widget _tool(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String blurb,
-    required VoidCallback open,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: PressableScale(
-        child: Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: open,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(icon, color: Barako.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: AppText.body.w7),
-                        Text(blurb, style: AppText.caption),
-                      ],
-                    ),
-                  ),
-                  Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),
-                ],
-              ),
-            ),
-          ),
+  Widget _band(BuildContext context, String title, List<NavTile> tiles) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: Gap.sm),
+          // A header flag so a screen reader can jump between the tool groups,
+          // matching the calculators' own in-screen section labels.
+          child: Semantics(header: true, child: SectionHeader(title)),
         ),
-      ),
+        NavBand(tiles: tiles),
+      ],
     );
   }
 }
