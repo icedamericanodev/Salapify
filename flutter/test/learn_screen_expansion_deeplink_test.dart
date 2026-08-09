@@ -63,6 +63,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PagedLessonReader), findsNothing);
-    expect(find.text('See it before you fix it'), findsOneWidget);
+    expect(find.text('See where your money stands'), findsOneWidget);
   });
 }

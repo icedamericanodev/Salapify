@@ -27,6 +27,7 @@ import '../widgets/celebration.dart';
 import '../widgets/expansion_lesson_reader.dart';
 import '../widgets/paged_lesson_reader.dart';
 import '../widgets/lesson_block_views.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
 import 'bnpl_calculator.dart';
@@ -300,6 +301,20 @@ class _LearnScreenState extends State<LearnScreen> {
               0,
               (a, t) => a + t.minutesLeft,
             );
+            // The resume target for the hero: the same deterministic pick
+            // Home makes. anyStarted decides Continue vs Start here, read off
+            // the core progress directly so an untouched catalog reads as the
+            // blank slate it is.
+            final next = nextCoreLesson(
+              data: widget.store.data,
+              progress: progress,
+              now: DateTime.now(),
+            );
+            final anyStarted = lessons.any(
+              (l) =>
+                  (progress[l['id']] ?? LessonState.notStarted) !=
+                  LessonState.notStarted,
+            );
 
             final paths = publishedLearningPaths;
             // One primary recommendation across every path, or null for the
@@ -336,6 +351,13 @@ class _LearnScreenState extends State<LearnScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
+                _journeyHero(
+                  next: next,
+                  anyStarted: anyStarted,
+                  doneCount: doneCount,
+                  total: lessons.length,
+                ),
+                const SizedBox(height: 16),
                 _header(
                   allDone,
                   allTotal,
@@ -378,8 +400,12 @@ class _LearnScreenState extends State<LearnScreen> {
                   // pretending to know anything about the reader.
                   if (pathRec == null) ...[
                     Text(
-                      'New here? Most people start with Are You Ready to '
-                      'Invest, in Grow Your Money.',
+                      // With the hero now naming one clear place to start, this
+                      // line no longer competes by sending a beginner into an
+                      // investing course. It points back to the core journey
+                      // first, then frames the paths as what comes after.
+                      'New here? Start with the core lessons above. These paths '
+                      'go deeper once you are ready.',
                       style: AppText.caption
                           .tint(Barako.muted)
                           .copyWith(height: 1.45),
@@ -429,6 +455,124 @@ class _LearnScreenState extends State<LearnScreen> {
   /// actually started something. A first visit that opens with a bill for 43
   /// minutes is answering "how much work is left" when the only useful
   /// question is "what do I do next".
+  /// The one card that answers "what do I do next" before anything else on
+  /// the screen, so a returning learner never hunts for their active lesson
+  /// and a first visitor is never handed 22 lessons and asked to choose.
+  ///
+  /// It reuses [nextCoreLesson], the same deterministic pick Home already
+  /// makes (recommended track first, then the first unfinished lesson
+  /// anywhere), so this is a surface for that decision, never a second
+  /// recommendation engine. A null [next] means every core lesson is done:
+  /// the card says so and points down to the paths rather than sitting empty.
+  Widget _journeyHero({
+    required FlowLesson? next,
+    required bool anyStarted,
+    required int doneCount,
+    required int total,
+  }) {
+    if (next == null) {
+      return Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.lg),
+          side: BorderSide(color: Barako.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.lg),
+          child: Row(
+            children: [
+              SalapifyGlyph('celebrate', size: 22),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('All core lessons done', style: AppText.subtitle),
+                    const SizedBox(height: 3),
+                    Text(
+                      'You have read all $total. Pick a path below to keep '
+                      'going.',
+                      style: AppText.small
+                          .tint(Barako.muted)
+                          .copyWith(height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    // START HERE for a blank slate, CONTINUE once anything has been opened.
+    // The distinction is what a first visitor needs (permission to begin at
+    // one place) versus what a returning one needs (their thread back).
+    final kicker = anyStarted ? 'CONTINUE' : 'START HERE';
+    final sub = anyStarted
+        ? '${next.groupTitle} · $doneCount of $total done'
+        : '${next.groupTitle} · your first lesson';
+    return Semantics(
+      button: true,
+      label: '$kicker. ${next.title}. ${next.minutes} minute lesson. $sub.',
+      child: PressableScale(
+        child: Card(
+          color: Barako.primary,
+          margin: EdgeInsets.zero,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Radii.lg),
+            onTap: () {
+              final l = lessonById(next.id);
+              if (l != null) _open2(context, l);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(Gap.lg),
+              child: Row(
+                children: [
+                  Expanded(
+                    // The label is already spoken by the Semantics wrapper as
+                    // one button, so the visible text is excluded to avoid a
+                    // second, fragmented reading of the same target.
+                    child: ExcludeSemantics(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            kicker,
+                            style: Barako.kickerStyle.copyWith(
+                              color: Barako.onPrimary.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            next.title,
+                            style: AppText.subtitle.w8.tint(Barako.onPrimary),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${next.minutes} min · $sub',
+                            style: AppText.small.tint(
+                              Barako.onPrimary.withValues(alpha: 0.82),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Gap.md),
+                  Icon(
+                    salapifyIcon('forward'),
+                    color: Barako.onPrimary,
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _header(
     int doneCount,
     int total,

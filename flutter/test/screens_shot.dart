@@ -654,6 +654,10 @@ void main() {
         InsightsScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
+    // Phase 6B Batch B: the reframed opener, focusId opening the core reader
+    // directly so the "your money in one picture" net-worth block (financial
+    // position taught in plain words) is visible in a shot.
+    'core-see-it-first': (s) => LearnScreen(store: s, focusId: 'see-it-first'),
     // Phase 6: the calculators hub, regrouped from a thirteen-card wall into a
     // few short row bands (Salary and tax, Debt, Everyday money). Phase 6B
     // moved the Learn band (Money courses, Money mindset) out to its own LEARN

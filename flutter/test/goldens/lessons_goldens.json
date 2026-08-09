@@ -3,11 +3,11 @@
     {
       "id": "see-it-first",
       "track": "cushion",
-      "title": "See it before you fix it",
+      "title": "See where your money stands",
       "icon": "spotlight",
       "minutes": 2,
-      "summary": "One week of honest logging changes more than any budget.",
-      "objective": "Find out where your daily spending actually goes.",
+      "summary": "Your money in one picture, then start with where it goes.",
+      "objective": "See your whole money picture, then start with where your money goes.",
       "action": {
         "label": "Log what you spent today",
         "route": "log"
@@ -16,10 +16,21 @@
         {
           "kind": "nuggets",
           "items": [
-            "Most people guess their spending low, and not by lying.",
-            "Small amounts do not feel like spending while they happen.",
-            "A budget built on a guess fails in week two."
+            "Your money has five parts: what comes in, what goes out, what you own, what you owe, and what is left over.",
+            "What you own minus what you owe is your net worth, the honest score behind any payday.",
+            "Most people cannot see it clearly and guess their spending low, so this is where we start."
           ]
+        },
+        {
+          "kind": "diagram",
+          "steps": [
+            "Money in: pay, sidelines, gifts",
+            "Money out: bills, food, the small wants",
+            "What you own: cash, savings, e-wallets",
+            "What you owe: cards, loans, utang",
+            "What is left is your net worth"
+          ],
+          "caption": "Accountants call this your balance sheet and income statement. Salapify already shows it: Accounts for what you own and owe, Overview for what is left."
         },
         {
           "kind": "discovery",
@@ -749,6 +760,7 @@
       "id": "freelancer-setaside",
       "track": "swing",
       "region": "PH",
+      "forFreelancers": true,
       "title": "Selling online or freelancing? Set aside for tax",
       "icon": "work",
       "minutes": 2,
@@ -854,6 +866,7 @@
       "id": "own-your-benefits",
       "track": "swing",
       "region": "PH",
+      "forFreelancers": true,
       "title": "Nobody pays your benefits but you",
       "icon": "foundation",
       "minutes": 2,
