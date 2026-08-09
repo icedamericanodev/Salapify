@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.98 \u00b7 Business courses: a BIR step-order conflict between two lessons fixed, and a BIR invoicing note corrected.';
+    'f3.98 \u00b7 Business courses: BIR step-order and an invoicing note fixed, and a course renamed to Taxes & Filing.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

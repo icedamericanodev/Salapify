@@ -930,7 +930,17 @@ void main() {
       ),
       store: s,
     ),
-    // "BIR Setup for New Businesses", the same path's third course.
+    // "Taxes & Filing for Your Business", the same path's third course. The
+    // reading page's own header carries the course display title (renamed from
+    // "BIR Setup for New Businesses" in f3.98), so this shot is where the new
+    // title is looked at on a real lesson.
+    'bir-tax-start-with-profile-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationTaxSetupLessons.firstWhere(
+        (l) => l.id == btaxStartWithProfile,
+      ),
+      store: s,
+    ),
     // "Know What You Registered For" carries the tax-type awareness
     // checklist, the lesson most likely to read as determining a real
     // reader's own obligations if the tone slipped anywhere.

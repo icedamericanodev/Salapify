@@ -11,8 +11,9 @@ Courses in scope (course id, file):
    `lessons_business_registration.dart`)
 2. BIR Registration and Local Permits (`bir_registration_and_local_permits`,
    `lessons_bir_local_permits.dart`)
-3. BIR Setup for New Businesses (`bir_registration_tax_setup`,
-   `lessons_bir_tax_setup.dart`)
+3. Taxes & Filing for Your Business (`bir_registration_tax_setup`,
+   `lessons_bir_tax_setup.dart`) — display title renamed from "BIR Setup for
+   New Businesses" in f3.98 after founder approval; course id unchanged
 4. Permits, People, and Compliance (`business_permits_and_compliance`,
    `lessons_business_permits_compliance.dart`)
 
@@ -77,7 +78,8 @@ Course 2, BIR Registration and Local Permits:
 - Micro, Small, or Something Else: KEEP
 - Build Your Compliance Calendar: KEEP
 
-Course 3, BIR Setup for New Businesses:
+Course 3, Taxes & Filing for Your Business (renamed from "BIR Setup for New
+Businesses" in f3.98):
 - Start With Your BIR Profile: KEEP
 - Primary and Secondary Registration: KEEP
 - Know What You Registered For: KEEP
@@ -183,11 +185,13 @@ The problem is packaging, not outcomes:
   ORUS) are taught fresh in both C2 (concretely) and C3 (as an abstract map),
   rather than C3 recapping C2.
 
-Recommendation (held for founder approval, NOT applied, per the preserve-ids
-rule): rename C3 so it stops colliding with C2 and names its real job, for
-example "Run Your BIR Taxes" or "BIR Taxes and Filing Routine." The group id
-`bir_registration_tax_setup` stays; only display title strings change. This is
-the single highest clarity-per-hour move. Do NOT merge the two courses.
+Recommendation (APPROVED and APPLIED in f3.98): rename C3 so it stops colliding
+with C2 and names its real job. The founder chose "Taxes & Filing for Your
+Business." Applied as presentation only: the group id `bir_registration_tax_setup`,
+all lesson ids, progress keys, backup contract, completion state, and deep links
+are unchanged; only the display title string in `learning_paths.dart` changed,
+along with the tests, screenshot comments, and docs that legitimately depend on
+it. The two courses were NOT merged.
 
 ---
 
@@ -388,11 +392,13 @@ Nothing necessary for the learner's immediate decision was hidden. No change.
   ChecklistBlocks) are candidates for conversion to decision scenarios.
 - A "which agency does what" quick-reference and a compliance-cost mini-calculator
   are deep-link/interaction opportunities.
-- STRUCTURAL, needs founder approval: rename C3 to stop the "BIR Setup" collision
-  with C2; consider moving local-permit lessons out of C2 into C4 so C2 = BIR
-  only and C4 = all local/permit/employer/industry; add explicit recap
-  cross-references from C3 L1/L2 back to C2, and a forward pointer from C2 L4 to
-  C4. None of these were performed (they change course membership or labeling).
+- STRUCTURAL: the C3 rename to stop the "BIR Setup" collision with C2 was
+  approved and applied in f3.98 (to "Taxes & Filing for Your Business",
+  presentation only). Still open, needs founder approval: moving local-permit
+  lessons out of C2 into C4 so C2 = BIR only and C4 = all local/permit/employer/
+  industry; and adding explicit recap cross-references from C3 L1/L2 back to C2,
+  and a forward pointer from C2 L4 to C4. These change course membership or add
+  content and were NOT performed.
 
 ---
 

@@ -6,7 +6,7 @@
 // blocks), nothing new added to the core model.
 //
 // This course picks up where "BIR Registration and Local Permits" (Phase
-// 14, lessons_bir_local_permits.dart) and "BIR Setup for New Businesses"
+// 14, lessons_bir_local_permits.dart) and "Taxes & Filing for Your Business"
 // (lessons_bir_tax_setup.dart) leave off: it never repeats BIR registration
 // or tax setup. Instead it covers the piece those two courses deliberately
 // left open, that a business's real checklist depends on WHERE it operates
