@@ -46,6 +46,7 @@ import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_bir_local_permits.dart';
+import 'package:salapify/content/lessons_business_permits_compliance.dart';
 import 'package:salapify/content/lessons_bir_tax_setup.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
@@ -856,6 +857,36 @@ void main() {
       ),
       store: s,
     ),
+    // Phase 6B Batch C4: the two reading pages whose prose the C4 correctness
+    // pass changed. "The Order That Actually Matters" (BIR-vs-local-permit
+    // ordering reworded to acknowledge LGU variance) and "Books, Receipts,
+    // and Invoices" (the Authority-to-Print note corrected to the real EOPT
+    // invoicing reform, the unverified 30-day window softened). Rendered so
+    // the corrected prose is looked at before it ships.
+    'bir-local-order-that-matters-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlOrderThatMatters,
+      ),
+      store: s,
+    ),
+    'bir-local-books-and-invoices-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlBooksAndInvoices,
+      ),
+      store: s,
+    ),
+    // "Map the Local Permit Flow", the C4 course lesson whose BIR-ordering
+    // claim was softened to match the corrected sibling and acknowledge that
+    // the order varies by LGU and RDO.
+    'business-map-local-permit-flow-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: businessPermitsAndComplianceLessons.firstWhere(
+        (l) => l.id == bpccMapTheLocalPermitFlow,
+      ),
+      store: s,
+    ),
     // Money Courses Phase 13: "Start Your Business Legally", the new "Build
     // Your Business" path's first course. "Compare Business Structures"
     // carries the ComparisonBlock across five structures, the lesson most
@@ -899,7 +930,17 @@ void main() {
       ),
       store: s,
     ),
-    // "BIR Setup for New Businesses", the same path's third course.
+    // "Taxes & Filing for Your Business", the same path's third course. The
+    // reading page's own header carries the course display title (renamed from
+    // "BIR Setup for New Businesses" in f3.98), so this shot is where the new
+    // title is looked at on a real lesson.
+    'bir-tax-start-with-profile-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationTaxSetupLessons.firstWhere(
+        (l) => l.id == btaxStartWithProfile,
+      ),
+      store: s,
+    ),
     // "Know What You Registered For" carries the tax-type awareness
     // checklist, the lesson most likely to read as determining a real
     // reader's own obligations if the tone slipped anywhere.

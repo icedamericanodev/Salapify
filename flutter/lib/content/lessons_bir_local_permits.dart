@@ -26,8 +26,9 @@
 //
 // 1. Every genuinely NATIONAL figure this course states (the BIR Annual
 //    Registration Fee's abolition under RA 11976, the Documentary Stamp Tax
-//    on the Certificate of Registration, the Authority to Print now being
-//    free, the invoice-issuance threshold) is independently confirmed
+//    on the Certificate of Registration, the removal of the old five-year
+//    validity on printed receipts and invoices, the invoice-issuance
+//    threshold) is independently confirmed
 //    against bir.gov.ph's own EOPT page and cross-checked against multiple
 //    independent secondary sources before being stated, carries an
 //    explicit "as of" date, and sits inside a RiskWarningBlock naming that
@@ -206,10 +207,17 @@ const _orderThatMatters = MoneyLesson(
         'This general order is not a strict law that applies identically '
             'to every business. Some steps can move depending on the '
             'industry, the location, or whether a permit or license is '
-            'needed first for a specific activity. What stays true across '
-            'nearly every case is that BIR registration generally comes '
-            'before local permits, since a Certificate of Registration is '
-            'commonly asked for during the local permit process.',
+            'needed first for a specific activity. The order between BIR '
+            'registration and the local permits in particular can differ '
+            'by city or municipality and by Revenue District Office: in '
+            'many places the Business Permit is asked for when registering '
+            'with BIR, so the local permits come first, while some offices '
+            'instead ask for the BIR Certificate of Registration during '
+            'the local permit process. This course covers the BIR steps '
+            'first because they work the same way nationwide, and treats '
+            'the local permits, which vary by location, in more depth in a '
+            'later course; confirming the actual order with each office is '
+            'worth doing rather than assuming one fixed sequence.',
       ],
     ),
     DiagramBlock(
@@ -224,9 +232,10 @@ const _orderThatMatters = MoneyLesson(
       caption: 'A general order, not a strict rule for every business',
     ),
     NuggetsBlock([
-      'BIR registration generally comes before local permits, since a '
-          'Certificate of Registration is commonly asked for during the '
-          'local permit process.',
+      'The order between BIR registration and the local permits can '
+          'differ by city and Revenue District Office; the two are closely '
+          'linked, so confirming the sequence with each office is worth '
+          'doing.',
       'Barangay clearance generally comes before the city or municipal '
           'Business Permit, since it is a commonly required supporting '
           'document for that permit.',
@@ -319,8 +328,9 @@ const _orderThatMatters = MoneyLesson(
   keyTakeaway:
       'After a business or entity name is registered, BIR registration, '
       'books and invoices, barangay clearance, and a city or municipal '
-      'Business Permit generally follow in that order, though the exact '
-      'order can shift for a specific industry, location, or activity.',
+      'Business Permit all generally follow, though the order between BIR '
+      'and the local permits can shift by city and Revenue District '
+      'Office, so confirming it with each office is worth doing.',
 );
 
 // ---------------------------------------------------------------------------
@@ -572,18 +582,19 @@ const _booksAndInvoices = MoneyLesson(
             'Books of accounts, generally manual, loose-leaf, or '
             'computerized, need to be set up to record transactions, and '
             'invoices or receipts generally need to be ready before '
-            'selling anything. As of this course\'s own last verification '
-            'date, businesses generally have a window of about 30 days '
-            'after the Certificate of Registration is issued to have '
-            'invoices or receipts printed or configured.',
-        'Under Republic Act No. 11976, Authority to Print, the approval '
-            'previously needed before printing official receipts or '
-            'invoices, is now free of charge, where it used to carry its '
-            'own fee. The threshold for when a seller must issue a '
-            'receipt or invoice for a sale also rose, from ₱100 to ₱500, '
-            'as of this course\'s own last verification date, though a '
-            'VAT-registered seller generally still needs to issue one for '
-            'every sale regardless of amount.',
+            'selling anything, so setting them up promptly after the '
+            'Certificate of Registration is issued is worth doing rather '
+            'than leaving until the first sale.',
+        'Republic Act No. 11976 also reshaped how invoices and receipts '
+            'work: for most sales the single primary document is now the '
+            'invoice rather than a separate official receipt. Separately, '
+            'printed receipts and invoices no longer carry the old fixed '
+            'five-year validity, so they do not need reprinting simply '
+            'because time has passed. The threshold for when a seller must '
+            'issue a receipt or invoice for a sale also rose, from ₱100 to '
+            '₱500, as of this course\'s own last verification date, though '
+            'a VAT-registered seller generally still needs to issue one '
+            'for every sale regardless of amount.',
         'Exact book formats, thresholds, and windows can change with '
             'future tax rules; confirming the current requirement directly '
             'with BIR before setting anything up or paying anything is '
@@ -593,10 +604,12 @@ const _booksAndInvoices = MoneyLesson(
     NuggetsBlock([
       'Books of accounts generally come in three types: manual, '
           'loose-leaf, or computerized.',
-      'Invoices or receipts generally need to be ready within about 30 '
-          'days of the Certificate of Registration being issued.',
-      'Authority to Print is now generally free of charge, where it used '
-          'to carry its own fee.',
+      'Invoices or receipts generally need to be ready before the '
+          'business starts selling, so setting them up promptly is worth '
+          'doing.',
+      'Printed receipts and invoices no longer carry the old fixed '
+          'five-year validity, so they do not need reprinting simply '
+          'because time has passed.',
       'The receipt or invoice issuance threshold rose from ₱100 to ₱500, '
           'though a VAT-registered seller generally still issues one for '
           'every sale.',
@@ -660,14 +673,15 @@ const _booksAndInvoices = MoneyLesson(
     MythOrFactBlock(
       blockId: 'authority-to-print-costs-myth',
       statement:
-          'Authority to Print, the approval needed before printing '
-          'official receipts or invoices, still carries its own separate '
-          'fee.',
+          'Once printed, official receipts and invoices expire after five '
+          'years and have to be reprinted on that schedule.',
       correctAnswer: MythOrFactAnswer.myth,
       explanation:
-          'As of this course\'s own last verification date, Authority to '
-          'Print is generally free of charge, where it used to carry its '
-          'own fee, under Republic Act No. 11976.',
+          'As of this course\'s own last verification date, printed '
+          'receipts and invoices no longer carry the old fixed five-year '
+          'validity, so they do not need reprinting simply because time '
+          'has passed. Confirming the current rule directly with BIR is '
+          'still worth doing.',
       requiredForCompletion: true,
     ),
   ],
@@ -694,10 +708,11 @@ const _booksAndInvoices = MoneyLesson(
   ),
   keyTakeaway:
       'After a Certificate of Registration is issued, books of accounts '
-      'and invoices or receipts generally still need to be set up, within '
-      'a general window; Authority to Print is now generally free, and '
-      'the receipt or invoice issuance threshold rose from ₱100 to ₱500, '
-      'both current as of this course\'s own last verification date.',
+      'and invoices or receipts generally still need to be set up before '
+      'the first sale; printed receipts and invoices no longer carry the '
+      'old fixed five-year validity, and the receipt or invoice issuance '
+      'threshold rose from ₱100 to ₱500, both current as of this '
+      'course\'s own last verification date.',
 );
 
 // ---------------------------------------------------------------------------

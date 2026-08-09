@@ -4,7 +4,7 @@
 // Your Future, with its own independent progress, and never a hard lock.
 // Phase 13 shipped this path's first course (Start Your Business Legally);
 // later phases added its second (BIR Registration and Local Permits) and
-// third (BIR Setup for New Businesses) courses, and Phase 15 added a fourth
+// third (Taxes & Filing for Your Business) courses, and Phase 15 added a fourth
 // (Permits, People, and Compliance), so the path card now lists all four
 // courses' lessons flattened together, per screens/learn.dart's own
 // one-card-per-path design. The core "X of 22" figure and the other two
@@ -65,7 +65,7 @@ void main() {
         findsOneWidget,
       );
       // Six from Start Your Business Legally, six from BIR Registration
-      // and Local Permits, six from BIR Setup for New Businesses, six from
+      // and Local Permits, six from Taxes & Filing for Your Business, six from
       // Permits, People, and Compliance, flattened into one path total per
       // screens/learn.dart's own one-card-per-path design.
       expect(_businessPathTotal, 24);

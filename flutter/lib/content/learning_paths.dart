@@ -47,8 +47,10 @@
 // time-volatile but structurally set independently by each city and
 // municipality.
 //
-// This same path's THIRD course, "BIR Setup for New Businesses"
-// (lib/content/lessons_bir_tax_setup.dart), never modifies either sibling
+// This same path's THIRD course, "Taxes & Filing for Your Business"
+// (course id bir_registration_tax_setup, renamed from the display title
+// "BIR Setup for New Businesses" in f3.98 for clarity; the id is unchanged;
+// lib/content/lessons_bir_tax_setup.dart), never modifies either sibling
 // course's own lesson ids. Unlike its immediate sibling, this course states
 // NO current rate, threshold, deadline, penalty, or form list anywhere,
 // back to the standard "point at the source" discipline; see that file's
@@ -299,7 +301,7 @@ const List<LearningPath> learningPaths = [
       ),
       LearningPathGroup(
         id: 'bir_registration_tax_setup',
-        title: 'BIR Setup for New Businesses',
+        title: 'Taxes & Filing for Your Business',
         lessonIds: [
           btaxStartWithProfile,
           btaxPrimarySecondary,
