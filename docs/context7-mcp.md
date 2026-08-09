@@ -10,56 +10,87 @@ matters for this repo because Expo SDK 54 and Flutter move fast.
 
 The server is committed at the project root in `.mcp.json`, so it is shared
 with every checkout of this repository and every Claude Code session that
-opens the project. There is nothing to install per machine. On the first
-session after this lands, Claude Code asks you once to approve the project
-MCP server; approve it and it stays approved.
+opens the project. On the first session after this lands, Claude Code asks
+you once to approve the project MCP server; approve it and it stays approved.
 
-The committed config is the keyless remote server:
+This project authenticates Context7 with an API key. Claude Code reads the
+key from the `CONTEXT7_API_KEY` environment variable and expands it into the
+request header at connect time, so no key is ever written to the file or to
+git:
 
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "type": "http",
-      "url": "https://mcp.context7.com/mcp"
+    {
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+          }
+        }
+      }
     }
-  }
-}
-```
 
-Keyless works out of the box for everyone. It has a lower rate limit, which
-is fine for the occasional doc lookup a single developer does.
+`CONTEXT7_API_KEY` is both the header name Context7 expects and the name of
+the environment variable Claude Code expands into it. The key itself only
+ever lives in your shell environment. Keyless use is not relied on here; in
+this environment Context7 asks to be authorized before its tools are
+available, so a key or OAuth is needed.
 
-## Adding a free API key for higher limits (optional)
+## Recommended setup: the Context7 CLI
 
-A free API key raises the rate limit. Get one at context7.com/dashboard.
+Context7's own CLI wires everything up for you and is the current recommended
+flow. In an interactive terminal:
 
-Do NOT paste the key into `.mcp.json`, because that file is committed and the
-key would leak into git history. Keep the key on your own machine instead.
-Two safe ways:
+    npx ctx7 setup --claude
 
-1. User scope, per machine, never committed. Run this once in your terminal.
-   This writes to your personal Claude config, not to the repo:
+That authenticates through OAuth in your browser, generates an API key, and
+registers the server for Claude Code. For a remote or headless environment
+where no browser is available, pass the key directly:
 
-   ```
-   claude mcp add --scope user \
-     --transport http \
-     --header "Authorization: Bearer YOUR_API_KEY" \
-     context7 https://mcp.context7.com/mcp
-   ```
+    npx ctx7 setup --claude --api-key YOUR_API_KEY
 
-   A user scope server takes priority over the project one of the same name,
-   so your keyed server is what actually runs for you, while everyone else
-   keeps the committed keyless server.
+Get a key from your Context7 dashboard at context7.com.
 
-2. Environment variable, if you prefer to keep the header in `.mcp.json`.
-   Claude Code expands `${VAR}` in `.mcp.json`. You could change the project
-   file to send `"Authorization": "Bearer ${CONTEXT7_API_KEY}"` and export
-   `CONTEXT7_API_KEY` in your shell. We do NOT ship it this way, because a
-   checkout with the variable unset would fail to start that one server. The
-   keyless default avoids that, so option 1 is the recommended path for a key.
+## Setting the key by hand
+
+If you would rather set the environment variable yourself so the committed
+`.mcp.json` above picks it up, export it in your shell profile (`~/.zshrc`
+or `~/.bashrc`) so it persists:
+
+    export CONTEXT7_API_KEY="your-key-here"
+
+Open a new terminal (or source the profile) and start Claude Code from it.
+Check it loaded with `claude mcp list`; the context7 server should show no
+missing-variable warning.
+
+The equivalent manual command, if you prefer to register a user scope server
+instead of relying on the project file, is:
+
+    claude mcp add --scope user \
+      --transport http \
+      --header "CONTEXT7_API_KEY: YOUR_API_KEY" \
+      context7 https://mcp.context7.com/mcp
+
+A user scope server overrides the project one of the same name for you only.
+
+## OAuth alternative
+
+Clients that implement the MCP OAuth specification can authenticate without a
+static key by pointing at the OAuth endpoint instead of the plain one:
+
+    https://mcp.context7.com/mcp/oauth
+
+With that URL, run `/mcp` inside an interactive Claude Code session to
+complete the browser sign in. OAuth cannot be completed in a non interactive
+or headless session, so use the API key method there.
+
+## If the key is not set
+
+Claude Code still loads the rest of your config. It shows a missing-variable
+warning for the context7 server in `claude mcp list` and sends the header
+unexpanded, so Context7 will not authenticate until the key is available.
+This does not break other MCP servers or the session.
 
 ## Removing it
 
-Delete the `context7` block from `.mcp.json`, or run
-`claude mcp remove context7` for a user scope copy.
+Delete the `context7` block from `.mcp.json`.
