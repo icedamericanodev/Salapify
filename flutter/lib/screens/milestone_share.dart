@@ -171,14 +171,7 @@ class _MilestoneShareScreenState extends State<MilestoneShareScreen> {
         ? null
         : _MilestoneCard(win: win, hideAmounts: _hideAmounts);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Share a win',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Share a win')),
       body: Stack(
         children: [
           SafeArea(

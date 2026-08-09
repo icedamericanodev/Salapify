@@ -161,11 +161,8 @@ class _RecapShareScreenState extends State<RecapShareScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         title: Text(
           _isCycle ? 'Payday cycle recap' : '${_recap['label']} recap',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
         ),
       ),
       body: Stack(

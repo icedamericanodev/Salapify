@@ -1936,11 +1936,7 @@ class _ExportScreenState extends State<ExportScreen> {
     final txns = (store.data['transactions'] as List).length;
     final accounts = (store.data['accounts'] as List).length;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: const Text('Export backup'),
-      ),
+      appBar: AppBar(title: const Text('Export backup')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -2200,11 +2196,7 @@ class _ImportScreenState extends State<ImportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: const Text('Import backup'),
-      ),
+      appBar: AppBar(title: const Text('Import backup')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),

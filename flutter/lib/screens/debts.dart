@@ -121,14 +121,7 @@ class DebtsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Debts',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Debts')),
       floatingActionButton: store.canWrite
           ? FloatingActionButton.extended(
               onPressed: () => showDebtFormSheet(context, store),

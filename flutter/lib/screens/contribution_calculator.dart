@@ -72,14 +72,7 @@ class _ContributionCalculatorScreenState
     final grandTotal = eeTotal + erTotal;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Contribution checker',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Contribution checker')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

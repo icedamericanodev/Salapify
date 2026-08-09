@@ -189,14 +189,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
     final labels = _headerLabels;
     final preview = _preview;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Import CSV',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Import CSV')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),

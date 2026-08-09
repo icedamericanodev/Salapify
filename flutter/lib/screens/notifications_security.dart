@@ -29,14 +29,7 @@ class NotificationsSecurityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      backgroundColor: Barako.background,
-      foregroundColor: Barako.text,
-      title: Text(
-        'Notifications and security',
-        style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-      ),
-    ),
+    appBar: AppBar(title: Text('Notifications and security')),
     body: SafeArea(
       child: ListenableBuilder(
         listenable: store,

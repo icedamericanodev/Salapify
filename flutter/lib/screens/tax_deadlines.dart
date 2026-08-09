@@ -103,14 +103,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
   Widget build(BuildContext context) {
     final rows = taxDeadlines(widget.clock(), basis: _basis, count: 6);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'BIR dates',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('BIR dates')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

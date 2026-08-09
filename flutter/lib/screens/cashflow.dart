@@ -145,14 +145,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Cash flow',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Cash flow')),
       body: SafeArea(
         top: false,
         child: ListenableBuilder(

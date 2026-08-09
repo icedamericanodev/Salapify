@@ -266,11 +266,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (!widget.pushed) return _body(items, txs, all);
     return Scaffold(
       appBar: widget.pushed
-          ? AppBar(
-              backgroundColor: Barako.background,
-              foregroundColor: Barako.text,
-              title: Text('Activity', style: AppText.title),
-            )
+          ? AppBar(title: Text('Activity', style: AppText.title))
           : null,
       body: _body(items, txs, all),
     );

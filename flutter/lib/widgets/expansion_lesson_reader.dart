@@ -292,8 +292,6 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
     final position = _positionLabel();
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         // Where am I, and in what. An 824 word lesson in one scroll gave a
         // reader no orientation at all once the hero scrolled away.
         title: position == null

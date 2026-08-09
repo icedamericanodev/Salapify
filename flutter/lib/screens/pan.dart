@@ -241,18 +241,13 @@ class _PanScreenState extends State<PanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         title: Row(
           children: [
             // The mascot cup reacts to the latest reply's mood, the same widget
             // and mood engine the Home check-in uses.
             PanMascot(mood: panMoodForReplyMood(mood), size: 48),
             const SizedBox(width: 10),
-            Text(
-              'Pan',
-              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-            ),
+            Text('Pan'),
           ],
         ),
       ),
@@ -399,10 +394,7 @@ class _PanScreenState extends State<PanScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text(
-          'Drop the plan?',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Drop the plan?'),
         content: Text(
           'Your money does not change, only the score keeping stops. '
           'We can always start a new one.',

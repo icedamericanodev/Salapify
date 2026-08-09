@@ -74,14 +74,7 @@ class AppearanceScreen extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Barako.background,
-            foregroundColor: Barako.text,
-            title: Text(
-              'Appearance',
-              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-            ),
-          ),
+          appBar: AppBar(title: Text('Appearance')),
           body: SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, Gap.xxl),

@@ -28,12 +28,7 @@ class TreatsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Earn your treats',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Earn your treats'),
         actions: [
           ListenableBuilder(
             listenable: store,

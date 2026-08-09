@@ -258,14 +258,7 @@ class _LearnScreenState extends State<LearnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Money courses',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Money courses')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: widget.store,
@@ -322,9 +315,8 @@ class _LearnScreenState extends State<LearnScreen> {
             // are untouched.
             final paths = [...publishedLearningPaths]
               ..sort(
-                (a, b) => expansionPathRank(a.id).compareTo(
-                  expansionPathRank(b.id),
-                ),
+                (a, b) =>
+                    expansionPathRank(a.id).compareTo(expansionPathRank(b.id)),
               );
             // One primary recommendation across every path, or null for the
             // neutral discovery state (no reliable signal yet, or every
@@ -1320,8 +1312,6 @@ class _LessonReaderState extends State<_LessonReader> {
     final position = _positionLabel();
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         // Where am I, and in what. An empty bar left a reader who had
         // scrolled past the hero with no idea which lesson or course they
         // were inside.

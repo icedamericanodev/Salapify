@@ -262,12 +262,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
     return Scaffold(
       backgroundColor: Barako.background,
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          t == null || t.key == 'custom' ? 'Create a goal' : t.name,
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text(t == null || t.key == 'custom' ? 'Create a goal' : t.name),
       ),
       body: SafeArea(
         child: ListView(

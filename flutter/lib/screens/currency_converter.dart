@@ -109,14 +109,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     final asOf = haveRates ? _asOf(_fx!.fetchedAt) : '';
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Currency converter',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Currency converter')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

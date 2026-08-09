@@ -38,14 +38,7 @@ class ToolsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Calculators',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Calculators')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -54,13 +47,15 @@ class ToolsScreen extends StatelessWidget {
               NavTile(
                 icon: 'cash',
                 label: 'Take-home pay',
-                detail: 'Gross to net, after SSS, PhilHealth, Pag-IBIG and tax.',
+                detail:
+                    'Gross to net, after SSS, PhilHealth, Pag-IBIG and tax.',
                 onTap: () => _open(context, const SalaryCalculatorScreen()),
               ),
               NavTile(
                 icon: 'gift',
                 label: '13th month pay',
-                detail: 'What you should get by 24 December, and the tax-free cap.',
+                detail:
+                    'What you should get by 24 December, and the tax-free cap.',
                 onTap: () => _open(context, const ThirteenthCalculatorScreen()),
               ),
               NavTile(
@@ -109,8 +104,10 @@ class ToolsScreen extends StatelessWidget {
               NavTile(
                 icon: 'exchange',
                 label: 'Currency converter',
-                detail: 'Another currency, and it works offline once rates save.',
-                onTap: () => _open(context, CurrencyConverterScreen(store: store)),
+                detail:
+                    'Another currency, and it works offline once rates save.',
+                onTap: () =>
+                    _open(context, CurrencyConverterScreen(store: store)),
               ),
               NavTile(
                 icon: 'note',

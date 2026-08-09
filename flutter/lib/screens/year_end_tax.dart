@@ -100,14 +100,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
     final isRefund = result['isRefund'] as bool;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Year-end tax check',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Year-end tax check')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

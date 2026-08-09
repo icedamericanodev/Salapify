@@ -223,6 +223,33 @@ void main() {
       }
     });
 
+    test('pushed AppBars do not re-set the theme-owned chrome', () {
+      // appBarTheme owns background, foreground and the title style, so a
+      // pushed screen's AppBar is correct with just a title. Phase 2 stripped
+      // the 41 copies that re-set background and foreground inline. This guard
+      // fails if that exact redundancy comes back directly under an AppBar(,
+      // so a theme change keeps reaching every screen's chrome.
+      //
+      // Proven to fail: put `backgroundColor: Barako.background,` back under
+      // any AppBar( and this goes red.
+      final redundant = RegExp(
+        r'AppBar\(\s*\n\s*(backgroundColor: Barako\.background|'
+        r'foregroundColor: Barako\.text),',
+      );
+      final libDir = Directory('lib');
+      for (final entity in libDir.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        expect(
+          redundant.hasMatch(entity.readAsStringSync()),
+          isFalse,
+          reason:
+              '${entity.path} re-sets an AppBar property the theme already '
+              'owns (background or foreground). A bare AppBar(title: ...) '
+              'inherits it; let appBarTheme own the chrome.',
+        );
+      }
+    });
+
     test('spacing and the gutter', () {
       expect(Gap.gutter, 20);
       expect(Insets.card, const EdgeInsets.all(16));

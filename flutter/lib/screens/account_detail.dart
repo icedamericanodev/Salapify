@@ -197,12 +197,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     return Scaffold(
       backgroundColor: Barako.background,
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          _isDebt ? 'Card' : 'Account',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text(_isDebt ? 'Card' : 'Account'),
         actions: [
           IconButton(
             tooltip: 'Edit',

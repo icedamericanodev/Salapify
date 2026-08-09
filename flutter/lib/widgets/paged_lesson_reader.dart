@@ -200,8 +200,6 @@ class _PagedLessonReaderState extends State<PagedLessonReader> {
     final onLast = _steps[_index] is FinishStep;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         title: position == null
             ? null
             : Text(position, style: AppText.caption.tint(Barako.muted)),

@@ -90,14 +90,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     final counts = Diagnostics.counts(widget.store?.data);
     final errors = Diagnostics.recent;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Diagnostics',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Diagnostics')),
       body: SafeArea(
         top: false,
         child: ListView(

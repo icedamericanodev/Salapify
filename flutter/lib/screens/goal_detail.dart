@@ -94,14 +94,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Barako.background,
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Goal',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Goal')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: widget.store,
@@ -1223,10 +1216,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text(
-          'Delete this goal?',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Delete this goal?'),
         content: Text(
           'Your money does not change; only the tracking goes. Undo brings '
           'it back exactly as it was.',

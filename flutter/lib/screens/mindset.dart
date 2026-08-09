@@ -1218,14 +1218,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Money mindset',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Money mindset')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: widget.store,
