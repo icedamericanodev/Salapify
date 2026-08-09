@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.93 \u00b7 Learn is its own menu section now, out of Calculators, so courses and mindset are easy to find.';
+    'f3.94 \u00b7 Money courses now open with Continue or Start here, and lesson one shows your money in one picture.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

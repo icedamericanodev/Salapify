@@ -49,20 +49,49 @@ const List<Map<String, dynamic>> lessons = [
   {
     'id': 'see-it-first',
     'track': 'cushion',
-    'title': 'See it before you fix it',
+    'title': 'See where your money stands',
     'icon': 'spotlight',
-    'minutes': 2,
-    'summary': 'One week of honest logging changes more than any budget.',
-    'objective': 'Find out where your daily spending actually goes.',
+    // 3, not 2: Batch B added the whole-picture net-worth block, which is real
+    // reading the honest-minutes estimate now counts, so the authored figure
+    // is raised to match rather than letting displayMinutes over-ride it. That
+    // keeps the reading_time invariant ("exactly one core lesson moves") true:
+    // freelancer-setaside stays the only lesson whose shown time exceeds its
+    // authored one.
+    'minutes': 3,
+    'summary': 'Your money in one picture, then start with where it goes.',
+    'objective':
+        'See your whole money picture, then start with where your money goes.',
     'action': {'label': 'Log what you spent today', 'route': 'log'},
     'blocks': [
       {
         'kind': 'nuggets',
         'items': [
-          'Most people guess their spending low, and not by lying.',
-          'Small amounts do not feel like spending while they happen.',
-          'A budget built on a guess fails in week two.',
+          'Your money has five parts: what comes in, what goes out, what you '
+              'own, what you owe, and what is left over.',
+          'What you own minus what you owe is your net worth, the honest score '
+              'behind any payday.',
+          'Most people cannot see it clearly and guess their spending low, so '
+              'this is where we start.',
         ],
+      },
+      {
+        // The whole-picture frame, in plain words first and the accounting
+        // names second, connected to the two Salapify screens that already
+        // show it. This is the one place the core journey introduces
+        // financial position (own minus owe) without a new lesson or any
+        // jargon a beginner has to decode.
+        'kind': 'diagram',
+        'steps': [
+          'Money in: pay, sidelines, gifts',
+          'Money out: bills, food, the small wants',
+          'What you own: cash, savings, e-wallets',
+          'What you owe: cards, loans, utang',
+          'What is left is your net worth',
+        ],
+        'caption':
+            'Accountants call this your balance sheet and income statement. '
+            'Salapify already shows it: Accounts for what you own and owe, '
+            'Overview for what is left.',
       },
       {
         'kind': 'discovery',
