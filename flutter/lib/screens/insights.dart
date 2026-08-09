@@ -684,7 +684,7 @@ class InsightsScreen extends StatelessWidget {
           : 'Almost there.';
       body = Text(
         'A weekly salary you pay yourself, sized to your leaner months. '
-        'Needs 3 months of income to be honest: $progress',
+        'It needs 3 months of income before the number is reliable: $progress',
         style: AppText.small.copyWith(height: 1.4),
       );
     } else if (accepted == null) {
@@ -1039,8 +1039,10 @@ class InsightsScreen extends StatelessWidget {
         ? ' You have about ${_wholePeso(buffer)} so far.'
         : '';
     // When an unrated debt was left out of the order, do not claim ALL debts
-    // are handled; say "rated" so the copy never contradicts the note below.
-    final rated = rateUnfilled ? 'rated ' : '';
+    // are handled; name the ones with a rate saved so the copy never
+    // contradicts the note below. "rated" read as internal jargon (both the
+    // coach and content reviews flagged it), so it is spelled out plainly.
+    final rateSaved = rateUnfilled ? ' with a rate saved' : '';
 
     var title = '';
     var support = '';
@@ -1081,7 +1083,7 @@ class InsightsScreen extends StatelessWidget {
         activeIndex = 2;
         title = 'Grow your safety net';
         support =
-            'Your ${rated}debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or a hospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
+            'Your debts$rateSaved are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or a hospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
         break;
       case 'goal':
         activeIndex = 3;
@@ -1091,18 +1093,18 @@ class InsightsScreen extends StatelessWidget {
             : 'your goal';
         title = 'Now, chase your goal';
         support =
-            'Your cushion and ${rateUnfilled ? 'rated debt' : 'high cost debt'} are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
+            'Your cushion and ${rateUnfilled ? 'debts with a rate saved' : 'high cost debts'} are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
         break;
       default: // 'set'
         activeIndex = 4;
         title = 'You are in a good spot';
         support =
-            'Your cushion and ${rated}debts are handled and no goal is waiting. Now your money can work for you, think long term saving or investing for your future self, and enjoy some of it guilt free. You earned it.';
+            'Your cushion and debts$rateSaved are handled and no goal is waiting. Your money can now work for you. Think long term saving or investing, and enjoy some of it guilt free. You earned it.';
     }
 
     final spareLine = crunch
         ? 'Your bills use up this pay cycle already, so treat this as a plan for after payday.'
-        : 'About ${_wholePeso(spare)} free to move this cycle, if you can spare it.';
+        : 'About ${_wholePeso(spare)} you can set aside this pay cycle, if you can spare it.';
 
     return Card(
       child: Padding(
@@ -1129,7 +1131,7 @@ class InsightsScreen extends StatelessWidget {
               // Informational, not a money warning, so it stays in the calm
               // muted tone (which also clears AA) instead of a third red line.
               Text(
-                'One debt has no rate saved, so it is not ranked. Add its rate to place it.',
+                'One debt has no interest rate saved, so we could not compare its cost. Add its rate to include it.',
                 style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
