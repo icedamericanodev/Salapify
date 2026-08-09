@@ -141,9 +141,14 @@ MonthPulse? monthPulse(Map<String, dynamic> data, DateTime ref) {
   final pctPrev = _pct(ratePrev);
 
   if (rateNow < 0) {
+    // The flagship attention read names the magnitude: pctNow is negative
+    // here (net over income), so its size is how much more went out than
+    // came in. A number the reader can act on beats "running ahead".
     return MonthPulse(
       headline: 'You have spent more than you earned this month.',
-      detail: 'Spending is running ahead of income so far.',
+      detail:
+          'About ${pctNow.abs()}% more has gone out than has come in '
+          'so far.',
       tone: 'attention',
       confidence: 'fact',
       ratePctNow: pctNow,
@@ -165,9 +170,11 @@ MonthPulse? monthPulse(Map<String, dynamic> data, DateTime ref) {
       priorRates.every((r) => rateNow > r);
   if (isBest) {
     return MonthPulse(
-      headline: 'Your strongest savings month in the last '
-          '${priorRates.length + 1} months.',
-      detail: 'You are keeping $pctNow% of your income, more than any other '
+      headline:
+          'Your strongest savings month of the '
+          '${priorRates.length + 1} you have logged income for.',
+      detail:
+          'You are keeping $pctNow% of your income, more than any other '
           'month here.',
       tone: 'good',
       confidence: 'trend',
@@ -199,7 +206,8 @@ MonthPulse? monthPulse(Map<String, dynamic> data, DateTime ref) {
       );
     }
     return MonthPulse(
-      headline: 'You are keeping about the same share of income as '
+      headline:
+          'You are keeping about the same share of income as '
           'last month.',
       detail: '$pctNow% kept so far, $pctPrev% last month.',
       tone: 'steady',
@@ -211,7 +219,8 @@ MonthPulse? monthPulse(Map<String, dynamic> data, DateTime ref) {
 
   return MonthPulse(
     headline: 'You have kept $pctNow% of your income this month.',
-    detail: 'As more months are logged, this compares itself to your '
+    detail:
+        'As more months are logged, this compares itself to your '
         'history.',
     tone: 'steady',
     confidence: 'fact',
@@ -364,7 +373,8 @@ WhatChanged whatChanged(Map<String, dynamic> data, DateTime ref) {
     return const WhatChanged(
       shifts: [],
       comparable: false,
-      note: 'Still early in the month. Changes against last month show '
+      note:
+          'Still early in the month. Changes against last month show '
           'once more of it has passed.',
     );
   }

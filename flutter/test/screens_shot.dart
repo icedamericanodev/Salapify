@@ -1434,7 +1434,11 @@ void main() {
         theme: salapifyTheme(Barako.current),
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          body: InsightsScreen(store: store, onSwitchTab: (_) {}, onMenu: () {}),
+          body: InsightsScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+          ),
         ),
       ),
     );

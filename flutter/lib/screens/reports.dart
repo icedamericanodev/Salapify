@@ -392,7 +392,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return ChartFrame(
       kicker: 'SPENDING TREND',
-      contextLine: 'Last 6 months, spending per month. Tap a bar to open '
+      contextLine:
+          'Last 6 months, spending per month. Tap a bar to open '
           'that month.',
       chart: _TrendBars(
         series: series,
@@ -638,7 +639,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       children: [
         ChartFrame(
           kicker: 'SAVED OR SPENT',
-          contextLine: 'Income minus spending, last 6 months. Tap a bar to '
+          contextLine:
+              'Income minus spending, last 6 months. Tap a bar to '
               'open that month.',
           chart: _DivergingBars(
             series: series,

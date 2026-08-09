@@ -234,8 +234,7 @@ void main() {
       expect(changeDriver(d, 'Food', mid), 'Mostly one ₱5,000 entry.');
     });
 
-    test('a single entry alone gets no driver; the shift already says it',
-        () {
+    test('a single entry alone gets no driver; the shift already says it', () {
       final d = [_tx('expense', 5000, '2026-07-02', label: 'Food')];
       expect(changeDriver(d, 'Food', mid), isNull);
     });

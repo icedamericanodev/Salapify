@@ -304,6 +304,15 @@ class InsightsScreen extends StatelessWidget {
             child: ListView(
               padding: Insets.tabScreen.copyWith(top: 0),
               children: [
+                // The PULSE leads the whole screen: one interpreted read of
+                // the month, on the raised surface, so the first thing seen
+                // is the story, not a wall of same-weight cards. The brief's
+                // financial-pulse-first rule. Null early in a month or with
+                // no data, in which case DO NEXT simply leads.
+                if (pulse != null) ...[
+                  _pulseHero(context, pulse),
+                  const SizedBox(height: 18),
+                ],
                 // The DO NEXT cards carry the specifics, most urgent first, so
                 // they are the takeaway on their own. A "WHAT MATTERS NOW" line
                 // used to sit above them and only restated the count, which was
@@ -372,10 +381,6 @@ class InsightsScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 Kicker('THIS MONTH'),
                 const SizedBox(height: 8),
-                if (pulse != null) ...[
-                  _pulseBlock(context, pulse),
-                  const SizedBox(height: Gap.md),
-                ],
                 _monthStoryChart(context, series, forecast, ref),
                 const SizedBox(height: Gap.lg),
                 _whatChangedCard(context, changed, ref),
@@ -971,27 +976,37 @@ class InsightsScreen extends StatelessWidget {
     final mf = flex(minimums);
     final ff = over ? 0 : flex(free);
     if (bf + mf + ff == 0) return const SizedBox(height: 10);
+    // A hairline seam between segments so the boundary survives grayscale:
+    // bills (primary) and minimums (warning) are both warm hues, and touching
+    // them read as one block to a colorblind viewer. The seam is the surface
+    // colour, the same trick _SplitBar uses in Reports.
+    final segs = <Widget>[
+      if (bf > 0)
+        Expanded(
+          flex: bf,
+          child: ColoredBox(color: Barako.primary),
+        ),
+      if (mf > 0)
+        Expanded(
+          flex: mf,
+          child: ColoredBox(color: Barako.warning),
+        ),
+      if (ff > 0)
+        Expanded(
+          flex: ff,
+          child: ColoredBox(color: Barako.border),
+        ),
+    ];
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: SizedBox(
         height: 10,
         child: Row(
           children: [
-            if (bf > 0)
-              Expanded(
-                flex: bf,
-                child: ColoredBox(color: Barako.primary),
-              ),
-            if (mf > 0)
-              Expanded(
-                flex: mf,
-                child: ColoredBox(color: Barako.warning),
-              ),
-            if (ff > 0)
-              Expanded(
-                flex: ff,
-                child: ColoredBox(color: Barako.border),
-              ),
+            for (var i = 0; i < segs.length; i++) ...[
+              if (i > 0) const SizedBox(width: 2),
+              segs[i],
+            ],
           ],
         ),
       ),
@@ -1300,56 +1315,88 @@ class InsightsScreen extends StatelessWidget {
   // opening sentence, and boxing it would restart the card wall this
   // redesign removed. The icon and the words carry the tone; color only
   // reinforces it.
-  Widget _pulseBlock(BuildContext context, feed.MonthPulse pulse) {
+  /// The month's one-line read, as the screen's raised HERO, first thing seen.
+  ///
+  /// This is the "financial pulse" the brief puts at the top: one dominant
+  /// interpretation of the month, on the raised surface so it is the single
+  /// thing the eye is pulled to, not a peer of the cards below. The
+  /// confidence is SHOWN, not just stored: a fact reads "This month so far",
+  /// a trend "From your logged history", so a claim built on history visibly
+  /// carries less certainty than arithmetic on this month.
+  Widget _pulseHero(BuildContext context, feed.MonthPulse pulse) {
     final (iconName, ink) = switch (pulse.tone) {
-      'good' => ('growth', Barako.primaryText),
+      'good' => ('growth', Barako.primary),
       'attention' => ('warning', Barako.warningStrong),
       _ => ('chart', Barako.primaryText),
     };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    final cue = pulse.confidence == 'trend'
+        ? 'From your logged history'
+        : 'This month so far';
+    const indent = EdgeInsets.only(left: 20 + Gap.sm);
+    return Card(
+      color: Barako.surfaceRaised,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(salapifyIcon(iconName), color: ink, size: 16),
-            ),
-            const SizedBox(width: Gap.sm),
-            Expanded(
-              child: Text(pulse.headline, style: AppText.bodyStrong.tint(ink)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Padding(
-          padding: const EdgeInsets.only(left: 16 + Gap.sm),
-          child: Text(
-            pulse.detail,
-            style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
-          ),
-        ),
-        // Pan explains, on request only, and only when the month needs
-        // explaining: an attention read earns the door, a steady one does
-        // not. The question rides along so the user never retypes it.
-        if (pulse.tone == 'attention')
-          Padding(
-            padding: const EdgeInsets.only(left: 16 + Gap.sm),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(48, 48),
-                  alignment: Alignment.centerLeft,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(salapifyIcon(iconName), color: ink, size: 20),
                 ),
-                onPressed: () => _askPan(context, 'How was my month?'),
-                child: const Text('Ask Pan about this month'),
+                const SizedBox(width: Gap.sm),
+                Expanded(
+                  child: Text(
+                    pulse.headline,
+                    style: AppText.bodyLg.w7.tint(ink).copyWith(height: 1.25),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: indent,
+              child: Text(
+                pulse.detail,
+                style: AppText.small
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
               ),
             ),
-          ),
-      ],
+            const SizedBox(height: 6),
+            // The confidence cue, rendered rather than discarded.
+            Padding(
+              padding: indent,
+              child: Text(cue, style: AppText.micro.tint(Barako.muted)),
+            ),
+            // Pan explains, on request only, and only when the month needs
+            // explaining: an attention read earns the door, a steady one does
+            // not. The question is pointed at the warning (where is my money
+            // going) rather than a neutral "how was my month", and it rides
+            // along so the user never retypes it.
+            if (pulse.tone == 'attention')
+              Padding(
+                padding: indent,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(48, 44),
+                      alignment: Alignment.centerLeft,
+                    ),
+                    onPressed: () =>
+                        _askPan(context, 'Where is my money going this month?'),
+                    child: const Text('Ask Pan about this month'),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1385,10 +1432,7 @@ class InsightsScreen extends StatelessWidget {
     final pace = frac >= 0.34 && spent > 0
         ? '${formatMoney(spent)} spent so far, on pace for about ${formatMoneyAbout(forecast['projected'] as double)} by month end.'
         : null;
-    final caption = [
-      ?conclusion,
-      ?pace,
-    ].join(' ');
+    final caption = [?conclusion, ?pace].join(' ');
     return ChartFrame(
       kicker: 'INCOME VS SPENDING',
       chart: _MonthTrendChart(
@@ -1467,9 +1511,7 @@ class InsightsScreen extends StatelessWidget {
                       context,
                       'Am I overspending on ${topRise!.label}?',
                     ),
-                    child: Text(
-                      'Ask Pan about ${topRise.label.toLowerCase()}',
-                    ),
+                    child: Text('Ask Pan about ${topRise.label.toLowerCase()}'),
                   ),
                 ),
             ],
@@ -2022,8 +2064,10 @@ class _MonthTrendChartState extends State<_MonthTrendChart> {
     final kept = net >= 0;
     // Painter text cannot scale itself the way a Text widget does, so the
     // ambient scale rides in. Capped so a 200% label cannot eat the plot.
-    final labelScale =
-        (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(1.0, 1.6);
+    final labelScale = (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(
+      1.0,
+      1.6,
+    );
 
     return Semantics(
       container: true,

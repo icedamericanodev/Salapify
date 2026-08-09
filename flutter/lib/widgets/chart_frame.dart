@@ -113,10 +113,7 @@ class ChartFrame extends StatelessWidget {
               const SizedBox(height: Gap.sm),
               Text(caption!, style: AppText.small.tint(Barako.muted)),
             ],
-            if (footer != null) ...[
-              const SizedBox(height: Gap.sm),
-              footer!,
-            ],
+            if (footer != null) ...[const SizedBox(height: Gap.sm), footer!],
           ],
         ),
       ),

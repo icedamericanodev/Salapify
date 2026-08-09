@@ -183,12 +183,25 @@ void main() {
     // The lower cards live below the test viewport fold: scroll to each. Safe
     // to spend joined them once the WHAT MATTERS NOW summary was added above
     // DO NEXT; it still renders, just a scroll down now.
-    Future<void> scrollTo(String label) async {
-      await tester.scrollUntilVisible(
-        find.text(label),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+    // Drag from the LEFT MARGIN (x=20), clear of the income-vs-spending
+    // chart's tap/scrub gesture in the middle of the page. scrollUntilVisible
+    // drags from the scrollable's centre, which since the Phase 5 pulse hero
+    // moved up now lands on that chart, and its opaque tap recogniser makes
+    // the synthetic drag flaky. A real finger scrolls fine (the vertical drag
+    // wins the arena over the chart's horizontal-only recogniser); this keeps
+    // the test off the chart so it measures layout, not gesture arbitration.
+    Future<void> scrollTo(String label, {double dir = -1}) async {
+      var tries = 0;
+      while (find.text(label).evaluate().isEmpty && tries < 60) {
+        await tester.dragFrom(const Offset(20, 500), Offset(0, dir * 120));
+        await tester.pumpAndSettle();
+        tries++;
+      }
+      // Built (lazily) is not the same as fully on screen; ensureVisible
+      // scrolls it into view directly (no synthetic drag over the chart) so a
+      // following tap lands.
+      await tester.ensureVisible(find.text(label));
+      await tester.pumpAndSettle();
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
@@ -213,12 +226,9 @@ void main() {
     // Only the current month has spending: runway has no honest number.
     await scrollTo('Not enough history yet');
 
-    // Tapping the utang decision jumps to the Utang tab.
-    await tester.scrollUntilVisible(
-      find.text('Follow up Migs'),
-      -200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tapping the utang decision jumps to the Utang tab. Scroll back UP to it,
+    // off the chart, via the same margin-drag helper.
+    await scrollTo('Follow up Migs', dir: 1);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();

@@ -693,10 +693,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              body,
-              style: AppText.small.copyWith(height: 1.45),
-            ),
+            Text(body, style: AppText.small.copyWith(height: 1.45)),
             if (!noEvents) ...[
               const SizedBox(height: 14),
               Row(
@@ -1187,8 +1184,10 @@ class _BalanceChartState extends State<_BalanceChart> {
     final last = days.isNotEmpty ? days.last['date'].toString() : '';
     final s = scrub;
     final scrubDay = s != null && s < days.length ? days[s] : null;
-    final labelScale =
-        (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(1.0, 1.6);
+    final labelScale = (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(
+      1.0,
+      1.6,
+    );
     return Semantics(
       label: widget.anyNegative
           ? 'Projected balance chart. Cash runs out around ${_pretty(widget.runOutDate)}.'
@@ -1240,7 +1239,10 @@ class _BalanceChartState extends State<_BalanceChart> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Text(_pretty(first), style: AppText.micro.w4.tint(Barako.faint)),
+                Text(
+                  _pretty(first),
+                  style: AppText.micro.w4.tint(Barako.faint),
+                ),
                 // Expanded and wrapping, so the hint can never push the two
                 // dates off a narrow phone at a large text scale.
                 Expanded(
