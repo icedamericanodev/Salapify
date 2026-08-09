@@ -212,7 +212,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return PressableScale(
       child: Card(
         child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.card),
           onTap: () => _openCreate(t),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -388,7 +388,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     VoidCallback onTap,
   ) {
     return InkWell(
-      borderRadius: BorderRadius.circular(Radii.sm),
+      borderRadius: BorderRadius.circular(Radii.control),
       onTap: onTap,
       child: Padding(
         // 12 vertical keeps the toggle at a real 44dp touch target; 8 left
@@ -427,7 +427,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         border: Border.all(color: Barako.border),
       ),
       child: Row(
@@ -505,7 +505,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return PressableScale(
       child: Card(
         child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.card),
           onTap: () => _openDetail(g),
           child: Padding(
             padding: EdgeInsets.all(focus ? 16 : 14),

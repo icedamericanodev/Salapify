@@ -279,7 +279,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Barako.card,
-                  borderRadius: BorderRadius.circular(Radii.md),
+                  borderRadius: BorderRadius.circular(Radii.field),
                   border: Border.all(color: Barako.border),
                 ),
                 child: Column(
@@ -321,14 +321,14 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderRadius: BorderRadius.circular(Radii.field),
                     onTap: () =>
                         setState(() => _linkedDebtId = d['id'] as String?),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Barako.card,
-                        borderRadius: BorderRadius.circular(Radii.md),
+                        borderRadius: BorderRadius.circular(Radii.field),
                         border: Border.all(
                           color: _linkedDebtId == d['id']
                               ? Barako.primary
@@ -471,7 +471,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                     selected: _icon == key,
                     label: '$spoken icon',
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(Radii.md),
+                      borderRadius: BorderRadius.circular(Radii.field),
                       onTap: () => setState(() => _icon = key),
                       child: Container(
                         width: 48,
@@ -480,7 +480,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                           color: _icon == key
                               ? goalAccentColor(_accent).withValues(alpha: 0.16)
                               : Barako.card,
-                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderRadius: BorderRadius.circular(Radii.field),
                           border: Border.all(
                             color: _icon == key
                                 ? goalAccentColor(_accent)
@@ -554,7 +554,7 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Barako.card,
-                  borderRadius: BorderRadius.circular(Radii.md),
+                  borderRadius: BorderRadius.circular(Radii.field),
                   border: Border.all(color: Barako.border),
                 ),
                 child: Column(

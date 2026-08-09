@@ -9,6 +9,8 @@
 // ladders hold the approved audit values, so a drive-by "adjust" shows up as
 // a red test instead of a quiet fork.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/theme.dart';
@@ -144,11 +146,52 @@ void main() {
       expect(Radii.sheet, 24);
       expect(Radii.hero, 26);
       expect(Radii.pill, 999);
-      // Legacy aliases stay pinned to the same geometry until conversion
-      // deletes them, so nothing visually moves in Phase 1.
-      expect(Radii.md, Radii.field);
-      expect(Radii.lg, Radii.card);
-      expect(Radii.xl, Radii.hero);
+    });
+
+    test('the legacy Radii aliases are gone and stay gone', () {
+      // Phase 2 converted every sm/md/lg/xl call site to a semantic rung and
+      // deleted the aliases. This is the durable guard: referencing a deleted
+      // static would already fail to compile, but the drift this class exists
+      // to prevent is one number carrying two names, so scan the source and
+      // fail if any of the four aliases is redeclared or used again.
+      //
+      // Proven to fail: re-add `static const double md = field;` to the Radii
+      // class in theme.dart and this test goes red on
+      // 'lib/theme.dart declares a legacy Radii alias (md)'.
+      final legacy = RegExp(r'\bRadii\.(sm|md|lg|xl)\b');
+      final decl = RegExp(
+        r'static\s+const\s+double\s+(sm|md|lg|xl)\s*=',
+      );
+      final libDir = Directory('lib');
+      for (final entity in libDir.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final src = entity.readAsStringSync();
+        final usage = legacy.firstMatch(src);
+        expect(
+          usage,
+          isNull,
+          reason:
+              '${entity.path} uses a legacy Radii alias '
+              '(${usage?.group(1)}). Use the semantic rung instead: '
+              'control, field, card or hero.',
+        );
+        if (entity.path.endsWith('theme.dart')) {
+          // Scope the redeclaration scan to the Radii class body, since Gap
+          // legitimately owns its own sm/md/lg spacing names.
+          final radiiBody =
+              RegExp(r'class Radii \{[\s\S]*?\n\}').firstMatch(src)?.group(0) ??
+              '';
+          final redeclared = decl.firstMatch(radiiBody);
+          expect(
+            redeclared,
+            isNull,
+            reason:
+                'lib/theme.dart declares a legacy Radii alias '
+                '(${redeclared?.group(1)}). The aliases were deleted in '
+                'Phase 2; do not bring them back.',
+          );
+        }
+      }
     });
 
     test('spacing and the gutter', () {

@@ -664,7 +664,7 @@ class OverviewScreen extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Barako.card,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.card),
       border: Border.all(color: Barako.primary),
     ),
     child: Column(
@@ -1750,7 +1750,7 @@ class _NameAskState extends State<_NameAsk> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Barako.background,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         border: Border.all(color: Barako.border),
       ),
       child: Column(

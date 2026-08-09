@@ -82,7 +82,7 @@ class Segmented<T> extends StatelessWidget {
       decoration: BoxDecoration(
         color: Barako.card,
         border: Border.all(color: Barako.border),
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
       ),
       padding: const EdgeInsets.all(Gap.xxs),
       // LayoutBuilder so the fit test sees the real width the control was given,
@@ -177,7 +177,7 @@ class Segmented<T> extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(Radii.sm),
+            borderRadius: BorderRadius.circular(Radii.control),
             onTap: tap,
             child: AnimatedContainer(
               duration: Motion.of(context, Motion.state),
@@ -193,7 +193,7 @@ class Segmented<T> extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: selected ? Barako.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(Radii.sm),
+                borderRadius: BorderRadius.circular(Radii.control),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

@@ -2026,11 +2026,11 @@ class _TransferSheetState extends State<_TransferSheet> {
                         filled: true,
                         fillColor: Barako.card,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderRadius: BorderRadius.circular(Radii.field),
                           borderSide: BorderSide(color: Barako.border),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(Radii.md),
+                          borderRadius: BorderRadius.circular(Radii.field),
                           borderSide: BorderSide(color: Barako.border),
                         ),
                       ),

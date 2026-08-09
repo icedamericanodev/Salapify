@@ -955,7 +955,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Barako.card,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.card),
       border: Border.all(color: Barako.border),
     ),
     child: child,
@@ -966,7 +966,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Barako.surfaceRaised,
-      borderRadius: BorderRadius.circular(Radii.md),
+      borderRadius: BorderRadius.circular(Radii.field),
       border: Border.all(color: Barako.border),
     ),
     child: Text(text, style: AppText.small.tint(Barako.muted)),

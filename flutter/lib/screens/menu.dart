@@ -407,7 +407,7 @@ class MenuScreen extends StatelessWidget {
       color: Barako.primary,
       margin: EdgeInsets.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PanScreen(

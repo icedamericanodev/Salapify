@@ -115,9 +115,9 @@ class CategoriesScreen extends StatelessWidget {
       padding: EdgeInsets.only(left: row.depth == 1 ? 20 : 0, bottom: 8),
       child: Material(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.md),
+          borderRadius: BorderRadius.circular(Radii.field),
           onTap: store.canWrite
               ? () => _openForm(context, item: row.cat)
               : null,
@@ -446,11 +446,11 @@ class _CategoryFormState extends State<_CategoryForm> {
       filled: true,
       fillColor: Barako.card,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: Barako.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: Barako.border),
       ),
     ),

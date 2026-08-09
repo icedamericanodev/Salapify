@@ -484,7 +484,7 @@ class _LearnScreenState extends State<LearnScreen> {
       return Card(
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.card),
           side: BorderSide(color: Barako.border),
         ),
         child: Padding(
@@ -529,7 +529,7 @@ class _LearnScreenState extends State<LearnScreen> {
           color: Barako.primary,
           margin: EdgeInsets.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.card),
             onTap: () {
               final l = lessonById(next.id);
               if (l != null) _open2(context, l);

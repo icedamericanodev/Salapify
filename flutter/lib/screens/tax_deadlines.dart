@@ -232,16 +232,16 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
 
   Widget _choice(String label, bool selected, VoidCallback onTap) => Material(
     color: selected ? Barako.primary : Barako.card,
-    borderRadius: BorderRadius.circular(Radii.md),
+    borderRadius: BorderRadius.circular(Radii.field),
     child: InkWell(
-      borderRadius: BorderRadius.circular(Radii.md),
+      borderRadius: BorderRadius.circular(Radii.field),
       onTap: onTap,
       child: Container(
         height: 46,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Radii.md),
+          borderRadius: BorderRadius.circular(Radii.field),
           border: Border.all(color: Barako.border),
         ),
         child: Text(
@@ -262,7 +262,7 @@ class _TaxDeadlinesScreenState extends State<TaxDeadlinesScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         border: Border.all(color: soon ? Barako.primary : Barako.border),
       ),
       child: Column(
