@@ -20,7 +20,6 @@
 // a stale completion.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
 import '../content/interaction_blocks.dart';
@@ -373,7 +372,7 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
                       onTap: answered
                           ? null
                           : () {
-                              HapticFeedback.selectionClick();
+                              Haptics.select();
                               setState(() => _picked = i);
                             },
                       child: Container(

@@ -18,7 +18,6 @@
 // already compiled in, so it patches over the air.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
@@ -222,7 +221,7 @@ class ThemeTile extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(Radii.card),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 onTap();
               },
               child: AnimatedContainer(

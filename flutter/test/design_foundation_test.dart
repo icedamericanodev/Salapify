@@ -194,6 +194,35 @@ void main() {
       }
     });
 
+    test('every haptic goes through the Haptics vocabulary', () {
+      // The vocabulary (select, moneyWritten, milestone) only means something
+      // if it is the ONLY path: one grep has to be able to audit and retune
+      // every buzz in the app. Phase 2 routed the raw calls through it, so
+      // this guard fails if a raw HapticFeedback.* call comes back anywhere
+      // outside theme.dart, which is the one file allowed to name it (the
+      // Haptics class is the wrapper).
+      //
+      // Proven to fail: put `HapticFeedback.selectionClick();` back into any
+      // screen and this goes red on 'lib/screens/....dart calls HapticFeedback
+      // directly'.
+      final raw = RegExp(r'\bHapticFeedback\.');
+      final libDir = Directory('lib');
+      for (final entity in libDir.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        if (entity.path.endsWith('theme.dart')) continue; // the wrapper lives here
+        final match = raw.firstMatch(entity.readAsStringSync());
+        expect(
+          match,
+          isNull,
+          reason:
+              '${entity.path} calls HapticFeedback directly. Use the '
+              'Haptics vocabulary instead: Haptics.select() for a choice, '
+              'Haptics.moneyWritten() for a financial write, '
+              'Haptics.milestone() for a celebration.',
+        );
+      }
+    });
+
     test('spacing and the gutter', () {
       expect(Gap.gutter, 20);
       expect(Insets.card, const EdgeInsets.all(16));

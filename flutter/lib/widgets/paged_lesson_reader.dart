@@ -18,7 +18,6 @@
 //   - Citations and the boundary statement ride the finish screen.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
 import '../content/lesson_model.dart';
@@ -327,7 +326,7 @@ class _PagedLessonReaderState extends State<PagedLessonReader> {
                 onPressed: gated
                     ? null
                     : () {
-                        HapticFeedback.selectionClick();
+                        Haptics.select();
                         _go(_index + 1);
                       },
                 style: FilledButton.styleFrom(
@@ -411,7 +410,7 @@ class _PagedLessonReaderState extends State<PagedLessonReader> {
                       onTap: answered
                           ? null
                           : () {
-                              HapticFeedback.selectionClick();
+                              Haptics.select();
                               setState(() => _picked = i);
                             },
                       child: Container(

@@ -721,7 +721,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 setState(() => _cadence = value);
               },
               child: Container(

@@ -11,7 +11,6 @@
 // vocabulary anywhere. The final call is always the user's.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../money/afford.dart';
 import '../theme.dart';
@@ -146,7 +145,7 @@ class _AffordCardState extends State<AffordCard> {
     label: Text(label),
     selected: selected,
     onSelected: (_) {
-      HapticFeedback.selectionClick();
+      Haptics.select();
       onTap();
     },
     selectedColor: Barako.primary,

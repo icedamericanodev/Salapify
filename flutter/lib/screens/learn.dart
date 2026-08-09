@@ -7,7 +7,6 @@
 // always. PH-scoped tax lessons wear a visible PHILIPPINES tag.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
 import '../content/expansion_display.dart';
@@ -1190,7 +1189,7 @@ class _LessonReaderState extends State<_LessonReader> {
   void _answer(int i) {
     // A confirmation the hands can feel, the same selectionClick the rest of
     // the app already uses for a pick.
-    HapticFeedback.selectionClick();
+    Haptics.select();
     setState(() => _picked = i);
     _markUnderstood();
   }

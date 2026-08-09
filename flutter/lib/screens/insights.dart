@@ -7,7 +7,6 @@
 // runway with its honesty rules.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../data/store.dart';
 import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
@@ -1539,7 +1538,7 @@ class InsightsScreen extends StatelessWidget {
     final denom = scale > 0 ? scale : 1.0;
     return InkWell(
       onTap: () {
-        HapticFeedback.selectionClick();
+        Haptics.select();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => HistoryScreen(
@@ -2052,7 +2051,7 @@ class _MonthTrendChartState extends State<_MonthTrendChart> {
     // 8 + i * (width - 16) / (n - 1).
     final i = (((dx - 8) / (width - 16)) * (n - 1)).round().clamp(0, n - 1);
     if (i != selected) {
-      HapticFeedback.selectionClick();
+      Haptics.select();
       setState(() => selected = i);
     }
   }

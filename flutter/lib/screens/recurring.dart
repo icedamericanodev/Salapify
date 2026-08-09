@@ -584,7 +584,7 @@ class _RecurringSheetState extends State<_RecurringSheet> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 setState(() => _type = value);
               },
               child: Container(

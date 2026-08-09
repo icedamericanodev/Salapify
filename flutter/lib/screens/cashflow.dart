@@ -7,7 +7,6 @@
 // shaded band is an honest ESTIMATE of day-to-day spending and is labeled so.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../data/store.dart';
 import '../money/debtmath.dart' show formatMoneyText;
@@ -312,7 +311,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                     );
                     return;
                   }
-                  HapticFeedback.selectionClick();
+                  Haptics.select();
                   setState(() => _horizon = key);
                 },
                 label: Row(
@@ -576,7 +575,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               onChanged: locked
                   ? null
                   : (v) {
-                      HapticFeedback.selectionClick();
+                      Haptics.select();
                       final next = [...scenarios];
                       next[i] = {...s, 'on': v};
                       store.setTimelineScenarios(next);
@@ -1172,7 +1171,7 @@ class _BalanceChartState extends State<_BalanceChart> {
     if (i != scrub) {
       // Per-day ticks, so the scrub is felt day by day, the selection
       // haptic the audit asked of this chart.
-      HapticFeedback.selectionClick();
+      Haptics.select();
       setState(() => scrub = i);
     }
   }
