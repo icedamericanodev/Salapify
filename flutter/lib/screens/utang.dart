@@ -26,6 +26,7 @@ import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' as ledger;
 import '../widgets/section.dart' show Kicker;
+import '../widgets/amount_text.dart';
 import '../widgets/entry_form.dart' show AmountField;
 import '../widgets/choice_chip.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
@@ -229,15 +230,7 @@ class UtangBody extends StatelessWidget {
                   // extends it instead of riddling it.
                   Text('STILL UNPAID', style: Barako.cardKickerStyle),
                   const SizedBox(height: 6),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      formatMoney(total),
-                      maxLines: 1,
-                      style: AppText.amountLg.w7.tint(Barako.primary),
-                    ),
-                  ),
+                  AmountText(total, role: AmountRole.lg, tint: Barako.primary),
                   const SizedBox(height: 4),
                   Text(
                     overdueCount > 0
@@ -401,11 +394,10 @@ class _PersonRow extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              formatMoney(person['outstanding'] as double),
-              style: AppText.amountRow
-                  .copyWith(fontSize: 16)
-                  .tint(overdue ? Barako.warning : Barako.textSecondary),
+            AmountText(
+              person['outstanding'] as double,
+              role: AmountRole.row,
+              tint: overdue ? Barako.warning : Barako.textSecondary,
             ),
             const SizedBox(width: 6),
             Icon(salapifyIcon('forward'), color: Barako.faint, size: 20),

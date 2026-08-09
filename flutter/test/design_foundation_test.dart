@@ -159,9 +159,7 @@ void main() {
       // class in theme.dart and this test goes red on
       // 'lib/theme.dart declares a legacy Radii alias (md)'.
       final legacy = RegExp(r'\bRadii\.(sm|md|lg|xl)\b');
-      final decl = RegExp(
-        r'static\s+const\s+double\s+(sm|md|lg|xl)\s*=',
-      );
+      final decl = RegExp(r'static\s+const\s+double\s+(sm|md|lg|xl)\s*=');
       final libDir = Directory('lib');
       for (final entity in libDir.listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
@@ -209,7 +207,9 @@ void main() {
       final libDir = Directory('lib');
       for (final entity in libDir.listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        if (entity.path.endsWith('theme.dart')) continue; // the wrapper lives here
+        if (entity.path.endsWith('theme.dart')) {
+          continue; // the wrapper lives here
+        }
         final match = raw.firstMatch(entity.readAsStringSync());
         expect(
           match,
@@ -280,6 +280,75 @@ void main() {
       // the same size.
       expect(AppText.hero.fontFeatures, isNull);
       expect(AppText.amountLg.fontSize, 30);
+    });
+  });
+
+  group('money presentation goes through AmountText', () {
+    // Phase 2B consolidated monetary DISPLAY around the AmountText widget, so
+    // a money figure on a screen names the ROLE it plays (hero, lg, card,
+    // metric, row) and one file decides how it draws. This is the durable
+    // floor: a screen that has adopted AmountText must keep using it, so a
+    // later edit cannot quietly rip a hero or a row back out to a hand-rolled
+    // `Text(formatMoney(...), style: AppText.amountLg...)` fork, which is the
+    // exact five-ways-in-five-screens drift the widget was built to end.
+    //
+    // Grow this list as screens adopt; NEVER shrink it (same rule as
+    // amount_face_test.dart's cleanFiles).
+    //
+    // This is deliberately NOT "formatMoney must never appear in a screen".
+    // formatMoney legitimately stays for whole documented exception classes
+    // that AmountText cannot or should not replace:
+    //   - COMPOSITE text: a figure interpolated into a sentence, a legend
+    //     label, a Text.rich span, a SnackBar receipt (AmountText is a whole
+    //     widget, not a substring).
+    //   - ACCESSIBILITY strings: formatMoney inside a Semantics(label:), where
+    //     the visible figure is already an AmountText and the spoken sentence
+    //     carries the same number as text.
+    //   - EXPORT / generated text: home-widget headlines, share and recap
+    //     lines, milestone copy (pure Dart, no Flutter, no widget at all).
+    //   - FOREIGN currency: accounts render converted values through
+    //     formatConverted, which AmountText (base-currency formatMoney only)
+    //     cannot express.
+    //   - WHOLE-PESO screens: accounts and cashflow display through
+    //     formatMoneyText (round-up, no centavos) on purpose; routing them
+    //     through AmountText would change the shown value, a money decision,
+    //     not a presentation one.
+    //   - STATEMENT helpers and REFERENCE amounts: a secondary supporting
+    //     figure deliberately quieter than a transaction row (Reports' _line,
+    //     account_detail's _stat), whose size/weight IS the hierarchy.
+    //
+    // Proven to fail: drop a file with no AmountText (e.g. goals.dart) into
+    // the list, or delete the AmountText call from an adopter, and this goes
+    // red naming the file.
+    const amountTextAdopters = [
+      'lib/screens/overview.dart',
+      'lib/screens/history.dart',
+      'lib/screens/budget.dart',
+      'lib/screens/edit_sheet.dart',
+      'lib/screens/salary_calculator.dart',
+      // Phase 2B: heroes and row amounts consolidated onto AmountText.
+      'lib/screens/utang.dart',
+      'lib/screens/debts.dart',
+      'lib/screens/insights.dart',
+      'lib/screens/notes.dart',
+    ];
+
+    test('every adopter still routes a money figure through AmountText', () {
+      final offenders = <String>[];
+      for (final path in amountTextAdopters) {
+        final file = File(path);
+        if (!file.existsSync()) {
+          offenders.add('$path no longer exists; update amountTextAdopters');
+          continue;
+        }
+        if (!file.readAsStringSync().contains('AmountText(')) {
+          offenders.add(
+            '$path adopted AmountText but no longer uses it; a money figure '
+            'was reverted to a hand-rolled fork. Use AmountText(role: ...).',
+          );
+        }
+      }
+      expect(offenders, isEmpty);
     });
   });
 }

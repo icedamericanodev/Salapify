@@ -24,6 +24,7 @@ import '../widgets/celebration.dart';
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/amount_text.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'overview.dart' show formatMoney, formatMoneyAbout;
 
@@ -250,15 +251,7 @@ class _DebtsViewState extends State<DebtsView> {
                         children: [
                           Kicker('TOTAL DEBT'),
                           const SizedBox(height: 4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              formatMoney(totalDebt),
-                              maxLines: 1,
-                              style: AppText.amountLg.w7,
-                            ),
-                          ),
+                          AmountText(totalDebt, role: AmountRole.lg),
                           const SizedBox(height: 8),
                           _line('Monthly minimums', formatMoney(totalMin)),
                           _line(
@@ -401,12 +394,12 @@ class _DebtsViewState extends State<DebtsView> {
                     ],
                   ),
                 ),
-                Text(
-                  remaining > 0 ? formatMoney(remaining) : 'Paid off',
-                  style: AppText.label.w7.tabular.tint(
-                    remaining > 0 ? Barako.text : Barako.primary,
-                  ),
-                ),
+                remaining > 0
+                    ? AmountText(remaining, role: AmountRole.row)
+                    : Text(
+                        'Paid off',
+                        style: AppText.label.w7.tint(Barako.primary),
+                      ),
               ],
             ),
           ),

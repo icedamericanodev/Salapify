@@ -31,6 +31,7 @@ import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
+import '../widgets/amount_text.dart';
 import 'afford_card.dart';
 import 'history.dart' show HistoryScreen;
 import 'log_sheet.dart' show showLogSheet;
@@ -782,16 +783,10 @@ class InsightsScreen extends StatelessWidget {
           children: [
             Kicker('SAFE TO SPEND UNTIL PAYDAY'),
             const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(available > 0 ? available : 0),
-                maxLines: 1,
-                style: AppText.amountLg.w7.tint(
-                  tight ? Barako.warning : Barako.primary,
-                ),
-              ),
+            AmountText(
+              available > 0 ? available : 0,
+              role: AmountRole.lg,
+              tint: tight ? Barako.warning : Barako.primary,
             ),
             const SizedBox(height: 4),
             Text(

@@ -64,7 +64,9 @@ const Map<String, int> _baseline = {
   'lib/screens/loan_calculator.dart': 2,
   'lib/screens/mindset.dart': 2,
   'lib/screens/new_phone_day.dart': 1,
-  'lib/screens/notes.dart': 2,
+  // Phase 2B: the note total dropped its fontSize:14 fork when it moved to
+  // AmountText(role: row).
+  'lib/screens/notes.dart': 1,
   'lib/screens/onboarding.dart': 8,
   'lib/screens/overview.dart': 11,
   'lib/screens/paluwagan.dart': 2,
@@ -78,7 +80,9 @@ const Map<String, int> _baseline = {
   'lib/screens/tax_calculator.dart': 1,
   'lib/screens/thirteenth_calculator.dart': 4,
   'lib/screens/treats.dart': 3,
-  'lib/screens/utang.dart': 6,
+  // Phase 2B: the person-row outstanding amount dropped its fontSize:16 fork
+  // when it moved to AmountText(role: row).
+  'lib/screens/utang.dart': 5,
   'lib/screens/year_end_tax.dart': 1,
   'lib/widgets/bills_before_payday.dart': 1,
   'lib/widgets/expansion_lesson_reader.dart': 2,

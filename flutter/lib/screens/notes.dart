@@ -16,6 +16,7 @@ import '../money/notecalc.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/amount_text.dart';
 import 'overview.dart' show formatMoney;
 
 class NotesScreen extends StatelessWidget {
@@ -155,11 +156,10 @@ class NotesScreen extends StatelessWidget {
                   ),
                 ),
                 if (hasMath)
-                  Text(
-                    formatMoney(calc['total'] as double),
-                    style: AppText.amountRow
-                        .tint(Barako.primaryText)
-                        .copyWith(fontSize: 14),
+                  AmountText(
+                    calc['total'] as double,
+                    role: AmountRole.row,
+                    tint: Barako.primaryText,
                   ),
               ],
             ),
