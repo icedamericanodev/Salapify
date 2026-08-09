@@ -43,6 +43,13 @@ enum AmountRole {
   /// Money inline in a list row (15). Never resized, never reweighted;
   /// tint is the only permitted variation, same rule as AppText.amountRow.
   row,
+
+  /// A supporting money figure (15, medium), subordinate to a primary hero,
+  /// card, metric or row amount beside it. Keeps tabular figures and the
+  /// scale-down protection every money face has; reads quieter by weight and
+  /// the secondary ink, not by shrinking below a scannable size. Tint is
+  /// overridable, the same as row.
+  reference,
 }
 
 class AmountText extends StatelessWidget {
@@ -82,6 +89,7 @@ class AmountText extends StatelessWidget {
     AmountRole.card => AppText.amount,
     AmountRole.metric => AppText.amountMetric,
     AmountRole.row => AppText.amountRow,
+    AmountRole.reference => AppText.amountReference,
   };
 
   @override

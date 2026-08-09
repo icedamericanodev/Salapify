@@ -444,11 +444,13 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   /// the same figure elsewhere. The label, the spacing, and the
   /// scale-down-never-truncate rule match _stat exactly; only the value is a
   /// role now instead of a pre-formatted string. Day labels stay on _stat,
-  /// which is not money. Row role is centavo formatMoney, the same formatter
-  /// _stat used here, so precision is unchanged; strong keeps the primary
-  /// tint, non-strong keeps the plain ink _stat used (AmountRole.row is bold
-  /// where _stat's non-strong value was body-weight: the one intended delta,
-  /// putting every figure in this card on the money face).
+  /// which is not money. Centavo formatMoney throughout, the same formatter
+  /// _stat used here, so precision is unchanged. The strong figure is the
+  /// primary, so it takes AmountRole.row in the primary tint; the subordinate
+  /// figures take AmountRole.reference (medium weight in full ink), which
+  /// restores the body weight _stat used for them and adds tabular figures.
+  /// Hierarchy reads by the primary's bold weight and tint against the
+  /// reference's medium ink.
   Widget _moneyStat(String label, num value, {bool strong = false}) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
@@ -457,9 +459,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       Flexible(
         child: AmountText(
           value,
-          role: AmountRole.row,
+          role: strong ? AmountRole.row : AmountRole.reference,
           textAlign: TextAlign.right,
-          tint: strong ? Barako.primaryText : null,
+          tint: strong ? Barako.primaryText : Barako.text,
         ),
       ),
     ],

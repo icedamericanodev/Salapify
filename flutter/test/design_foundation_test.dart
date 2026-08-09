@@ -281,6 +281,17 @@ void main() {
       expect(AppText.hero.fontFeatures, isNull);
       expect(AppText.amountLg.fontSize, 30);
     });
+
+    test('the reference money face', () {
+      // Subordinate money: same body size as amountRow, one weight lighter,
+      // secondary ink, and still tabular so a column of reference figures
+      // lines up. Pinned so a drift shows up here rather than as a quiet fork.
+      expect(AppText.amountReference.fontSize, TypeScale.body);
+      expect(AppText.amountReference.fontWeight, TypeWeight.medium);
+      expect(AppText.amountReference.color, Barako.textSecondary);
+      expect(AppText.amountReference.fontFeatures, isNotNull);
+      expect(AppText.amountReference.fontFeatures, isNotEmpty);
+    });
   });
 
   group('money presentation goes through AmountText', () {
@@ -331,6 +342,12 @@ void main() {
       'lib/screens/debts.dart',
       'lib/screens/insights.dart',
       'lib/screens/notes.dart',
+      // Phase 2B, this session's account/detail batch plus the reference role:
+      // the debt-picker and quick-add supporting amounts and the account
+      // detail overview figures now route through AmountText.
+      'lib/screens/account_detail.dart',
+      'lib/screens/goal_create.dart',
+      'lib/screens/quick_add_editor.dart',
     ];
 
     test('every adopter still routes a money figure through AmountText', () {

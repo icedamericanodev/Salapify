@@ -165,6 +165,22 @@ abstract final class AppText {
     fontFeatures: _tabular,
   );
 
+  /// A supporting money figure, subordinate to a primary amount. Same body
+  /// size and tabular figures as [amountRow], one weight lighter (medium, not
+  /// bold) and in the secondary ink, so a reference amount still reads as
+  /// money and lines up in a column without competing with the row, metric or
+  /// hero beside it. The colour is the natural one to override at the call
+  /// site, exactly like amountRow: pass Barako.text where it sits on full ink
+  /// beside a tinted primary, or Barako.muted on a surface that allows it.
+  static TextStyle get amountReference => TextStyle(
+    fontFamily: Barako.bodyFont,
+    fontSize: TypeScale.body,
+    fontWeight: TypeWeight.medium,
+    height: 1.2,
+    color: Barako.textSecondary,
+    fontFeatures: _tabular,
+  );
+
   // Headings.
 
   /// Page and AppBar title. Heavy, because a page title is one of the two

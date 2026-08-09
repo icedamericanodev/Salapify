@@ -19,6 +19,9 @@ const cleanFiles = [
   // line; they now tint the one row face and let the label carry emphasis.
   'lib/screens/salary_calculator.dart',
   'lib/screens/tax_calculator.dart',
+  // Phase 2B: the quick-add template amount moved off amountRow.w4 to
+  // AmountRole.reference, so the fork this guard watches for is gone here.
+  'lib/screens/quick_add_editor.dart',
 ];
 
 void main() {

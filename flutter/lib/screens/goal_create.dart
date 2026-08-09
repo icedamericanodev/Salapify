@@ -19,6 +19,7 @@ import '../money/goals_calc.dart' show goalNum;
 import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/amount_text.dart';
 import '../widgets/salapify_icon.dart';
 
 /// The curated icon choices for a new goal, semantic key to the spoken
@@ -354,14 +355,10 @@ class _GoalCreateScreenState extends State<GoalCreateScreen> {
                               ),
                             ),
                           ),
-                          Text(
-                            formatMoney(amountOf(d['remaining'])),
-                            style: TextStyle(
-                              color: Barako.muted,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
+                          AmountText(
+                            amountOf(d['remaining']),
+                            role: AmountRole.reference,
+                            tint: Barako.muted,
                           ),
                         ],
                       ),
