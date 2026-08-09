@@ -436,7 +436,7 @@ void main() {
     );
     // The honesty footer is always present.
     expect(
-      find.textContaining('not a promise. Your call always wins'),
+      find.textContaining('Your call always wins'),
       findsOneWidget,
     );
   });

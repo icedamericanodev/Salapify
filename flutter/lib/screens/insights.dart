@@ -683,9 +683,8 @@ class InsightsScreen extends StatelessWidget {
           ? '$n of 3 so far.'
           : 'Almost there.';
       body = Text(
-        'Steady Pay suggests a weekly salary you pay yourself, planned on '
-        'your lean months. It needs about three full months of logged '
-        'income to be honest: $progress Keep logging and it appears here.',
+        'A weekly salary you pay yourself, sized to your leaner months. '
+        'Needs 3 months of income to be honest: $progress',
         style: AppText.small.copyWith(height: 1.4),
       );
     } else if (accepted == null) {
@@ -1103,7 +1102,7 @@ class InsightsScreen extends StatelessWidget {
 
     final spareLine = crunch
         ? 'Your bills use up this pay cycle already, so treat this as a plan for after payday.'
-        : 'This cycle you have about ${_wholePeso(spare)} free to move, if you can spare it.';
+        : 'About ${_wholePeso(spare)} free to move this cycle, if you can spare it.';
 
     return Card(
       child: Padding(
@@ -1130,13 +1129,13 @@ class InsightsScreen extends StatelessWidget {
               // Informational, not a money warning, so it stays in the calm
               // muted tone (which also clears AA) instead of a third red line.
               Text(
-                'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
+                'One debt has no rate saved, so it is not ranked. Add its rate to place it.',
                 style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
             Text(
-              'An order based on the rates and balances you logged, not a promise. Your call always wins.',
+              'Based on what you logged. Your call always wins.',
               style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
@@ -1151,7 +1150,11 @@ class InsightsScreen extends StatelessWidget {
   Widget _orderRail(int activeIndex) {
     // Single words only: a 4-across rail at 320dp with OS large-text scaling
     // would ellipsize a two-word label ("Bigger fund" to "Bigger...") mid-word.
-    const labels = ['Cushion', 'Debt', 'Buffer', 'Goals'];
+    // Each word mirrors the plain word in that step's card title above, so the
+    // chip and the sentence teach each other: "Starter" for "Build a starter
+    // cushion", "Safety" for "Grow your safety net". "Cushion" and "Buffer"
+    // read as jargon on their own, which is what confused the founder.
+    const labels = ['Starter', 'Debt', 'Safety', 'Goals'];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
