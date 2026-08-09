@@ -152,7 +152,9 @@ void main() {
     // Net worth hero and the segmented control.
     expect(find.text('YOUR NET WORTH'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
-    expect(find.text('Cash flow'), findsOneWidget);
+    // "Money flow", renamed in Phase 5 so the tab stops sharing a name with
+    // the forward-looking Cash Flow screen.
+    expect(find.text('Money flow'), findsOneWidget);
     expect(find.text('Position'), findsOneWidget);
     // Income is the default tab; net income is positive, so the headline reads
     // "... kept".
@@ -163,13 +165,17 @@ void main() {
     expect(find.text('WHERE IT WENT'), findsOneWidget);
     expect(find.text('Food'), findsWidgets);
 
-    // Switch to Position: net worth is positive, so "to your name".
+    // Switch to Position: the statement leads with the liquidity answer now
+    // (the net worth hero lives on the lead card above; Phase 5 removed the
+    // duplicate), and covered short debts read "clear".
     await tester.tap(find.text('Position'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('to your name'), findsWidgets);
+    expect(find.textContaining('clear of short debts'), findsWidgets);
+    // Net worth still closes the statement as its total line.
+    expect(find.text('Net worth'), findsOneWidget);
 
-    // Switch to Cash flow: renders without error.
-    await tester.tap(find.text('Cash flow'));
+    // Switch to Money flow: renders without error.
+    await tester.tap(find.text('Money flow'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.textContaining('cash'), findsWidgets);
@@ -298,13 +304,15 @@ void main() {
     await tester.pumpAndSettle();
     await _openReports(tester);
 
-    // Income tab: the weekday pattern card renders.
-    expect(find.text('WHEN YOU SPEND'), findsOneWidget);
-    expect(find.textContaining('You spend the most on'), findsOneWidget);
+    // Income tab: the weekday card is GONE on purpose (Phase 5 moved its one
+    // honest sentence to Insights); the trend renders in its ChartFrame.
+    expect(find.text('WHEN YOU SPEND'), findsNothing);
+    expect(find.text('SPENDING TREND'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Cash flow tab: the net saved-or-spent trend renders above the statement.
-    await tester.tap(find.text('Cash flow'));
+    // Money flow tab: the net saved-or-spent trend renders above the
+    // statement.
+    await tester.tap(find.text('Money flow'));
     await tester.pumpAndSettle();
     expect(find.text('SAVED OR SPENT'), findsOneWidget);
     expect(tester.takeException(), isNull);

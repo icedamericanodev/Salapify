@@ -10,8 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/store.dart';
-import '../money/analytics.dart'
-    show categoryVsAverage, monthlySeries, weekdayPattern;
+import '../money/analytics.dart' show categoryVsAverage, monthlySeries;
 import '../money/debtmath.dart' show debtFreeProjection;
 import '../money/ledger.dart' show amountOf;
 import '../money/reports_calc.dart';
@@ -19,6 +18,7 @@ import '../money/statements.dart';
 import '../money/period.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/chart_frame.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/segmented.dart';
@@ -105,9 +105,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   _netWorthLead(),
                   const SizedBox(height: 14),
                   Segmented<int>(
+                    // "Money flow", not "Cash flow": the Cash Flow SCREEN is
+                    // the forward Sweldo Timeline, and two surfaces sharing a
+                    // name for opposite time directions confused everyone who
+                    // touched both (Phase 5 PM review).
                     options: const [
                       SegmentOption(value: 0, label: 'Income'),
-                      SegmentOption(value: 1, label: 'Cash flow'),
+                      SegmentOption(value: 1, label: 'Money flow'),
                       SegmentOption(value: 2, label: 'Position'),
                     ],
                     current: _tab,
@@ -120,20 +124,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _monthStepper(),
                     const SizedBox(height: Gap.lg),
                   ],
+                  // The weekday chart that used to close the Income tab was
+                  // removed in Phase 5: it changed no decision here, and its
+                  // one honest sentence now lives on Insights as a quiet
+                  // tendency line (insight_feed.weekdayLine).
                   if (_tab == 0) ...[
                     _incomeCard(),
                     const SizedBox(height: 14),
                     _trendSection(),
                     const SizedBox(height: 14),
                     _whatMovedSection(),
-                    _weekdaySection(),
                   ] else if (_tab == 1) ...[
                     _cashFlowTrendSection(),
                     _cashFlowCard(),
-                  ] else
+                  ] else ...[
                     _positionCard(),
-                  const SizedBox(height: 22),
-                  _debtPlanSection(),
+                    // The debt-free plan reads the same structural picture the
+                    // balance sheet does, so it lives with Position instead of
+                    // trailing every tab (it used to render under all three,
+                    // which put a simulator at the foot of a factual screen
+                    // twice too often).
+                    const SizedBox(height: 22),
+                    _debtPlanSection(),
+                  ],
                 ],
               ],
             );
@@ -367,47 +380,49 @@ class _ReportsScreenState extends State<ReportsScreen> {
             'Still early in the month. So far you have spent $soFar, and your usual full month runs about $usualStr. Check back once more of the month has passed.';
         readColor = Barako.muted;
       } else {
-        final projected = cmp.current / frac;
-        final projStr = formatMoney(projected);
-        if (projected >= cmp.usual * 1.2) {
-          read =
-              'So far this month: $soFar. At this pace you are heading for about $projStr, above your usual $usualStr. Worth easing off a line or two.';
-          readColor = Barako.warningStrong;
-        } else if (projected <= cmp.usual * 0.8) {
-          read =
-              'So far this month: $soFar. At this pace you are tracking under your usual $usualStr. Just make sure that is real and not entries you have not logged yet.';
-        } else {
-          read =
-              'So far this month: $soFar. At this pace you are tracking close to your usual $usualStr. Steady.';
-        }
+        // Facts only from here: the month-end projection moved to Insights
+        // in Phase 5 (its pulse and pace line own the forecast), because two
+        // different formulas projecting the same month could disagree on the
+        // same day, and a forecast is a "what does this mean" read, not a
+        // "what happened" one.
+        read =
+            'So far this month: $soFar. Your usual full month runs about $usualStr.';
       }
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('SPENDING TREND', style: Barako.kickerStyle),
-            const SizedBox(height: 4),
-            Text('Last 6 months, spending per month', style: AppText.caption),
-            const SizedBox(height: 14),
-            _TrendBars(
-              series: series,
-              usual: cmp.hasHistory ? cmp.usual : 0,
-              focusKey: series.isNotEmpty ? series.last['key'] as String : '',
-              focusPartial: isCurrent,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              read,
-              style: AppText.small.tint(readColor).copyWith(height: 1.45),
-            ),
-          ],
-        ),
+    return ChartFrame(
+      kicker: 'SPENDING TREND',
+      contextLine:
+          'Last 6 months, spending per month. Tap a bar to open '
+          'that month.',
+      chart: _TrendBars(
+        series: series,
+        usual: cmp.hasHistory ? cmp.usual : 0,
+        focusKey: series.isNotEmpty ? series.last['key'] as String : '',
+        focusPartial: isCurrent,
+        onPickMonth: _jumpToMonth,
+      ),
+      footer: Text(
+        read,
+        style: AppText.small.tint(readColor).copyWith(height: 1.45),
       ),
     );
+  }
+
+  /// A tapped bar becomes the stepped month: the chart and the stepper are
+  /// the same control seen two ways. Only months the stepper itself can
+  /// reach are accepted, so the two can never disagree.
+  void _jumpToMonth(String key) {
+    final p = key.split('-');
+    if (p.length < 2) return;
+    final y = int.tryParse(p[0]);
+    final m = int.tryParse(p[1]);
+    if (y == null || m == null) return;
+    final now = DateTime.now();
+    final off = (now.year - y) * 12 + (now.month - m);
+    if (off < 0 || off > 12 || off == _monthOffset) return;
+    HapticFeedback.selectionClick();
+    setState(() => _monthOffset = off);
   }
 
   // ---- Where it went: the categories behind the month ----
@@ -598,67 +613,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // ---- Cash flow ----
-  // ---- When you spend: the weekday pattern ----
-  static const _dayLong = [
-    'Sundays',
-    'Mondays',
-    'Tuesdays',
-    'Wednesdays',
-    'Thursdays',
-    'Fridays',
-    'Saturdays',
-  ];
-
-  Widget _weekdaySection() {
-    final ref = _monthOffset == 0 ? DateTime.now() : _ref;
-    final pattern = weekdayPattern(_data['transactions'], ref);
-    final peak = weekdayPeak(pattern);
-    // Under three active days there is no pattern worth a claim, only noise.
-    if (peak.activeDays < 3 || peak.peakDay < 0) return const SizedBox.shrink();
-
-    String read;
-    if (peak.lightDay >= 0) {
-      read =
-          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoneyAbout(peak.peakAvg)} a day. ${_dayLong[peak.lightDay]} are your lightest, about ${formatMoneyAbout(peak.lightAvg)}. Line up the big buys for a quieter day.';
-    } else {
-      read =
-          'You spend the most on ${_dayLong[peak.peakDay]}, about ${formatMoneyAbout(peak.peakAvg)} a day.';
-    }
-
-    return Column(
-      children: [
-        const SizedBox(height: 14),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('WHEN YOU SPEND', style: Barako.kickerStyle),
-                const SizedBox(height: 4),
-                Text(
-                  'Average per weekday, last 8 weeks',
-                  style: AppText.caption,
-                ),
-                const SizedBox(height: 14),
-                _WeekdayBars(
-                  pattern: pattern,
-                  peak: peak,
-                  semanticsLabel: peak.peakDay >= 0
-                      ? 'Weekday spending chart. Busiest on ${_dayLong[peak.peakDay]}.'
-                      : 'Weekday spending chart.',
-                ),
-                const SizedBox(height: 14),
-                Text(read, style: AppText.small.copyWith(height: 1.45)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   // ---- Saved or spent: net cash flow month by month ----
   Widget _cashFlowTrendSection() {
     final series = monthlySeries(_data['transactions'], 6, _ref);
@@ -683,36 +637,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Column(
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('SAVED OR SPENT', style: Barako.kickerStyle),
-                const SizedBox(height: 4),
-                Text(
-                  'Income minus spending, last 6 months',
-                  style: AppText.caption,
-                ),
-                const SizedBox(height: 16),
-                _DivergingBars(
-                  series: series,
-                  maxAbs: sum.maxAbs,
-                  focusKey: series.isNotEmpty
-                      ? series.last['key'] as String
-                      : '',
-                  focusPartial: _monthOffset == 0,
-                  semanticsLabel:
-                      'Net cash flow chart, last 6 months. You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months.',
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  read,
-                  style: AppText.small.tint(readColor).copyWith(height: 1.45),
-                ),
-              ],
-            ),
+        ChartFrame(
+          kicker: 'SAVED OR SPENT',
+          contextLine:
+              'Income minus spending, last 6 months. Tap a bar to '
+              'open that month.',
+          chart: _DivergingBars(
+            series: series,
+            maxAbs: sum.maxAbs,
+            focusKey: series.isNotEmpty ? series.last['key'] as String : '',
+            focusPartial: _monthOffset == 0,
+            onPickMonth: _jumpToMonth,
+            semanticsLabel:
+                'Net cash flow chart, last 6 months. You ended ahead in ${sum.saverMonths} of ${sum.activeMonths} months.',
+          ),
+          footer: Text(
+            read,
+            style: AppText.small.tint(readColor).copyWith(height: 1.45),
           ),
         ),
         const SizedBox(height: 14),
@@ -823,12 +764,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? 'If every short-term debt came due today, your cash, e-wallets, and money owed to you would cover it, with ${formatMoney(gap)} to spare.'
         : 'If every short-term debt came due today, your cash, e-wallets, and money owed to you would fall ${formatMoney(-gap)} short. A small buffer you do not touch is the fix.';
 
+    // The headline is the LIQUIDITY answer, not net worth: the net worth
+    // lead card 400px above already carries that hero, and the same figure
+    // twice on one screen was the Phase 5 PM review's duplicate. Net worth
+    // still closes the statement as its total line.
     return _statementCard(
       forLabel: 'As of today',
-      headline: equity >= 0
-          ? '${formatMoney(equity)} to your name'
-          : '${formatMoney(-equity)} in the red',
-      headlineValue: equity,
+      headline: gap >= 0
+          ? '${formatMoney(gap)} clear of short debts'
+          : '${formatMoney(-gap)} short of near debts',
+      headlineValue: gap,
       interp: interp,
       lines: [
         _line('What you own', totalAssets, total: true, color: Barako.primary),
@@ -1259,11 +1204,17 @@ class _TrendBars extends StatelessWidget {
   final double usual;
   final String focusKey;
   final bool focusPartial;
+
+  /// Called with the tapped month's key; the screen steps to that month.
+  /// The stepper stays the accessible control, so the bar taps live inside
+  /// the chart's decorative region without their own semantics.
+  final void Function(String key)? onPickMonth;
   const _TrendBars({
     required this.series,
     required this.usual,
     required this.focusKey,
     this.focusPartial = false,
+    this.onPickMonth,
   });
 
   double _exp(Map<String, dynamic> m) {
@@ -1297,22 +1248,29 @@ class _TrendBars extends StatelessWidget {
                 children: [
                   for (final m in series)
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            // A true no-spend month shows nothing, not a stub,
-                            // so a glance does not read it as a small spend.
-                            height: _exp(m) > 0
-                                ? (_exp(m) / peak * areaH).clamp(2.0, areaH)
-                                : 0.0,
-                            decoration: BoxDecoration(
-                              color: m['key'] == focusKey
-                                  ? Barako.primary
-                                  : Barako.primary.withValues(alpha: 0.26),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(4),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onPickMonth == null
+                            ? null
+                            : () => onPickMonth!(m['key'] as String),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              // A true no-spend month shows nothing, not a
+                              // stub, so a glance does not read it as a
+                              // small spend.
+                              height: _exp(m) > 0
+                                  ? (_exp(m) / peak * areaH).clamp(2.0, areaH)
+                                  : 0.0,
+                              decoration: BoxDecoration(
+                                color: m['key'] == focusKey
+                                    ? Barako.primary
+                                    : Barako.primary.withValues(alpha: 0.26),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4),
+                                ),
                               ),
                             ),
                           ),
@@ -1355,12 +1313,14 @@ class _TrendBars extends StatelessWidget {
                     // The current month's bar is only spending so far, not a
                     // finished month, so it is labeled to avoid a false
                     // "low month" read against the completed bars beside it.
+                    // 10, not the 8.5 the audit flagged: nothing on a phone
+                    // should render below the month labels beside it.
                     if (m['key'] == focusKey && focusPartial)
                       Text(
                         'so far',
                         textAlign: TextAlign.center,
                         style: AppText.micro.w4
-                            .copyWith(fontSize: 8.5)
+                            .copyWith(fontSize: 10)
                             .tint(Barako.faint),
                       ),
                   ],
@@ -1394,102 +1354,6 @@ class _TrendBars extends StatelessWidget {
   }
 }
 
-// Average spend per weekday, Sun..Sat, with the busiest day in full color and
-// the rest recessive, so the peak reads at a glance. Same bar language as
-// _TrendBars (thin, rounded 4px ends, baseline-anchored).
-class _WeekdayBars extends StatelessWidget {
-  final List<Map<String, dynamic>> pattern;
-  final WeekdayPeak peak;
-  final String semanticsLabel;
-  const _WeekdayBars({
-    required this.pattern,
-    required this.peak,
-    this.semanticsLabel = '',
-  });
-
-  static const _short = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-  @override
-  Widget build(BuildContext context) {
-    const areaH = 76.0;
-    final scale = peak.maxAvg > 0 ? peak.maxAvg : 1.0;
-    // Decorative to a screen reader; the read paragraph below names the peak
-    // and the pesos. Exclude the bare letter run, give the chart one summary.
-    return Semantics(
-      container: true,
-      label: semanticsLabel,
-      child: ExcludeSemantics(
-        child: Column(
-          children: [
-            SizedBox(
-              height: areaH,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  for (final p in pattern)
-                    Builder(
-                      builder: (_) {
-                        final day = (p['day'] as num?)?.toInt() ?? -1;
-                        final avg = amountOf(p['avg']);
-                        final isPeak = day == peak.peakDay;
-                        return Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Container(
-                                height: avg > 0
-                                    ? (avg / scale * areaH).clamp(2.0, areaH)
-                                    : 0.0,
-                                decoration: BoxDecoration(
-                                  color: isPeak
-                                      ? Barako.primary
-                                      : Barako.primary.withValues(alpha: 0.26),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(4),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                for (final p in pattern)
-                  Builder(
-                    builder: (_) {
-                      final day = (p['day'] as num?)?.toInt() ?? -1;
-                      final isPeak = day == peak.peakDay;
-                      return Expanded(
-                        child: Text(
-                          day >= 0 && day < 7 ? _short[day] : '',
-                          textAlign: TextAlign.center,
-                          style: AppText.micro.copyWith(
-                            color: isPeak ? Barako.text : Barako.faint,
-                            fontSize: 10,
-                            fontWeight: isPeak
-                                ? TypeWeight.bold
-                                : TypeWeight.medium,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // Net (income minus spending) per month around a zero baseline: bars rise green
 // for a month you ended ahead, fall in the warning color for one you overspent.
 // A diverging form because the job is polarity over time. Focus month in full
@@ -1500,12 +1364,17 @@ class _DivergingBars extends StatelessWidget {
   final String focusKey;
   final bool focusPartial;
   final String semanticsLabel;
+
+  /// Same contract as _TrendBars.onPickMonth: the stepper is the accessible
+  /// control, the bars are a shortcut to it.
+  final void Function(String key)? onPickMonth;
   const _DivergingBars({
     required this.series,
     required this.maxAbs,
     required this.focusKey,
     this.focusPartial = false,
     this.semanticsLabel = '',
+    this.onPickMonth,
   });
 
   @override
@@ -1528,7 +1397,15 @@ class _DivergingBars extends StatelessWidget {
                   Row(
                     children: [
                       for (final m in series)
-                        Expanded(child: _col(m, half, scale)),
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onPickMonth == null
+                                ? null
+                                : () => onPickMonth!(m['key'] as String),
+                            child: _col(m, half, scale),
+                          ),
+                        ),
                     ],
                   ),
                   // The zero line the bars diverge from: below it means a month
@@ -1564,13 +1441,14 @@ class _DivergingBars extends StatelessWidget {
                           ),
                         ),
                         // The current month is still filling in, so it is
-                        // labeled, matching the spending trend bars.
+                        // labeled, matching the spending trend bars. 10, not
+                        // 8.5: the app's painter floor, per the audit.
                         if (m['key'] == focusKey && focusPartial)
                           Text(
                             'so far',
                             textAlign: TextAlign.center,
                             style: AppText.micro.w4
-                                .copyWith(fontSize: 8.5)
+                                .copyWith(fontSize: 10)
                                 .tint(Barako.faint),
                           ),
                       ],

@@ -693,10 +693,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              body,
-              style: AppText.small.copyWith(fontSize: 13.5, height: 1.45),
-            ),
+            Text(body, style: AppText.small.copyWith(height: 1.45)),
             if (!noEvents) ...[
               const SizedBox(height: 14),
               Row(
@@ -767,7 +764,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   'Nothing due in this window. A longer view will have more.',
-                  style: AppText.caption.copyWith(fontSize: 12.5),
+                  style: AppText.caption,
                 ),
               ),
             for (var i = 0; i < events.length; i++) ...[
@@ -818,7 +815,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                       isScenario ? '$label (what if)' : label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.label.copyWith(fontSize: 14.5),
+                      style: AppText.label,
                     ),
                     const SizedBox(height: 2),
                     Text.rich(
@@ -839,7 +836,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                           ),
                         ],
                       ),
-                      style: AppText.micro.w4.copyWith(fontSize: 11.5),
+                      style: AppText.micro.w4,
                     ),
                   ],
                 ),
@@ -847,9 +844,10 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               const SizedBox(width: 8),
               Text(
                 '${isIn ? '+' : '-'}${formatMoneyText(amount)}',
-                style: AppText.amountRow.w8
-                    .tint(color)
-                    .copyWith(fontSize: 14.5),
+                // amountRow untouched, .tint the only modifier: the one-rule
+                // row amount the audit demanded (P1-10), replacing the .w8
+                // at 14.5 fork this screen carried.
+                style: AppText.amountRow.tint(color),
               ),
             ],
           ),
@@ -1013,9 +1011,9 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
                     selected: kind == k,
                     onSelected: (_) => setState(() => kind = k),
                     label: Text(name),
-                    labelStyle: AppText.caption.w7
-                        .tint(kind == k ? Barako.onPrimary : Barako.text)
-                        .copyWith(fontSize: 12.5),
+                    labelStyle: AppText.caption.w7.tint(
+                      kind == k ? Barako.onPrimary : Barako.text,
+                    ),
                     selectedColor: Barako.primary,
                     backgroundColor: Barako.card,
                     side: BorderSide(color: Barako.border),
@@ -1130,7 +1128,7 @@ class _ScenarioSheetState extends State<_ScenarioSheet> {
 // variable-spend band when one exists, payday dots, the zero line when cash is
 // projected to run out, and the lowest day marked. Canvas is the right tool
 // for a curve; the numbers all come from the engine.
-class _BalanceChart extends StatelessWidget {
+class _BalanceChart extends StatefulWidget {
   final List<Map<String, dynamic>> days;
   final bool anyNegative;
   final String lowDate;
@@ -1150,54 +1148,112 @@ class _BalanceChart extends StatelessWidget {
   });
 
   @override
+  State<_BalanceChart> createState() => _BalanceChartState();
+}
+
+class _BalanceChartState extends State<_BalanceChart> {
+  /// The scrubbed day, or null before the first touch. Scrubbing answers
+  /// "what about the 23rd" on the chart itself (the audit's "charts are
+  /// paintings, not instruments"); the projection card keeps answering the
+  /// summary questions, so the scrub adds a reading without moving one.
+  int? scrub;
+
+  @override
+  void didUpdateWidget(covariant _BalanceChart old) {
+    super.didUpdateWidget(old);
+    final s = scrub;
+    if (s != null && s >= widget.days.length) scrub = null;
+  }
+
+  void _pick(double dx, double width) {
+    final n = widget.days.length;
+    if (n < 2 || width <= 0) return;
+    final i = ((dx / width) * (n - 1)).round().clamp(0, n - 1);
+    if (i != scrub) {
+      // Per-day ticks, so the scrub is felt day by day, the selection
+      // haptic the audit asked of this chart.
+      HapticFeedback.selectionClick();
+      setState(() => scrub = i);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final days = widget.days;
     final first = days.isNotEmpty ? days.first['date'].toString() : '';
     final last = days.isNotEmpty ? days.last['date'].toString() : '';
+    final s = scrub;
+    final scrubDay = s != null && s < days.length ? days[s] : null;
+    final labelScale = (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(
+      1.0,
+      1.6,
+    );
     return Semantics(
-      label: anyNegative
-          ? 'Projected balance chart. Cash runs out around ${_pretty(runOutDate)}.'
+      label: widget.anyNegative
+          ? 'Projected balance chart. Cash runs out around ${_pretty(widget.runOutDate)}.'
           : 'Projected balance from ${_pretty(first)} to ${_pretty(last)}, '
-                'tightest around ${_pretty(lowDate)}.',
+                'tightest around ${_pretty(widget.lowDate)}.',
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: 120,
-              child: CustomPaint(
-                painter: _BalancePainter(
-                  days: days,
-                  line: Barako.primary,
-                  fill: Barako.primary.withValues(alpha: 0.19),
-                  band: Barako.muted.withValues(alpha: 0.18),
-                  warn: Barako.warningStrong,
-                  label: Barako.muted,
-                  grid: Barako.border,
-                  payday: Barako.primaryText,
-                  cardFill: Barako.card,
-                  anyNegative: anyNegative,
-                  lowDate: lowDate,
-                  showBand: showBand,
-                  paydays: paydays,
+            if (scrubDay != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${_pretty(scrubDay['date'].toString())} · about '
+                  '${formatMoneyText((scrubDay['balance'] as num).toDouble())}',
+                  style: AppText.caption.w7.tabular.tint(Barako.caramel),
+                ),
+              ),
+            LayoutBuilder(
+              builder: (context, c) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _pick(d.localPosition.dx, c.maxWidth),
+                onHorizontalDragUpdate: (d) =>
+                    _pick(d.localPosition.dx, c.maxWidth),
+                child: SizedBox(
+                  height: 120,
+                  child: CustomPaint(
+                    painter: _BalancePainter(
+                      days: days,
+                      line: Barako.primary,
+                      fill: Barako.primary.withValues(alpha: 0.19),
+                      band: Barako.muted.withValues(alpha: 0.18),
+                      warn: Barako.warningStrong,
+                      label: Barako.muted,
+                      grid: Barako.border,
+                      payday: Barako.primaryText,
+                      cardFill: Barako.card,
+                      anyNegative: widget.anyNegative,
+                      lowDate: widget.lowDate,
+                      showBand: widget.showBand,
+                      paydays: widget.paydays,
+                      scrubIndex: s,
+                      textScale: labelScale,
+                    ),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 6),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _pretty(first),
-                  style: AppText.micro.w4
-                      .tint(Barako.faint)
-                      .copyWith(fontSize: 10.5),
+                  style: AppText.micro.w4.tint(Barako.faint),
                 ),
-                Text(
-                  _pretty(last),
-                  style: AppText.micro.w4
-                      .tint(Barako.faint)
-                      .copyWith(fontSize: 10.5),
+                // Expanded and wrapping, so the hint can never push the two
+                // dates off a narrow phone at a large text scale.
+                Expanded(
+                  child: Text(
+                    'Touch the chart to read a day',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: AppText.micro.w4.tint(Barako.faint),
+                  ),
                 ),
+                Text(_pretty(last), style: AppText.micro.w4.tint(Barako.faint)),
               ],
             ),
           ],
@@ -1221,6 +1277,14 @@ class _BalancePainter extends CustomPainter {
   final String lowDate;
   final bool showBand;
   final List<String> paydays;
+
+  /// The scrubbed day, or null. Drawn as a hairline with a dot so the
+  /// readout above the chart visibly belongs to one day of the line.
+  final int? scrubIndex;
+
+  /// Ambient text scale for painter labels; a raw TextPainter never sees
+  /// the system font size on its own.
+  final double textScale;
   _BalancePainter({
     required this.days,
     required this.line,
@@ -1235,6 +1299,8 @@ class _BalancePainter extends CustomPainter {
     required this.lowDate,
     required this.showBand,
     required this.paydays,
+    this.scrubIndex,
+    this.textScale = 1,
   });
 
   @override
@@ -1372,7 +1438,7 @@ class _BalancePainter extends CustomPainter {
         // where it drew as two grey rectangles floating in the chart.
         style: TextStyle(
           color: label,
-          fontSize: 10,
+          fontSize: 10 * textScale,
           fontWeight: FontWeight.w600,
           fontFamily: Barako.bodyFont,
         ),
@@ -1392,11 +1458,37 @@ class _BalancePainter extends CustomPainter {
       Paint()..color = cardFill,
     );
     tp.paint(canvas, Offset(lx, ly));
+
+    // The scrubbed day: a hairline through the plot with a dot on the line,
+    // matching the readout printed above the chart.
+    final si = scrubIndex;
+    if (si != null && si >= 0 && si < vals.length) {
+      final sx = x(si).clamp(0.0, size.width);
+      canvas.drawLine(
+        Offset(sx, 0),
+        Offset(sx, size.height),
+        Paint()
+          ..color = label.withValues(alpha: 0.55)
+          ..strokeWidth = 1,
+      );
+      final sp = Offset(sx.clamp(3.0, size.width - 3.0), y(vals[si]));
+      canvas.drawCircle(sp, 4, Paint()..color = cardFill);
+      canvas.drawCircle(
+        sp,
+        4,
+        Paint()
+          ..color = line
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
   }
 
   @override
   bool shouldRepaint(covariant _BalancePainter old) =>
       old.days != days ||
       old.anyNegative != anyNegative ||
-      old.showBand != showBand;
+      old.showBand != showBand ||
+      old.scrubIndex != scrubIndex ||
+      old.textScale != textScale;
 }

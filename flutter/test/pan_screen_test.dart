@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/screens/pan.dart' show PanScreen;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/app_harness.dart';
@@ -103,5 +104,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ask about your money…'), findsNothing);
     expect(find.textContaining('Migs'), findsWidgets);
+  });
+
+  testWidgets('an initial question is asked for the user, as the user', (
+    tester,
+  ) async {
+    // The Phase 5 contextual entry: Insights hands Pan a question so nobody
+    // retypes what the app already knows. It must appear as an ordinary USER
+    // bubble (the conversation stays honest about what was asked) and be
+    // answered by the same golden-locked brain a typed question reaches.
+    final store = SalapifyStore();
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PanScreen(store: store, initialQuestion: 'who owes me money'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The question rendered as a user message, and the grounded answer
+    // followed without any typing.
+    expect(find.text('who owes me money'), findsOneWidget);
+    expect(
+      find.textContaining('people owe you').evaluate().isNotEmpty ||
+          find.textContaining('person owes you').evaluate().isNotEmpty ||
+          find.textContaining('Migs').evaluate().isNotEmpty,
+      isTrue,
+    );
   });
 }

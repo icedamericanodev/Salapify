@@ -50,12 +50,20 @@ class PanScreen extends StatefulWidget {
   /// there specifically; plain onSwitchTab would open the "I owe" segment.
   final VoidCallback? onOpenReceivables;
   final VoidCallback? onOpenPayables;
+
+  /// A question asked FOR the user on arrival, through the same brain as a
+  /// typed one. Insights hands the context over on its "Ask Pan" actions so
+  /// nobody retypes a question the app already knows; the question appears
+  /// as an ordinary user bubble, so the conversation stays honest about
+  /// what was asked. Nothing here bypasses the golden-locked ask().
+  final String? initialQuestion;
   const PanScreen({
     super.key,
     required this.store,
     this.onSwitchTab,
     this.onOpenReceivables,
     this.onOpenPayables,
+    this.initialQuestion,
   });
 
   @override
@@ -69,6 +77,19 @@ class _PanScreenState extends State<PanScreen> {
   String mood = 'idle';
   late final Map<String, dynamic> greeting = helpReply();
   late final List<Map<String, String>> chips = suggestions(6);
+
+  @override
+  void initState() {
+    super.initState();
+    final q = widget.initialQuestion?.trim();
+    if (q != null && q.isNotEmpty) {
+      // After the first frame, not during initState: _send calls setState
+      // and scrolls, both of which need a built tree.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _send(q);
+      });
+    }
+  }
 
   @override
   void dispose() {

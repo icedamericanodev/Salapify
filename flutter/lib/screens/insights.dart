@@ -7,6 +7,7 @@
 // runway with its honesty rules.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../data/store.dart';
 import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
@@ -14,12 +15,17 @@ import '../money/coach.dart' as coach;
 import '../money/commitmentload.dart' as commitmentload;
 import '../money/commitments.dart' as commitments;
 import '../money/debtmath.dart' as debtmath;
+import '../money/insight_feed.dart' as feed;
 import '../money/ledger.dart' show amountOf;
+import '../money/period.dart';
 import '../money/steadypay.dart' as steadypay;
 import '../money/surplus.dart' as surplus;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/chart_frame.dart';
 import '../widgets/choice_chip.dart';
+import '../widgets/insight_card.dart';
+import '../widgets/nav_tile.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
@@ -27,8 +33,11 @@ import '../widgets/screen_header.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import 'afford_card.dart';
+import 'history.dart' show HistoryScreen;
 import 'log_sheet.dart' show showLogSheet;
 import 'overview.dart' show formatMoney, formatMoneyAbout, prettyDay;
+import 'pan.dart' show PanScreen;
+import 'reports.dart' show ReportsScreen;
 import 'windfall_card.dart';
 import 'shell.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
@@ -153,6 +162,12 @@ class InsightsScreen extends StatelessWidget {
   final VoidCallback? onOpenReceivables;
   final VoidCallback? onOpenPayables;
   final VoidCallback? onMenu;
+
+  /// Test seam, the TaxDeadlinesScreen pattern: the WHAT CHANGED gates are
+  /// date-relative (nothing compares before a third of the month), so
+  /// without an injectable clock the populated state renders on no test and
+  /// no screenshot for the first eleven days of every month.
+  final DateTime Function()? clock;
   const InsightsScreen({
     super.key,
     required this.store,
@@ -160,6 +175,7 @@ class InsightsScreen extends StatelessWidget {
     this.onMenu,
     this.onOpenReceivables,
     this.onOpenPayables,
+    this.clock,
   });
 
   // The pinned header + a single card, the shape both the empty and the error
@@ -237,7 +253,7 @@ class InsightsScreen extends StatelessWidget {
     if (store.loadError != null) return _errorInsights(context);
 
     final data = store.data;
-    final ref = DateTime.now();
+    final ref = (clock ?? DateTime.now)();
 
     // Before any data, every card here reads zero at once (safe-to-spend 0,
     // health 0 of 100, empty charts), which is the exact "this app is for
@@ -254,12 +270,18 @@ class InsightsScreen extends StatelessWidget {
     final sts = commitments.safeToSpend(data, ref);
     final health = analytics.healthScore(data, ref);
     final series = analytics.monthlySeries(data['transactions'], 6, ref);
-    final cats = analytics.categoryVsAverage(data['transactions'], ref, 6, 7);
     final runway = analytics.emergencyRunway(data, ref);
     final forecast = analytics.forecastMonthEnd(data['transactions'], ref);
     final focusGoal = _pickFocusGoal(data['goals'], ref);
     final plan = surplus.nextPesoPlan(data, ref);
     final load = commitmentload.commitmentLoad(data, ref);
+    // The Phase 5 interpretation layer: the month's one-line read, what
+    // moved against last month, and the quiet weekday tendency. Each has
+    // its own honesty gate inside the engine, so a null here means "say
+    // nothing", never "say something vague".
+    final pulse = feed.monthPulse(data, ref);
+    final changed = feed.whatChanged(data, ref);
+    final weekday = feed.weekdayLine(data, ref);
 
     // Header pinned above the list on every tab (founder's call). Insights
     // is the longest screen in the app, roughly ten cards, so this is the
@@ -282,6 +304,15 @@ class InsightsScreen extends StatelessWidget {
             child: ListView(
               padding: Insets.tabScreen.copyWith(top: 0),
               children: [
+                // The PULSE leads the whole screen: one interpreted read of
+                // the month, on the raised surface, so the first thing seen
+                // is the story, not a wall of same-weight cards. The brief's
+                // financial-pulse-first rule. Null early in a month or with
+                // no data, in which case DO NEXT simply leads.
+                if (pulse != null) ...[
+                  _pulseHero(context, pulse),
+                  const SizedBox(height: 18),
+                ],
                 // The DO NEXT cards carry the specifics, most urgent first, so
                 // they are the takeaway on their own. A "WHAT MATTERS NOW" line
                 // used to sit above them and only restated the count, which was
@@ -310,25 +341,6 @@ class InsightsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (win != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Icon(
-                        salapifyIcon('celebrate'),
-                        color: Barako.primary,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          win['text'] as String,
-                          style: AppText.small.w6.tint(Barako.primaryText),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
                 const SizedBox(height: 18),
                 _safeToSpendCard(sts),
                 // Steady Pay: safe-to-spend's sibling for swing income. Shows with
@@ -358,13 +370,73 @@ class InsightsScreen extends StatelessWidget {
                   const SizedBox(height: Gap.lg),
                   _nextPesoCard(plan, focusGoal),
                 ],
+                // THIS MONTH: the month's story, interpreted. One pulse
+                // line (the read), one dominant chart (income vs spending
+                // with a tappable month readout), what moved against last
+                // month, one honest win, and the door into Reports for the
+                // full detail. Insights interprets; Reports itemizes. The
+                // old LAST 6 MONTHS chart said nothing and the category
+                // list here duplicated Reports' better one; both were
+                // replaced by these interpreted versions in Phase 5.
+                const SizedBox(height: 18),
+                Kicker('THIS MONTH'),
+                const SizedBox(height: 8),
+                _monthStoryChart(context, series, forecast, ref),
+                const SizedBox(height: Gap.lg),
+                _whatChangedCard(context, changed, ref),
+                if (win != null) ...[
+                  const SizedBox(height: Gap.lg),
+                  InsightCard(
+                    kicker: 'GOING WELL',
+                    icon: 'celebrate',
+                    tone: InsightTone.positive,
+                    observation: win['text'] as String,
+                  ),
+                ],
+                if (weekday != null) ...[
+                  const SizedBox(height: Gap.md),
+                  // A tendency, not a fact, so it rides as one quiet line
+                  // instead of a card demanding belief.
+                  Text(weekday, style: AppText.caption.tint(Barako.muted)),
+                ],
+                const SizedBox(height: Gap.md),
+                _reportsLinkRow(context),
+                const SizedBox(height: 18),
+                Kicker('THE BIGGER PICTURE'),
+                const SizedBox(height: 8),
+                // Always open, deliberately, unlike TOOLS below: these
+                // cards ARE the reason someone opens this tab, not a preview
+                // of a destination. Founder feedback, 2026-08-04, after
+                // seeing them all collapsed to identical chevron rows with
+                // zero glanceable content: "I think it should be expanded...
+                // I will not make the user overwhelmed." Each card already
+                // carries its own real number, percent, score, chart, or
+                // sentence; collapsing it behind a tap hid the entire point.
+                //
+                // Spoken-For is a structural, reflective gauge, so it sits
+                // with the "understand your situation" band, not the
+                // do-next cards up top. It leads the band because
+                // commitment load feeds the debt-load health.
+                if (load['applicable'] == true) ...[
+                  _spokenForCard(load),
+                  const SizedBox(height: Gap.lg),
+                ],
+                _healthCard(
+                  health,
+                  amountOf(
+                        data['settings'] is Map
+                            ? (data['settings'] as Map)['monthlyLimit']
+                            : null,
+                      ) >
+                      0,
+                ),
+                const SizedBox(height: Gap.lg),
+                _runwayCard(runway),
                 // The TOOLS band: things a user reaches for on purpose, not
-                // reflections of the month. They used to render fully open,
-                // two permanent screenfuls of input fields whether or not
-                // anyone came to use them; folded to one line each, the
-                // screen answers "what should I do next" in one screenful
-                // and the tools stop being scroll tax. Values inside are
-                // untouched, only which pixels are open by default changed.
+                // reflections of the month, so it closes the screen instead
+                // of interrupting the story mid-scroll (Phase 5 move; the
+                // fold to one line each came earlier). Values inside are
+                // untouched.
                 const SizedBox(height: 18),
                 Kicker('TOOLS'),
                 const SizedBox(height: 8),
@@ -398,34 +470,6 @@ class InsightsScreen extends StatelessWidget {
                     child: _GoalWhatIfCard(goal: focusGoal, sts: sts, ref: ref),
                   ),
                 ],
-                const SizedBox(height: 18),
-                Kicker('THE BIGGER PICTURE'),
-                const SizedBox(height: 8),
-                // Always open, deliberately, unlike TOOLS above: these five
-                // cards ARE the reason someone opens this tab, not a preview
-                // of a destination. Founder feedback, 2026-08-04, after
-                // seeing them all collapsed to identical chevron rows with
-                // zero glanceable content: "I think it should be expanded...
-                // I will not make the user overwhelmed." Each card already
-                // carries its own real number, percent, score, chart, or
-                // sentence; collapsing it behind a tap hid the entire point.
-                //
-                // Spoken-For is a structural, reflective gauge, so it sits
-                // with the "understand your situation" band, not the
-                // do-next cards up top. It leads the band because
-                // commitment load feeds the debt-load health.
-                if (load['applicable'] == true) ...[
-                  _spokenForCard(load),
-                  const SizedBox(height: Gap.lg),
-                ],
-                _healthCard(health),
-                const SizedBox(height: Gap.lg),
-                _trendCard(series),
-                const SizedBox(height: Gap.lg),
-                if (cats.any((c) => (c['now'] as double) > 0))
-                  _categoriesCard(cats, forecast),
-                const SizedBox(height: Gap.lg),
-                _runwayCard(runway),
                 const SizedBox(height: 24),
               ],
             ),
@@ -932,27 +976,37 @@ class InsightsScreen extends StatelessWidget {
     final mf = flex(minimums);
     final ff = over ? 0 : flex(free);
     if (bf + mf + ff == 0) return const SizedBox(height: 10);
+    // A hairline seam between segments so the boundary survives grayscale:
+    // bills (primary) and minimums (warning) are both warm hues, and touching
+    // them read as one block to a colorblind viewer. The seam is the surface
+    // colour, the same trick _SplitBar uses in Reports.
+    final segs = <Widget>[
+      if (bf > 0)
+        Expanded(
+          flex: bf,
+          child: ColoredBox(color: Barako.primary),
+        ),
+      if (mf > 0)
+        Expanded(
+          flex: mf,
+          child: ColoredBox(color: Barako.warning),
+        ),
+      if (ff > 0)
+        Expanded(
+          flex: ff,
+          child: ColoredBox(color: Barako.border),
+        ),
+    ];
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: SizedBox(
         height: 10,
         child: Row(
           children: [
-            if (bf > 0)
-              Expanded(
-                flex: bf,
-                child: ColoredBox(color: Barako.primary),
-              ),
-            if (mf > 0)
-              Expanded(
-                flex: mf,
-                child: ColoredBox(color: Barako.warning),
-              ),
-            if (ff > 0)
-              Expanded(
-                flex: ff,
-                child: ColoredBox(color: Barako.border),
-              ),
+            for (var i = 0; i < segs.length; i++) ...[
+              if (i > 0) const SizedBox(width: 2),
+              segs[i],
+            ],
           ],
         ),
       ),
@@ -1144,7 +1198,34 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _healthCard(Map<String, dynamic> health) {
+  /// The one-sentence answer to "so what moves this score": names the
+  /// weakest part and the act that lifts it. A rubric that never says what
+  /// to do is a grade sheet, not an insight (Phase 5 audit).
+  String _healthLift(Map<String, dynamic> parts, bool hasBudget) {
+    const partMax = {'savings': 35, 'budget': 25, 'debt': 25, 'logging': 15};
+    var weakest = 'savings';
+    var worst = 2.0;
+    for (final key in ['savings', 'budget', 'debt', 'logging']) {
+      final ratio = (parts[key] as double) / partMax[key]!;
+      if (ratio < worst) {
+        worst = ratio;
+        weakest = key;
+      }
+    }
+    if (worst >= 0.8) {
+      return 'All four parts are holding up. Keep doing what you are doing.';
+    }
+    return switch (weakest) {
+      'budget' when !hasBudget =>
+        'Biggest lift: set a monthly budget so this part can score at all.',
+      'budget' => 'Biggest lift: staying inside your monthly budget.',
+      'debt' => 'Biggest lift: paying down what you owe.',
+      'logging' => 'Biggest lift: logging a few more days each week.',
+      _ => 'Biggest lift: keeping a little more of your income each month.',
+    };
+  }
+
+  Widget _healthCard(Map<String, dynamic> health, bool hasBudget) {
     final parts = (health['parts'] as Map).cast<String, dynamic>();
     // Belt and braces: the engine guards every part against non-finite
     // sums, but toInt() on a non-finite double kills the whole tab, so the
@@ -1219,156 +1300,336 @@ class InsightsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            const SizedBox(height: 8),
+            Text(
+              _healthLift(parts, hasBudget),
+              style: AppText.caption.tint(Barako.muted).copyWith(height: 1.35),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _trendCard(List<Map<String, dynamic>> series) {
-    final income = [for (final s in series) s['income'] as double];
-    final expenses = [for (final s in series) s['expenses'] as double];
-    final labels = [for (final s in series) s['label'] as String];
+  // The month's one-line read, deliberately NOT a card: it is the section's
+  // opening sentence, and boxing it would restart the card wall this
+  // redesign removed. The icon and the words carry the tone; color only
+  // reinforces it.
+  /// The month's one-line read, as the screen's raised HERO, first thing seen.
+  ///
+  /// This is the "financial pulse" the brief puts at the top: one dominant
+  /// interpretation of the month, on the raised surface so it is the single
+  /// thing the eye is pulled to, not a peer of the cards below. The
+  /// confidence is SHOWN, not just stored: a fact reads "This month so far",
+  /// a trend "From your logged history", so a claim built on history visibly
+  /// carries less certainty than arithmetic on this month.
+  Widget _pulseHero(BuildContext context, feed.MonthPulse pulse) {
+    final (iconName, ink) = switch (pulse.tone) {
+      'good' => ('growth', Barako.primary),
+      'attention' => ('warning', Barako.warningStrong),
+      _ => ('chart', Barako.primaryText),
+    };
+    final cue = pulse.confidence == 'trend'
+        ? 'From your logged history'
+        : 'This month so far';
+    const indent = EdgeInsets.only(left: 20 + Gap.sm);
     return Card(
+      color: Barako.surfaceRaised,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('LAST 6 MONTHS'),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 120,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _TrendPainter(income: income, expenses: expenses),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(salapifyIcon(iconName), color: ink, size: 20),
+                ),
+                const SizedBox(width: Gap.sm),
+                Expanded(
+                  child: Text(
+                    pulse.headline,
+                    style: AppText.bodyLg.w7.tint(ink).copyWith(height: 1.25),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: indent,
+              child: Text(
+                pulse.detail,
+                style: AppText.small
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
               ),
             ),
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (final l in labels)
-                  Text(
-                    l,
-                    style: AppText.micro.copyWith(
-                      fontSize: 10,
-                      fontWeight: TypeWeight.regular,
-                      color: Barako.faint,
+            // The confidence cue, rendered rather than discarded.
+            Padding(
+              padding: indent,
+              child: Text(cue, style: AppText.micro.tint(Barako.muted)),
+            ),
+            // Pan explains, on request only, and only when the month needs
+            // explaining: an attention read earns the door, a steady one does
+            // not. The question is pointed at the warning (where is my money
+            // going) rather than a neutral "how was my month", and it rides
+            // along so the user never retypes it.
+            if (pulse.tone == 'attention')
+              Padding(
+                padding: indent,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(48, 44),
+                      alignment: Alignment.centerLeft,
                     ),
+                    onPressed: () =>
+                        _askPan(context, 'Where is my money going this month?'),
+                    child: const Text('Ask Pan about this month'),
                   ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _legendDot(Barako.primary, 'Income'),
-                const SizedBox(width: 14),
-                _legendDot(Barako.warning, 'Spending'),
-              ],
-            ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _legendDot(Color color, String label) => Row(
-    children: [
-      Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  void _askPan(BuildContext context, String question) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanScreen(
+          store: store,
+          onSwitchTab: onSwitchTab,
+          onOpenReceivables: onOpenReceivables,
+          onOpenPayables: onOpenPayables,
+          initialQuestion: question,
+        ),
       ),
-      const SizedBox(width: 6),
-      Text(label, style: AppText.caption.tint(Barako.textSecondary)),
-    ],
-  );
+    );
+  }
 
-  Widget _categoriesCard(
-    List<Map<String, dynamic>> cats,
+  // The one dominant chart on Insights: income vs spending, six months,
+  // with a tap-to-read month readout. It answers "am I spending more than
+  // I earn", states its conclusion in the caption, and links nothing: the
+  // full exploration lives in Reports.
+  Widget _monthStoryChart(
+    BuildContext context,
+    List<Map<String, dynamic>> series,
     Map<String, dynamic> forecast,
+    DateTime ref,
   ) {
-    final visible = cats.where((c) => (c['now'] as double) > 0).toList();
-    var maxNow = 0.0;
-    for (final c in visible) {
-      if ((c['now'] as double) > maxNow) maxNow = c['now'] as double;
+    final conclusion = feed.trendConclusion(series);
+    final frac = feed.monthFraction(ref);
+    final spent = forecast['spent'] as double;
+    // The pace sentence obeys the same 34% gate Reports uses for its flags:
+    // a day-two projection is noise stated confidently.
+    final pace = frac >= 0.34 && spent > 0
+        ? '${formatMoney(spent)} spent so far, on pace for about ${formatMoneyAbout(forecast['projected'] as double)} by month end.'
+        : null;
+    final caption = [?conclusion, ?pace].join(' ');
+    return ChartFrame(
+      kicker: 'INCOME VS SPENDING',
+      chart: _MonthTrendChart(
+        series: series,
+        semanticsLabel: conclusion == null
+            ? 'Income and spending by month.'
+            : 'Income and spending by month. $conclusion',
+      ),
+      legend: Row(
+        children: [
+          ChartFrame.legendDot(Barako.primary, 'Income'),
+          const SizedBox(width: 14),
+          ChartFrame.legendDot(Barako.warning, 'Spending'),
+        ],
+      ),
+      caption: caption.isEmpty ? null : caption,
+    );
+  }
+
+  // What moved against last month, honestly paced by the engine. Rows tap
+  // through to the exact entries; the biggest rise offers Pan.
+  Widget _whatChangedCard(
+    BuildContext context,
+    feed.WhatChanged changed,
+    DateTime ref,
+  ) {
+    final shifts = changed.shifts;
+    var scale = 0.0;
+    for (final s in shifts) {
+      if (s.now > scale) scale = s.now;
+      if (s.pacedBefore > scale) scale = s.pacedBefore;
     }
-    // Total spent this month, used to show each category's SHARE (34%) next to
-    // its amount, so the bars read as "how much of my money went here", not
-    // just rank. A share is a ratio of two figures the engine already gave us,
-    // not new money math, and it is guarded against a zero total.
-    final spentTotal = forecast['spent'] as double;
+    feed.CategoryShift? topRise;
+    for (final s in shifts) {
+      if (s.change > 0) {
+        topRise = s;
+        break;
+      }
+    }
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: Insets.card,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Kicker('WHERE YOUR MONEY WENT THIS MONTH'),
-            const SizedBox(height: 4),
-            Text(
-              '${formatMoney(forecast['spent'] as double)} spent so far, on pace for ${formatMoney(forecast['projected'] as double)} by month end.',
-              style: AppText.caption,
-            ),
-            const SizedBox(height: 10),
-            for (final c in visible)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            c['label'] as String,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.small.tint(Barako.text),
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${spentTotal > 0 ? ((c['now'] as double) / spentTotal * 100).round() : 0}%',
-                              style: AppText.micro.w4.tint(Barako.faint),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              formatMoney(c['now'] as double),
-                              style: AppText.small.w6.tabular,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    SalapifyProgressBar(
-                      value: maxNow > 0 ? (c['now'] as double) / maxNow : 0,
-                      size: ProgressBarSize.micro,
-                      semanticsLabel: '${c['label']} spending',
-                      color:
-                          (c['expected'] as double) > 0 &&
-                              (c['now'] as double) >
-                                  (c['expected'] as double) * 1.2
-                          ? Barako.warning
-                          : Barako.primary,
-                    ),
-                  ],
-                ),
+            Kicker('WHAT CHANGED', inCard: true),
+            const SizedBox(height: Gap.sm),
+            if (!changed.comparable)
+              Text(
+                changed.note ?? '',
+                style: AppText.small.tint(Barako.muted).copyWith(height: 1.4),
+              )
+            else if (shifts.isEmpty)
+              Text(
+                'Nothing moved much against last month. Steady.',
+                style: AppText.small.tint(Barako.muted),
+              )
+            else ...[
+              for (final s in shifts) _shiftRow(context, s, scale, ref),
+              const SizedBox(height: Gap.xs),
+              Text(
+                'Solid bar is this month, faded bar is last month at this '
+                'point. Tap a change to see the entries.',
+                style: AppText.micro.w4.tint(Barako.faint),
               ),
-            const SizedBox(height: 4),
-            Text(
-              'Percent shows each category\'s share of your spending. Orange means it is running faster than usual this month.',
-              style: AppText.micro.w4.tint(Barako.faint),
-            ),
+              if (topRise != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(48, 48),
+                      alignment: Alignment.centerLeft,
+                    ),
+                    onPressed: () => _askPan(
+                      context,
+                      'Am I overspending on ${topRise!.label}?',
+                    ),
+                    child: Text('Ask Pan about ${topRise.label.toLowerCase()}'),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
     );
   }
+
+  Widget _shiftRow(
+    BuildContext context,
+    feed.CategoryShift s,
+    double scale,
+    DateTime ref,
+  ) {
+    final up = s.change > 0;
+    // Direction is carried three ways on purpose: the glyph, the sign in
+    // the printed amount, and only then the color.
+    final ink = up ? Barako.warningStrong : Barako.primary;
+    final denom = scale > 0 ? scale : 1.0;
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => HistoryScreen(
+              store: store,
+              initialQuery: s.label,
+              pushed: true,
+              initialPeriod: Period.monthOf(ref),
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Gap.xs + 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  salapifyIcon(up ? 'growth' : 'decline'),
+                  size: 14,
+                  color: ink,
+                ),
+                const SizedBox(width: Gap.xs),
+                Expanded(
+                  child: Text(
+                    s.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.label,
+                  ),
+                ),
+                const SizedBox(width: Gap.sm),
+                Text(
+                  '${up ? '+' : '-'}${_wholePeso(s.change.abs())}',
+                  style: AppText.amountRow.tint(ink),
+                ),
+              ],
+            ),
+            const SizedBox(height: Gap.xs),
+            _pacePair(s.now / denom, s.pacedBefore / denom, up),
+            if (s.driver != null) ...[
+              const SizedBox(height: 3),
+              Text(s.driver!, style: AppText.caption.tint(Barako.muted)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The comparison the reader would otherwise do in their head: this month
+  /// (solid) directly above last month's pace (faded), same scale.
+  Widget _pacePair(double nowFrac, double beforeFrac, bool up) {
+    Widget bar(double frac, Color color) => FractionallySizedBox(
+      alignment: Alignment.centerLeft,
+      widthFactor: frac.clamp(0.02, 1.0),
+      child: Container(
+        height: 5,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
+    );
+    final ink = up ? Barako.warningStrong : Barako.primary;
+    return Column(
+      children: [
+        SizedBox(width: double.infinity, child: bar(nowFrac, ink)),
+        const SizedBox(height: 2),
+        SizedBox(
+          width: double.infinity,
+          child: bar(beforeFrac, ink.withValues(alpha: 0.28)),
+        ),
+      ],
+    );
+  }
+
+  // The one door into the deep-analysis destination. Insights interprets;
+  // Reports itemizes; this row is the boundary made tappable.
+  Widget _reportsLinkRow(BuildContext context) => NavBand(
+    tiles: [
+      NavTile(
+        icon: 'chart',
+        label: 'See the full month in Reports',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                ReportsScreen(store: store, onSwitchTab: onSwitchTab),
+          ),
+        ),
+      ),
+    ],
+  );
 
   Widget _runwayCard(Map<String, dynamic> runway) {
     final months = runway['monthsCovered'];
@@ -1752,10 +2013,167 @@ class _GoalWhatIfCardState extends State<_GoalWhatIfCard> {
   }
 }
 
+/// The dominant Insights chart: income vs spending lines with a
+/// tap-or-scrub month selection whose readout prints the selected month's
+/// three figures. The selection answers "what were March's numbers" on the
+/// chart itself, the gap the audit called "charts are paintings, not
+/// instruments".
+class _MonthTrendChart extends StatefulWidget {
+  final List<Map<String, dynamic>> series;
+  final String semanticsLabel;
+  const _MonthTrendChart({required this.series, required this.semanticsLabel});
+
+  @override
+  State<_MonthTrendChart> createState() => _MonthTrendChartState();
+}
+
+class _MonthTrendChartState extends State<_MonthTrendChart> {
+  /// Selected month index; the latest month by default, because "this
+  /// month" is the question people bring to the tab.
+  late int selected = widget.series.length - 1;
+
+  @override
+  void didUpdateWidget(covariant _MonthTrendChart old) {
+    super.didUpdateWidget(old);
+    if (selected >= widget.series.length) {
+      selected = widget.series.length - 1;
+    }
+  }
+
+  void _pick(double dx, double width) {
+    final n = widget.series.length;
+    if (n < 2 || width <= 16) return;
+    // Mirrors chartgeom.linePointsScaled's 8px pad: point i sits at
+    // 8 + i * (width - 16) / (n - 1).
+    final i = (((dx - 8) / (width - 16)) * (n - 1)).round().clamp(0, n - 1);
+    if (i != selected) {
+      HapticFeedback.selectionClick();
+      setState(() => selected = i);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final series = widget.series;
+    if (series.isEmpty) return const SizedBox.shrink();
+    final income = [for (final s in series) s['income'] as double];
+    final expenses = [for (final s in series) s['expenses'] as double];
+    final m = series[selected];
+    final net = m['net'] as double;
+    final isLatest = selected == series.length - 1;
+    final kept = net >= 0;
+    // Painter text cannot scale itself the way a Text widget does, so the
+    // ambient scale rides in. Capped so a 200% label cannot eat the plot.
+    final labelScale = (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(
+      1.0,
+      1.6,
+    );
+
+    return Semantics(
+      container: true,
+      label: widget.semanticsLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // The selected month's readout: see, then read, no decoding. Wrap,
+          // not Row, so large text stacks instead of clipping.
+          Wrap(
+            spacing: Gap.md,
+            runSpacing: 2,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '${m['label']}${isLatest ? ' so far' : ''}',
+                style: AppText.caption.w7.tint(Barako.caramel),
+              ),
+              // A month with nothing in it says so in words; a row of three
+              // ₱0 figures reads like a verdict on a month that simply has
+              // no entries yet.
+              if ((m['income'] as double) == 0 &&
+                  (m['expenses'] as double) == 0)
+                Text(
+                  'No entries this month yet',
+                  style: AppText.caption.tint(Barako.muted),
+                )
+              else ...[
+                Text(
+                  'In ${formatMoney(m['income'] as double)}',
+                  style: AppText.caption.tabular.tint(Barako.textSecondary),
+                ),
+                Text(
+                  'Out ${formatMoney(m['expenses'] as double)}',
+                  style: AppText.caption.tabular.tint(Barako.textSecondary),
+                ),
+                Text(
+                  kept
+                      ? 'Kept ${formatMoney(net)}'
+                      : 'Short ${formatMoney(-net)}',
+                  style: AppText.caption.w7.tabular.tint(
+                    kept ? Barako.primaryText : Barako.warningStrong,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: Gap.sm),
+          LayoutBuilder(
+            builder: (context, c) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (d) => _pick(d.localPosition.dx, c.maxWidth),
+              onHorizontalDragUpdate: (d) =>
+                  _pick(d.localPosition.dx, c.maxWidth),
+              // The canvas is decorative to a screen reader; the readout
+              // above and the frame's caption carry the numbers.
+              child: ExcludeSemantics(
+                child: SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: _TrendPainter(
+                      income: income,
+                      expenses: expenses,
+                      selected: selected,
+                      textScale: labelScale,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final (i, s) in series.indexed)
+                Text(
+                  s['label'] as String,
+                  style: AppText.micro.copyWith(
+                    fontSize: 10,
+                    fontWeight: i == selected
+                        ? TypeWeight.bold
+                        : TypeWeight.regular,
+                    color: i == selected ? Barako.text : Barako.faint,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TrendPainter extends CustomPainter {
   final List<double> income;
   final List<double> expenses;
-  _TrendPainter({required this.income, required this.expenses});
+  final int selected;
+  final double textScale;
+  _TrendPainter({
+    required this.income,
+    required this.expenses,
+    this.selected = -1,
+    this.textScale = 1,
+  });
 
   /// A short peso label for the y axis, so 32000 reads as "P32k" and the
   /// height of the chart finally means a number. Display only, not money math.
@@ -1769,12 +2187,15 @@ class _TrendPainter extends CustomPainter {
   }
 
   void _label(Canvas canvas, String text, Offset at) {
+    // 10 is the app's painter floor (the audit found 9 here), and the scale
+    // rides in from MediaQuery because a raw TextPainter never sees the
+    // system font size on its own.
     final tp = TextPainter(
       text: TextSpan(
         text: text,
         style: TextStyle(
           color: Barako.faint,
-          fontSize: 9,
+          fontSize: 10 * textScale,
           fontFamily: Barako.bodyFont,
           fontWeight: FontWeight.w600,
         ),
@@ -1797,16 +2218,80 @@ class _TrendPainter extends CustomPainter {
     // Fills first (area under each line), then the crisp lines on top, so the
     // shape reads as magnitude while the two lines stay legible. Spending is
     // drawn last, so a month where spending rose above income shows more red.
+    // Spending is also DASHED, so the two series differ by more than hue for
+    // a color-blind reader; the legend dots alone cannot carry that.
     _drawSeries(canvas, size, income, max, Barako.primary, fill: true);
     _drawSeries(canvas, size, expenses, max, Barako.warning, fill: true);
     _drawSeries(canvas, size, income, max, Barako.primary);
-    _drawSeries(canvas, size, expenses, max, Barako.warning);
+    _drawSeries(canvas, size, expenses, max, Barako.warning, dashed: true);
+    _drawSelection(canvas, size, max);
     // Y axis magnitude: the top grid line is the shared max, the bottom is
     // zero. Now the chart's height answers "how much".
     if (max.isFinite && max > 0) {
       _label(canvas, _compact(max), const Offset(2, 1));
       _label(canvas, '₱0', Offset(2, size.height - 11));
     }
+  }
+
+  /// The selected month: a hairline through both lines with a dot on each,
+  /// so the readout above visibly belongs to one column of the chart.
+  void _drawSelection(Canvas canvas, Size size, double max) {
+    if (selected < 0 || selected >= income.length) return;
+    final incPts = chartgeom.linePointsScaled(
+      income,
+      max,
+      size.width,
+      size.height,
+      8,
+    );
+    final expPts = chartgeom.linePointsScaled(
+      expenses,
+      max,
+      size.width,
+      size.height,
+      8,
+    );
+    if (selected >= incPts.length) return;
+    final x = incPts[selected]['x']!;
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(x, size.height),
+      Paint()
+        ..color = Barako.faint.withValues(alpha: 0.55)
+        ..strokeWidth = 1,
+    );
+    canvas.drawCircle(
+      Offset(x, incPts[selected]['y']!),
+      4,
+      Paint()..color = Barako.primary,
+    );
+    if (selected < expPts.length) {
+      canvas.drawCircle(
+        Offset(x, expPts[selected]['y']!),
+        4,
+        Paint()..color = Barako.warning,
+      );
+    }
+  }
+
+  /// A dashed copy of [src], drawn segment by segment. Only the spending
+  /// line uses it; income stays solid.
+  Path _dashPath(Path src) {
+    const dash = 6.0;
+    const gap = 4.0;
+    final out = Path();
+    for (final metric in src.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        final end = d + dash;
+        out.addPath(
+          metric.extractPath(d, end < metric.length ? end : metric.length),
+          Offset.zero,
+        );
+        d = end + gap;
+      }
+    }
+    return out;
   }
 
   void _drawSeries(
@@ -1816,6 +2301,7 @@ class _TrendPainter extends CustomPainter {
     double max,
     Color color, {
     bool fill = false,
+    bool dashed = false,
   }) {
     final pts = chartgeom.linePointsScaled(
       values,
@@ -1846,12 +2332,15 @@ class _TrendPainter extends CustomPainter {
     for (final p in pts.skip(1)) {
       path.lineTo(p['x']!, p['y']!);
     }
-    canvas.drawPath(path, paint);
+    canvas.drawPath(dashed ? _dashPath(path) : path, paint);
     final dot = Paint()..color = color;
     canvas.drawCircle(Offset(pts.last['x']!, pts.last['y']!), 3.5, dot);
   }
 
   @override
   bool shouldRepaint(covariant _TrendPainter old) =>
-      old.income != income || old.expenses != expenses;
+      old.income != income ||
+      old.expenses != expenses ||
+      old.selected != selected ||
+      old.textScale != textScale;
 }

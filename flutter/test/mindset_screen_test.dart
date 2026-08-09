@@ -511,6 +511,11 @@ void main() {
           400,
           scrollable: find.byType(Scrollable).first,
         );
+        // scrollUntilVisible only builds the row into the tree; it can stop
+        // with the row still below the fold, where a tap misses. Pull it
+        // fully on-screen before tapping.
+        await tester.ensureVisible(find.text('New shoes'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('New shoes'));
         await tester.pumpAndSettle();
         expect(find.text('Edit win'), findsOneWidget);
@@ -551,6 +556,8 @@ void main() {
           400,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(find.text('New shoes'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('New shoes'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Delete win'));
@@ -580,6 +587,8 @@ void main() {
           400,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(find.byIcon(Icons.close));
+        await tester.pumpAndSettle();
         await tester.tap(find.byIcon(Icons.close));
         await tester.pumpAndSettle();
         expect(store.data['wins'], isEmpty);

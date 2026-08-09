@@ -4,12 +4,14 @@
 
 import 'dart:convert';
 
-import 'package:flutter/widgets.dart' show Scrollable;
+import 'package:flutter/material.dart'
+    show MaterialApp, Scaffold, Scrollable, TextField;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/money/analytics.dart' as analytics;
-import 'package:salapify/screens/insights.dart' show runwayLabel, fundedOnTime;
+import 'package:salapify/screens/insights.dart'
+    show InsightsScreen, runwayLabel, fundedOnTime;
 import 'package:salapify/screens/overview.dart' show formatMoney;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -181,16 +183,38 @@ void main() {
     // The lower cards live below the test viewport fold: scroll to each. Safe
     // to spend joined them once the WHAT MATTERS NOW summary was added above
     // DO NEXT; it still renders, just a scroll down now.
-    Future<void> scrollTo(String label) async {
-      await tester.scrollUntilVisible(
-        find.text(label),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+    // Drag from the LEFT MARGIN (x=20), clear of the income-vs-spending
+    // chart's tap/scrub gesture in the middle of the page. scrollUntilVisible
+    // drags from the scrollable's centre, which since the Phase 5 pulse hero
+    // moved up now lands on that chart, and its opaque tap recogniser makes
+    // the synthetic drag flaky. A real finger scrolls fine (the vertical drag
+    // wins the arena over the chart's horizontal-only recogniser); this keeps
+    // the test off the chart so it measures layout, not gesture arbitration.
+    Future<void> scrollTo(String label, {double dir = -1}) async {
+      var tries = 0;
+      while (find.text(label).evaluate().isEmpty && tries < 60) {
+        await tester.dragFrom(const Offset(20, 500), Offset(0, dir * 120));
+        await tester.pumpAndSettle();
+        tries++;
+      }
+      // Built (lazily) is not the same as fully on screen; ensureVisible
+      // scrolls it into view directly (no synthetic drag over the chart) so a
+      // following tap lands.
+      await tester.ensureVisible(find.text(label));
+      await tester.pumpAndSettle();
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
     await scrollTo('SAFE TO SPEND UNTIL PAYDAY');
+
+    // THIS MONTH: the Phase 5 story band. The dominant chart states its
+    // name, its legend renders, and WHAT CHANGED sits under it.
+    await scrollTo('THIS MONTH');
+    await scrollTo('INCOME VS SPENDING');
+    await scrollTo('Income');
+    await scrollTo('Spending');
+    await scrollTo('WHAT CHANGED');
+    await scrollTo('See the full month in Reports');
 
     // THE BIGGER PICTURE band renders open always now, no CollapsibleCard
     // and nothing to tap: founder feedback that collapsing the one band
@@ -198,20 +222,13 @@ void main() {
     // score) behind a chevron hid the entire point.
     await scrollTo('MONEY HEALTH');
 
-    await scrollTo('LAST 6 MONTHS');
-    await scrollTo('Income');
-    await scrollTo('Spending');
-
     await scrollTo('EMERGENCY RUNWAY');
     // Only the current month has spending: runway has no honest number.
     await scrollTo('Not enough history yet');
 
-    // Tapping the utang decision jumps to the Utang tab.
-    await tester.scrollUntilVisible(
-      find.text('Follow up Migs'),
-      -200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tapping the utang decision jumps to the Utang tab. Scroll back UP to it,
+    // off the chart, via the same margin-drag helper.
+    await scrollTo('Follow up Migs', dir: 1);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Follow up Migs'));
     await tester.pumpAndSettle();
@@ -545,6 +562,200 @@ void main() {
     );
     expect(find.textContaining('goes to bills and minimums'), findsOneWidget);
   });
+
+  testWidgets('low data: the month story refuses to fabricate comparisons', (
+    tester,
+  ) async {
+    // Three entries in the current month and nothing before it: the exact
+    // state where a careless build prints "+100%" deltas against a month
+    // that was simply never logged. WHAT CHANGED must explain itself
+    // instead, the pulse may state this month's share but never a history
+    // claim, and no shift rows exist to tap.
+    final now = DateTime.now();
+    String d(int day) =>
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 9000,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+          {
+            'id': 't2',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 450,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+          {
+            'id': 't3',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 120,
+            'date': d(1),
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await goToTab(tester, 'Insights');
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('WHAT CHANGED'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    // No prior month: the card says why it is not comparing, and no delta
+    // row is invented.
+    expect(find.textContaining('another logged month'), findsOneWidget);
+    // No best-month claim can exist on one month of history.
+    expect(find.textContaining('strongest savings month'), findsNothing);
+  });
+
+  testWidgets(
+    'WHAT CHANGED renders paced shifts, drivers, the History link, and Ask Pan',
+    (tester) async {
+      // A fixed clock (Jul 20, past the 34% gate) and two months of data, so
+      // the populated story band is pinned deterministically instead of only
+      // rendering after the 12th of a real month. June: Food 1,000 and
+      // Transport 2,000. July: Food 2,100, mostly Grab. Paced to day 20 of
+      // 31, Food is +1,455 (2,100 vs 645 paced) and Transport is -1,290.
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode({
+          'schemaVersion': 12,
+          'settings': {'onboarded': true},
+          'accounts': [
+            {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+          ],
+          'transactions': [
+            {
+              'id': 'i6',
+              'type': 'income',
+              'label': 'Sweldo',
+              'amount': 20000,
+              'date': '2026-06-15',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f6',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 1000,
+              'date': '2026-06-10',
+              'accountId': 'cash',
+            },
+            {
+              'id': 't6',
+              'type': 'expense',
+              'label': 'Transport',
+              'amount': 2000,
+              'date': '2026-06-12',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'i7',
+              'type': 'income',
+              'label': 'Sweldo',
+              'amount': 20000,
+              'date': '2026-07-15',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7a',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 900,
+              'date': '2026-07-02',
+              'note': 'Grab food',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7b',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 800,
+              'date': '2026-07-09',
+              'note': 'grab food',
+              'accountId': 'cash',
+            },
+            {
+              'id': 'f7c',
+              'type': 'expense',
+              'label': 'Food',
+              'amount': 400,
+              'date': '2026-07-11',
+              'note': 'groceries',
+              'accountId': 'cash',
+            },
+          ],
+        }),
+      });
+      final store = SalapifyStore();
+      await store.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InsightsScreen(
+              store: store,
+              clock: () => DateTime(2026, 7, 20),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> scrollTo(String label) async {
+        await tester.scrollUntilVisible(
+          find.text(label),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+      }
+
+      await scrollTo('WHAT CHANGED');
+      // Biggest absolute move first, signed, with the note-group driver.
+      await scrollTo('Food');
+      expect(find.text('+₱1,455'), findsOneWidget);
+      expect(find.text('Mostly from Grab food.'), findsOneWidget);
+      await scrollTo('Transport');
+      expect(find.text('-₱1,290'), findsOneWidget);
+
+      // The biggest rise offers Pan, with the question pre-asked as a user
+      // bubble through the same brain a typed question reaches.
+      await scrollTo('Ask Pan about food');
+      await tester.ensureVisible(find.text('Ask Pan about food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ask Pan about food'));
+      await tester.pumpAndSettle();
+      expect(find.text('Am I overspending on Food?'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // A shift row opens History filtered to the category.
+      await scrollTo('Food');
+      await tester.ensureVisible(find.text('Food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Food'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Food'), findsOneWidget);
+    },
+  );
 
   testWidgets('an empty app invites logging instead of a wall of zeros', (
     tester,

@@ -37,6 +37,7 @@ import 'package:salapify/money/pan_mood.dart';
 import 'package:salapify/screens/budget.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
+import 'package:salapify/screens/reports.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/content/lessons_stocks_bonds.dart';
 import 'package:salapify/content/lessons_deposits_pooled_funds.dart';
@@ -1376,6 +1377,236 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/insights-full-dark.png'),
+    );
+  });
+
+  testWidgets('Insights with three days of data, dark', (tester) async {
+    // The low-data read: a person three logs into their first week. The
+    // Phase 5 honesty gates are the subject here: the pulse must state a
+    // first-month share or stay silent, WHAT CHANGED must explain why it is
+    // not comparing yet, and nothing may print a fabricated delta. A shot of
+    // this state is the only way to see what a brand-new user is actually
+    // told.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 3200},
+        ],
+        'transactions': [
+          {
+            'id': 't1',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 9000,
+            'date': '2026-07-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 't2',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 450,
+            'date': '2026-07-16',
+            'accountId': 'cash',
+          },
+          {
+            'id': 't3',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 120,
+            'date': '2026-07-17',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: InsightsScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/insights-low-data-dark.png'),
+    );
+  });
+
+  testWidgets('Insights month story, fixed clock, dark', (tester) async {
+    // The populated WHAT CHANGED band: paced shifts, a driver sentence, the
+    // Ask Pan action, the win card, and the Reports door. A fixed clock (Jul
+    // 20) because the band's honesty gate hides all of this for the first
+    // eleven days of any real month, which is exactly when a founder is most
+    // likely to look.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
+        ],
+        'transactions': [
+          {
+            'id': 'i6',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-06-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f6',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 1000,
+            'date': '2026-06-10',
+            'accountId': 'cash',
+          },
+          {
+            'id': 't6',
+            'type': 'expense',
+            'label': 'Transport',
+            'amount': 2000,
+            'date': '2026-06-12',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'i7',
+            'type': 'income',
+            'label': 'Sweldo',
+            'amount': 20000,
+            'date': '2026-07-15',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7a',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 900,
+            'date': '2026-07-02',
+            'note': 'Grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7b',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 800,
+            'date': '2026-07-09',
+            'note': 'grab food',
+            'accountId': 'cash',
+          },
+          {
+            'id': 'f7c',
+            'type': 'expense',
+            'label': 'Food',
+            'amount': 400,
+            'date': '2026-07-11',
+            'note': 'groceries',
+            'accountId': 'cash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: InsightsScreen(
+            store: store,
+            onSwitchTab: (_) {},
+            onMenu: () {},
+            clock: () => DateTime(2026, 7, 20),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Bring the story band itself into frame; the top bands have their own
+    // shots.
+    await tester.scrollUntilVisible(
+      find.text('WHAT CHANGED'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/insights-month-story-dark.png'),
+    );
+  });
+
+  testWidgets('Reports, all three tabs, real data, dark', (tester) async {
+    // Reports had never been through the look-at-the-screen discipline: the
+    // Phase 5 dataviz audit found this harness did not render it at all, so
+    // its charts shipped unseen for their whole life. Three frames on the
+    // lived-in fixture: the income tab with the trend in its ChartFrame, the
+    // Money flow tab with the diverging bars, and Position with the
+    // liquidity headline and the debt-free plan that now lives there.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: ReportsScreen(store: store, onSwitchTab: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/reports-income-dark.png'),
+    );
+
+    await tester.tap(find.text('Money flow'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/reports-moneyflow-dark.png'),
+    );
+
+    await tester.tap(find.text('Position'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/reports-position-dark.png'),
     );
   });
 

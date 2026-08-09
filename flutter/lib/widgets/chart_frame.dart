@@ -35,6 +35,18 @@ class ChartFrame extends StatelessWidget {
   /// legend, but absence should be a decision, not a default.
   final String? caption;
 
+  /// A short factual line under the kicker naming what the chart shows
+  /// ("Last 6 months, spending per month"). Added in Phase 5 when Reports
+  /// adopted the frame: its charts carried this line already, and losing it
+  /// would have traded shared furniture for less information.
+  final String? contextLine;
+
+  /// A styled conclusion widget rendered where [caption] would go, for the
+  /// chart whose read carries semantic color (Reports tints a warning read).
+  /// Added in Phase 5 for the same adoption; provide one of [caption] or
+  /// [footer], not both.
+  final Widget? footer;
+
   /// An optional control on the kicker row: a period selector, a filter.
   final Widget? trailing;
 
@@ -51,6 +63,8 @@ class ChartFrame extends StatelessWidget {
     required this.kicker,
     required this.chart,
     this.caption,
+    this.contextLine,
+    this.footer,
     this.trailing,
     this.legend,
   });
@@ -88,6 +102,10 @@ class ChartFrame extends StatelessWidget {
                   trailing!,
                 ],
               ),
+            if (contextLine != null) ...[
+              const SizedBox(height: 4),
+              Text(contextLine!, style: AppText.caption),
+            ],
             const SizedBox(height: Gap.md),
             chart,
             if (legend != null) ...[const SizedBox(height: Gap.sm), legend!],
@@ -95,6 +113,7 @@ class ChartFrame extends StatelessWidget {
               const SizedBox(height: Gap.sm),
               Text(caption!, style: AppText.small.tint(Barako.muted)),
             ],
+            if (footer != null) ...[const SizedBox(height: Gap.sm), footer!],
           ],
         ),
       ),
