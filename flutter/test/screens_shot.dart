@@ -2837,7 +2837,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Your first shield: the emergency fund'));
+    // Batch B added the Continue / Start here hero atop the catalog, which
+    // pushes the lower cushion lessons past the fixed shot fold. This tap
+    // opens a lesson the way a reader does, so it scrolls the row on first
+    // like openTool does, rather than missing off-screen (the harness's fatal
+    // hit-test warning caught exactly that on the runner).
+    final lesson = find.text('Your first shield: the emergency fund');
+    await tester.ensureVisible(lesson);
+    await tester.pumpAndSettle();
+    await tester.tap(lesson);
     await tester.pumpAndSettle();
 
     await expectLater(
