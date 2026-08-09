@@ -51,7 +51,13 @@ const List<Map<String, dynamic>> lessons = [
     'track': 'cushion',
     'title': 'See where your money stands',
     'icon': 'spotlight',
-    'minutes': 2,
+    // 3, not 2: Batch B added the whole-picture net-worth block, which is real
+    // reading the honest-minutes estimate now counts, so the authored figure
+    // is raised to match rather than letting displayMinutes over-ride it. That
+    // keeps the reading_time invariant ("exactly one core lesson moves") true:
+    // freelancer-setaside stays the only lesson whose shown time exceeds its
+    // authored one.
+    'minutes': 3,
     'summary': 'Your money in one picture, then start with where it goes.',
     'objective':
         'See your whole money picture, then start with where your money goes.',
