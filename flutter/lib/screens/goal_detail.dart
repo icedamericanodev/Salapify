@@ -1216,7 +1216,14 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Delete this goal?'),
+        // Dialog titles do not inherit appBarTheme, and dialogTheme sets no
+        // titleTextStyle, so this keeps its original heavy weight explicitly.
+        // Unifying confirm-dialog titles is deferred (no shared ConfirmDialog
+        // yet, per the audit).
+        title: Text(
+          'Delete this goal?',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         content: Text(
           'Your money does not change; only the tracking goes. Undo brings '
           'it back exactly as it was.',

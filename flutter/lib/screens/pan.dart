@@ -394,7 +394,11 @@ class _PanScreenState extends State<PanScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
-        title: Text('Drop the plan?'),
+        // Kept explicitly heavy: dialog titles do not inherit appBarTheme.
+        title: Text(
+          'Drop the plan?',
+          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
+        ),
         content: Text(
           'Your money does not change, only the score keeping stops. '
           'We can always start a new one.',
