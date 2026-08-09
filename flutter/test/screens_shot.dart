@@ -46,6 +46,7 @@ import 'package:salapify/content/lessons_insurance.dart';
 import 'package:salapify/content/lessons_sss_philhealth.dart';
 import 'package:salapify/content/lessons_pagibig.dart';
 import 'package:salapify/content/lessons_bir_local_permits.dart';
+import 'package:salapify/content/lessons_business_permits_compliance.dart';
 import 'package:salapify/content/lessons_bir_tax_setup.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
 import 'package:salapify/screens/learn.dart';
@@ -853,6 +854,36 @@ void main() {
       pathId: 'protect_your_future',
       lesson: pagibigSavingsMp2HousingLessons.firstWhere(
         (l) => l.id == pagibigRefHousingLoanCost,
+      ),
+      store: s,
+    ),
+    // Phase 6B Batch C4: the two reading pages whose prose the C4 correctness
+    // pass changed. "The Order That Actually Matters" (BIR-vs-local-permit
+    // ordering reworded to acknowledge LGU variance) and "Books, Receipts,
+    // and Invoices" (the Authority-to-Print note corrected to the real EOPT
+    // invoicing reform, the unverified 30-day window softened). Rendered so
+    // the corrected prose is looked at before it ships.
+    'bir-local-order-that-matters-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlOrderThatMatters,
+      ),
+      store: s,
+    ),
+    'bir-local-books-and-invoices-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: birRegistrationAndLocalPermitsLessons.firstWhere(
+        (l) => l.id == birlBooksAndInvoices,
+      ),
+      store: s,
+    ),
+    // "Map the Local Permit Flow", the C4 course lesson whose BIR-ordering
+    // claim was softened to match the corrected sibling and acknowledge that
+    // the order varies by LGU and RDO.
+    'business-map-local-permit-flow-reading': (s) => lessonReadingShot(
+      pathId: 'build_your_business',
+      lesson: businessPermitsAndComplianceLessons.firstWhere(
+        (l) => l.id == bpccMapTheLocalPermitFlow,
       ),
       store: s,
     ),

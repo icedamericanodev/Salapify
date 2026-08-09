@@ -462,10 +462,13 @@ const _mapTheLocalPermitFlow = MoneyLesson(
             'others keep it as a separate stop. Not every local check '
             'applies to every business either, a home-based online seller '
             'and a business needing a physical facility can face a '
-            'different set of local checks even in the same city. BIR '
-            'registration generally follows the local permit steps, since '
+            'different set of local checks even in the same city. In many '
+            'LGUs BIR registration follows the local permit steps, since '
             'the Business Permit is commonly asked for as a supporting '
-            'document when registering with BIR.',
+            'document when registering with BIR, while some offices '
+            'instead ask for the BIR Certificate of Registration during '
+            'the local permit process; the exact order depends on the LGU '
+            'and the Revenue District Office.',
       ],
     ),
     DiagramBlock(
@@ -486,9 +489,9 @@ const _mapTheLocalPermitFlow = MoneyLesson(
       'Not every local clearance applies to every business.',
       'A DTI, SEC, or CDA registration alone is not permission to '
           'operate.',
-      'BIR registration generally follows the local permit steps, since '
-          'the Business Permit is commonly asked for when registering '
-          'with BIR.',
+      'In many LGUs BIR registration follows the local permit steps; in '
+          'others the order differs, so confirming it with each office is '
+          'worth doing.',
     ]),
     RiskWarningBlock(
       title: 'A general relationship, not a universal sequence',
