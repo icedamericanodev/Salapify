@@ -24,7 +24,7 @@ import 'screens_shot.dart' show loadRealFonts;
 import 'support/app_harness.dart';
 
 Future<void> _openCourses(WidgetTester tester) async {
-  await openTool(tester, 'Money courses');
+  await openFromMenu(tester, 'Money courses');
 }
 
 void main() {

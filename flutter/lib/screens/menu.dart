@@ -28,7 +28,9 @@ import 'appearance.dart';
 import 'cashflow.dart';
 import 'csv_import.dart';
 import 'goals.dart';
+import 'learn.dart';
 import 'milestone_share.dart';
+import 'mindset.dart';
 import 'new_phone_day.dart';
 import 'notifications_security.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
@@ -207,6 +209,44 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Gap.gutter),
+              // LEARN is its own category now. Money courses is the app's
+              // strongest education asset, and through Phase 6 it sat two taps
+              // deep inside a screen titled 'Calculators' (the EXTRAS band's
+              // Calculators tile), which even that screen's own comment called
+              // a junk drawer hiding the education. It reads as its own thing
+              // here, above EXTRAS, because learning is core to the app, not a
+              // reward or a share action.
+              Kicker('LEARN'),
+              const SizedBox(height: Gap.sm),
+              NavBand(
+                tiles: [
+                  NavTile(
+                    icon: 'learning',
+                    label: 'Money courses',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LearnScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                        ),
+                      ),
+                    ),
+                  ),
+                  NavTile(
+                    icon: 'mindset',
+                    label: 'Money mindset',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MindsetScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Gap.gutter),
               // 'EXTRAS', not 'HELPERS': the band holds calculators, treats
               // and sharing, which reward and share rather than help.
               Kicker('EXTRAS'),
@@ -221,8 +261,7 @@ class MenuScreen extends StatelessWidget {
                     label: 'Calculators',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) =>
-                            ToolsScreen(store: store, onSwitchTab: onSwitchTab),
+                        builder: (_) => ToolsScreen(store: store),
                       ),
                     ),
                   ),

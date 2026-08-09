@@ -28,7 +28,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openTool(tester, 'Money courses');
+    await openFromMenu(tester, 'Money courses');
 
     // The catalog is now four track cards, not a scroll of 22 lessons.
     expect(find.text('0 of $_catalogTotal lessons'), findsOneWidget);

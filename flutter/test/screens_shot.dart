@@ -655,7 +655,9 @@ void main() {
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
     // Phase 6: the calculators hub, regrouped from a thirteen-card wall into a
-    // few short row bands (Salary and tax, Debt, Everyday money, Learn).
+    // few short row bands (Salary and tax, Debt, Everyday money). Phase 6B
+    // moved the Learn band (Money courses, Money mindset) out to its own LEARN
+    // section on Menu, so it no longer appears here.
     'tools': (s) => ToolsScreen(store: s),
     'appearance': (s) => AppearanceScreen(store: s),
     // The wallet detail screens, one for a deposit account (secure info, holder,

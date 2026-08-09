@@ -16,8 +16,10 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/goals.dart';
+import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/milestone_share.dart';
+import 'package:salapify/screens/mindset.dart';
 import 'package:salapify/screens/paluwagan.dart';
 import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/payday.dart';
@@ -47,6 +49,11 @@ final _destinations = <String, Type>{
   'Recurring': RecurringScreen,
   'Reports': ReportsScreen,
   'Payday schedule': PaydayScreen,
+  // LEARN band: Money courses and Money mindset moved here from the
+  // Calculators screen, so the guard that every Menu destination opens its
+  // screen now covers them too.
+  'Money courses': LearnScreen,
+  'Money mindset': MindsetScreen,
   'Calculators': ToolsScreen,
   'Earn your treats': TreatsScreen,
   'Share your month': RecapShareScreen,
@@ -156,6 +163,8 @@ void main() {
       'repeat',
       'chart',
       'calendar',
+      'learning',
+      'mindset',
       'tools',
       'gift',
       'share',

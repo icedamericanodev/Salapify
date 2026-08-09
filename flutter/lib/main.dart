@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.92 \u00b7 Learn, Tools and Tax adopt the shared design system: rows, one title, shared inputs.';
+    'f3.93 \u00b7 Learn is its own menu section now, out of Calculators, so courses and mindset are easy to find.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
