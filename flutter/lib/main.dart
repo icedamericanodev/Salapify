@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.96 \u00b7 Design system adoption: one radius scale, one haptic vocabulary, theme-owned app bars. Same app.';
+    'f3.97 \u00b7 Amounts now render through one AmountText pipeline. Same figures, signs and precision. Same app.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
