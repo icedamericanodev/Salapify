@@ -683,9 +683,8 @@ class InsightsScreen extends StatelessWidget {
           ? '$n of 3 so far.'
           : 'Almost there.';
       body = Text(
-        'Steady Pay suggests a weekly salary you pay yourself, planned on '
-        'your lean months. It needs about three full months of logged '
-        'income to be honest: $progress Keep logging and it appears here.',
+        'A weekly salary you pay yourself, sized to your leaner months. '
+        'It needs 3 months of income before the number is reliable: $progress',
         style: AppText.small.copyWith(height: 1.4),
       );
     } else if (accepted == null) {
@@ -1040,8 +1039,10 @@ class InsightsScreen extends StatelessWidget {
         ? ' You have about ${_wholePeso(buffer)} so far.'
         : '';
     // When an unrated debt was left out of the order, do not claim ALL debts
-    // are handled; say "rated" so the copy never contradicts the note below.
-    final rated = rateUnfilled ? 'rated ' : '';
+    // are handled; name the ones with a rate saved so the copy never
+    // contradicts the note below. "rated" read as internal jargon (both the
+    // coach and content reviews flagged it), so it is spelled out plainly.
+    final rateSaved = rateUnfilled ? ' with a rate saved' : '';
 
     var title = '';
     var support = '';
@@ -1082,7 +1083,7 @@ class InsightsScreen extends StatelessWidget {
         activeIndex = 2;
         title = 'Grow your safety net';
         support =
-            'Your ${rated}debts are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or a hospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
+            'Your debts$rateSaved are handled. Next, build toward three months, about ${_wholePeso(fullTarget)}. That is what keeps a lost job or a hospital bill from undoing your progress. About ${_wholePeso(fullGap)} to go.';
         break;
       case 'goal':
         activeIndex = 3;
@@ -1092,18 +1093,18 @@ class InsightsScreen extends StatelessWidget {
             : 'your goal';
         title = 'Now, chase your goal';
         support =
-            'Your cushion and ${rateUnfilled ? 'rated debt' : 'high cost debt'} are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
+            'Your cushion and ${rateUnfilled ? 'debts with a rate saved' : 'high cost debts'} are handled. Your spare can now go to $gname. This is the fun part, you earned it.';
         break;
       default: // 'set'
         activeIndex = 4;
         title = 'You are in a good spot';
         support =
-            'Your cushion and ${rated}debts are handled and no goal is waiting. Now your money can work for you, think long term saving or investing for your future self, and enjoy some of it guilt free. You earned it.';
+            'Your cushion and debts$rateSaved are handled and no goal is waiting. Your money can now work for you. Think long term saving or investing, and enjoy some of it guilt free. You earned it.';
     }
 
     final spareLine = crunch
         ? 'Your bills use up this pay cycle already, so treat this as a plan for after payday.'
-        : 'This cycle you have about ${_wholePeso(spare)} free to move, if you can spare it.';
+        : 'About ${_wholePeso(spare)} you can set aside this pay cycle, if you can spare it.';
 
     return Card(
       child: Padding(
@@ -1130,13 +1131,13 @@ class InsightsScreen extends StatelessWidget {
               // Informational, not a money warning, so it stays in the calm
               // muted tone (which also clears AA) instead of a third red line.
               Text(
-                'A debt with no interest rate saved is left out of the order. Add its rate and I can place it properly.',
+                'One debt has no interest rate saved, so we could not compare its cost. Add its rate to include it.',
                 style: AppText.caption.copyWith(height: 1.4),
               ),
             ],
             const SizedBox(height: 8),
             Text(
-              'An order based on the rates and balances you logged, not a promise. Your call always wins.',
+              'Based on what you logged. Your call always wins.',
               style: AppText.micro.w4.tint(Barako.faint).copyWith(height: 1.35),
             ),
           ],
@@ -1151,7 +1152,11 @@ class InsightsScreen extends StatelessWidget {
   Widget _orderRail(int activeIndex) {
     // Single words only: a 4-across rail at 320dp with OS large-text scaling
     // would ellipsize a two-word label ("Bigger fund" to "Bigger...") mid-word.
-    const labels = ['Cushion', 'Debt', 'Buffer', 'Goals'];
+    // Each word mirrors the plain word in that step's card title above, so the
+    // chip and the sentence teach each other: "Starter" for "Build a starter
+    // cushion", "Safety" for "Grow your safety net". "Cushion" and "Buffer"
+    // read as jargon on their own, which is what confused the founder.
+    const labels = ['Starter', 'Debt', 'Safety', 'Goals'];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

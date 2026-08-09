@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.90 \u00b7 Insights tells you what your money means, Reports shows the detail, and Pan explains on tap.';
+    'f3.91 \u00b7 Insights reads simpler: plainer words on the money-order rail, and fewer of them.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
