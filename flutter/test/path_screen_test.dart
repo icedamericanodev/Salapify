@@ -15,6 +15,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/content/expansion_display.dart';
 import 'package:salapify/content/learning_paths.dart';
 import 'package:salapify/content/lessons_grow.dart';
 import 'package:salapify/data/store.dart';
@@ -25,6 +26,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 final _grow = publishedLearningPaths.firstWhere(
   (p) => p.id == 'grow_your_money',
 );
+
+/// Reveal the advanced Grow courses tucked behind the "Go deeper" disclosure
+/// (Batch C1B). A no-op on a path that has none, so callers can use it freely.
+Future<void> _openGoDeeper(WidgetTester tester) async {
+  final toggle = find.text('GO DEEPER');
+  if (toggle.evaluate().isEmpty) return;
+  await tester.ensureVisible(toggle);
+  await tester.tap(toggle);
+  await tester.pumpAndSettle();
+}
 
 Future<SalapifyStore> _freshStore() async {
   SharedPreferences.setMockInitialValues({});
@@ -61,28 +72,59 @@ Future<void> _pumpPath(WidgetTester tester, SalapifyStore store) async {
 }
 
 void main() {
-  testWidgets('the path screen lists every course with its own count', (
-    tester,
-  ) async {
+  testWidgets('the path screen lists every course, advanced ones behind Go '
+      'deeper', (tester) async {
     final store = await _freshStore();
     await _pumpPath(tester, store);
 
     // Read from the content rather than typed here: a sixth course joining
     // this path must not make this test look like it asserts a total of five.
-    for (final g in _grow.groups) {
+    final mainstream = [
+      for (final g in _grow.groups)
+        if (!isAdvancedGrowGroup(g.id)) g,
+    ];
+    final advanced = [
+      for (final g in _grow.groups)
+        if (isAdvancedGrowGroup(g.id)) g,
+    ];
+    // The regrouping only means anything if Grow really has both kinds.
+    expect(mainstream, isNotEmpty);
+    expect(advanced, isNotEmpty);
+
+    // Mainstream courses show by default; the advanced ones sit behind the
+    // collapsed Go deeper disclosure (Batch C1B).
+    for (final g in mainstream) {
       expect(find.text(g.title), findsOneWidget, reason: g.title);
     }
+    expect(find.text('GO DEEPER'), findsOneWidget);
+    for (final g in advanced) {
+      expect(
+        find.text(g.title),
+        findsNothing,
+        reason: 'hidden until Go deeper opens: ${g.title}',
+      );
+    }
+    // The count still totals every course, hidden or not: identity and
+    // progress are untouched by which header a course sits under.
     expect(
       find.text('0 of ${_grow.groups.length} courses done'),
       findsOneWidget,
     );
+
+    // Opening Go deeper makes every course reachable on its own card.
+    await _openGoDeeper(tester);
+    for (final g in _grow.groups) {
+      expect(find.text(g.title), findsOneWidget, reason: g.title);
+    }
   });
 
   testWidgets('exactly one course carries the filled button', (tester) async {
     // The whole point of the focus rule. Four outlined buttons and one filled
-    // one, never five filled.
+    // one, never five filled. Counted across every course, so Go deeper is
+    // opened first to render the advanced cards too.
     final store = await _freshStore();
     await _pumpPath(tester, store);
+    await _openGoDeeper(tester);
 
     expect(find.byType(FilledButton), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNWidgets(_grow.groups.length - 1));

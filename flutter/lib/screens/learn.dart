@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
+import '../content/expansion_display.dart';
 import '../content/learning_path.dart';
 import '../content/learning_paths.dart';
 import '../content/lesson_model.dart';
@@ -316,7 +317,16 @@ class _LearnScreenState extends State<LearnScreen> {
                   LessonState.notStarted,
             );
 
-            final paths = publishedLearningPaths;
+            // Ordered for display (Batch C1B): Protect first as the most
+            // everyday tier, then Grow, then Business under Advanced. This is
+            // presentation order only; the underlying path ids and progress
+            // are untouched.
+            final paths = [...publishedLearningPaths]
+              ..sort(
+                (a, b) => expansionPathRank(a.id).compareTo(
+                  expansionPathRank(b.id),
+                ),
+              );
             // One primary recommendation across every path, or null for the
             // neutral discovery state (no reliable signal yet, or every
             // started path is already finished). See
@@ -944,6 +954,20 @@ class _LearnScreenState extends State<LearnScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (isAdvancedPath(path.id)) ...[
+              // A quiet tier marker, not a warning. Business is useful but
+              // sits above the everyday journey, so it reads as advanced
+              // through a muted label rather than any alarming treatment, and
+              // it stays fully discoverable (C1B, STEP 6).
+              Semantics(
+                header: true,
+                child: Text(
+                  'ADVANCED',
+                  style: Barako.kickerStyle.copyWith(color: Barako.muted),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (recommended) ...[
               Row(
                 children: [

@@ -672,6 +672,10 @@ void main() {
         'accounts',
         'recurring',
         'notifications',
+        // Added for the Batch C1B income connection: the take-home-pay
+        // calculator, so contributions read as the gross-to-net deductions
+        // they are. Resolved by resolveExpansionActionRoute the same closed way.
+        'salary',
       };
       final block = _salapifyActionsBlock();
       for (final action in block.actions) {

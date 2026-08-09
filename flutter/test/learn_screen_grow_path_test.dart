@@ -188,17 +188,43 @@ void main() {
       // than kicker headings inside an expanded hub card, so each is a real
       // destination a learner can open directly. That was the whole point:
       // "Crypto Without the Hype" was previously unreachable on its own.
+      // Batch C1B tucks the two technical courses behind a "Go deeper"
+      // disclosure, so the mainstream three show first and the advanced two
+      // are one tap away, still their own cards, never a separate category.
       for (final title in const [
         'Are You Ready to Invest?',
         'Stocks and Bonds Without the Hype',
         'Deposits and Pooled Funds',
+      ]) {
+        expect(
+          find.text(title),
+          findsOneWidget,
+          reason: 'mainstream course "$title" should be its own card',
+        );
+      }
+      expect(find.text('GO DEEPER'), findsOneWidget);
+      for (final title in const [
+        'Crypto Without the Hype',
+        'Philippine Government Securities',
+      ]) {
+        expect(
+          find.text(title),
+          findsNothing,
+          reason: 'advanced course "$title" is hidden until Go deeper opens',
+        );
+      }
+
+      await tester.ensureVisible(find.text('GO DEEPER'));
+      await tester.tap(find.text('GO DEEPER'));
+      await tester.pumpAndSettle();
+      for (final title in const [
         'Crypto Without the Hype',
         'Philippine Government Securities',
       ]) {
         expect(
           find.text(title),
           findsOneWidget,
-          reason: 'course "$title" should be its own card',
+          reason: 'course "$title" is its own card once Go deeper opens',
         );
       }
 

@@ -60,6 +60,9 @@ const _knownGrowActionRoutes = {
   'accounts',
   'recurring',
   'notifications',
+  // Batch C1B: the take-home-pay calculator, linked from the SSS & PhilHealth
+  // course so contributions read as the gross-to-net deductions they are.
+  'salary',
 };
 
 void main() {
