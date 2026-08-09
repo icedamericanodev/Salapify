@@ -51,13 +51,18 @@ mute trend card are gone.
 
 ## Final Insights architecture
 
+0. THE FINANCIAL PULSE, one raised hero that leads the screen: the single
+   interpreted read of the month, toned good / steady / attention, carrying
+   its confidence cue in words ("This month so far" for a fact, "From your
+   logged history" for a trend) and, on an attention read, the magnitude in
+   the sentence plus one Ask Pan door. This is the first thing seen, above
+   DO NEXT, so the screen opens on what the month means before what to do
+   next.
 1. DO NEXT, ranked coach decisions, max 3 (engine unchanged)
 2. SAFE TO SPEND UNTIL PAYDAY hero (unchanged)
 3. Steady Pay (unchanged)
 4. WHERE YOUR NEXT PESO SHOULD GO (unchanged)
 5. THIS MONTH
-   - Pulse: one interpreted line plus figures, with Ask Pan on an
-     attention read
    - INCOME VS SPENDING: the dominant chart, tap or scrub a month for its
      In / Out / Kept readout
    - WHAT CHANGED: up to three paced shifts, driver sentences, tap to
@@ -68,6 +73,18 @@ mute trend card are gone.
 6. THE BIGGER PICTURE: spoken-for, Money Health (now names its biggest
    lift), emergency runway
 7. TOOLS: the four collapsed launchers, moved to the end
+
+The pulse hero is the hardening this phase added over the first draft, where
+three independent design reviewers and the Pan reviewer all flagged the same
+three P0s: the fact / trend confidence was computed in the engine and then
+discarded on screen, the attention read carried no number ("spending is
+running ahead of income" with no figure), and the pulse sat mid-screen inside
+THIS MONTH rather than leading as a raised hero. The hero fixes all three: it
+shows the confidence cue, the attention read now states the magnitude ("about
+N% more has gone out than has come in"), and it is the raised, tone-colored
+card at the top. phase5_pulse_test.dart pins all three (the engine states the
+magnitude as a fact, the screen renders the cue and the numbered headline, and
+the hero's headline sits above DO NEXT).
 
 ## Reports Before vs After
 
@@ -206,14 +223,29 @@ changes, no new timers, no async work added.
 ## Test results
 
 flutter analyze: 0 issues. Full local suite green (2,800+ tests including
-the 23 new insight-feed units, the new WHAT CHANGED widget pin at a fixed
-clock, the Pan initialQuestion pin, low-data honesty pins, and updated
+the 23 new insight-feed units, the 3 new pulse-hero pins in
+phase5_pulse_test.dart, the WHAT CHANGED widget pin at a fixed clock, the
+Pan initialQuestion pin, low-data honesty pins, and updated
 Reports/Insights screen tests); the 96-shot render harness green; the
 deterministic pixel baseline gained insights-month-story (fixed clock,
 fixed fixture), possible only because InsightsScreen now takes an
 injectable clock. Break-then-prove: deleting the early-month gate turned
 "early month refuses to compare even with history" red (Expected: false,
-Actual: true) before the gate was restored. The Flutter check on the
+Actual: true) before the gate was restored; the pulse pins were each proven
+by reverting the corresponding fix (drop the magnitude, drop the cue, move
+the hero back down) and watching the guard go red first.
+
+One base-branch repair rode along, because a red suite blocks delivery for
+everyone: three Phase 4 mindset win-edit widget tests
+(mindset_screen_test.dart) were failing on clean origin/main, not from this
+phase (mindset.dart is byte-identical to main and imports none of the
+changed files). The cause was a test-harness fragility, not an app bug:
+scrollUntilVisible built the win row into the tree but left it below the
+600px test viewport, so tap() derived an off-screen offset (the framework's
+own "would not hit test" warning), missed, and the edit sheet never opened.
+The fix adds ensureVisible before each tap, the same pattern the
+insights screen tests already use; no app code changed. Red-to-green proven
+by running the three named tests before and after. The Flutter check on the
 branch is the runner-side proof, per the standing local-vs-runner rule.
 
 ## Deferred to Phases 6-8
