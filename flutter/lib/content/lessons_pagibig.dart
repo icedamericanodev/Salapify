@@ -984,15 +984,16 @@ const _theRealCostOfAHousingLoan = MoneyLesson(
       heading: 'Why it matters',
       paragraphs: [
         'A Pag-IBIG housing loan is debt. It has to be repaid, with '
-            'interest, under Pag-IBIG\'s own current rules, not free '
-            'government assistance. Real decision factors go beyond the '
-            'scheduled monthly amortization: interest and repricing over '
-            'time, the loan term, the total interest paid over the life of '
-            'the loan, upfront cash requirements, insurance and property '
-            'related costs, repairs and maintenance, association dues '
-            'where applicable, taxes and transaction costs, commuting or '
-            'location costs, and keeping an emergency buffer after the '
-            'purchase.',
+            'interest, under Pag-IBIG\'s own current rules. It is not free '
+            'government assistance.',
+        'The real cost reaches well past the scheduled monthly '
+            'amortization. It also includes interest and repricing over '
+            'time, the loan term and the total interest paid over the life '
+            'of the loan, the upfront cash a purchase needs, insurance and '
+            'property related costs, repairs and maintenance, association '
+            'dues where applicable, taxes and transaction costs, commuting '
+            'or location costs, and keeping an emergency buffer after the '
+            'purchase. The checklist below walks through each one.',
         'A general tradeoff worth understanding: a longer loan term can '
             'reduce the scheduled monthly payment, while increasing the '
             'total interest paid over the full term. Neither a shorter nor '

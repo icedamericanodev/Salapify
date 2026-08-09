@@ -627,6 +627,25 @@ Widget lessonShot({
   initialStep: firstExerciseStep(lesson),
 );
 
+/// A lesson opened on a READING page rather than its first exercise.
+///
+/// Every other lesson shot opens on an exercise ([firstExerciseStep]), so no
+/// render had ever shown a Protect course's plain "Why it matters" prose,
+/// which is exactly the surface Batch C2's readability pass tightened. This
+/// renders a chosen reading [step] so the shipped wording can be looked at,
+/// not only the diff.
+Widget lessonReadingShot({
+  required String pathId,
+  required MoneyLesson lesson,
+  required SalapifyStore store,
+  int step = 0,
+}) => PagedLessonReader(
+  pathId: pathId,
+  lesson: lesson,
+  store: store,
+  initialStep: step,
+);
+
 void main() {
   // A missed tap must fail LOUDLY, at the tap, for every tap in this file at
   // once. This harness taps by finder (e.g. "Move money between accounts") and
@@ -804,6 +823,36 @@ void main() {
       pathId: 'protect_your_future',
       lesson: pagibigSavingsMp2HousingLessons.firstWhere(
         (l) => l.id == pagibigRefMakeYourPlan,
+      ),
+      store: s,
+    ),
+    // Money Courses Phase 6B Batch C2: the READING pages of the three Protect
+    // lessons whose prose was tightened in the readability pass (a run-on
+    // split into shorter sentences each), rendered so the founder can read the
+    // shipped wording, not only the diff. Opened on the reading step that
+    // carries the edit: Insurance "Start With the Protection Need" (the
+    // reflection-worksheet opener), Insurance "Read the Policy Before Signing"
+    // (the free-look paragraph, now two short sentences), and Pag-IBIG "The
+    // Real Cost of a Housing Loan" (the cost-factors paragraph before its
+    // checklist). Each opens on step 0, the lesson's first reading page.
+    'insurance-protection-need-reading': (s) => lessonReadingShot(
+      pathId: 'protect_your_future',
+      lesson: insuranceDecodedLessons.firstWhere(
+        (l) => l.id == insuranceRefProtectionNeed,
+      ),
+      store: s,
+    ),
+    'insurance-read-the-policy-reading': (s) => lessonReadingShot(
+      pathId: 'protect_your_future',
+      lesson: insuranceDecodedLessons.firstWhere(
+        (l) => l.id == insuranceRefReadThePolicy,
+      ),
+      store: s,
+    ),
+    'pagibig-housing-loan-cost-reading': (s) => lessonReadingShot(
+      pathId: 'protect_your_future',
+      lesson: pagibigSavingsMp2HousingLessons.firstWhere(
+        (l) => l.id == pagibigRefHousingLoanCost,
       ),
       store: s,
     ),
