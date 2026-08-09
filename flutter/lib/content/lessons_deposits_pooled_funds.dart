@@ -731,9 +731,10 @@ const _howPooledFundsWork = MoneyLesson(
       ],
     ),
     NuggetsBlock([
-      'NAV, or net asset value, is the total value of everything a fund '
-          'holds. NAVPU is that value divided by the number of units '
-          'outstanding, the per-unit price you actually see.',
+      'NAV, or net asset value, is the value of everything a fund holds '
+          'minus what it owes, including accrued fees. NAVPU is that value '
+          'divided by the number of units outstanding, the per-unit price '
+          'you actually see.',
       'A fund\'s investment objective, portfolio holdings, benchmark, and '
           'risk classification describe what it actually does, and are '
           'worth reading before its name is taken at face value.',
@@ -1046,8 +1047,9 @@ const _uitfMutualFundEtf = MoneyLesson(
                 'Redeemable on request, subject to the fund\'s own '
                 'redemption rules and settlement timing.',
             'fees':
-                'May charge a sales load, a management fee, and other '
-                'expenses, disclosed in its prospectus.',
+                'May charge a sales load (a one-time charge when you buy '
+                'in), a management fee, and other expenses, disclosed in '
+                'its prospectus.',
             'authority':
                 'Registered with and supervised by the Securities and '
                 'Exchange Commission, since a mutual fund is an investment '
@@ -1307,8 +1309,10 @@ const _readAFactSheet = MoneyLesson(
           id: 'main-risks',
           label: 'The fund\'s main risks',
           explanation:
-              'Answered: the risk classification and warnings both speak '
-              'to this directly.',
+              'Partly answered: the risk classification signals the '
+              'overall risk level, but a one-word band is not the list of '
+              'specific risks. The named risk factors, market, credit, '
+              'liquidity, still need reading in full.',
         ),
         CategorizeItemDef(
           id: 'fees-that-apply',

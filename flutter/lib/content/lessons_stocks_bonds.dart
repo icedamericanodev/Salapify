@@ -426,6 +426,14 @@ const _stockReturnsAndLosses = MoneyLesson(
           'in some cases all, of the money invested.',
       'Nothing here says what a stock\'s price will do next. The only '
           'honest statement about the future is that it is uncertain.',
+      'The price you paid is a fact about the past, not a floor the price '
+          'has to return to. Whether a holding still makes sense depends on '
+          'what it is worth now and why you hold it, not on waiting to get '
+          'back to break-even.',
+      'A drop can feel like a reason to act right now. Selling in a panic '
+          'locks in a loss the same way a forced sale does. The moment to '
+          'decide how much of a drop you can sit through is before you buy, '
+          'not while watching the screen fall.',
     ]),
     RiskWarningBlock(
       title: 'You can lose part or all of what you put in',
@@ -729,7 +737,7 @@ const _diversificationAndConcentration = MoneyLesson(
     ProseBlock(
       heading: 'When everything moves together',
       paragraphs: [
-        'Your barkada group chat is all in on the same one thing, and '
+        'Your group chat is all in on the same one thing, and '
             'it feels safer because everyone agrees. Owning shares in only '
             'one company means everything depends on that one company. If '
             'something goes wrong there, the whole holding can be affected '
@@ -948,11 +956,15 @@ const _howBondsWork = MoneyLesson(
             'risk than many corporate borrowers, though lower risk never '
             'means no risk.',
         'Holding a bond to maturity is a different experience from '
-            'selling it before maturity. Held to maturity, a bond is '
-            'generally expected to return its principal, assuming the '
-            'issuer pays as promised. Sold earlier, the price received '
-            'depends on market conditions at that moment, which can be '
-            'higher or lower than what was originally paid.',
+            'selling it before maturity. Held to maturity, the issuer '
+            'repays the bond\'s face value on the maturity date, assuming '
+            'it pays as promised. If you bought the bond when it was '
+            'issued, that face value is the amount you lent. If you bought '
+            'it later on the market for more or less than face value, the '
+            'amount returned at maturity can differ from what you paid. '
+            'Sold earlier, the price received depends on market conditions '
+            'at that moment, which can be higher or lower than what was '
+            'originally paid.',
       ],
     ),
     NuggetsBlock([
