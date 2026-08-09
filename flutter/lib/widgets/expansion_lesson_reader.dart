@@ -349,7 +349,13 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('MASTERY CHECK', style: Barako.kickerStyle),
+          // Matches the production paged reader and learn.dart: same kicker
+          // wording and a screen-reader heading, so the fallback reader does
+          // not silently rename the check or drop its heading (C5 19.1/22.2).
+          Semantics(
+            header: true,
+            child: Text('QUICK CHECK', style: Barako.kickerStyle),
+          ),
           const SizedBox(height: 8),
           Text(c.question, style: AppText.bodyStrong.copyWith(height: 1.45)),
           const SizedBox(height: 12),
