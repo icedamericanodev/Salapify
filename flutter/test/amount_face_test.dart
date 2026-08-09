@@ -15,6 +15,10 @@ const cleanFiles = [
   'lib/screens/overview.dart',
   'lib/screens/history.dart',
   'lib/widgets/bills_before_payday.dart',
+  // Phase 6: the calculator ledgers used to resize and reweight amountRow per
+  // line; they now tint the one row face and let the label carry emphasis.
+  'lib/screens/salary_calculator.dart',
+  'lib/screens/tax_calculator.dart',
 ];
 
 void main() {

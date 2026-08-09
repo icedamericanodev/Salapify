@@ -50,14 +50,7 @@ Future<SalapifyStore> _openDirect(
 }
 
 Future<void> _openMindset(WidgetTester tester) async {
-  await openFromMenu(tester, 'Calculators');
-  await tester.scrollUntilVisible(
-    find.text('Money mindset'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.tap(find.text('Money mindset'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Money mindset');
 }
 
 /// Answers decision-check question [i] (0-indexed, in the order the screen

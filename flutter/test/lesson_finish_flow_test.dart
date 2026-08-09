@@ -24,14 +24,7 @@ import 'screens_shot.dart' show loadRealFonts;
 import 'support/app_harness.dart';
 
 Future<void> _openCourses(WidgetTester tester) async {
-  await openFromMenu(tester, 'Calculators');
-  await tester.scrollUntilVisible(
-    find.text('Money courses'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.tap(find.text('Money courses'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Money courses');
 }
 
 void main() {

@@ -30,14 +30,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-    await tester.scrollUntilVisible(
-      find.text('Currency converter'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Currency converter'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Currency converter');
 
     // Default is base (PHP) to USD. Type 1,000 PHP.
     await tester.enterText(find.byType(TextField), '1000');

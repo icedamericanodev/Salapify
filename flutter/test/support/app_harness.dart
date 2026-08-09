@@ -30,6 +30,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart' show storageKey;
 import 'package:salapify/screens/menu.dart';
+import 'package:salapify/screens/tools.dart';
 
 /// Mock storage for a booted, already-onboarded, otherwise empty app.
 ///
@@ -111,6 +112,22 @@ Future<void> openFromMenu(
   await openMenu(tester);
   final target = find.text(label);
   await scrollTo(tester, target, scope: find.byType(MenuScreen), delta: delta);
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
+/// Open Calculators, find a tool row by its label, and tap it.
+///
+/// The same reason [openFromMenu] exists: the Calculators screen was a flat
+/// list where every tool sat near the top, so a bare `tap(find.text(name))`
+/// happened to land. Phase 6 grouped the tools into row bands, which pushes
+/// the lower tools past the default test viewport. Routing every test's tool
+/// tap through here scrolls the row into view first, so the tests survive this
+/// regrouping and the next one instead of pinning a screen order.
+Future<void> openTool(WidgetTester tester, String label) async {
+  await openFromMenu(tester, 'Calculators');
+  final target = find.text(label);
+  await scrollTo(tester, target, scope: find.byType(ToolsScreen));
   await tester.tap(target);
   await tester.pumpAndSettle();
 }

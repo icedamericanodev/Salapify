@@ -19,9 +19,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-    await tester.tap(find.text('Loan calculator'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Loan calculator');
 
     await tester.enterText(
       find.widgetWithText(TextField, 'e.g. 100,000'),
@@ -67,9 +65,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await openFromMenu(tester, 'Calculators');
-    await tester.tap(find.text('Loan calculator'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Loan calculator');
 
     await tester.enterText(
       find.widgetWithText(TextField, 'e.g. 100,000'),
@@ -90,9 +86,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await openFromMenu(tester, 'Calculators');
-    await tester.tap(find.text('Loan calculator'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Loan calculator');
 
     // 2e307 years times 12 overflows a double to Infinity; the screen
     // must clamp to the cap like RN, never throw on toInt.
@@ -125,9 +119,7 @@ void main() {
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
-    await openFromMenu(tester, 'Calculators');
-    await tester.tap(find.text('Loan calculator'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Loan calculator');
 
     await tester.enterText(
       find.widgetWithText(TextField, 'e.g. 100,000'),

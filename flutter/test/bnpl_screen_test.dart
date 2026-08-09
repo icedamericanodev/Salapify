@@ -12,9 +12,7 @@ import 'support/app_harness.dart';
 
 Future<void> openBnpl(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Calculators');
-  await tester.tap(find.text('Installment true cost'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Installment true cost');
 }
 
 void main() {
