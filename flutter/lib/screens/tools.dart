@@ -18,24 +18,18 @@ import '../widgets/section.dart';
 import 'bnpl_calculator.dart';
 import 'contribution_calculator.dart';
 import 'currency_converter.dart';
-import 'learn.dart';
 import 'loan_calculator.dart';
-import 'mindset.dart';
 import 'notes.dart';
 import 'salary_calculator.dart';
 import 'tax_calculator.dart';
 import 'tax_deadlines.dart';
 import 'year_end_tax.dart';
 import 'thirteenth_calculator.dart';
-import 'shell.dart';
 
 class ToolsScreen extends StatelessWidget {
   final SalapifyStore store;
 
-  /// Threaded through to Money courses so a lesson action can jump to a
-  /// bottom tab (Budget, Utang, Insights).
-  final void Function(Destination)? onSwitchTab;
-  const ToolsScreen({super.key, required this.store, this.onSwitchTab});
+  const ToolsScreen({super.key, required this.store});
 
   void _open(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
@@ -123,27 +117,6 @@ class ToolsScreen extends StatelessWidget {
                 label: 'Notes',
                 detail: 'Lines with amounts add themselves up, like a receipt.',
                 onTap: () => _open(context, NotesScreen(store: store)),
-              ),
-            ]),
-            const SizedBox(height: Gap.xl),
-            _band(context, 'Learn', [
-              NavTile(
-                icon: 'learning',
-                label: 'Money courses',
-                detail: 'Short, plain reads on your money and habits. Free.',
-                onTap: () => _open(
-                  context,
-                  LearnScreen(store: store, onSwitchTab: onSwitchTab),
-                ),
-              ),
-              NavTile(
-                icon: 'mindset',
-                label: 'Money mindset',
-                detail: "Today's lesson, an impulse check, and your small wins.",
-                onTap: () => _open(
-                  context,
-                  MindsetScreen(store: store, onSwitchTab: onSwitchTab),
-                ),
               ),
             ]),
           ],

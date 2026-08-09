@@ -50,7 +50,7 @@ Future<SalapifyStore> _openDirect(
 }
 
 Future<void> _openMindset(WidgetTester tester) async {
-  await openTool(tester, 'Money mindset');
+  await openFromMenu(tester, 'Money mindset');
 }
 
 /// Answers decision-check question [i] (0-indexed, in the order the screen
