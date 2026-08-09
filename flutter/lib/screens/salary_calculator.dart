@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import '../money/phtax.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/amount_text.dart';
+import '../widgets/section.dart';
 import 'overview.dart' show formatMoney;
 
 class SalaryCalculatorScreen extends StatefulWidget {
@@ -41,9 +43,11 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
 
   String _m(num n) => formatMoney((n + 0.5).floorToDouble());
 
+  // The shared Kicker, matching the income tax screen, plus a header flag so a
+  // screen reader can jump between the sections of a long form.
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(top: 14, bottom: 6),
-    child: Text(text, style: AppText.caption.w7),
+    child: Semantics(header: true, child: Kicker(text)),
   );
 
   Widget _line(
@@ -65,13 +69,13 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
               ),
             ),
           ),
+          // amountRow is strict: tint only, never resized or reweighted. The
+          // ledger's emphasis lives in the label (bold when [strong]), so the
+          // figures all share the one row face and line up digit for digit.
           Text(
             value,
-            style: AppText.amountRow.copyWith(
-              fontSize: strong ? 15 : 13,
-              fontWeight: strong ? TypeWeight.heavy : TypeWeight.medium,
-              color:
-                  valueColor ?? (strong ? Barako.text : Barako.textSecondary),
+            style: AppText.amountRow.tint(
+              valueColor ?? (strong ? Barako.text : Barako.textSecondary),
             ),
           ),
         ],
@@ -279,12 +283,12 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                           Expanded(
                             child: Text(netLabel, style: AppText.label.w7),
                           ),
-                          Text(
-                            ms(r['net'] as double),
-                            style: AppText.amount
-                                .copyWith(fontSize: 24)
-                                .w7
-                                .tint(Barako.primary),
+                          AmountText(
+                            ((r['net'] as double) * factor + 0.5)
+                                .floorToDouble(),
+                            role: AmountRole.card,
+                            tint: Barako.primary,
+                            textAlign: TextAlign.right,
                           ),
                         ],
                       ),
@@ -306,14 +310,9 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'WHAT COMES OUT, AND WHY',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
-                        ),
+                      Semantics(
+                        header: true,
+                        child: Kicker('WHAT COMES OUT, AND WHY', inCard: true),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -340,14 +339,9 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'YOUR TAX RATE',
-                        style: TextStyle(
-                          color: Barako.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
-                        ),
+                      Semantics(
+                        header: true,
+                        child: Kicker('YOUR TAX RATE', inCard: true),
                       ),
                       const SizedBox(height: 6),
                       Text(

@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f3.91 \u00b7 Insights reads simpler: plainer words on the money-order rail, and fewer of them.';
+    'f3.92 \u00b7 Learn, Tools and Tax adopt the shared design system: rows, one title, shared inputs.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

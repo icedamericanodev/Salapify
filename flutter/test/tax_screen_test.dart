@@ -12,15 +12,7 @@ import 'support/app_harness.dart';
 
 Future<void> openTax(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Calculators');
-  await tester.scrollUntilVisible(
-    find.text('Income tax'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Income tax'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Income tax');
 }
 
 void main() {

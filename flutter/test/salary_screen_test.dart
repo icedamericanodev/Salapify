@@ -13,9 +13,7 @@ import 'support/app_harness.dart';
 
 Future<void> openSalary(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Calculators');
-  await tester.tap(find.text('Take-home pay'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Take-home pay');
 }
 
 void main() {

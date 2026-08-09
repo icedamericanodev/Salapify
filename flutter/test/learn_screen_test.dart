@@ -2,7 +2,6 @@
 // the progress count going up. The lesson content is locked separately in
 // lessons_golden_test; this covers the screen and the read-tracking write.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/content/lessons.dart';
 import 'package:salapify/content/learning_paths.dart';
@@ -29,14 +28,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-    await tester.scrollUntilVisible(
-      find.text('Money courses'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Money courses'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Money courses');
 
     // The catalog is now four track cards, not a scroll of 22 lessons.
     expect(find.text('0 of $_catalogTotal lessons'), findsOneWidget);

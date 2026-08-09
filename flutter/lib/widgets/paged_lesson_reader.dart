@@ -29,6 +29,7 @@ import '../money/lesson_steps.dart';
 import '../money/reading_time.dart';
 import '../theme.dart';
 import '../typography.dart';
+import 'screen_header.dart' show HeaderTier, headerStyle;
 import 'celebration.dart';
 import 'expansion_lesson_reader.dart' show resolveExpansionActionRoute;
 import 'interaction_block_views.dart';
@@ -359,10 +360,7 @@ class _PagedLessonReaderState extends State<PagedLessonReader> {
       const SizedBox(height: 10),
       Text('${displayMinutes(l)} min', style: Barako.kickerStyle),
       const SizedBox(height: 6),
-      Text(
-        l.title,
-        style: AppText.title.w7.copyWith(fontSize: 27, height: 1.1),
-      ),
+      Text(l.title, style: headerStyle(HeaderTier.cover)),
       if (l.objective.isNotEmpty || l.summary.isNotEmpty) ...[
         const SizedBox(height: 8),
         Text(

@@ -61,6 +61,7 @@ import 'package:salapify/screens/shell.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/overview.dart';
+import 'package:salapify/screens/tools.dart';
 import 'package:salapify/screens/goal_detail.dart';
 import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/pan.dart';
@@ -653,6 +654,9 @@ void main() {
         InsightsScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'courses': (s) => LearnScreen(store: s),
+    // Phase 6: the calculators hub, regrouped from a thirteen-card wall into a
+    // few short row bands (Salary and tax, Debt, Everyday money, Learn).
+    'tools': (s) => ToolsScreen(store: s),
     'appearance': (s) => AppearanceScreen(store: s),
     // The wallet detail screens, one for a deposit account (secure info, holder,
     // branch) and one for a credit card (network, limit, statement and due).

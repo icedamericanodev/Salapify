@@ -13,15 +13,7 @@ import 'support/app_harness.dart';
 
 Future<void> openContrib(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await openFromMenu(tester, 'Calculators');
-  await tester.scrollUntilVisible(
-    find.text('Contribution checker'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Contribution checker'));
-  await tester.pumpAndSettle();
+  await openTool(tester, 'Contribution checker');
 }
 
 void main() {

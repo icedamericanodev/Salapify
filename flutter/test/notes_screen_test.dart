@@ -22,16 +22,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-
-    await tester.scrollUntilVisible(
-      find.text('Notes'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Notes');
     expect(find.text('No notes yet'), findsOneWidget);
 
     await tester.tap(find.text('New note'));
@@ -70,16 +61,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-
-    await tester.scrollUntilVisible(
-      find.text('Notes'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Notes');
     await tester.tap(find.text('New note'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.arrow_back));
@@ -94,16 +76,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    await openFromMenu(tester, 'Calculators');
-
-    await tester.scrollUntilVisible(
-      find.text('Notes'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Notes'));
-    await tester.pumpAndSettle();
+    await openTool(tester, 'Notes');
     await tester.tap(find.text('New note'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'keep me?');
