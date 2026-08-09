@@ -83,8 +83,8 @@ const _icCode = LessonSourceInfo(
 );
 
 const _icVulTitle =
-    'Circular Letter No. 2017-34, Guidelines on Variable Life Insurance '
-    'Contracts';
+    'Circular Letter No. 2017-34, Revised Guidelines on Variable Life '
+    'Insurance Contracts';
 const _icVulUrl =
     'https://www.insurance.gov.ph/wp-content/uploads/2022/09/CL2017_34.pdf';
 const _icVulVerified = '2026-08';
@@ -99,8 +99,14 @@ const _icVul = LessonSourceInfo(
 const _icFpscpaTitle =
     'IRR of Republic Act No. 11765, the Financial Products and Services '
     'Consumer Protection Act';
+// URL note (Batch C2, 2026-08): the earlier value ended in `_published.pdf`.
+// Independent WebSearch verification could confirm only the non-suffixed PDF
+// (this value) and the landing page insurance.gov.ph/imc2023-01/; the
+// `_published` variant never surfaced in any search result, exactly the
+// well-formed-but-unconfirmable shape the source-governance process exists to
+// catch. Corrected to the search-confirmed path.
 const _icFpscpaUrl =
-    'https://www.insurance.gov.ph/wp-content/uploads/2023/03/IMC-2023-01_IRR-of-R.A.-No.-11765-Otherwise-Known-as-the-Financial-Products-and-Services-Consumer-Protection-Act_published.pdf';
+    'https://www.insurance.gov.ph/wp-content/uploads/2023/03/IMC-2023-01_IRR-of-R.A.-No.-11765-Otherwise-Known-as-the-Financial-Products-and-Services-Consumer-Protection-Act.pdf';
 const _icFpscpaVerified = '2026-08';
 
 const _icFpscpa = LessonSourceInfo(
@@ -440,12 +446,13 @@ const _startWithTheProtectionNeed = MoneyLesson(
       heading: 'Why it matters',
       paragraphs: [
         'Before comparing any policy, it helps to think through what a '
-            'protection need actually depends on: who relies on your '
-            'income, what debts or obligations would remain, what a '
-            'funeral or final expense might realistically cost, what '
-            'coverage already exists through an employer or a personal '
-            'policy, how much emergency savings is already available, and '
-            'roughly how long that protection might be needed.',
+            'protection need actually depends on. That includes who relies '
+            'on your income, what debts or obligations would remain, and '
+            'what a funeral or final expense might realistically cost. It '
+            'also includes what coverage already exists through an employer '
+            'or a personal policy, how much emergency savings is already '
+            'available, and roughly how long that protection might be '
+            'needed.',
         'This is a reflection worksheet, not a coverage calculator. It '
             'will not produce a recommended coverage amount, and it will '
             'never label anyone underinsured. Those are judgment calls a '
@@ -1310,11 +1317,11 @@ const _readThePolicyBeforeSigning = MoneyLesson(
             'means knowing what to look for and roughly where to find it.',
         'Many individual life insurance policies include a cancellation '
             'right early in the policy, sometimes called a free look or '
-            'cooling-off period, that lets a policyholder cancel under '
-            'conditions the policy and current rules set. The exact '
-            'length of that period, and the conditions attached to it, '
-            'can differ by product type, for example an ordinary life '
-            'policy versus a health rider, and can change over time, so it '
+            'cooling-off period. It lets a policyholder cancel under the '
+            'conditions the policy and current rules set.',
+        'The exact length of that period, and the conditions attached to '
+            'it, can differ by product type, for example an ordinary life '
+            'policy versus a health rider, and can change over time. So it '
             'should always be confirmed on the actual policy document and '
             'through the Insurance Commission\'s current guidance, never '
             'assumed from memory or from a different policy.',
