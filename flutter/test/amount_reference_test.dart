@@ -26,7 +26,10 @@ void main() {
     });
 
     test('styleFor maps the role to the amountReference face', () {
-      expect(AmountText.styleFor(AmountRole.reference), AppText.amountReference);
+      expect(
+        AmountText.styleFor(AmountRole.reference),
+        AppText.amountReference,
+      );
     });
 
     test('is subordinate to row: same size, one weight lighter', () {
@@ -77,10 +80,7 @@ void main() {
         tester,
         AmountText(10, role: AmountRole.reference, tint: Barako.text),
       );
-      expect(
-        tester.widget<Text>(find.text('₱10')).style?.color,
-        Barako.text,
-      );
+      expect(tester.widget<Text>(find.text('₱10')).style?.color, Barako.text);
     });
 
     testWidgets('scales a long figure down instead of clipping', (
