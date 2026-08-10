@@ -3,6 +3,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../theme.dart';
 import '../typography.dart';
+import 'salapify_icon.dart';
 
 /// Compact progress feedback for work that lasts long enough to acknowledge.
 /// Prefer keeping existing financial content visible during refreshes.
@@ -26,7 +27,12 @@ class SalapifyUpdatingIndicator extends StatelessWidget {
             if (!reduceMotion)
               SpinKitThreeBounce(color: Barako.primary, size: 18)
             else
-              Icon(Icons.sync, size: 18, color: Barako.primary),
+              SalapifyGlyph(
+                'refresh',
+                size: 18,
+                boxed: false,
+                color: Barako.primary,
+              ),
             const SizedBox(width: 8),
             Text(label, style: AppText.small),
           ],
