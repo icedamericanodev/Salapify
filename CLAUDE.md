@@ -471,10 +471,133 @@ React, HTML, CSS, or any web implementation into the Flutter app on the strength
 of Figma output; Salapify's icons stay Material glyphs in the accent, not emoji
 or web assets (see the icons rule above).
 
-## Merge rules (set by the founder on 2026-07-03)
+## Autonomous phase execution (founder direction, 2026-08-10)
 
-Claude reviews and merges every PR itself, for all builds, when ALL of
-these hold:
+Once the founder explicitly approves an implementation phase, that approval is
+standing authority to do the routine engineering the approved scope needs
+without asking again at every step. The approved phase spec is the boundary of
+that autonomy. Run the whole loop, investigate, plan, implement, test, render,
+review, fix, QA, commit, push, open or update the PR, report, without stopping
+between routine steps to ask permission for the ordinary parts. The endless
+founder to reviewer to Claude to founder loop is the thing this rule ends:
+approval up front replaces approval per step.
+
+What is routine, and therefore yours to do without asking, inside an approved
+phase: fetch and inspect origin and main; use the assigned feature branch; make
+scoped commits and push; open or update the phase PR and its description;
+monitor CI and fix ordinary CI failures your own work caused; inspect and
+refactor within scope; delete dead code the approved refactor orphaned; fix
+imports; fix analyzer, format and lint issues; fix tests that fail because of an
+implementation mistake; make small accessibility and responsive corrections
+tied to the scope; run dart format, flutter analyze, the targeted and full
+suites, the design-system guards, the readability and palette sweeps, the shot
+harness, and the stamp validation; render and actually look at the affected
+screens (dark first, then light, 320dp, large text, long money figures,
+overflow, hierarchy, touch targets, and the error, empty and loading states the
+scope touches); and run an independent reviewer or QA subagent when the change
+is material and fix its ordinary findings. Do not stop to ask "should I run the
+tests / format / fix this lint / remove this unused import / update the test my
+change broke / render the screen / push / open the PR". Those are the job, not a
+question.
+
+Bounded does not mean maximal. Prefer the smallest correct change, preserve the
+existing architecture, avoid speculative refactors and unrelated cleanup, and
+write a deferred note rather than widen scope. "Can fix" is not "should fix".
+
+STOP and put it to the founder, before doing it, whenever the work would touch
+any of these, however clean the change looks:
+1. Money meaning. Presentation and design-system phases treat money behaviour as
+   immutable BY DEFAULT: values, signs, currency, precision, rounding, account
+   relationships, transaction classification, the calculations, the
+   reconciliation between two financial views, and stored data are all preserved
+   unless the phase explicitly authorises a money change. UI cleanup must never
+   quietly become accounting cleanup, however much cleaner the change looks.
+2. Data or migration. The work turns out to need a schema migration, a
+   persisted-data transform, a backup-format change, a destructive storage
+   change, data deletion, or any irreversible transform. Anything that could
+   permanently lose user data still goes to the founder BEFORE merging, the same
+   rule the merge section already states, applied earlier.
+3. Security or privacy. It adds or materially changes auth, credentials,
+   secrets, encryption, sensitive permissions, handling of personal financial
+   data, external transmission, or telemetry.
+4. A material product or UX decision. Several reasonable options would
+   meaningfully change information architecture, navigation, hierarchy, a user
+   workflow, a financial interpretation, or feature behaviour. Do not interrupt
+   over a two-pixel visual difference; do interrupt over a real fork.
+5. Scope expansion. Finishing needs a feature or workstream outside the approved
+   phase. Defer it in writing and continue without it where you can; stop only
+   if the phase cannot safely continue without it.
+6. A behavioural conflict. A merge or rebase conflict cannot be resolved without
+   choosing between two meaningfully different behaviours. Ordinary textual
+   conflicts you resolve yourself, semantically, understanding both sides first,
+   never a blind ours or theirs.
+7. A test or QA failure that is really an intent change. The test fails because
+   the approved product behaviour itself would have to change, not because the
+   implementation is wrong.
+8. A destructive git operation. The only recovery on offer is a force push, a
+   destructive reset, dropping commits whose contents you are unsure of,
+   deleting another actor's work, or rewriting shared history. Never force-push
+   unless a rule in this file names that exact situation.
+9. Merge or release. Never merge a PR, trigger a manual production release, or
+   publish a Shorebird patch outside the repository's own automatic flow. The
+   founder approves the final merge (this revises the 2026-07-03 rule below);
+   everything else in the merge rules still binds.
+
+One writer per feature branch. One phase or feature branch is owned by one
+active writing Claude session; subagents inside that session are fine. Separate
+Claude sessions must not write the same branch at the same time. Before
+implementing, fetch, inspect the branch state, and establish ownership; if
+commits from another actor appear on your branch mid-work, STOP WRITING and do a
+read-only collision investigation before touching it again (this happened on
+2026-08-09: a parallel session pushed Phase 2B commits onto a branch this
+session was mid-edit on, and the safe move was to investigate the topology
+before writing another line). Concurrent sessions are fine only on separate
+branches with separated scope, never one branch as a shared scratchpad.
+
+Main is the integration source of truth. Before creating or reconciling a
+branch, fetch current main, read what already shipped, check the latest
+delivered stamp, and do not reintroduce what main already has. The stamp,
+Shorebird, QA-log and delivery rules elsewhere in this file are unchanged and
+still bind: inspect the latest delivered stamp before choosing a new one, never
+reuse a delivered stamp, run the uniqueness guard, account for parallel branches
+and releases, keep the QA-log row, and never call a version live until its
+delivery-log row proves it. A green local test is not a delivered build, and a
+merged PR is not a succeeded Shorebird patch.
+
+At the end of a material phase, write the evidence into a review artifact under
+docs/reviews (the existing home, alongside phase5-implementation-report.md and
+the rest), not into the chat: scope; what changed; what did NOT change,
+especially money, data and product behaviour; visual evidence; validation
+(analyze, targeted and full tests, accessibility, goldens, QA); deviations from
+the plan; deferred items; risks; and only the genuinely-unresolved founder
+decisions. No secrets in it.
+
+Then the chat message is SHORT, roughly:
+
+    PHASE COMPLETE, <name>
+    PR: #___   Branch: ___   Stamp: ___   Files: ___
+    Analyze: PASS   Tests: N pass / M fail   Visual QA: PASS/ISSUES
+    Accessibility: PASS/ISSUES   Independent QA: PASS/ISSUES
+    Financial behaviour changed: NO/YES   STOP conditions: NONE/<list>
+    Review artifact: docs/reviews/<file>
+    Founder decision: review and approve PR #___
+    Nothing merged or released.
+
+Do not paste hundreds of lines of implementation detail into chat; the artifact
+holds them. Present the PR for founder review only when the required CI checks
+pass, there are no known conflicts, QA is done with no unresolved must-fix, the
+review artifact is current, and the stamp guard passes where it applies. If
+GitHub's mergeability metadata is ambiguous, an "unstable" or "pending" legacy
+status while the authoritative required check is green, report the nuance and do
+not treat the legacy field as the truth. Still do not merge; the founder does.
+
+## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10)
+
+The FINAL merge is the founder's decision, not Claude's (see Autonomous phase
+execution above). Claude reviews, prepares, verifies and PRESENTS every PR under
+all the conditions below; the founder approves the merge itself. Everything else
+in this section stands unchanged, and the conditions below are now the bar for
+presenting a PR for that approval, when ALL of these hold:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked. Record it as a row in
   docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when
