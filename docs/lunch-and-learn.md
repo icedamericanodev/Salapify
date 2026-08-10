@@ -10,6 +10,152 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-10, session 39: f4.00 delivered clean; two belief-level near-misses (one branch, two writers; a stamp chosen from a number space a parallel track was consuming) both caught before the phone
+
+**What we believed / What was true.**
+
+On the phone, belief and reality match. `origin/main`'s `docs/delivery-log.md`
+has the row:
+
+    | 2026-08-10 01:43 UTC | f4.00 | 93 | patch | 0.9.0+15 | 846236e8 (run 31347143254) |
+
+Mode `patch` on the same base APK `0.9.0+15` as every stamp since f3.64, so no
+manual install was needed and none was claimed. The founder confirmed patch 93.
+The delivery was verified the right way, by READING that row, not by assuming a
+merged PR had shipped. f4.00 is Phase 2 plus 2B design-system adoption, and the
+f4.00 QA row on main records an independent financial-safety audit that traced
+every hunk for value, sign, currency, precision and rounding and found the
+change presentation-only, 0 must-fix (`docs/qa-log.md`). A clean patch is a real
+outcome, and this one is clean. There is no phone gap to dig into and this
+session does not invent one.
+
+The two things worth a retrospective both happened at the BELIEF level and were
+both stopped before the merge. Neither reached the phone. That is the shape of a
+good day, and it is also exactly the day where the guards earn their keep, so it
+is worth writing down which guard caught which.
+
+**Timeline, with evidence.**
+
+- The feature branch `claude/salapify-design-audit-phase1-52rgxv` already
+  carried Phase 2 foundation commits when this session began (`58142ed` "Phase 1
+  design foundation audit" through `618e149`), the pre-authored-work pattern
+  this file has seen before.
+- Mid-work, Phase 2B commits appeared on the SAME branch: `ba1aa7c` "Phase 2B:
+  consolidate hero and row money figures onto AmountText", then `ee632a3`,
+  `6ad8b56`. The topology in `git log --graph` confirms all of these sit on the
+  one branch that PR #380 later merged. HONEST LIMIT ON THIS EVIDENCE: every one
+  of these commits is authored as `Claude <noreply@anthropic.com>`, so git
+  metadata alone CANNOT prove two distinct sessions. The evidence that two
+  writers touched one branch is topological plus documentary (the reconcile
+  merge message below, and this session watching commits from another actor
+  appear on a branch it was mid-edit on), not authorship. Stated plainly so a
+  future session does not over-read the author field.
+- Meanwhile a DIFFERENT workstream, Phase 6B Money Courses on branch
+  `claude/implementation-task-d7j7x9`, was delivering into main on the same
+  days: f3.96 (patch 89), f3.97 (patch 90), f3.98 (patch 91, delivered
+  2026-08-09 16:31 UTC) and f3.99 (patch 92). Each has a delivery-log row, so
+  each genuinely shipped.
+- PR #380's head carried updateStamp `f3.98`. But f3.98 was ALREADY DELIVERED as
+  patch 91 by the Money Courses track. So the branch's stamp was a stamp already
+  on the phone.
+- `.github/scripts/check-stamp-unique.sh` reddened the branch check on exactly
+  this: its inputs were BRANCH `f3.98`, DELIVERED `f3.98`, TOUCHES `yes`, which
+  is the one condition it exits 1 on. The collision never merged. Nothing false
+  was said to the founder while this was open.
+- Reconciliation, commit `20da2f0` "Merge current main into the Phase 2/2B
+  branch; stamp to f4.00": merged main's tip `b8ca8da` (Money Courses, f3.99)
+  into the branch, resolved three conflicts, and bumped to `f4.00`, the next
+  unused value past main's in-flight f3.99. The merge message names the three
+  conflicts: `main.dart` (stamp to f4.00), `docs/qa-log.md` (KEPT main's
+  authoritative delivered f3.96 to f3.99 rows, dropped the branch's superseded
+  design rows), and `expansion_lesson_reader.dart` (auto-merged, both sides'
+  edits preserved). Benign, all resolved semantically.
+- `fb9771f` added the f4.00 QA row, PR #380 merged as `846236e`, and the
+  publisher run `31347143254` shipped patch 93. Confirmed on the phone.
+
+**Root cause.**
+
+Two separate structural facts, neither a lapse of attention.
+
+1. Nothing in the repository enforces one active writer per feature branch. Two
+   workstreams sharing a branch is possible because the branch is a shared
+   mutable object and no check observes concurrent authorship (and, as above,
+   even the author field could not tell them apart if one did). This is a
+   genuinely hard thing to make a machine catch, which is why the standing
+   answer is a rule rather than a test, and the rule's whole value depends on
+   being read at branch-start.
+
+2. Stamp selection reads "the last delivered stamp" at the moment a branch
+   chooses its number, but a PARALLEL delivery track advances that number
+   underneath a long-lived branch. The design branch picked f3.98 when f3.98
+   was a reasonable next value, and the Money Courses track then delivered
+   f3.96 through f3.99 while the design branch sat open, stranding the design
+   branch on a number that had since shipped. The root cause is not "Claude
+   picked a taken stamp", it is "a long-lived branch's stamp goes stale when a
+   sibling track consumes the number space", and that has a machine answer,
+   which already exists and already fired.
+
+**Lessons, each with its guard and the guard's strength.**
+
+Lesson one: a stamp chosen while a parallel track is delivering can be a stamp
+already on the phone by the time the branch merges.
+
+- Guard (ALREADY EXISTED, HELD, STRONGEST): `.github/scripts/check-stamp-unique.sh`,
+  run by the branch check on a real runner, reddened PR #380 on the exact
+  collision (BRANCH equals DELIVERED, and the branch touches `flutter/`). This is
+  an automated check that fails loudly and runs when no one is watching, and it
+  did its whole job here with zero phone impact. No new guard is warranted and
+  none should be added: reserving a stamp RANGE instead of comparing to the last
+  delivered value was considered and rejected, because the correct fix is exactly
+  what happened (rebase current main, pick the next unused value), and the
+  existing equality check forces precisely that at the border. Do not
+  re-engineer a guard that already worked.
+
+Lesson two: two sessions wrote one feature branch concurrently.
+
+- Guard (a RULE, now INSTALLED on main): the "One writer per feature branch"
+  rule. This is the honest finding of the session, and it carries a lesson about
+  reading the repository rather than a claim. When this retrospective was first
+  drafted the rule was NOT on `origin/main`, it lived only in commit `7cde822`
+  on the unmerged branch `claude/autonomous-workflow-protocol`, and the draft
+  correctly refused to credit a guard that was not protecting anyone yet. The
+  founder then approved that docs PR (#384), it merged as `db8acab` the same day,
+  and re-reading the repository confirms the rule is now on
+  `origin/main:CLAUDE.md` (the "One writer per feature branch" paragraph in the
+  Autonomous phase execution section). So the guard is real now, and the
+  draft-versus-merged gap is itself the lesson: a guard everyone believes is
+  installed and is not is worse than a known gap, so read the tree, not the
+  writeup. Strength is MEDIUM even now that it is merged, because it is a RULE,
+  not a machine: it depends on being read at branch-start ("before implementing,
+  establish ownership of the branch"), and nothing enforces one active writer
+  automatically, since git authorship alone cannot distinguish two Claude
+  sessions. The durable protection is the habit of fetching and establishing
+  ownership before the first write, not the mere presence of the sentence.
+
+**Open lessons carried forward.**
+
+- RESOLVED the same day: the one-writer-per-feature-branch rule reached
+  `origin/main` on 2026-08-10 (PR #384, merge `db8acab`). It was NOT on main when
+  this retrospective was drafted, and that gap was the session's single most
+  valuable catch. It is now installed; what stays true is that a read-at-the-
+  right-moment rule is only as strong as the habit behind it.
+
+- Session 38's strong guard is still in place and still working:
+  `WidgetController.hitTestWarningShouldBeFatal = true` in
+  `flutter/test/screens_shot.dart` on `origin/main`, so a bare tap that misses an
+  off-screen target still fails loudly at the tap for the whole file. Recording a
+  confirmed survival is worth more than a new finding.
+
+- CLAUDE.md factual re-check, done as a step and not a favour. Claims this
+  session leaned on still match the repository: `check-stamp-unique.sh` exists
+  and exits 1 only on BRANCH equals DELIVERED with a `flutter/` change;
+  `flutter/test/update_stamp_test.dart` exists on main; and `flutter-preview.yml`
+  triggers on push to `main` touching `flutter/**` and on main only. One thing
+  did NOT match a claim made to this session at first: the statement that the
+  one-writer rule was already on main via PR #384. It was not, until #384
+  merged. When a claim says a guard was installed, read the repository, not the
+  claim.
+
 ## 2026-08-07, session 38: f3.64 clean, f3.65 reddened CI on a harness tap that silently missed because a taller screen pushed the button below the fold
 
 **What we believed / What was true.**
