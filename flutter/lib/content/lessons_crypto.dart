@@ -174,8 +174,9 @@ const _whatCryptoIsAndIsNot = MoneyLesson(
       paragraphs: [
         'A new coin turns up in your feed every week, and the app '
             'selling it looks like your banking app. A crypto asset is a '
-            'digitally represented asset that uses distributed-ledger or '
-            'related technology to record who holds it. That covers a wide '
+            'holding tracked on a shared digital record that no single '
+            'company runs, using what is called distributed-ledger or '
+            'related technology. That covers a wide '
             'range of things, built to claim different purposes. Some are '
             'meant as a way to pay, some to represent a stake in a project, '
             'and some exist mainly to be traded.',
@@ -403,6 +404,10 @@ const _volatilityAndPossibleTotalLoss = MoneyLesson(
     NuggetsBlock([
       'A previous price increase does not predict another one. Whatever '
           'moved the price up before has no obligation to happen again.',
+      'Watching a price climb without you, or seeing other people post '
+          'gains, can create a fear of missing out. Missing a gain costs '
+          'you nothing you ever had. Money put in to chase a run is exposed '
+          'to the same sharp drop everyone else is facing.',
       'The real question before putting any money toward something this '
           'volatile is whether the amount could be financially absorbed in '
           'full, without disrupting bills, a buffer, or anything else '
@@ -900,10 +905,9 @@ const _stablecoinsYieldAndLeverage = MoneyLesson(
             'code behaves unexpectedly), market risk, and platform risk, '
             'all at once.',
         'Leverage means using borrowed money to make a position bigger '
-            'than the cash put in. It can magnify a gain, and it can just '
-            'as easily magnify a loss, including triggering a forced sale, '
-            'often called liquidation, if the value moves too far against '
-            'the position.',
+            'than the cash put in. It can magnify a loss just as easily as '
+            'a gain, including triggering a forced sale, often called '
+            'liquidation, if the value moves too far against the position.',
       ],
     ),
     NuggetsBlock([
@@ -1427,8 +1431,9 @@ const _theCryptoDecisionLab = MoneyLesson(
     ProseBlock(
       heading: 'Your own honest review',
       paragraphs: [
-        'You have read six lessons, and the pull to just try a small '
-            'amount is still there. This checklist pulls together '
+        'You have read six lessons, and the urge to put in a small '
+            'amount and see what happens may still be there. This '
+            'checklist pulls together '
             'everything this course covered, in one place. It is a private '
             'review for your own use, never a result, a score, or a green '
             'light. It never recommends buying anything.',
@@ -1571,7 +1576,7 @@ const _theCryptoDecisionLab = MoneyLesson(
         ),
         SalapifyActionDef(
           id: 'open-money-mindset',
-          label: 'Open Money Mindset before acting on any crypto offer',
+          label: 'Open Money Mindset to think a decision through before acting',
           description:
               'Opens Money Mindset for a moment to think something '
               'through before acting. Nothing is created or changed there '

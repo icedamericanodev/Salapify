@@ -61,7 +61,7 @@ void main() {
       // all on the screen.
       expect(
         find.text(
-          'Finish Investment Readiness before exploring specific '
+          'Finish Are You Ready to Invest? before exploring specific '
           'investment topics.',
         ),
         findsNothing,
@@ -102,7 +102,7 @@ void main() {
         find.descendant(
           of: growCard,
           matching: find.text(
-            'Finish Investment Readiness before exploring specific '
+            'Finish Are You Ready to Invest? before exploring specific '
             'investment topics.',
           ),
         ),
@@ -148,7 +148,7 @@ void main() {
         find.descendant(
           of: growCard,
           matching: find.text(
-            'Finish Investment Readiness before exploring specific '
+            'Finish Are You Ready to Invest? before exploring specific '
             'investment topics.',
           ),
         ),

@@ -1,5 +1,6 @@
 // "Build Your Business" learning path's THIRD course content contract,
-// "BIR Setup for New Businesses" (lib/content/lessons_bir_tax_setup.dart).
+// "Taxes & Filing for Your Business" (display title; course id
+// bir_registration_tax_setup; lib/content/lessons_bir_tax_setup.dart).
 // Focused tests per the phase's own 17-item list: registration, exact
 // lesson count and order, stable/unique ids, core count, expansion progress
 // isolation (this course and its Phase 13 sibling), official-source
@@ -62,7 +63,7 @@ void main() {
       final group = path.groups.firstWhere(
         (g) => g.id == 'bir_registration_tax_setup',
       );
-      expect(group.title, 'BIR Setup for New Businesses');
+      expect(group.title, 'Taxes & Filing for Your Business');
     });
 
     test('2: exactly six lessons, in the required order', () {

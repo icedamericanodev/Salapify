@@ -153,6 +153,11 @@ const _giveYourMoneyAJob = MoneyLesson(
           'started with.',
       'Keeping money in cash or savings for a goal that is close is the '
           'stable, accessible choice doing exactly its job.',
+      'For a goal years or decades away, cash is not automatically the '
+          'safe choice. Prices tend to rise over time, so money left '
+          'sitting can quietly lose buying power. Standing still has its '
+          'own cost, which is the other side of the same decision. This '
+          'is not a push to invest, only the honest trade to weigh.',
     ]),
     RiskWarningBlock(
       title: 'Investing can lose value',
@@ -310,7 +315,7 @@ const _protectTheBaseFirst = MoneyLesson(
     NuggetsBlock([
       'Expensive debt, the kind with a high interest rate, can cost more '
           'for certain than an investment is likely to earn. Paying it '
-          'down is itself a guaranteed reduction in what you owe.',
+          'down is itself a certain reduction in what you owe.',
       'Readiness is not one bar everyone clears at the same time. Two '
           'people with the same income can be in very different positions '
           'depending on their bills, buffer, and debt.',
@@ -426,7 +431,7 @@ const _protectTheBaseFirst = MoneyLesson(
     ],
     correctIndex: 1,
     explanation:
-        'Paying off expensive debt guarantees you stop paying that '
+        'Paying off expensive debt means you certainly stop paying that '
         'interest. Investment returns are never guaranteed. Comparing a '
         'certain saving against an uncertain gain is why debt often comes '
         'first, not any rule against investing.',
@@ -511,7 +516,10 @@ const _goalTimeAndAccess = MoneyLesson(
   interactionBlocks: [
     CategorizeBlock(
       blockId: 'goal-time-match',
-      categorizePrompt: 'Match each fictional goal to its time horizon.',
+      categorizePrompt:
+          'Match each fictional goal to a rough time horizon. These bands '
+          'are common rules of thumb for grouping goals, not official '
+          'definitions, so treat the edges as approximate.',
       buckets: [
         CategorizeBucket(id: 'short', label: 'Short term, under 2 years'),
         CategorizeBucket(id: 'medium', label: 'Medium term, 2 to 5 years'),

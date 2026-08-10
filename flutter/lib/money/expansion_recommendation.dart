@@ -59,7 +59,7 @@ String _reasonFor(String pathId, String groupId, String groupTitle) {
   // explicitly. Both stay generic: no product, no amount, no instruction to
   // act financially or legally, only "keep learning in this order".
   if (pathId == 'grow_your_money' && groupId == 'investing_readiness') {
-    return 'Finish Investment Readiness before exploring specific '
+    return 'Finish Are You Ready to Invest? before exploring specific '
         'investment topics.';
   }
   if (pathId == 'build_your_business') {

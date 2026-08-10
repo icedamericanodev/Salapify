@@ -48,7 +48,7 @@ const _paths = [
       ),
       LearningPathGroup(
         id: 'bir_registration_tax_setup',
-        title: 'BIR Setup for New Businesses',
+        title: 'Taxes & Filing for Your Business',
         lessonIds: ['btax-1', 'btax-2'],
       ),
     ],
