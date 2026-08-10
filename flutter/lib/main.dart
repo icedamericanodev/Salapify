@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.00 \u00b7 Design system adoption: radii, haptics, app bars, amounts through one pipeline. Same app.';
+    'f4.01 · Insights chart and motion foundation. Same app.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
