@@ -81,14 +81,7 @@ class MenuScreen extends StatelessWidget {
     //
     // Bottom padding drops to 32: a pushed route has no Log FAB to clear.
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Menu',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Menu')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: store,
@@ -225,10 +218,8 @@ class MenuScreen extends StatelessWidget {
                     label: 'Money courses',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => LearnScreen(
-                          store: store,
-                          onSwitchTab: onSwitchTab,
-                        ),
+                        builder: (_) =>
+                            LearnScreen(store: store, onSwitchTab: onSwitchTab),
                       ),
                     ),
                   ),
@@ -407,7 +398,7 @@ class MenuScreen extends StatelessWidget {
       color: Barako.primary,
       margin: EdgeInsets.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PanScreen(

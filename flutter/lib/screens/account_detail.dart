@@ -34,6 +34,7 @@ import '../money/institutions.dart';
 import '../services/secure_window.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/amount_text.dart';
 import '../widgets/bank_card.dart';
 import '../widgets/lock_gate.dart'
     show BiometricAuthenticator, LockAuthenticator;
@@ -197,12 +198,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     return Scaffold(
       backgroundColor: Barako.background,
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          _isDebt ? 'Card' : 'Account',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text(_isDebt ? 'Card' : 'Account'),
         actions: [
           IconButton(
             tooltip: 'Edit',
@@ -365,33 +361,27 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       final limit = amountOf(row['creditLimit']);
       // Plain words: "outstanding" reads as praise to a first-jobber, and
       // this now agrees with the card face's YOU OWE kicker.
-      rows.add(_stat('What you owe', formatMoney(outstanding)));
+      rows.add(_moneyStat('What you owe', outstanding));
       if (limit > 0) {
         final available = (limit - outstanding)
             .clamp(0, double.infinity)
             .toDouble();
-        rows.add(_stat('Credit limit', formatMoney(limit)));
-        rows.add(
-          _stat('Available credit', formatMoney(available), strong: true),
-        );
+        rows.add(_moneyStat('Credit limit', limit));
+        rows.add(_moneyStat('Available credit', available, strong: true));
       }
       final stmt = amountOf(row['statementDay']).round();
       final due = amountOf(row['dueDay']).round();
       if (stmt > 0) rows.add(_stat('Statement day', _dayLabel(stmt)));
       if (due > 0) rows.add(_stat('Payment due day', _dayLabel(due)));
       final fee = amountOf(row['annualFee']);
-      if (fee > 0) rows.add(_stat('Annual fee', formatMoney(fee)));
+      if (fee > 0) rows.add(_moneyStat('Annual fee', fee));
     } else {
       rows.add(
-        _stat(
-          'Current balance',
-          formatMoney(amountOf(row['balance'])),
-          strong: true,
-        ),
+        _moneyStat('Current balance', amountOf(row['balance']), strong: true),
       );
       final target = amountOf(row['target']);
       if (target > 0) {
-        rows.add(_stat('Maintaining or target', formatMoney(target)));
+        rows.add(_moneyStat('Maintaining or target', target));
       }
     }
     return Column(
@@ -444,6 +434,34 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
                 ? AppText.amountRow.tint(Barako.primaryText)
                 : AppText.body.w6,
           ),
+        ),
+      ),
+    ],
+  );
+
+  /// A money row: the figure goes through the one AmountText pipeline so a
+  /// peso figure here can never drift in weight, grouping or precision from
+  /// the same figure elsewhere. The label, the spacing, and the
+  /// scale-down-never-truncate rule match _stat exactly; only the value is a
+  /// role now instead of a pre-formatted string. Day labels stay on _stat,
+  /// which is not money. Centavo formatMoney throughout, the same formatter
+  /// _stat used here, so precision is unchanged. The strong figure is the
+  /// primary, so it takes AmountRole.row in the primary tint; the subordinate
+  /// figures take AmountRole.reference (medium weight in full ink), which
+  /// restores the body weight _stat used for them and adds tabular figures.
+  /// Hierarchy reads by the primary's bold weight and tint against the
+  /// reference's medium ink.
+  Widget _moneyStat(String label, num value, {bool strong = false}) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Flexible(child: Text(label, style: AppText.body.tint(Barako.muted))),
+      const SizedBox(width: 12),
+      Flexible(
+        child: AmountText(
+          value,
+          role: strong ? AmountRole.row : AmountRole.reference,
+          textAlign: TextAlign.right,
+          tint: strong ? Barako.primaryText : Barako.text,
         ),
       ),
     ],
@@ -955,7 +973,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Barako.card,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.card),
       border: Border.all(color: Barako.border),
     ),
     child: child,
@@ -966,7 +984,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Barako.surfaceRaised,
-      borderRadius: BorderRadius.circular(Radii.md),
+      borderRadius: BorderRadius.circular(Radii.field),
       border: Border.all(color: Barako.border),
     ),
     child: Text(text, style: AppText.small.tint(Barako.muted)),

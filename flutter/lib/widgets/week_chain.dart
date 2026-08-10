@@ -36,7 +36,7 @@ class WeekChainCard extends StatelessWidget {
     return Card(
       shape: full
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Radii.lg),
+              borderRadius: BorderRadius.circular(Radii.card),
               side: BorderSide(color: Barako.celebrate),
             )
           : null,

@@ -63,14 +63,7 @@ class _NewPhoneDayScreenState extends State<NewPhoneDayScreen> {
     // their buttons silently missing.
     final nothingToSendYet = !kIsWeb && !widget.store.hasData;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'New phone day',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('New phone day')),
       body: SafeArea(
         top: false,
         child: ListView(

@@ -64,12 +64,7 @@ class PaluwaganScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Paluwagan',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Paluwagan'),
         actions: [
           TextButton(
             onPressed: () => _openSheet(context, null),
@@ -721,7 +716,7 @@ class _PaluwaganSheetState extends State<_PaluwaganSheet> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 setState(() => _cadence = value);
               },
               child: Container(

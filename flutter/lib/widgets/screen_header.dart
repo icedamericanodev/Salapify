@@ -156,7 +156,7 @@ class HeaderAction extends StatelessWidget {
     style: IconButton.styleFrom(
       backgroundColor: Barako.surfaceRaised,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         side: BorderSide(color: Barako.border),
       ),
       // fixedSize pins the drawn square to the tap target, so the shape

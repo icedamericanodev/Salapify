@@ -16,6 +16,7 @@ import '../money/notecalc.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/amount_text.dart';
 import 'overview.dart' show formatMoney;
 
 class NotesScreen extends StatelessWidget {
@@ -41,14 +42,7 @@ class NotesScreen extends StatelessWidget {
         final sorted = [for (final e in indexed) e.$1];
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Barako.background,
-            foregroundColor: Barako.text,
-            title: Text(
-              'Notes',
-              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-            ),
-          ),
+          appBar: AppBar(title: Text('Notes')),
           floatingActionButton: store.canWrite
               ? FloatingActionButton.extended(
                   onPressed: () => _openNew(context),
@@ -162,11 +156,10 @@ class NotesScreen extends StatelessWidget {
                   ),
                 ),
                 if (hasMath)
-                  Text(
-                    formatMoney(calc['total'] as double),
-                    style: AppText.amountRow
-                        .tint(Barako.primaryText)
-                        .copyWith(fontSize: 14),
+                  AmountText(
+                    calc['total'] as double,
+                    role: AmountRole.row,
+                    tint: Barako.primaryText,
                   ),
               ],
             ),
@@ -328,17 +321,12 @@ class _NoteEditorState extends State<NoteEditor> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Barako.background,
-          foregroundColor: Barako.text,
           leading: IconButton(
             tooltip: 'Back',
             icon: Icon(salapifyIcon('back')),
             onPressed: _close,
           ),
-          title: Text(
-            'Note',
-            style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-          ),
+          title: Text('Note'),
           actions: [
             IconButton(
               tooltip: 'Delete note',

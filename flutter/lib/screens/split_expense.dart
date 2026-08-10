@@ -309,7 +309,7 @@ class _SplitSheetState extends State<_SplitSheet> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
                   onTap: () {
-                    HapticFeedback.selectionClick();
+                    Haptics.select();
                     setState(() => p.included = !p.included);
                   },
                   child: Padding(

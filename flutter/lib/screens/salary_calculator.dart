@@ -131,14 +131,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     final tooLow = basicNum > 0 && !showResults;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Take-home pay',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Take-home pay')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

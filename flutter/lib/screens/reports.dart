@@ -421,7 +421,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final now = DateTime.now();
     final off = (now.year - y) * 12 + (now.month - m);
     if (off < 0 || off > 12 || off == _monthOffset) return;
-    HapticFeedback.selectionClick();
+    Haptics.select();
     setState(() => _monthOffset = off);
   }
 
@@ -481,7 +481,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   void _openCategory(BuildContext context, String label) {
-    HapticFeedback.selectionClick();
+    Haptics.select();
     Navigator.of(context).push(
       MaterialPageRoute(
         // The month the person is already looking at travels with them. Without

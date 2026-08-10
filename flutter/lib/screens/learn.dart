@@ -7,7 +7,6 @@
 // always. PH-scoped tax lessons wear a visible PHILIPPINES tag.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
 import '../content/expansion_display.dart';
@@ -259,14 +258,7 @@ class _LearnScreenState extends State<LearnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Money courses',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Money courses')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: widget.store,
@@ -323,9 +315,8 @@ class _LearnScreenState extends State<LearnScreen> {
             // are untouched.
             final paths = [...publishedLearningPaths]
               ..sort(
-                (a, b) => expansionPathRank(a.id).compareTo(
-                  expansionPathRank(b.id),
-                ),
+                (a, b) =>
+                    expansionPathRank(a.id).compareTo(expansionPathRank(b.id)),
               );
             // One primary recommendation across every path, or null for the
             // neutral discovery state (no reliable signal yet, or every
@@ -484,7 +475,7 @@ class _LearnScreenState extends State<LearnScreen> {
       return Card(
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.card),
           side: BorderSide(color: Barako.border),
         ),
         child: Padding(
@@ -529,7 +520,7 @@ class _LearnScreenState extends State<LearnScreen> {
           color: Barako.primary,
           margin: EdgeInsets.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.card),
             onTap: () {
               final l = lessonById(next.id);
               if (l != null) _open2(context, l);
@@ -1190,7 +1181,7 @@ class _LessonReaderState extends State<_LessonReader> {
   void _answer(int i) {
     // A confirmation the hands can feel, the same selectionClick the rest of
     // the app already uses for a pick.
-    HapticFeedback.selectionClick();
+    Haptics.select();
     setState(() => _picked = i);
     _markUnderstood();
   }
@@ -1321,8 +1312,6 @@ class _LessonReaderState extends State<_LessonReader> {
     final position = _positionLabel();
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         // Where am I, and in what. An empty bar left a reader who had
         // scrolled past the hero with no idea which lesson or course they
         // were inside.

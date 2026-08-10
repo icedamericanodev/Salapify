@@ -147,7 +147,7 @@ class TreatCard extends StatelessWidget {
     return Card(
       shape: earned
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Radii.lg),
+              borderRadius: BorderRadius.circular(Radii.card),
               side: BorderSide(color: Barako.celebrate),
             )
           : null,
@@ -174,7 +174,7 @@ class TreatCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Barako.celebrate),
-                          borderRadius: BorderRadius.circular(Radii.sm),
+                          borderRadius: BorderRadius.circular(Radii.control),
                         ),
                         child: Text(
                           'EARNED',

@@ -12,7 +12,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
-import 'package:flutter/services.dart';
 
 import '../theme.dart';
 import '../typography.dart';
@@ -27,7 +26,7 @@ void showCelebration(BuildContext context, String message) {
   // The success buzz survives reduce motion on purpose: a confirmation is
   // feedback, not decoration. Flutter has no success-notification haptic,
   // so medium impact stands in.
-  HapticFeedback.mediumImpact();
+  Haptics.milestone();
   // Spoken after a beat so it lands after any dialog dismiss settles, the
   // RN timing.
   final view = View.of(context);

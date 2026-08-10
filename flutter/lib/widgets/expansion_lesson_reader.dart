@@ -20,7 +20,6 @@
 // a stale completion.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../content/course_sequences.dart';
 import '../content/interaction_blocks.dart';
@@ -293,8 +292,6 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
     final position = _positionLabel();
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
         // Where am I, and in what. An 824 word lesson in one scroll gave a
         // reader no orientation at all once the hero scrolled away.
         title: position == null
@@ -379,7 +376,7 @@ class _ExpansionLessonReaderState extends State<ExpansionLessonReader> {
                       onTap: answered
                           ? null
                           : () {
-                              HapticFeedback.selectionClick();
+                              Haptics.select();
                               setState(() => _picked = i);
                             },
                       child: Container(

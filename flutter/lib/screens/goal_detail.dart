@@ -94,14 +94,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Barako.background,
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Goal',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Goal')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: widget.store,
@@ -192,7 +185,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Barako.card,
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.card),
             border: Border.all(color: Barako.border),
           ),
           child: Column(
@@ -372,7 +365,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Column(
@@ -384,7 +377,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
           if (estimate != null) ...[
             const SizedBox(height: 10),
             InkWell(
-              borderRadius: BorderRadius.circular(Radii.sm),
+              borderRadius: BorderRadius.circular(Radii.control),
               onTap: () =>
                   setState(() => _showEstimateParts = !_showEstimateParts),
               child: Padding(
@@ -461,7 +454,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Column(
@@ -519,7 +512,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Column(
@@ -555,7 +548,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Column(
@@ -636,7 +629,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Column(
@@ -681,7 +674,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(Radii.md),
+      borderRadius: BorderRadius.circular(Radii.field),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(10),
@@ -867,7 +860,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   const SizedBox(height: 12),
                   for (final o in others)
                     InkWell(
-                      borderRadius: BorderRadius.circular(Radii.sm),
+                      borderRadius: BorderRadius.circular(Radii.control),
                       onTap: () => setSheetState(
                         () => toId = (o['id'] ?? '').toString(),
                       ),
@@ -1223,6 +1216,10 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Barako.card,
+        // Dialog titles do not inherit appBarTheme, and dialogTheme sets no
+        // titleTextStyle, so this keeps its original heavy weight explicitly.
+        // Unifying confirm-dialog titles is deferred (no shared ConfirmDialog
+        // yet, per the audit).
         title: Text(
           'Delete this goal?',
           style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),

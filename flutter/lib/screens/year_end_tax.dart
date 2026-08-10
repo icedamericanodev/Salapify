@@ -100,14 +100,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
     final isRefund = result['isRefund'] as bool;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Year-end tax check',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Year-end tax check')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -140,7 +133,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Barako.card,
-                  borderRadius: BorderRadius.circular(Radii.lg),
+                  borderRadius: BorderRadius.circular(Radii.card),
                   border: Border.all(color: Barako.warningStrong),
                 ),
                 child: Semantics(
@@ -170,7 +163,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Barako.card,
-                    borderRadius: BorderRadius.circular(Radii.lg),
+                    borderRadius: BorderRadius.circular(Radii.card),
                     border: Border.all(color: Barako.border),
                   ),
                   child: Text(
@@ -187,7 +180,7 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Barako.card,
-                    borderRadius: BorderRadius.circular(Radii.lg),
+                    borderRadius: BorderRadius.circular(Radii.card),
                     border: Border.all(
                       color: difference == 0
                           ? Barako.border
@@ -293,11 +286,11 @@ class _YearEndTaxScreenState extends State<YearEndTaxScreen> {
       filled: true,
       fillColor: Barako.card,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: Barako.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.field),
         borderSide: BorderSide(color: Barako.border),
       ),
     ),

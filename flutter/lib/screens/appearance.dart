@@ -18,7 +18,6 @@
 // already compiled in, so it patches over the air.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/store.dart';
 import '../theme.dart';
@@ -75,14 +74,7 @@ class AppearanceScreen extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Barako.background,
-            foregroundColor: Barako.text,
-            title: Text(
-              'Appearance',
-              style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-            ),
-          ),
+          appBar: AppBar(title: Text('Appearance')),
           body: SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, Gap.xxl),
@@ -218,11 +210,11 @@ class ThemeTile extends StatelessWidget {
         child: PressableScale(
           child: Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.card),
             child: InkWell(
-              borderRadius: BorderRadius.circular(Radii.lg),
+              borderRadius: BorderRadius.circular(Radii.card),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 onTap();
               },
               child: AnimatedContainer(
@@ -231,7 +223,7 @@ class ThemeTile extends StatelessWidget {
                 padding: const EdgeInsets.all(Gap.md),
                 decoration: BoxDecoration(
                   color: Barako.card,
-                  borderRadius: BorderRadius.circular(Radii.lg),
+                  borderRadius: BorderRadius.circular(Radii.card),
                   // The width is ALWAYS 2 and only the color changes. The RN
                   // screen swaps 1dp for 2dp and then shaves a pixel of padding
                   // to compensate, which is a hack around a reflow; holding the
@@ -323,7 +315,7 @@ class _PalettePreview extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color: palette.background,
-              borderRadius: BorderRadius.circular(Radii.sm),
+              borderRadius: BorderRadius.circular(Radii.control),
               // The CURRENT theme's line, not the previewed one. Previewing
               // Barako dark while already on Barako dark puts #1A130E against
               // #251A13, a contrast of 1.08, so the preview would have no

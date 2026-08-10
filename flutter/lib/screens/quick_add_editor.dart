@@ -24,9 +24,9 @@ import '../data/store.dart';
 import '../money/quick_adds.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/amount_text.dart';
 import '../widgets/entry_form.dart' show AmountField;
 import '../widgets/salapify_icon.dart';
-import 'overview.dart' show formatMoney;
 
 Future<void> showQuickAddEditor(BuildContext context, SalapifyStore store) {
   // Opening writes NOTHING. The first version seeded the defaults here so a
@@ -259,10 +259,7 @@ class _QuickAddEditorState extends State<QuickAddEditor> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text(
-          formatMoney(q.amount),
-          style: AppText.amountRow.w4.tint(Barako.textSecondary),
-        ),
+        AmountText(q.amount, role: AmountRole.reference),
         IconButton(
           onPressed: _busy ? null : () => _remove(index),
           icon: Icon(salapifyIcon('close'), size: 18),

@@ -768,23 +768,12 @@ class Radii {
   static const double hero = 26;
   static const double pill = 999;
 
-  // LEGACY aliases, kept so the migration can move screen by screen instead
-  // of in one big-bang diff. Same numbers as before, new names above. Phase 2
-  // and later convert call sites to the semantic rungs and then delete these.
-  // Not @Deprecated: the branch check runs analyze at zero issues, and these
-  // are scheduled for conversion, not accidents.
-
-  /// LEGACY: use [control] (12) for controls; 10 snaps up on conversion.
-  static const double sm = 10;
-
-  /// LEGACY: use [field].
-  static const double md = field;
-
-  /// LEGACY: use [card].
-  static const double lg = card;
-
-  /// LEGACY: use [hero].
-  static const double xl = hero;
+  // The legacy aliases (sm=10, md, lg, xl) that let the migration move screen
+  // by screen are GONE as of Phase 2: every call site now names a semantic
+  // rung, and the 10-radius sm sites snapped up to control (12) as their doc
+  // always said they would on conversion. A source-scanning guard in
+  // design_foundation_test.dart fails if any of the four names comes back, so
+  // one number can never carry two names again.
 }
 
 /// The opacity ladder. Four names instead of the 23 ad-hoc alpha levels the

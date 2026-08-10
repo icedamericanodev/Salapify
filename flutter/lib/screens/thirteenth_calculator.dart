@@ -75,14 +75,7 @@ class _ThirteenthCalculatorScreenState
     final taxed = ((r['taxOnExcess'] as double) + 0.5).floorToDouble() > 0;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          '13th month pay',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('13th month pay')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

@@ -65,14 +65,7 @@ class _PrivacyReceiptScreenState extends State<PrivacyReceiptScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Privacy receipt',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Privacy receipt')),
       body: SafeArea(
         top: false,
         child: ListView(

@@ -57,14 +57,7 @@ class PathScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          path.title,
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text(path.title)),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: store,
@@ -197,9 +190,9 @@ class PathScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   note,
-                  style: AppText.caption.tint(Barako.faint).copyWith(
-                    height: 1.35,
-                  ),
+                  style: AppText.caption
+                      .tint(Barako.faint)
+                      .copyWith(height: 1.35),
                 ),
               ],
               if (next != null && lessonsById[next] != null) ...[
@@ -297,7 +290,10 @@ class _GoDeeperSectionState extends State<_GoDeeperSection> {
               borderRadius: BorderRadius.circular(14),
               onTap: () => setState(() => _open = !_open),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 2,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -356,14 +352,7 @@ class CourseScreen extends StatelessWidget {
       orElse: () => const LearningPathGroup(id: '', title: ''),
     );
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          group.title,
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text(group.title)),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: store,

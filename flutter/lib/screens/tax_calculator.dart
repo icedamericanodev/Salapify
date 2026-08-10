@@ -124,14 +124,7 @@ class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
         : 'Register once with Form 1901. File income tax quarterly on Form 1701Q (May 15, Aug 15, Nov 15) and yearly on ${useOSD ? 'Form 1701A' : 'Form 1701'} (April 15). Also file percentage tax quarterly on Form 2551Q, 3% of your gross.';
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Income tax',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
-      ),
+      appBar: AppBar(title: Text('Income tax')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

@@ -161,11 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final visibleTotal = groups.fold<int>(0, (s, g) => s + (g['count'] as int));
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text('Search', style: AppText.title),
-      ),
+      appBar: AppBar(title: Text('Search', style: AppText.title)),
       body: SafeArea(
         child: Column(
           children: [

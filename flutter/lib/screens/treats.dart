@@ -7,7 +7,6 @@
 // app to the day. Ported from the RN treats screen.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/store.dart';
 import '../money/treats.dart' as treats;
@@ -29,12 +28,7 @@ class TreatsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Earn your treats',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Earn your treats'),
         actions: [
           ListenableBuilder(
             listenable: store,
@@ -324,7 +318,7 @@ class TreatsScreen extends StatelessWidget {
             _CheckInButton(
               doneToday: doneToday,
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 final id = t['id'];
                 if (id is String && store.canWrite) {
                   store.toggleTreatCheckIn(id);
@@ -786,7 +780,7 @@ class _TreatSheetState extends State<_TreatSheet> {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              HapticFeedback.selectionClick();
+              Haptics.select();
               onTap();
             },
             child: Container(
@@ -820,7 +814,7 @@ class _TreatSheetState extends State<_TreatSheet> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  HapticFeedback.selectionClick();
+                  Haptics.select();
                   setState(() {
                     _windowDays = days;
                     // A shorter window can make the current target unreachable;

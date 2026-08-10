@@ -28,12 +28,7 @@ class RecurringScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Barako.background,
-        foregroundColor: Barako.text,
-        title: Text(
-          'Recurring',
-          style: TextStyle(color: Barako.text, fontWeight: FontWeight.w800),
-        ),
+        title: Text('Recurring'),
         actions: [
           TextButton(
             onPressed: () => _onAdd(context),
@@ -584,7 +579,7 @@ class _RecurringSheetState extends State<_RecurringSheet> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                HapticFeedback.selectionClick();
+                Haptics.select();
                 setState(() => _type = value);
               },
               child: Container(

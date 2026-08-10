@@ -7,7 +7,6 @@
 // runway with its honesty rules.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../data/store.dart';
 import '../money/analytics.dart' as analytics;
 import '../money/chartgeom.dart' as chartgeom;
@@ -32,6 +31,7 @@ import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
+import '../widgets/amount_text.dart';
 import 'afford_card.dart';
 import 'history.dart' show HistoryScreen;
 import 'log_sheet.dart' show showLogSheet;
@@ -783,16 +783,10 @@ class InsightsScreen extends StatelessWidget {
           children: [
             Kicker('SAFE TO SPEND UNTIL PAYDAY'),
             const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoney(available > 0 ? available : 0),
-                maxLines: 1,
-                style: AppText.amountLg.w7.tint(
-                  tight ? Barako.warning : Barako.primary,
-                ),
-              ),
+            AmountText(
+              available > 0 ? available : 0,
+              role: AmountRole.lg,
+              tint: tight ? Barako.warning : Barako.primary,
             ),
             const SizedBox(height: 4),
             Text(
@@ -1539,7 +1533,7 @@ class InsightsScreen extends StatelessWidget {
     final denom = scale > 0 ? scale : 1.0;
     return InkWell(
       onTap: () {
-        HapticFeedback.selectionClick();
+        Haptics.select();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => HistoryScreen(
@@ -2052,7 +2046,7 @@ class _MonthTrendChartState extends State<_MonthTrendChart> {
     // 8 + i * (width - 16) / (n - 1).
     final i = (((dx - 8) / (width - 16)) * (n - 1)).round().clamp(0, n - 1);
     if (i != selected) {
-      HapticFeedback.selectionClick();
+      Haptics.select();
       setState(() => selected = i);
     }
   }

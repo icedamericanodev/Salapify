@@ -99,7 +99,7 @@ class BillsBeforePayday extends StatelessWidget {
               const SizedBox(height: Gap.md),
               InkWell(
                 onTap: onMore,
-                borderRadius: BorderRadius.circular(Radii.sm),
+                borderRadius: BorderRadius.circular(Radii.control),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: Gap.xs),
                   child: Row(
