@@ -19,23 +19,18 @@ class SalapifyUpdatingIndicator extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       label: label,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!reduceMotion)
-            SpinKitThreeBounce(color: Barako.primary, size: 18)
-          else
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Barako.primary,
-              ),
-            ),
-          const SizedBox(width: 8),
-          Text(label, style: AppText.small),
-        ],
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!reduceMotion)
+              SpinKitThreeBounce(color: Barako.primary, size: 18)
+            else
+              Icon(Icons.sync, size: 18, color: Barako.primary),
+            const SizedBox(width: 8),
+            Text(label, style: AppText.small),
+          ],
+        ),
       ),
     );
   }
