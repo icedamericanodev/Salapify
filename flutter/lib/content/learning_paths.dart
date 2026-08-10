@@ -83,8 +83,8 @@ const List<LearningPath> learningPaths = [
     id: 'grow_your_money',
     title: 'Grow Your Money',
     shortDescription:
-        'Start with whether your foundation, and your money, are ready for '
-        'investing.',
+        'Get ready to invest, then how stocks, bonds, funds, government '
+        'securities, and crypto actually work.',
     icon: 'growth',
     groups: [
       LearningPathGroup(
@@ -200,8 +200,8 @@ const List<LearningPath> learningPaths = [
     id: 'protect_your_future',
     title: 'Protect Your Future',
     shortDescription:
-        'Understand your protection needs and compare policy types before '
-        'you talk to an insurer or agent.',
+        'Insurance, plus SSS, PhilHealth, and Pag-IBIG, explained before you '
+        'need them.',
     icon: 'protected',
     groups: [
       LearningPathGroup(

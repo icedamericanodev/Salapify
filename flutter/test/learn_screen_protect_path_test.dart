@@ -57,7 +57,7 @@ void main() {
       expect(find.text('Protect Your Future'), findsOneWidget);
       expect(
         find.textContaining(
-          'Understand your protection needs and compare policy types',
+          'Insurance, plus SSS, PhilHealth, and Pag-IBIG',
         ),
         findsOneWidget,
       );

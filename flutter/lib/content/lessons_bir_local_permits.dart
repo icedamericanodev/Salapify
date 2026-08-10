@@ -269,10 +269,22 @@ const _orderThatMatters = MoneyLesson(
     SortingBlock(
       blockId: 'order-that-matters-sequence',
       sortingPrompt: 'Put this general sequence in the order it should happen.',
+      // Graded order corrected in Batch C5: this block used to grade BIR
+      // registration at position 2, ahead of the local permits, which
+      // contradicted this same lesson's own prose and nugget, the sibling
+      // course "Business Permits & Compliance", and the independently
+      // confirmed documentary flow (the Business Permit is a supporting
+      // requirement for BIR registration, so the local permits come first).
+      // A tax-professional review ruled local-permits-then-BIR authoritative.
       items: [
         SortingItemDef(
           id: 'name-registered',
           label: 'Business or entity name registered (DTI, SEC, or CDA)',
+        ),
+        SortingItemDef(id: 'barangay', label: 'Barangay clearance'),
+        SortingItemDef(
+          id: 'mayors-permit',
+          label: 'City or municipal Business Permit (Mayor\'s Permit)',
         ),
         SortingItemDef(
           id: 'bir-registration',
@@ -281,11 +293,6 @@ const _orderThatMatters = MoneyLesson(
         SortingItemDef(
           id: 'books-invoices',
           label: 'Books of accounts and invoices or receipts set up',
-        ),
-        SortingItemDef(id: 'barangay', label: 'Barangay clearance'),
-        SortingItemDef(
-          id: 'mayors-permit',
-          label: 'City or municipal Business Permit (Mayor\'s Permit)',
         ),
         SortingItemDef(
           id: 'ongoing-filing',
@@ -319,18 +326,18 @@ const _orderThatMatters = MoneyLesson(
     correctIndex: 0,
     explanation:
         'This lesson\'s own diagram places books and invoices right after '
-        'BIR registration, before barangay clearance and the Business '
-        'Permit.',
+        'BIR registration, which itself generally comes after the barangay '
+        'clearance and the Business Permit.',
     whyWrong:
         'Skipping barangay clearance, or treating BIR registration as the '
         'last step, both contradict the sequence this lesson names.',
   ),
   keyTakeaway:
-      'After a business or entity name is registered, BIR registration, '
-      'books and invoices, barangay clearance, and a city or municipal '
-      'Business Permit all generally follow, though the order between BIR '
-      'and the local permits can shift by city and Revenue District '
-      'Office, so confirming it with each office is worth doing.',
+      'After a business or entity name is registered, the barangay clearance '
+      'and a city or municipal Business Permit generally come first, then BIR '
+      'registration and setting up books and invoices, though the order '
+      'between BIR and the local permits can shift by city and Revenue '
+      'District Office, so confirming it with each office is worth doing.',
 );
 
 // ---------------------------------------------------------------------------
